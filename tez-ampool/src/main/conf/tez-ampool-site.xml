@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<configuration>
+
+  <!-- Uncomment out and set values as needed.
+       Current file is a duplicate of the default settings -->
+
+  <!--
+  <property>
+    <description>Memory to use for AMPoolService AM</description>
+    <name>tez.ampool.am.master_memory</name>
+    <value>1024</value>
+  </property>
+
+  <property>
+    <description>Queue to launch AMPoolService AM</description>
+    <name>tez.ampool.am.master_queue</name>
+    <value>default</value>
+  </property>
+
+  <property>
+    <description>Port to use for AMPoolService status</description>
+    <name>tez.ampool.ws.port</name>
+    <value>12999</value>
+  </property>
+
+  <property>
+    <description>Minimum size of AM Pool</description>
+    <name>tez.ampool.am-pool-size</name>
+    <value>3</value>
+  </property>
+
+  <property>
+    <description>Maximum size of AM Pool</description>
+    <name>tez.ampool.max-am-pool-size</name>
+    <value>5</value>
+  </property>
+
+  <property>
+    <description>When to launch new AM. If true, launched after an existing AM in pool completes. Else, launched as soon as a job is assigned to an AM from the pool</description>
+    <name>tez.ampool.launch-new-am-after-app-completion</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <description>How many launch failures to account for unassigned AMs before shutting down AMPoolService</description>
+    <name>tez.ampool.max-am-launch-failures</name>
+    <value>10</value>
+  </property>
+
+  <property>
+    <description>No. of threads to use to serve the ClientRMProtocol proxy fronted by the AMPoolService</description>
+    <name>tez.ampool.rm-proxy-client.thread-count</name>
+    <value>10</value>
+  </property>
+
+  <property>
+    <description>Address on which to run the ClientRMProtocol proxy</description>
+    <name>tez.ampool.address</name>
+    <value>0.0.0.0:10030</value>
+  </property>
+
+  <property>
+    <description>Memory to use when launching the lazy MR AM</description>
+    <name>tez.ampool.mr-am.memory-allocation-mb</name>
+    <value>1536</value>
+  </property>
+
+  <property>
+    <description>Queue to which the Lazy MRAM is to be submitted to</description>
+    <name>tez.ampool.mr-am.queue-name</name>
+    <value>default</value>
+  </property>
+
+  <property>
+    <description>Comma-separated paths to job jars on DFS (optional)</description>
+    <name>tez.ampool.mr-am.job-jar-path</name>
+    <value></value>
+  </property>
+
+  <property>
+    <description>Main class for Lazy MRAM</description>
+    <name>tez.ampool.mr-am.application-master-class</name>
+    <value>org.apache.hadoop.mapreduce.v2.app2.lazy.LazyMRAppMaster</value>
+  </property>
+
+  <property>
+    <description>Local filesystem path for staging local data used by AMPoolClient/AMPoolService</description>
+    <name>tez.ampool.tmp-dir-path</name>
+    <value>/tmp/ampoolservice/</value>
+  </property>
+
+  <property>
+    <description>Path on FS used by AMPoolService to upload lazy-mr-am config</description>
+    <name>tez.ampool.am.staging-dir</name>
+    <value>/tmp/tez/ampool/staging/</value>
+  </property>
+  -->
+
+</configuration>
+
