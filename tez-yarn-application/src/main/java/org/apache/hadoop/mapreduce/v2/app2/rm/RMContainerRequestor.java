@@ -45,7 +45,6 @@ import org.apache.hadoop.yarn.Clock;
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
-import org.apache.hadoop.yarn.api.records.AMResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -56,6 +55,8 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.hadoop.yarn.util.Records;
+
+
 
 
 /**
@@ -319,7 +320,7 @@ public class RMContainerRequestor extends RMCommunicator implements ContainerReq
     int headRoom = getAvailableResources() != null ? getAvailableResources()
         .getMemory() : 0;// first time it would be null
     int lastClusterNmCount = clusterNmCount;
-    AMResponse response = errorCheckedMakeRemoteRequest();
+    AllocateResponse response = errorCheckedMakeRemoteRequest();
     
     int newHeadRoom = getAvailableResources() != null ? getAvailableResources()
         .getMemory() : 0;
@@ -373,8 +374,8 @@ public class RMContainerRequestor extends RMCommunicator implements ContainerReq
 
   
   @SuppressWarnings("unchecked")
-  protected AMResponse errorCheckedMakeRemoteRequest() throws Exception {
-    AMResponse response = null;
+  protected AllocateResponse errorCheckedMakeRemoteRequest() throws Exception {
+	AllocateResponse response = null;
     try {
       response = makeRemoteRequest();
       // Reset retry count if no exception occurred.
@@ -405,7 +406,7 @@ public class RMContainerRequestor extends RMCommunicator implements ContainerReq
   }
   
   
-  protected AMResponse makeRemoteRequest() throws Exception {
+  protected AllocateResponse makeRemoteRequest() throws Exception {
     List<ContainerId> clonedReleaseList = cloneAndClearReleaseList();
     List<ResourceRequest> clonedAskList = cloneAndClearAskList();
 
@@ -419,20 +420,20 @@ public class RMContainerRequestor extends RMCommunicator implements ContainerReq
       rePopulateListsOnError(clonedReleaseList, clonedAskList);
       throw e;
     }
-    AMResponse response = allocateResponse.getAMResponse();
-    lastResponseID = response.getResponseId();
-    availableResources = response.getAvailableResources();
+    
+    lastResponseID = allocateResponse.getResponseId();
+    availableResources = allocateResponse.getAvailableResources();
     clusterNmCount = allocateResponse.getNumClusterNodes();
 
     if (clonedAskList.size() > 0 || clonedReleaseList.size() > 0) {
       LOG.info("getResources() for " + applicationId + ":" + " ask="
           + clonedAskList.size() + " release= " + clonedReleaseList.size() 
-          + " newContainers=" + response.getAllocatedContainers().size() 
-          + " finishedContainers="+ response.getCompletedContainersStatuses().size()
+          + " newContainers=" + allocateResponse.getAllocatedContainers().size() 
+          + " finishedContainers="+ allocateResponse.getCompletedContainersStatuses().size()
           + " resourcelimit=" + availableResources + " knownNMs=" + clusterNmCount);
     }
 
-    return response;
+    return allocateResponse;
   }
 
   @Override

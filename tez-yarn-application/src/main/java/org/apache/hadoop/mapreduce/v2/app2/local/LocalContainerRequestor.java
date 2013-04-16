@@ -36,7 +36,6 @@ import org.apache.hadoop.mapreduce.v2.app2.rm.RMContainerRequestor.ContainerRequ
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
-import org.apache.hadoop.yarn.api.records.AMResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -79,10 +78,10 @@ public class LocalContainerRequestor extends RMCommunicator implements
         this.applicationAttemptId, this.lastResponseID, super
             .getApplicationProgress(), new ArrayList<ResourceRequest>(),
         new ArrayList<ContainerId>());
-    AllocateResponse allocateResponse = scheduler.allocate(allocateRequest);
-    AMResponse response;
+    
+    AllocateResponse response;
     try {
-      response = allocateResponse.getAMResponse();
+      response = scheduler.allocate(allocateRequest);
       // Reset retry count if no exception occurred.
       retrystartTime = System.currentTimeMillis();
     } catch (Exception e) {

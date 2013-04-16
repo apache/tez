@@ -47,7 +47,6 @@ import org.apache.hadoop.yarn.api.protocolrecords.FinishApplicationMasterRequest
 import org.apache.hadoop.yarn.api.protocolrecords.FinishApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
-import org.apache.hadoop.yarn.api.records.AMResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -167,12 +166,10 @@ public class TestRMContainerRequestor {
   }
   
   private AMRMProtocolForFailedAllocate createAMRMProtocolForFailedAllocate() {
-    AMResponse amResponse = 
-        newAMResponse(new ArrayList<Container>(),
+    AllocateResponse allocateResponse = 
+        newAllocateResponse(new ArrayList<Container>(),
             BuilderUtils.newResource(1024, 1), new ArrayList<ContainerStatus>(),
-            false, 1, new ArrayList<NodeReport>());
-    AllocateResponse allocateResponse = newAllocateResponse(
-        amResponse, 2);
+            false, 1, new ArrayList<NodeReport>(), 2);
     return new AMRMProtocolForFailedAllocate(allocateResponse);
   }
 
@@ -238,12 +235,10 @@ public class TestRMContainerRequestor {
     public AMRMProtocol createSchedulerProxy() {
       if (amRmProtocol == null) {
         amRmProtocol = mock(AMRMProtocol.class);
-        AMResponse amResponse = newAMResponse(
+        AllocateResponse allocateResponse  = newAllocateResponse(
             new ArrayList<Container>(), BuilderUtils.newResource(1024, 1),
             new ArrayList<ContainerStatus>(), false, 1,
-            new ArrayList<NodeReport>());
-        AllocateResponse allocateResponse = newAllocateResponse(
-            amResponse, 2);
+            new ArrayList<NodeReport>(), 2);
         try {
           when(amRmProtocol.allocate(any(AllocateRequest.class))).thenReturn(allocateResponse);
         } catch (YarnRemoteException e) {
@@ -288,12 +283,10 @@ public class TestRMContainerRequestor {
     public AllocateResponse allocate(AllocateRequest request)
         throws YarnRemoteException {
       this.allocateRequest = request;
-      AMResponse amResponse = newAMResponse(
+      AllocateResponse allocateResponse = newAllocateResponse(
           new ArrayList<Container>(), BuilderUtils.newResource(1024, 1),
           new ArrayList<ContainerStatus>(), false, 1,
-          new ArrayList<NodeReport>());
-      AllocateResponse allocateResponse = newAllocateResponse(
-          amResponse, 2);
+          new ArrayList<NodeReport>(),2);
       return allocateResponse;
     }
   }
@@ -343,24 +336,17 @@ public class TestRMContainerRequestor {
     return allocateRequest;
   }
   
-  public static AllocateResponse newAllocateResponse(AMResponse amResponse,
-      int numNodes) {
-    AllocateResponse response = Records.newRecord(AllocateResponse.class);
-    response.setAMResponse(amResponse);
-    response.setNumClusterNodes(numNodes);
-    return response;
-  }
-  
-  public static AMResponse newAMResponse(List<Container> allocated,
+  public static AllocateResponse newAllocateResponse(List<Container> allocated,
       Resource available, List<ContainerStatus> completed, boolean reboot,
-      int responseId, List<NodeReport> nodeUpdates) {
-    AMResponse amResponse = Records.newRecord(AMResponse.class);
+      int responseId, List<NodeReport> nodeUpdates, int numNodes) {
+	AllocateResponse amResponse = Records.newRecord(AllocateResponse.class);
     amResponse.setAllocatedContainers(allocated);
     amResponse.setAvailableResources(available);
     amResponse.setCompletedContainersStatuses(completed);
     amResponse.setReboot(reboot);
     amResponse.setResponseId(responseId);
     amResponse.setUpdatedNodes(nodeUpdates);
+    amResponse.setNumClusterNodes(numNodes);
     return amResponse;
   }
 }
