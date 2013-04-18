@@ -1,0 +1,33 @@
+How to run MR on TEZ
+=======================
+
+Tez provides an ApplicationMaster that can run MR or MRR jobs. There is a
+translation layer implemented ( may have bugs so please file JIRAs if you 
+come across any issues ) that allows a user to run an MR job against the TEZ
+DAG ApplicationMaster.
+
+NOTE: Due to some quirks, all jobs will show an IOException and a failure at
+the end. Please look at the YARN ResourceManager UI to check the correct result
+of the job.
+
+Install/Deploy Instructions
+===========================
+
+1) Deploy Apache Hadoop using the 3.0.0-SNAPSHOT from trunk.
+2) Copy the tez jars and their dependencies from $TEZ_SRC/tez-dist/target/tez-0.2.0-SNAPSHOT/
+   either into $HADOOP_PREFIX/share/hadoop/common/lib/ or modify HADOOP_CLASSPATH
+   in hadoop-env.sh to point to the location where the TEZ jars and dependencies
+   can be found.
+3) Modify mapred-site.xml to change "mapreduce.framework.name" property from its
+   default value of "yarn" to "yarn-tez"
+4) Submit a MR job as you normally would using something like:
+
+$HADOOP_PREFIX/bin/hadoop jar hadoop-mapreduce-client-jobclient-3.0.0-SNAPSHOT-tests.jar sleep -mt 1 -rt 1 -m 1 -r 1
+
+This will use the TEZ DAG ApplicationMaster to run the MR job. This can be
+verified by looking at the AM's logs from the YARN ResourceManager UI.
+
+5) There is a basic example of using an MRR job in the tez-mapreduce-examples.jar. Refer to WordCountMRRTest.java
+in the source code. To run this example:
+
+$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples-0.2.0-SNAPSHOT.jar wordcountmrrtest <in> <out>

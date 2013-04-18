@@ -1,0 +1,94 @@
+<configuration>
+
+  <!--yarn.app.mapreduce.am.staging-dir-->
+  <property>
+    <name>mapreduce.framework.name</name>
+    <value>yarn</value>
+  </property>
+
+  <!--property>
+    <name>mapreduce.framework.name</name>
+    <value>yarn-tez</value>
+  </property>
+  <property>
+    <name>mapreduce.application.classpath</name>
+    <value>/Users/sseth/work2/hortonworks/mrx/run/mrxDir/*:/Users/sseth/work2/hortonworks/mrx/run/mrxDir/lib/*</value>
+  </property>
+  <property>
+    <name>yarn.app.mapreduce.am.scheduler.reuse.enable</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>yarn.app.mapreduce.am.scheduler.reuse.max-attempts-per-container</name>
+    <value>-1</value>
+  </property-->
+
+
+  <property>
+    <name>mapred.child.java.opts</name>
+    <!--value>-server -Xmx200m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/Users/sseth/work2/hortonworks/mrx/run/dumps -XX:+PrintGCDetails -verbose:gc -XX:+PrintGCTimeStamps</value-->
+    <value>-server -Xmx200m</value>
+  </property>
+
+  <property>
+    <name>mapreduce.map.memory.mb</name>
+    <value>1024</value>
+  </property>
+
+  <property>
+    <name>mapreduce.reduce.memory.mb</name>
+    <value>1024</value>
+  </property>
+
+  <property>
+    <name>yarn.app.mapreduce.am.resource.mb</name>
+    <value>1024</value>
+  </property>
+
+  <property>
+    <name>yarn.app.mapreduce.am.staging-dir</name>
+    <value>/user</value>
+  </property>
+
+  <property>
+    <name>mapreduce.jobhistory.intermediate-done-dir</name>
+    <value>/mapred/history/done_intermediate</value>
+  </property>
+
+  <property>
+    <name>mapreduce.jobhistory.done-dir</name>
+    <value>/mapred/history/done</value>
+  </property>
+
+  <property>
+    <name>mapreduce.shuffle.port</name>
+    <value>2233</value>
+  </property>
+
+  <property>
+    <!--TODO Look at what this property does. Apparently does not delay rampup-->
+    <name>yarn.app.mapreduce.am.job.reduce.rampup.limit</name>
+    <value>1.0</value>
+  </property>
+
+  <property>
+    <name>mapreduce.job.reduce.slowstart.completedmaps</name>
+    <value>1.0</value>
+  </property>
+
+  <property>
+    <name>yarn.app.mapreduce.am.log.level</name>
+    <value>DEBUG</value>
+  </property>
+
+  <!--property>
+    <name>mapreduce.map.log.level</name>
+    <value>DEBUG</value>
+  </property-->
+
+  <!--property>
+    <name>mapreduce.reduce.log.level</name>
+    <value>DEBUG</value>
+  </property-->
+
+</configuration>

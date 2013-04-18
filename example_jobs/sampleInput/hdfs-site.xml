@@ -1,0 +1,22 @@
+<configuration>
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>/hadoopWorkDirMrx/var/hdfs/name</value>
+  </property>
+
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>/hadoopWorkDirMrx/var/hdfs/data</value>
+  </property>
+
+  <property>
+    <name>dfs.block.size</name>
+    <value>268435456</value>
+  </property>
+
+  <property>
+    <name>dfs.replication</name>
+    <value>3</value>
+  </property>
+
+</configuration>

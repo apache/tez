@@ -1,0 +1,21 @@
+Remove this entire hierarchy once it's possible to submit jobs via a client.
+
+--- Usage
+MR job
+  JOB_DIR=wc_mr_6m_1r
+  HDFS_JOB_DIR=dagTest
+  CLI_OPTION=mr
+
+MRR job
+  JOB_DIR=wc_mrr_6m_3r_3r
+  HDFS_JOB_DIR=mrrTests
+  CLI_OPTION=mrr
+
+- Steps 
+Copy the contents of JOB_DIR to HDFS path /user/${user}/.staging/${HDFS_JOB_DIR}
+Copy 'sampleInput' into /user/${user}/input
+Ensure the directroy /user/${user}/out101 does not exist.
+Copy job.xml from ${JOB_DIR} to PWD
+Command to execute (Replace paramaters)
+/Users/sseth/work2/hortonworks/mrx/run/deploydir/bin/hadoop jar /Users/sseth/work2/hortonworks/mrx/run/deploydir/share/hadoop/yarn/hadoop-yarn-applications-unmanaged-am-launcher-3.0.0-SNAPSHOT.jar -cmd "java  org.apache.tez.dag.app.DAGAppMaster -predefined ${CLI_OPTION}"
+
