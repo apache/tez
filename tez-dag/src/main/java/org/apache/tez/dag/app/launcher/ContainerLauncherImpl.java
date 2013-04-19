@@ -160,8 +160,8 @@ public class ContainerLauncherImpl extends AbstractService implements
         startRequest.setContainerLaunchContext(containerLaunchContext);
         StartContainerResponse response = proxy.startContainer(startRequest);
 
-        ByteBuffer portInfo = response
-          .getServiceResponse(ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID);
+        ByteBuffer portInfo = response.getAllServiceResponse().get(
+            ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID);
         int port = -1;
         if(portInfo != null) {
           port = ShuffleHandler.deserializeMetaData(portInfo);
