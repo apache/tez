@@ -24,8 +24,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
@@ -76,8 +74,6 @@ import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.client.impl.TezBuilderUtils;
-import org.apache.tez.dag.api.records.AMInfo;
 import org.apache.tez.dag.app.client.ClientService;
 import org.apache.tez.dag.app.client.impl.TezClientService;
 import org.apache.tez.dag.app.dag.DAG;
@@ -165,7 +161,6 @@ public class DAGAppMaster extends CompositeService {
   //protected final MRAppMetrics metrics;
   // TODO Recovery
   //private Map<TezTaskID, TaskInfo> completedTasksFromPreviousRun;
-  private List<AMInfo> amInfos;
   private AppContext context;
   private Dispatcher dispatcher;
   private ClientService clientService;
@@ -181,7 +176,7 @@ public class DAGAppMaster extends CompositeService {
       new JobTokenSecretManager();
   // TODODAGAM Define DAGID
   private TezDAGID dagId;
-//  private boolean newApiCommitter;
+  //  private boolean newApiCommitter;
   private DagEventDispatcher dagEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
   private AbstractService stagingDirCleanerService;
@@ -190,10 +185,6 @@ public class DAGAppMaster extends CompositeService {
   private TaskSchedulerEventHandler taskSchedulerEventHandler;
 
   private DAGLocationHint dagLocationHint;
-
-  // FIXME need to remove requestor and allocator
-  // private ContainerRequestor containerRequestor;
-  // private ContainerAllocator amScheduler;
 
 
   private DAG dag;
@@ -296,7 +287,7 @@ public class DAGAppMaster extends CompositeService {
     taskCleaner = createTaskCleaner(context);
     addIfService(taskCleaner);
 
-    // FIXME TODO DAGClient
+    // TODO TEZ-9
     //service to handle requests from JobClient
     clientService = new TezClientService();
     addIfService(clientService);
@@ -320,7 +311,7 @@ public class DAGAppMaster extends CompositeService {
         new TaskAttemptEventDispatcher());
     dispatcher.register(TaskCleaner.EventType.class, taskCleaner);
 
-    // FIXME handle speculation
+    // TODO TEZ-14
     // speculator = createSpeculator(conf, context);
     // addIfService(speculator);
     speculatorEventDispatcher = new SpeculatorEventDispatcher(conf);
@@ -333,18 +324,6 @@ public class DAGAppMaster extends CompositeService {
     containerLauncher = createContainerLauncher(context);
     addIfService(containerLauncher);
     dispatcher.register(NMCommunicatorEventType.class, containerLauncher);
-
-    // service to allocate containers from RM (if non-uber) or to fake it (uber)
-    /*
-    // FIXME remove requestor and allocator
-    containerRequestor = createContainerRequestor(clientService, context);
-    addIfService(containerRequestor);
-    dispatcher.register(RMCommunicatorEventType.class, containerRequestor);
-
-    amScheduler = createAMScheduler(containerRequestor, context);
-    addIfService(amScheduler);
-    dispatcher.register(AMSchedulerEventType.class, amScheduler);
-    */
 
     taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
         clientService);
@@ -848,10 +827,6 @@ public class DAGAppMaster extends CompositeService {
   }
   */
 
-  public List<AMInfo> getAllAMInfos() {
-    return amInfos;
-  }
-
   public ContainerLauncher getContainerLauncher() {
     return containerLauncher;
   }
@@ -1118,16 +1093,7 @@ public class DAGAppMaster extends CompositeService {
       amInfos = recoveryServ.getAMInfos();
     }
     */
-
-    // / Create the AMInfo for the current AppMaster
-    if (amInfos == null) {
-      amInfos = new LinkedList<AMInfo>();
-    }
-    AMInfo amInfo =
-        TezBuilderUtils.newAMInfo(appAttemptID, startTime, containerID, nmHost,
-            nmPort, nmHttpPort);
-    amInfos.add(amInfo);
-
+    
     // /////////////////// Create the job itself.
     dag = createDAG(getConfig());
 

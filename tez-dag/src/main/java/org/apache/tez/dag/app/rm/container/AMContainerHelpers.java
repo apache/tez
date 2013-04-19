@@ -41,7 +41,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -90,7 +89,7 @@ public class AMContainerHelpers {
   private static ContainerLaunchContext createCommonContainerLaunchContext(
       Map<ApplicationAccessType, String> applicationACLs, Configuration conf,
       Token<JobTokenIdentifier> jobToken,
-      ApplicationId appId, TezVertexID vertexId, Credentials credentials) {
+      TezVertexID vertexId, Credentials credentials) {
 
     // Application resources
     Map<String, LocalResource> localResources =
@@ -145,10 +144,9 @@ public class AMContainerHelpers {
     return container;
   }
 
-  // FIXME does CLC need to work based off DAG id or App Id?
   @VisibleForTesting
   public static ContainerLaunchContext createContainerLaunchContext(
-      Map<ApplicationAccessType, String> applicationACLs,
+      Map<ApplicationAccessType, String> acls,
       ContainerId containerId, JobConf jobConf, TezVertexID vertexId,
       Token<JobTokenIdentifier> jobToken,
       Resource assignedCapability, Map<String, LocalResource> localResources,
@@ -159,9 +157,7 @@ public class AMContainerHelpers {
     synchronized (commonContainerSpecLock) {
       if (commonContainerSpec == null) {
         commonContainerSpec = createCommonContainerLaunchContext(
-            applicationACLs, jobConf, jobToken,
-            vertexId.getDAGId().getApplicationId(),
-            vertexId, credentials);
+            acls, jobConf, jobToken, vertexId, credentials);
       }
     }
 
@@ -173,12 +169,11 @@ public class AMContainerHelpers {
     lResources.putAll(localResources);
 
     // Setup environment by cloning from common env.
-    // FIXME common env is empty
-    // MRChildJVM2.setEnv should become a no-op
     Map<String, String> env = commonContainerSpec.getEnvironment();
     Map<String, String> myEnv = new HashMap<String, String>(env.size());
     myEnv.putAll(env);
     myEnv.putAll(vertexEnv);
+    // TODO TEZ-38 MRChildJVM2.setEnv should become a no-op
     MapReduceChildJVM2.setVMEnv(myEnv, jobConf, vertexId);
 
     // Set up the launch command
@@ -197,7 +192,7 @@ public class AMContainerHelpers {
     ContainerLaunchContext container = BuilderUtils.newContainerLaunchContext(
         commonContainerSpec.getUser(), lResources, myEnv, commands,
         myServiceData, commonContainerSpec.getContainerTokens().duplicate(),
-        applicationACLs);
+        acls);
 
     return container;
   }

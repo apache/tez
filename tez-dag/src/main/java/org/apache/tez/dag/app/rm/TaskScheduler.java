@@ -188,7 +188,7 @@ public class TaskScheduler extends AbstractService
     // upcall to app outside of locks
     AppFinalStatus status = appClient.getFinalAppStatus();
     try {
-      // FIXME make this optional for the reboot case
+      // TODO TEZ-36 dont unregister automatically after reboot sent by RM
       synchronized (this) {
         amRmClient.unregisterApplicationMaster(status.exitStatus, 
                                                status.exitMessage,
@@ -426,7 +426,7 @@ public class TaskScheduler extends AbstractService
   }
   
   private void addTaskRequest(Object task, ContainerRequest<CRCookie> request) {
-    // FIXME duplicates
+    // TODO TEZ-37 fix duplicate handling
     taskRequests.put(task, request);
     amRmClient.addContainerRequest(request);
   }

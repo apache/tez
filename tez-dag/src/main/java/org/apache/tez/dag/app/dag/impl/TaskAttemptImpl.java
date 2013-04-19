@@ -303,7 +303,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   TezTask createRemoteTask() {
     Vertex vertex = getTask().getVertex();
 
-    // FIXME user and jobname
+    // TODO  TEZ-50 user and jobname
     return new TezEngineTask(getID(), "user", "jobname", getTask()
         .getVertex().getName(), mrxModuleClassName,
         vertex.getInputSpecList(), vertex.getOutputSpecList());

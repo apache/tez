@@ -288,7 +288,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     readLock = readWriteLock.readLock();
     writeLock = readWriteLock.writeLock();
     this.attempts = Collections.emptyMap();
-    // FIXME get from conf or API
+    // TODO TEZ-47 get from conf or API
     maxAttempts = 4;
     taskId = new TezTaskID(vertexId, partition);
     this.partition = partition;
@@ -616,7 +616,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   TaskAttemptImpl createAttempt(int attemptNumber) {
-    // FIXME TODODAGAM - implement.
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
         taskAttemptListener, null, 0, conf, committer,
         jobToken, credentials, clock, taskHeartbeatHandler,

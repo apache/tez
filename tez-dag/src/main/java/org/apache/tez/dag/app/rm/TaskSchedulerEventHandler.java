@@ -487,9 +487,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   public synchronized void appRebootRequested() {
     // This can happen if the RM has been restarted. If it is in that state,
     // this application must clean itself up.
-    // TODO change event to REBOOT
-    // FIXME appReboot != dagReboot
-    // TODO handle multiple dags - Answer: this is shared across dags
+    // TODO TEZ-34 change event to reboot and send to app master
     sendEvent(new DAGEvent(appContext.getDAGID(),
                            DAGEventType.INTERNAL_ERROR));
     throw new YarnException("ResourceManager requests reboot for: "
@@ -545,7 +543,7 @@ public class TaskSchedulerEventHandler extends AbstractService
 
   @Override
   public void onError(Exception e) {
-    // TODO Possibly wait for some time and then stop
+    // TODO TEZ-35 handle error
   }
 
 }

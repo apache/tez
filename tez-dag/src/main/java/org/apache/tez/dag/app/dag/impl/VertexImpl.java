@@ -393,7 +393,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public DAGConfiguration getConf() {
-    // FIXME this should be renamed as it is giving global DAG conf
+    // TODO TEZ-24 this should be renamed as it is giving global DAG conf
     // we need a function to give user-land configuration for this vertex
     return conf;
   }
@@ -679,8 +679,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   static VertexState checkVertexCompleteSuccess(VertexImpl vertex) {
-    // FIXME this vertex is definitely buggy as completed includes killed/failed
-    // check for vertex success
+    // TODO TEZ-39 this vertex is definitely buggy as completed includes
+    // killed/failed check for vertex success
     if (vertex.completedTaskCount == vertex.tasks.size()) {
       if (vertex.failedTaskCount > 0) {
         try {
@@ -760,7 +760,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
         checkTaskLimits();
 
-        // FIXME should depend on source num tasks
+        // TODO should depend on source num tasks
         vertex.sourceTaskAttemptCompletionEvents =
             new ArrayList<TezDependentTaskCompletionEvent>(vertex.numTasks + 10);
 
@@ -769,13 +769,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         
         
 
-        // FIXME this only works if all edges are bipartite
         boolean hasBipartite = false;
         if (vertex.sourceVertices != null) {
           for (EdgeProperty edgeProperty : vertex.sourceVertices.values()) {
-            // FIXME The init needs to be in
-            // topo sort order of graph or else source may not be initialized.
-            // Also should not depend on assumption of single-threaded dispatcher
             if(edgeProperty.getConnectionPattern() == ConnectionPattern.BIPARTITE) {
               hasBipartite = true;
               break;
@@ -787,18 +783,20 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // setup vertex scheduler
           // TODO this needs to consider data size and perhaps API. 
           // Currently implicitly BIPARTITE is the only edge type
+          // TODO TEZ-40 config from TeztConfiguration          
           vertex.vertexScheduler = new 
               BipartiteSlowStartVertexScheduler(vertex,
-                                                0.5f,  // FIXME get from config
-                                                0.8f); // FIXME get from config
+                                                0.5f,
+                                                0.8f);
         } else {
           // schedule all tasks upon vertex start
           vertex.vertexScheduler = new ImmediateStartVertexScheduler(vertex);
         }
 
         // FIXME how do we decide vertex needs a committer?
+        // Answer: Do commit for every vertex
         // for now, only for leaf vertices
-        // FIXME make commmitter type configurable per vertex
+        // TODO TEZ-41 make commmitter type configurable per vertex
         if (vertex.targetVertices.isEmpty()) {
           vertex.committer = new MRVertexOutputCommitter();
         }
@@ -1027,7 +1025,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       //eventId is equal to index in the arraylist
       tce.setEventId(vertex.sourceTaskAttemptCompletionEvents.size());
       vertex.sourceTaskAttemptCompletionEvents.add(tce);
-      // FIXME this needs to be ordered/grouped by source vertices or else 
+      // TODO this needs to be ordered/grouped by source vertices or else 
       // my tasks will not know which events are for which vertices' tasks. This 
       // differentiation was not needed for MR because there was only 1 M stage.
       // if the tce is sent to the task then a solution could be to add vertex 
@@ -1059,7 +1057,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       TezDependentTaskCompletionEvent tce =
         ((VertexEventTaskAttemptCompleted) event).getCompletionEvent();
 
-      // FIXME this should only be sent for successful events? looks like all 
+      // TODO this should only be sent for successful events? looks like all 
       // need to be sent in the existing shuffle code
       // Notify all target vertices
       if (vertex.targetVertices != null) {
@@ -1113,7 +1111,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     @Override
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
-      vertex.completedTaskCount++;//FIXME this is a bug
+      vertex.completedTaskCount++;// TEZ-39 this is a bug
       LOG.info("Num completed Tasks: " + vertex.completedTaskCount);
       VertexEventTaskCompleted taskEvent = (VertexEventTaskCompleted) event;
       Task task = vertex.tasks.get(taskEvent.getTaskID());
