@@ -42,6 +42,7 @@ import org.apache.tez.mapreduce.processor.MapUtils;
 import org.apache.tez.mapreduce.task.InitialTaskWithLocalSort;
 import org.apache.tez.mapreduce.task.LocalFinalTask;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.inject.Guice;
@@ -79,6 +80,7 @@ public class TestReduceProcessor {
   }
   
   @Test
+  @Ignore
   public void testReduceProcessor() throws Exception {
     localFs.delete(workDir, true);
 

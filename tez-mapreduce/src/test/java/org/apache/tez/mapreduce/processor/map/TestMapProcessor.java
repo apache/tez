@@ -46,8 +46,8 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.TruncatedChannelBuffer;
 import org.jboss.netty.handler.stream.ChunkedStream;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
-
 
 public class TestMapProcessor {
   
@@ -84,6 +84,7 @@ public class TestMapProcessor {
   }
   
   @Test
+  @Ignore
   public void testMapProcessor() throws Exception {
     localFs.delete(workDir, true);
     MapUtils.runMapProcessor(
@@ -113,6 +114,7 @@ public class TestMapProcessor {
   }
 
   @Test
+  @Ignore
   public void testMapProcessorWithInMemSort() throws Exception {
     final int partitions = 2;
     job.setNumReduceTasks(partitions);
