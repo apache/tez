@@ -31,7 +31,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -319,19 +318,17 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventLaunchRequest event = (AMContainerEventLaunchRequest) cEvent;
-      
-      JobConf jobConf = new JobConf(event.getConf());
-      
+
       container.clc = AMContainerHelpers.createContainerLaunchContext(
           container.appContext.getApplicationACLs(),
-          container.getContainerId(), jobConf,
+          container.getContainerId(), event.getConf(),
           event.getVertexId(),
           event.getJobToken(),
           container.getContainer().getResource(),
           event.getLocalResources(),
           event.getEnvironment(),
           container.taskAttemptListener, event.getCredentials(),
-          event.shouldProfile());
+          event.shouldProfile(), container.appContext);
 
       container.registerWithTAListener();
       container.sendStartRequestToNM();

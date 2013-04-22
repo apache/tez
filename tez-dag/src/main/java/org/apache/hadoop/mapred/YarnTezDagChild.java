@@ -67,6 +67,7 @@ import org.apache.log4j.LogManager;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.runtime.TezEngineFactory;
@@ -290,7 +291,7 @@ public class YarnTezDagChild {
     JobConf job = task.getConf();
     
     String appAttemptIdEnv = System
-        .getenv(MRJobConfig.APPLICATION_ATTEMPT_ID_ENV);
+        .getenv(TezConfiguration.APPLICATION_ATTEMPT_ID_ENV);
     LOG.debug("APPLICATION_ATTEMPT_ID: " + appAttemptIdEnv);
     // Set it in conf, so as to be able to be used the the OutputCommitter.
     job.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, Integer

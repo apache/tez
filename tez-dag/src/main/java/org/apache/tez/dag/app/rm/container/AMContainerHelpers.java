@@ -33,9 +33,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceChildJVM2;
-import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -50,11 +47,14 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.dag.api.DAGConfiguration;
+import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.utils.TezEngineChildJVM;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
+import org.apache.tez.engine.common.security.TokenCache;
 import org.apache.tez.engine.common.shuffle.server.ShuffleHandler;
 import org.apache.tez.engine.records.TezVertexID;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -138,7 +138,7 @@ public class AMContainerHelpers {
     // The null fields are per-container and will be constructed for each
     // container separately.
     ContainerLaunchContext container = BuilderUtils.newContainerLaunchContext(
-        conf.get(MRJobConfig.USER_NAME), localResources,
+        conf.get(DAGConfiguration.USER_NAME), localResources,
         environment, null, serviceData, taskCredentialsBuffer, applicationACLs);
 
     return container;
@@ -147,17 +147,17 @@ public class AMContainerHelpers {
   @VisibleForTesting
   public static ContainerLaunchContext createContainerLaunchContext(
       Map<ApplicationAccessType, String> acls,
-      ContainerId containerId, JobConf jobConf, TezVertexID vertexId,
+      ContainerId containerId, Configuration conf, TezVertexID vertexId,
       Token<JobTokenIdentifier> jobToken,
       Resource assignedCapability, Map<String, LocalResource> localResources,
       Map<String, String> vertexEnv,
       TaskAttemptListener taskAttemptListener, Credentials credentials,
-      boolean shouldProfile) {
+      boolean shouldProfile, AppContext appContext) {
 
     synchronized (commonContainerSpecLock) {
       if (commonContainerSpec == null) {
         commonContainerSpec = createCommonContainerLaunchContext(
-            acls, jobConf, jobToken, vertexId, credentials);
+            acls, conf, jobToken, vertexId, credentials);
       }
     }
 
@@ -174,11 +174,11 @@ public class AMContainerHelpers {
     myEnv.putAll(env);
     myEnv.putAll(vertexEnv);
     // TODO TEZ-38 MRChildJVM2.setEnv should become a no-op
-    MapReduceChildJVM2.setVMEnv(myEnv, jobConf, vertexId);
+    TezEngineChildJVM.setVMEnv(myEnv, conf, vertexId, appContext);
 
     // Set up the launch command
-    List<String> commands = MapReduceChildJVM2.getVMCommand(
-        taskAttemptListener.getAddress(), jobConf, vertexId, containerId,
+    List<String> commands = TezEngineChildJVM.getVMCommand(
+        taskAttemptListener.getAddress(), conf, vertexId, containerId,
         vertexId.getDAGId().getApplicationId(), shouldProfile);
 
     // Duplicate the ByteBuffers for access by multiple containers.

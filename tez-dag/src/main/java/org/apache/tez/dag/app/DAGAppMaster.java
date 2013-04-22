@@ -36,7 +36,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -1305,8 +1304,6 @@ public class DAGAppMaster extends CompositeService {
       dagConf.setBoolean("fs.automatic.close", false);
 
       dagConf.set(DAGConfiguration.USER_NAME, jobUserName);
-      // TODO Remove after fixing TaskLanch JVM construction
-      dagConf.set(MRJobConfig.USER_NAME, jobUserName);
 
       initAndStartAppMaster(appMaster, new YarnConfiguration(dagConf),
           jobUserName);

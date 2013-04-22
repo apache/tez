@@ -60,6 +60,9 @@ public class TezConfiguration extends Configuration {
     TEZ_HOME_ENV + "/lib/*"
   };
 
+  public static final String APPLICATION_ATTEMPT_ID_ENV = "APPLICATION_ATTEMPT_ID_ENV";
+  
+  
   public static final String DAG_AM_PLAN_CONFIG_XML = "tez-dag.xml";
 
 }

@@ -16,42 +16,72 @@
 * limitations under the License.
 */
 
-package org.apache.hadoop.mapred;
+package org.apache.tez.dag.utils;
 
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapred.TaskLog.LogName;
+import org.apache.hadoop.mapred.YarnTezDagChild;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.engine.records.TezVertexID;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
-public class MapReduceChildJVM2 {
+public class TezEngineChildJVM {
 
+  // FIXME 
+  public static enum LogName {
+    /** Log on the stdout of the task. */
+    STDOUT ("stdout"),
+
+    /** Log on the stderr of the task. */
+    STDERR ("stderr"),
+    
+    /** Log on the map-reduce system logs of the task. */
+    SYSLOG ("syslog"),
+    
+    /** The java profiler information. */
+    PROFILE ("profile.out"),
+    
+    /** Log the debug script's stdout  */
+    DEBUGOUT ("debugout");
+        
+    private String prefix;
+    
+    private LogName(String prefix) {
+      this.prefix = prefix;
+    }
+    
+    @Override
+    public String toString() {
+      return prefix;
+    }
+  }
+  
   private static String getTaskLogFile(LogName filter) {
     return ApplicationConstants.LOG_DIR_EXPANSION_VAR + Path.SEPARATOR + 
         filter.toString();
   }
   
-  public static void setVMEnv(Map<String, String> environment, JobConf conf,
-      TezVertexID vertexId) {
+  public static void setVMEnv(Map<String, String> environment, Configuration conf,
+      TezVertexID vertexId, AppContext appContext) {
 
     // FIXME this should be derivable from the container id set by the NM
     // and not require the AM to set
-    environment.put(MRJobConfig.APPLICATION_ATTEMPT_ID_ENV,
-        conf.get(MRJobConfig.APPLICATION_ATTEMPT_ID).toString());
-
+    environment.put(TezConfiguration.APPLICATION_ATTEMPT_ID_ENV,
+        String.valueOf(appContext.getApplicationAttemptId().getAttemptId()));
   }
 
   public static List<String> getVMCommand(
-      InetSocketAddress taskAttemptListenerAddr, JobConf conf, 
+      InetSocketAddress taskAttemptListenerAddr, Configuration conf, 
       TezVertexID vertexId, 
       ContainerId containerId, ApplicationId jobID, boolean shouldProfile) {
 
@@ -84,8 +114,8 @@ public class MapReduceChildJVM2 {
 
     // Finally add the containerId.
     vargs.add(String.valueOf(containerId.toString()));
-    vargs.add("1>" + getTaskLogFile(TaskLog.LogName.STDOUT));
-    vargs.add("2>" + getTaskLogFile(TaskLog.LogName.STDERR));
+    vargs.add("1>" + getTaskLogFile(LogName.STDOUT));
+    vargs.add("2>" + getTaskLogFile(LogName.STDERR));
 
     // Final commmand
     StringBuilder mergedCommand = new StringBuilder();
