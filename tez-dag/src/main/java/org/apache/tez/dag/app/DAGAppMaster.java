@@ -23,9 +23,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.security.PrivilegedExceptionAction;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -38,7 +36,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.v2.util.MRApps;
+import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -55,9 +53,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
@@ -66,14 +61,10 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.hadoop.yarn.service.CompositeService;
 import org.apache.hadoop.yarn.service.Service;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.DAGConfiguration;
 import org.apache.tez.dag.api.DAGLocationHint;
-import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.app.client.ClientService;
 import org.apache.tez.dag.app.client.impl.TezClientService;
 import org.apache.tez.dag.app.dag.DAG;
@@ -104,7 +95,6 @@ import org.apache.tez.dag.app.rm.RMContainerRequestor.ContainerRequest;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
 import org.apache.tez.dag.app.rm.container.AMContainer;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
-import org.apache.tez.dag.app.rm.container.AMContainerHelpers;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.AMContainerState;
 import org.apache.tez.dag.app.rm.node.AMNodeEventType;
@@ -116,7 +106,6 @@ import org.apache.tez.dag.app.taskclean.TaskCleaner;
 import org.apache.tez.dag.app.taskclean.TaskCleanerImpl;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
 import org.apache.tez.engine.records.TezDAGID;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 /**
  * The Map-Reduce Application Master.
@@ -227,9 +216,7 @@ public class DAGAppMaster extends CompositeService {
 
     // Job name is the same as the app name util we support DAG of jobs
     // for an app later
-    appName = conf.get(MRJobConfig.JOB_NAME, "<missing app name>");
-
-    conf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, appAttemptID.getAttemptId());
+    appName = conf.get(DAGConfiguration.JOB_NAME, "<missing app name>");
 
     dagId = new TezDAGID(appAttemptID.getApplicationId(), 1);
 
@@ -664,10 +651,10 @@ public class DAGAppMaster extends CompositeService {
         // Read the file-system tokens from the localized tokens-file.
         Path jobSubmitDir =
             FileContext.getLocalFSFileContext().makeQualified(
-                new Path(new File(MRJobConfig.JOB_SUBMIT_DIR)
+                new Path(new File(DAGConfiguration.JOB_SUBMIT_DIR)
                     .getAbsolutePath()));
         Path jobTokenFile =
-            new Path(jobSubmitDir, MRJobConfig.APPLICATION_TOKENS_FILE);
+            new Path(jobSubmitDir, DAGConfiguration.APPLICATION_TOKENS_FILE);
         fsTokens.addAll(Credentials.readTokenStorageFile(jobTokenFile, conf));
         LOG.info("jobSubmitDir=" + jobSubmitDir + " jobTokenFile="
             + jobTokenFile);
@@ -727,7 +714,7 @@ public class DAGAppMaster extends CompositeService {
     try {
       speculatorClass
           // "yarn.mapreduce.job.speculator.class"
-          = conf.getClass(MRJobConfig.MR_AM_JOB_SPECULATOR,
+          = conf.getClass(DAGConfiguration.DAG_AM_SPECULATOR_CLASS,
                           DefaultSpeculator.class,
                           Speculator.class);
       Constructor<? extends Speculator> speculatorConstructor
@@ -738,19 +725,19 @@ public class DAGAppMaster extends CompositeService {
       return result;
     } catch (InstantiationException ex) {
       LOG.error("Can't make a speculator -- check "
-          + MRJobConfig.MR_AM_JOB_SPECULATOR, ex);
+          + DAGConfiguration.DAG_AM_SPECULATOR_CLASS, ex);
       throw new YarnException(ex);
     } catch (IllegalAccessException ex) {
       LOG.error("Can't make a speculator -- check "
-          + MRJobConfig.MR_AM_JOB_SPECULATOR, ex);
+          + DAGConfiguration.DAG_AM_SPECULATOR_CLASS, ex);
       throw new YarnException(ex);
     } catch (InvocationTargetException ex) {
       LOG.error("Can't make a speculator -- check "
-          + MRJobConfig.MR_AM_JOB_SPECULATOR, ex);
+          + DAGConfiguration.DAG_AM_SPECULATOR_CLASS, ex);
       throw new YarnException(ex);
     } catch (NoSuchMethodException ex) {
       LOG.error("Can't make a speculator -- check "
-          + MRJobConfig.MR_AM_JOB_SPECULATOR, ex);
+          + DAGConfiguration.DAG_AM_SPECULATOR_CLASS, ex);
       throw new YarnException(ex);
     }
   }
@@ -765,16 +752,16 @@ public class DAGAppMaster extends CompositeService {
   protected TaskHeartbeatHandler createTaskHeartbeatHandler(AppContext context,
       Configuration conf) {
     TaskHeartbeatHandler thh = new TaskHeartbeatHandler(context, conf.getInt(
-        MRJobConfig.MR_AM_TASK_LISTENER_THREAD_COUNT,
-        MRJobConfig.DEFAULT_MR_AM_TASK_LISTENER_THREAD_COUNT));
+        DAGConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT,
+        DAGConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT));
     return thh;
   }
 
   protected ContainerHeartbeatHandler createContainerHeartbeatHandler(AppContext context,
       Configuration conf) {
     ContainerHeartbeatHandler chh = new ContainerHeartbeatHandler(context, conf.getInt(
-        MRJobConfig.MR_AM_TASK_LISTENER_THREAD_COUNT,
-        MRJobConfig.DEFAULT_MR_AM_TASK_LISTENER_THREAD_COUNT));
+        DAGConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT,
+        DAGConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT));
     // TODO XXX: Define a CONTAINER_LISTENER_THREAD_COUNT
     return chh;
   }
@@ -1027,7 +1014,7 @@ public class DAGAppMaster extends CompositeService {
 
     @Override
     public String getUser() {
-      return this.conf.get(MRJobConfig.USER_NAME);
+      return this.conf.get(DAGConfiguration.USER_NAME);
     }
 
     @Override
@@ -1294,9 +1281,9 @@ public class DAGAppMaster extends CompositeService {
         LOG.info("Running job type: " + type);
 
         if (type.equals("mr")) {
-          dagConf = (DAGConfiguration)createDAGConfigurationForMR();
+          dagConf = (DAGConfiguration)MRRExampleHelper.createDAGConfigurationForMR();
         } else if (type.equals("mrr")) {
-          dagConf = (DAGConfiguration)createDAGConfigurationForMRR();
+          dagConf = (DAGConfiguration)MRRExampleHelper.createDAGConfigurationForMRR();
         }
       } else {
         dagConf = new DAGConfiguration();
@@ -1317,7 +1304,8 @@ public class DAGAppMaster extends CompositeService {
       // the objects myself.
       dagConf.setBoolean("fs.automatic.close", false);
 
-      // TODO TEZ HACK - user name in DAGConfiguration
+      dagConf.set(DAGConfiguration.USER_NAME, jobUserName);
+      // TODO Remove after fixing TaskLanch JVM construction
       dagConf.set(MRJobConfig.USER_NAME, jobUserName);
 
       initAndStartAppMaster(appMaster, new YarnConfiguration(dagConf),
@@ -1338,163 +1326,7 @@ public class DAGAppMaster extends CompositeService {
     return opts;
   }
 
-   //TODO remove once client is in place
-  private static Path getMRBaseDir() throws IOException {
-    Path basePath = MRApps.getStagingAreaDir(new Configuration(),
-        UserGroupInformation.getCurrentUser().getShortUserName());
-    return new Path(basePath, "dagTest");
-  }
 
-  private static Path getMRRBaseDir() throws IOException {
-    Path basePath = MRApps.getStagingAreaDir(new Configuration(),
-        UserGroupInformation.getCurrentUser().getShortUserName());
-    return new Path(basePath, "mrrTest");
-  }
-
-  private static String getConfFileName(String vertexName) {
-    return MRJobConfig.JOB_CONF_FILE + "_" + vertexName;
-  }
-
-  // TODO remove once client is in place
-  private static Map<String, LocalResource> createLocalResources(
-      Path remoteBaseDir, String[] resourceNames) throws IOException {
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(conf);
-
-    Map<String, LocalResource> localResources = new TreeMap<String, LocalResource>();
-
-    for (String resourceName : resourceNames) {
-      Path remoteFile = new Path(remoteBaseDir, resourceName);
-      localResources.put(resourceName, AMContainerHelpers.createLocalResource(
-          fs, remoteFile, LocalResourceType.FILE,
-          LocalResourceVisibility.APPLICATION));
-      LOG.info("Localizing file " + resourceName + " from location "
-          + remoteFile.toString());
-    }
-    return localResources;
-  }
-
-
-  private static String[] getMRLocalRsrcList() {
-    String[] resourceNames = new String[] { MRJobConfig.JOB_JAR,
-        MRJobConfig.JOB_SPLIT, MRJobConfig.JOB_SPLIT_METAINFO,
-        MRJobConfig.JOB_CONF_FILE };
-    return resourceNames;
-  }
-
-  private static String[] getMRRLocalRsrcList() {
-    String[] resourceNames = new String[] { MRJobConfig.JOB_JAR,
-        MRJobConfig.JOB_SPLIT, MRJobConfig.JOB_SPLIT_METAINFO,
-        MRJobConfig.JOB_CONF_FILE, getConfFileName("reduce1"),
-        getConfFileName("reduce2") };
-    return resourceNames;
-  }
-
-  private static Configuration createDAGConfigurationForMRR() throws IOException {
-    org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG();
-    Vertex mapVertex = new Vertex("map",
-        "org.apache.tez.mapreduce.task.InitialTask", 6);
-    Vertex reduce1Vertex = new Vertex("reduce1",
-        "org.apache.tez.mapreduce.task.IntermediateTask", 3);
-    Vertex reduce2Vertex = new Vertex("reduce2",
-        "org.apache.tez.mapreduce.task.FinalTask", 3);
-    Edge edge1 = new Edge(mapVertex, reduce1Vertex, new EdgeProperty());
-    Edge edge2 = new Edge(reduce1Vertex, reduce2Vertex, new EdgeProperty());
-    Map<String, LocalResource> jobRsrcs = createLocalResources(getMRRBaseDir(),
-        getMRRLocalRsrcList());
-
-    Map<String, LocalResource> mapRsrcs = new HashMap<String, LocalResource>();
-    Map<String, LocalResource> reduce1Rsrcs = new HashMap<String, LocalResource>();
-    Map<String, LocalResource> reduce2Rsrcs = new HashMap<String, LocalResource>();
-
-    mapRsrcs.put(MRJobConfig.JOB_SPLIT, jobRsrcs.get(MRJobConfig.JOB_SPLIT));
-    mapRsrcs.put(MRJobConfig.JOB_SPLIT_METAINFO, jobRsrcs.get(MRJobConfig.JOB_SPLIT_METAINFO));
-    mapRsrcs.put(MRJobConfig.JOB_JAR, jobRsrcs.get(MRJobConfig.JOB_JAR));
-    mapRsrcs.put(MRJobConfig.JOB_CONF_FILE, jobRsrcs.get(MRJobConfig.JOB_CONF_FILE));
-    mapRsrcs.put(getConfFileName("map"), jobRsrcs.get(MRJobConfig.JOB_CONF_FILE));
-
-    reduce1Rsrcs.put(MRJobConfig.JOB_JAR, jobRsrcs.get(MRJobConfig.JOB_JAR));
-    reduce1Rsrcs.put(MRJobConfig.JOB_CONF_FILE, jobRsrcs.get(MRJobConfig.JOB_CONF_FILE));
-    reduce1Rsrcs.put(getConfFileName("reduce1"), jobRsrcs.get(getConfFileName("reduce1")));
-
-    reduce2Rsrcs.put(MRJobConfig.JOB_JAR, jobRsrcs.get(MRJobConfig.JOB_JAR));
-    reduce2Rsrcs.put(MRJobConfig.JOB_CONF_FILE, jobRsrcs.get(MRJobConfig.JOB_CONF_FILE));
-    reduce2Rsrcs.put(getConfFileName("reduce2"), jobRsrcs.get(getConfFileName("reduce2")));
-
-    Resource mapResource = BuilderUtils.newResource(
-         MRJobConfig.DEFAULT_MAP_MEMORY_MB,
-         MRJobConfig.DEFAULT_MAP_CPU_VCORES);
-    mapVertex.setTaskResource(mapResource);
-    mapVertex.setTaskLocalResources(mapRsrcs);
-    Resource reduceResource = BuilderUtils.newResource(
-        MRJobConfig.DEFAULT_REDUCE_MEMORY_MB,
-        MRJobConfig.DEFAULT_REDUCE_CPU_VCORES);
-    reduce1Vertex.setTaskResource(reduceResource);
-    reduce1Vertex.setTaskLocalResources(reduce1Rsrcs);
-
-    reduce1Vertex.setTaskResource(reduceResource);
-    reduce2Vertex.setTaskLocalResources(reduce2Rsrcs);
-
-    dag.addVertex(mapVertex);
-    dag.addVertex(reduce1Vertex);
-    dag.addVertex(reduce2Vertex);
-    dag.addEdge(edge1);
-    dag.addEdge(edge2);
-    dag.verify();
-    DAGConfiguration dagConf = dag.serializeDag();
-
-    dagConf.setBoolean(MRJobConfig.MAP_SPECULATIVE, false);
-    dagConf.setBoolean(MRJobConfig.REDUCE_SPECULATIVE, false);
-
-    return dagConf;
-  }
-
-  // TODO remove once client is in place
-  private static Configuration createDAGConfigurationForMR() throws IOException {
-    org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG();
-    Vertex mapVertex = new Vertex("map",
-        "org.apache.tez.mapreduce.task.InitialTask", 6);
-    Vertex reduceVertex = new Vertex("reduce",
-        "org.apache.tez.mapreduce.task.FinalTask", 1);
-    Edge edge = new Edge(mapVertex, reduceVertex, new EdgeProperty());
-
-    Map<String, LocalResource> jobRsrcs = createLocalResources(getMRBaseDir(),
-        getMRLocalRsrcList());
-
-    Map<String, LocalResource> mapRsrcs = new HashMap<String, LocalResource>();
-    Map<String, LocalResource> reduceRsrcs = new HashMap<String, LocalResource>();
-
-    mapRsrcs.put(MRJobConfig.JOB_SPLIT, jobRsrcs.get(MRJobConfig.JOB_SPLIT));
-    mapRsrcs.put(MRJobConfig.JOB_SPLIT_METAINFO, jobRsrcs.get(MRJobConfig.JOB_SPLIT_METAINFO));
-    mapRsrcs.put(MRJobConfig.JOB_JAR, jobRsrcs.get(MRJobConfig.JOB_JAR));
-    mapRsrcs.put(MRJobConfig.JOB_CONF_FILE, jobRsrcs.get(MRJobConfig.JOB_CONF_FILE));
-    mapRsrcs.put(getConfFileName("map"), jobRsrcs.get(MRJobConfig.JOB_CONF_FILE));
-
-    reduceRsrcs.put(MRJobConfig.JOB_JAR, jobRsrcs.get(MRJobConfig.JOB_JAR));
-    reduceRsrcs.put(MRJobConfig.JOB_CONF_FILE, jobRsrcs.get(MRJobConfig.JOB_CONF_FILE));
-    reduceRsrcs.put(getConfFileName("reduce"), jobRsrcs.get(MRJobConfig.JOB_CONF_FILE));
-
-    Resource mapResource = BuilderUtils.newResource(
-         MRJobConfig.DEFAULT_MAP_MEMORY_MB,
-         MRJobConfig.DEFAULT_MAP_CPU_VCORES);
-    mapVertex.setTaskResource(mapResource);
-    mapVertex.setTaskLocalResources(mapRsrcs);
-    Resource reduceResource = BuilderUtils.newResource(
-        MRJobConfig.DEFAULT_REDUCE_MEMORY_MB,
-        MRJobConfig.DEFAULT_REDUCE_CPU_VCORES);
-    reduceVertex.setTaskResource(reduceResource);
-    reduceVertex.setTaskLocalResources(reduceRsrcs);
-    dag.addVertex(mapVertex);
-    dag.addVertex(reduceVertex);
-    dag.addEdge(edge);
-    dag.verify();
-    DAGConfiguration dagConf = dag.serializeDag();
-
-    dagConf.setBoolean(MRJobConfig.MAP_SPECULATIVE, false);
-    dagConf.setBoolean(MRJobConfig.REDUCE_SPECULATIVE, false);
-
-    return dagConf;
-  }
 
   // The shutdown hook that runs when a signal is received AND during normal
   // close of the JVM.

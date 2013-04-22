@@ -42,6 +42,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.Clock;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -1273,6 +1274,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public TezDAGID getDAGId() {
     return appContext.getDAGID();
   }
+  
+  @Override
+  public ApplicationAttemptId getApplicationAttemptId() {
+    return appContext.getApplicationAttemptId();
+  }
 
   public Resource getTaskResource() {
     return taskResource;
@@ -1315,4 +1321,5 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
     return outputSpecList;
   }
+
 }

@@ -60,6 +60,8 @@ public class DAGConfiguration extends Configuration {
   }
 
   public final static String DAG = "tez.dag.";
+  
+  public final static String DAG_AM = DAG + "am.";
 
   public final static String VERTEX = DAG + "vertex.";
 
@@ -75,6 +77,23 @@ public class DAGConfiguration extends Configuration {
 
   private final static String SEPARATOR = "|";
 
+  // FIXME This property onwards should be split into a separate class or the
+  // rest of thie class needs to be converted into a config name list once 
+  // the serialization is changed.
+  
+  // TODO Should not be required once all tokens are handled via AppSubmissionContext
+  public static final String JOB_SUBMIT_DIR = DAG + "jobSubmitDir";
+  public static final String APPLICATION_TOKENS_FILE = "appTokens";
+  
+  public static final String JOB_NAME = DAG + "job.name";
+  public static final String USER_NAME = DAG + "user.name";
+  
+  // TODO Speculator class should be configurable on a pere vertex level.
+  public static final String DAG_AM_SPECULATOR_CLASS = DAG_AM + "speculator.class";
+  
+  public static final String DAG_AM_TASK_LISTENER_THREAD_COUNT = DAG_AM + "task.listener.thread-count";
+  public static final int DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
+  
   @Private
   public void setEdgeProperties(List<Edge> edges) {
     String[] edgeIds = new String[edges.size()];

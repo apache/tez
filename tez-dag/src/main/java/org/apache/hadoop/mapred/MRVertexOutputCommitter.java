@@ -107,6 +107,10 @@ public class MRVertexOutputCommitter extends VertexOutputCommitter {
 
   @Override
   public void init(VertexContext context) throws IOException {
+    // TODO VertexContext not the best way to get ApplicationAttemptId. No
+    // alternates rightnow.
+    context.getConf().setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
+        context.getApplicationAttemptId().getAttemptId());
     committer = getOutputCommitter(context);
     jobContext = getJobContextFromVertexContext(context);
     initialized = true;

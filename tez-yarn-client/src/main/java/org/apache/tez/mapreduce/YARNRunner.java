@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -59,9 +60,9 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
-import org.apache.zookeeper.Environment.Entry;
 import org.apache.hadoop.mapreduce.QueueAclsInfo;
 import org.apache.hadoop.mapreduce.QueueInfo;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
@@ -681,6 +682,17 @@ public class YARNRunner implements ClientProtocol {
     }
   }
 
+  private void setDAGParamsFromMRConf(DAGConfiguration dagConf) {
+    Configuration mrConf = this.conf;
+    Map<String, String> mrParamToDAGParamMap = DeprecatedKeys.getMRToDAGParamMap();
+    for (Entry<String, String> entry : mrParamToDAGParamMap.entrySet()) {
+      if (mrConf.get(entry.getKey()) != null) {
+        LOG.info("DEBUG: MR->DAG Setting new key: " + entry.getValue());
+        dagConf.set(entry.getValue(), mrConf.get(entry.getKey()));
+      }
+    }
+  }
+
   private ApplicationSubmissionContext createApplicationSubmissionContext(
       FileSystem fs, DAG dag,
       Configuration jobConf, String jobSubmitDir, Credentials ts,
@@ -766,7 +778,8 @@ public class YARNRunner implements ClientProtocol {
 
     // FIXME add serialized dag conf
     DAGConfiguration dagConf = dag.serializeDag();
-
+    setDAGParamsFromMRConf(dagConf);
+    
     Path dagConfFilePath = new Path(jobSubmitDir,
         TezConfiguration.DAG_AM_PLAN_CONFIG_XML);
     FSDataOutputStream dagConfOut =

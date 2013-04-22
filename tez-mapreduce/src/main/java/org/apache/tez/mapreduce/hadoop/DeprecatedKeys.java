@@ -18,13 +18,39 @@
 
 package org.apache.tez.mapreduce.hadoop;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.dag.api.DAGConfiguration;
+
 
 
 public class DeprecatedKeys {
+
+  // This could be done via deprecation.
+  private static Map<String, String> mrParamToDAGParamMap = new HashMap<String, String>();
+
+  public static Map<String, String> getMRToDAGParamMap() {
+    return Collections.unmodifiableMap(mrParamToDAGParamMap);
+  }
+ 
   static {
     addDeprecatedKeys();
+    
+    mrParamToDAGParamMap.put(MRJobConfig.JOB_SUBMIT_DIR, DAGConfiguration.JOB_SUBMIT_DIR);
+    mrParamToDAGParamMap.put(MRJobConfig.APPLICATION_TOKENS_FILE, DAGConfiguration.APPLICATION_TOKENS_FILE);
+    
+    mrParamToDAGParamMap.put(MRJobConfig.JOB_NAME, DAGConfiguration.JOB_NAME);
+    
+    mrParamToDAGParamMap.put(MRJobConfig.MR_AM_JOB_SPECULATOR, DAGConfiguration.DAG_AM_SPECULATOR_CLASS);
+    
+    // TODO Default value handling.
+    mrParamToDAGParamMap.put(MRJobConfig.MR_AM_TASK_LISTENER_THREAD_COUNT, DAGConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT);
+    
+    mrParamToDAGParamMap.put(MRJobConfig.USER_NAME, DAGConfiguration.USER_NAME);
   }
 
   // TODO TEZAM4 Sometime, make sure this gets loaded by default. Insteaf of the current initialization in MRAppMaster, TezChild.
@@ -89,7 +115,7 @@ public class DeprecatedKeys {
     
     _(MRJobConfig.SHUFFLE_INPUT_BUFFER_PERCENT, TezJobConfig.TEZ_ENGINE_INPUT_BUFFER_PERCENT);
   }
-  
+
   private static void _(String oldKey, String newKey) {
     Configuration.addDeprecation(oldKey, newKey);
   }

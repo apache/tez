@@ -19,6 +19,7 @@
 package org.apache.tez.dag.api.impl;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.tez.engine.records.TezDAGID;
 import org.apache.tez.engine.records.TezVertexID;
 
@@ -27,6 +28,9 @@ public interface VertexContext {
   public Configuration getConf();
 
   public TezDAGID getDAGId();
+  
+  // TODO Get rid of this as part of VertexContext cleanup.
+  public ApplicationAttemptId getApplicationAttemptId();
 
   public TezVertexID getVertexId();
 

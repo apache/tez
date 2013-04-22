@@ -58,7 +58,7 @@ public class DAG { // FIXME rename to Topology
     
     edges.add(edge);
   }
-  
+
   public void verify() throws TezException { // FIXME better exception
 
     //FIXME are task resources compulsory or will the DAG AM put in a default
