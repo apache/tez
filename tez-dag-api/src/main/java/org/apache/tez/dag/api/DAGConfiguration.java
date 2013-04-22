@@ -88,6 +88,8 @@ public class DAGConfiguration extends Configuration {
   public static final String JOB_NAME = DAG + "job.name";
   public static final String USER_NAME = DAG + "user.name";
   
+  // TODO Some of the DAG properties are job specific and not AM specific. Rename accordingly.
+  
   // TODO Speculator class should be configurable on a pere vertex level.
   public static final String DAG_AM_SPECULATOR_CLASS = DAG_AM + "speculator.class";
   
@@ -96,6 +98,15 @@ public class DAGConfiguration extends Configuration {
   
   public static final String DAG_AM_STAGING_DIR = DAG_AM + "staging-dir";
   public static final String DAG_AM_STAGING_DIR_DEFAULT = "/tmp/hadoop-yarn/staging";
+  
+  // TODO Are any of these node blacklisting properties required. (other than for MR compat)
+  public static final String DAG_MAX_TASK_FAILURES_PER_NODE = DAG
+      + "maxtaskfailures.per.node";
+  public static final String DAG_NODE_BLACKLISTING_ENABLED = DAG
+      + "node-blacklisting.enabled";
+  public static final String DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD = DAG
+      + "node-blacklisting.ignore-threshold-node-percent";
+  public static final int DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT = 33;
   
   @Private
   public void setEdgeProperties(List<Edge> edges) {
