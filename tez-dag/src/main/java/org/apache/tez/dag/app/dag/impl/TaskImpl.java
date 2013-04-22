@@ -29,7 +29,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.Clock;
@@ -71,7 +70,6 @@ import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskID;
 import org.apache.tez.engine.records.TezVertexID;
-import org.apache.tez.mapreduce.task.InitialTaskWithInMemSort;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -85,7 +83,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   protected final DAGConfiguration conf;
   protected final Path jobFile;
-  protected final OutputCommitter committer;
   protected final int partition;
   protected final TaskAttemptListener taskAttemptListener;
   protected final TaskHeartbeatHandler taskHeartbeatHandler;
@@ -268,7 +265,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   public TaskImpl(TezVertexID vertexId, int partition,
       EventHandler eventHandler, Path remoteJobConfFile, DAGConfiguration conf,
-      TaskAttemptListener taskAttemptListener, OutputCommitter committer,
+      TaskAttemptListener taskAttemptListener,
       Token<JobTokenIdentifier> jobToken,
       Credentials credentials, Clock clock,
       // TODO Recovery
@@ -295,7 +292,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.taskAttemptListener = taskAttemptListener;
     this.taskHeartbeatHandler = thh;
     this.eventHandler = eventHandler;
-    this.committer = committer;
     this.credentials = credentials;
     this.jobToken = jobToken;
     // TODO Metrics
@@ -597,7 +593,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   @Override
   public boolean needsWaitAfterOutputConsumable() {
-    if (mrxModuleClassName.equals(InitialTaskWithInMemSort.class.getName())) {
+    if (mrxModuleClassName.contains("InitialTaskWithInMemSort")) {
       return true;
     } else {
       return false;
@@ -617,7 +613,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   TaskAttemptImpl createAttempt(int attemptNumber) {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
-        taskAttemptListener, null, 0, conf, committer,
+        taskAttemptListener, null, 0, conf,
         jobToken, credentials, clock, taskHeartbeatHandler,
         appContext, mrxModuleClassName, locationHint, taskResource,
         localResources, environment, (failedAttempts>0));

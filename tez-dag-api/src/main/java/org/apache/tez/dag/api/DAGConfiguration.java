@@ -94,6 +94,9 @@ public class DAGConfiguration extends Configuration {
   public static final String DAG_AM_TASK_LISTENER_THREAD_COUNT = DAG_AM + "task.listener.thread-count";
   public static final int DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
   
+  public static final String DAG_AM_STAGING_DIR = DAG_AM + "staging-dir";
+  public static final String DAG_AM_STAGING_DIR_DEFAULT = "/tmp/hadoop-yarn/staging";
+  
   @Private
   public void setEdgeProperties(List<Edge> edges) {
     String[] edgeIds = new String[edges.size()];

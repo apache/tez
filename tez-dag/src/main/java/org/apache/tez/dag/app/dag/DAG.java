@@ -23,9 +23,8 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.JobACL;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.authorize.AccessControlList;
+import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.engine.records.TezDAGID;
@@ -69,7 +68,7 @@ public interface DAG {
   /**
    * @return the ACLs for this job for each type of JobACL given. 
    */
-  Map<JobACL, AccessControlList> getJobACLs();
+  Map<ApplicationAccessType, String> getJobACLs();
 
   /**
    * @return information for MR AppMasters (previously failed and current)
@@ -77,7 +76,7 @@ public interface DAG {
   // TODO Recovery
   //List<AMInfo> getAMInfos();
   
-  boolean checkAccess(UserGroupInformation callerUGI, JobACL jobOperation);
+  boolean checkAccess(UserGroupInformation callerUGI, ApplicationAccessType jobOperation);
 
   VertexLocationHint getVertexLocationHint(TezVertexID vertexId);
 }

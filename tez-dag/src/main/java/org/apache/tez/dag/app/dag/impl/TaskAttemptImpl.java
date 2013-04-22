@@ -32,11 +32,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapred.TezMRTypeConverter;
-import org.apache.hadoop.mapred.WrappedProgressSplitsBlock;
-import org.apache.hadoop.mapreduce.OutputCommitter;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
@@ -59,8 +54,6 @@ import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.common.counters.DAGCounter;
-import org.apache.tez.common.counters.TaskCounter;
-import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAGConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -96,7 +89,6 @@ import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptFetchFailure;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.app.speculate.SpeculatorEvent;
-import org.apache.tez.dag.app.taskclean.TaskCleanupEvent;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskID;
@@ -124,7 +116,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final TezTaskAttemptID attemptId;
   private final Clock clock;
 //  private final TaskAttemptListener taskAttemptListener;
-  private final OutputCommitter committer;
   private final List<String> diagnostics = new ArrayList<String>();
   private final Lock readLock;
   private final Lock writeLock;
@@ -261,7 +252,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   @SuppressWarnings("rawtypes")
   public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
       TaskAttemptListener tal, Path jobFile, int partition, 
-      DAGConfiguration conf, OutputCommitter committer,
+      DAGConfiguration conf,
       Token<JobTokenIdentifier> jobToken, Credentials credentials, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       String mrxModuleClassName, TaskLocationHint locationHint,
@@ -276,7 +267,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.jobFile = jobFile;
     this.partition = partition;
     this.conf = conf;
-    this.committer = committer;
     this.jobToken = jobToken;
     this.credentials = credentials;
     this.clock = clock;
@@ -703,64 +693,64 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
   */
   
-  private WrappedProgressSplitsBlock getProgressSplitBlock() {
-    return null;
-    // TODO
-    /*
-    readLock.lock();
-    try {
-      if (progressSplitBlock == null) {
-        progressSplitBlock = new WrappedProgressSplitsBlock(conf.getInt(
-            MRJobConfig.MR_AM_NUM_PROGRESS_SPLITS,
-            MRJobConfig.DEFAULT_MR_AM_NUM_PROGRESS_SPLITS));
-      }
-      return progressSplitBlock;
-    } finally {
-      readLock.unlock();
-    }
-    */
-  }
+//  private WrappedProgressSplitsBlock getProgressSplitBlock() {
+//    return null;
+//    // TODO
+//    /*
+//    readLock.lock();
+//    try {
+//      if (progressSplitBlock == null) {
+//        progressSplitBlock = new WrappedProgressSplitsBlock(conf.getInt(
+//            MRJobConfig.MR_AM_NUM_PROGRESS_SPLITS,
+//            MRJobConfig.DEFAULT_MR_AM_NUM_PROGRESS_SPLITS));
+//      }
+//      return progressSplitBlock;
+//    } finally {
+//      readLock.unlock();
+//    }
+//    */
+//  }
   
   private void updateProgressSplits() {
-    double newProgress = reportedStatus.progress;
-    newProgress = Math.max(Math.min(newProgress, 1.0D), 0.0D);
-    TezCounters counters = reportedStatus.counters;
-    if (counters == null)
-      return;
-
-    WrappedProgressSplitsBlock splitsBlock = getProgressSplitBlock();
-    if (splitsBlock != null) {
-      long now = clock.getTime();
-      long start = getLaunchTime();
-      
-      if (start == 0)
-        return;
-
-      if (start != 0 && now - start <= Integer.MAX_VALUE) {
-        splitsBlock.getProgressWallclockTime().extend(newProgress,
-            (int) (now - start));
-      }
-
-      TezCounter cpuCounter = counters.findCounter(TaskCounter.CPU_MILLISECONDS);
-      if (cpuCounter != null && cpuCounter.getValue() <= Integer.MAX_VALUE) {
-        splitsBlock.getProgressCPUTime().extend(newProgress,
-            (int) cpuCounter.getValue()); // long to int? TODO: FIX. Same below
-      }
-
-      TezCounter virtualBytes = counters
-        .findCounter(TaskCounter.VIRTUAL_MEMORY_BYTES);
-      if (virtualBytes != null) {
-        splitsBlock.getProgressVirtualMemoryKbytes().extend(newProgress,
-            (int) (virtualBytes.getValue() / (MEMORY_SPLITS_RESOLUTION)));
-      }
-
-      TezCounter physicalBytes = counters
-        .findCounter(TaskCounter.PHYSICAL_MEMORY_BYTES);
-      if (physicalBytes != null) {
-        splitsBlock.getProgressPhysicalMemoryKbytes().extend(newProgress,
-            (int) (physicalBytes.getValue() / (MEMORY_SPLITS_RESOLUTION)));
-      }
-    }
+//    double newProgress = reportedStatus.progress;
+//    newProgress = Math.max(Math.min(newProgress, 1.0D), 0.0D);
+//    TezCounters counters = reportedStatus.counters;
+//    if (counters == null)
+//      return;
+//
+//    WrappedProgressSplitsBlock splitsBlock = getProgressSplitBlock();
+//    if (splitsBlock != null) {
+//      long now = clock.getTime();
+//      long start = getLaunchTime();
+//      
+//      if (start == 0)
+//        return;
+//
+//      if (start != 0 && now - start <= Integer.MAX_VALUE) {
+//        splitsBlock.getProgressWallclockTime().extend(newProgress,
+//            (int) (now - start));
+//      }
+//
+//      TezCounter cpuCounter = counters.findCounter(TaskCounter.CPU_MILLISECONDS);
+//      if (cpuCounter != null && cpuCounter.getValue() <= Integer.MAX_VALUE) {
+//        splitsBlock.getProgressCPUTime().extend(newProgress,
+//            (int) cpuCounter.getValue()); // long to int? TODO: FIX. Same below
+//      }
+//
+//      TezCounter virtualBytes = counters
+//        .findCounter(TaskCounter.VIRTUAL_MEMORY_BYTES);
+//      if (virtualBytes != null) {
+//        splitsBlock.getProgressVirtualMemoryKbytes().extend(newProgress,
+//            (int) (virtualBytes.getValue() / (MEMORY_SPLITS_RESOLUTION)));
+//      }
+//
+//      TezCounter physicalBytes = counters
+//        .findCounter(TaskCounter.PHYSICAL_MEMORY_BYTES);
+//      if (physicalBytes != null) {
+//        splitsBlock.getProgressPhysicalMemoryKbytes().extend(newProgress,
+//            (int) (physicalBytes.getValue() / (MEMORY_SPLITS_RESOLUTION)));
+//      }
+//    }
   }
   
   private void maybeSendSpeculatorContainerRequired() {
@@ -778,10 +768,10 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
   
   private void sendTaskAttemptCleanupEvent() {
-    TaskAttemptContext taContext = 
-        new TaskAttemptContextImpl(this.conf, 
-            TezMRTypeConverter.fromTez(this.attemptId));
-    sendEvent(new TaskCleanupEvent(this.attemptId, this.committer, taContext));
+//    TaskAttemptContext taContext = 
+//        new TaskAttemptContextImpl(this.conf, 
+//            TezMRTypeConverter.fromTez(this.attemptId));
+//    sendEvent(new TaskCleanupEvent(this.attemptId, this.committer, taContext));
   }
 
   protected String[] resolveHosts(String[] src) {

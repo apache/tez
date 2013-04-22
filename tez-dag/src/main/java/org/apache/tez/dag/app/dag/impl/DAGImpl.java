@@ -37,22 +37,16 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobACLsManager;
-import org.apache.hadoop.mapreduce.JobACL;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.lib.chain.ChainMapper;
-import org.apache.hadoop.mapreduce.lib.chain.ChainReducer;
-import org.apache.hadoop.mapreduce.security.TokenCache;
-import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.Clock;
+import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
 import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
@@ -81,8 +75,10 @@ import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.utils.DAGApps;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
+import org.apache.tez.engine.common.security.TokenCache;
 import org.apache.tez.engine.records.TezDAGID;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezVertexID;
@@ -101,9 +97,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final ApplicationAttemptId applicationAttemptId;
   private final TezDAGID dagId;
   private final Clock clock;
-  private final JobACLsManager aclsManager;
+  private final ApplicationACLsManager aclsManager;
   private final String username;
-  private final Map<JobACL, AccessControlList> jobACLs;
 
   // TODO Recovery
   //private final List<AMInfo> amInfos;
@@ -332,7 +327,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       DAGLocationHint dagLocationHint) {
     this.applicationAttemptId = applicationAttemptId;
     this.dagId = dagId;
-    this.dagName = conf.get(JobContext.JOB_NAME, "<missing job name>");
+    this.dagName = conf.get(DAGConfiguration.JOB_NAME, "<missing job name>");
     this.conf = new DAGConfiguration(conf);
     // TODO Metrics
     //this.metrics = metrics;
@@ -354,9 +349,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     this.fsTokens = fsTokenCredentials;
     this.jobTokenSecretManager = jobTokenSecretManager;
 
-    this.aclsManager = new JobACLsManager(conf);
+    this.aclsManager = new ApplicationACLsManager(conf);
     this.username = System.getProperty("user.name");
-    this.jobACLs = aclsManager.constructJobACLs(conf);
+    // TODO Construct ApplicationACLs
+    //      this.appACLs;
 
     this.dagLocationHint = dagLocationHint;
 
@@ -385,12 +381,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   @Override
   public boolean checkAccess(UserGroupInformation callerUGI,
-      JobACL jobOperation) {
-    AccessControlList jobACL = jobACLs.get(jobOperation);
-    if (jobACL == null) {
-      return true;
-    }
-    return aclsManager.checkAccess(callerUGI, jobOperation, username, jobACL);
+      ApplicationAccessType jobOperation) {
+    return aclsManager.checkAccess(callerUGI, jobOperation, userName,
+        this.dagId.getApplicationId());
   }
 
   @Override
@@ -744,8 +737,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
    * @see org.apache.hadoop.mapreduce.v2.app2.job.Job#getJobACLs()
    */
   @Override
-  public Map<JobACL, AccessControlList> getJobACLs() {
-    return Collections.unmodifiableMap(jobACLs);
+  public Map<ApplicationAccessType, String> getJobACLs() {
+    // TODO ApplicationACLs
+    return null;
   }
 
   // TODO Recovery
@@ -756,34 +750,34 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
   */
 
-  /**
-   * ChainMapper and ChainReducer must execute in parallel, so they're not
-   * compatible with uberization/LocalContainerLauncher (100% sequential).
-   */
-  private boolean isChainJob(Configuration conf) {
-    boolean isChainJob = false;
-    try {
-      String mapClassName = conf.get(MRJobConfig.MAP_CLASS_ATTR);
-      if (mapClassName != null) {
-        Class<?> mapClass = Class.forName(mapClassName);
-        if (ChainMapper.class.isAssignableFrom(mapClass))
-          isChainJob = true;
-      }
-    } catch (ClassNotFoundException cnfe) {
-      // don't care; assume it's not derived from ChainMapper
-    }
-    try {
-      String reduceClassName = conf.get(MRJobConfig.REDUCE_CLASS_ATTR);
-      if (reduceClassName != null) {
-        Class<?> reduceClass = Class.forName(reduceClassName);
-        if (ChainReducer.class.isAssignableFrom(reduceClass))
-          isChainJob = true;
-      }
-    } catch (ClassNotFoundException cnfe) {
-      // don't care; assume it's not derived from ChainReducer
-    }
-    return isChainJob;
-  }
+//  /**
+//   * ChainMapper and ChainReducer must execute in parallel, so they're not
+//   * compatible with uberization/LocalContainerLauncher (100% sequential).
+//   */
+//  private boolean isChainJob(Configuration conf) {
+//    boolean isChainJob = false;
+//    try {
+//      String mapClassName = conf.get(MRJobConfig.MAP_CLASS_ATTR);
+//      if (mapClassName != null) {
+//        Class<?> mapClass = Class.forName(mapClassName);
+//        if (ChainMapper.class.isAssignableFrom(mapClass))
+//          isChainJob = true;
+//      }
+//    } catch (ClassNotFoundException cnfe) {
+//      // don't care; assume it's not derived from ChainMapper
+//    }
+//    try {
+//      String reduceClassName = conf.get(MRJobConfig.REDUCE_CLASS_ATTR);
+//      if (reduceClassName != null) {
+//        Class<?> reduceClass = Class.forName(reduceClassName);
+//        if (ChainReducer.class.isAssignableFrom(reduceClass))
+//          isChainJob = true;
+//      }
+//    } catch (ClassNotFoundException cnfe) {
+//      // don't care; assume it's not derived from ChainReducer
+//    }
+//    return isChainJob;
+//  }
 
   /*
   private int getBlockSize() {
@@ -913,7 +907,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       
       String user =
         UserGroupInformation.getCurrentUser().getShortUserName();
-      Path path = MRApps.getStagingAreaDir(job.conf, user);
+      Path path = DAGApps.getStagingAreaDir(job.conf, user);
       if(LOG.isDebugEnabled()) {
         LOG.debug("startJobs: parent=" + path + " child=" + dagIdString);
       }
@@ -940,6 +934,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       // Upload the jobTokens onto the remote FS so that ContainerManager can
       // localize it to be used by the Containers(tasks)
       Credentials tokenStorage = new Credentials();
+      // TODO Consider sending the jobToken over RPC.
       TokenCache.setJobToken(job.jobToken, tokenStorage);
 
       if (UserGroupInformation.isSecurityEnabled()) {

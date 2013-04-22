@@ -250,4 +250,10 @@ public class TezJobConfig {
   public static final String TEZ_ENGINE_INPUT_BUFFER_PERCENT = 
       "tez.engine.task.input.buffer.percent";
   public static final float DEFAULT_TEZ_ENGINE_INPUT_BUFFER_PERCENT = 0.0f;
+  
+  // TODO This should be in DAGConfiguration
+  /* config for tracking the local file where all the credentials for the job
+   * credentials.
+   */
+  public static final String DAG_CREDENTIALS_BINARY =  "tez.dag.credentials.binary";
 }
