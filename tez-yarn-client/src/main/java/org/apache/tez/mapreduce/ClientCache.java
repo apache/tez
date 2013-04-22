@@ -18,35 +18,19 @@
 
 package org.apache.tez.mapreduce;
 
-import java.io.IOException;
-import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.JobID;
-import org.apache.hadoop.mapreduce.v2.api.HSClientProtocol;
-import org.apache.hadoop.mapreduce.v2.api.MRClientProtocol;
-import org.apache.hadoop.mapreduce.v2.jobhistory.JHAdminConfig;
-import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.YarnException;
-import org.apache.hadoop.yarn.ipc.YarnRPC;
 
 public class ClientCache {
 
   private final Configuration conf;
   private final ResourceMgrDelegate rm;
 
-  private static final Log LOG = LogFactory.getLog(ClientCache.class);
-
   private Map<JobID, ClientServiceDelegate> cache = 
       new HashMap<JobID, ClientServiceDelegate>();
-
-  private MRClientProtocol hsProxy;
 
   public ClientCache(Configuration conf, ResourceMgrDelegate rm) {
     this.conf = conf;
@@ -55,46 +39,12 @@ public class ClientCache {
 
   //TODO: evict from the cache on some threshold
   public synchronized ClientServiceDelegate getClient(JobID jobId) {
-    if (hsProxy == null) {
-      try {
-        hsProxy = instantiateHistoryProxy();
-      } catch (IOException e) {
-        LOG.warn("Could not connect to History server.", e);
-        throw new YarnException("Could not connect to History server.", e);
-      }
-    }
     ClientServiceDelegate client = cache.get(jobId);
     if (client == null) {
-      client = new ClientServiceDelegate(conf, rm, jobId, hsProxy);
+      client = new ClientServiceDelegate(conf, rm, jobId);
       cache.put(jobId, client);
     }
     return client;
   }
 
-  protected synchronized MRClientProtocol getInitializedHSProxy()
-      throws IOException {
-    if (this.hsProxy == null) {
-      hsProxy = instantiateHistoryProxy();
-    }
-    return this.hsProxy;
-  }
-  
-  protected MRClientProtocol instantiateHistoryProxy()
-      throws IOException {
-    final String serviceAddr = conf.get(JHAdminConfig.MR_HISTORY_ADDRESS);
-    if (StringUtils.isEmpty(serviceAddr)) {
-      return null;
-    }
-    LOG.debug("Connecting to HistoryServer at: " + serviceAddr);
-    final YarnRPC rpc = YarnRPC.create(conf);
-    LOG.debug("Connected to HistoryServer at: " + serviceAddr);
-    UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
-    return currentUser.doAs(new PrivilegedAction<MRClientProtocol>() {
-      @Override
-      public MRClientProtocol run() {
-        return (MRClientProtocol) rpc.getProxy(HSClientProtocol.class,
-            NetUtils.createSocketAddr(serviceAddr), conf);
-      }
-    });
-  }
 }

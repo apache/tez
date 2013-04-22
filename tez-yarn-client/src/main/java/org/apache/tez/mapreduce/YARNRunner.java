@@ -864,34 +864,36 @@ public class YARNRunner implements ClientProtocol {
         diagnostics);
     }
 
-    while (true) {
-      appMasterReport = resMgrDelegate
-          .getApplicationReport(applicationId);
-      diagnostics =
-          (appMasterReport == null ?
-              "application report is null" : appMasterReport.getDiagnostics());
-      if (appMasterReport == null) {
-        throw new IOException("Failed to run job : " +
-          diagnostics);
-      }
-      YarnApplicationState state = appMasterReport.getYarnApplicationState();
-      if (state.equals(YarnApplicationState.FAILED)
-          || state.equals(YarnApplicationState.FINISHED)
-          || state.equals(YarnApplicationState.KILLED)) {
-        LOG.info("Job completed"
-            + ", finalStatus=" + appMasterReport.getFinalApplicationStatus()
-            + ", finalState=" + appMasterReport.getYarnApplicationState()
-            + ", diagnostics=" + diagnostics);
-        break;
-      } else {
-        LOG.info("Job in progress"
-            + ", finalStatus=" + appMasterReport.getFinalApplicationStatus()
-            + ", finalState=" + appMasterReport.getYarnApplicationState()
-            + ", diagnostics=" + diagnostics);
-      }
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
+    if (LOG.isDebugEnabled()) {
+      while (true) {
+        appMasterReport = resMgrDelegate
+            .getApplicationReport(applicationId);
+        diagnostics =
+            (appMasterReport == null ?
+                "application report is null"
+                : appMasterReport.getDiagnostics());
+        if (appMasterReport == null) {
+          throw new IOException("Failed to run job : " +
+            diagnostics);
+        }
+        YarnApplicationState state = appMasterReport.getYarnApplicationState();
+        if (state.equals(YarnApplicationState.FAILED)
+            || state.equals(YarnApplicationState.FINISHED)
+            || state.equals(YarnApplicationState.KILLED)) {
+          LOG.info("Job completed"
+              + ", finalStatus=" + appMasterReport.getFinalApplicationStatus()
+              + ", finalState=" + appMasterReport.getYarnApplicationState()
+              + ", diagnostics=" + diagnostics);
+          break;
+        } else {
+          LOG.info("Job in progress"
+              + ", finalStatus=" + appMasterReport.getFinalApplicationStatus()
+              + ", finalState=" + appMasterReport.getYarnApplicationState());
+        }
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+        }
       }
     }
 
