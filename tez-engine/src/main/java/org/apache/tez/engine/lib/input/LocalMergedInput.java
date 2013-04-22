@@ -20,7 +20,7 @@ package org.apache.tez.engine.lib.input;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezTaskReporter;
 import org.apache.tez.engine.api.Input;
 import org.apache.tez.engine.api.Master;
@@ -38,18 +38,15 @@ import com.google.inject.assistedinject.Assisted;
 public class LocalMergedInput extends ShuffledMergedInput {
 
   TezRawKeyValueIterator rIter = null;
-
-  private final TezTask task;
   
   private Configuration conf;
   private CombineInput raw;
 
   @Inject
   public LocalMergedInput(
-      @Assisted TezTask task
+      @Assisted TezEngineTaskContext task
       ) {
     super(task);
-    this.task = task;
   }
 
   public void initialize(Configuration conf, Master master) throws IOException,
@@ -57,7 +54,7 @@ public class LocalMergedInput extends ShuffledMergedInput {
     this.conf = conf;
 
     LocalShuffle shuffle =
-        new LocalShuffle(task, this.conf, (TezTaskReporter)master);
+        new LocalShuffle(task, runningTaskContext, this.conf, (TezTaskReporter)master);
     rIter = shuffle.run();
     raw = new CombineInput(rIter);
   }

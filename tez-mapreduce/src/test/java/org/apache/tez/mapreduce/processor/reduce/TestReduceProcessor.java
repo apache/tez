@@ -29,7 +29,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.tez.common.Constants;
 import org.apache.tez.common.InputSpec;
-import org.apache.tez.common.TezEngineTask;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
@@ -94,7 +94,7 @@ public class TestReduceProcessor {
     FileOutputFormat.setOutputPath(job, new Path(workDir, "output"));
     
     // Now run a reduce
-    TezEngineTask taskContext = new TezEngineTask(
+    TezEngineTaskContext taskContext = new TezEngineTaskContext(
         TezTestUtils.getMockTaskAttemptId(0, 0, 0, MRTaskType.REDUCE), "tez",
         "tez", "TODO_vertexName", LocalFinalTask.class.getName(),
         Collections.singletonList(new InputSpec("TODO_srcVertexName", 1)), null);

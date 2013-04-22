@@ -41,24 +41,20 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.RawKeyValueIterator;
 import org.apache.hadoop.mapred.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormatCounter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormatCounter;
 import org.apache.hadoop.mapreduce.lib.reduce.WrappedReducer;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
-import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
-import org.apache.hadoop.mapreduce.split.SplitMetaInfoReader;
-import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.mapreduce.task.ReduceContextImpl;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 import org.apache.tez.common.Constants;
-import org.apache.tez.common.TezEngineTask;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.RunningTaskContext;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.TezTaskStatus.Phase;
 import org.apache.tez.common.TezTaskStatus.State;
@@ -74,14 +70,13 @@ import org.apache.tez.mapreduce.hadoop.IDConverter;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRTaskStatus;
 import org.apache.tez.mapreduce.hadoop.TezTaskUmbilicalProtocol;
-import org.apache.tez.mapreduce.hadoop.TezTypeConverters;
 import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.hadoop.mapreduce.JobContextImpl;
 import org.apache.tez.mapreduce.hadoop.records.ProceedToCompletionResponse;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 
 public abstract class MRTask 
-extends org.apache.tez.common.TezTask {
+extends RunningTaskContext {
 
   static final Log LOG = LogFactory.getLog(MRTask.class);
   
@@ -95,7 +90,8 @@ extends org.apache.tez.common.TezTask {
   protected GcTimeUpdater gcUpdater;
   private ResourceCalculatorProcessTree pTree;
   private long initCpuCumulativeTime = 0;
-  protected TezEngineTask tezTaskContext;
+  protected TezEngineTaskContext tezTaskContext;
+  protected TezTaskAttemptID taskAttemptId;
   
   /* flag to track whether task is done */
   AtomicBoolean taskDone = new AtomicBoolean(false);
@@ -123,18 +119,16 @@ extends org.apache.tez.common.TezTask {
   private Map<String, FileSystemStatisticUpdater> statisticUpdaters =
      new HashMap<String, FileSystemStatisticUpdater>();
 
-  public MRTask(TezTask context) {
-    super(context.getTaskAttemptId(), context.getUser(), context.getJobName(),
-        ((TezEngineTask)context).getTaskModuleClassName());
-    
-    tezTaskContext = (TezEngineTask) context;
+  public MRTask(TezEngineTaskContext context) {
+    tezTaskContext = context;
+    this.taskAttemptId = context.getTaskAttemptId();
     // TODO TEZAM4 Figure out initialization / run sequence of Input, Process,
     // Output. Phase is MR specific.
     status =
         new MRTaskStatus(
-            getTaskAttemptId(),
+            taskAttemptId,
             counters,
-            (getTaskAttemptId().getTaskID().getVertexID().getId() == 0 ? 
+            (taskAttemptId.getTaskID().getVertexID().getId() == 0 ? 
                 Phase.MAP : Phase.SHUFFLE)
         );
     gcUpdater = new GcTimeUpdater(counters);
@@ -153,11 +147,11 @@ extends org.apache.tez.common.TezTask {
     ((TezTaskReporterImpl)reporter).startCommunicationThread();
     
     jobConf.set(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID, 
-        getTaskAttemptId().toString());
+        taskAttemptId.toString());
     
     initResourceCalculatorPlugin();
     
-    LOG.info("MRTask.inited: taskAttemptId = " + getTaskAttemptId().toString());
+    LOG.info("MRTask.inited: taskAttemptId = " + taskAttemptId.toString());
   }
 
   private void initResourceCalculatorPlugin() {
@@ -184,7 +178,7 @@ extends org.apache.tez.common.TezTask {
     this.jobConf = job;
     this.jobContext = new JobContextImpl(job, dagId, mrReporter);
     this.taskAttemptContext =
-        new TaskAttemptContextImpl(job, getTaskAttemptId(), mrReporter);
+        new TaskAttemptContextImpl(job, taskAttemptId, mrReporter);
     this.mrReporter = mrReporter;
 
     if (getState() == State.UNASSIGNED) {
@@ -299,7 +293,7 @@ extends org.apache.tez.common.TezTask {
 
   @Private
   public synchronized String getOutputName() {
-    return "part-" + NUMBER_FORMAT.format(getTaskAttemptId().getTaskID().getId());
+    return "part-" + NUMBER_FORMAT.format(taskAttemptId.getTaskID().getId());
   }
  
   public void waitBeforeCompletion(MRTaskReporter reporter) throws IOException,
@@ -310,7 +304,7 @@ extends org.apache.tez.common.TezTask {
     while (!readyToProceed) {
       try {
         ProceedToCompletionResponse response =
-            umbilical.proceedToCompletion(getTaskAttemptId());
+            umbilical.proceedToCompletion(taskAttemptId);
         if (LOG.isDebugEnabled()) {
           LOG.debug("Got readyToProceed: " + response);
         }
@@ -336,7 +330,7 @@ extends org.apache.tez.common.TezTask {
   public void outputReady(MRTaskReporter reporter, OutputContext outputContext)
       throws IOException,
       InterruptedException {
-    LOG.info("Task: " + getTaskAttemptId() + " reporting outputReady");
+    LOG.info("Task: " + taskAttemptId + " reporting outputReady");
     updateCounters();
     statusUpdate();
 
@@ -344,8 +338,8 @@ extends org.apache.tez.common.TezTask {
     int retries = MAX_RETRIES;
     while (true) {
       try {
-        umbilical.outputReady(getTaskAttemptId(), outputContext);
-        LOG.info("Task '" + getTaskAttemptId() + "' reported outputReady.");
+        umbilical.outputReady(taskAttemptId, outputContext);
+        LOG.info("Task '" + taskAttemptId + "' reported outputReady.");
         return;
       } catch (IOException ie) {
         LOG.warn("Failure signalling outputReady: " +
@@ -364,7 +358,7 @@ extends org.apache.tez.common.TezTask {
     updateCounters();
     if (outputContext != null) {
       LOG.info("Task: "
-          + getTaskAttemptId()
+          + taskAttemptId
           + " is done."
           + " And is in the process of sending output-context with shuffle port: "
           + outputContext.getShufflePort());
@@ -372,7 +366,7 @@ extends org.apache.tez.common.TezTask {
       waitBeforeCompletion(reporter);
     }
 
-    LOG.info("Task:" + getTaskAttemptId() + " is done."
+    LOG.info("Task:" + taskAttemptId + " is done."
         + " And is in the process of committing");
     TezTaskUmbilicalProtocol umbilical = getUmbilical();
     // TODO TEZ Interaciton between Commit and OutputReady. Merge ?
@@ -383,7 +377,7 @@ extends org.apache.tez.common.TezTask {
       // TODO TEZAM2 - Why is the commitRequired check missing ?
       while (true) {
         try {
-          umbilical.commitPending(getTaskAttemptId(), status);
+          umbilical.commitPending(taskAttemptId, status);
           break;
         } catch (InterruptedException ie) {
           // ignore
@@ -423,8 +417,8 @@ extends org.apache.tez.common.TezTask {
     int retries = MAX_RETRIES;
     while (true) {
       try {
-        if (!getUmbilical().statusUpdate(getTaskAttemptId(), status)) {
-          LOG.warn("Parent died.  Exiting " + getTaskAttemptId());
+        if (!getUmbilical().statusUpdate(taskAttemptId, status)) {
+          LOG.warn("Parent died.  Exiting " + taskAttemptId);
           System.exit(66);
         }
         status.clearStatus();
@@ -460,7 +454,7 @@ extends org.apache.tez.common.TezTask {
     int retries = MAX_RETRIES;
     while (true) {
       try {
-        while (!umbilical.canCommit(getTaskAttemptId())) {
+        while (!umbilical.canCommit(taskAttemptId)) {
           // This will loop till the AM asks for the task to be killed. As
           // against, the AM sending a signal to the task to kill itself
           // gracefully.
@@ -485,7 +479,7 @@ extends org.apache.tez.common.TezTask {
 
     // task can Commit now  
     try {
-      LOG.info("Task " + getTaskAttemptId() + " is allowed to commit now");
+      LOG.info("Task " + taskAttemptId + " is allowed to commit now");
       committer.commitTask(taskAttemptContext);
       return;
     } catch (IOException iee) {
@@ -512,8 +506,8 @@ extends org.apache.tez.common.TezTask {
     int retries = MAX_RETRIES;
     while (true) {
       try {
-        umbilical.done(getTaskAttemptId());
-        LOG.info("Task '" + getTaskAttemptId() + "' done.");
+        umbilical.done(taskAttemptId);
+        LOG.info("Task '" + taskAttemptId + "' done.");
         return;
       } catch (IOException ie) {
         LOG.warn("Failure signalling completion: " + 
@@ -683,11 +677,11 @@ extends org.apache.tez.common.TezTask {
 
   public void localizeConfiguration(JobConf jobConf) 
       throws IOException, InterruptedException {
-    jobConf.set(JobContext.TASK_ID, getTaskAttemptId().getTaskID().toString()); 
-    jobConf.set(JobContext.TASK_ATTEMPT_ID, getTaskAttemptId().toString());
+    jobConf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString()); 
+    jobConf.set(JobContext.TASK_ATTEMPT_ID, taskAttemptId.toString());
     jobConf.setInt(JobContext.TASK_PARTITION, 
-        getTaskAttemptId().getTaskID().getId());
-    jobConf.set(JobContext.ID, getTaskAttemptId().getTaskID().getVertexID().getDAGId().toString());
+        taskAttemptId.getTaskID().getId());
+    jobConf.set(JobContext.ID, taskAttemptId.getTaskID().getVertexID().getDAGId().toString());
   }
 
   public abstract TezCounter getOutputRecordsCounter();
@@ -712,5 +706,9 @@ extends org.apache.tez.common.TezTask {
 
   public JobContext getJobContext() {
     return jobContext;
+  }
+  
+  public TezTaskAttemptID getTaskAttemptId() {
+    return taskAttemptId;
   }
 }

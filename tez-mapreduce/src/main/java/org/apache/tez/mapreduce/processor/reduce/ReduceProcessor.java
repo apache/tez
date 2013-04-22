@@ -33,9 +33,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.TezEngineTask;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezTask;
 import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -74,10 +73,10 @@ implements Processor {
 
   @Inject
   public ReduceProcessor(
-      @Assisted TezTask context
+      @Assisted TezEngineTaskContext context
       ) {
     super(context);
-    TezEngineTask tezEngineContext = (TezEngineTask) context;
+    TezEngineTaskContext tezEngineContext = (TezEngineTaskContext) context;
     Preconditions.checkNotNull(tezEngineContext.getInputSpecList(),
         "InputSpecList should not be null");
     Preconditions.checkArgument(
@@ -100,7 +99,8 @@ implements Processor {
       throws IOException, InterruptedException {
     MRTaskReporter reporter = new MRTaskReporter(getTaskReporter());
     boolean useNewApi = jobConf.getUseNewMapper();
-    initTask(jobConf, getDAGID(), reporter, useNewApi);
+    initTask(jobConf, taskAttemptId.getTaskID().getVertexID().getDAGId(),
+        reporter, useNewApi);
 
     if (in instanceof SimpleInput) {
       ((SimpleInput)in).setTask(this);
@@ -291,7 +291,7 @@ implements Processor {
     
     // make a task context so we can get the classes
     org.apache.hadoop.mapreduce.TaskAttemptContext taskContext =
-        new TaskAttemptContextImpl(job, getTaskAttemptId(), reporter);
+        new TaskAttemptContextImpl(job, taskAttemptId, reporter);
     
     // make a reducer
     org.apache.hadoop.mapreduce.Reducer reducer =
@@ -316,7 +316,7 @@ implements Processor {
 
     org.apache.hadoop.mapreduce.Reducer.Context reducerContext = 
         createReduceContext(
-            reducer, job, getTaskAttemptId(),
+            reducer, job, taskAttemptId,
             rIter, reduceInputKeyCounter, 
             reduceInputValueCounter, 
             trackedRW,

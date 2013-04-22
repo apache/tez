@@ -25,7 +25,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.api.Output;
@@ -65,7 +65,7 @@ public class SimpleOutput implements Output {
   
   @Inject
   public SimpleOutput(
-      @Assisted TezTask task
+      @Assisted TezEngineTaskContext task
       ) {
   }
   

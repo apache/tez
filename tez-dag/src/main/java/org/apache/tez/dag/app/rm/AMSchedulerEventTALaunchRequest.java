@@ -24,7 +24,7 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezTaskAttemptID;
@@ -37,7 +37,7 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   private final TezTaskAttemptID attemptId;
   private final Resource capability;
   private final Map<String, LocalResource> localResources;
-  private final TezTask remoteTaskContext;
+  private final TezTaskContext remoteTaskContext;
   private final TaskAttempt taskAttempt;
   private final Credentials credentials;
   private Token<JobTokenIdentifier> jobToken;
@@ -50,7 +50,7 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   public AMSchedulerEventTALaunchRequest(TezTaskAttemptID attemptId,
       Resource capability,
       Map<String, LocalResource> localResources,
-      TezTask remoteTaskContext, TaskAttempt ta,
+      TezTaskContext remoteTaskContext, TaskAttempt ta,
       Credentials credentials, Token<JobTokenIdentifier> jobToken,
       String[] hosts, String[] racks, Priority priority,
       Map<String, String> environment) {
@@ -88,7 +88,7 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
     return priority;
   }
   
-  public TezTask getRemoteTaskContext() {
+  public TezTaskContext getRemoteTaskContext() {
     return remoteTaskContext;
   }
   

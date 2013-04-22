@@ -17,30 +17,16 @@
  */
 package org.apache.tez.common;
 
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 
 import javax.crypto.SecretKey;
 
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.Progress;
 import org.apache.tez.engine.api.Partitioner;
 import org.apache.tez.engine.api.Processor;
-import org.apache.tez.engine.records.TezDAGID;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 
-public abstract class TezTask implements Writable {
-
-  // Serialized Fields
-  private TezTaskAttemptID taskAttemptId;
-  private String user;
-  private String jobName;
-  private String vertexName;
+public class RunningTaskContext {
   
-
-
   protected SecretKey jobTokenSecret;
   protected TezTaskReporter reporter;
   protected Partitioner partitioner;
@@ -48,43 +34,8 @@ public abstract class TezTask implements Writable {
   protected TezTaskStatus status;
   protected Progress progress = new Progress();
 
-  public TezTask() {
-  }
-
-  public TezTask(TezTaskAttemptID taskAttemptID, String user, String jobName,
-      String vertexName) {
-    this.taskAttemptId = taskAttemptID;
-    this.user = user;
-    this.jobName = jobName;
-    this.vertexName = vertexName;
-  }
-
-  public TezTaskAttemptID getTaskAttemptId() {
-    return taskAttemptId;
-  }
-
   public Progress getProgress() {
     return progress;
-  }
-
-  public TezDAGID getDAGID() {
-    return taskAttemptId.getTaskID().getVertexID().getDAGId();
-  }
-
-  public String getUser() {
-    return user;
-  }
-
-  public String getJobName() {
-    return jobName;
-  }
-  
-  public String getVertexName() {
-    return this.vertexName;
-  }
-
-  public SecretKey getJobTokenSecret() {
-    return jobTokenSecret;
   }
 
   public void setJobTokenSecret(SecretKey jobTokenSecret) {
@@ -99,32 +50,21 @@ public abstract class TezTask implements Writable {
     return reporter;
   }
 
+  // TODO Doesn't belong here.
   public Processor getCombineProcessor() {
     return combineProcessor;
   }
 
+  // TODO Doesn't belong here.
   public Partitioner getPartitioner() {
     return partitioner;
   }
 
+  // TODO Doesn't belong here.
+  public SecretKey getJobTokenSecret() {
+    return jobTokenSecret;
+  }
   
-
   public void statusUpdate() throws IOException, InterruptedException {
   }
-
-  @Override
-  public void write(DataOutput out) throws IOException {
-    taskAttemptId.write(out);
-    Text.writeString(out, user);
-    Text.writeString(out, jobName);
-    Text.writeString(out, vertexName);
-  }
-
-  public void readFields(DataInput in) throws IOException {
-    taskAttemptId = TezTaskAttemptID.read(in);
-    user = Text.readString(in);
-    jobName = Text.readString(in);
-    vertexName = Text.readString(in);
-  }
-
 }

@@ -29,11 +29,12 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.tez.common.RunningTaskContext;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezTask;
 import org.apache.tez.common.TezTaskReporter;
-import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.sort.impl.TezMerger;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
@@ -43,7 +44,8 @@ import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 @SuppressWarnings({"rawtypes"})
 public class LocalShuffle {
 
-  private final TezTask task;
+  private final TezEngineTaskContext taskContext;
+  private final RunningTaskContext runningTaskContext;
   private final Configuration conf;
   private final int tasksInDegree;
 
@@ -58,11 +60,13 @@ public class LocalShuffle {
   private final CompressionCodec codec;
   private final TezTaskOutput mapOutputFile;
 
-  public LocalShuffle(TezTask task, 
+  public LocalShuffle(TezEngineTaskContext taskContext, 
+      RunningTaskContext runningTaskContext, 
       Configuration conf,
       TezTaskReporter reporter
       ) throws IOException {
-    this.task = task;
+    this.taskContext = taskContext;
+    this.runningTaskContext = runningTaskContext;
     this.conf = conf;
     this.keyClass = ConfigUtils.getMapOutputKeyClass(conf);
     this.valClass = ConfigUtils.getMapOutputValueClass(conf);
@@ -87,10 +91,7 @@ public class LocalShuffle {
       this.codec = null;
     }
 
-    this.tasksInDegree = 
-        conf.getInt(
-            TezJobConfig.TEZ_ENGINE_TASK_INDEGREE, 
-            TezJobConfig.DEFAULT_TEZ_ENGINE_TASK_INDEGREE);
+    this.tasksInDegree = taskContext.getInputSpecList().get(0).getNumInputs();
 
     // Always local
     this.mapOutputFile = new TezLocalTaskOutputFiles();
@@ -100,7 +101,7 @@ public class LocalShuffle {
   
   public TezRawKeyValueIterator run() throws IOException {
     // Copy is complete, obviously! 
-    this.task.getProgress().addPhase("copy", 0.33f).complete();
+    this.runningTaskContext.getProgress().addPhase("copy", 0.33f).complete();
 
     // Merge
     return TezMerger.merge(conf, rfs, 
@@ -109,9 +110,9 @@ public class LocalShuffle {
         getMapFiles(),
         false, 
         sortFactor,
-        new Path(task.getTaskAttemptId().toString()), 
+        new Path(taskContext.getTaskAttemptId().toString()), 
         comparator,
-        task.getTaskReporter(), spilledRecordsCounter, null, null);
+        runningTaskContext.getTaskReporter(), spilledRecordsCounter, null, null);
   }
   
   private Path[] getMapFiles() 

@@ -36,7 +36,7 @@ import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -64,7 +64,7 @@ public class MapProcessor extends MRTask implements Processor {
 
   @Inject
   public MapProcessor(
-      @Assisted TezTask context
+      @Assisted TezEngineTaskContext context
       ) throws IOException {
     super(context);
   }
@@ -89,7 +89,8 @@ public class MapProcessor extends MRTask implements Processor {
           throws IOException, InterruptedException {
     MRTaskReporter reporter = new MRTaskReporter(getTaskReporter());
     boolean useNewApi = jobConf.getUseNewMapper();
-    initTask(jobConf, getDAGID(), reporter, useNewApi);
+    initTask(jobConf, taskAttemptId.getTaskID().getVertexID().getDAGId(),
+        reporter, useNewApi);
 
     if (in instanceof SimpleInput) {
       ((SimpleInput)in).setTask(this);
@@ -176,7 +177,7 @@ public class MapProcessor extends MRTask implements Processor {
       ) throws IOException, InterruptedException {
     // make a task context so we can get the classes
     org.apache.hadoop.mapreduce.TaskAttemptContext taskContext =
-        new TaskAttemptContextImpl(job, getTaskAttemptId(), reporter);
+        new TaskAttemptContextImpl(job, taskAttemptId, reporter);
 
     // make a mapper
     org.apache.hadoop.mapreduce.Mapper mapper;
@@ -202,7 +203,7 @@ public class MapProcessor extends MRTask implements Processor {
     org.apache.hadoop.mapreduce.MapContext 
     mapContext = 
     new org.apache.tez.mapreduce.hadoop.mapreduce.MapContextImpl(
-        job, IDConverter.toMRTaskAttemptId(getTaskAttemptId()), 
+        job, IDConverter.toMRTaskAttemptId(taskAttemptId), 
         input, output, 
         getCommitter(), 
         reporter, split);

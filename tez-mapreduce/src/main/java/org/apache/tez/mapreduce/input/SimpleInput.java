@@ -40,9 +40,9 @@ import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.TezTask;
-import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.engine.api.Input;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.mapreduce.processor.MRTask;
@@ -87,7 +87,7 @@ public class SimpleInput implements Input {
 
   @Inject
   public SimpleInput(
-      @Assisted TezTask task
+      @Assisted TezEngineTaskContext task
       ) 
   {}
   

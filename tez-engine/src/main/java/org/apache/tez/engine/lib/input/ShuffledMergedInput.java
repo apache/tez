@@ -22,8 +22,8 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.RunningTaskContext;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezTaskReporter;
 import org.apache.tez.engine.api.Input;
 import org.apache.tez.engine.api.Master;
@@ -43,19 +43,21 @@ public class ShuffledMergedInput implements Input {
   static final Log LOG = LogFactory.getLog(ShuffledMergedInput.class);
   TezRawKeyValueIterator rIter = null;
 
-  private TezTask task;
+  protected TezEngineTaskContext task;
+  protected RunningTaskContext runningTaskContext;
   
   private Configuration conf;
   private CombineInput raw;
 
   @Inject
   public ShuffledMergedInput(
-      @Assisted TezTask task
+      @Assisted TezEngineTaskContext task
       ) {
+    this.task = task;
   }
 
-  public void setTask(TezTask task) {
-    this.task = task;
+  public void setTask(RunningTaskContext runningTaskContext) {
+    this.runningTaskContext = runningTaskContext;
   }
   
   public void initialize(Configuration conf, Master master) throws IOException,
@@ -64,12 +66,10 @@ public class ShuffledMergedInput implements Input {
     
     Shuffle shuffle = 
       new Shuffle(
-          task, this.conf,      
-          this.conf.getInt(
-              TezJobConfig.TEZ_ENGINE_TASK_INDEGREE, 
-              TezJobConfig.DEFAULT_TEZ_ENGINE_TASK_INDEGREE),
+          task, runningTaskContext, this.conf, 
+          task.getInputSpecList().get(0).getNumInputs(),
           (TezTaskReporter)master, 
-          task.getCombineProcessor());
+          runningTaskContext.getCombineProcessor());
     rIter = shuffle.run();
     
     raw = new CombineInput(rIter);

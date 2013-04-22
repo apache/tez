@@ -40,10 +40,10 @@ import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.QuickSort;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.Constants;
-import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezTask;
-import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.RunningTaskContext;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.api.Partitioner;
 import org.apache.tez.engine.api.Processor;
@@ -71,7 +71,8 @@ public abstract class ExternalSorter {
 
   protected Processor combineProcessor;
   protected Partitioner partitioner;
-  protected TezTask task;
+  protected TezEngineTaskContext task;
+  protected RunningTaskContext runningTaskContext;
   protected Configuration job;
   protected FileSystem rfs;
   protected TezTaskOutput mapOutputFile;
@@ -102,10 +103,11 @@ public abstract class ExternalSorter {
     LOG.info("TEZ_ENGINE_TASK_ATTEMPT_ID: " + 
         job.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
 
-    partitions = 
-        job.getInt(
-            TezJobConfig.TEZ_ENGINE_TASK_OUTDEGREE, 
-            TezJobConfig.DEFAULT_TEZ_ENGINE_TASK_OUTDEGREE);
+    partitions = task.getOutputSpecList().get(0).getNumOutputs();
+//    partitions = 
+//        job.getInt(
+//            TezJobConfig.TEZ_ENGINE_TASK_OUTDEGREE, 
+//            TezJobConfig.DEFAULT_TEZ_ENGINE_TASK_OUTDEGREE);
     rfs = ((LocalFileSystem)FileSystem.getLocal(job)).getRaw();
     
     // sorter
@@ -123,14 +125,14 @@ public abstract class ExternalSorter {
     
     //    counters
     mapOutputByteCounter = 
-        task.getTaskReporter().getCounter(TaskCounter.MAP_OUTPUT_BYTES);
+        runningTaskContext.getTaskReporter().getCounter(TaskCounter.MAP_OUTPUT_BYTES);
     mapOutputRecordCounter =
-      task.getTaskReporter().getCounter(TaskCounter.MAP_OUTPUT_RECORDS);
+      runningTaskContext.getTaskReporter().getCounter(TaskCounter.MAP_OUTPUT_RECORDS);
     fileOutputByteCounter = 
-        task.getTaskReporter().
+        runningTaskContext.getTaskReporter().
             getCounter(TaskCounter.MAP_OUTPUT_MATERIALIZED_BYTES);
     spilledRecordsCounter = 
-        task.getTaskReporter().getCounter(TaskCounter.SPILLED_RECORDS);
+        runningTaskContext.getTaskReporter().getCounter(TaskCounter.SPILLED_RECORDS);
     // compression
     if (ConfigUtils.getCompressMapOutput(job)) {
       Class<? extends CompressionCodec> codecClass =
@@ -149,7 +151,7 @@ public abstract class ExternalSorter {
 //    LOG.info("XXX mapOutputFile: " + mapOutputFile.getClass());
     
     // sortPhase
-    sortPhase  = task.getProgress().addPhase("sort", 0.333f);
+    sortPhase  = runningTaskContext.getProgress().addPhase("sort", 0.333f);
   }
 
   /**
@@ -163,8 +165,8 @@ public abstract class ExternalSorter {
     }
   }
 
-  public void setTask(TezTask task) {
-    this.task = task;
+  public void setTask(RunningTaskContext task) {
+    this.runningTaskContext = task;
     this.combineProcessor = task.getCombineProcessor();
     this.partitioner = task.getPartitioner();
   }
@@ -182,10 +184,10 @@ public abstract class ExternalSorter {
       Writer writer) throws IOException, InterruptedException {
 
     CombineInput combineIn = new CombineInput(kvIter);
-    combineIn.initialize(job, task.getTaskReporter());
+    combineIn.initialize(job, runningTaskContext.getTaskReporter());
 
     CombineOutput combineOut = new CombineOutput(writer);
-    combineOut.initialize(job, task.getTaskReporter());
+    combineOut.initialize(job, runningTaskContext.getTaskReporter());
 
     combineProcessor.process(combineIn, combineOut);
 
@@ -216,8 +218,12 @@ public abstract class ExternalSorter {
 //    LOG.info("XXX sameVolRename src=" + src + ", dst=" + dst);
   }
 
-  public ExternalSorter() {
-    super();
+//  public ExternalSorter() {
+//    super();
+//  }
+  
+  public ExternalSorter(TezEngineTaskContext tezEngineTask) {
+    this.task = tezEngineTask;
   }
 
   public InputStream getSortedStream(int partition) {

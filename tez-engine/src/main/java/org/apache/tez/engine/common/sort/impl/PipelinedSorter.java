@@ -43,8 +43,8 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.IndexedSorter;
 import org.apache.hadoop.util.Progress;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezTask;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.sort.SortingOutput;
@@ -98,8 +98,9 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
 
   @Inject
   public PipelinedSorter(
-      @Assisted TezTask task
+      @Assisted TezEngineTaskContext task
       ) throws IOException {
+    super(task);
   }
 
   public void initialize(Configuration conf, Master master) 
@@ -211,7 +212,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
    */
   synchronized void collect(Object key, Object value, final int partition
                                    ) throws IOException {
-    task.getTaskReporter().progress();
+    runningTaskContext.getTaskReporter().progress();
     if (key.getClass() != keyClass) {
       throw new IOException("Type mismatch in key from map: expected "
                             + keyClass.getName() + ", received "
@@ -267,7 +268,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
     }
     mapOutputRecordCounter.increment(1);
     mapOutputByteCounter.increment(valend - keystart);
-    task.getTaskReporter().progress();
+    runningTaskContext.getTaskReporter().progress();
   }
 
   public void spill() throws IOException { 
@@ -392,7 +393,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
                      segmentList, mergeFactor,
                      new Path(mapId.toString()),
                      (RawComparator)ConfigUtils.getOutputKeyComparator(job), 
-                     task.getTaskReporter(), sortSegments,
+                     runningTaskContext.getTaskReporter(), sortSegments,
                      null, spilledRecordsCounter, sortPhase.phase());
 
       //write merged output to disk
@@ -402,7 +403,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
                            spilledRecordsCounter);
       writer.setRLE(merger.needsRLE());
       if (combineProcessor == null || numSpills < minSpillsForCombine) {
-        TezMerger.writeFile(kvIter, writer, task.getTaskReporter(), job);
+        TezMerger.writeFile(kvIter, writer, runningTaskContext.getTaskReporter(), job);
       } else {
     	runCombineProcessor(kvIter, writer);
       }
@@ -525,7 +526,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
       kj = new byte[keymax];
       LOG.info("begin sorting Span"+index + " ("+length()+")");
       if(length() > 1) {
-        sorter.sort(this, 0, length(), task.getTaskReporter());
+        sorter.sort(this, 0, length(), runningTaskContext.getTaskReporter());
       }
       LOG.info("done sorting Span"+index);
       return new SpanIterator(this);
@@ -958,4 +959,5 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
   public OutputContext getOutputContext() {
     return null;
   }
+
 }

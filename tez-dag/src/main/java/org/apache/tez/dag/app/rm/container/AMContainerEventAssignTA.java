@@ -18,23 +18,23 @@
 package org.apache.tez.dag.app.rm.container;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 
 public class AMContainerEventAssignTA extends AMContainerEvent {
 
   private final TezTaskAttemptID attemptId;
   // TODO Maybe have tht TAL pull the remoteTask from the TaskAttempt itself ?
-  private final TezTask remoteTaskContext;
+  private final TezTaskContext remoteTaskContext;
   
   public AMContainerEventAssignTA(ContainerId containerId,
       TezTaskAttemptID attemptId, Object remoteTaskContext) {
     super(containerId, AMContainerEventType.C_ASSIGN_TA);
     this.attemptId = attemptId;
-    this.remoteTaskContext = (TezTask)remoteTaskContext;
+    this.remoteTaskContext = (TezTaskContext)remoteTaskContext;
   }
   
-  public TezTask getRemoteTaskContext() {
+  public TezTaskContext getRemoteTaskContext() {
     return this.remoteTaskContext;
   }
   

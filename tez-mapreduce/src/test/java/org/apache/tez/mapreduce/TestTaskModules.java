@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.tez.common.TezEngineTask;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.engine.api.Input;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.api.Output;
@@ -59,12 +59,12 @@ public class TestTaskModules {
   
   private static final Log LOG = LogFactory.getLog(TestTaskModules.class);
 
-  TezEngineTask taskContext;
+  TezEngineTaskContext taskContext;
   JobConf job;
   
   @Before
   public void setUp() {
-    taskContext = new TezEngineTask(TezTestUtils.getMockTaskAttemptId(0, 0, 0,
+    taskContext = new TezEngineTaskContext(TezTestUtils.getMockTaskAttemptId(0, 0, 0,
         MRTaskType.REDUCE), "tez", "tez", "TODO_vertexName",
         TestInitialModule.class.getName(), null, null);
     job = new JobConf();

@@ -56,8 +56,8 @@ import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.Records;
-import org.apache.tez.common.TezEngineTask;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.TezEngineTaskContext;
+import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -300,11 +300,11 @@ public class TaskAttemptImpl implements TaskAttempt,
     return attemptId;
   }
   
-  TezTask createRemoteTask() {
+  TezTaskContext createRemoteTask() {
     Vertex vertex = getTask().getVertex();
 
     // TODO  TEZ-50 user and jobname
-    return new TezEngineTask(getID(), "user", "jobname", getTask()
+    return new TezEngineTaskContext(getID(), "user", "jobname", getTask()
         .getVertex().getName(), mrxModuleClassName,
         vertex.getInputSpecList(), vertex.getOutputSpecList());
   }
@@ -866,7 +866,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       // recovery.
 
       // Create the remote task.
-      TezTask remoteTaskContext = ta.createRemoteTask();
+      TezTaskContext remoteTaskContext = ta.createRemoteTask();
       // Create startTaskRequest
 
       String[] hostArray = new String[0];

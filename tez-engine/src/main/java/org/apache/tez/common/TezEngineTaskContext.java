@@ -27,18 +27,18 @@ import java.util.List;
 import org.apache.hadoop.io.Text;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 
-public class TezEngineTask extends TezTask {
+public class TezEngineTaskContext extends TezTaskContext {
 
   // These two could be replaced by a TezConfiguration / DagSpec.
   private List<InputSpec> inputSpecList;
   private List<OutputSpec> outputSpecList;
   private String taskModuleClassName;
   
-  public TezEngineTask() {
+  public TezEngineTaskContext() {
     super();
   }
 
-  public TezEngineTask(TezTaskAttemptID taskAttemptID, String user,
+  public TezEngineTaskContext(TezTaskAttemptID taskAttemptID, String user,
       String jobName, String vertexName, String moduleClassName,
       List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList) {
     super(taskAttemptID, user, jobName, vertexName);

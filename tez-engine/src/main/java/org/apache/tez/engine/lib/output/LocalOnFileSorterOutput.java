@@ -20,12 +20,11 @@ package org.apache.tez.engine.lib.output;
 
 import java.io.IOException;
 
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 
 import com.google.inject.Inject;
@@ -37,7 +36,7 @@ public class LocalOnFileSorterOutput extends OnFileSortedOutput {
   
   @Inject
   public LocalOnFileSorterOutput(
-      @Assisted TezTask task
+      @Assisted TezEngineTaskContext task
       ) throws IOException {
     super(task);
   }

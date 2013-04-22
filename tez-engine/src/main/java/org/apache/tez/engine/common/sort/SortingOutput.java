@@ -17,7 +17,7 @@
  */
 package org.apache.tez.engine.common.sort;
 
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.RunningTaskContext;
 import org.apache.tez.engine.api.Output;
 
 /**
@@ -26,6 +26,7 @@ import org.apache.tez.engine.api.Output;
  */
 public interface SortingOutput extends Output {
   
-  public void setTask(TezTask task);
+  // TODO PreCommit rename
+  public void setTask(RunningTaskContext runningTaskContext);
   
 }

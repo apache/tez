@@ -42,7 +42,7 @@ import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskAttemptListener;
@@ -75,8 +75,8 @@ public class AMContainerImpl implements AMContainer {
   private final List<TezTaskAttemptID> completedAttempts = new LinkedList<TezTaskAttemptID>();
 
   // TODO Maybe this should be pulled from the TaskAttempt.s
-  private final Map<TezTaskAttemptID, TezTask> remoteTaskMap =
-      new HashMap<TezTaskAttemptID, TezTask>();
+  private final Map<TezTaskAttemptID, TezTaskContext> remoteTaskMap =
+      new HashMap<TezTaskAttemptID, TezTaskContext>();
   
   // TODO ?? Convert to list and hash.
   

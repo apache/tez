@@ -62,8 +62,8 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.AuxServices;
 import org.apache.hadoop.yarn.service.AbstractService;
+import org.apache.tez.common.RunningTaskContext;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezTask;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
 import org.apache.tez.engine.common.security.SecureShuffleUtils;
@@ -241,7 +241,7 @@ public class ShuffleHandler extends AbstractService
     userRsrc.remove(appId.toString());
   }
 
-  public synchronized void init(Configuration conf, TezTask task) {
+  public synchronized void init(Configuration conf, RunningTaskContext task) {
     this.init(conf);
     tokenSecret = task.getJobTokenSecret();
   }

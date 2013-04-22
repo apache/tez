@@ -20,7 +20,8 @@ package org.apache.tez.engine.lib.output;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.RunningTaskContext;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.api.Output;
 import org.apache.tez.engine.common.sort.SortingOutput;
@@ -41,7 +42,7 @@ public class OnFileSortedOutput implements SortingOutput {
   
   @Inject
   public OnFileSortedOutput(
-      @Assisted TezTask task
+      @Assisted TezEngineTaskContext task
       ) throws IOException {
     sorter = new DefaultSorter(task);
   }
@@ -51,7 +52,8 @@ public class OnFileSortedOutput implements SortingOutput {
     sorter.initialize(conf, master);
   }
 
-  public void setTask(TezTask task) {
+  @Override
+  public void setTask(RunningTaskContext task) {
     sorter.setTask(task);
   }
   

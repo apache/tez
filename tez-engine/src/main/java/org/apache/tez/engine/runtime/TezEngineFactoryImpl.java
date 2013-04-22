@@ -18,7 +18,7 @@
 
 package org.apache.tez.engine.runtime;
 
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.engine.api.Input;
 import org.apache.tez.engine.api.Output;
 import org.apache.tez.engine.api.Processor;
@@ -47,11 +47,10 @@ implements TezEngineFactory {
     this.taskFactory = taskFactory;
   }
   
-  public Task createTask(TezTask taskContext) {
+  public Task createTask(TezEngineTaskContext taskContext) {
     Input in = inputFactory.create(taskContext);
     Output out = outputFactory.create(taskContext);
     Processor processor = processorFactory.create(taskContext);
     return taskFactory.create(in, processor, out);
-  }
-  
+  }  
 }

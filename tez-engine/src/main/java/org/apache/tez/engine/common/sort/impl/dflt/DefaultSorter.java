@@ -39,8 +39,9 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.sort.impl.ExternalSorter;
@@ -116,8 +117,10 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
 
   @Inject
   public DefaultSorter(
-      @Assisted TezTask task
+      @Assisted TezTaskContext task
       ) throws IOException {
+    // Does this assisted inject work ?
+    super((TezEngineTaskContext)task);
   }
 
   @Override
@@ -209,7 +212,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
    */
   synchronized void collect(Object key, Object value, final int partition
                                    ) throws IOException {
-    task.getTaskReporter().progress();
+    runningTaskContext.getTaskReporter().progress();
     if (key.getClass() != keyClass) {
       throw new IOException("Type mismatch in key from map: expected "
                             + keyClass.getName() + ", received "
@@ -574,7 +577,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
               // wait for spill
               try {
                 while (spillInProgress) {
-                  task.getTaskReporter().progress();
+                  runningTaskContext.getTaskReporter().progress();
                   spillDone.await();
                 }
               } catch (InterruptedException e) {
@@ -606,7 +609,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     spillLock.lock();
     try {
       while (spillInProgress) {
-        task.getTaskReporter().progress();
+        runningTaskContext.getTaskReporter().progress();
         spillDone.await();
       }
       checkSpillException();
@@ -702,7 +705,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
       if (lspillException instanceof Error) {
         final String logMsg = "Task " + task.getTaskAttemptId() + " failed : " +
           StringUtils.stringifyException(lspillException);
-        task.getTaskReporter().reportFatalError(
+        runningTaskContext.getTaskReporter().reportFatalError(
             task.getTaskAttemptId(), lspillException, logMsg);
       }
       throw new IOException("Spill failed", lspillException);
@@ -741,7 +744,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
       throws IOException, InterruptedException {
     final int mstart = getMetaStart();
     final int mend = getMetaEnd();
-    sorter.sort(this, mstart, mend, task.getTaskReporter());
+    sorter.sort(this, mstart, mend, runningTaskContext.getTaskReporter());
     spill(mstart, mend); 
   }
   
@@ -1091,7 +1094,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
                        segmentList, mergeFactor,
                        new Path(mapId.toString()),
                        (RawComparator)ConfigUtils.getOutputKeyComparator(job), 
-                       task.getTaskReporter(), sortSegments,
+                       runningTaskContext.getTaskReporter(), sortSegments,
                        null, spilledRecordsCounter, 
                        sortPhase.phase());
 
@@ -1101,7 +1104,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
             new Writer(job, finalOut, keyClass, valClass, codec,
                              spilledRecordsCounter);
         if (combineProcessor == null || numSpills < minSpillsForCombine) {
-          TezMerger.writeFile(kvIter, writer, task.getTaskReporter(), job);
+          TezMerger.writeFile(kvIter, writer, runningTaskContext.getTaskReporter(), job);
           writer.close();
         } else {
           runCombineProcessor(kvIter, writer);

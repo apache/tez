@@ -25,18 +25,18 @@ import org.apache.hadoop.io.Writable;
 
 public class ContainerTask implements Writable {
 
-  TezEngineTask tezEngineTask;
+  TezEngineTaskContext tezEngineTask;
   boolean shouldDie;
 
   public ContainerTask() {
   }
 
-  public ContainerTask(TezTask tezTaskContext, boolean shouldDie) {
-    this.tezEngineTask = (TezEngineTask)tezTaskContext;
+  public ContainerTask(TezTaskContext tezTaskContext, boolean shouldDie) {
+    this.tezEngineTask = (TezEngineTaskContext)tezTaskContext;
     this.shouldDie = shouldDie;
   }
 
-  public TezEngineTask getTezEngineTaskContext() {
+  public TezEngineTaskContext getTezEngineTaskContext() {
     return tezEngineTask;
   }
 
@@ -60,7 +60,7 @@ public class ContainerTask implements Writable {
     shouldDie = in.readBoolean();
     boolean taskComing = in.readBoolean();
     if (taskComing) {
-      tezEngineTask = new TezEngineTask();
+      tezEngineTask = new TezEngineTaskContext();
       tezEngineTask.readFields(in);
     }
   }

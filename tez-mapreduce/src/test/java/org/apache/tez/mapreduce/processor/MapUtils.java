@@ -38,7 +38,7 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
-import org.apache.tez.common.TezEngineTask;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.runtime.TezEngineFactory;
 import org.apache.tez.mapreduce.TezTestUtils;
@@ -97,8 +97,8 @@ public class MapUtils {
       throws Exception {
     jobConf.setInputFormat(SequenceFileInputFormat.class);
     InputSplit split = createInputSplit(fs, workDir, jobConf, mapInput);
-    TezEngineTask taskContext = 
-        new TezEngineTask(
+    TezEngineTaskContext taskContext = 
+        new TezEngineTaskContext(
         TezTestUtils.getMockTaskAttemptId(0, mapId, 0, MRTaskType.MAP), "tez",
         "tez", "TODO_vertexName", InitialTaskWithLocalSort.class.getName(),
         null, null);

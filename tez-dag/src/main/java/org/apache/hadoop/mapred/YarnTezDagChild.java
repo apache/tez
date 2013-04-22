@@ -65,7 +65,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.log4j.LogManager;
 import org.apache.tez.common.ContainerTask;
-import org.apache.tez.common.TezEngineTask;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.records.TezTaskAttemptID;
@@ -139,7 +139,7 @@ public class YarnTezDagChild {
     if (LOG.isDebugEnabled()) {
       LOG.debug("PID, containerId: " + pid + ", " + containerId);
     }
-    TezEngineTask taskContext = null;
+    TezEngineTaskContext taskContext = null;
     ContainerTask containerTask = null;
     UserGroupInformation childUGI = null;
     TezTaskAttemptID taskAttemptId = null;
@@ -402,7 +402,7 @@ public class YarnTezDagChild {
   }
 
   private static Task createAndConfigureTezTask(
-      TezEngineTask taskContext,
+      TezEngineTaskContext taskContext,
       TezTaskUmbilicalProtocol master, 
       Credentials credentials, Token<JobTokenIdentifier> jt) 
       throws IOException, InterruptedException {

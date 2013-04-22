@@ -63,7 +63,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.Constants;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.InputSpec;
-import org.apache.tez.common.TezEngineTask;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.counters.TezCounters;
@@ -240,8 +240,8 @@ public class LocalJobRunner implements ClientProtocol {
           TezTaskAttemptID tezMapId =
               IDConverter.fromMRTaskAttemptId(mapId);
           mapIds.add(mapId);
-          TezEngineTask taskContext = 
-              new TezEngineTask(
+          TezEngineTaskContext taskContext = 
+              new TezEngineTaskContext(
                   tezMapId, user, localConf.getJobName(), "TODO_vertexName",
                   InitialTask.class.getName(), null, null);
           Injector injector = Guice.createInjector(new InitialTask());
@@ -444,7 +444,7 @@ public class LocalJobRunner implements ClientProtocol {
             
             
             
-            TezEngineTask taskContext = new TezEngineTask(
+            TezEngineTaskContext taskContext = new TezEngineTaskContext(
                 IDConverter.fromMRTaskAttemptId(reduceId), user,
                 localConf.getJobName(), "TODO_vertexName", LocalFinalTask.class.getName(),
                 Collections.singletonList(new InputSpec("TODO_srcVertexName",

@@ -18,11 +18,11 @@
 
 package org.apache.tez.engine.runtime;
 
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.engine.api.Processor;
 
 public interface ProcessorFactory {
   
-  Processor create(TezTask task);
+  Processor create(TezEngineTaskContext task);
   
 }

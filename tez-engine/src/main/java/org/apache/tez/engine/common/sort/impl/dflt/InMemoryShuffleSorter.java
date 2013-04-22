@@ -29,7 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.util.DataChecksum;
-import org.apache.tez.common.TezTask;
+import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.common.shuffle.impl.ShuffleHeader;
 import org.apache.tez.engine.common.shuffle.server.ShuffleHandler;
@@ -57,7 +57,7 @@ public class InMemoryShuffleSorter extends DefaultSorter {
   
   @Inject
   public InMemoryShuffleSorter(
-      @Assisted TezTask task
+      @Assisted TezTaskContext task
       ) throws IOException {
     super(task);
   }
@@ -66,7 +66,7 @@ public class InMemoryShuffleSorter extends DefaultSorter {
   public void initialize(Configuration conf, Master master) throws IOException,
       InterruptedException {
     super.initialize(conf, master);
-    shuffleHandler.init(conf, task);
+    shuffleHandler.init(conf, runningTaskContext);
   }
 
   @Override
