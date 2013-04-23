@@ -42,7 +42,6 @@ import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.runtime.TezEngineFactory;
 import org.apache.tez.mapreduce.TezTestUtils;
-import org.apache.tez.mapreduce.hadoop.MRTaskType;
 import org.apache.tez.mapreduce.hadoop.TezTaskUmbilicalProtocol;
 import org.apache.tez.mapreduce.input.SimpleInput;
 import org.apache.tez.mapreduce.task.InitialTaskWithLocalSort;
@@ -99,7 +98,7 @@ public class MapUtils {
     InputSplit split = createInputSplit(fs, workDir, jobConf, mapInput);
     TezEngineTaskContext taskContext = 
         new TezEngineTaskContext(
-        TezTestUtils.getMockTaskAttemptId(0, mapId, 0, MRTaskType.MAP), "tez",
+        TezTestUtils.getMockTaskAttemptId(0, 0, mapId, 0), "tez",
         "tez", "TODO_vertexName", InitialTaskWithLocalSort.class.getName(),
         null, null);
   

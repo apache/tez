@@ -59,23 +59,6 @@ public class IDConverter {
         Long.valueOf(jobId.getJtIdentifier()), jobId.getId()), 1);
   }
 
-  public static MRTaskType fromMRTaskType(TaskType type) {
-    switch (type) {
-      case REDUCE:
-        return MRTaskType.REDUCE;
-      case JOB_SETUP:
-        return MRTaskType.JOB_SETUP;
-      case JOB_CLEANUP:
-        return MRTaskType.JOB_CLEANUP;
-      case TASK_CLEANUP:
-        return MRTaskType.TASK_CLEANUP;
-      case MAP:
-        return MRTaskType.MAP;
-      default:
-        throw new RuntimeException("Unknown TaskType: " + type);
-    }
-  }
-
   // FIXME hack alert converting objects with hard coded id
   public static TezTaskID
       fromMRTaskId(org.apache.hadoop.mapreduce.TaskID taskid) {

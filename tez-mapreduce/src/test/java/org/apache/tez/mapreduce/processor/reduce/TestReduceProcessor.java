@@ -37,7 +37,6 @@ import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 import org.apache.tez.engine.runtime.TezEngineFactory;
 import org.apache.tez.mapreduce.TestUmbilicalProtocol;
 import org.apache.tez.mapreduce.TezTestUtils;
-import org.apache.tez.mapreduce.hadoop.MRTaskType;
 import org.apache.tez.mapreduce.processor.MapUtils;
 import org.apache.tez.mapreduce.task.InitialTaskWithLocalSort;
 import org.apache.tez.mapreduce.task.LocalFinalTask;
@@ -95,7 +94,7 @@ public class TestReduceProcessor {
     
     // Now run a reduce
     TezEngineTaskContext taskContext = new TezEngineTaskContext(
-        TezTestUtils.getMockTaskAttemptId(0, 0, 0, MRTaskType.REDUCE), "tez",
+        TezTestUtils.getMockTaskAttemptId(0, 0, 0, 0), "tez",
         "tez", "TODO_vertexName", LocalFinalTask.class.getName(),
         Collections.singletonList(new InputSpec("TODO_srcVertexName", 1)), null);
     job.set(JobContext.TASK_ATTEMPT_ID, taskContext.getTaskAttemptId().toString());

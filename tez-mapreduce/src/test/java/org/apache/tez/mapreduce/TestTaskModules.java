@@ -37,7 +37,6 @@ import org.apache.tez.engine.runtime.ProcessorFactory;
 import org.apache.tez.engine.runtime.TaskFactory;
 import org.apache.tez.engine.runtime.TezEngineFactory;
 import org.apache.tez.engine.runtime.TezEngineFactoryImpl;
-import org.apache.tez.mapreduce.hadoop.MRTaskType;
 import org.apache.tez.mapreduce.input.SimpleInput;
 import org.apache.tez.mapreduce.output.SimpleOutput;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
@@ -64,8 +63,9 @@ public class TestTaskModules {
   
   @Before
   public void setUp() {
-    taskContext = new TezEngineTaskContext(TezTestUtils.getMockTaskAttemptId(0, 0, 0,
-        MRTaskType.REDUCE), "tez", "tez", "TODO_vertexName",
+    taskContext = new TezEngineTaskContext(
+        TezTestUtils.getMockTaskAttemptId(0, 0, 0, 0),
+        "tez", "tez", "TODO_vertexName",
         TestInitialModule.class.getName(), null, null);
     job = new JobConf();
   }

@@ -17,55 +17,44 @@
  */
 package org.apache.tez.mapreduce;
 
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.util.Records;
+import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.tez.engine.records.TezDAGID;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskID;
 import org.apache.tez.engine.records.TezVertexID;
-import org.apache.tez.mapreduce.hadoop.MRTaskType;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TezTestUtils {
 
   public static TezTaskAttemptID getMockTaskAttemptId(
-      int jobId, int taskId, int taskAttemptId, MRTaskType type) {
-    TezTaskAttemptID taskAttemptID = mock(TezTaskAttemptID.class);
-    TezTaskID taskID = getMockTaskId(jobId, taskId, type);
-    when(taskAttemptID.getTaskID()).thenReturn(taskID);
-    when(taskAttemptID.getId()).thenReturn(taskAttemptId);
-    when(taskAttemptID.toString()).thenReturn(
-        "attempt_tez_" + Integer.toString(jobId) + "_" + 
-        ((type == MRTaskType.MAP) ? "m" : "r") + "_" + 
-        Integer.toString(taskId) + "_" + Integer.toString(taskAttemptId)
-        );
-    return taskAttemptID;
+      int jobId, int vertexId, int taskId, int taskAttemptId) {
+    return new TezTaskAttemptID(
+        new TezTaskID(
+            new TezVertexID(
+                new TezDAGID(
+                    BuilderUtils.newApplicationId(0, jobId), jobId),
+                    vertexId),
+                    taskId)
+        , taskAttemptId);
   }
   
-  public static TezTaskID getMockTaskId(int jobId, int taskId, MRTaskType type) {
-    TezVertexID vertexID = getMockVertexId(jobId, type);
-    TezTaskID taskID = mock(TezTaskID.class);
-    when(taskID.getVertexID()).thenReturn(vertexID);
-    when(taskID.getId()).thenReturn(taskId);
-    return taskID;
+  public static TezTaskID getMockTaskId(int jobId,
+      int vertexId, int taskId) {
+    return new TezTaskID(
+        new TezVertexID(new TezDAGID(
+            BuilderUtils.newApplicationId(0, jobId),
+            jobId), vertexId),
+            taskId);
   }
   
   public static TezDAGID getMockJobId(int jobId) {
-    TezDAGID jobID = mock(TezDAGID.class);
-    ApplicationId appId = Records.newRecord(ApplicationId.class);
-    appId.setClusterTimestamp(0L);
-    appId.setId(jobId);
-    when(jobID.getId()).thenReturn(jobId);
-    when(jobID.getApplicationId()).thenReturn(appId);
-    return jobID;
+    return new TezDAGID(
+        BuilderUtils.newApplicationId(0, jobId), jobId);
   }
   
-  public static TezVertexID getMockVertexId(int jobId, MRTaskType type) {
-    TezVertexID vertexID = mock(TezVertexID.class);
-    when(vertexID.getDAGId()).thenReturn(getMockJobId(jobId));
-    when(vertexID.getId()).thenReturn(type == MRTaskType.MAP ? 0 : 1);
-    return vertexID;
+  public static TezVertexID getMockVertexId(int jobId, int vId) {
+    return new TezVertexID(
+        new TezDAGID(
+            BuilderUtils.newApplicationId(0, jobId), jobId),
+            vId);
   }
 }
