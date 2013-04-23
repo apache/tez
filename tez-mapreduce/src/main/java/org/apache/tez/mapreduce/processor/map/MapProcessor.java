@@ -84,13 +84,22 @@ public class MapProcessor extends MRTask implements Processor {
 
   @Override
   public void process(
-      final Input in, 
-      final Output out)
+      final Input[] ins,
+      final Output[] outs)
           throws IOException, InterruptedException {
     MRTaskReporter reporter = new MRTaskReporter(getTaskReporter());
     boolean useNewApi = jobConf.getUseNewMapper();
     initTask(jobConf, taskAttemptId.getTaskID().getVertexID().getDAGId(),
         reporter, useNewApi);
+
+    if (ins.length != 1
+        || outs.length != 1) {
+      throw new IOException("Cannot handle multiple inputs or outputs"
+          + ", inputCount=" + ins.length
+          + ", outputCount=" + outs.length);
+    }
+    Input in = ins[0];
+    Output out = outs[0];
 
     if (in instanceof SimpleInput) {
       ((SimpleInput)in).setTask(this);

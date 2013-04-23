@@ -20,8 +20,6 @@ package org.apache.tez.mapreduce.processor.map;
 
 import java.io.IOException;
 
-import junit.framework.Assert;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
@@ -45,6 +43,7 @@ import org.jboss.netty.buffer.BigEndianHeapChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.TruncatedChannelBuffer;
 import org.jboss.netty.handler.stream.ChunkedStream;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -125,16 +124,16 @@ public class TestMapProcessor {
         MapUtils.runMapProcessor(
             localFs, workDir, job, 0, new Path(workDir, "map0"), 
         new InitialTaskWithInMemSort(), new TestUmbilicalProtocol(true));
-    InMemorySortedOutput output = (InMemorySortedOutput)t.getOutput();
+    InMemorySortedOutput[] outputs = (InMemorySortedOutput[])t.getOutputs();
     
-    verifyInMemSortedStream(output, 0, 4096);
+    verifyInMemSortedStream(outputs[0], 0, 4096);
     int i = 0;
     for (i = 2; i < 256; i <<= 1) {
-      verifyInMemSortedStream(output, 0, i);
+      verifyInMemSortedStream(outputs[0], 0, i);
     }
-    verifyInMemSortedStream(output, 1, 4096);
+    verifyInMemSortedStream(outputs[0], 1, 4096);
     for (i = 2; i < 256; i <<= 1) {
-      verifyInMemSortedStream(output, 1, i);
+      verifyInMemSortedStream(outputs[0], 1, i);
     }
 
     t.close();

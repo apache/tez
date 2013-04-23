@@ -48,7 +48,7 @@ public interface Processor {
    * @throws IOException
    * @throws InterruptedException
    */
-  public void process(Input in, Output  out) 
+  public void process(Input[] in, Output[]  out)
       throws IOException, InterruptedException;
 
   /**

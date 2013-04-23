@@ -32,8 +32,8 @@ import com.google.inject.assistedinject.Assisted;
 public class RuntimeTask 
 implements Task {
 
-  private final Input in;
-  private final Output out;
+  private final Input[] inputs;
+  private final Output[] outputs;
   private final Processor processor;
   
   private Configuration conf;
@@ -41,12 +41,21 @@ implements Task {
   
   @Inject
   public RuntimeTask(
-      @Assisted Processor processor, 
-      @Assisted Input in, 
+      @Assisted Processor processor,
+      @Assisted Input in,
       @Assisted Output out) {
-    this.in = in;
+    this(processor,
+        new Input[] {in},
+        new Output[] {out});
+  }
+
+  public RuntimeTask(
+      Processor processor,
+      Input[] inputs,
+      Output[] outputs) {
+    this.inputs = inputs;
     this.processor = processor;
-    this.out = out;
+    this.outputs = outputs;
   }
 
   public void initialize(Configuration conf, Master master) throws IOException,
@@ -59,8 +68,8 @@ implements Task {
   }
 
   @Override
-  public Input getInput() {
-    return in;
+  public Input[] getInputs() {
+    return inputs;
   }
 
   @Override
@@ -69,12 +78,12 @@ implements Task {
   }
 
   @Override
-  public Output getOutput() {
-    return out;
+  public Output[] getOutputs() {
+    return outputs;
   }
 
   public void run() throws IOException, InterruptedException {
-    processor.process(in, out);
+    processor.process(inputs, outputs);
   }
 
   public void close() throws IOException, InterruptedException {

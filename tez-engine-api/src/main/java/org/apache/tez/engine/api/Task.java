@@ -44,19 +44,19 @@ public interface Task {
    * Get {@link Input} of the task.
    * @return <code>Input</code> of the task
    */
-  public Input getInput();
+  public Input[] getInputs();
 
   /**
-   * Get {@link Processor} of the task.
-   * @return <code>Processor</code> of the task
+   * Get {@link Processor}s of the task.
+   * @return <code>Processor</code>s of the task
    */
   public Processor getProcessor();
 
   /**
-   * Get {@link Output} of the task.
-   * @return <code>Output</code> of the task
+   * Get {@link Output}s of the task.
+   * @return <code>Output</code>s of the task
    */
-  public Output getOutput();
+  public Output[] getOutputs();
 
   /**
    * Run the {@link Task}.

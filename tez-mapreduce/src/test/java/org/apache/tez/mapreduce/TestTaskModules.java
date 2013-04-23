@@ -100,8 +100,8 @@ public class TestTaskModules {
 
   static class TestTask implements Task {
 
-    private final Input in;
-    private final Output out;
+    private final Input[] ins;
+    private final Output[] outs;
     private final Processor processor;
     
     @Inject
@@ -109,27 +109,36 @@ public class TestTaskModules {
         @Assisted Processor processor, 
         @Assisted Input in, 
         @Assisted Output out) {
-      this.in = in;
-      this.processor = processor;
-      this.out = out;
+      this(processor, new Input[] {in},
+          new Output[] {out});
     }
-    
+
+    @Inject
+    public TestTask(
+        Processor processor,
+        Input[] ins,
+        Output[] outs) {
+      this.ins = ins;
+      this.processor = processor;
+      this.outs = outs;
+    }
+
     @Override
     public void initialize(Configuration conf, Master master)
         throws IOException, InterruptedException {
-      LOG.info("in = " + in.getClass());
+      LOG.info("in = " + ins[0].getClass());
       LOG.info("processor = " + processor.getClass());
-      LOG.info("out = " + out.getClass());
+      LOG.info("out = " + outs[0].getClass());
     }
 
     @Override
-    public Input getInput() {
-      return in;
+    public Input[] getInputs() {
+      return ins;
     }
 
     @Override
-    public Output getOutput() {
-      return out;
+    public Output[] getOutputs() {
+      return outs;
     }
 
     @Override

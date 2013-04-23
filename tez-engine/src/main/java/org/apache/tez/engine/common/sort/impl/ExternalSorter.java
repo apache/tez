@@ -44,7 +44,9 @@ import org.apache.tez.common.RunningTaskContext;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.engine.api.Input;
 import org.apache.tez.engine.api.Master;
+import org.apache.tez.engine.api.Output;
 import org.apache.tez.engine.api.Partitioner;
 import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.common.ConfigUtils;
@@ -189,7 +191,8 @@ public abstract class ExternalSorter {
     CombineOutput combineOut = new CombineOutput(writer);
     combineOut.initialize(job, runningTaskContext.getTaskReporter());
 
-    combineProcessor.process(combineIn, combineOut);
+    combineProcessor.process(new Input[] {combineIn},
+        new Output[] {combineOut});
 
     combineIn.close();
     combineOut.close();

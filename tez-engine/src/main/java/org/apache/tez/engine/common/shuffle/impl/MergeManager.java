@@ -45,6 +45,8 @@ import org.apache.tez.common.Constants;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskReporter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.engine.api.Input;
+import org.apache.tez.engine.api.Output;
 import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.combine.CombineInput;
@@ -372,7 +374,8 @@ public class MergeManager {
     CombineOutput combineOut = new CombineOutput(writer);
     combineOut.initialize(conf, reporter);
     
-    combineProcessor.process(combineIn, combineOut);
+    combineProcessor.process(new Input[] {combineIn},
+        new Output[] {combineOut});
     
     combineIn.close();
     combineOut.close();

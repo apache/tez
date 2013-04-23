@@ -106,10 +106,10 @@ public class MapUtils {
     TezEngineFactory factory = injector.getInstance(TezEngineFactory.class);
     Task t = factory.createTask(taskContext);
     t.initialize(jobConf, umbilical);
-    SimpleInput real = ((SimpleInput)t.getInput());
-    SimpleInput in = spy(real);
-    doReturn(split).when(in).getOldSplitDetails(any(TaskSplitIndex.class));
-    t.getProcessor().process(in, t.getOutput());
+    SimpleInput[] real = ((SimpleInput[])t.getInputs());
+    SimpleInput[] inputs = spy(real);
+    doReturn(split).when(inputs[0]).getOldSplitDetails(any(TaskSplitIndex.class));
+    t.getProcessor().process(inputs, t.getOutputs());
     return t;
   }
 
