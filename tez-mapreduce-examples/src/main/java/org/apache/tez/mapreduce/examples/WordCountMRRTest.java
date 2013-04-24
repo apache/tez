@@ -97,11 +97,16 @@ public class WordCountMRRTest {
     // Has to be set before initialzing job, since it creates a copy.
     // Alternately use JonConf. 
     conf.setInt(MRJobConfig.MRR_INTERMEDIATE_STAGES, 1);
-    conf.setClass(MultiStageMRConfigUtil.getPropertyNameForStage(1,
+    conf.setClass(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
         "mapreduce.job.combine.class"), IntermediateReducer.class,
         Reducer.class);
-    conf.setClass(MultiStageMRConfigUtil.getPropertyNameForStage(1,
+    conf.setClass(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
         "mapreduce.job.reduce.class"), IntermediateReducer.class, Reducer.class);
+    conf.set(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
+        "mapreduce.map.output.value.class"), IntWritable.class.getName());
+    
+    
+    
     System.err.println("Running wordcountMrrTest");
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
     if (otherArgs.length != 2) {

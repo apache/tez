@@ -409,12 +409,12 @@ public class YarnTezDagChild {
       Credentials credentials, Token<JobTokenIdentifier> jt,
       int appAttemptId)
       throws IOException, InterruptedException {
+
     Configuration jConf = new JobConf(MRJobConfig.JOB_CONF_FILE);
-    Configuration conf;
+    Configuration conf = MultiStageMRConfigUtil.getConfForVertex(jConf,
+        taskContext.getVertexName());
     
-    // TODO Post MRR. This structure will not allow randomly named vertices.
-    // Have the MRR client convert intermediate stage configuration to be based
-    // on vertex name.
+    // TOOD Post MRR
     // A single file per vertex will likely be a better solution. Does not
     // require translation - client can take care of this. Will work independent
     // of whether the configuration is for intermediate tasks or not. Has the
@@ -422,19 +422,6 @@ public class YarnTezDagChild {
     // need to write these files to hdfs, add them as local resources per
     // vertex. A solution like this may be more practical once it's possible to
     // submit configuration parameters to the AM and effectively tasks via RPC.
-    LOG.info("DEBUG: VertexName: " + taskContext.getVertexName());
-    if (MultiStageMRConfigUtil.isIntermediateReduceStage(taskContext
-        .getVertexName())) {
-      LOG.info("DEBUG: is intermediate stage");
-      int intermediateStageNum = MultiStageMRConfigUtil
-          .getIntermediateReduceStageNum(taskContext.getVertexName());
-      LOG.info("DEBUG: intermediateStageNum: " + intermediateStageNum);
-      conf = MultiStageMRConfigUtil.getIntermediateStageConf(jConf,
-          intermediateStageNum);
-      MultiStageMRConfigUtil.printConf(conf);
-    } else {
-      conf = jConf;
-    }
 
     // TODO Avoid all this extra config manipulation.
     final JobConf job = new JobConf(conf);

@@ -92,5 +92,4 @@ public class TezConfiguration extends Configuration {
   };
 
   public static final String DAG_AM_PLAN_CONFIG_XML = "tez-dag.xml";
-
 }

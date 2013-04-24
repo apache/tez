@@ -62,6 +62,7 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.hadoop.mapreduce.QueueAclsInfo;
 import org.apache.hadoop.mapreduce.QueueInfo;
@@ -510,8 +511,9 @@ public class YARNRunner implements ClientProtocol {
     int stageNum = iReduceIndex + 1;
     Configuration conf = MultiStageMRConfigUtil.getIntermediateStageConf(jobConf, stageNum);
     int numTasks = conf.getInt(MRJobConfig.NUM_REDUCES, 0);
+    // Intermediate vertices start at 1.
     Vertex vertex = new Vertex(
-        MultiStageMRConfigUtil.getIntermediateReduceVertexName(stageNum),
+        MultiStageMRConfigUtil.getIntermediateStageVertexName(stageNum),
         "org.apache.tez.mapreduce.task.IntermediateTask", numTasks);
     
     Map<String, String> reduceEnv = new HashMap<String, String>();
@@ -575,7 +577,7 @@ public class YARNRunner implements ClientProtocol {
     String mapProcessor = mapOnly ?
         "org.apache.tez.mapreduce.task.MapOnlyTask"
         : "org.apache.tez.mapreduce.task.InitialTask";
-    Vertex mapVertex = new Vertex("map", mapProcessor, numMaps);
+    Vertex mapVertex = new Vertex(MultiStageMRConfigUtil.getInitialMapVertexName(), mapProcessor, numMaps);
 
     // FIXME set up map environment
     Map<String, String> mapEnv = new HashMap<String, String>();
@@ -616,7 +618,7 @@ public class YARNRunner implements ClientProtocol {
     if (numReduces > 0) {
       String reduceProcessor =
           "org.apache.tez.mapreduce.task.FinalTask";
-      Vertex reduceVertex = new Vertex("reduce", reduceProcessor, numReduces);
+      Vertex reduceVertex = new Vertex(MultiStageMRConfigUtil.getFinalReduceVertexName(), reduceProcessor, numReduces);
 
       // FIXME set up reduce environment
       Map<String, String> reduceEnv = new HashMap<String, String>();
@@ -825,6 +827,19 @@ public class YARNRunner implements ClientProtocol {
     return appContext;
   }
 
+  private void writeTezConf(String jobSubmitDir, FileSystem fs,
+      Configuration tezConf) throws IOException {
+    Path dagConfFilePath = new Path(jobSubmitDir, MRJobConfig.JOB_CONF_FILE);
+
+    FSDataOutputStream tezConfOut = FileSystem.create(fs, dagConfFilePath,
+        new FsPermission(DAG_FILE_PERMISSION));
+    try {
+      tezConf.writeXml(tezConfOut);
+    } finally {
+      tezConfOut.close();
+    }
+  }
+
   @Override
   public JobStatus submitJob(JobID jobId, String jobSubmitDir, Credentials ts)
   throws IOException, InterruptedException {
@@ -840,14 +855,18 @@ public class YARNRunner implements ClientProtocol {
 
     FileSystem fs = FileSystem.get(conf);
     JobConf jobConf = new JobConf(new TezConfiguration(conf));
+    Configuration tezJobConf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
+    
+    // This will replace job.xml in the staging dir.
+    writeTezConf(jobSubmitDir, fs, tezJobConf);    
 
     // FIXME set up job resources
     Map<String, LocalResource> jobLocalResources =
-        createJobLocalResources(jobConf, jobSubmitDir);
+        createJobLocalResources(tezJobConf, jobSubmitDir);
     DAG dag = createDAG(fs, jobId, jobConf, jobSubmitDir, ts,
         jobLocalResources);
     ApplicationSubmissionContext appContext =
-        createApplicationSubmissionContext(fs, dag, jobConf, jobSubmitDir, ts,
+        createApplicationSubmissionContext(fs, dag, tezJobConf, jobSubmitDir, ts,
             jobLocalResources);
 
     // Submit to ResourceManager

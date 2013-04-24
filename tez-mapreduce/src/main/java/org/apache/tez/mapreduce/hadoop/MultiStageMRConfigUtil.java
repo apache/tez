@@ -22,47 +22,54 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.reduce.IntSumReducer;
-
-import com.google.common.base.Preconditions;
 
 public class MultiStageMRConfigUtil {
 
-  // TODO MRR FIXME based on conf format.
-  // Returns a complete conf object including non-intermediate stage conf.
-  public static Configuration getIntermediateStageConf(Configuration baseConf,
-      int i) {
-    String base = getPropertyNameForStage(i, "");
-    Configuration conf = new Configuration(false);
-    Iterator<Entry<String, String>> confEntries = baseConf.iterator();
-    while (confEntries.hasNext()) {
-      Entry<String, String> entry = confEntries.next();
-      String key = entry.getKey();
-      if (key.startsWith(base)) {
-        conf.set(key.replace(base, ""), entry.getValue());
-      } else {
-        conf.set(key, entry.getValue());
-      }
-    }
-    return conf;
-  }
+  //////////////////////////////////////////////////////////////////////////////
+  //                    Methods based on Stage Num                            //
+  //////////////////////////////////////////////////////////////////////////////
 
-  // TODO MRR FIXME based on conf format.
-  // Returns config settings specific to stage-i only.
+  // Returns config settings specific to stage
   public static Configuration getBasicIntermediateStageConf(
       Configuration baseConf, int i) {
-    String base = getPropertyNameForStage(i, "");
-    Configuration conf = new Configuration(false);
-    Iterator<Entry<String, String>> confEntries = baseConf.iterator();
-    while (confEntries.hasNext()) {
-      Entry<String, String> entry = confEntries.next();
-      String key = entry.getKey();
-      if (key.startsWith(base)) {
-        conf.set(key.replace(base, ""), entry.getValue());
+    return getBasicIntermediateStageConfInternal(baseConf,
+        getPropertyNameForIntermediateStage(i, ""), false, true);
+  }
+
+  // Returns and removes config settings specific to stage
+  public static Configuration getAndRemoveBasicIntermediateStageConf(
+      Configuration baseConf, int i) {
+    return getBasicIntermediateStageConfInternal(baseConf,
+        getPropertyNameForIntermediateStage(i, ""), true, true);
+  }
+
+  // TODO Get rid of this once YARNRunner starts using VertexNames.
+  public static Configuration getIntermediateStageConf(Configuration baseConf,
+      int i) {
+    return getBasicIntermediateStageConfInternal(baseConf,
+        getPropertyNameForIntermediateStage(i, ""), false, false);
+  }
+
+  // FIXME small perf hit. Change this to parse through all keys once and
+  // generate objects per
+  // stage instead of scanning through conf multiple times.
+  public static Configuration getAndRemoveBasicNonIntermediateStageConf(
+      Configuration baseConf) {
+    Configuration newConf = new Configuration(false);
+    for (String key : DeprecatedKeys.getMRToEngineParamMap().keySet()) {
+      if (baseConf.get(key) != null) {
+        newConf.set(key, baseConf.get(key));
+        baseConf.unset(key);
       }
     }
-    return conf;
+
+    for (String key : DeprecatedKeys.getMultiStageParamMap().keySet()) {
+      if (baseConf.get(key) != null) {
+        newConf.set(key, baseConf.get(key));
+        baseConf.unset(key);
+      }
+    }
+    return newConf;
   }
 
   // TODO MRR FIXME based on conf format.
@@ -71,40 +78,70 @@ public class MultiStageMRConfigUtil {
   }
 
   // TODO MRR FIXME based on conf format.
-  public static String getPropertyNameForStage(int intermediateStage,
-      String originalPropertyName) {
+  // Intermediate stage numbers should start from 1.
+  public static String getPropertyNameForIntermediateStage(
+      int intermediateStage, String originalPropertyName) {
     return MRJobConfig.MRR_INTERMEDIATE_STAGE_PREFIX + intermediateStage + "."
         + originalPropertyName;
   }
-
-  public static void main(String[] args) {
-    Configuration baseConf = new Configuration();
-    baseConf.setInt(MRJobConfig.MRR_INTERMEDIATE_STAGES, 1);
-    baseConf.setClass(MultiStageMRConfigUtil.getPropertyNameForStage(1,
-        "mapreduce.job.combine.class"), IntSumReducer.class, Reducer.class);
-    baseConf.setClass(MultiStageMRConfigUtil.getPropertyNameForStage(1,
-        "mapreduce.job.reduce.class"), IntSumReducer.class, Reducer.class);
-
-    Configuration conf = getBasicIntermediateStageConf(baseConf, 1);
-    printConf(conf);
-  }
+ 
+ //////////////////////////////////////////////////////////////////////////////
+ //                  Methods based on Vertex Name                            //
+ //////////////////////////////////////////////////////////////////////////////
   
-  private static String IREDUCE_PREFIX = "ireduce";
-  
-  public static String getIntermediateReduceVertexName(int i) {
-    return "ireduce" + i;
+  private static final String INITIAL_MAP_VERTEX_NAME = "initialmap";
+  private static final String FINAL_REDUCE_VERTEX_NAME = "finalreduce";
+  private static final String INTERMEDIATE_TASK_VERTEX_NAME_PREFIX = "ivertex";
+
+  public static String getInitialMapVertexName() {
+    return INITIAL_MAP_VERTEX_NAME;
   }
 
-  public static boolean isIntermediateReduceStage(String vertexName) {
-    return vertexName.startsWith(IREDUCE_PREFIX);
+  public static String getFinalReduceVertexName() {
+    return FINAL_REDUCE_VERTEX_NAME;
   }
-  
-  public static int getIntermediateReduceStageNum(String vertexName) {
-    Preconditions.checkArgument(vertexName.startsWith(IREDUCE_PREFIX),
-        "IntermediateReduce vertex name must start with prefix: "
-            + IREDUCE_PREFIX);
-    String stageNumString = vertexName.substring(IREDUCE_PREFIX.length());
-    return Integer.valueOf(stageNumString);
+
+  public static String getIntermediateStageVertexName(int stageNum) {
+    return INTERMEDIATE_TASK_VERTEX_NAME_PREFIX + stageNum;
+  }
+
+  // Returns config settings specific to named vertex
+  public static Configuration getBasicConfForVertex(Configuration baseConf,
+      String vertexName) {
+    return getBasicIntermediateStageConfInternal(baseConf,
+        getPropertyNameForVertex(vertexName, ""), false, true);
+  }
+
+  // Returns and removes config settings specific to named vertex
+  public static Configuration getAndRemoveBasicConfForVertex(
+      Configuration baseConf, String vertexName) {
+    return getBasicIntermediateStageConfInternal(baseConf,
+        getPropertyNameForVertex(vertexName, ""), true, true);
+  }
+
+  // Returns a config with all parameters, and vertex specific params moved to
+  // the top level.
+  public static Configuration getConfForVertex(Configuration baseConf,
+      String vertexName) {
+    return getBasicIntermediateStageConfInternal(baseConf,
+        getPropertyNameForVertex(vertexName, ""), false, false);
+  }
+
+  public static void addConfigurationForVertex(Configuration baseConf,
+      String vertexName, Configuration vertexConf) {
+    Iterator<Entry<String, String>> confEntries = vertexConf.iterator();
+    while (confEntries.hasNext()) {
+      Entry<String, String> entry = confEntries.next();
+      baseConf.set(getPropertyNameForVertex(vertexName, entry.getKey()),
+          entry.getValue());
+    }
+  }
+
+  // TODO This is TezEngineLand
+  public static String getPropertyNameForVertex(String vertexName,
+      String originalPropertyName) {
+    return MRJobConfig.MRR_VERTEX_PREFIX + vertexName + "."
+        + originalPropertyName;
   }
 
   // TODO Get rid of this. Temporary for testing.
@@ -117,4 +154,27 @@ public class MultiStageMRConfigUtil {
       System.err.println("Key: " + key + ", Value: " + value);
     }
   }
+  
+  // TODO MRR FIXME based on conf format.
+  private static Configuration getBasicIntermediateStageConfInternal(
+      Configuration baseConf, String prefix, boolean remove, boolean stageOnly) {
+    Configuration conf = new Configuration(false);
+    Iterator<Entry<String, String>> confEntries = baseConf.iterator();
+    while (confEntries.hasNext()) {
+      Entry<String, String> entry = confEntries.next();
+      String key = entry.getKey();
+      if (key.startsWith(prefix)) {
+        conf.set(key.replace(prefix, ""), entry.getValue());
+        if (remove) {
+          baseConf.unset(key);
+        }
+      } else if (!stageOnly) {
+        conf.set(key, entry.getValue());
+      }
+    }
+    return conf;
+  }
+
+
+  
 }

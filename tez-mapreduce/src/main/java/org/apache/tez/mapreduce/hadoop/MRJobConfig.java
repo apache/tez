@@ -644,6 +644,10 @@ public interface MRJobConfig {
 
   public static final String MRR_INTERMEDIATE_STAGE_PREFIX =
       "mrr.intermediate.stage.";
+  
+  // TODO Move this over to Tez
+  public static final String MRR_VERTEX_PREFIX = 
+      "mrr.vertex.";
 
   // Stage specific properties
   // Format of each property is mapred.ireducer.stage.<stage-num>.<suffix>
