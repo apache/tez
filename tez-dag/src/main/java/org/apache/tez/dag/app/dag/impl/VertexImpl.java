@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -1293,9 +1294,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public synchronized List<InputSpec> getInputSpecList() {
     inputSpecList = new ArrayList<InputSpec>(
         this.getInputVerticesCount());
-    for (Vertex srcVertex : this.getInputVertices().keySet()) {
-      InputSpec inputSpec = new InputSpec(srcVertex.getName(),
-          srcVertex.getTotalTasks());
+    for (Entry<Vertex, EdgeProperty> entry : this.getInputVertices().entrySet()) {
+      InputSpec inputSpec = new InputSpec(entry.getKey().getName(),
+          entry.getKey().getTotalTasks(),
+          entry.getValue().getInputClass());
       LOG.info("DEBUG: For vertex : " + this.getName()
           + ", Using InputSpec : " + inputSpec);
       // TODO DAGAM This should be based on the edge type.
@@ -1309,9 +1311,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public synchronized List<OutputSpec> getOutputSpecList() {
     if (this.outputSpecList == null) {
       outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount());
-      for (Vertex targetVertex : this.getOutputVertices().keySet()) {
-        OutputSpec outputSpec = new OutputSpec(targetVertex.getName(),
-            targetVertex.getTotalTasks());
+      for (Entry<Vertex, EdgeProperty> entry : this.getOutputVertices().entrySet()) {
+        OutputSpec outputSpec = new OutputSpec(entry.getKey().getName(),
+            entry.getKey().getTotalTasks(),
+            entry.getValue().getOutputClass());
         LOG.info("DEBUG: For vertex : " + this.getName()
             + ", Using OutputSpec : " + outputSpec);
         // TODO DAGAM This should be based on the edge type.

@@ -34,6 +34,7 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
+import org.apache.tez.engine.lib.input.LocalMergedInput;
 import org.apache.tez.engine.runtime.TezEngineFactory;
 import org.apache.tez.mapreduce.TestUmbilicalProtocol;
 import org.apache.tez.mapreduce.TezTestUtils;
@@ -96,7 +97,8 @@ public class TestReduceProcessor {
     TezEngineTaskContext taskContext = new TezEngineTaskContext(
         TezTestUtils.getMockTaskAttemptId(0, 0, 0, 0), "tez",
         "tez", "TODO_vertexName", LocalFinalTask.class.getName(),
-        Collections.singletonList(new InputSpec("TODO_srcVertexName", 1)), null);
+        Collections.singletonList(new InputSpec("TODO_srcVertexName", 1,
+            LocalMergedInput.class.getName())), null);
     job.set(JobContext.TASK_ATTEMPT_ID, taskContext.getTaskAttemptId().toString());
     Injector injector = Guice.createInjector(new LocalFinalTask());
     TezEngineFactory factory = injector.getInstance(TezEngineFactory.class);

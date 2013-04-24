@@ -70,6 +70,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
+import org.apache.tez.engine.lib.input.LocalMergedInput;
 import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
@@ -448,7 +449,7 @@ public class LocalJobRunner implements ClientProtocol {
                 IDConverter.fromMRTaskAttemptId(reduceId), user,
                 localConf.getJobName(), "TODO_vertexName", LocalFinalTask.class.getName(),
                 Collections.singletonList(new InputSpec("TODO_srcVertexName",
-                    mapIds.size())), null); 
+                    mapIds.size(), LocalMergedInput.class.getName())), null);
             Injector injector = Guice.createInjector(new LocalFinalTask());
 
             // move map output to reduce input  

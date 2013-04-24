@@ -29,13 +29,16 @@ public class InputSpec implements Writable {
 
   private String vertexName;
   private int inDegree;
+  private String inputClassName;
   
   public InputSpec() {
   }
   
-  public InputSpec(String vertexName, int inDegree) {
+  public InputSpec(String vertexName, int inDegree,
+      String inputClassName) {
     this.vertexName = vertexName;
     this.inDegree = inDegree;
+    this.inputClassName = inputClassName;
   }
   
   /**
@@ -52,21 +55,31 @@ public class InputSpec implements Writable {
   public int getNumInputs() {
     return this.inDegree;
   }
+
+  /**
+   * @return Input class name
+   */
+  public String getInputClassName() {
+    return this.inputClassName;
+  }
   
   @Override
   public void write(DataOutput out) throws IOException {
     Text.writeString(out, vertexName);
     out.writeInt(inDegree);
+    Text.writeString(out, inputClassName);
   }
 
   @Override
   public void readFields(DataInput in) throws IOException {
     vertexName = Text.readString(in);
     this.inDegree = in.readInt();
+    inputClassName = Text.readString(in);
   }
   
   @Override
   public String toString() {
-    return "VertexName: " + vertexName + ", InDegree: " + inDegree;
+    return "VertexName: " + vertexName + ", InDegree: " + inDegree
+        + ", InputClassName=" + inputClassName;
   }
 }

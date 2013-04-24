@@ -166,6 +166,8 @@ public class YarnTezDagChild {
           return;
         }
         taskContext = containerTask.getTezEngineTaskContext();
+        LOG.info("XXXX: New container task context:"
+                + taskContext.toString());
 
         taskAttemptId = taskContext.getTaskAttemptId();
 
