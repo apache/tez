@@ -47,6 +47,7 @@ import org.apache.hadoop.yarn.SystemClock;
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -1239,20 +1240,14 @@ public class DAGAppMaster extends CompositeService {
       // TODO: Deprecated keys?
       //DeprecatedKeys.init();
       String containerIdStr =
-          System.getenv(ApplicationConstants.AM_CONTAINER_ID_ENV);
-      String nodeHostString = System.getenv(ApplicationConstants.NM_HOST_ENV);
-      String nodePortString = System.getenv(ApplicationConstants.NM_PORT_ENV);
+          System.getenv(Environment.CONTAINER_ID.name());
+      String nodeHostString = System.getenv(Environment.NM_HOST.name());
+      String nodePortString = System.getenv(Environment.NM_PORT.name());
       String nodeHttpPortString =
-          System.getenv(ApplicationConstants.NM_HTTP_PORT_ENV);
+          System.getenv(Environment.NM_HTTP_PORT.name());
       String appSubmitTimeStr =
           System.getenv(ApplicationConstants.APP_SUBMIT_TIME_ENV);
 
-      validateInputParam(containerIdStr,
-          ApplicationConstants.AM_CONTAINER_ID_ENV);
-      validateInputParam(nodeHostString, ApplicationConstants.NM_HOST_ENV);
-      validateInputParam(nodePortString, ApplicationConstants.NM_PORT_ENV);
-      validateInputParam(nodeHttpPortString,
-          ApplicationConstants.NM_HTTP_PORT_ENV);
       validateInputParam(appSubmitTimeStr,
           ApplicationConstants.APP_SUBMIT_TIME_ENV);
 

@@ -20,10 +20,8 @@ package org.apache.tez.dag.utils;
 
 import java.net.InetSocketAddress;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.YarnTezDagChild;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -32,7 +30,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.engine.records.TezVertexID;
 
 public class TezEngineChildJVM {
@@ -71,15 +68,6 @@ public class TezEngineChildJVM {
         filter.toString();
   }
   
-  public static void setVMEnv(Map<String, String> environment, TezConfiguration conf,
-      TezVertexID vertexId, AppContext appContext) {
-
-    // FIXME this should be derivable from the container id set by the NM
-    // and not require the AM to set
-    environment.put(TezConfiguration.APPLICATION_ATTEMPT_ID_ENV,
-        String.valueOf(appContext.getApplicationAttemptId().getAttemptId()));
-  }
-
   public static List<String> getVMCommand(
       InetSocketAddress taskAttemptListenerAddr, TezConfiguration conf, 
       TezVertexID vertexId, 
@@ -106,11 +94,10 @@ public class TezEngineChildJVM {
 
     // Add main class and its arguments 
     vargs.add(YarnTezDagChild.class.getName());  // main of Child
+
     // pass TaskAttemptListener's address
     vargs.add(taskAttemptListenerAddr.getAddress().getHostAddress()); 
     vargs.add(Integer.toString(taskAttemptListenerAddr.getPort()));
-    // Set the job id
-    vargs.add(jobID.toString());
 
     // Finally add the containerId.
     vargs.add(String.valueOf(containerId.toString()));

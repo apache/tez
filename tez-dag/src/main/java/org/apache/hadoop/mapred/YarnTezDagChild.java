@@ -60,6 +60,7 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
@@ -105,9 +106,9 @@ public class YarnTezDagChild {
     final InetSocketAddress address =
         NetUtils.createSocketAddrForHost(host, port);
 
-    final ApplicationId appID = ConverterUtils.toApplicationId(args[2]);
-    
-    final ContainerId containerId = ConverterUtils.toContainerId(args[3]);
+    final ContainerId containerId = ConverterUtils.toContainerId(args[2]);
+    final ApplicationId appID =
+        containerId.getApplicationAttemptId().getApplicationId();
 
     // FIXME fix initialize metrics in child runner
     DefaultMetricsSystem.initialize("VertexTask");
@@ -172,7 +173,8 @@ public class YarnTezDagChild {
         taskAttemptId = taskContext.getTaskAttemptId();
 
         final Task t = createAndConfigureTezTask(taskContext, umbilical,
-            credentials, jt);
+            credentials, jt,
+            containerId.getApplicationAttemptId().getAttemptId());
         task = (MRTask) t.getProcessor();
         final JobConf job = task.getConf();
 
@@ -251,7 +253,7 @@ public class YarnTezDagChild {
    */
   private static void configureLocalDirs(MRTask task, JobConf job) throws IOException {
     String[] localSysDirs = StringUtils.getTrimmedStrings(
-        System.getenv(ApplicationConstants.LOCAL_DIR_ENV));
+        System.getenv(Environment.LOCAL_DIRS.name()));
     job.setStrings(TezJobConfig.LOCAL_DIR, localSysDirs);
     LOG.info(TezJobConfig.LOCAL_DIR + " for child: " +
         job.get(TezJobConfig.LOCAL_DIR));
@@ -289,15 +291,12 @@ public class YarnTezDagChild {
   }
 
   private static JobConf configureTask(MRTask task, Credentials credentials,
-      Token<JobTokenIdentifier> jt) throws IOException, InterruptedException {
+      Token<JobTokenIdentifier> jt, int appAttemptId)
+          throws IOException, InterruptedException {
     JobConf job = task.getConf();
     
-    String appAttemptIdEnv = System
-        .getenv(TezConfiguration.APPLICATION_ATTEMPT_ID_ENV);
-    LOG.debug("APPLICATION_ATTEMPT_ID: " + appAttemptIdEnv);
     // Set it in conf, so as to be able to be used the the OutputCommitter.
-    job.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, Integer
-        .parseInt(appAttemptIdEnv));
+    job.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, appAttemptId);
 
     // set tcp nodelay
     job.setBoolean("ipc.client.tcpnodelay", true);
@@ -406,8 +405,9 @@ public class YarnTezDagChild {
 
   private static Task createAndConfigureTezTask(
       TezEngineTaskContext taskContext,
-      TezTaskUmbilicalProtocol master, 
-      Credentials credentials, Token<JobTokenIdentifier> jt) 
+      TezTaskUmbilicalProtocol master,
+      Credentials credentials, Token<JobTokenIdentifier> jt,
+      int appAttemptId)
       throws IOException, InterruptedException {
     Configuration jConf = new JobConf(MRJobConfig.JOB_CONF_FILE);
     Configuration conf;
@@ -466,7 +466,7 @@ public class YarnTezDagChild {
     t.initialize(job, master);
     
     MRTask task = (MRTask)t.getProcessor();
-    configureTask(task, credentials, jt);
+    configureTask(task, credentials, jt, appAttemptId);
     
     return t;
   }
