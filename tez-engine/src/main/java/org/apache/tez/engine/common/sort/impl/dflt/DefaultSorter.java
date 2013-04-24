@@ -1093,7 +1093,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
                        keyClass, valClass, codec,
                        segmentList, mergeFactor,
                        new Path(mapId.toString()),
-                       (RawComparator)ConfigUtils.getOutputKeyComparator(job), 
+                       (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(job), 
                        runningTaskContext.getTaskReporter(), sortSegments,
                        null, spilledRecordsCounter, 
                        sortPhase.phase());

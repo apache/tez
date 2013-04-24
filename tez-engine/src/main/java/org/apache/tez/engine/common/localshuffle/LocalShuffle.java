@@ -68,9 +68,9 @@ public class LocalShuffle {
     this.taskContext = taskContext;
     this.runningTaskContext = runningTaskContext;
     this.conf = conf;
-    this.keyClass = ConfigUtils.getMapOutputKeyClass(conf);
-    this.valClass = ConfigUtils.getMapOutputValueClass(conf);
-    this.comparator = ConfigUtils.getOutputKeyComparator(conf);
+    this.keyClass = ConfigUtils.getIntermediateInputKeyClass(conf);
+    this.valClass = ConfigUtils.getIntermediateInputValueClass(conf);
+    this.comparator = ConfigUtils.getIntermediateInputKeyComparator(conf);
 
     this.sortFactor =
         conf.getInt(
@@ -83,9 +83,9 @@ public class LocalShuffle {
         reporter.getCounter(TaskCounter.SPILLED_RECORDS);
     
     // compression
-    if (ConfigUtils.getCompressMapOutput(conf)) {
+    if (ConfigUtils.isIntermediateInputCompressed(conf)) {
       Class<? extends CompressionCodec> codecClass =
-          ConfigUtils.getMapOutputCompressorClass(conf, DefaultCodec.class);
+          ConfigUtils.getIntermediateInputCompressorClass(conf, DefaultCodec.class);
       this.codec = ReflectionUtils.newInstance(codecClass, conf);
     } else {
       this.codec = null;

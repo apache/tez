@@ -250,6 +250,39 @@ public class TezJobConfig {
   public static final String TEZ_ENGINE_INPUT_BUFFER_PERCENT = 
       "tez.engine.task.input.buffer.percent";
   public static final float DEFAULT_TEZ_ENGINE_INPUT_BUFFER_PERCENT = 0.0f;
+
+  // TODO Rename. 
+  public static final String TEZ_ENGINE_GROUP_COMPARATOR_CLASS = 
+      "tez.engine.group.comparator.class";
+  
+  // TODO Better name.
+  public static final String TEZ_ENGINE_INTERNAL_SORTER_CLASS = 
+      "tez.engine.internal.sorter.class";
+  
+  public static final String TEZ_ENGINE_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS = 
+      "tez.engine.intermediate-output.key.comparator.class";
+  public static final String TEZ_ENGINE_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS = 
+      "tez.engine.intermediate-input.key.comparator.class";
+  
+  public static final String TEZ_ENGINE_INTERMEDIATE_OUTPUT_KEY_CLASS = 
+      "tez.engine.intermediate-output.key.class";
+  public static final String TEZ_ENGINE_INTERMEDIATE_INPUT_KEY_CLASS = 
+      "tez.engine.intermediate-input.key.class";
+  
+  public static final String TEZ_ENGINE_INTERMEDIATE_OUTPUT_VALUE_CLASS = 
+      "tez.engine.intermediate-output.value.class";
+  public static final String TEZ_ENGINE_INTERMEDIATE_INPUT_VALUE_CLASS = 
+      "tez.engine.intermediate-input.value.class";
+  
+  public static final String TEZ_ENGINE_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS = 
+      "tez.engine.intermediate-output.should-compress";
+  public static final String TEZ_ENGINE_INTERMEDIATE_INPUT_IS_COMPRESSED = 
+      "tez.engine.intermdiate-input.is-compressed";
+  
+  public static final String TEZ_ENGINE_INTERMEDIATE_OUTPUT_COMPRESS_CODEC = 
+      "tez.engine.intermediate-output.compress.codec";
+  public static final String TEZ_ENGINE_INTERMEDIATE_INPUT_COMPRESS_CODEC = 
+      "tez.engine.intermediate-input.compress.codec";
   
   // TODO This should be in DAGConfiguration
   /* config for tracking the local file where all the credentials for the job

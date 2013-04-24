@@ -133,8 +133,8 @@ implements Processor {
 
     this.statusUpdate();
     
-    Class keyClass = ConfigUtils.getMapOutputKeyClass(jobConf);
-    Class valueClass = ConfigUtils.getMapOutputValueClass(jobConf);
+    Class keyClass = ConfigUtils.getIntermediateInputKeyClass(jobConf);
+    Class valueClass = ConfigUtils.getIntermediateInputValueClass(jobConf);
     RawComparator comparator = 
         ConfigUtils.getOutputValueGroupingComparator(jobConf);
 

@@ -124,9 +124,9 @@ class Fetcher extends Thread {
     wrongReduceErrs = reporter.getCounter(SHUFFLE_ERR_GRP_NAME,
         ShuffleErrors.WRONG_REDUCE.toString());
 
-    if (ConfigUtils.getCompressMapOutput(job)) {
+    if (ConfigUtils.isIntermediateInputCompressed(job)) {
       Class<? extends CompressionCodec> codecClass =
-          ConfigUtils.getMapOutputCompressorClass(job, DefaultCodec.class);
+          ConfigUtils.getIntermediateInputCompressorClass(job, DefaultCodec.class);
       codec = ReflectionUtils.newInstance(codecClass, job);
       decompressor = CodecPool.getDecompressor(codec);
     } else {

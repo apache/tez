@@ -27,24 +27,73 @@ import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.tez.common.TezJobConfig;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class ConfigUtils {
-  public static  Class<? extends CompressionCodec> getMapOutputCompressorClass(
-      Configuration conf, Class<DefaultCodec> class1) {
-    // TODO Auto-generated method stub
-    return null;
+
+  public static Class<? extends CompressionCodec> getIntermediateOutputCompressorClass(
+      Configuration conf, Class<DefaultCodec> defaultValue) {
+    Class<? extends CompressionCodec> codecClass = defaultValue;
+    String name = conf
+        .get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_COMPRESS_CODEC);
+    if (name != null) {
+      try {
+        codecClass = conf.getClassByName(name).asSubclass(
+            CompressionCodec.class);
+      } catch (ClassNotFoundException e) {
+        throw new IllegalArgumentException("Compression codec " + name
+            + " was not found.", e);
+      }
+    }
+    return codecClass;
+  }
+  
+  public static Class<? extends CompressionCodec> getIntermediateInputCompressorClass(
+      Configuration conf, Class<DefaultCodec> defaultValue) {
+    Class<? extends CompressionCodec> codecClass = defaultValue;
+    String name = conf
+        .get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_INPUT_COMPRESS_CODEC);
+    if (name != null) {
+      try {
+        codecClass = conf.getClassByName(name).asSubclass(
+            CompressionCodec.class);
+      } catch (ClassNotFoundException e) {
+        throw new IllegalArgumentException("Compression codec " + name
+            + " was not found.", e);
+      }
+    }
+    return codecClass;
   }
 
-  public static  boolean getCompressMapOutput(Configuration conf) {
-    // TODO Auto-generated method stub
-    return false;
+
+  // TODO Move defaults over to a constants file.
+  
+  public static boolean shouldCompressIntermediateOutput(Configuration conf) {
+    return conf.getBoolean(
+        TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS, false);
   }
 
-  public static <V> Class<V> getMapOutputValueClass(Configuration conf) {
-    Class<V> retv = 
-        (Class<V>) 
-        conf.getClass("mapreduce.map.output.value.class", null, Object.class);
+  public static boolean isIntermediateInputCompressed(Configuration conf) {
+    return conf.getBoolean(
+        TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS, false);
+  }
+
+  // TODO Is it possible to simplify the 3-level lookup (Comparator, Map-key, Job-key)
+  public static <V> Class<V> getIntermediateOutputValueClass(Configuration conf) {
+    Class<V> retv = (Class<V>) conf.getClass(
+        TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_VALUE_CLASS, null,
+        Object.class);
+    if (retv == null) {
+      retv = getOutputValueClass(conf);
+    }
+    return retv;
+  }
+  
+  public static <V> Class<V> getIntermediateInputValueClass(Configuration conf) {
+    Class<V> retv = (Class<V>) conf.getClass(
+        TezJobConfig.TEZ_ENGINE_INTERMEDIATE_INPUT_VALUE_CLASS, null,
+        Object.class);
     if (retv == null) {
       retv = getOutputValueClass(conf);
     }
@@ -56,16 +105,26 @@ public class ConfigUtils {
         "mapreduce.job.output.value.class", Text.class, Object.class);
   }
 
-  public static <K> Class<K> getMapOutputKeyClass(Configuration conf) {
-    Class<K> retv = 
-        (Class<K>) conf.getClass("mapreduce.map.output.key.class", null, Object.class);
+  public static <K> Class<K> getIntermediateOutputKeyClass(Configuration conf) {
+    Class<K> retv = (Class<K>) conf.getClass(
+        TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_KEY_CLASS, null,
+        Object.class);
     if (retv == null) {
       retv = getOutputKeyClass(conf);
     }
-    return 
-        retv;
+    return retv;
   }
 
+  public static <K> Class<K> getIntermediateInputKeyClass(Configuration conf) {
+    Class<K> retv = (Class<K>) conf.getClass(
+        TezJobConfig.TEZ_ENGINE_INTERMEDIATE_INPUT_KEY_CLASS, null,
+        Object.class);
+    if (retv == null) {
+      retv = getOutputKeyClass(conf);
+    }
+    return retv;
+  }
+  
   public static <K> Class<K> getOutputKeyClass(Configuration conf) {
     return 
         (Class<K>) 
@@ -74,17 +133,28 @@ public class ConfigUtils {
             LongWritable.class, Object.class);
 }
   
-  public static <K> RawComparator<K> getOutputKeyComparator(Configuration conf) {
-    Class<? extends RawComparator> theClass = 
-        conf.getClass(
-            "mapreduce.job.output.key.comparator.class", null, 
-            RawComparator.class);
-      if (theClass != null)
-        return ReflectionUtils.newInstance(theClass, conf);
-      return WritableComparator.get(
-          getMapOutputKeyClass(conf).asSubclass(WritableComparable.class));
-    }
+  public static <K> RawComparator<K> getIntermediateOutputKeyComparator(Configuration conf) {
+    Class<? extends RawComparator> theClass = conf.getClass(
+        TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, null,
+        RawComparator.class);
+    if (theClass != null)
+      return ReflectionUtils.newInstance(theClass, conf);
+    return WritableComparator.get(getIntermediateOutputKeyClass(conf).asSubclass(
+        WritableComparable.class));
+  }
 
+  public static <K> RawComparator<K> getIntermediateInputKeyComparator(Configuration conf) {
+    Class<? extends RawComparator> theClass = conf.getClass(
+        TezJobConfig.TEZ_ENGINE_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, null,
+        RawComparator.class);
+    if (theClass != null)
+      return ReflectionUtils.newInstance(theClass, conf);
+    return WritableComparator.get(getIntermediateInputKeyClass(conf).asSubclass(
+        WritableComparable.class));
+  }
+
+  
+  
   public static <V> RawComparator<V> getOutputValueGroupingComparator(
       Configuration conf) {
     Class<? extends RawComparator> theClass = 
@@ -92,7 +162,7 @@ public class ConfigUtils {
             "mapreduce.job.output.group.comparator.class", 
             null, RawComparator.class);
     if (theClass == null) {
-      return getOutputKeyComparator(conf);
+      return getIntermediateOutputKeyComparator(conf);
     }
 
     return ReflectionUtils.newInstance(theClass, conf);

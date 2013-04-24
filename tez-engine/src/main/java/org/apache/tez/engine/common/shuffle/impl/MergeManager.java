@@ -142,9 +142,9 @@ public class MergeManager {
     this.localFS = localFS;
     this.rfs = ((LocalFileSystem)localFS).getRaw();
 
-    if (ConfigUtils.getCompressMapOutput(conf)) {
+    if (ConfigUtils.isIntermediateInputCompressed(conf)) {
       Class<? extends CompressionCodec> codecClass =
-          ConfigUtils.getMapOutputCompressorClass(conf, DefaultCodec.class);
+          ConfigUtils.getIntermediateInputCompressorClass(conf, DefaultCodec.class);
       codec = ReflectionUtils.newInstance(codecClass, conf);
     } else {
       codec = null;
@@ -416,11 +416,11 @@ public class MergeManager {
 
       TezRawKeyValueIterator rIter = 
         TezMerger.merge(conf, rfs,
-                       ConfigUtils.getMapOutputKeyClass(conf),
-                       ConfigUtils.getMapOutputValueClass(conf),
+                       ConfigUtils.getIntermediateInputKeyClass(conf),
+                       ConfigUtils.getIntermediateInputValueClass(conf),
                        inMemorySegments, inMemorySegments.size(),
                        new Path(taskAttemptId.toString()),
-                       (RawComparator)ConfigUtils.getOutputKeyComparator(conf),
+                       (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
                        reporter, null, null, null);
       TezMerger.writeFile(rIter, writer, reporter, conf);
       writer.close();
@@ -473,8 +473,8 @@ public class MergeManager {
 
       Writer writer = 
         new Writer(conf, rfs, outputPath,
-                        (Class)ConfigUtils.getMapOutputKeyClass(conf),
-                        (Class)ConfigUtils.getMapOutputValueClass(conf),
+                        (Class)ConfigUtils.getIntermediateInputKeyClass(conf),
+                        (Class)ConfigUtils.getIntermediateInputValueClass(conf),
                         codec, null);
 
       TezRawKeyValueIterator rIter = null;
@@ -483,11 +483,11 @@ public class MergeManager {
                  " segments...");
         
         rIter = TezMerger.merge(conf, rfs,
-                             (Class)ConfigUtils.getMapOutputKeyClass(conf),
-                             (Class)ConfigUtils.getMapOutputValueClass(conf),
+                             (Class)ConfigUtils.getIntermediateInputKeyClass(conf),
+                             (Class)ConfigUtils.getIntermediateInputValueClass(conf),
                              inMemorySegments, inMemorySegments.size(),
                              new Path(taskAttemptId.toString()),
-                             (RawComparator)ConfigUtils.getOutputKeyComparator(conf),
+                             (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
                              reporter, spilledRecordsCounter, null, null);
         
         if (null == combineProcessor) {
@@ -553,18 +553,18 @@ public class MergeManager {
             approxOutputSize, conf).suffix(Constants.MERGED_OUTPUT_PREFIX);
       Writer writer = 
         new Writer(conf, rfs, outputPath, 
-                        (Class)ConfigUtils.getMapOutputKeyClass(conf), 
-                        (Class)ConfigUtils.getMapOutputValueClass(conf),
+                        (Class)ConfigUtils.getIntermediateInputKeyClass(conf), 
+                        (Class)ConfigUtils.getIntermediateInputValueClass(conf),
                         codec, null);
       TezRawKeyValueIterator iter  = null;
       Path tmpDir = new Path(taskAttemptId.toString());
       try {
         iter = TezMerger.merge(conf, rfs,
-                            (Class)ConfigUtils.getMapOutputKeyClass(conf), 
-                            (Class)ConfigUtils.getMapOutputValueClass(conf),
+                            (Class)ConfigUtils.getIntermediateInputKeyClass(conf), 
+                            (Class)ConfigUtils.getIntermediateInputValueClass(conf),
                             codec, inputs.toArray(new Path[inputs.size()]), 
                             true, ioSortFactor, tmpDir, 
-                            (RawComparator)ConfigUtils.getOutputKeyComparator(conf), 
+                            (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf), 
                             reporter, spilledRecordsCounter, null, 
                             mergedMapOutputsCounter, null);
 
@@ -670,11 +670,11 @@ public class MergeManager {
     
 
     // merge config params
-    Class keyClass = (Class)ConfigUtils.getMapOutputKeyClass(job);
-    Class valueClass = (Class)ConfigUtils.getMapOutputValueClass(job);
+    Class keyClass = (Class)ConfigUtils.getIntermediateInputKeyClass(job);
+    Class valueClass = (Class)ConfigUtils.getIntermediateInputValueClass(job);
     final Path tmpDir = new Path(taskAttemptId.toString());
     final RawComparator comparator =
-      (RawComparator)ConfigUtils.getOutputKeyComparator(job);
+      (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(job);
 
     // segments required to vacate memory
     List<Segment> memDiskSegments = new ArrayList<Segment>();

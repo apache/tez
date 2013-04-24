@@ -392,7 +392,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
                      keyClass, valClass, codec,
                      segmentList, mergeFactor,
                      new Path(mapId.toString()),
-                     (RawComparator)ConfigUtils.getOutputKeyComparator(job), 
+                     (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(job), 
                      runningTaskContext.getTaskReporter(), sortSegments,
                      null, spilledRecordsCounter, sortPhase.phase());
 

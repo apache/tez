@@ -42,6 +42,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.Constants;
 import org.apache.tez.common.RunningTaskContext;
 import org.apache.tez.common.TezEngineTaskContext;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.engine.api.Input;
@@ -113,14 +114,15 @@ public abstract class ExternalSorter {
     rfs = ((LocalFileSystem)FileSystem.getLocal(job)).getRaw();
     
     // sorter
-    sorter = ReflectionUtils.newInstance(job.getClass("map.sort.class",
-          QuickSort.class, IndexedSorter.class), job);
+    sorter = ReflectionUtils.newInstance(job.getClass(
+        TezJobConfig.TEZ_ENGINE_INTERNAL_SORTER_CLASS, QuickSort.class,
+        IndexedSorter.class), job);
     
-    comparator = ConfigUtils.getOutputKeyComparator(job);
+    comparator = ConfigUtils.getIntermediateOutputKeyComparator(job);
     
     // k/v serialization
-    keyClass = ConfigUtils.getMapOutputKeyClass(job);
-    valClass = ConfigUtils.getMapOutputValueClass(job);
+    keyClass = ConfigUtils.getIntermediateOutputKeyClass(job);
+    valClass = ConfigUtils.getIntermediateOutputValueClass(job);
     serializationFactory = new SerializationFactory(job);
     keySerializer = serializationFactory.getSerializer(keyClass);
     valSerializer = serializationFactory.getSerializer(valClass);
@@ -136,9 +138,9 @@ public abstract class ExternalSorter {
     spilledRecordsCounter = 
         runningTaskContext.getTaskReporter().getCounter(TaskCounter.SPILLED_RECORDS);
     // compression
-    if (ConfigUtils.getCompressMapOutput(job)) {
+    if (ConfigUtils.shouldCompressIntermediateOutput(job)) {
       Class<? extends CompressionCodec> codecClass =
-          ConfigUtils.getMapOutputCompressorClass(job, DefaultCodec.class);
+          ConfigUtils.getIntermediateOutputCompressorClass(job, DefaultCodec.class);
       codec = ReflectionUtils.newInstance(codecClass, job);
     } else {
       codec = null;
