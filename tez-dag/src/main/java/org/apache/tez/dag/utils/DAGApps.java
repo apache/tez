@@ -18,16 +18,15 @@
 
 package org.apache.tez.dag.utils;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.tez.dag.api.DAGConfiguration;
+import org.apache.tez.dag.api.TezConfiguration;
 
 public class DAGApps {
 
   private static final String STAGING_CONSTANT = ".staging";
-  public static Path getStagingAreaDir(Configuration conf, String user) {
-    return new Path(conf.get(DAGConfiguration.DAG_AM_STAGING_DIR,
-        DAGConfiguration.DAG_AM_STAGING_DIR_DEFAULT)
+  public static Path getStagingAreaDir(TezConfiguration conf, String user) {
+    return new Path(conf.get(TezConfiguration.DAG_AM_STAGING_DIR,
+        TezConfiguration.DAG_AM_STAGING_DIR_DEFAULT)
         + Path.SEPARATOR + user + Path.SEPARATOR + STAGING_CONSTANT);
   }
   

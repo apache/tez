@@ -42,7 +42,7 @@ import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DAGConfiguration;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.records.TaskAttemptState;
 import org.apache.tez.dag.api.records.TaskReport;
@@ -81,7 +81,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   private static final Log LOG = LogFactory.getLog(TaskImpl.class);
 
-  protected final DAGConfiguration conf;
+  protected final TezConfiguration conf;
   protected final Path jobFile;
   protected final int partition;
   protected final TaskAttemptListener taskAttemptListener;
@@ -264,7 +264,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   public TaskImpl(TezVertexID vertexId, int partition,
-      EventHandler eventHandler, Path remoteJobConfFile, DAGConfiguration conf,
+      EventHandler eventHandler, Path remoteJobConfFile, TezConfiguration conf,
       TaskAttemptListener taskAttemptListener,
       Token<JobTokenIdentifier> jobToken,
       Credentials credentials, Clock clock,

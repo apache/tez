@@ -56,6 +56,7 @@ import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAGConfiguration;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -135,7 +136,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private TezCounters fullCounters = null;
   private Resource taskResource;
 
-  public DAGConfiguration conf;
+  public TezConfiguration conf;
 
   //fields initialized in init
 
@@ -336,7 +337,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private Map<String, String> environment;
 
   public VertexImpl(TezVertexID vertexId, String vertexName,
-      DAGConfiguration conf, EventHandler eventHandler,
+      TezConfiguration conf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
       JobTokenSecretManager jobTokenSecretManager,
       Token<JobTokenIdentifier> jobToken,
@@ -369,10 +370,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.committer = new NullVertexOutputCommitter();
     this.vertexLocationHint = vertexLocationHint;
     
-    this.taskResource = conf.getVertexResource(getName());
-    this.processorName = conf.getVertexTaskModuleClassName(getName());
-    this.localResources = conf.getVertexLocalResources(getName());
-    this.environment = conf.getVertexEnv(getName());
+    this.taskResource = getDAGPlan().getVertexResource(getName());
+    this.processorName = getDAGPlan().getVertexTaskModuleClassName(getName());
+    this.localResources = getDAGPlan().getVertexLocalResources(getName());
+    this.environment = getDAGPlan().getVertexEnv(getName());
 
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
@@ -394,9 +395,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   @Override
-  public DAGConfiguration getConf() {
-    // TODO TEZ-24 this should be renamed as it is giving global DAG conf
-    // we need a function to give user-land configuration for this vertex
+  public TezConfiguration getConf() {
     return conf;
   }
 
@@ -750,7 +749,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
         // TODODAGAM
         // TODO: Splits?
-        vertex.numTasks = vertex.conf.getNumVertexTasks(vertex.getName());
+        vertex.numTasks = vertex.getDAGPlan().getNumVertexTasks(vertex.getName());
         /*
         TaskSplitMetaInfo[] taskSplitMetaInfo = createSplits(job, job.jobId);
         job.numMapTasks = taskSplitMetaInfo.length;
@@ -824,7 +823,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     private void createTasks(VertexImpl vertex) {
       // TODO Fixme
-      DAGConfiguration conf = vertex.getConf();
+      TezConfiguration conf = vertex.getConf();
       boolean useNullLocationHint = true;
       if (vertex.vertexLocationHint != null
           && vertex.vertexLocationHint.getTaskLocationHints() != null
@@ -1272,7 +1271,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public TezDAGID getDAGId() {
-    return appContext.getDAGID();
+    return getDAG().getID();
   }
   
   @Override
@@ -1287,6 +1286,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @Override
   public DAG getDAG() {
     return appContext.getDAG();
+  }
+  
+  DAGConfiguration getDAGPlan() {
+    return getDAG().getDagPlan();
   }
 
   // TODO Eventually remove synchronization.

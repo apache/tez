@@ -682,13 +682,13 @@ public class YARNRunner implements ClientProtocol {
     }
   }
 
-  private void setDAGParamsFromMRConf(DAGConfiguration dagConf) {
+  private void setDAGParamsFromMRConf(DAG dag) {
     Configuration mrConf = this.conf;
     Map<String, String> mrParamToDAGParamMap = DeprecatedKeys.getMRToDAGParamMap();
     for (Entry<String, String> entry : mrParamToDAGParamMap.entrySet()) {
       if (mrConf.get(entry.getKey()) != null) {
         LOG.info("DEBUG: MR->DAG Setting new key: " + entry.getValue());
-        dagConf.set(entry.getValue(), mrConf.get(entry.getKey()));
+        dag.addConfiguration(entry.getValue(), mrConf.get(entry.getKey()));
       }
     }
   }
@@ -776,9 +776,10 @@ public class YARNRunner implements ClientProtocol {
 
     localResources.putAll(jobLocalResources);
 
+    setDAGParamsFromMRConf(dag);
+
     // FIXME add serialized dag conf
     DAGConfiguration dagConf = dag.serializeDag();
-    setDAGParamsFromMRConf(dagConf);
     
     Path dagConfFilePath = new Path(jobSubmitDir,
         TezConfiguration.DAG_AM_PLAN_CONFIG_XML);

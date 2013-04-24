@@ -18,11 +18,14 @@
 package org.apache.tez.dag.api;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class DAG { // FIXME rename to Topology
   List<Vertex> vertices;
-  List<Edge> edges;
+  List<Edge> edges;  
+  
+  HashMap<String, String> config = new HashMap<String, String>();
   
   public DAG() {
     this.vertices = new ArrayList<Vertex>();
@@ -58,6 +61,10 @@ public class DAG { // FIXME rename to Topology
     
     edges.add(edge);
   }
+  
+  public void addConfiguration(String key, String value) {
+    config.put(key, value);
+  }
 
   public void verify() throws TezException { // FIXME better exception
 
@@ -83,6 +90,8 @@ public class DAG { // FIXME rename to Topology
         dagConf.setOutputEdgeIds(vertex.getVertexName(), vertex.getOutputEdgeIds());
       }
     }
+    
+    dagConf.setConfig(config);
     
     return dagConf;
   }

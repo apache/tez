@@ -25,7 +25,7 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.DAGConfiguration;
-
+import org.apache.tez.dag.api.TezConfiguration;
 
 
 public class DeprecatedKeys {
@@ -41,28 +41,28 @@ public class DeprecatedKeys {
     addDeprecatedKeys();
     
     mrParamToDAGParamMap.put(MRJobConfig.JOB_SUBMIT_DIR,
-        DAGConfiguration.JOB_SUBMIT_DIR);
+        TezConfiguration.JOB_SUBMIT_DIR);
     mrParamToDAGParamMap.put(MRJobConfig.APPLICATION_TOKENS_FILE,
-        DAGConfiguration.APPLICATION_TOKENS_FILE);
+        TezConfiguration.APPLICATION_TOKENS_FILE);
 
-    mrParamToDAGParamMap.put(MRJobConfig.JOB_NAME, DAGConfiguration.JOB_NAME);
+    mrParamToDAGParamMap.put(MRJobConfig.JOB_NAME, TezConfiguration.JOB_NAME);
 
-    mrParamToDAGParamMap.put(MRJobConfig.MR_AM_JOB_SPECULATOR,
-        DAGConfiguration.DAG_AM_SPECULATOR_CLASS);
+//    mrParamToDAGParamMap.put(MRJobConfig.MR_AM_JOB_SPECULATOR,
+//        TezConfiguration.DAG_AM_SPECULATOR_CLASS);
 
     // TODO Default value handling.
     mrParamToDAGParamMap.put(MRJobConfig.MR_AM_TASK_LISTENER_THREAD_COUNT,
-        DAGConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT);
+        TezConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT);
     
-    mrParamToDAGParamMap.put(MRJobConfig.USER_NAME, DAGConfiguration.USER_NAME);
+    mrParamToDAGParamMap.put(MRJobConfig.USER_NAME, TezConfiguration.USER_NAME);
     
     mrParamToDAGParamMap.put(MRJobConfig.MAX_TASK_FAILURES_PER_TRACKER,
-        DAGConfiguration.DAG_MAX_TASK_FAILURES_PER_NODE);
+        TezConfiguration.DAG_MAX_TASK_FAILURES_PER_NODE);
     mrParamToDAGParamMap.put(MRJobConfig.MR_AM_JOB_NODE_BLACKLISTING_ENABLE,
-        DAGConfiguration.DAG_NODE_BLACKLISTING_ENABLED);
+        TezConfiguration.DAG_NODE_BLACKLISTING_ENABLED);
     mrParamToDAGParamMap.put(
         MRJobConfig.MR_AM_IGNORE_BLACKLISTING_BLACKLISTED_NODE_PERECENT,
-        DAGConfiguration.DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD);
+        TezConfiguration.DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD);
   }
 
   // TODO TEZAM4 Sometime, make sure this gets loaded by default. Insteaf of the current initialization in MRAppMaster, TezChild.

@@ -21,11 +21,11 @@ package org.apache.tez.dag.app.dag;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DAGConfiguration;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.engine.records.TezDAGID;
 import org.apache.tez.engine.records.TezVertexID;
@@ -58,13 +58,10 @@ public interface DAG {
   String getUserName();
   String getQueueName();
   
-  Configuration getConf();
+  TezConfiguration getConf();
   
-  /**
-   * @return a path to where the config file for this job is located.
-   */
-  Path getConfFile();
-  
+  DAGConfiguration getDagPlan();
+
   /**
    * @return the ACLs for this job for each type of JobACL given. 
    */

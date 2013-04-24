@@ -48,6 +48,7 @@ import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.DAGConfiguration;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.utils.TezEngineChildJVM;
@@ -87,7 +88,7 @@ public class AMContainerHelpers {
    * @param applicationACLs
    */
   private static ContainerLaunchContext createCommonContainerLaunchContext(
-      Map<ApplicationAccessType, String> applicationACLs, Configuration conf,
+      Map<ApplicationAccessType, String> applicationACLs, TezConfiguration conf,
       Token<JobTokenIdentifier> jobToken,
       TezVertexID vertexId, Credentials credentials) {
 
@@ -138,7 +139,7 @@ public class AMContainerHelpers {
     // The null fields are per-container and will be constructed for each
     // container separately.
     ContainerLaunchContext container = BuilderUtils.newContainerLaunchContext(
-        conf.get(DAGConfiguration.USER_NAME), localResources,
+        conf.get(TezConfiguration.USER_NAME), localResources,
         environment, null, serviceData, taskCredentialsBuffer, applicationACLs);
 
     return container;
@@ -147,7 +148,7 @@ public class AMContainerHelpers {
   @VisibleForTesting
   public static ContainerLaunchContext createContainerLaunchContext(
       Map<ApplicationAccessType, String> acls,
-      ContainerId containerId, Configuration conf, TezVertexID vertexId,
+      ContainerId containerId, TezConfiguration conf, TezVertexID vertexId,
       Token<JobTokenIdentifier> jobToken,
       Resource assignedCapability, Map<String, LocalResource> localResources,
       Map<String, String> vertexEnv,

@@ -68,6 +68,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
   private final TaskScheduler taskScheduler;
+  // TODO change this to DAGAppMaster
   private DAG job;
   private Map<ApplicationAccessType, String> appAcls = null;
   private Thread eventHandlingThread;
@@ -459,7 +460,8 @@ public class TaskSchedulerEventHandler extends AbstractService
           containerId,
           taskAttempt.getID().getTaskID().getVertexID(),
           event.getJobToken(),
-          event.getCredentials(), false, job.getConf(),
+          // TODO getConf from AMSchedulerEventTALaunchRequest
+          event.getCredentials(), false, job.getConf(), 
           taskAttempt.getLocalResources(),
           taskAttempt.getEnvironment()));
     }

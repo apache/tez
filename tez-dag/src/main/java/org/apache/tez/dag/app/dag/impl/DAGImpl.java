@@ -56,6 +56,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAGConfiguration;
 import org.apache.tez.dag.api.DAGLocationHint;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.impl.TezBuilderUtils;
 import org.apache.tez.dag.app.AppContext;
@@ -133,7 +134,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private Object fullCountersLock = new Object();
   private TezCounters fullCounters = null;
 
-  public DAGConfiguration conf;
+  public final TezConfiguration conf;
+  public final DAGConfiguration dagPlan;
 
   //fields initialized in init
   private FileSystem fs;
@@ -312,7 +314,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private long finishTime;
 
   public DAGImpl(TezDAGID dagId, ApplicationAttemptId applicationAttemptId,
-      Configuration conf, EventHandler eventHandler,
+      TezConfiguration conf,
+      DAGConfiguration dagPlan,
+      EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
       JobTokenSecretManager jobTokenSecretManager,
       Credentials fsTokenCredentials, Clock clock,
@@ -327,8 +331,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       DAGLocationHint dagLocationHint) {
     this.applicationAttemptId = applicationAttemptId;
     this.dagId = dagId;
-    this.dagName = conf.get(DAGConfiguration.JOB_NAME, "<missing job name>");
-    this.conf = new DAGConfiguration(conf);
+    this.dagName = conf.get(TezConfiguration.JOB_NAME,
+                             TezConfiguration.JOB_NAME_DEFAULT);
+    this.conf = conf;
+    this.dagPlan = dagPlan;
     // TODO Metrics
     //this.metrics = metrics;
     this.clock = clock;
@@ -370,9 +376,15 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return dagId;
   }
 
+  // TODO maybe removed after TEZ-74
   @Override
-  public DAGConfiguration getConf() {
+  public TezConfiguration getConf() {
     return conf;
+  }
+  
+  @Override
+  public DAGConfiguration getDagPlan() {
+    return dagPlan;
   }
 
   EventHandler getEventHandler() {
@@ -445,12 +457,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public DAGReport getReport() {
     readLock.lock();
     try {
-      DAGState state = getState();
-
-      // jobFile can be null if the job is not yet inited.
-      String jobFile =
-          remoteJobConfFile == null ? "" : remoteJobConfFile.toString();
-
       StringBuilder diagsb = new StringBuilder();
       for (String s : getDiagnostics()) {
         diagsb.append(s).append("\n");
@@ -697,15 +703,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return queueName;
   }
 
-  /*
-   * (non-Javadoc)
-   * @see org.apache.hadoop.mapreduce.v2.app2.job.Job#getConfFile()
-   */
-  @Override
-  public Path getConfFile() {
-    return remoteJobConfFile;
-  }
-
   @Override
   public String getName() {
     return dagName;
@@ -829,14 +826,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         */
 
         // create the vertices
-        String[] vertexNames = job.getConf().getVertices();
+        String[] vertexNames = job.getDagPlan().getVertices();
         job.numVertices = vertexNames.length;
         for (int i=0; i < job.numVertices; ++i) {
           VertexImpl v = createVertex(job, vertexNames[i], i);
           job.addVertex(v);
         }
 
-        job.edgeProperties = job.getConf().getEdgeProperties();
+        job.edgeProperties = job.getDagPlan().getEdgeProperties();
         
         // setup the dag
         for (Vertex v : job.vertices.values()) {
@@ -873,9 +870,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     private void parseVertexEdges(DAGImpl dag, Vertex vertex) {
       String[] inVerticesNames =
-          dag.getConf().getInputVertices(vertex.getName());
+          dag.getDagPlan().getInputVertices(vertex.getName());
       List<String> inEdges =
-          dag.getConf().getInputEdgeIds(vertex.getName());
+          dag.getDagPlan().getInputEdgeIds(vertex.getName());
       Map<Vertex, EdgeProperty> inVertices =
           new HashMap<Vertex, EdgeProperty>();
       for (int i=0; i < inVerticesNames.length; ++i) {
@@ -886,9 +883,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       vertex.setInputVertices(inVertices);
 
       String[] outVerticesNames =
-          dag.getConf().getOutputVertices(vertex.getName());
+          dag.getDagPlan().getOutputVertices(vertex.getName());
       List<String> outEdges =
-          dag.getConf().getOutputEdgeIds(vertex.getName());
+          dag.getDagPlan().getOutputEdgeIds(vertex.getName());
       Map<Vertex, EdgeProperty> outVertices =
           new HashMap<Vertex, EdgeProperty>();
       for (int i=0; i < outVerticesNames.length; ++i) {
@@ -905,6 +902,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       
       dagIdString.replace("application", "job");
       
+      // TODO remove - TEZ-71
       String user =
         UserGroupInformation.getCurrentUser().getShortUserName();
       Path path = DAGApps.getStagingAreaDir(job.conf, user);
@@ -915,8 +913,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       job.remoteJobSubmitDir =
           FileSystem.get(job.conf).makeQualified(
               new Path(path, dagIdString));
-      job.remoteJobConfFile =
-          new Path(job.remoteJobSubmitDir, MRJobConfig.JOB_CONF_FILE);
 
       // Prepare the TaskAttemptListener server for authentication of Containers
       // TaskAttemptListener gets the information via jobTokenSecretManager.

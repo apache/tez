@@ -71,7 +71,7 @@ public class TezEngineChildJVM {
         filter.toString();
   }
   
-  public static void setVMEnv(Map<String, String> environment, Configuration conf,
+  public static void setVMEnv(Map<String, String> environment, TezConfiguration conf,
       TezVertexID vertexId, AppContext appContext) {
 
     // FIXME this should be derivable from the container id set by the NM
@@ -81,7 +81,7 @@ public class TezEngineChildJVM {
   }
 
   public static List<String> getVMCommand(
-      InetSocketAddress taskAttemptListenerAddr, Configuration conf, 
+      InetSocketAddress taskAttemptListenerAddr, TezConfiguration conf, 
       TezVertexID vertexId, 
       ContainerId containerId, ApplicationId jobID, boolean shouldProfile) {
 

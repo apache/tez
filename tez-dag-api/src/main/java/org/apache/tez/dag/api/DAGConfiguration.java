@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
+import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -76,37 +77,39 @@ public class DAGConfiguration extends Configuration {
   public final static String EDGE = DAG + "edge.";
 
   private final static String SEPARATOR = "|";
+  
+  public final static String TEZ_DAG_CONFIG_KEYS = DAG + "keys";
+  public final static String TEZ_DAG_CONFIG_VALUES = DAG + "values";
 
-  // FIXME This property onwards should be split into a separate class or the
-  // rest of thie class needs to be converted into a config name list once 
-  // the serialization is changed.
+  @Private
+  public void setConfig(Map<String, String> config) {
+    if(!config.isEmpty()) {
+      String[] key = new String[config.size()];
+      String[] value = new String[config.size()];
+      int i=0;
+      for(Entry<String, String> entry : config.entrySet()) {
+        key[i] = entry.getKey();
+        value[i] = entry.getValue();
+        i++;
+      }
+      setStrings(TEZ_DAG_CONFIG_KEYS, key);
+      setStrings(TEZ_DAG_CONFIG_VALUES, value);
+    }
+  }
   
-  // TODO Should not be required once all tokens are handled via AppSubmissionContext
-  public static final String JOB_SUBMIT_DIR = DAG + "jobSubmitDir";
-  public static final String APPLICATION_TOKENS_FILE = "appTokens";
-  
-  public static final String JOB_NAME = DAG + "job.name";
-  public static final String USER_NAME = DAG + "user.name";
-  
-  // TODO Some of the DAG properties are job specific and not AM specific. Rename accordingly.
-  
-  // TODO Speculator class should be configurable on a pere vertex level.
-  public static final String DAG_AM_SPECULATOR_CLASS = DAG_AM + "speculator.class";
-  
-  public static final String DAG_AM_TASK_LISTENER_THREAD_COUNT = DAG_AM + "task.listener.thread-count";
-  public static final int DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
-  
-  public static final String DAG_AM_STAGING_DIR = DAG_AM + "staging-dir";
-  public static final String DAG_AM_STAGING_DIR_DEFAULT = "/tmp/hadoop-yarn/staging";
-  
-  // TODO Are any of these node blacklisting properties required. (other than for MR compat)
-  public static final String DAG_MAX_TASK_FAILURES_PER_NODE = DAG
-      + "maxtaskfailures.per.node";
-  public static final String DAG_NODE_BLACKLISTING_ENABLED = DAG
-      + "node-blacklisting.enabled";
-  public static final String DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD = DAG
-      + "node-blacklisting.ignore-threshold-node-percent";
-  public static final int DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT = 33;
+  @Private
+  public Map<String, String> getConfig() {
+    HashMap<String, String> config = new HashMap<String, String>();
+    String[] key = getStrings(TEZ_DAG_CONFIG_KEYS);
+    if(key != null) {
+      String[] value = getStrings(TEZ_DAG_CONFIG_VALUES);
+      assert value.length == key.length;
+      for(int i=0; i<key.length; ++i) {
+        config.put(key[i], value[i]);
+      }
+    }
+    return config;
+  }
   
   @Private
   public void setEdgeProperties(List<Edge> edges) {
@@ -121,7 +124,7 @@ public class DAGConfiguration extends Configuration {
   }
 
   public Map<String, EdgeProperty> getEdgeProperties() {
-    String edgeIds[] = getStrings(TEZ_DAG_EDGES);
+    String[] edgeIds = getStrings(TEZ_DAG_EDGES);
     if (edgeIds == null) {
       return new TreeMap<String, EdgeProperty>();
     }

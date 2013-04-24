@@ -31,7 +31,7 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.service.AbstractService;
-import org.apache.tez.dag.api.DAGConfiguration;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -65,12 +65,14 @@ public class AMNodeMap extends AbstractService implements
   @Override
   public synchronized void init(Configuration conf) {
     this.maxTaskFailuresPerNode = conf.getInt(
-        DAGConfiguration.DAG_MAX_TASK_FAILURES_PER_NODE, 3);
+        TezConfiguration.DAG_MAX_TASK_FAILURES_PER_NODE, 
+        TezConfiguration.DAG_MAX_TASK_FAILURES_PER_NODE_DEFAULT);
     this.nodeBlacklistingEnabled = conf.getBoolean(
-        DAGConfiguration.DAG_NODE_BLACKLISTING_ENABLED, true);
+        TezConfiguration.DAG_NODE_BLACKLISTING_ENABLED,
+        TezConfiguration.DAG_NODE_BLACKLISTING_ENABLED_DEFAULT);
     this.blacklistDisablePercent = conf.getInt(
-          DAGConfiguration.DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD,
-          DAGConfiguration.DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT);
+          TezConfiguration.DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD,
+          TezConfiguration.DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT);
 
     LOG.info("blacklistDisablePercent is " + blacklistDisablePercent +
         ", blacklistingEnabled: " + nodeBlacklistingEnabled + 

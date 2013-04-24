@@ -20,11 +20,11 @@ package org.apache.tez.dag.app.rm.container;
 
 import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezDAGID;
 import org.apache.tez.engine.records.TezVertexID;
@@ -35,14 +35,14 @@ public class AMContainerEventLaunchRequest extends AMContainerEvent {
   private final Token<JobTokenIdentifier> jobToken;
   private final Credentials credentials;
   private final boolean shouldProfile;
-  private final Configuration conf;
+  private final TezConfiguration conf;
   private final Map<String, LocalResource> localResources;
   private final Map<String, String> environment;
 
   public AMContainerEventLaunchRequest(ContainerId containerId, 
       TezVertexID vertexId,
       Token<JobTokenIdentifier> jobToken,
-      Credentials credentials, boolean shouldProfile, Configuration conf,
+      Credentials credentials, boolean shouldProfile, TezConfiguration conf,
       Map<String, LocalResource> localResources,
       Map<String, String> environment) {
     super(containerId, AMContainerEventType.C_LAUNCH_REQUEST);
@@ -75,7 +75,7 @@ public class AMContainerEventLaunchRequest extends AMContainerEvent {
     return this.shouldProfile;
   }
 
-  public Configuration getConf() {
+  public TezConfiguration getConf() {
     return this.conf;
   }
 

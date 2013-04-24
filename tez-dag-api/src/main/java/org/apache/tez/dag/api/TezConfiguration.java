@@ -23,10 +23,8 @@ import org.apache.hadoop.conf.Configuration;
 public class TezConfiguration extends Configuration {
 
   public final static String TEZ_SITE_XML = "tez-site.xml";
-  public final static String TEZ_DEFAULT_XML = "tez-default.xml";
 
   static {
-    addDefaultResource(TEZ_DEFAULT_XML);
     addDefaultResource(TEZ_SITE_XML);
   }
 
@@ -39,7 +37,40 @@ public class TezConfiguration extends Configuration {
   }
 
   public static final String TEZ_PREFIX = "tez.";
-  public static final String DAG_AM_PREFIX = TEZ_PREFIX + "dag,am.";
+  public static final String DAG_AM_PREFIX = TEZ_PREFIX + "dag.am.";
+  
+  public static final String JOB_NAME = TEZ_PREFIX + "job.name";
+  public static final String JOB_NAME_DEFAULT = "TezJob";
+  
+  public static final String USER_NAME = TEZ_PREFIX + "user.name";
+  
+  public static final String DAG_AM_STAGING_DIR = TEZ_PREFIX + "staging-dir";
+  public static final String DAG_AM_STAGING_DIR_DEFAULT = "/tmp/hadoop-yarn/staging";
+  
+  // TODO Should not be required once all tokens are handled via AppSubmissionContext
+  public static final String JOB_SUBMIT_DIR = TEZ_PREFIX + "jobSubmitDir";
+  public static final String APPLICATION_TOKENS_FILE = "appTokens";
+  
+  public static final String DAG_AM_TASK_LISTENER_THREAD_COUNT = 
+                                TEZ_PREFIX + "task.listener.thread-count";
+  public static final int DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
+
+  public static final String DAG_AM_CONTAINER_LISTENER_THREAD_COUNT = 
+      TEZ_PREFIX + "container.listener.thread-count";
+  public static final int DAG_AM_CONTAINER_LISTENER_THREAD_COUNT_DEFAULT = 30;
+  
+  // TODO Some of the DAG properties are job specific and not AM specific. Rename accordingly.
+  // TODO Are any of these node blacklisting properties required. (other than for MR compat)
+  public static final String DAG_MAX_TASK_FAILURES_PER_NODE = TEZ_PREFIX
+      + "maxtaskfailures.per.node";
+  public static final int DAG_MAX_TASK_FAILURES_PER_NODE_DEFAULT = 3;
+  public static final String DAG_NODE_BLACKLISTING_ENABLED = TEZ_PREFIX
+      + "node-blacklisting.enabled";
+  public static final boolean DAG_NODE_BLACKLISTING_ENABLED_DEFAULT = true;
+  public static final String DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD = TEZ_PREFIX
+      + "node-blacklisting.ignore-threshold-node-percent";
+  public static final int DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT = 33;
+
 
   public static final String DAG_AM_RESOURCE_MEMORY_MB = DAG_AM_PREFIX
       + "resource.memory.mb";

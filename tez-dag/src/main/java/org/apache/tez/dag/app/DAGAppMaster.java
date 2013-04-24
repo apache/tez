@@ -20,10 +20,9 @@ package org.apache.tez.dag.app;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -98,9 +97,6 @@ import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.AMContainerState;
 import org.apache.tez.dag.app.rm.node.AMNodeEventType;
 import org.apache.tez.dag.app.rm.node.AMNodeMap;
-import org.apache.tez.dag.app.speculate.DefaultSpeculator;
-import org.apache.tez.dag.app.speculate.Speculator;
-import org.apache.tez.dag.app.speculate.SpeculatorEvent;
 import org.apache.tez.dag.app.taskclean.TaskCleaner;
 import org.apache.tez.dag.app.taskclean.TaskCleanerImpl;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
@@ -135,6 +131,7 @@ public class DAGAppMaster extends CompositeService {
   public static final int SHUTDOWN_HOOK_PRIORITY = 30;
 
   private Clock clock;
+  private final DAGConfiguration dagPlan;
   private final long startTime;
   private final long appSubmitTime;
   private String appName;
@@ -150,13 +147,14 @@ public class DAGAppMaster extends CompositeService {
   // TODO Recovery
   //private Map<TezTaskID, TaskInfo> completedTasksFromPreviousRun;
   private AppContext context;
+  private TezConfiguration conf; 
   private Dispatcher dispatcher;
   private ClientService clientService;
   // TODO Recovery
   //private Recovery recoveryServ;
   private ContainerLauncher containerLauncher;
   private TaskCleaner taskCleaner;
-  private Speculator speculator;
+  //private Speculator speculator;
   private ContainerHeartbeatHandler containerHeartbeatHandler;
   private TaskHeartbeatHandler taskHeartbeatHandler;
   private TaskAttemptListener taskAttemptListener;
@@ -169,7 +167,7 @@ public class DAGAppMaster extends CompositeService {
   private VertexEventDispatcher vertexEventDispatcher;
   private AbstractService stagingDirCleanerService;
   private boolean inRecovery = false;
-  private SpeculatorEventDispatcher speculatorEventDispatcher;
+  //private SpeculatorEventDispatcher speculatorEventDispatcher;
   private TaskSchedulerEventHandler taskSchedulerEventHandler;
 
   private DAGLocationHint dagLocationHint;
@@ -181,15 +179,16 @@ public class DAGAppMaster extends CompositeService {
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      long appSubmitTime) {
+      long appSubmitTime, DAGConfiguration dagPlan) {
     this(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort,
-        new SystemClock(), appSubmitTime);
+        new SystemClock(), appSubmitTime, dagPlan);
   }
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      Clock clock, long appSubmitTime) {
+      Clock clock, long appSubmitTime, DAGConfiguration dagPlan) {
     super(DAGAppMaster.class.getName());
+    this.dagPlan = dagPlan;
     this.clock = clock;
     this.startTime = clock.getTime();
     this.appSubmitTime = appSubmitTime;
@@ -204,18 +203,21 @@ public class DAGAppMaster extends CompositeService {
   }
 
   @Override
-  public void init(final Configuration conf) {
+  public void init(final Configuration tezConf) {
 
+    assert tezConf instanceof TezConfiguration;
+    
+    this.conf = (TezConfiguration) tezConf;
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
 
     downloadTokensAndSetupUGI(conf);
-    setupDAGLocationHint(conf);
+    setupDAGLocationHint(dagPlan);
 
     context = new RunningAppContext(conf);
 
     // Job name is the same as the app name util we support DAG of jobs
     // for an app later
-    appName = conf.get(DAGConfiguration.JOB_NAME, "<missing app name>");
+    appName = dagPlan.get(TezConfiguration.JOB_NAME, "<missing app name>");
 
     dagId = new TezDAGID(appAttemptID.getApplicationId(), 1);
 
@@ -300,9 +302,9 @@ public class DAGAppMaster extends CompositeService {
     // TODO TEZ-14
     // speculator = createSpeculator(conf, context);
     // addIfService(speculator);
-    speculatorEventDispatcher = new SpeculatorEventDispatcher(conf);
-    dispatcher.register(Speculator.EventType.class,
-        speculatorEventDispatcher);
+    //speculatorEventDispatcher = new SpeculatorEventDispatcher(conf);
+    //dispatcher.register(Speculator.EventType.class,
+    //    speculatorEventDispatcher);
 
     //    TODO XXX: Rename to NMComm
     //    corresponding service to launch allocated containers via NodeManager
@@ -615,11 +617,11 @@ public class DAGAppMaster extends CompositeService {
   }
 
   /** Create and initialize (but don't start) a single dag. */
-  protected DAG createDAG(Configuration conf) {
+  protected DAG createDAG(DAGConfiguration dagPlan) {
 
     // create single job
     DAG newDag =
-        new DAGImpl(dagId, appAttemptID, conf, dispatcher.getEventHandler(),
+        new DAGImpl(dagId, appAttemptID, conf, dagPlan, dispatcher.getEventHandler(),
             taskAttemptListener, jobTokenSecretManager, fsTokens, clock,
             // TODO Recovery
             //completedTasksFromPreviousRun,
@@ -641,8 +643,8 @@ public class DAGAppMaster extends CompositeService {
    * Obtain the tokens needed by the job and put them in the UGI
    * @param conf
    */
-  protected void downloadTokensAndSetupUGI(Configuration conf) {
-
+  protected void downloadTokensAndSetupUGI(TezConfiguration conf) {
+    // TODO remove - TEZ-71
     try {
       this.currentUser = UserGroupInformation.getCurrentUser();
 
@@ -650,10 +652,10 @@ public class DAGAppMaster extends CompositeService {
         // Read the file-system tokens from the localized tokens-file.
         Path jobSubmitDir =
             FileContext.getLocalFSFileContext().makeQualified(
-                new Path(new File(DAGConfiguration.JOB_SUBMIT_DIR)
+                new Path(new File(TezConfiguration.JOB_SUBMIT_DIR)
                     .getAbsolutePath()));
         Path jobTokenFile =
-            new Path(jobSubmitDir, DAGConfiguration.APPLICATION_TOKENS_FILE);
+            new Path(jobSubmitDir, TezConfiguration.APPLICATION_TOKENS_FILE);
         fsTokens.addAll(Credentials.readTokenStorageFile(jobTokenFile, conf));
         LOG.info("jobSubmitDir=" + jobSubmitDir + " jobTokenFile="
             + jobTokenFile);
@@ -672,7 +674,7 @@ public class DAGAppMaster extends CompositeService {
     }
   }
 
-  protected void setupDAGLocationHint(Configuration conf) {
+  protected void setupDAGLocationHint(DAGConfiguration conf) {
     try {
       String dagLocationHintFile =
           conf.get(DAGConfiguration.DAG_LOCATION_HINT_RESOURCE_FILE,
@@ -707,39 +709,39 @@ public class DAGAppMaster extends CompositeService {
     return new StagingDirCleaningService();
   }
 
-  protected Speculator createSpeculator(Configuration conf, AppContext context) {
-    Class<? extends Speculator> speculatorClass;
-
-    try {
-      speculatorClass
-          // "yarn.mapreduce.job.speculator.class"
-          = conf.getClass(DAGConfiguration.DAG_AM_SPECULATOR_CLASS,
-                          DefaultSpeculator.class,
-                          Speculator.class);
-      Constructor<? extends Speculator> speculatorConstructor
-          = speculatorClass.getConstructor
-               (Configuration.class, AppContext.class);
-      Speculator result = speculatorConstructor.newInstance(conf, context);
-
-      return result;
-    } catch (InstantiationException ex) {
-      LOG.error("Can't make a speculator -- check "
-          + DAGConfiguration.DAG_AM_SPECULATOR_CLASS, ex);
-      throw new YarnException(ex);
-    } catch (IllegalAccessException ex) {
-      LOG.error("Can't make a speculator -- check "
-          + DAGConfiguration.DAG_AM_SPECULATOR_CLASS, ex);
-      throw new YarnException(ex);
-    } catch (InvocationTargetException ex) {
-      LOG.error("Can't make a speculator -- check "
-          + DAGConfiguration.DAG_AM_SPECULATOR_CLASS, ex);
-      throw new YarnException(ex);
-    } catch (NoSuchMethodException ex) {
-      LOG.error("Can't make a speculator -- check "
-          + DAGConfiguration.DAG_AM_SPECULATOR_CLASS, ex);
-      throw new YarnException(ex);
-    }
-  }
+//  protected Speculator createSpeculator(Configuration conf, AppContext context) {
+//    Class<? extends Speculator> speculatorClass;
+//
+//    try {
+//      speculatorClass
+//          // "yarn.mapreduce.job.speculator.class"
+//          = conf.getClass(DAGConfiguration.DAG_AM_SPECULATOR_CLASS,
+//                          DefaultSpeculator.class,
+//                          Speculator.class);
+//      Constructor<? extends Speculator> speculatorConstructor
+//          = speculatorClass.getConstructor
+//               (Configuration.class, AppContext.class);
+//      Speculator result = speculatorConstructor.newInstance(conf, context);
+//
+//      return result;
+//    } catch (InstantiationException ex) {
+//      LOG.error("Can't make a speculator -- check "
+//          + DAGConfiguration.DAG_AM_SPECULATOR_CLASS, ex);
+//      throw new YarnException(ex);
+//    } catch (IllegalAccessException ex) {
+//      LOG.error("Can't make a speculator -- check "
+//          + DAGConfiguration.DAG_AM_SPECULATOR_CLASS, ex);
+//      throw new YarnException(ex);
+//    } catch (InvocationTargetException ex) {
+//      LOG.error("Can't make a speculator -- check "
+//          + DAGConfiguration.DAG_AM_SPECULATOR_CLASS, ex);
+//      throw new YarnException(ex);
+//    } catch (NoSuchMethodException ex) {
+//      LOG.error("Can't make a speculator -- check "
+//          + DAGConfiguration.DAG_AM_SPECULATOR_CLASS, ex);
+//      throw new YarnException(ex);
+//    }
+//  }
 
   protected TaskAttemptListener createTaskAttemptListener(AppContext context,
       TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh) {
@@ -749,19 +751,18 @@ public class DAGAppMaster extends CompositeService {
   }
 
   protected TaskHeartbeatHandler createTaskHeartbeatHandler(AppContext context,
-      Configuration conf) {
+      TezConfiguration conf) {
     TaskHeartbeatHandler thh = new TaskHeartbeatHandler(context, conf.getInt(
-        DAGConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT,
-        DAGConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT));
+        TezConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT,
+        TezConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT));
     return thh;
   }
 
   protected ContainerHeartbeatHandler createContainerHeartbeatHandler(AppContext context,
-      Configuration conf) {
+      TezConfiguration conf) {
     ContainerHeartbeatHandler chh = new ContainerHeartbeatHandler(context, conf.getInt(
-        DAGConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT,
-        DAGConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT));
-    // TODO XXX: Define a CONTAINER_LISTENER_THREAD_COUNT
+        TezConfiguration.DAG_AM_CONTAINER_LISTENER_THREAD_COUNT,
+        TezConfiguration.DAG_AM_CONTAINER_LISTENER_THREAD_COUNT_DEFAULT));
     return chh;
   }
 
@@ -966,13 +967,13 @@ public class DAGAppMaster extends CompositeService {
   private class RunningAppContext implements AppContext {
 
     private DAG dag;
-    private final Configuration conf;
+    private final TezConfiguration conf;
     private final ClusterInfo clusterInfo = new ClusterInfo();
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock rLock = rwLock.readLock();
     private final Lock wLock = rwLock.writeLock();
 
-    public RunningAppContext(Configuration config) {
+    public RunningAppContext(TezConfiguration config) {
       this.conf = config;
     }
 
@@ -1013,7 +1014,7 @@ public class DAGAppMaster extends CompositeService {
 
     @Override
     public String getUser() {
-      return this.conf.get(DAGConfiguration.USER_NAME);
+      return this.conf.get(TezConfiguration.USER_NAME);
     }
 
     @Override
@@ -1081,7 +1082,7 @@ public class DAGAppMaster extends CompositeService {
     */
     
     // /////////////////// Create the job itself.
-    dag = createDAG(getConfig());
+    dag = createDAG(dagPlan);
 
     // End of creating the job.
 
@@ -1114,19 +1115,19 @@ public class DAGAppMaster extends CompositeService {
     // ubermode if appropriate (by registering different container-allocator
     // and container-launcher services/event-handlers).
 
-    if (dag.isUber()) {
-      speculatorEventDispatcher.disableSpeculation();
-      LOG.info("MRAppMaster uberizing job " + dag.getID()
-               + " in local container (\"uber-AM\") on node "
-               + nmHost + ":" + nmPort + ".");
-    } else {
-      // send init to speculator only for non-uber jobs.
-      // This won't yet start as dispatcher isn't started yet.
-      dispatcher.getEventHandler().handle(
-          new SpeculatorEvent(dag.getID(), clock.getTime()));
-      LOG.info("MRAppMaster launching normal, non-uberized, multi-container "
-               + "job " + dag.getID() + ".");
-    }
+//    if (dag.isUber()) {
+//      speculatorEventDispatcher.disableSpeculation();
+//      LOG.info("MRAppMaster uberizing job " + dag.getID()
+//               + " in local container (\"uber-AM\") on node "
+//               + nmHost + ":" + nmPort + ".");
+//    } else {
+//      // send init to speculator only for non-uber jobs.
+//      // This won't yet start as dispatcher isn't started yet.
+//      dispatcher.getEventHandler().handle(
+//          new SpeculatorEvent(dag.getID(), clock.getTime()));
+//      LOG.info("MRAppMaster launching normal, non-uberized, multi-container "
+//               + "job " + dag.getID() + ".");
+//    }
 
     //start all the components
     super.start();
@@ -1197,31 +1198,31 @@ public class DAGAppMaster extends CompositeService {
     }
   }
 
-  private class SpeculatorEventDispatcher implements
-      EventHandler<SpeculatorEvent> {
-    private final Configuration conf;
-    private volatile boolean disabled;
-
-    public SpeculatorEventDispatcher(Configuration config) {
-      this.conf = config;
-    }
-
-    @Override
-    public void handle(SpeculatorEvent event) {
-      if (disabled) {
-        return;
-      }
-
-      // FIX handle speculation events properly
-      // if vertex has speculation enabled then handle event else drop it
-      // speculator.handle(event);
-    }
-
-    public void disableSpeculation() {
-      disabled = true;
-    }
-
-  }
+//  private class SpeculatorEventDispatcher implements
+//      EventHandler<SpeculatorEvent> {
+//    private final Configuration conf;
+//    private volatile boolean disabled;
+//
+//    public SpeculatorEventDispatcher(Configuration config) {
+//      this.conf = config;
+//    }
+//
+//    @Override
+//    public void handle(SpeculatorEvent event) {
+//      if (disabled) {
+//        return;
+//      }
+//
+//      // FIX handle speculation events properly
+//      // if vertex has speculation enabled then handle event else drop it
+//      // speculator.handle(event);
+//    }
+//
+//    public void disableSpeculation() {
+//      disabled = true;
+//    }
+//
+//  }
 
   private static void validateInputParam(String value, String param)
       throws IOException {
@@ -1260,38 +1261,32 @@ public class DAGAppMaster extends CompositeService {
           containerId.getApplicationAttemptId();
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
 
-      DAGAppMaster appMaster =
-          new DAGAppMaster(applicationAttemptId, containerId, nodeHostString,
-              Integer.parseInt(nodePortString),
-              Integer.parseInt(nodeHttpPortString), appSubmitTime);
-      ShutdownHookManager.get().addShutdownHook(
-        new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
-
       Options opts = getCliOptions();
       CommandLine cliParser = new GnuParser().parse(opts, args);
 
       // Default to running mr if nothing specified.
-      // TODO change this once the cleint is ready.
+      // TODO change this once the client is ready.
       String type;
-      DAGConfiguration dagConf = null;
+      DAGConfiguration dagPlan = null;
+      TezConfiguration conf = new TezConfiguration(new YarnConfiguration());
       if (cliParser.hasOption(OPT_PREDEFINED)) {
         LOG.info("Running with PreDefined configuration");
         type = cliParser.getOptionValue(OPT_PREDEFINED, "mr");
         LOG.info("Running job type: " + type);
 
         if (type.equals("mr")) {
-          dagConf = (DAGConfiguration)MRRExampleHelper.createDAGConfigurationForMR();
+          dagPlan = (DAGConfiguration)MRRExampleHelper.createDAGConfigurationForMR();
         } else if (type.equals("mrr")) {
-          dagConf = (DAGConfiguration)MRRExampleHelper.createDAGConfigurationForMRR();
+          dagPlan = (DAGConfiguration)MRRExampleHelper.createDAGConfigurationForMRR();
         }
       } else {
-        dagConf = new DAGConfiguration();
-        dagConf.addResource(TezConfiguration.DAG_AM_PLAN_CONFIG_XML);
+        dagPlan = new DAGConfiguration();
+        dagPlan.addResource(TezConfiguration.DAG_AM_PLAN_CONFIG_XML);
       }
 
       LOG.info("XXXX Running a DAG with "
-          + dagConf.getVertices().length + " vertices ");
-      for (String v : dagConf.getVertices()) {
+          + dagPlan.getVertices().length + " vertices ");
+      for (String v : dagPlan.getVertices()) {
         LOG.info("XXXX DAG has vertex " + v);
       }
 
@@ -1301,11 +1296,23 @@ public class DAGAppMaster extends CompositeService {
       // Do not automatically close FileSystem objects so that in case of
       // SIGTERM I have a chance to write out the job history. I'll be closing
       // the objects myself.
-      dagConf.setBoolean("fs.automatic.close", false);
+      conf.setBoolean("fs.automatic.close", false);
 
-      dagConf.set(DAGConfiguration.USER_NAME, jobUserName);
+      conf.set(TezConfiguration.USER_NAME, jobUserName);
+      
+      Map<String, String> config = dagPlan.getConfig();
+      for(Entry<String, String> entry : config.entrySet()) {
+        conf.set(entry.getKey(), entry.getValue());
+      }
 
-      initAndStartAppMaster(appMaster, new YarnConfiguration(dagConf),
+      DAGAppMaster appMaster =
+          new DAGAppMaster(applicationAttemptId, containerId, nodeHostString,
+              Integer.parseInt(nodePortString),
+              Integer.parseInt(nodeHttpPortString), appSubmitTime, dagPlan);
+      ShutdownHookManager.get().addShutdownHook(
+        new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
+
+      initAndStartAppMaster(appMaster, conf,
           jobUserName);
 
     } catch (Throwable t) {
@@ -1354,7 +1361,7 @@ public class DAGAppMaster extends CompositeService {
 
   // TODO XXX Does this really need to be a YarnConfiguration ?
   protected static void initAndStartAppMaster(final DAGAppMaster appMaster,
-      final YarnConfiguration conf, String jobUserName) throws IOException,
+      final TezConfiguration conf, String jobUserName) throws IOException,
       InterruptedException {
     UserGroupInformation.setConfiguration(conf);
     UserGroupInformation appMasterUgi = UserGroupInformation

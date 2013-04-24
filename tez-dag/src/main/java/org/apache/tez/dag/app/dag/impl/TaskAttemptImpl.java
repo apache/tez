@@ -55,7 +55,7 @@ import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DAGConfiguration;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.impl.TezBuilderUtils;
 import org.apache.tez.dag.api.records.TaskAttemptReport;
@@ -108,7 +108,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   static final TezCounters EMPTY_COUNTERS = new TezCounters();
   private static final long MEMORY_SPLITS_RESOLUTION = 1024; //TODO Make configurable?
 
-  protected final DAGConfiguration conf;
+  protected final TezConfiguration conf;
   protected final Path jobFile;
   protected final int partition;
   @SuppressWarnings("rawtypes")
@@ -252,7 +252,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   @SuppressWarnings("rawtypes")
   public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
       TaskAttemptListener tal, Path jobFile, int partition, 
-      DAGConfiguration conf,
+      TezConfiguration conf,
       Token<JobTokenIdentifier> jobToken, Credentials credentials, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       String mrxModuleClassName, TaskLocationHint locationHint,
@@ -753,19 +753,19 @@ public class TaskAttemptImpl implements TaskAttempt,
 //    }
   }
   
-  private void maybeSendSpeculatorContainerRequired() {
-    if (!speculatorContainerRequestSent) {
-      sendEvent(new SpeculatorEvent(getID().getTaskID(), +1));
-      speculatorContainerRequestSent = true;
-    }
-  }
-
-  private void maybeSendSpeculatorContainerNoLongerRequired() {
-    if (speculatorContainerRequestSent) {
-      sendEvent(new SpeculatorEvent(getID().getTaskID(), -1));
-      speculatorContainerRequestSent = false;
-    }
-  }
+//  private void maybeSendSpeculatorContainerRequired() {
+//    if (!speculatorContainerRequestSent) {
+//      sendEvent(new SpeculatorEvent(getID().getTaskID(), +1));
+//      speculatorContainerRequestSent = true;
+//    }
+//  }
+//
+//  private void maybeSendSpeculatorContainerNoLongerRequired() {
+//    if (speculatorContainerRequestSent) {
+//      sendEvent(new SpeculatorEvent(getID().getTaskID(), -1));
+//      speculatorContainerRequestSent = false;
+//    }
+//  }
   
   private void sendTaskAttemptCleanupEvent() {
 //    TaskAttemptContext taContext = 
@@ -850,7 +850,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
       TaskAttemptEventSchedule scheduleEvent = (TaskAttemptEventSchedule) event;
       // Event to speculator - containerNeeded++
-      ta.maybeSendSpeculatorContainerRequired();
+      //ta.maybeSendSpeculatorContainerRequired();
 
       // TODO Creating the remote task here may not be required in case of
       // recovery.
@@ -980,9 +980,9 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.logJobHistoryAttemptStarted();
 
       // Inform the speculator about the container assignment.
-      ta.maybeSendSpeculatorContainerNoLongerRequired();
+      //ta.maybeSendSpeculatorContainerNoLongerRequired();
       // Inform speculator about startTime
-      ta.sendEvent(new SpeculatorEvent(ta.attemptId, true, ta.launchTime));
+      //ta.sendEvent(new SpeculatorEvent(ta.attemptId, true, ta.launchTime));
 
       // Inform the Task
       ta.sendEvent(new TaskEventTAUpdate(ta.attemptId,
@@ -1007,7 +1007,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.sendEvent(new AMSchedulerEventTAEnded(ta, ta.containerId, helper
           .getTaskAttemptState()));
       // Decrement speculator container request.
-      ta.maybeSendSpeculatorContainerNoLongerRequired();
+      //ta.maybeSendSpeculatorContainerNoLongerRequired();
     }
   }
 
@@ -1068,7 +1068,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.reportedStatus.taskState = ta.getState();
 
       // Inform speculator of status.
-      ta.sendEvent(new SpeculatorEvent(ta.reportedStatus, ta.clock.getTime()));
+      //ta.sendEvent(new SpeculatorEvent(ta.reportedStatus, ta.clock.getTime()));
 
       ta.updateProgressSplits();
 
@@ -1111,7 +1111,7 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       ta.setFinishTime();
       // Inform the speculator.
-      ta.sendEvent(new SpeculatorEvent(ta.reportedStatus, ta.finishTime));
+      //ta.sendEvent(new SpeculatorEvent(ta.reportedStatus, ta.finishTime));
       // Send out history event.
       ta.logJobHistoryAttemptFinishedEvent(TaskAttemptStateInternal.SUCCEEDED);
       ta.sendEvent(createJobCounterUpdateEventSlotMillis(ta));
