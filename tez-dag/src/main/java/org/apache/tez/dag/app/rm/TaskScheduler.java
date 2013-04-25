@@ -112,6 +112,8 @@ public class TaskScheduler extends AbstractService
   final int appHostPort;
   final String appTrackingUrl;
   
+  boolean isStopped = false; 
+  
   class CRCookie {
     Object task;
     Object appCookie;
@@ -190,12 +192,17 @@ public class TaskScheduler extends AbstractService
     try {
       // TODO TEZ-36 dont unregister automatically after reboot sent by RM
       synchronized (this) {
+        isStopped = true;
         amRmClient.unregisterApplicationMaster(status.exitStatus, 
                                                status.exitMessage,
                                                status.postCompletionTrackingUrl);
-        amRmClient.stop();
-        super.stop();
       }
+      
+      // call client.stop() without lock client will attempt to stop the callback
+      // operation and at the same time the callback operation might be trying 
+      // to get our lock.
+      amRmClient.stop();
+      super.stop();
     } catch (YarnRemoteException e) {
       LOG.error("Exception while unregistering ", e);
       throw new YarnException(e);
@@ -205,6 +212,9 @@ public class TaskScheduler extends AbstractService
   // AMRMClientAsync interface methods
   @Override
   public void onContainersCompleted(List<ContainerStatus> statuses) {
+    if(isStopped) {
+      return;
+    }
     Map<Object, ContainerStatus> appContainerStatus = 
                         new HashMap<Object, ContainerStatus>(statuses.size());
     synchronized (this) {
@@ -248,6 +258,9 @@ public class TaskScheduler extends AbstractService
 
   @Override
   public void onContainersAllocated(List<Container> containers) {
+    if(isStopped) {
+      return;
+    }
     Map<ContainerRequest<CRCookie>, Container> appContainers = 
                   new HashMap<ContainerRequest<CRCookie>, Container>(containers.size());
     synchronized (this) {
@@ -292,12 +305,18 @@ public class TaskScheduler extends AbstractService
 
   @Override
   public void onRebootRequest() {
+    if(isStopped) {
+      return;
+    }
     // upcall to app must be outside locks
     appClient.appRebootRequested();
   }
 
   @Override
   public void onNodesUpdated(List<NodeReport> updatedNodes) {
+    if(isStopped) {
+      return;
+    }
     // ignore bad nodes for now
     // upcall to app must be outside locks
     appClient.nodesUpdated(updatedNodes);
@@ -305,11 +324,17 @@ public class TaskScheduler extends AbstractService
 
   @Override
   public float getProgress() {
+    if(isStopped) {
+      return 1;
+    }
     return appClient.getProgress();
   }
 
   @Override
   public void onError(Exception e) {
+    if(isStopped) {
+      return;
+    }
     appClient.onError(e);
   }
   
