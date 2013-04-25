@@ -889,7 +889,7 @@ public class TaskAttemptImpl implements TaskAttempt,
               ta.localResources, remoteTaskContext, ta,
               ta.credentials, ta.jobToken, hostArray,
               rackArray,
-              scheduleEvent.getPriority(), ta.environment);
+              scheduleEvent.getPriority(), ta.environment, ta.conf);
       ta.sendEvent(launchRequestEvent);
     }
   }

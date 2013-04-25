@@ -39,6 +39,8 @@ import org.apache.tez.engine.records.TezDAGID;
 @InterfaceAudience.Private
 public interface AppContext {
 
+  DAGAppMaster getAppMaster();
+  
   ApplicationId getApplicationID();
 
   TezDAGID getDAGID();

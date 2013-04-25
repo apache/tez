@@ -21,6 +21,8 @@ package org.apache.tez.dag.app;
 import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
+import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.locks.Lock;
@@ -56,6 +58,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.apache.hadoop.yarn.event.Dispatcher;
+import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.hadoop.yarn.service.CompositeService;
@@ -69,6 +72,8 @@ import org.apache.tez.dag.app.client.impl.TezClientService;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGFinishEvent;
@@ -123,7 +128,7 @@ import org.apache.tez.engine.records.TezDAGID;
 
 @SuppressWarnings("rawtypes")
 public class DAGAppMaster extends CompositeService {
-
+  
   private static final Log LOG = LogFactory.getLog(DAGAppMaster.class);
 
   /**
@@ -173,6 +178,7 @@ public class DAGAppMaster extends CompositeService {
 
   private DAGLocationHint dagLocationHint;
 
+  private DAGAppMasterState state;
 
   private DAG dag;
   private Credentials fsTokens = new Credentials(); // Filled during init
@@ -198,6 +204,7 @@ public class DAGAppMaster extends CompositeService {
     this.nmHost = nmHost;
     this.nmPort = nmPort;
     this.nmHttpPort = nmHttpPort;
+    this.state = DAGAppMasterState.NEW;
     // TODO Metrics
     //this.metrics = MRAppMetrics.create();
     LOG.info("Created MRAppMaster for application " + applicationAttemptId);
@@ -206,6 +213,8 @@ public class DAGAppMaster extends CompositeService {
   @Override
   public void init(final Configuration tezConf) {
 
+    this.state = DAGAppMasterState.INITED;
+    
     assert tezConf instanceof TezConfiguration;
     
     this.conf = (TezConfiguration) tezConf;
@@ -293,6 +302,7 @@ public class DAGAppMaster extends CompositeService {
     this.vertexEventDispatcher = new VertexEventDispatcher();
 
     //register the event dispatchers
+    dispatcher.register(DAGAppMasterEventType.class, new DAGAppMasterEventHandler());
     dispatcher.register(DAGEventType.class, dagEventDispatcher);
     dispatcher.register(VertexEventType.class, vertexEventDispatcher);
     dispatcher.register(TaskEventType.class, new TaskEventDispatcher());
@@ -432,6 +442,7 @@ public class DAGAppMaster extends CompositeService {
     // For now, checking to see if all containers have COMPLETED, with a 5
     // second timeout before the exit.
     public void handle(DAGFinishEvent event) {
+      setStateOnDAGCompletion();
       LOG.info("Handling JobFinished Event");
       AMShutdownRunnable r = new AMShutdownRunnable();
       Thread t = new Thread(r, "AMShutdownThread");
@@ -522,6 +533,25 @@ public class DAGAppMaster extends CompositeService {
     }
   }
 
+  private void handle(DAGAppMasterEvent event) {
+    switch (event.getType()) {
+    case INTERNAL_ERROR:
+      state = DAGAppMasterState.ERROR;
+      sendEvent(new DAGEvent(dag.getID(), DAGEventType.INTERNAL_ERROR));
+      break;
+    default:
+      LOG.warn("No handler for event type: " + event.getType());
+    }
+  }
+  
+  private class DAGAppMasterEventHandler implements
+      EventHandler<DAGAppMasterEvent> {
+    @Override
+    public void handle(DAGAppMasterEvent event) {
+      DAGAppMaster.this.handle(event);
+    }
+  }
+  
   private class DAGFinishEventHandler implements EventHandler<DAGFinishEvent> {
     @Override
     public void handle(DAGFinishEvent event) {
@@ -547,6 +577,9 @@ public class DAGAppMaster extends CompositeService {
     */
       // TODO:currently just wait for some time so clients can know the
       // final states. Will be removed once RM come on.
+     
+      setStateOnDAGCompletion();
+      
       try {
         Thread.sleep(5000);
       } catch (InterruptedException e) {
@@ -598,10 +631,10 @@ public class DAGAppMaster extends CompositeService {
    *          the application context.
    * @return an instance of the RMContainerRequestor.
    */
-  protected ContainerRequestor createContainerRequestor(
-      ClientService clientService, AppContext appContext) {
-    return new ContainerRequestorRouter(clientService, appContext);
-  }
+//  protected ContainerRequestor createContainerRequestor(
+//      ClientService clientService, AppContext appContext) {
+//    return new ContainerRequestorRouter(clientService, appContext);
+//  }
 
   /**
    * Create the AM Scheduler.
@@ -822,74 +855,107 @@ public class DAGAppMaster extends CompositeService {
   public TaskAttemptListener getTaskAttemptListener() {
     return taskAttemptListener;
   }
+  
+  public DAGAppMasterState getState() {
+    return state;
+  }
+  
+  public List<String> getDiagnostics() {
+    return dag.getDiagnostics();
+  }
+  
+  public float getProgress() {
+    return dag.getProgress();
+  }
+  
+  void setStateOnDAGCompletion() {
+    DAGAppMasterState oldState = state;
+    if(state == DAGAppMasterState.RUNNING) {
+      switch(dag.getState()) {
+      case SUCCEEDED:
+        state = DAGAppMasterState.SUCCEEDED;
+        break;
+      case FAILED:
+        state = DAGAppMasterState.FAILED;
+        break;
+      case KILLED:
+        state = DAGAppMasterState.FAILED;
+      case ERROR:
+        state = DAGAppMasterState.ERROR;
+      default:
+        state = DAGAppMasterState.ERROR;
+      }
+    }
+    LOG.info("On DAG completion. Old state: " + oldState + " new state: " + state);
+  }
 
   /**
    * By the time life-cycle of this router starts, job-init would have already
    * happened.
    */
-  private final class ContainerRequestorRouter extends AbstractService
-      implements ContainerRequestor {
-    private final ClientService clientService;
-    private final AppContext context;
-    private ContainerRequestor real;
-
-    public ContainerRequestorRouter(ClientService clientService,
-        AppContext appContext) {
-      super(ContainerRequestorRouter.class.getName());
-      this.clientService = clientService;
-      this.context = appContext;
-    }
-
-    @Override
-    public void start() {
-      if (dag.isUber()) {
-        real = new LocalContainerRequestor(clientService,
-            context);
-      } else {
-        real = new RMContainerRequestor(clientService, context);
-      }
-      ((Service)this.real).init(getConfig());
-      ((Service)this.real).start();
-      super.start();
-    }
-
-    @Override
-    public void stop() {
-      if (real != null) {
-        ((Service) real).stop();
-      }
-      super.stop();
-    }
-
-    @Override
-    public void handle(RMCommunicatorEvent event) {
-      real.handle(event);
-    }
-
-    @Override
-    public Resource getAvailableResources() {
-      return real.getAvailableResources();
-    }
-
-    @Override
-    public void addContainerReq(ContainerRequest req) {
-      real.addContainerReq(req);
-    }
-
-    @Override
-    public void decContainerReq(ContainerRequest req) {
-      real.decContainerReq(req);
-    }
-
-    public void setSignalled(boolean isSignalled) {
-      ((RMCommunicator) real).setSignalled(isSignalled);
-    }
-
-    @Override
-    public Map<ApplicationAccessType, String> getApplicationACLs() {
-      return ((RMCommunicator)real).getApplicationAcls();
-    }
-  }
+//  private final class ContainerRequestorRouter extends AbstractService
+//      implements ContainerRequestor {
+//    private final ClientService clientService;
+//    private final AppContext context;
+//    private ContainerRequestor real;
+//
+//    public ContainerRequestorRouter(ClientService clientService,
+//        AppContext appContext) {
+//      super(ContainerRequestorRouter.class.getName());
+//      this.clientService = clientService;
+//      this.context = appContext;
+//    }
+//
+//    @Override
+//    public void start() {
+//      if (dag.isUber()) {
+//        real = new LocalContainerRequestor(clientService,
+//            context);
+//      } else {
+//        real = new RMContainerRequestor(clientService, context);
+//      }
+//      ((Service)this.real).init(getConfig());
+//      ((Service)this.real).start();
+//      super.start();
+//    }
+//
+//    @Override
+//    public void stop() {
+//      if (real != null) {
+//        ((Service) real).stop();
+//      }
+//      super.stop();
+//    }
+//
+//    @Override
+//    public void handle(RMCommunicatorEvent event) {
+//      real.handle(event);
+//    }
+//
+//    @Override
+//    public Resource getAvailableResources() {
+//      return real.getAvailableResources();
+//    }
+//
+//    @Override
+//    public void addContainerReq(ContainerRequest req) {
+//      real.addContainerReq(req);
+//    }
+//
+//    @Override
+//    public void decContainerReq(ContainerRequest req) {
+//      real.decContainerReq(req);
+//    }
+//
+//    public void setSignalled(boolean isSignalled) {
+//      ((RMCommunicator) real).setSignalled(isSignalled);
+//    }
+//
+//    @Override
+//    public Map<ApplicationAccessType, String> getApplicationACLs() {
+//      return ((RMCommunicator)real).getApplicationAcls();
+//    }
+//  }
 
   /**
    * By the time life-cycle of this router starts, job-init would have already
@@ -978,6 +1044,11 @@ public class DAGAppMaster extends CompositeService {
       this.conf = config;
     }
 
+    @Override 
+    public DAGAppMaster getAppMaster() {
+      return DAGAppMaster.this;
+    }
+    
     @Override
     public ApplicationAttemptId getApplicationAttemptId() {
       return appAttemptID;
@@ -1073,6 +1144,8 @@ public class DAGAppMaster extends CompositeService {
   @Override
   public void start() {
 
+    this.state = DAGAppMasterState.RUNNING;
+    
     // TODO Recovery
     // Pull completedTasks etc from recovery
     /*
@@ -1342,6 +1415,11 @@ public class DAGAppMaster extends CompositeService {
 
       // Signal the task scheduler.
       appMaster.taskSchedulerEventHandler.setSignalled(true);
+      if (EnumSet.of(DAGAppMasterState.NEW, DAGAppMasterState.INITED,
+          DAGAppMasterState.RUNNING).contains(appMaster.state)) {
+        // DAG not in a final state. Must have receive a KILL signal
+        appMaster.state = DAGAppMasterState.KILLED;
+      }
 
       // TODO: JobHistory
       /*
@@ -1369,5 +1447,10 @@ public class DAGAppMaster extends CompositeService {
         return null;
       }
     });
+  }
+  
+  @SuppressWarnings("unchecked")
+  private void sendEvent(Event<?> event) {
+    dispatcher.getEventHandler().handle(event);
   }
 }

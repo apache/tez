@@ -25,6 +25,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.TezTaskContext;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezTaskAttemptID;
@@ -45,7 +46,7 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   private final String[] racks;
   private final Priority priority;
   private final Map<String, String> environment;
-  
+  private final TezConfiguration conf;
   
   public AMSchedulerEventTALaunchRequest(TezTaskAttemptID attemptId,
       Resource capability,
@@ -53,7 +54,8 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
       TezTaskContext remoteTaskContext, TaskAttempt ta,
       Credentials credentials, Token<JobTokenIdentifier> jobToken,
       String[] hosts, String[] racks, Priority priority,
-      Map<String, String> environment) {
+      Map<String, String> environment,
+      TezConfiguration conf) {
     super(AMSchedulerEventType.S_TA_LAUNCH_REQUEST);
     this.attemptId = attemptId;
     this.capability = capability;
@@ -66,6 +68,7 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
     this.racks = racks;
     this.priority = priority;
     this.environment = environment;
+    this.conf = conf;
   }
 
   public TezTaskAttemptID getAttemptID() {
@@ -110,6 +113,10 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   
   public Map<String, String> getEnvironment() {
     return this.environment;
+  }
+  
+  public TezConfiguration getConf() {
+    return this.conf;
   }
 
   // Parameter replacement: @taskid@ will not be usable

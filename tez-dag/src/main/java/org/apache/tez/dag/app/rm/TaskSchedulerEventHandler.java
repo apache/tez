@@ -40,10 +40,12 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.tez.dag.api.records.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.DAGAppMaster;
+import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.client.ClientService;
-import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
@@ -69,7 +71,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   private final EventHandler eventHandler;
   private final TaskScheduler taskScheduler;
   // TODO change this to DAGAppMaster
-  private DAG job;
+  private DAGAppMaster dagAppMaster;
   private Map<ApplicationAccessType, String> appAcls = null;
   private Thread eventHandlingThread;
   private volatile boolean stopEventHandling;
@@ -352,7 +354,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   public synchronized void start() {
     // FIXME hack alert how is this supposed to support multiple DAGs?
     // Answer: this is shared across dags. need job==app-dag-master
-    job = appContext.getDAG();
+    dagAppMaster = appContext.getAppMaster();
     taskScheduler.start();
     this.eventHandlingThread = new Thread() {
       @Override
@@ -374,7 +376,7 @@ public class TaskSchedulerEventHandler extends AbstractService
             LOG.error("Error in handling event type " + event.getType()
                 + " to the TaskScheduler", t);
             // Kill the AM.
-            sendEvent(new DAGEvent(job.getID(), DAGEventType.INTERNAL_ERROR));
+            sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.INTERNAL_ERROR));
             return;
           }
         }
@@ -461,7 +463,7 @@ public class TaskSchedulerEventHandler extends AbstractService
           taskAttempt.getID().getTaskID().getVertexID(),
           event.getJobToken(),
           // TODO getConf from AMSchedulerEventTALaunchRequest
-          event.getCredentials(), false, job.getConf(), 
+          event.getCredentials(), false, event.getConf(), 
           taskAttempt.getLocalResources(),
           taskAttempt.getEnvironment()));
     }
@@ -511,20 +513,23 @@ public class TaskSchedulerEventHandler extends AbstractService
   public synchronized AppFinalStatus getFinalAppStatus() {
     FinalApplicationStatus finishState = FinalApplicationStatus.UNDEFINED;
     StringBuffer sb = new StringBuffer();
-    if (job == null) {
-      finishState = FinalApplicationStatus.FAILED;
-      sb.append("Job failed to initialize");
+    if (dagAppMaster == null) {
+      finishState = FinalApplicationStatus.UNDEFINED;
+      sb.append("App not yet initialized");
     } else {
-      if (job.getState() == DAGState.SUCCEEDED) {
-      finishState = FinalApplicationStatus.SUCCEEDED;
-      } else if (job.getState() == DAGState.KILLED
-          || (job.getState() == DAGState.RUNNING && isSignalled)) {
+      DAGAppMasterState appMasterState = dagAppMaster.getState();
+      if (appMasterState == DAGAppMasterState.SUCCEEDED) {
+        finishState = FinalApplicationStatus.SUCCEEDED;
+      } else if (appMasterState == DAGAppMasterState.KILLED
+          || (appMasterState == DAGAppMasterState.RUNNING && isSignalled)) {
         finishState = FinalApplicationStatus.KILLED;
-      } else if (job.getState() == DAGState.FAILED
-          || job.getState() == DAGState.ERROR) {
+      } else if (appMasterState == DAGAppMasterState.FAILED
+          || appMasterState == DAGAppMasterState.ERROR) {
         finishState = FinalApplicationStatus.FAILED;
+      } else {
+        finishState = FinalApplicationStatus.UNDEFINED;
       }
-      for (String s : job.getDiagnostics()) {
+      for (String s : dagAppMaster.getDiagnostics()) {
         sb.append(s).append("\n");
       }
     }
@@ -540,7 +545,7 @@ public class TaskSchedulerEventHandler extends AbstractService
 
   @Override
   public synchronized float getProgress() {
-    return job.getProgress();
+    return dagAppMaster.getProgress();
   }
 
   @Override
