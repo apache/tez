@@ -24,11 +24,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Constructor;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.crypto.SecretKey;
 
@@ -55,7 +58,6 @@ import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
@@ -66,22 +68,25 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.log4j.LogManager;
 import org.apache.tez.common.ContainerTask;
+import org.apache.tez.common.InputSpec;
+import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.engine.api.Input;
+import org.apache.tez.engine.api.Output;
+import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.records.TezTaskAttemptID;
-import org.apache.tez.engine.runtime.TezEngineFactory;
+import org.apache.tez.engine.runtime.RuntimeUtils;
+import org.apache.tez.engine.task.RuntimeTask;
 import org.apache.tez.mapreduce.hadoop.ContainerContext;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.hadoop.TezTaskUmbilicalProtocol;
+import org.apache.tez.mapreduce.input.SimpleInput;
+import org.apache.tez.mapreduce.output.SimpleOutput;
 import org.apache.tez.mapreduce.processor.MRTask;
-
-import com.google.inject.AbstractModule;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
 
 /**
  * The main() for TEZ MapReduce task processes.
@@ -424,32 +429,24 @@ public class YarnTezDagChild {
     // submit configuration parameters to the AM and effectively tasks via RPC.
 
     // TODO Avoid all this extra config manipulation.
+    // FIXME we need I/O/p level configs to be used in init below
     final JobConf job = new JobConf(conf);
     job.setCredentials(credentials);
-    
-    // Create the appropriate guice task-module
-    AbstractModule taskModule = null;
-    LOG.info("Using Module: " + taskContext.getTaskModuleClassName());
-    try {
-      Class<?> moduleClazz = Class
-          .forName(taskContext.getTaskModuleClassName());
-      if (AbstractModule.class.isAssignableFrom(moduleClazz)) {
-        taskModule = (AbstractModule) ReflectionUtils.newInstance(moduleClazz,
-            job);
-      } else {
-        throw new YarnException("Module class: " + moduleClazz.getName()
-            + " should be an instance of "
-            + AbstractModule.class.getCanonicalName());
-      }
-    } catch (ClassNotFoundException e) {
-      throw new YarnException("Unable to load moduleClass: "
-          + taskContext.getTaskModuleClassName(), e);
-    }
 
-    // Use the injector to create & bind input, processor, output & task
-    Injector injector = Guice.createInjector(taskModule);
-    TezEngineFactory factory = injector.getInstance(TezEngineFactory.class);
-    Task t = factory.createTask(taskContext);
+    // FIXME need Input/Output vertices else we have this hack
+    if (taskContext.getInputSpecList().isEmpty()) {
+      taskContext.getInputSpecList().add(
+          new InputSpec("null", 0, SimpleInput.class.getName()));
+    }
+    if (taskContext.getOutputSpecList().isEmpty()) {
+      taskContext.getOutputSpecList().add(
+          new OutputSpec("null", 0, SimpleOutput.class.getName()));
+    }
+    Task t = RuntimeUtils.createRuntimeTask(taskContext);
+    
+    // FIXME wrapper should initialize all of processor, inputs and outputs
+    // Currently, processor is inited via task init
+    // and processor then inits inputs and outputs
     t.initialize(job, master);
     
     MRTask task = (MRTask)t.getProcessor();

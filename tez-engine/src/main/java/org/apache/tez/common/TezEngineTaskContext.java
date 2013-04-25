@@ -32,7 +32,7 @@ public class TezEngineTaskContext extends TezTaskContext {
   // These two could be replaced by a TezConfiguration / DagSpec.
   private List<InputSpec> inputSpecList;
   private List<OutputSpec> outputSpecList;
-  private String taskModuleClassName;
+  private String processorName;
   
   public TezEngineTaskContext() {
     super();
@@ -52,11 +52,11 @@ public class TezEngineTaskContext extends TezTaskContext {
     }
     this.inputSpecList = inputSpecList;
     this.outputSpecList = outputSpecList;
-    this.taskModuleClassName = moduleClassName;
+    this.processorName = moduleClassName;
   }
 
-  public String getTaskModuleClassName() {
-    return taskModuleClassName;
+  public String getProcessorName() {
+    return processorName;
   }
   
   public List<InputSpec> getInputSpecList() {
@@ -70,7 +70,7 @@ public class TezEngineTaskContext extends TezTaskContext {
   @Override
   public void write(DataOutput out) throws IOException {
     super.write(out);
-    Text.writeString(out, taskModuleClassName);
+    Text.writeString(out, processorName);
     out.writeInt(inputSpecList.size());
     for (InputSpec inputSpec : inputSpecList) {
       inputSpec.write(out);
@@ -85,7 +85,7 @@ public class TezEngineTaskContext extends TezTaskContext {
   public void readFields(DataInput in) throws IOException {
     super.readFields(in);
     
-    taskModuleClassName = Text.readString(in);
+    processorName = Text.readString(in);
     int numInputSpecs = in.readInt();
     inputSpecList = new ArrayList<InputSpec>(numInputSpecs);
     for (int i = 0; i < numInputSpecs; i++) {
@@ -105,7 +105,7 @@ public class TezEngineTaskContext extends TezTaskContext {
   @Override
   public String toString() {
     StringBuffer sb = new StringBuffer();
-    sb.append("taskModuleClassName=" + taskModuleClassName
+    sb.append("processorName=" + processorName
         + ", inputSpecListSize=" + inputSpecList.size()
         + ", outputSpecListSize=" + outputSpecList.size());
     sb.append(", inputSpecList=[");

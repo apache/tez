@@ -23,6 +23,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Random;
 
 import org.apache.commons.logging.Log;
@@ -38,17 +39,20 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
+import org.apache.tez.common.InputSpec;
+import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
+import org.apache.tez.engine.api.Input;
+import org.apache.tez.engine.api.Output;
+import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.api.Task;
-import org.apache.tez.engine.runtime.TezEngineFactory;
+import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
+import org.apache.tez.engine.runtime.RuntimeUtils;
+import org.apache.tez.engine.task.RuntimeTask;
 import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.TezTaskUmbilicalProtocol;
 import org.apache.tez.mapreduce.input.SimpleInput;
-import org.apache.tez.mapreduce.task.InitialTaskWithLocalSort;
-
-import com.google.inject.AbstractModule;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
+import org.apache.tez.mapreduce.processor.map.MapProcessor;
 
 public class MapUtils {
 
@@ -91,20 +95,21 @@ public class MapUtils {
 
   public static Task runMapProcessor(FileSystem fs, Path workDir,
       JobConf jobConf,
-      int mapId, Path mapInput, AbstractModule taskModule,
-      TezTaskUmbilicalProtocol umbilical) 
-      throws Exception {
+      int mapId, Path mapInput,
+      TezTaskUmbilicalProtocol umbilical,
+      Class<?> outputClazz) throws Exception {
     jobConf.setInputFormat(SequenceFileInputFormat.class);
     InputSplit split = createInputSplit(fs, workDir, jobConf, mapInput);
     TezEngineTaskContext taskContext = 
         new TezEngineTaskContext(
         TezTestUtils.getMockTaskAttemptId(0, 0, mapId, 0), "tez",
-        "tez", "TODO_vertexName", InitialTaskWithLocalSort.class.getName(),
-        null, null);
-  
-    Injector injector = Guice.createInjector(taskModule);
-    TezEngineFactory factory = injector.getInstance(TezEngineFactory.class);
-    Task t = factory.createTask(taskContext);
+        "tez", "TODO_vertexName", MapProcessor.class.getName(),
+        Collections.singletonList(new InputSpec("srcVertex", 0,
+            SimpleInput.class.getName())),
+        Collections.singletonList(new OutputSpec("targetVertex", 0,
+            outputClazz.getName())));
+
+    Task t = RuntimeUtils.createRuntimeTask(taskContext);
     t.initialize(jobConf, umbilical);
     SimpleInput[] real = ((SimpleInput[])t.getInputs());
     SimpleInput[] inputs = spy(real);

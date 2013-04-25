@@ -50,8 +50,8 @@ public class EdgeProperty { // FIXME rename to ChannelProperty
   public EdgeProperty() {
     this.connectionPattern = ConnectionPattern.BIPARTITE;
     this.sourceType = SourceType.STABLE;
-    this.inputClass = "ShuffleInput.class"; //FIXME
-    this.outputClass = "SortedMapOutputBuffer.class"; //FIXME
+    this.inputClass = "org.apache.tez.engine.lib.input.ShuffledMergedInput";
+    this.outputClass = "org.apache.tez.engine.lib.output.OnFileSortedOutput";
   }
   
   public ConnectionPattern getConnectionPattern() {

@@ -63,29 +63,35 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.Constants;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.InputSpec;
+import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.engine.api.Input;
+import org.apache.tez.engine.api.Output;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 import org.apache.tez.engine.lib.input.LocalMergedInput;
+import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
+import org.apache.tez.engine.lib.output.OnFileSortedOutput;
 import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
-import org.apache.tez.engine.runtime.TezEngineFactory;
+import org.apache.tez.engine.runtime.RuntimeUtils;
+import org.apache.tez.engine.task.RuntimeTask;
 import org.apache.tez.mapreduce.hadoop.ContainerContext;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
 import org.apache.tez.mapreduce.hadoop.TezTaskUmbilicalProtocol;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
 import org.apache.tez.mapreduce.hadoop.records.ProceedToCompletionResponse;
-import org.apache.tez.mapreduce.task.InitialTask;
-import org.apache.tez.mapreduce.task.LocalFinalTask;
+import org.apache.tez.mapreduce.input.SimpleInput;
+import org.apache.tez.mapreduce.output.SimpleOutput;
+import org.apache.tez.mapreduce.processor.map.MapProcessor;
+import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
 
 /** Implements MapReduce locally, in-process, for debugging. */
 @InterfaceAudience.Private
@@ -241,11 +247,15 @@ public class LocalJobRunner implements ClientProtocol {
           TezTaskAttemptID tezMapId =
               IDConverter.fromMRTaskAttemptId(mapId);
           mapIds.add(mapId);
+          // FIXME invalid task context
           TezEngineTaskContext taskContext = 
               new TezEngineTaskContext(
                   tezMapId, user, localConf.getJobName(), "TODO_vertexName",
-                  InitialTask.class.getName(), null, null);
-          Injector injector = Guice.createInjector(new InitialTask());
+                  MapProcessor.class.getName(),
+                  Collections.singletonList(new InputSpec("srcVertex", 0,
+                      SimpleInput.class.getName())),
+                  Collections.singletonList(new OutputSpec("tgtVertex", 0,
+                      LocalOnFileSorterOutput.class.getName())));
 
           TezTaskOutput mapOutput = new TezLocalTaskOutputFiles();
           mapOutput.setConf(localConf);
@@ -254,8 +264,7 @@ public class LocalJobRunner implements ClientProtocol {
           try {
             map_tasks.getAndIncrement();
             myMetrics.launchMap(mapId);
-            TezEngineFactory factory = injector.getInstance(TezEngineFactory.class);
-            Task t = factory.createTask(taskContext);
+            Task t = RuntimeUtils.createRuntimeTask(taskContext);
             t.initialize(localConf, Job.this);
             t.run();
             myMetrics.completeMap(mapId);
@@ -442,15 +451,16 @@ public class LocalJobRunner implements ClientProtocol {
             localConf.set("mapreduce.jobtracker.address", "local");
             localConf.setInt(TezJobConfig.TEZ_ENGINE_TASK_INDEGREE, mapIds.size());
             setupChildMapredLocalDirs(reduceId, user, localConf);
-            
-            
-            
+
+            // FIXME invalid task context
             TezEngineTaskContext taskContext = new TezEngineTaskContext(
                 IDConverter.fromMRTaskAttemptId(reduceId), user,
-                localConf.getJobName(), "TODO_vertexName", LocalFinalTask.class.getName(),
+                localConf.getJobName(), "TODO_vertexName",
+                ReduceProcessor.class.getName(),
                 Collections.singletonList(new InputSpec("TODO_srcVertexName",
-                    mapIds.size(), LocalMergedInput.class.getName())), null);
-            Injector injector = Guice.createInjector(new LocalFinalTask());
+                    mapIds.size(), LocalMergedInput.class.getName())),
+                Collections.singletonList(new OutputSpec("TODO_targetVertex",
+                    0, SimpleOutput.class.getName())));
 
             // move map output to reduce input  
             for (int i = 0; i < mapIds.size(); i++) {
@@ -480,8 +490,7 @@ public class LocalJobRunner implements ClientProtocol {
             if (!this.isInterrupted()) {
               reduce_tasks += 1;
               myMetrics.launchReduce(reduceId);
-              TezEngineFactory factory = injector.getInstance(TezEngineFactory.class);
-              Task t = factory.createTask(taskContext);
+              Task t = RuntimeUtils.createRuntimeTask(taskContext);
               t.initialize(localConf, Job.this);
               t.run();
               myMetrics.completeReduce(reduceId);

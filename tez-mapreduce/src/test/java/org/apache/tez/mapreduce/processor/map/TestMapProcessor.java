@@ -35,10 +35,9 @@ import org.apache.tez.engine.common.sort.impl.IFile;
 import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 import org.apache.tez.engine.lib.output.InMemorySortedOutput;
+import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
 import org.apache.tez.mapreduce.TestUmbilicalProtocol;
 import org.apache.tez.mapreduce.processor.MapUtils;
-import org.apache.tez.mapreduce.task.InitialTaskWithInMemSort;
-import org.apache.tez.mapreduce.task.InitialTaskWithLocalSort;
 import org.jboss.netty.buffer.BigEndianHeapChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.TruncatedChannelBuffer;
@@ -88,7 +87,8 @@ public class TestMapProcessor {
     localFs.delete(workDir, true);
     MapUtils.runMapProcessor(
         localFs, workDir, job, 0, new Path(workDir, "map0"), 
-        new InitialTaskWithLocalSort(), new TestUmbilicalProtocol()).close();
+        new TestUmbilicalProtocol(),
+        LocalOnFileSorterOutput.class).close();
 
     Path mapOutputFile = mapOutputs.getInputFile(0);
     LOG.info("mapOutputFile = " + mapOutputFile);
@@ -123,7 +123,8 @@ public class TestMapProcessor {
     Task t =
         MapUtils.runMapProcessor(
             localFs, workDir, job, 0, new Path(workDir, "map0"), 
-        new InitialTaskWithInMemSort(), new TestUmbilicalProtocol(true));
+            new TestUmbilicalProtocol(true),
+            InMemorySortedOutput.class);
     InMemorySortedOutput[] outputs = (InMemorySortedOutput[])t.getOutputs();
     
     verifyInMemSortedStream(outputs[0], 0, 4096);

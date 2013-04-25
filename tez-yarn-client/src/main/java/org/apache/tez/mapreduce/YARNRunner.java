@@ -514,7 +514,7 @@ public class YARNRunner implements ClientProtocol {
     // Intermediate vertices start at 1.
     Vertex vertex = new Vertex(
         MultiStageMRConfigUtil.getIntermediateStageVertexName(stageNum),
-        "org.apache.tez.mapreduce.task.IntermediateTask", numTasks);
+        "org.apache.tez.mapreduce.processor.reduce.ReduceProcessor", numTasks);
     
     Map<String, String> reduceEnv = new HashMap<String, String>();
     setupMapReduceEnv(conf, reduceEnv, false);
@@ -564,8 +564,6 @@ public class YARNRunner implements ClientProtocol {
     int intermediateReduces = jobConf.getInt(
         MRJobConfig.MRR_INTERMEDIATE_STAGES, 0);
 
-    boolean mapOnly =
-        (numMaps > 0 && numReduces == 0 && intermediateReduces == 0);
     boolean isMRR = (intermediateReduces > 0);
 
     LOG.info("XXXX Parsing job config"
@@ -574,10 +572,10 @@ public class YARNRunner implements ClientProtocol {
         + ", intermediateReduces=" + intermediateReduces);
 
     // configure map vertex
-    String mapProcessor = mapOnly ?
-        "org.apache.tez.mapreduce.task.MapOnlyTask"
-        : "org.apache.tez.mapreduce.task.InitialTask";
-    Vertex mapVertex = new Vertex(MultiStageMRConfigUtil.getInitialMapVertexName(), mapProcessor, numMaps);
+    String mapProcessor = "org.apache.tez.mapreduce.processor.map.MapProcessor";
+    Vertex mapVertex = new Vertex(
+        MultiStageMRConfigUtil.getInitialMapVertexName(),
+        mapProcessor, numMaps);
 
     // FIXME set up map environment
     Map<String, String> mapEnv = new HashMap<String, String>();
@@ -617,8 +615,10 @@ public class YARNRunner implements ClientProtocol {
     // configure final reduce vertex
     if (numReduces > 0) {
       String reduceProcessor =
-          "org.apache.tez.mapreduce.task.FinalTask";
-      Vertex reduceVertex = new Vertex(MultiStageMRConfigUtil.getFinalReduceVertexName(), reduceProcessor, numReduces);
+          "org.apache.tez.mapreduce.processor.reduce.ReduceProcessor";
+      Vertex reduceVertex = new Vertex(
+          MultiStageMRConfigUtil.getFinalReduceVertexName(),
+          reduceProcessor, numReduces);
 
       // FIXME set up reduce environment
       Map<String, String> reduceEnv = new HashMap<String, String>();

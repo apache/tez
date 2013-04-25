@@ -26,11 +26,7 @@ import org.apache.tez.engine.api.Output;
 import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.api.Task;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
-
-public class RuntimeTask 
-implements Task {
+public class RuntimeTask implements Task {
 
   private final Input[] inputs;
   private final Output[] outputs;
@@ -39,16 +35,6 @@ implements Task {
   private Configuration conf;
   private Master master;
   
-  @Inject
-  public RuntimeTask(
-      @Assisted Processor processor,
-      @Assisted Input in,
-      @Assisted Output out) {
-    this(processor,
-        new Input[] {in},
-        new Output[] {out});
-  }
-
   public RuntimeTask(
       Processor processor,
       Input[] inputs,

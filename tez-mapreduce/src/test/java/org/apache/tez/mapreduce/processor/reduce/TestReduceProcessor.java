@@ -29,24 +29,26 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.tez.common.Constants;
 import org.apache.tez.common.InputSpec;
+import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.engine.api.Input;
+import org.apache.tez.engine.api.Output;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 import org.apache.tez.engine.lib.input.LocalMergedInput;
-import org.apache.tez.engine.runtime.TezEngineFactory;
+import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
+import org.apache.tez.engine.runtime.RuntimeUtils;
+import org.apache.tez.engine.task.RuntimeTask;
 import org.apache.tez.mapreduce.TestUmbilicalProtocol;
 import org.apache.tez.mapreduce.TezTestUtils;
+import org.apache.tez.mapreduce.output.SimpleOutput;
 import org.apache.tez.mapreduce.processor.MapUtils;
-import org.apache.tez.mapreduce.task.InitialTaskWithLocalSort;
-import org.apache.tez.mapreduce.task.LocalFinalTask;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.google.inject.Guice;
-import com.google.inject.Injector;
 
 public class TestReduceProcessor {
   
@@ -87,8 +89,8 @@ public class TestReduceProcessor {
     // Run a map
     MapUtils.runMapProcessor(
         localFs, workDir, job, 0, new Path(workDir, "map0"), 
-        new InitialTaskWithLocalSort(), new TestUmbilicalProtocol()
-        );
+        new TestUmbilicalProtocol(),
+        LocalOnFileSorterOutput.class);
 
     LOG.info("Starting reduce...");
     FileOutputFormat.setOutputPath(job, new Path(workDir, "output"));
@@ -96,13 +98,15 @@ public class TestReduceProcessor {
     // Now run a reduce
     TezEngineTaskContext taskContext = new TezEngineTaskContext(
         TezTestUtils.getMockTaskAttemptId(0, 0, 0, 0), "tez",
-        "tez", "TODO_vertexName", LocalFinalTask.class.getName(),
+        "tez", "TODO_vertexName", ReduceProcessor.class.getName(),
         Collections.singletonList(new InputSpec("TODO_srcVertexName", 1,
-            LocalMergedInput.class.getName())), null);
-    job.set(JobContext.TASK_ATTEMPT_ID, taskContext.getTaskAttemptId().toString());
-    Injector injector = Guice.createInjector(new LocalFinalTask());
-    TezEngineFactory factory = injector.getInstance(TezEngineFactory.class);
-    Task t = factory.createTask(taskContext);
+            LocalMergedInput.class.getName())),
+        Collections.singletonList(new OutputSpec("TODO_targetVertexName", 1,
+                SimpleOutput.class.getName())));
+            
+    job.set(JobContext.TASK_ATTEMPT_ID,
+        taskContext.getTaskAttemptId().toString());
+    Task t = RuntimeUtils.createRuntimeTask(taskContext);
     t.initialize(job, new TestUmbilicalProtocol());
     t.run();
     t.close();
