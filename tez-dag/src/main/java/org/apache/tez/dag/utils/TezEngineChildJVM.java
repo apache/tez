@@ -75,7 +75,6 @@ public class TezEngineChildJVM {
 
     Vector<String> vargs = new Vector<String>(9);
 
-    vargs.add("exec");
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
 
     // Add child (task) java-vm options.
