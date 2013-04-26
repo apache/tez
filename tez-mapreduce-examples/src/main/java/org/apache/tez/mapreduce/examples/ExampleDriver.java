@@ -34,20 +34,33 @@ public class ExampleDriver {
     ProgramDriver pgd = new ProgramDriver();
     try {
       pgd.addClass("wordcount", WordCount.class, 
-                   "A map/reduce program that counts the words in the input files.");
+          "A map/reduce program that counts the words in the input files.");
       pgd.addClass("wordcountmrrtest", WordCountMRRTest.class, 
-          "A map/reduce program that counts the words in the input files. Map splits on spaces. First reduce splits on \".\"");
+          "A map/reduce program that counts the words in the input files."
+          + " Map splits on spaces. First reduce splits on \".\"");
       pgd.addClass("randomwriter", RandomWriter.class, 
-                   "A map/reduce program that writes 10GB of random data per node.");
+          "A map/reduce program that writes 10GB of random data per node.");
       pgd.addClass("randomtextwriter", RandomTextWriter.class, 
       "A map/reduce program that writes 10GB of random textual data per node.");
-      pgd.addClass("sort", Sort.class, "A map/reduce program that sorts the data written by the random writer.");
+      pgd.addClass("sort", Sort.class,
+          "A map/reduce program that sorts the data written by the random"
+          + " writer.");
       pgd.addClass("secondarysort", SecondarySort.class,
-                   "An example defining a secondary sort to the reduce.");
-      pgd.addClass("join", Join.class, "A job that effects a join over sorted, equally partitioned datasets");
-      pgd.addClass("teragen", TeraGen.class, "Generate data for the terasort");
-      pgd.addClass("terasort", TeraSort.class, "Run the terasort");
-      pgd.addClass("teravalidate", TeraValidate.class, "Checking results of terasort");
+          "An example defining a secondary sort to the reduce.");
+      pgd.addClass("join", Join.class,
+          "A job that effects a join over sorted, equally partitioned"
+          + " datasets");
+      pgd.addClass("teragen", TeraGen.class,
+          "Generate data for the terasort");
+      pgd.addClass("terasort", TeraSort.class,
+          "Run the terasort");
+      pgd.addClass("teravalidate", TeraValidate.class,
+          "Checking results of terasort");
+      pgd.addClass("groupbyorderbymrrtest", GroupByOrderByMRRTest.class,
+          "A map-reduce-reduce program that does groupby-order by. Takes input"
+          + " containing employee_name department name per line of input"
+          + " and generates count of employees per department and"
+          + " sorted on employee count");
       exitCode = pgd.driver(argv);
     }
     catch(Throwable e){
