@@ -79,8 +79,20 @@ public class TezConfiguration extends Configuration {
   public static final String DAG_AM_RESOURCE_CPU_VCORES = DAG_AM_PREFIX
       + "resource.cpu.vcores";
   public static final int DEFAULT_DAG_AM_RESOURCE_CPU_VCORES = 1;
+  
+  public static final String 
+          SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION = TEZ_PREFIX
+          + "slowstart-vertex-scheduler.min-src-fraction";
+  public static final float 
+          SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION_DEFAULT = 0.5f;
 
-  private static final String TEZ_CONF_DIR_ENV = "TEZ_CONF_DIR";
+  public static final String 
+          SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION = TEZ_PREFIX
+          + "slowstart-vertex-scheduler.max-src-fraction";
+  public static final float 
+          SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT = 0.8f;
+
+private static final String TEZ_CONF_DIR_ENV = "TEZ_CONF_DIR";
   private static final String TEZ_HOME_ENV = "TEZ_HOME";
 
   public static final String TEZ_APPLICATION_CLASSPATH = TEZ_PREFIX

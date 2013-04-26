@@ -784,11 +784,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // setup vertex scheduler
           // TODO this needs to consider data size and perhaps API. 
           // Currently implicitly BIPARTITE is the only edge type
-          // TODO TEZ-40 config from TeztConfiguration          
-          vertex.vertexScheduler = new 
-              BipartiteSlowStartVertexScheduler(vertex,
-                                                0.5f,
-                                                0.8f);
+          vertex.vertexScheduler = new BipartiteSlowStartVertexScheduler(
+              vertex,
+              vertex.conf
+                  .getFloat(
+                      TezConfiguration.SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION,
+                      TezConfiguration.SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION_DEFAULT),
+              vertex.conf
+                  .getFloat(
+                      TezConfiguration.SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION,
+                      TezConfiguration.SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT));
         } else {
           // schedule all tasks upon vertex start
           vertex.vertexScheduler = new ImmediateStartVertexScheduler(vertex);
