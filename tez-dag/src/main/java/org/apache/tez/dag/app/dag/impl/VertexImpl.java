@@ -116,8 +116,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   //final fields
   private final Clock clock;
 
-  // TODO: Recovery
-  //private final Map<TaskId, TaskInfo> completedTasksFromPreviousRun;
 
   private final Lock readLock;
   private final Lock writeLock;
@@ -317,7 +315,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private Credentials fsTokens;
   private Token<JobTokenIdentifier> jobToken;
-  private JobTokenSecretManager jobTokenSecretManager;
 
   private final TezVertexID vertexId;
 
@@ -325,7 +322,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private final String processorName;
 
   private Map<Vertex, EdgeProperty> sourceVertices;
-  private int sourcePhysicalEdges = 0;
   private Map<Vertex, EdgeProperty> targetVertices;
   
   private VertexScheduler vertexScheduler;
@@ -339,7 +335,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public VertexImpl(TezVertexID vertexId, String vertexName,
       TezConfiguration conf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
-      JobTokenSecretManager jobTokenSecretManager,
       Token<JobTokenIdentifier> jobToken,
       Credentials fsTokenCredentials, Clock clock,
       // TODO: Recovery
@@ -365,7 +360,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.writeLock = readWriteLock.writeLock();
 
     this.fsTokens = fsTokenCredentials;
-    this.jobTokenSecretManager = jobTokenSecretManager;
     this.jobToken = jobToken;
     this.committer = new NullVertexOutputCommitter();
     this.vertexLocationHint = vertexLocationHint;
@@ -862,22 +856,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       }
 
     }
-
-    // TODO: Splits
-    /*
-    protected TaskSplitMetaInfo[] createSplits(VertexImpl job, JobId jobId) {
-      TaskSplitMetaInfo[] allTaskSplitMetaInfo;
-      try {
-        allTaskSplitMetaInfo = SplitMetaInfoReader.readSplitMetaInfo(
-            job.oldJobId, job.fs,
-            job.conf,
-            job.remoteJobSubmitDir);
-      } catch (IOException e) {
-        throw new YarnException(e);
-      }
-      return allTaskSplitMetaInfo;
-    }
-    */
 
     /**
      * If the number of tasks are greater than the configured value

@@ -863,7 +863,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       return new VertexImpl(
           vertexId, vertexName, dag.conf,
           dag.eventHandler, dag.taskAttemptListener,
-          dag.jobTokenSecretManager, dag.jobToken, dag.fsTokens, dag.clock,
+          dag.jobToken, dag.fsTokens, dag.clock,
           dag.taskHeartbeatHandler, dag.appContext,
           dag.dagLocationHint.getVertexLocationHint(vertexName));
     }
