@@ -339,7 +339,8 @@ public class DAGConfiguration extends Configuration {
       StringTokenizer tokenizer = new StringTokenizer (envStr, SEPARATOR);
       String envName = tokenizer.nextToken();
       String envValue = tokenizer.nextToken();
-      env.put(envName, envValue);
+      env.put(StringUtils.unEscapeString(envName),
+          StringUtils.unEscapeString(envValue));
     }
 
     return env;
