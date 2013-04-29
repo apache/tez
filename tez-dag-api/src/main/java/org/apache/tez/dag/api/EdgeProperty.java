@@ -46,14 +46,6 @@ public class EdgeProperty { // FIXME rename to ChannelProperty
     this.outputClass = outputClass;
   }
   
-  // default constructor for mapreduce case
-  public EdgeProperty() {
-    this.connectionPattern = ConnectionPattern.BIPARTITE;
-    this.sourceType = SourceType.STABLE;
-    this.inputClass = "org.apache.tez.engine.lib.input.ShuffledMergedInput";
-    this.outputClass = "org.apache.tez.engine.lib.output.OnFileSortedOutput";
-  }
-  
   public ConnectionPattern getConnectionPattern() {
     return connectionPattern;
   }

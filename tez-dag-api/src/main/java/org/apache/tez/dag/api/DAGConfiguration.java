@@ -235,7 +235,8 @@ public class DAGConfiguration extends Configuration {
     for(Map.Entry<String,LocalResource> entry : lrs.entrySet()) {
       LocalResource lr = entry.getValue();
       try {
-        String lrStr = StringUtils.escapeString(entry.getKey(), StringUtils.ESCAPE_CHAR,
+        String lrStr = StringUtils.escapeString(entry.getKey(),
+            StringUtils.ESCAPE_CHAR,
             SEPARATOR.charAt(0))
             + SEPARATOR
             + StringUtils.escapeString(
@@ -243,23 +244,28 @@ public class DAGConfiguration extends Configuration {
                 StringUtils.ESCAPE_CHAR,
                 SEPARATOR.charAt(0))
             + SEPARATOR
-            + StringUtils.escapeString(String.valueOf(lr.getSize()), StringUtils.ESCAPE_CHAR, SEPARATOR.charAt(0))
+            + StringUtils.escapeString(String.valueOf(lr.getSize()),
+                StringUtils.ESCAPE_CHAR, SEPARATOR.charAt(0))
             + SEPARATOR
-            + StringUtils.escapeString(String.valueOf(lr.getTimestamp()), StringUtils.ESCAPE_CHAR, SEPARATOR.charAt(0))
+            + StringUtils.escapeString(String.valueOf(lr.getTimestamp()),
+                StringUtils.ESCAPE_CHAR, SEPARATOR.charAt(0))
             + SEPARATOR
-            + StringUtils.escapeString(lr.getType().name(), StringUtils.ESCAPE_CHAR, SEPARATOR.charAt(0))
+            + StringUtils.escapeString(lr.getType().name(),
+                StringUtils.ESCAPE_CHAR, SEPARATOR.charAt(0))
             + SEPARATOR
-            + StringUtils.escapeString(lr.getVisibility().name(), StringUtils.ESCAPE_CHAR, SEPARATOR.charAt(0))
+            + StringUtils.escapeString(lr.getVisibility().name(),
+                StringUtils.ESCAPE_CHAR, SEPARATOR.charAt(0))
             + SEPARATOR
-            + StringUtils.escapeString((lr.getPattern() == null ? "" : lr.getPattern()), StringUtils.ESCAPE_CHAR, SEPARATOR.charAt(0));
-        LOG.info("XXXX serializing local resource:"
-            + lrStr);
+            + StringUtils.escapeString(
+                (lr.getPattern() == null ? "" : lr.getPattern()),
+                StringUtils.ESCAPE_CHAR, SEPARATOR.charAt(0));
         lrStrs[i++] = StringUtils.escapeString(lrStr);
       } catch (URISyntaxException e) {
         throw new RuntimeException(e);
       }
     }
-    setStrings(TEZ_DAG_VERTEX_TASK_LOCAL_RESOURCE + vertex.getVertexName(), lrStrs);
+    setStrings(TEZ_DAG_VERTEX_TASK_LOCAL_RESOURCE + vertex.getVertexName(),
+        lrStrs);
   }
 
   public Map<String, LocalResource> getVertexLocalResources(String vertexName) {
@@ -272,7 +278,6 @@ public class DAGConfiguration extends Configuration {
     }
     LOG.info("XXXX Found " + lrStrs.length + " local resources");
     for (String lrStr : lrStrs) {
-      LOG.info("XXXX Parsing local resource from " + lrStr);
       String[] tokens =
           StringUtils.split(
               lrStr, StringUtils.ESCAPE_CHAR, SEPARATOR.charAt(0));
@@ -299,7 +304,8 @@ public class DAGConfiguration extends Configuration {
             + ", vertexName=" + vertexName
             + ", resourceName=" + resourceName
             + ", resourceUrl"
-            + ConverterUtils.getPathFromYarnURL(lRsrc.getResource()).toString());
+            + ConverterUtils.getPathFromYarnURL(
+                lRsrc.getResource()).toString());
       } catch (URISyntaxException e) {
         // Ignore
         // FIXME

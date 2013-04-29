@@ -20,8 +20,12 @@ import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.tez.dag.api.DAGConfiguration;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
+import org.apache.tez.dag.api.EdgeProperty.SourceType;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.app.rm.container.AMContainerHelpers;
+import org.apache.tez.engine.lib.input.ShuffledMergedInput;
+import org.apache.tez.engine.lib.output.OnFileSortedOutput;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 public class MRRExampleHelper {
@@ -88,8 +92,16 @@ public class MRRExampleHelper {
        "org.apache.tez.mapreduce.task.IntermediateTask", 3);
    Vertex reduce2Vertex = new Vertex("reduce2",
        "org.apache.tez.mapreduce.task.FinalTask", 3);
-   Edge edge1 = new Edge(mapVertex, reduce1Vertex, new EdgeProperty());
-   Edge edge2 = new Edge(reduce1Vertex, reduce2Vertex, new EdgeProperty());
+   Edge edge1 = new Edge(mapVertex, reduce1Vertex,
+       new EdgeProperty(ConnectionPattern.BIPARTITE,
+           SourceType.STABLE,
+           ShuffledMergedInput.class.getName(),
+           OnFileSortedOutput.class.getName()));
+   Edge edge2 = new Edge(reduce1Vertex, reduce2Vertex,
+       new EdgeProperty(ConnectionPattern.BIPARTITE,
+           SourceType.STABLE,
+           ShuffledMergedInput.class.getName(),
+           OnFileSortedOutput.class.getName()));
    Map<String, LocalResource> jobRsrcs = createLocalResources(getMRRBaseDir(),
        getMRRLocalRsrcList());
 
@@ -146,7 +158,11 @@ public class MRRExampleHelper {
        "org.apache.tez.mapreduce.task.InitialTask", 6);
    Vertex reduceVertex = new Vertex("reduce",
        "org.apache.tez.mapreduce.task.FinalTask", 1);
-   Edge edge = new Edge(mapVertex, reduceVertex, new EdgeProperty());
+   Edge edge = new Edge(mapVertex, reduceVertex,
+       new EdgeProperty(ConnectionPattern.BIPARTITE,
+           SourceType.STABLE,
+           ShuffledMergedInput.class.getName(),
+           OnFileSortedOutput.class.getName()));
 
    Map<String, LocalResource> jobRsrcs = createLocalResources(getMRBaseDir(),
        getMRLocalRsrcList());

@@ -59,7 +59,11 @@ import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
+import org.apache.tez.dag.api.EdgeProperty.SourceType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.engine.lib.input.ShuffledMergedInput;
+import org.apache.tez.engine.lib.output.OnFileSortedOutput;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
@@ -645,7 +649,11 @@ public class YARNRunner implements ClientProtocol {
           + ", parrellism=" + reduceVertex.getParallelism());
       dag.addVertex(reduceVertex);
 
-      EdgeProperty edgeProperty = new EdgeProperty();
+      EdgeProperty edgeProperty =
+          new EdgeProperty(ConnectionPattern.BIPARTITE,
+              SourceType.STABLE,
+              ShuffledMergedInput.class.getName(),
+              OnFileSortedOutput.class.getName());
       Edge edge = null;
       if (!isMRR) {
         edge = new Edge(mapVertex, reduceVertex, edgeProperty);
