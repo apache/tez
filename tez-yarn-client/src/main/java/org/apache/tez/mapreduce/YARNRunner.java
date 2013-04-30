@@ -581,9 +581,6 @@ public class YARNRunner implements ClientProtocol {
         MultiStageMRConfigUtil.getInitialMapVertexName(),
         mapProcessor, numMaps); 
 
-    // Set java opts example:
-    // mapVertex.setJavaOpts("-DmapperTestArg=val");
-
     // FIXME set up map environment
     Map<String, String> mapEnv = new HashMap<String, String>();
     setupMapReduceEnv(jobConf, mapEnv, true);

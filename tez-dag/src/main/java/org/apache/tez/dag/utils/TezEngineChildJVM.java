@@ -22,8 +22,6 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Vector;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.YarnTezDagChild;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -37,9 +35,7 @@ import org.apache.tez.engine.records.TezVertexID;
 
 public class TezEngineChildJVM {
 
-  private static final Log LOG = LogFactory.getLog(TezEngineChildJVM.class);
-
-  // FIXME 
+    // FIXME 
   public static enum LogName {
     /** Log on the stdout of the task. */
     STDOUT ("stdout"),
@@ -84,7 +80,6 @@ public class TezEngineChildJVM {
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
 
     //set custom javaOpts
-    LOG.info("getVMCommand: javaOpts=" + javaOpts);
     vargs.add(javaOpts); 
     
     Path childTmpDir = new Path(Environment.PWD.$(),
