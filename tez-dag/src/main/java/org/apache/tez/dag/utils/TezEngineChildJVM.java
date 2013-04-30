@@ -22,6 +22,8 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.YarnTezDagChild;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -30,9 +32,12 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.app.rm.container.AMContainerHelpers;
 import org.apache.tez.engine.records.TezVertexID;
 
 public class TezEngineChildJVM {
+
+  private static final Log LOG = LogFactory.getLog(TezEngineChildJVM.class);
 
   // FIXME 
   public static enum LogName {
@@ -71,19 +76,21 @@ public class TezEngineChildJVM {
   public static List<String> getVMCommand(
       InetSocketAddress taskAttemptListenerAddr, TezConfiguration conf, 
       TezVertexID vertexId, 
-      ContainerId containerId, ApplicationId jobID, boolean shouldProfile) {
+      ContainerId containerId, ApplicationId jobID, boolean shouldProfile,
+      String javaOpts) {
 
     Vector<String> vargs = new Vector<String>(9);
 
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
 
-    // Add child (task) java-vm options.
-    // FIXME add support for child java opts
-
+    //set custom javaOpts
+    LOG.info("getVMCommand: javaOpts=" + javaOpts);
+    vargs.add(javaOpts); 
+    
     Path childTmpDir = new Path(Environment.PWD.$(),
         YarnConfiguration.DEFAULT_CONTAINER_TEMP_DIR);
     vargs.add("-Djava.io.tmpdir=" + childTmpDir);
-
+    
     // FIXME Setup the log4j properties
 
     // Decision to profile needs to be made in the scheduler.

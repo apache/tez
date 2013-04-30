@@ -141,7 +141,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final Resource taskResource;
   private final Map<String, LocalResource> localResources;
   private final Map<String, String> environment;
-  
+  private final String javaOpts;
   private final boolean isRescheduled;
 
   private boolean speculatorContainerRequestSent = false;
@@ -161,6 +161,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       STATUS_UPDATER = new StatusUpdaterTransition();
 
   private final StateMachine<TaskAttemptStateInternal, TaskAttemptEventType, TaskAttemptEvent> stateMachine;
+  
   private static StateMachineFactory
   <TaskAttemptImpl, TaskAttemptStateInternal, TaskAttemptEventType, TaskAttemptEvent>
   stateMachineFactory
@@ -257,7 +258,8 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       String mrxModuleClassName, TaskLocationHint locationHint,
       Resource resource, Map<String, LocalResource> localResources,
-      Map<String, String> environment, boolean isRescheduled) {
+      Map<String, String> environment, 
+      String javaOpts, boolean isRescheduled) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
@@ -281,6 +283,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.locationHint = locationHint;
     this.localResources = localResources;
     this.environment = environment;
+    this.javaOpts = javaOpts;
     this.isRescheduled = isRescheduled;
   }
   
@@ -889,7 +892,8 @@ public class TaskAttemptImpl implements TaskAttempt,
               ta.localResources, remoteTaskContext, ta,
               ta.credentials, ta.jobToken, hostArray,
               rackArray,
-              scheduleEvent.getPriority(), ta.environment, ta.conf);
+              scheduleEvent.getPriority(), ta.environment, //ta.javaOpts, 
+              ta.conf);
       ta.sendEvent(launchRequestEvent);
     }
   }
@@ -1275,4 +1279,10 @@ public class TaskAttemptImpl implements TaskAttempt,
   public Map<String, String> getEnvironment() {
     return this.environment;
   }
+  
+  @Override
+  public String getJavaOpts() {
+	return this.javaOpts;  
+  }
+
 }

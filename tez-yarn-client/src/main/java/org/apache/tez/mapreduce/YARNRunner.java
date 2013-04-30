@@ -53,21 +53,10 @@ import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.JobStatus;
-import org.apache.tez.dag.api.DAG;
-import org.apache.tez.dag.api.DAGConfiguration;
-import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty.SourceType;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.engine.lib.input.ShuffledMergedInput;
 import org.apache.tez.engine.lib.output.OnFileSortedOutput;
-import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.hadoop.mapreduce.QueueAclsInfo;
 import org.apache.hadoop.mapreduce.QueueInfo;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
@@ -108,6 +97,17 @@ import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DAGConfiguration;
+import org.apache.tez.dag.api.Edge;
+import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
+import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -579,7 +579,10 @@ public class YARNRunner implements ClientProtocol {
     String mapProcessor = "org.apache.tez.mapreduce.processor.map.MapProcessor";
     Vertex mapVertex = new Vertex(
         MultiStageMRConfigUtil.getInitialMapVertexName(),
-        mapProcessor, numMaps);
+        mapProcessor, numMaps); 
+
+    // Set java opts example:
+    // mapVertex.setJavaOpts("-DmapperTestArg=val");
 
     // FIXME set up map environment
     Map<String, String> mapEnv = new HashMap<String, String>();
@@ -606,7 +609,8 @@ public class YARNRunner implements ClientProtocol {
     LOG.info("XXXX Adding map vertex to DAG"
         + ", vertexName=" + mapVertex.getVertexName()
         + ", processor=" + mapVertex.getProcessorName()
-        + ", parrellism=" + mapVertex.getParallelism());
+        + ", parrellism=" + mapVertex.getParallelism()
+        + ", javaOpts=" + mapVertex.getJavaOpts());
     dag.addVertex(mapVertex);
 
     Vertex[] intermediateVertices = null;
@@ -646,7 +650,8 @@ public class YARNRunner implements ClientProtocol {
       LOG.info("XXXX Adding reduce vertex to DAG"
           + ", vertexName=" + reduceVertex.getVertexName()
           + ", processor=" + reduceVertex.getProcessorName()
-          + ", parrellism=" + reduceVertex.getParallelism());
+          + ", parrellism=" + reduceVertex.getParallelism()
+          + ", javaOpts=" + reduceVertex.getJavaOpts());
       dag.addVertex(reduceVertex);
 
       EdgeProperty edgeProperty =
@@ -676,7 +681,6 @@ public class YARNRunner implements ClientProtocol {
             reduceVertex, edgeProperty);
         dag.addEdge(finalEdge);
       }
-      
     }
 
     return dag;

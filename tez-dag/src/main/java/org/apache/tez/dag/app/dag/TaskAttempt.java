@@ -108,4 +108,6 @@ public interface TaskAttempt {
   public Map<String, LocalResource> getLocalResources();
 
   public Map<String, String> getEnvironment();
+  
+  public String getJavaOpts();
 }

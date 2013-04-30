@@ -330,7 +330,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private VertexLocationHint vertexLocationHint;
   private Map<String, LocalResource> localResources;
   private Map<String, String> environment;
-
+  private String javaOpts;
+  
   public VertexImpl(TezVertexID vertexId, String vertexName,
       TezConfiguration conf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
@@ -367,7 +368,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.processorName = getDAGPlan().getVertexTaskModuleClassName(getName());
     this.localResources = getDAGPlan().getVertexLocalResources(getName());
     this.environment = getDAGPlan().getVertexEnv(getName());
-
+    
+    this.javaOpts = getDAGPlan().getVertexJavaOpts(getName());
+    
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
@@ -858,7 +861,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                 vertex.processorName, false,
                 locHint, vertex.taskResource,
                 vertex.localResources,
-                vertex.environment);
+                vertex.environment,
+                vertex.javaOpts);
         vertex.addTask(task);
         LOG.info("Created task for vertex " + vertex.getVertexId() + ": " +
             task.getTaskId());

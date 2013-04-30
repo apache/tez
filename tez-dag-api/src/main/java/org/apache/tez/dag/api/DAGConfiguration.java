@@ -366,6 +366,8 @@ public class DAGConfiguration extends Configuration {
       setVertexEnv(vertex);
       // set processor name
       setVertexTaskModuleClassName(vertex);
+      //set javaOpts
+      setVertexJavaOpts(vertex.getVertexName(), vertex.getJavaOpts());
     }
   }
 
@@ -375,7 +377,7 @@ public class DAGConfiguration extends Configuration {
   public String[] getInputVertices(String vertexName) {
     String[] vertices =
         getStrings(TEZ_DAG_VERTEX_INPUT_VERTICES + "." + vertexName, EMPTY);
-    return vertices == null? EMPTY : vertices;
+    return vertices == null ? EMPTY : vertices;
   }
   @Private
   public void setInputVertices(String vertexName, List<Vertex> inputVertices) {
@@ -454,6 +456,18 @@ public class DAGConfiguration extends Configuration {
   public void setVertexTaskModuleClassName(String vertexName,
       String taskModule) {
     set(TEZ_DAG_VERTEX_TASK_MODULE + "." + vertexName, taskModule);
+  }
+  
+  public final String TEZ_DAG_VERTEX_JAVAOPTS= VERTEX + "java-opts";
+  @Private 
+  public String getVertexJavaOpts(String vertexName) {
+	  String opts = get(TEZ_DAG_VERTEX_JAVAOPTS + "." + vertexName);
+	  return opts == null? "" : opts;
+  }
+  
+  @Private
+  public void setVertexJavaOpts(String vertexName, String javaOpts){
+	  set(TEZ_DAG_VERTEX_JAVAOPTS + "." + vertexName, javaOpts);
   }
 
   /// File used for storing location hints that are passed to the DAG

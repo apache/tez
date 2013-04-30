@@ -152,6 +152,7 @@ public class AMContainerHelpers {
       Token<JobTokenIdentifier> jobToken,
       Resource assignedCapability, Map<String, LocalResource> localResources,
       Map<String, String> vertexEnv,
+      String javaOpts,
       TaskAttemptListener taskAttemptListener, Credentials credentials,
       boolean shouldProfile, AppContext appContext) {
 
@@ -179,7 +180,7 @@ public class AMContainerHelpers {
     // Set up the launch command
     List<String> commands = TezEngineChildJVM.getVMCommand(
         taskAttemptListener.getAddress(), conf, vertexId, containerId,
-        vertexId.getDAGId().getApplicationId(), shouldProfile);
+        vertexId.getDAGId().getApplicationId(), shouldProfile, javaOpts);
 
     // Duplicate the ByteBuffers for access by multiple containers.
     Map<String, ByteBuffer> myServiceData = new HashMap<String, ByteBuffer>();

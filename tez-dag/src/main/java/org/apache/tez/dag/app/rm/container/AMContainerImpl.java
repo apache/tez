@@ -327,6 +327,7 @@ public class AMContainerImpl implements AMContainer {
           container.getContainer().getResource(),
           event.getLocalResources(),
           event.getEnvironment(),
+          event.getJavaOpts(),
           container.taskAttemptListener, event.getCredentials(),
           event.shouldProfile(), container.appContext);
 

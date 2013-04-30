@@ -253,6 +253,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   private final boolean leafVertex;
 
+  private String javaOpts;
+
   @Override
   public TaskState getState() {
     readLock.lock();
@@ -277,7 +279,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       String mrxModuleClassName,
       boolean leafVertex, TaskLocationHint locationHint, Resource resource,
       Map<String, LocalResource> localResources,
-      Map<String, String> environment) {
+      Map<String, String> environment,
+      String javaOpts) {
     this.conf = conf;
     this.clock = clock;
     this.jobFile = remoteJobConfFile;
@@ -308,7 +311,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.taskResource = resource;
     this.localResources = localResources;
     this.environment = environment;
-
+    this.javaOpts = javaOpts;
     // TODO: Recovery
     /*
     // See if this is from a previous generation.
@@ -616,7 +619,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         taskAttemptListener, null, 0, conf,
         jobToken, credentials, clock, taskHeartbeatHandler,
         appContext, mrxModuleClassName, locationHint, taskResource,
-        localResources, environment, (failedAttempts>0));
+        localResources, environment, javaOpts, (failedAttempts>0));
   }
   
   protected TaskAttempt getSuccessfulAttempt() {

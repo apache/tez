@@ -465,7 +465,8 @@ public class TaskSchedulerEventHandler extends AbstractService
           // TODO getConf from AMSchedulerEventTALaunchRequest
           event.getCredentials(), false, event.getConf(), 
           taskAttempt.getLocalResources(),
-          taskAttempt.getEnvironment()));
+          taskAttempt.getEnvironment(),
+          taskAttempt.getJavaOpts()));
     }
     sendEvent(new AMContainerEventAssignTA(containerId,
         taskAttempt.getID(), event.getRemoteTaskContext()));

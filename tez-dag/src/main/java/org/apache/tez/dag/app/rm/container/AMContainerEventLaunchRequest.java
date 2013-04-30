@@ -38,13 +38,14 @@ public class AMContainerEventLaunchRequest extends AMContainerEvent {
   private final TezConfiguration conf;
   private final Map<String, LocalResource> localResources;
   private final Map<String, String> environment;
+  private final String javaOpts;
 
   public AMContainerEventLaunchRequest(ContainerId containerId, 
       TezVertexID vertexId,
       Token<JobTokenIdentifier> jobToken,
       Credentials credentials, boolean shouldProfile, TezConfiguration conf,
       Map<String, LocalResource> localResources,
-      Map<String, String> environment) {
+      Map<String, String> environment, String javaOpts) {
     super(containerId, AMContainerEventType.C_LAUNCH_REQUEST);
     this.vertexId = vertexId;
     this.jobToken = jobToken;
@@ -53,6 +54,7 @@ public class AMContainerEventLaunchRequest extends AMContainerEvent {
     this.conf = conf;
     this.localResources = localResources;
     this.environment = environment;
+    this.javaOpts = javaOpts;
   }
 
   public TezDAGID getDAGId() {
@@ -85,5 +87,9 @@ public class AMContainerEventLaunchRequest extends AMContainerEvent {
 
   public Map<String, String> getEnvironment() {
     return environment;
+  }
+  
+  public String getJavaOpts() {
+	  return javaOpts;
   }
 }

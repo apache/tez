@@ -54,8 +54,7 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
       TezTaskContext remoteTaskContext, TaskAttempt ta,
       Credentials credentials, Token<JobTokenIdentifier> jobToken,
       String[] hosts, String[] racks, Priority priority,
-      Map<String, String> environment,
-      TezConfiguration conf) {
+      Map<String, String> environment, TezConfiguration conf) {
     super(AMSchedulerEventType.S_TA_LAUNCH_REQUEST);
     this.attemptId = attemptId;
     this.capability = capability;

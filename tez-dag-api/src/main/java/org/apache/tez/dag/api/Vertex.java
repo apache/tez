@@ -41,6 +41,8 @@ public class Vertex { // FIXME rename to Task
   private final List<Vertex> outputVertices = new ArrayList<Vertex>();
   private final List<String> inputEdgeIds = new ArrayList<String>();
   private final List<String> outputEdgeIds = new ArrayList<String>();
+  private String javaOpts = "";
+  
   
   public Vertex(String vertexName, String processorName, int parallelism) {
     this.vertexName = vertexName;
@@ -94,6 +96,14 @@ public class Vertex { // FIXME rename to Task
     return taskEnvironment;
   }
   
+  public void setJavaOpts(String javaOpts){
+     this. javaOpts = javaOpts;
+  }
+  
+  public String getJavaOpts(){
+	  return javaOpts;
+  }
+  
   @Override
   public String toString() {
     return "[" + vertexName + " : " + processorName + "]";
@@ -124,8 +134,6 @@ public class Vertex { // FIXME rename to Task
   List<String> getOutputEdgeIds() {
     return outputEdgeIds;
   }
-
-  // FIXME add java opts?
 
   // FIXME how do we support profiling? Can't profile all tasks.
 
