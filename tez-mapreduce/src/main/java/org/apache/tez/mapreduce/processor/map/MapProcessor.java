@@ -76,7 +76,7 @@ public class MapProcessor extends MRTask implements Processor {
   InterruptedException {
     super.initialize(conf, master);
     TaskSplitMetaInfo[] allMetaInfo = readSplits();
-    TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[tezTaskContext
+    TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[tezEngineTaskContext
         .getTaskAttemptId().getTaskID().getId()];
     splitMetaInfo = new TaskSplitIndex(thisTaskMetaInfo.getSplitLocation(),
         thisTaskMetaInfo.getStartOffset());
@@ -117,7 +117,7 @@ public class MapProcessor extends MRTask implements Processor {
 
     // If there are no reducers then there won't be any sort. Hence the map 
     // phase will govern the entire attempt's progress.
-    if (jobConf.getNumReduceTasks() == 0) {
+    if (tezEngineTaskContext.getOutputSpecList().get(0).getNumOutputs() == 0) {
       mapPhase = getProgress().addPhase("map", 1.0f);
     } else {
       // If there are reducers then the entire attempt's progress will be 
@@ -155,7 +155,8 @@ public class MapProcessor extends MRTask implements Processor {
     
     RecordReader in = new OldRecordReader(input);
         
-    int numReduceTasks = job.getNumReduceTasks();
+    int numReduceTasks = tezEngineTaskContext.getOutputSpecList().get(0)
+        .getNumOutputs();
     LOG.info("numReduceTasks: " + numReduceTasks);
 
     OutputCollector collector = new OldOutputCollector(output);
@@ -383,5 +384,4 @@ public class MapProcessor extends MRTask implements Processor {
         FileSystem.getLocal(getConf()));
     return allTaskSplitMetaInfo;
   }
-  
 }

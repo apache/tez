@@ -52,9 +52,11 @@ public class MultiStageMRConfToTezTranslator {
 
     for (int i = 0; i < allConfs.length; i++) {
       processDirectConversion(allConfs[i]);
+      // XXX How are the number of reducers being set correctly in YARNRUNNER ?
     }
     for (int i = 0; i < allConfs.length - 1; i++) {
       processMultiStageDepreaction(allConfs[i], allConfs[i + 1]);
+      
     }
     // Unset unnecessary keys in the last stage. Will end up being called for
     // single stage as well which should be harmless.
@@ -111,9 +113,12 @@ public class MultiStageMRConfToTezTranslator {
         .entrySet()) {
       if (conf.get(dep.getKey()) != null) {
         // TODO Deprecation reason does not seem to reflect in the config ?
-        conf.set(dep.getValue(), conf.get(dep.getKey()),
-            DeprecationReason.DEPRECATED_DIRECT_TRANSLATION.name());
+        // The ordering is important in case of keys which are also deprecated.
+        // Unset will unset the deprecated keys and all it's variants.
+        String value = conf.get(dep.getKey());
         conf.unset(dep.getKey());
+        conf.set(dep.getValue(), value,
+            DeprecationReason.DEPRECATED_DIRECT_TRANSLATION.name());
       }
     }
   }
@@ -129,11 +134,12 @@ public class MultiStageMRConfToTezTranslator {
         .getMultiStageParamMap().entrySet()) {
       if (srcConf.get(dep.getKey()) != null) {
         if (destConf != null) {
-          srcConf.set(dep.getValue().get(MultiStageKeys.OUTPUT),
-              srcConf.get(dep.getKey()));
-          destConf.set(dep.getValue().get(MultiStageKeys.INPUT),
-              srcConf.get(dep.getKey()));
+          String value = srcConf.get(dep.getKey());
           srcConf.unset(dep.getKey());
+          srcConf.set(dep.getValue().get(MultiStageKeys.OUTPUT), value,
+              DeprecationReason.DEPRECATED_MULTI_STAGE.name());
+          destConf.set(dep.getValue().get(MultiStageKeys.INPUT), value,
+              DeprecationReason.DEPRECATED_MULTI_STAGE.name());
         } else { // Last stage. Just remove the key reference.
           srcConf.unset(dep.getKey());
         }

@@ -90,7 +90,7 @@ extends RunningTaskContext {
   protected GcTimeUpdater gcUpdater;
   private ResourceCalculatorProcessTree pTree;
   private long initCpuCumulativeTime = 0;
-  protected TezEngineTaskContext tezTaskContext;
+  protected TezEngineTaskContext tezEngineTaskContext;
   protected TezTaskAttemptID taskAttemptId;
   
   /* flag to track whether task is done */
@@ -120,7 +120,7 @@ extends RunningTaskContext {
      new HashMap<String, FileSystemStatisticUpdater>();
 
   public MRTask(TezEngineTaskContext context) {
-    tezTaskContext = context;
+    tezEngineTaskContext = context;
     this.taskAttemptId = context.getTaskAttemptId();
     // TODO TEZAM4 Figure out initialization / run sequence of Input, Process,
     // Output. Phase is MR specific.
@@ -710,5 +710,9 @@ extends RunningTaskContext {
   
   public TezTaskAttemptID getTaskAttemptId() {
     return taskAttemptId;
+  }
+  
+  public TezEngineTaskContext getTezEngineTaskContext() {
+    return tezEngineTaskContext;
   }
 }

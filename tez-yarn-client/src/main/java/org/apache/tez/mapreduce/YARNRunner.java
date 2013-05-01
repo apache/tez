@@ -573,7 +573,7 @@ public class YARNRunner implements ClientProtocol {
     LOG.info("XXXX Parsing job config"
         + ", numMaps=" + numMaps
         + ", numReduces=" + numReduces
-        + ", intermediateReduces=" + intermediateReduces);
+        + ", intermediateReduceStages=" + intermediateReduces);
 
     // configure map vertex
     String mapProcessor = "org.apache.tez.mapreduce.processor.map.MapProcessor";
@@ -865,13 +865,16 @@ public class YARNRunner implements ClientProtocol {
     FileSystem fs = FileSystem.get(conf);
     JobConf jobConf = new JobConf(new TezConfiguration(conf));
     Configuration tezJobConf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
-    
+
     // This will replace job.xml in the staging dir.
     writeTezConf(jobSubmitDir, fs, tezJobConf);    
 
     // FIXME set up job resources
     Map<String, LocalResource> jobLocalResources =
         createJobLocalResources(tezJobConf, jobSubmitDir);
+    
+    // FIXME createDAG should take the tezConf as a parameter, instead of using
+    // MR keys.
     DAG dag = createDAG(fs, jobId, jobConf, jobSubmitDir, ts,
         jobLocalResources);
     ApplicationSubmissionContext appContext =

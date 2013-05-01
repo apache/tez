@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.TezConfiguration;
 import com.google.common.collect.Maps;
@@ -59,6 +60,7 @@ public class DeprecatedKeys {
     populateMRToEngineParamMap();
     populateMRToDagParamMap();
     populateMultiStageParamMap();
+    addDeprecatedKeys();
   }
   
   
@@ -143,11 +145,7 @@ public class DeprecatedKeys {
     registerMRToEngineKeyTranslation(MRJobConfig.RECORDS_BEFORE_PROGRESS, TezJobConfig.RECORDS_BEFORE_PROGRESS);
     
     registerMRToEngineKeyTranslation(MRJobConfig.JOB_LOCAL_DIR, MRConfig.LOCAL_DIR);
-        
-    registerMRToEngineKeyTranslation(MRJobConfig.NUM_REDUCES, TezJobConfig.TEZ_ENGINE_TASK_OUTDEGREE);
 
-    registerMRToEngineKeyTranslation(MRJobConfig.NUM_MAPS, TezJobConfig.TEZ_ENGINE_TASK_INDEGREE);
-    
     registerMRToEngineKeyTranslation(MRJobConfig.IO_SORT_FACTOR, TezJobConfig.TEZ_ENGINE_IO_SORT_FACTOR);
     
     registerMRToEngineKeyTranslation(MRJobConfig.MAP_SORT_SPILL_PERCENT, TezJobConfig.TEZ_ENGINE_SORT_SPILL_PERCENT);
@@ -195,11 +193,26 @@ public class DeprecatedKeys {
     registerMRToEngineKeyTranslation("map.sort.class", TezJobConfig.TEZ_ENGINE_INTERNAL_SORTER_CLASS);
     
     registerMRToEngineKeyTranslation(MRJobConfig.GROUP_COMPARATOR_CLASS, TezJobConfig.TEZ_ENGINE_GROUP_COMPARATOR_CLASS);
+    
+    registerMRToEngineKeyTranslation(MRJobConfig.NUM_REDUCES, TezJobConfig.TEZ_ENGINE_TASK_OUTDEGREE);
+
+    registerMRToEngineKeyTranslation(MRJobConfig.NUM_MAPS, TezJobConfig.TEZ_ENGINE_TASK_INDEGREE);
+  }
+  
+  private static void addDeprecatedKeys() {
+    // Adding deprecation for num_maps, num_reduces - in case some component in
+    // Hadoop MR land uses these. Tez components already use tez-in/out-degree.
+    _(MRJobConfig.NUM_REDUCES, TezJobConfig.TEZ_ENGINE_TASK_OUTDEGREE);
+    _(MRJobConfig.NUM_MAPS, TezJobConfig.TEZ_ENGINE_TASK_INDEGREE);
   }
 
   private static void registerMRToEngineKeyTranslation(String mrKey,
       String tezKey) {
     mrParamToEngineParamMap.put(mrKey, tezKey);
+  }
+  
+  private static void _(String mrKey, String tezKey) {
+    Configuration.addDeprecation(mrKey, tezKey);
   }
 
   public static Map<String, String> getMRToDAGParamMap() {

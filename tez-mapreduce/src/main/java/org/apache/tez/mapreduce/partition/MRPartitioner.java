@@ -54,7 +54,8 @@ public class MRPartitioner implements org.apache.tez.engine.api.Partitioner {
     }
     
     useNewApi = jobConf.getUseNewMapper();
-    final int partitions = jobConf.getNumReduceTasks();
+    final int partitions = this.task.getTezEngineTaskContext()
+        .getOutputSpecList().get(0).getNumOutputs();
     if (useNewApi) {
       if (partitions > 1) {
         try {
