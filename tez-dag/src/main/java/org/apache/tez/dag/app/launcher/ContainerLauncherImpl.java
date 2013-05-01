@@ -38,6 +38,7 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.yarn.Clock;
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.api.ContainerManager;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest;
@@ -59,6 +60,8 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventLaunchFailed;
 import org.apache.tez.dag.app.rm.container.AMContainerEventLaunched;
 import org.apache.tez.dag.app.rm.container.AMContainerEventStopFailed;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
+import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -88,6 +91,7 @@ public class ContainerLauncherImpl extends AbstractService implements
   protected BlockingQueue<NMCommunicatorEvent> eventQueue =
       new LinkedBlockingQueue<NMCommunicatorEvent>();
   YarnRPC rpc;
+  private Clock clock;
 
   private Container getContainer(NMCommunicatorEvent event) {
     ContainerId id = event.getContainerId();
@@ -177,7 +181,13 @@ public class ContainerLauncherImpl extends AbstractService implements
 
         // after launching, send launched event to task attempt to move
         // it from ASSIGNED to RUNNING state
-        context.getEventHandler().handle(new AMContainerEventLaunched(containerID, port));
+        context.getEventHandler().handle(
+            new AMContainerEventLaunched(containerID, port));
+        ContainerLaunchedEvent lEvt = new ContainerLaunchedEvent(
+            containerID, clock.getTime());
+        context.getEventHandler().handle(new DAGHistoryEvent(
+            context.getDAGID(), lEvt));
+        
         this.state = ContainerState.RUNNING;
       } catch (Throwable t) {
         String message = "Container launch failed for " + containerID + " : "
@@ -241,6 +251,7 @@ public class ContainerLauncherImpl extends AbstractService implements
   public ContainerLauncherImpl(AppContext context) {
     super(ContainerLauncherImpl.class.getName());
     this.context = context;
+    this.clock = context.getClock();
   }
 
   @Override

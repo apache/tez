@@ -86,6 +86,9 @@ import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptFetchFailure;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.events.VertexFinishedEvent;
+import org.apache.tez.dag.history.events.VertexStartedEvent;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezDAGID;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
@@ -604,65 +607,24 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     finishTime = clock.getTime();
   }
 
-  void logJobHistoryVertexInitedEvent() {
-    // TODO JobHistory
-    /*
-    JobSubmittedEvent jse = new JobSubmittedEvent(job.oldJobId,
-        job.conf.get(MRJobConfig.JOB_NAME, "test"),
-      job.conf.get(MRJobConfig.USER_NAME, "mapred"),
-      job.appSubmitTime,
-      job.remoteJobConfFile.toString(),
-      job.jobACLs, job.queueName);
-    job.eventHandler.handle(new JobHistoryEvent(job.jobId, jse));
-    */
-  }
 
   void logJobHistoryVertexStartedEvent() {
-    // TODO JobHistory
-    /*
-      JobInitedEvent jie =
-        new JobInitedEvent(job.oldJobId,
-             job.startTime,
-             job.numMapTasks, job.numReduceTasks,
-             job.getState().toString(),
-             job.isUber()); //Will transition to state running. Currently in INITED
-      job.eventHandler.handle(new JobHistoryEvent(job.jobId, jie));
-      JobInfoChangeEvent jice = new JobInfoChangeEvent(job.oldJobId,
-          job.appSubmitTime, job.startTime);
-      job.eventHandler.handle(new JobHistoryEvent(job.jobId, jice));
-     */
-
+    VertexStartedEvent startEvt = new VertexStartedEvent(vertexId,
+        vertexName, initTime, startTime, numTasks, processorName);
+    this.eventHandler.handle(new DAGHistoryEvent(getDAGId(), startEvt));
   }
-
 
   void logJobHistoryVertexFinishedEvent() {
     this.setFinishTime();
-    // TODO JobHistory
-    //eventHandler.handle(new JobFinishEvent(jobId));
+    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
+        vertexName, finishTime, VertexStatus.State.SUCCEEDED);
+    this.eventHandler.handle(new DAGHistoryEvent(getDAGId(), finishEvt));
   }
 
-  void logJobHistoryVertexAbortedEvent() {
-    // TODO JobHistory
-    /*
-    JobUnsuccessfulCompletionEvent unsuccessfulJobEvent =
-        new JobUnsuccessfulCompletionEvent(oldJobId,
-            finishTime,
-            succeededMapTaskCount,
-            succeededReduceTaskCount,
-            finalState.toString());
-      eventHandler.handle(new JobHistoryEvent(jobId, unsuccessfulJobEvent));
-      */
-  }
-
-  void logJobHistoryUnsuccessfulVertexCompletion() {
-    // TODO JobHistory
-    /*
-    JobUnsuccessfulCompletionEvent failedEvent =
-        new JobUnsuccessfulCompletionEvent(job.oldJobId,
-            job.finishTime, 0, 0,
-            VertexState.KILLED.toString());
-    job.eventHandler.handle(new JobHistoryEvent(job.jobId, failedEvent));
-    */
+  void logJobHistoryVertexFailedEvent(VertexStatus.State state) {
+    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
+        vertexName, clock.getTime(), state);
+    this.eventHandler.handle(new DAGHistoryEvent(getDAGId(), finishEvt));
   }
 
   /**
@@ -750,8 +712,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     @Override
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
       try {
-        //log to job history
-        vertex.logJobHistoryVertexInitedEvent();
 
         // TODODAGAM
         // TODO: Splits?
@@ -949,7 +909,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     if (finishTime == 0) {
       setFinishTime();
     }
-    logJobHistoryVertexAbortedEvent();
+    logJobHistoryVertexFailedEvent(finalState);
   }
 
   private void mayBeConstructFinalFullCounters() {
@@ -979,7 +939,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
       vertex.setFinishTime();
-      vertex.logJobHistoryUnsuccessfulVertexCompletion();
+      vertex.logJobHistoryVertexFailedEvent(VertexStatus.State.KILLED);
       vertex.finished(VertexState.KILLED);
     }
   }
@@ -1187,7 +1147,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     public void transition(VertexImpl vertex, VertexEvent event) {
       //TODO Is this JH event required.
       vertex.setFinishTime();
-      vertex.logJobHistoryUnsuccessfulVertexCompletion();
+      vertex.logJobHistoryVertexFailedEvent(
+          VertexStatus.State.FAILED);
       vertex.finished(VertexState.ERROR);
     }
   }

@@ -65,6 +65,9 @@ import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
+import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.events.TaskFinishedEvent;
+import org.apache.tez.dag.history.events.TaskStartedEvent;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 import org.apache.tez.engine.records.TezTaskAttemptID;
@@ -101,7 +104,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   protected boolean encryptedShuffle;
   protected Credentials credentials;
   protected Token<JobTokenIdentifier> jobToken;
-  protected String mrxModuleClassName;
+  protected String processorName;
   protected TaskLocationHint locationHint;
   private Resource taskResource;
   private Map<String, LocalResource> localResources;
@@ -304,7 +307,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.encryptedShuffle = false;
     //conf.getBoolean(MRConfig.SHUFFLE_SSL_ENABLED_KEY,
      //                                       MRConfig.SHUFFLE_SSL_ENABLED_DEFAULT);
-    this.mrxModuleClassName = mrxModuleClassName;
+    this.processorName = mrxModuleClassName;
 
     this.leafVertex = leafVertex;
     this.locationHint = locationHint;
@@ -529,20 +532,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
     return finishTime;
   }
-
-  private long getFinishTime(TezTaskAttemptID taId) {
-    if (taId == null) {
-      return clock.getTime();
-    }
-    long finishTime = 0;
-    for (TaskAttempt at : attempts.values()) {
-      //select the max finish time of all attempts
-      if (at.getID().equals(taId)) {
-        return at.getFinishTime();
-      }
-    }
-    return finishTime;
-  }
   
   private TaskStateInternal finished(TaskStateInternal finalState) {
     if (getInternalState() == TaskStateInternal.RUNNING) {
@@ -596,7 +585,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   @Override
   public boolean needsWaitAfterOutputConsumable() {
-    if (mrxModuleClassName.contains("InitialTaskWithInMemSort")) {
+    if (processorName.contains("InitialTaskWithInMemSort")) {
       return true;
     } else {
       return false;
@@ -618,7 +607,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
         taskAttemptListener, null, 0, conf,
         jobToken, credentials, clock, taskHeartbeatHandler,
-        appContext, mrxModuleClassName, locationHint, taskResource,
+        appContext, processorName, locationHint, taskResource,
         localResources, environment, javaOpts, (failedAttempts>0));
   }
   
@@ -809,38 +798,26 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   private void logJobHistoryTaskStartedEvent() {
-    //TODO: JobHistory
-    /*
-    TaskStartedEvent tse = new TaskStartedEvent(
-        TypeConverter.fromYarn(task.taskId), task.getLaunchTime(),
-        TypeConverter.fromYarn(task.taskId.getTaskType()),
-        task.getSplitsAsString());
-    task.eventHandler
-        .handle(new JobHistoryEvent(task.taskId.getJobId(), tse));
-        */
+    TaskStartedEvent startEvt = new TaskStartedEvent(taskId,
+        getVertex().getName(), scheduledTime, getLaunchTime());
+    this.eventHandler.handle(new DAGHistoryEvent(
+        taskId.getVertexID().getDAGId(), startEvt));
   }
   
   private void logJobHistoryTaskFinishedEvent() {
-    //TODO: JobHistory
-    /*
-      if (task.historyTaskStartGenerated) {
-        TaskFinishedEvent tfe = createTaskFinishedEvent(task,
-            TaskStateInternal.SUCCEEDED);
-        task.eventHandler.handle(new JobHistoryEvent(task.taskId.getJobId(),
-            tfe));
-      }
-     */
+    // FIXME need to handle getting finish time as this function
+    // is called from within a transition
+    TaskFinishedEvent finishEvt = new TaskFinishedEvent(taskId,
+        getVertex().getName(), clock.getTime(), TaskState.SUCCEEDED);
+    this.eventHandler.handle(new DAGHistoryEvent(
+        taskId.getVertexID().getDAGId(), finishEvt));
   }
   
-  private void logJobHistoryTaskFailedEvent() {
-    // TODO JobHistory
-    /*
-             TaskFailedEvent taskFailedEvent = createTaskFailedEvent(task, null,
-              finalState, null); // TODO JH verify failedAttempt null
-        task.eventHandler.handle(new JobHistoryEvent(task.taskId.getJobId(),
-            taskFailedEvent)); 
-  
-     */
+  private void logJobHistoryTaskFailedEvent(TaskState finalState) {
+    TaskFinishedEvent finishEvt = new TaskFinishedEvent(taskId,
+        getVertex().getName(), clock.getTime(), finalState);
+    this.eventHandler.handle(new DAGHistoryEvent(
+        taskId.getVertexID().getDAGId(), finishEvt));
   }
 
   private static class InitialScheduleTransition
@@ -986,7 +963,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // check whether all attempts are finished
       if (task.finishedAttempts == task.attempts.size()) {
         if (task.historyTaskStartGenerated) {
-          task.logJobHistoryTaskFailedEvent();
+          task.logJobHistoryTaskFailedEvent(getExternalState(finalState));
         } else {
           LOG.debug("Not generating HistoryFinish event since start event not" +
           		" generated for task: " + task.getTaskId());
@@ -1032,11 +1009,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         task.handleTaskAttemptCompletion(
             ((TaskEventTAUpdate) event).getTaskAttemptID(), 
             TezDependentTaskCompletionEvent.Status.TIPFAILED);
-        TaskEventTAUpdate ev = (TaskEventTAUpdate) event;
-        TezTaskAttemptID taId = ev.getTaskAttemptID();
         
         if (task.historyTaskStartGenerated) {
-          task.logJobHistoryTaskFailedEvent();
+          task.logJobHistoryTaskFailedEvent(TaskState.FAILED);
         } else {
           LOG.debug("Not generating HistoryFinish event since start event not" +
           		" generated for task: " + task.getTaskId());
@@ -1137,7 +1112,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     public void transition(TaskImpl task, TaskEvent event) {
       
       if (task.historyTaskStartGenerated) {
-        task.logJobHistoryTaskFailedEvent();
+        task.logJobHistoryTaskFailedEvent(TaskState.KILLED);
       } else {
         LOG.debug("Not generating HistoryFinish event since start event not" +
         		" generated for task: " + task.getTaskId());

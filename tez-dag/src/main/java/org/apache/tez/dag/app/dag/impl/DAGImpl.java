@@ -58,6 +58,7 @@ import org.apache.tez.dag.api.DAGLocationHint;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
+import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.impl.TezBuilderUtils;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
@@ -76,6 +77,9 @@ import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.events.DAGFinishedEvent;
+import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.utils.DAGApps;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
@@ -310,6 +314,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private Token<JobTokenIdentifier> jobToken;
   private JobTokenSecretManager jobTokenSecretManager;
 
+  private long initTime;
   private long startTime;
   private long finishTime;
 
@@ -582,67 +587,28 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     finishTime = clock.getTime();
   }
 
-  void logJobHistorySubmittedEvent() {
-    // TODO JobHistory
-    /*
-    JobSubmittedEvent jse = new JobSubmittedEvent(job.dagId,
-        job.conf.get(MRJobConfig.JOB_NAME, "test"),
-      job.conf.get(MRJobConfig.USER_NAME, "mapred"),
-      job.appSubmitTime,
-      job.remoteJobConfFile.toString(),
-      job.jobACLs, job.queueName);
-    this.eventHandler.handle(new JobHistoryEvent(job.dagId, jse));
-   */
-  }
-
   void logJobHistoryFinishedEvent() {
     this.setFinishTime();
-    // TODO JobHistory
-    /*
-    JobFinishedEvent jfe = createJobFinishedEvent(this);
-    LOG.info("Calling handler for JobFinishedEvent ");
-    this.getEventHandler().handle(new JobHistoryEvent(this.dagId, jfe));
-    */
+    DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, finishTime,
+        DAGStatus.State.SUCCEEDED);
+    this.eventHandler.handle(
+        new DAGHistoryEvent(dagId, finishEvt));
   }
 
   void logJobHistoryInitedEvent() {
-    // TODO JobHistory
-    /*
-      JobInitedEvent jie =
-        new JobInitedEvent(job.oldJobId,
-             job.startTime,
-             job.numMapTasks, job.numReduceTasks,
-             job.getState().toString(),
-             job.isUber()); //Will transition to state running. Currently in INITED
-      job.eventHandler.handle(new JobHistoryEvent(job.dagId, jie));
-      JobInfoChangeEvent jice = new JobInfoChangeEvent(job.oldJobId,
-          job.appSubmitTime, job.startTime);
-      job.eventHandler.handle(new JobHistoryEvent(job.dagId, jice));
-     */
+    // FIXME should we have more information in this event?
+    // numVertices, etc?
+    DAGStartedEvent startEvt = new DAGStartedEvent(this.dagId,
+        this.initTime, this.startTime);
+    this.eventHandler.handle(
+        new DAGHistoryEvent(dagId, startEvt));
   }
 
-  void logJobHistoryUnsuccesfulEvent() {
-    // TODO JobHistory
-    /*
-    JobUnsuccessfulCompletionEvent unsuccessfulJobEvent =
-        new JobUnsuccessfulCompletionEvent(oldJobId,
-            finishTime,
-            succeededMapTaskCount,
-            succeededReduceTaskCount,
-            finalState.toString());
-      eventHandler.handle(new JobHistoryEvent(dagId, unsuccessfulJobEvent));
-  */
-  }
-
-  void logJobHistoryUnsuccesfulEventForNewJob() {
-    // TODO JobHistory
-    /*
-    JobUnsuccessfulCompletionEvent failedEvent =
-        new JobUnsuccessfulCompletionEvent(job.oldJobId,
-            job.finishTime, 0, 0,
-            DAGState.KILLED.toString());
-    job.eventHandler.handle(new JobHistoryEvent(job.dagId, failedEvent));
-    */
+  void logJobHistoryUnsuccesfulEvent(DAGStatus.State state) {
+    DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, clock.getTime(),
+        state);
+    this.eventHandler.handle(
+        new DAGHistoryEvent(dagId, finishEvt));
   }
 
   /**
@@ -797,64 +763,61 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
      * way; MR version is).
      */
     @Override
-    public DAGState transition(DAGImpl job, DAGEvent event) {
+    public DAGState transition(DAGImpl dag, DAGEvent event) {
       // TODO Metrics
-      //job.metrics.submittedJob(job);
-      //job.metrics.preparingJob(job);
+      //dag.metrics.submittedJob(dag);
+      //dag.metrics.preparingJob(dag);
       try {
-        setup(job);
-        job.fs = job.getFileSystem(job.conf);
-
-        //log to job history
-        job.logJobHistorySubmittedEvent();
+        setup(dag);
+        dag.fs = dag.getFileSystem(dag.conf);
 
         checkTaskLimits();
 
         // TODO: Committer
         /*
-        if (job.newApiCommitter) {
-          job.jobContext = new JobContextImpl(job.conf,
-              job.oldJobId);
+        if (dag.newApiCommitter) {
+          dag.dagContext = new JobContextImpl(dag.conf,
+              dag.oldJobId);
         } else {
-          job.jobContext = new org.apache.hadoop.mapred.JobContextImpl(
-              job.conf, job.oldJobId);
+          dag.dagContext = new org.apache.hadoop.mapred.JobContextImpl(
+              dag.conf, dag.oldJobId);
         }
 
         // do the setup
-        job.committer.setupJob(job.jobContext);
-        job.setupProgress = 1.0f;
+        dag.committer.setupJob(dag.dagContext);
+        dag.setupProgress = 1.0f;
         */
 
         // create the vertices
-        String[] vertexNames = job.getDagPlan().getVertices();
-        job.numVertices = vertexNames.length;
-        for (int i=0; i < job.numVertices; ++i) {
-          VertexImpl v = createVertex(job, vertexNames[i], i);
-          job.addVertex(v);
+        String[] vertexNames = dag.getDagPlan().getVertices();
+        dag.numVertices = vertexNames.length;
+        for (int i=0; i < dag.numVertices; ++i) {
+          VertexImpl v = createVertex(dag, vertexNames[i], i);
+          dag.addVertex(v);
         }
 
-        job.edgeProperties = job.getDagPlan().getEdgeProperties();
-        
+        dag.edgeProperties = dag.getDagPlan().getEdgeProperties();
+
         // setup the dag
-        for (Vertex v : job.vertices.values()) {
-          parseVertexEdges(job, v);
+        for (Vertex v : dag.vertices.values()) {
+          parseVertexEdges(dag, v);
         }
-        
-        job.dagScheduler = new DAGSchedulerNaturalOrder(job, job.eventHandler);
-        //job.dagScheduler = new DAGSchedulerMRR(job, job.eventHandler);
-        
+
+        dag.dagScheduler = new DAGSchedulerNaturalOrder(dag, dag.eventHandler);
+        //dag.dagScheduler = new DAGSchedulerMRR(dag, dag.eventHandler);
+
         // TODO Metrics
-        //job.metrics.endPreparingJob(job);
+        //dag.metrics.endPreparingJob(dag);
         return DAGState.INITED;
 
       } catch (IOException e) {
         LOG.warn("Job init failed", e);
-        job.addDiagnostic("Job init failed : "
+        dag.addDiagnostic("Job init failed : "
             + StringUtils.stringifyException(e));
-        job.abortJob(org.apache.hadoop.mapreduce.JobStatus.State.FAILED);
+        dag.abortJob(DAGStatus.State.FAILED);
         // TODO Metrics
-        //job.metrics.endPreparingJob(job);
-        return job.finished(DAGState.FAILED);
+        //dag.metrics.endPreparingJob(dag);
+        return dag.finished(DAGState.FAILED);
       }
     }
 
@@ -897,7 +860,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
 
     protected void setup(DAGImpl job) throws IOException {
-
+      job.initTime = job.clock.getTime();
       String dagIdString = job.dagId.toString();
       
       dagIdString.replace("application", "job");
@@ -972,41 +935,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  private void abortJob(
-      org.apache.hadoop.mapreduce.JobStatus.State finalState) {
-    // TODO: Committer
-    /*
-    try {
-      committer.abortJob(jobContext, finalState);
-    } catch (IOException e) {
-      LOG.warn("Could not abortJob", e);
-    }
-    if (finishTime == 0) setFinishTime();
-
-    cleanupProgress = 1.0f;
-    */
-
-    logJobHistoryUnsuccesfulEvent();
+  private void abortJob(DAGStatus.State abortState) {
+    // TODO: DAG Committer
+    logJobHistoryUnsuccesfulEvent(abortState);
   }
-
-  // JobFinishedEvent triggers the move of the history file out of the staging
-  // area. May need to create a new event type for this if JobFinished should
-  // not be generated for KilledJobs, etc.
-  /*
-  private static JobFinishedEvent createJobFinishedEvent(DAGImpl job) {
-
-    job.mayBeConstructFinalFullCounters();
-
-    JobFinishedEvent jfe = new JobFinishedEvent(
-        job.oldJobId, job.finishTime,
-        job.succeededMapTaskCount, job.succeededReduceTaskCount,
-        job.failedMapTaskCount, job.failedReduceTaskCount,
-        job.finalMapCounters,
-        job.finalReduceCounters,
-        job.fullCounters);
-    return jfe;
-  }
-  */
 
   Map<String, Vertex> vertexMap = new HashMap<String, Vertex>();
   void addVertex(Vertex v) {
@@ -1045,7 +977,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     @Override
     public void transition(DAGImpl job, DAGEvent event) {
       job.setFinishTime();
-      job.logJobHistoryUnsuccesfulEventForNewJob();
+      job.logJobHistoryUnsuccesfulEvent(DAGStatus.State.KILLED);
       job.finished(DAGState.KILLED);
     }
   }
@@ -1054,7 +986,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   implements SingleArcTransition<DAGImpl, DAGEvent> {
     @Override
     public void transition(DAGImpl job, DAGEvent event) {
-      job.abortJob(org.apache.hadoop.mapreduce.JobStatus.State.KILLED);
+      job.abortJob(DAGStatus.State.KILLED);
       job.addDiagnostic("Job received Kill in INITED state.");
       job.finished(DAGState.KILLED);
     }
@@ -1107,7 +1039,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
             " killedVertices:" + job.numKilledVertices;
         LOG.info(diagnosticMsg);
         job.addDiagnostic(diagnosticMsg);
-        job.abortJob(org.apache.hadoop.mapreduce.JobStatus.State.FAILED);
+        job.abortJob(DAGStatus.State.FAILED);
         return job.finished(DAGState.FAILED);
       }
 
@@ -1163,7 +1095,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     protected DAGState checkJobForCompletion(DAGImpl job) {
       if (job.numCompletedVertices == job.vertices.size()) {
         job.setFinishTime();
-        job.abortJob(org.apache.hadoop.mapreduce.JobStatus.State.KILLED);
+        job.abortJob(DAGStatus.State.KILLED);
         return job.finished(DAGState.KILLED);
       }
       //return the current state, Job not finished yet
@@ -1218,7 +1150,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     public void transition(DAGImpl job, DAGEvent event) {
       //TODO Is this JH event required.
       job.setFinishTime();
-      job.logJobHistoryUnsuccesfulEventForNewJob();
+      job.logJobHistoryUnsuccesfulEvent(DAGStatus.State.FAILED);
       job.finished(DAGState.ERROR);
     }
   }

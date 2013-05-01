@@ -89,6 +89,9 @@ import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptFetchFailure;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.app.speculate.SpeculatorEvent;
+import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
+import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskID;
@@ -781,66 +784,41 @@ public class TaskAttemptImpl implements TaskAttempt,
     return TaskAttemptImplHelpers.resolveHosts(src);
   }
 
+  @SuppressWarnings("unchecked")
   private void logJobHistoryAttemptStarted() {
-    // TODO JobHistory
-    /*
-    ta.sendEvent(ta.createTaskAttemptStartedEvent());
-    */
+    TaskAttemptStartedEvent startEvt = new TaskAttemptStartedEvent(
+        attemptId, getTask().getVertex().getName(),
+        launchTime, containerId, containerNodeId);
+    eventHandler.handle(new DAGHistoryEvent(
+        attemptId.getTaskID().getVertexID().getDAGId(),
+        startEvt));
   }
 
+  @SuppressWarnings("unchecked")
   private void logJobHistoryAttemptFinishedEvent(TaskAttemptStateInternal state) {
     //Log finished events only if an attempt started.
     if (getLaunchTime() == 0) return;
     
-    // TODO: JobHistory
-    /*
-    if (attemptId.getTaskId().getTaskType() == TaskType.MAP) {
-      MapAttemptFinishedEvent mfe =
-         new MapAttemptFinishedEvent(TypeConverter.fromYarn(attemptId),
-         TypeConverter.fromYarn(attemptId.getTaskId().getTaskType()),
-         state.toString(),
-         this.reportedStatus.mapFinishTime,
-         finishTime,
-         this.containerNodeId == null ? "UNKNOWN"
-             : this.containerNodeId.getHost(),
-         this.containerNodeId == null ? -1 : this.containerNodeId.getPort(),
-         this.nodeRackName == null ? "UNKNOWN" : this.nodeRackName,
-         this.reportedStatus.stateString,
-         getCounters(),
-         getProgressSplitBlock().burst());
-         eventHandler.handle(
-           new JobHistoryEvent(attemptId.getTaskId().getJobId(), mfe));
-    } else {
-       ReduceAttemptFinishedEvent rfe =
-         new ReduceAttemptFinishedEvent(TypeConverter.fromYarn(attemptId),
-         TypeConverter.fromYarn(attemptId.getTaskId().getTaskType()),
-         state.toString(),
-         this.reportedStatus.shuffleFinishTime,
-         this.reportedStatus.sortFinishTime,
-         finishTime,
-         this.containerNodeId == null ? "UNKNOWN"
-             : this.containerNodeId.getHost(),
-         this.containerNodeId == null ? -1 : this.containerNodeId.getPort(),
-         this.nodeRackName == null ? "UNKNOWN" : this.nodeRackName,
-         this.reportedStatus.stateString,
-         getCounters(),
-         getProgressSplitBlock().burst());
-         eventHandler.handle(
-           new JobHistoryEvent(attemptId.getTaskId().getJobId(), rfe));
-    }
-    */
+    TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
+        attemptId, getTask().getVertex().getName(),
+        getFinishTime(), TaskAttemptState.SUCCEEDED);
+    // FIXME how do we store information regd completion events
+    eventHandler.handle(new DAGHistoryEvent(
+        attemptId.getTaskID().getVertexID().getDAGId(),
+        finishEvt));
   }
 
+  @SuppressWarnings("unchecked")
   private void logJobHistoryAttemptUnsuccesfulCompletion(
-      TaskAttemptStateInternal state) {
-    // TODO JobHistory
-    /*
-    ta.sendEvent(new JobHistoryEvent(ta.jobId,
-        createTaskAttemptUnsuccessfulCompletionEvent(ta,
-            state)));
-  */
+      TaskAttemptState state) {
+    TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
+        attemptId, getTask().getVertex().getName(),
+        clock.getTime(), state);
+    // FIXME how do we store information regd completion events
+    eventHandler.handle(new DAGHistoryEvent(
+        attemptId.getTaskID().getVertexID().getDAGId(),
+        finishEvt));
   }
-  
 
   //////////////////////////////////////////////////////////////////////////////
   //                   Start of Transition Classes                            //
@@ -934,7 +912,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         // TODO For cases like this, recovery goes for a toss, since the the
         // attempt will not exist in the history file.
         ta.logJobHistoryAttemptUnsuccesfulCompletion(helper
-            .getTaskAttemptStateInternal());
+            .getTaskAttemptState());
       } else {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Not generating HistoryFinish event since start event not "

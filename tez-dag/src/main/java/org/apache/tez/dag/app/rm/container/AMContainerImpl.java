@@ -54,6 +54,8 @@ import org.apache.tez.dag.app.rm.AMSchedulerEventContainerCompleted;
 import org.apache.tez.dag.app.rm.AMSchedulerEventDeallocateContainer;
 import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
 import org.apache.tez.dag.app.rm.NMCommunicatorStopRequestEvent;
+import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 
 @SuppressWarnings("rawtypes")

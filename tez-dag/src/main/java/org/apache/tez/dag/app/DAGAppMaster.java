@@ -95,6 +95,10 @@ import org.apache.tez.dag.app.rm.node.AMNodeEventType;
 import org.apache.tez.dag.app.rm.node.AMNodeMap;
 import org.apache.tez.dag.app.taskclean.TaskCleaner;
 import org.apache.tez.dag.app.taskclean.TaskCleanerImpl;
+import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.HistoryEventHandler;
+import org.apache.tez.dag.history.avro.HistoryEventType;
+import org.apache.tez.dag.history.events.AMStartedEvent;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
 import org.apache.tez.engine.records.TezDAGID;
 
@@ -128,6 +132,7 @@ public class DAGAppMaster extends CompositeService {
 
   private Clock clock;
   private final DAGConfiguration dagPlan;
+  private long dagsStartTime;
   private final long startTime;
   private final long appSubmitTime;
   private String appName;
@@ -163,6 +168,7 @@ public class DAGAppMaster extends CompositeService {
   private VertexEventDispatcher vertexEventDispatcher;
   //private SpeculatorEventDispatcher speculatorEventDispatcher;
   private TaskSchedulerEventHandler taskSchedulerEventHandler;
+  private HistoryEventHandler historyEventHandler;
 
   private DAGLocationHint dagLocationHint;
 
@@ -279,47 +285,16 @@ public class DAGAppMaster extends CompositeService {
     dispatcher.register(AMSchedulerEventType.class,
         taskSchedulerEventHandler);
 
+    historyEventHandler = new HistoryEventHandler(context);
+    addIfService(historyEventHandler);
+    dispatcher.register(HistoryEventType.class, historyEventHandler);
+
     super.init(conf);
   } // end of init()
 
   protected Dispatcher createDispatcher() {
     return new AsyncDispatcher();
   }
-
-//  private OutputCommitter createOutputCommitter(Configuration conf) {
-//    OutputCommitter committer = null;
-//
-//    LOG.info("OutputCommitter set in config "
-//        + conf.get("mapred.output.committer.class"));
-//
-//    if (newApiCommitter) {
-//      TezTaskID taskID =
-//          TezBuilderUtils.newTaskId(dagId, -1, 0);
-//      TezTaskAttemptID attemptID =
-//          TezBuilderUtils.newTaskAttemptId(taskID, 0);
-//      TaskAttemptContext taskContext = new TaskAttemptContextImpl(conf,
-//          TezMRTypeConverter.fromTez(attemptID));
-//      OutputFormat outputFormat;
-//      try {
-//        outputFormat = ReflectionUtils.newInstance(taskContext
-//            .getOutputFormatClass(), conf);
-//        committer = outputFormat.getOutputCommitter(taskContext);
-//      } catch (Exception e) {
-//        throw new YarnException(e);
-//      }
-//    } else {
-//      committer = ReflectionUtils.newInstance(conf.getClass(
-//          "mapred.output.committer.class", FileOutputCommitter.class,
-//          org.apache.hadoop.mapred.OutputCommitter.class), conf);
-//    }
-//    LOG.info("OutputCommitter is " + committer.getClass().getName());
-//    return committer;
-//  }
-
-//  protected boolean keepJobFiles(JobConf conf) {
-//    return (conf.getKeepTaskFilesPattern() != null || conf
-//        .getKeepFailedTaskFiles());
-//  }
 
   /**
    * Create the default file System for this job.
@@ -337,7 +312,9 @@ public class DAGAppMaster extends CompositeService {
   protected void sysexit() {
     System.exit(0);
   }
-  protected class JobFinishEventHandlerCR implements EventHandler<DAGFinishEvent> {
+
+  protected class JobFinishEventHandlerCR
+    implements EventHandler<DAGFinishEvent> {
     // Considering TaskAttempts are marked as completed before a container exit,
     // it's very likely that a Container may not have "completed" by the time a
     // job completes. This would imply that TaskAtetmpts may not be at a FINAL
@@ -884,10 +861,15 @@ public class DAGAppMaster extends CompositeService {
     // job-init to be done completely here.
     dagEventDispatcher.handle(initDagEvent);
 
-
     //start all the components
     super.start();
 
+    this.dagsStartTime = clock.getTime();
+    AMStartedEvent startEvent = new AMStartedEvent(appAttemptID,
+        startTime, dagsStartTime, appSubmitTime);
+    dispatcher.getEventHandler().handle(
+        new DAGHistoryEvent(this.dagId, startEvent));
+    
     // All components have started, start the job.
     startDags();
   }
