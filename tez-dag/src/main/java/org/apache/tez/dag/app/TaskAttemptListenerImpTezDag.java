@@ -220,6 +220,8 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
             LOG.info("No task currently assigned to Container with id: "
                 + containerId);
           } else {
+            registerTaskAttempt(taskContext.getTask().getTaskAttemptId(),
+                containerId);
             task = new ContainerTask(taskContext.getTask(), false);
             context.getEventHandler().handle(
                 new TaskAttemptEventStartedRemotely(taskContext.getTask()
