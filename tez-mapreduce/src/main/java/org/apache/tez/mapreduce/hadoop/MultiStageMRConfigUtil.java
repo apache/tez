@@ -158,23 +158,33 @@ public class MultiStageMRConfigUtil {
   // TODO MRR FIXME based on conf format.
   private static Configuration getBasicIntermediateStageConfInternal(
       Configuration baseConf, String prefix, boolean remove, boolean stageOnly) {
+    Configuration strippedConf = new Configuration(false);
     Configuration conf = new Configuration(false);
     Iterator<Entry<String, String>> confEntries = baseConf.iterator();
     while (confEntries.hasNext()) {
       Entry<String, String> entry = confEntries.next();
       String key = entry.getKey();
       if (key.startsWith(prefix)) {
-        conf.set(key.replace(prefix, ""), entry.getValue());
         if (remove) {
           baseConf.unset(key);
         }
+        String newKey = key.replace(prefix, "");
+        strippedConf.set(newKey, entry.getValue());
       } else if (!stageOnly) {
         conf.set(key, entry.getValue());
       }
     }
+    // Replace values from strippedConf into the finalConf. Override values
+    // which may have been copied over from the baseConf root level.
+    if (stageOnly) {
+      conf = strippedConf;
+    } else {
+      Iterator<Entry<String, String>> entries = strippedConf.iterator();
+      while (entries.hasNext()) {
+        Entry<String, String> entry = entries.next();
+        conf.set(entry.getKey(), entry.getValue());
+      }
+    }
     return conf;
   }
-
-
-  
 }
