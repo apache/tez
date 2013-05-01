@@ -62,6 +62,7 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.dag.api.client.VertexStatus.State;
 import org.apache.tez.dag.api.impl.NullVertexOutputCommitter;
 import org.apache.tez.dag.api.impl.VertexContext;
 import org.apache.tez.dag.api.impl.VertexOutputCommitter;
@@ -641,7 +642,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     //check for vertex failure first
     if (vertex.failedTaskCount > 1) {
       vertex.setFinishTime();
-
       String diagnosticMsg = "Vertex failed as tasks failed. "
           + "failedTasks:"
           + vertex.failedTaskCount;
@@ -688,18 +688,22 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       // metrics.endRunningJob(this);
     }
     if (finishTime == 0) setFinishTime();
-    logJobHistoryVertexFinishedEvent();
 
     switch (finalState) {
       case KILLED:
+      case KILL_WAIT:
         // TODO: Metrics
         //metrics.killedJob(this);
+        logJobHistoryVertexFailedEvent(State.KILLED);
         break;
+      case ERROR:
       case FAILED:
         // TODO: Metrics
         //metrics.failedJob(this);
+        logJobHistoryVertexFailedEvent(State.FAILED);
         break;
       case SUCCEEDED:
+        logJobHistoryVertexFinishedEvent();
         // TODO: Metrics
         //metrics.completedJob(this);
     }
@@ -899,7 +903,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   private void abortVertex(VertexStatus.State finalState) {
-    //TODO: Committer?    /*
     try {
       committer.abortVertex(finalState);
     } catch (IOException e) {
@@ -909,7 +912,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     if (finishTime == 0) {
       setFinishTime();
     }
-    logJobHistoryVertexFailedEvent(finalState);
   }
 
   private void mayBeConstructFinalFullCounters() {
@@ -939,7 +941,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
       vertex.setFinishTime();
-      vertex.logJobHistoryVertexFailedEvent(VertexStatus.State.KILLED);
       vertex.finished(VertexState.KILLED);
     }
   }
@@ -1147,8 +1148,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     public void transition(VertexImpl vertex, VertexEvent event) {
       //TODO Is this JH event required.
       vertex.setFinishTime();
-      vertex.logJobHistoryVertexFailedEvent(
-          VertexStatus.State.FAILED);
       vertex.finished(VertexState.ERROR);
     }
   }
