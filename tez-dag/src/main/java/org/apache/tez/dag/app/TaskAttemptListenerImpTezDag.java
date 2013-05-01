@@ -37,8 +37,12 @@ import org.apache.hadoop.security.authorize.PolicyProvider;
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.service.AbstractService;
+import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezTaskStatus;
+import org.apache.tez.common.TezTaskUmbilicalProtocol;
+import org.apache.tez.common.records.ProceedToCompletionResponse;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
@@ -56,10 +60,6 @@ import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
-import org.apache.tez.mapreduce.hadoop.ContainerContext;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.TezTaskUmbilicalProtocol;
-import org.apache.tez.mapreduce.hadoop.records.ProceedToCompletionResponse;
 
 @SuppressWarnings("unchecked")
 public class TaskAttemptListenerImpTezDag extends AbstractService implements
@@ -115,8 +115,8 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
           .setPort(0)
           .setInstance(this)
           .setNumHandlers(
-              conf.getInt(MRJobConfig.MR_AM_TASK_LISTENER_THREAD_COUNT,
-                  MRJobConfig.DEFAULT_MR_AM_TASK_LISTENER_THREAD_COUNT))
+              conf.getInt(TezConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT,
+                  TezConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT))
           .setSecretManager(jobTokenSecretManager).build();
       
       // Enable service authorization?

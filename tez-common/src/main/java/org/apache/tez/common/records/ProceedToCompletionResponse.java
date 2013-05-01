@@ -15,7 +15,7 @@
  * the License.
  */
 
-package org.apache.tez.mapreduce.hadoop.records;
+package org.apache.tez.common.records;
 
 import java.io.DataInput;
 import java.io.DataOutput;

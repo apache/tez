@@ -16,18 +16,16 @@
  * limitations under the License.
  */
 
-package org.apache.tez.mapreduce.hadoop;
+package org.apache.tez.common;
 
 import java.io.IOException;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.tez.common.ContainerTask;
-import org.apache.tez.common.TezTaskStatus;
+import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.records.TezTaskAttemptID;
-import org.apache.tez.mapreduce.hadoop.records.ProceedToCompletionResponse;
 
 /** Protocol that task child process uses to contact its parent process.  The
  * parent is a daemon which which polls the central master for a new map or

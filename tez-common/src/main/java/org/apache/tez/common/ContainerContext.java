@@ -16,7 +16,7 @@
 * limitations under the License.
 */
 
-package org.apache.tez.mapreduce.hadoop;
+package org.apache.tez.common;
 
 import java.io.DataInput;
 import java.io.DataOutput;

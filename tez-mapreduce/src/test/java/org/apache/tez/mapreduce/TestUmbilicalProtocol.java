@@ -23,14 +23,14 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.ipc.ProtocolSignature;
+import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezTaskStatus;
+import org.apache.tez.common.TezTaskUmbilicalProtocol;
+import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
-import org.apache.tez.mapreduce.hadoop.ContainerContext;
-import org.apache.tez.mapreduce.hadoop.TezTaskUmbilicalProtocol;
-import org.apache.tez.mapreduce.hadoop.records.ProceedToCompletionResponse;
 
 public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
 

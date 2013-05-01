@@ -20,24 +20,27 @@ package org.apache.tez.common;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 public class ContainerTask implements Writable {
 
-  TezEngineTaskContext tezEngineTask;
+  TezTaskContext tezTaskContext;
   boolean shouldDie;
 
   public ContainerTask() {
   }
 
   public ContainerTask(TezTaskContext tezTaskContext, boolean shouldDie) {
-    this.tezEngineTask = (TezEngineTaskContext)tezTaskContext;
+    this.tezTaskContext = tezTaskContext;
     this.shouldDie = shouldDie;
   }
 
-  public TezEngineTaskContext getTezEngineTaskContext() {
-    return tezEngineTask;
+  public TezTaskContext getTezEngineTaskContext() {
+    return tezTaskContext;
   }
 
   public boolean shouldDie() {
@@ -47,9 +50,10 @@ public class ContainerTask implements Writable {
   @Override
   public void write(DataOutput out) throws IOException {
     out.writeBoolean(shouldDie);
-    if (tezEngineTask != null) {
+    if (tezTaskContext != null) {
       out.writeBoolean(true);
-      tezEngineTask.write(out);
+      Text.writeString(out, tezTaskContext.getClass().getName());
+      tezTaskContext.write(out);
     } else {
       out.writeBoolean(false);
     }
@@ -60,14 +64,39 @@ public class ContainerTask implements Writable {
     shouldDie = in.readBoolean();
     boolean taskComing = in.readBoolean();
     if (taskComing) {
-      tezEngineTask = new TezEngineTaskContext();
-      tezEngineTask.readFields(in);
+      String contextClass = Text.readString(in);
+      tezTaskContext = createEmptyContext(contextClass);
+      tezTaskContext.readFields(in);
     }
   }
-  
+
+  private TezTaskContext createEmptyContext(String contextClassName)
+      throws IOException {
+    try {
+      Class<?> clazz = Class.forName(contextClassName);
+      Constructor<?> c = clazz.getConstructor(null);
+      c.setAccessible(true);
+      return (TezTaskContext) c.newInstance(null);
+    } catch (ClassNotFoundException e) {
+      throw new IOException(e);
+    } catch (SecurityException e) {
+      throw new IOException(e);
+    } catch (NoSuchMethodException e) {
+      throw new IOException(e);
+    } catch (IllegalArgumentException e) {
+      throw new IOException(e);
+    } catch (InstantiationException e) {
+      throw new IOException(e);
+    } catch (IllegalAccessException e) {
+      throw new IOException(e);
+    } catch (InvocationTargetException e) {
+      throw new IOException(e);
+    }
+  }
+
   @Override
   public String toString() {
     return "shouldDie: " + shouldDie + ", tezEngineTaskContext: "
-        + tezEngineTask;
+        + tezTaskContext;
   }
 }

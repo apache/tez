@@ -56,11 +56,13 @@ import org.apache.tez.common.Constants;
 import org.apache.tez.common.RunningTaskContext;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezTaskStatus;
+import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.TezTaskStatus.Phase;
 import org.apache.tez.common.TezTaskStatus.State;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.engine.records.OutputContext;
@@ -69,10 +71,8 @@ import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRTaskStatus;
-import org.apache.tez.mapreduce.hadoop.TezTaskUmbilicalProtocol;
 import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.hadoop.mapreduce.JobContextImpl;
-import org.apache.tez.mapreduce.hadoop.records.ProceedToCompletionResponse;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 
 public abstract class MRTask 

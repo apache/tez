@@ -42,6 +42,7 @@ import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
+import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.engine.api.Input;
 import org.apache.tez.engine.api.Output;
 import org.apache.tez.engine.api.Processor;
@@ -50,7 +51,6 @@ import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
 import org.apache.tez.engine.runtime.RuntimeUtils;
 import org.apache.tez.engine.task.RuntimeTask;
 import org.apache.tez.mapreduce.TezTestUtils;
-import org.apache.tez.mapreduce.hadoop.TezTaskUmbilicalProtocol;
 import org.apache.tez.mapreduce.input.SimpleInput;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 
