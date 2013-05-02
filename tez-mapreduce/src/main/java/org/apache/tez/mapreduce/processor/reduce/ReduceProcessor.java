@@ -54,8 +54,6 @@ import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 
 import com.google.common.base.Preconditions;
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class ReduceProcessor
@@ -71,10 +69,7 @@ implements Processor {
   private Counter reduceInputValueCounter;
   private int numMapTasks;
 
-  @Inject
-  public ReduceProcessor(
-      @Assisted TezEngineTaskContext context
-      ) {
+  public ReduceProcessor(TezEngineTaskContext context) {
     super(context);
     TezEngineTaskContext tezEngineContext = (TezEngineTaskContext) context;
     Preconditions.checkNotNull(tezEngineContext.getInputSpecList(),

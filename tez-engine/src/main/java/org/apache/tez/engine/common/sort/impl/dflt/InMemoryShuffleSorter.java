@@ -36,9 +36,6 @@ import org.apache.tez.engine.common.shuffle.server.ShuffleHandler;
 import org.apache.tez.engine.common.sort.impl.IFile;
 import org.apache.tez.engine.records.OutputContext;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
-
 public class InMemoryShuffleSorter extends DefaultSorter {
 
   private static final Log LOG = LogFactory.getLog(InMemoryShuffleSorter.class);
@@ -55,10 +52,7 @@ public class InMemoryShuffleSorter extends DefaultSorter {
   byte[] kvbuffer;
   IntBuffer kvmeta;
   
-  @Inject
-  public InMemoryShuffleSorter(
-      @Assisted TezTaskContext task
-      ) throws IOException {
+  public InMemoryShuffleSorter(TezTaskContext task) throws IOException {
     super(task);
   }
 

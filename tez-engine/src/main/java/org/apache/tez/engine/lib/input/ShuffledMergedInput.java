@@ -31,9 +31,6 @@ import org.apache.tez.engine.common.combine.CombineInput;
 import org.apache.tez.engine.common.shuffle.impl.Shuffle;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
-
 /**
  * {@link ShuffledMergedInput} in an {@link Input} which shuffles intermediate
  * sorted data, merges them and provides key/<values> to the consumer. 
@@ -49,10 +46,7 @@ public class ShuffledMergedInput implements Input {
   private Configuration conf;
   private CombineInput raw;
 
-  @Inject
-  public ShuffledMergedInput(
-      @Assisted TezEngineTaskContext task
-      ) {
+  public ShuffledMergedInput(TezEngineTaskContext task) {
     this.task = task;
   }
 

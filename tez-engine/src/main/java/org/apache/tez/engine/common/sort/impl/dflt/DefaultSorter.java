@@ -55,9 +55,6 @@ import org.apache.tez.engine.common.sort.impl.TezMerger.Segment;
 import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
-
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   
@@ -115,10 +112,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   private int totalIndexCacheMemory;
   private int indexCacheMemoryLimit;
 
-  @Inject
-  public DefaultSorter(
-      @Assisted TezTaskContext task
-      ) throws IOException {
+  public DefaultSorter(TezTaskContext task) throws IOException {
     // Does this assisted inject work ?
     super((TezEngineTaskContext)task);
   }

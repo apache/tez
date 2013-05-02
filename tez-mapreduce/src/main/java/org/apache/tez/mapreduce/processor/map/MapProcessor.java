@@ -52,9 +52,6 @@ import org.apache.tez.mapreduce.output.SimpleOutput;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
-
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class MapProcessor extends MRTask implements Processor {
 
@@ -62,10 +59,7 @@ public class MapProcessor extends MRTask implements Processor {
 
   private Progress mapPhase;
 
-  @Inject
-  public MapProcessor(
-      @Assisted TezEngineTaskContext context
-      ) throws IOException {
+  public MapProcessor(TezEngineTaskContext context) throws IOException {
     super(context);
   }
   

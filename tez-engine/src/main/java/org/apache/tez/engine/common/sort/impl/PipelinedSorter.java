@@ -53,9 +53,6 @@ import org.apache.tez.engine.common.sort.impl.TezMerger.Segment;
 import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.records.TezTaskAttemptID;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
-
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class PipelinedSorter extends ExternalSorter implements SortingOutput {
   
@@ -96,10 +93,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
   private int indexCacheMemoryLimit;
 
 
-  @Inject
-  public PipelinedSorter(
-      @Assisted TezEngineTaskContext task
-      ) throws IOException {
+  public PipelinedSorter(TezEngineTaskContext task) throws IOException {
     super(task);
   }
 

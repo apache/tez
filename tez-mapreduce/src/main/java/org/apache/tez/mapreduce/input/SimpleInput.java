@@ -48,9 +48,6 @@ import org.apache.tez.engine.api.Master;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
-
 /**
  * {@link SimpleInput} is an {@link Input} which provides key/values pairs
  * for the consumer.
@@ -85,10 +82,7 @@ public class SimpleInput implements Input {
   private List<Statistics> fsStats;
   private MRTaskReporter reporter;
 
-  @Inject
-  public SimpleInput(
-      @Assisted TezEngineTaskContext task
-      ) 
+  public SimpleInput(TezEngineTaskContext task)
   {}
   
   public void setTask(MRTask task) {

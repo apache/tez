@@ -28,9 +28,6 @@ import org.apache.tez.engine.common.sort.SortingOutput;
 import org.apache.tez.engine.common.sort.impl.dflt.InMemoryShuffleSorter;
 import org.apache.tez.engine.records.OutputContext;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
-
 /**
  * {@link InMemorySortedOutput} is an {@link Output} which sorts key/value pairs 
  * written to it and persists it to a file.
@@ -39,10 +36,7 @@ public class InMemorySortedOutput implements SortingOutput {
   
   protected InMemoryShuffleSorter sorter;
   
-  @Inject
-  public InMemorySortedOutput(
-      @Assisted TezEngineTaskContext task
-      ) throws IOException {
+  public InMemorySortedOutput(TezEngineTaskContext task) throws IOException {
     sorter = new InMemoryShuffleSorter(task);
   }
   

@@ -29,9 +29,6 @@ import org.apache.tez.engine.common.sort.impl.ExternalSorter;
 import org.apache.tez.engine.common.sort.impl.dflt.DefaultSorter;
 import org.apache.tez.engine.records.OutputContext;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
-
 /**
  * {@link OnFileSortedOutput} is an {@link Output} which sorts key/value pairs 
  * written to it and persists it to a file.
@@ -40,10 +37,7 @@ public class OnFileSortedOutput implements SortingOutput {
   
   protected ExternalSorter sorter;
   
-  @Inject
-  public OnFileSortedOutput(
-      @Assisted TezEngineTaskContext task
-      ) throws IOException {
+  public OnFileSortedOutput(TezEngineTaskContext task) throws IOException {
     sorter = new DefaultSorter(task);
   }
   

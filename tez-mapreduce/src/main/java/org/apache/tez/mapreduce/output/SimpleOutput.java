@@ -33,9 +33,6 @@ import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
-
 /**
  * {@link SimpleOutput} is an {@link Output} which persists key/value pairs
  * written to it. 
@@ -63,11 +60,8 @@ public class SimpleOutput implements Output {
   private List<Statistics> fsStats;
   private MRTaskReporter reporter;
   
-  @Inject
-  public SimpleOutput(
-      @Assisted TezEngineTaskContext task
-      ) {
-  }
+  public SimpleOutput(TezEngineTaskContext task)
+  {}
   
   public void setTask(MRTask task) {
     this.task = task;

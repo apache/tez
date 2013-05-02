@@ -27,17 +27,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
-
 public class LocalOnFileSorterOutput extends OnFileSortedOutput {
 
   private static final Log LOG = LogFactory.getLog(LocalOnFileSorterOutput.class);
   
-  @Inject
-  public LocalOnFileSorterOutput(
-      @Assisted TezEngineTaskContext task
-      ) throws IOException {
+  public LocalOnFileSorterOutput(TezEngineTaskContext task) throws IOException {
     super(task);
   }
 
