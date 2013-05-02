@@ -21,11 +21,17 @@ package org.apache.tez.mapreduce.hadoop;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys.MultiStageKeys;
 
 public class MultiStageMRConfToTezTranslator {
 
+  private static final Log LOG = LogFactory.getLog(MultiStageMRConfToTezTranslator.class);
+  
   private enum DeprecationReason {
     DEPRECATED_DIRECT_TRANSLATION, DEPRECATED_MULTI_STAGE
   }
@@ -49,10 +55,10 @@ public class MultiStageMRConfToTezTranslator {
     int numEdges = totalStages - 1;
 
     Configuration[] allConfs = extractStageConfs(newConf, numEdges);
-
+    
     for (int i = 0; i < allConfs.length; i++) {
+      setStageKeysFromBaseConf(allConfs[i], srcConf, Integer.toString(i));
       processDirectConversion(allConfs[i]);
-      // XXX How are the number of reducers being set correctly in YARNRUNNER ?
     }
     for (int i = 0; i < allConfs.length - 1; i++) {
       processMultiStageDepreaction(allConfs[i], allConfs[i + 1]);
@@ -143,6 +149,43 @@ public class MultiStageMRConfToTezTranslator {
         } else { // Last stage. Just remove the key reference.
           srcConf.unset(dep.getKey());
         }
+      }
+    }
+  }
+
+  /**
+   * Pulls in specific keys from the base configuration, if they are not set at
+   * the stage level. An explicit list of keys is copied over (not all), which
+   * require translation to tez keys.
+   */
+  private static void setStageKeysFromBaseConf(Configuration conf,
+      Configuration baseConf, String stage) {
+    JobConf jobConf = new JobConf(baseConf);
+    // Don't clobber explicit tez config.
+    if (conf.get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_INPUT_KEY_CLASS) == null
+        && conf.get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_KEY_CLASS) == null) {
+      // If this is set, but the comparator is not set, and their types differ -
+      // the job will break.
+      if (conf.get(MRJobConfig.MAP_OUTPUT_KEY_CLASS) == null) {
+        // Pull tis in from the baseConf
+        conf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS, jobConf
+            .getMapOutputKeyClass().getName());
+        LOG.info("XXX: Setting " + MRJobConfig.MAP_OUTPUT_KEY_CLASS
+            + " for stage: " + stage
+            + " based on job level configuration. Value: "
+            + conf.get(MRJobConfig.MAP_OUTPUT_KEY_CLASS));
+      }
+    }
+    
+    if (conf.get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_INPUT_VALUE_CLASS) == null
+        && conf.get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_VALUE_CLASS) == null) {
+      if (conf.get(MRJobConfig.MAP_OUTPUT_VALUE_CLASS) == null) {
+        conf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS, jobConf
+            .getMapOutputValueClass().getName());
+        LOG.info("XXX: Setting " + MRJobConfig.MAP_OUTPUT_VALUE_CLASS
+            + " for stage: " + stage
+            + " based on job level configuration. Value: "
+            + conf.get(MRJobConfig.MAP_OUTPUT_VALUE_CLASS));
       }
     }
   }

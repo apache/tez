@@ -263,7 +263,7 @@ public class TezJobConfig {
       "tez.engine.intermediate-output.key.comparator.class";
   public static final String TEZ_ENGINE_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS = 
       "tez.engine.intermediate-input.key.comparator.class";
-  
+
   public static final String TEZ_ENGINE_INTERMEDIATE_OUTPUT_KEY_CLASS = 
       "tez.engine.intermediate-output.key.class";
   public static final String TEZ_ENGINE_INTERMEDIATE_INPUT_KEY_CLASS = 
@@ -283,6 +283,9 @@ public class TezJobConfig {
       "tez.engine.intermediate-output.compress.codec";
   public static final String TEZ_ENGINE_INTERMEDIATE_INPUT_COMPRESS_CODEC = 
       "tez.engine.intermediate-input.compress.codec";
+
+  public static final String TEZ_ENGINE_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS = 
+      "tez.engine.intermediate-input.key.secondary.comparator.class";
   
   // TODO This should be in DAGConfiguration
   /* config for tracking the local file where all the credentials for the job

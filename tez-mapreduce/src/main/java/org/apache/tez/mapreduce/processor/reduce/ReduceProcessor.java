@@ -129,8 +129,11 @@ implements Processor {
     
     Class keyClass = ConfigUtils.getIntermediateInputKeyClass(jobConf);
     Class valueClass = ConfigUtils.getIntermediateInputValueClass(jobConf);
+    LOG.info("Using keyClass: " + keyClass);
+    LOG.info("Using valueClass: " + valueClass);
     RawComparator comparator = 
-        ConfigUtils.getOutputValueGroupingComparator(jobConf);
+        ConfigUtils.getInputKeySecondaryGroupingComparator(jobConf);
+    LOG.info("Using comparator: " + comparator);
 
     reduceInputKeyCounter = 
         reporter.getCounter(TaskCounter.REDUCE_INPUT_GROUPS);

@@ -19,9 +19,7 @@
 package org.apache.tez.engine.common;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.RawComparator;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -79,14 +77,10 @@ public class ConfigUtils {
         TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS, false);
   }
 
-  // TODO Is it possible to simplify the 3-level lookup (Comparator, Map-key, Job-key)
   public static <V> Class<V> getIntermediateOutputValueClass(Configuration conf) {
     Class<V> retv = (Class<V>) conf.getClass(
         TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_VALUE_CLASS, null,
         Object.class);
-    if (retv == null) {
-      retv = getOutputValueClass(conf);
-    }
     return retv;
   }
   
@@ -94,24 +88,13 @@ public class ConfigUtils {
     Class<V> retv = (Class<V>) conf.getClass(
         TezJobConfig.TEZ_ENGINE_INTERMEDIATE_INPUT_VALUE_CLASS, null,
         Object.class);
-    if (retv == null) {
-      retv = getOutputValueClass(conf);
-    }
     return retv;
-  }
-
-  public static <V> Class<V> getOutputValueClass(Configuration conf) {
-    return (Class<V>) conf.getClass(
-        "mapreduce.job.output.value.class", Text.class, Object.class);
   }
 
   public static <K> Class<K> getIntermediateOutputKeyClass(Configuration conf) {
     Class<K> retv = (Class<K>) conf.getClass(
         TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_KEY_CLASS, null,
         Object.class);
-    if (retv == null) {
-      retv = getOutputKeyClass(conf);
-    }
     return retv;
   }
 
@@ -119,20 +102,9 @@ public class ConfigUtils {
     Class<K> retv = (Class<K>) conf.getClass(
         TezJobConfig.TEZ_ENGINE_INTERMEDIATE_INPUT_KEY_CLASS, null,
         Object.class);
-    if (retv == null) {
-      retv = getOutputKeyClass(conf);
-    }
     return retv;
   }
-  
-  public static <K> Class<K> getOutputKeyClass(Configuration conf) {
-    return 
-        (Class<K>) 
-        conf.getClass(
-            "mapreduce.job.output.key.class", 
-            LongWritable.class, Object.class);
-}
-  
+
   public static <K> RawComparator<K> getIntermediateOutputKeyComparator(Configuration conf) {
     Class<? extends RawComparator> theClass = conf.getClass(
         TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, null,
@@ -155,14 +127,15 @@ public class ConfigUtils {
 
   
   
-  public static <V> RawComparator<V> getOutputValueGroupingComparator(
+  // TODO Fix name
+  public static <V> RawComparator<V> getInputKeySecondaryGroupingComparator(
       Configuration conf) {
-    Class<? extends RawComparator> theClass = 
-        conf.getClass(
-            "mapreduce.job.output.group.comparator.class", 
+    Class<? extends RawComparator> theClass = conf
+        .getClass(
+            TezJobConfig.TEZ_ENGINE_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS,
             null, RawComparator.class);
     if (theClass == null) {
-      return getIntermediateOutputKeyComparator(conf);
+      return getIntermediateInputKeyComparator(conf);
     }
 
     return ReflectionUtils.newInstance(theClass, conf);
