@@ -351,6 +351,20 @@ public class DAGConfiguration extends Configuration {
 
     return env;
   }
+  
+  public final String TEZ_DAG_NAME = DAG + "name";
+  @Private
+  public void setName(String name) {
+    setStrings(name, name);
+  }
+  
+  @Public
+  @Stable
+  public String getName() {
+    String[] name = getStrings(TEZ_DAG_NAME);
+    assert name != null && name.length == 1;
+    return name[0];
+  }
 
   @Private
   public void setVertices(List<Vertex> vertices) {

@@ -336,8 +336,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       DAGLocationHint dagLocationHint) {
     this.applicationAttemptId = applicationAttemptId;
     this.dagId = dagId;
-    this.dagName = conf.get(TezConfiguration.JOB_NAME,
-                             TezConfiguration.JOB_NAME_DEFAULT);
+    this.dagName = dagPlan.getName();
     this.conf = conf;
     this.dagPlan = dagPlan;
     // TODO Metrics
@@ -663,7 +662,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public String getUserName() {
     return userName;
   }
-
+  
   @Override
   public String getQueueName() {
     return queueName;

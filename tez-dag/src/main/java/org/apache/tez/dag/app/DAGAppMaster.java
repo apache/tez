@@ -221,7 +221,7 @@ public class DAGAppMaster extends CompositeService {
 
     // Job name is the same as the app name util we support DAG of jobs
     // for an app later
-    appName = dagPlan.get(TezConfiguration.JOB_NAME, "<missing app name>");
+    appName = dagPlan.getName();
 
     dagId = new TezDAGID(appAttemptID.getApplicationId(), 1);
 

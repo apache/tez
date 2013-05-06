@@ -23,7 +23,8 @@ import java.util.List;
 
 public class DAG { // FIXME rename to Topology
   List<Vertex> vertices;
-  List<Edge> edges;  
+  List<Edge> edges;
+  String name = "TezDagApplication";
   
   HashMap<String, String> config = new HashMap<String, String>();
   
@@ -65,18 +66,21 @@ public class DAG { // FIXME rename to Topology
   public void addConfiguration(String key, String value) {
     config.put(key, value);
   }
+  
+  public void setName(String name) {
+    this.name = name;
+  }
 
   public void verify() throws TezException { // FIXME better exception
-
     //FIXME are task resources compulsory or will the DAG AM put in a default
     //for each vertex if not specified?
-
   }
     
   // FIXME DAGConfiguration is not public API
   public DAGConfiguration serializeDag() {
     DAGConfiguration dagConf = new DAGConfiguration();
     
+    dagConf.setName(name);
     dagConf.setVertices(vertices);
     dagConf.setEdgeProperties(edges);
     

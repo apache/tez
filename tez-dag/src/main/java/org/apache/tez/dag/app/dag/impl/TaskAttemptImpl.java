@@ -63,6 +63,7 @@ import org.apache.tez.dag.api.records.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
@@ -88,7 +89,6 @@ import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptFetchFailure;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
-import org.apache.tez.dag.app.speculate.SpeculatorEvent;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
@@ -298,9 +298,11 @@ public class TaskAttemptImpl implements TaskAttempt,
   
   TezTaskContext createRemoteTask() {
     Vertex vertex = getTask().getVertex();
+    DAG dag = vertex.getDAG();
 
     // TODO  TEZ-50 user and jobname
-    return new TezEngineTaskContext(getID(), "user", "jobname", getTask()
+    return new TezEngineTaskContext(getID(), dag.getUserName(), 
+        dag.getName(), getTask()
         .getVertex().getName(), mrxModuleClassName,
         vertex.getInputSpecList(), vertex.getOutputSpecList());
   }
