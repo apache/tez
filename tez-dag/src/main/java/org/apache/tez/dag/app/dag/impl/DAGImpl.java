@@ -103,7 +103,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final TezDAGID dagId;
   private final Clock clock;
   private final ApplicationACLsManager aclsManager;
-  private final String username;
 
   // TODO Recovery
   //private final List<AMInfo> amInfos;
@@ -327,7 +326,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       Credentials fsTokenCredentials, Clock clock,
       // TODO Metrics
       //MRAppMetrics metrics,
-      String userName,
+      String appUserName,
       long appSubmitTime,
       // TODO Recovery
       //List<AMInfo> amInfos,
@@ -336,16 +335,17 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       DAGLocationHint dagLocationHint) {
     this.applicationAttemptId = applicationAttemptId;
     this.dagId = dagId;
-    this.dagName = dagPlan.getName();
-    this.conf = conf;
     this.dagPlan = dagPlan;
+    this.conf = conf;
+    this.dagName = (dagPlan.getName() != null) ? dagPlan.getName() : 
+                                                  "<missing app name>";
+    this.userName = appUserName;
     // TODO Metrics
     //this.metrics = metrics;
     this.clock = clock;
     // TODO Recovery
     //this.amInfos = amInfos;
     this.appContext = appContext;
-    this.userName = userName;
     this.queueName = conf.get(MRJobConfig.QUEUE_NAME, "default");
     this.appSubmitTime = appSubmitTime;
 
@@ -360,9 +360,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     this.jobTokenSecretManager = jobTokenSecretManager;
 
     this.aclsManager = new ApplicationACLsManager(conf);
-    this.username = System.getProperty("user.name");
-    // TODO Construct ApplicationACLs
-    //      this.appACLs;
 
     this.dagLocationHint = dagLocationHint;
 

@@ -699,13 +699,14 @@ public class YARNRunner implements ClientProtocol {
     for (Entry<String, String> entry : mrParamToDAGParamMap.entrySet()) {
       if (mrConf.get(entry.getKey()) != null) {
         LOG.info("DEBUG: MR->DAG Setting new key: " + entry.getValue());
-        if(entry.getValue().equals(TezConfiguration.JOB_NAME)) {
-          dag.setName(mrConf.get(entry.getKey()));
-        } else {
-          dag.addConfiguration(entry.getValue(), mrConf.get(entry.getKey()));
-        }
+        dag.addConfiguration(entry.getValue(), mrConf.get(entry.getKey()));
       }
     }
+    
+    String jobName = mrConf.get(MRJobConfig.JOB_NAME);
+    if(jobName != null) {
+      dag.setName(jobName);
+    }    
   }
 
   private ApplicationSubmissionContext createApplicationSubmissionContext(

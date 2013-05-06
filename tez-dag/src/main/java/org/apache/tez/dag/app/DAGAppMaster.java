@@ -532,7 +532,7 @@ public class DAGAppMaster extends CompositeService {
             // TODO Metrics
             //metrics,
             //committer, newApiCommitter,
-            currentUser.getUserName(), appSubmitTime,
+            currentUser.getShortUserName(), appSubmitTime,
             //amInfos,
             taskHeartbeatHandler, context, dagLocationHint);
     ((RunningAppContext) context).setDAG(newDag);
@@ -777,7 +777,7 @@ public class DAGAppMaster extends CompositeService {
 
     @Override
     public String getUser() {
-      return this.conf.get(TezConfiguration.USER_NAME);
+      return dag.getUserName();
     }
 
     @Override
@@ -1003,8 +1003,6 @@ public class DAGAppMaster extends CompositeService {
       // SIGTERM I have a chance to write out the job history. I'll be closing
       // the objects myself.
       conf.setBoolean("fs.automatic.close", false);
-
-      conf.set(TezConfiguration.USER_NAME, jobUserName);
       
       Map<String, String> config = dagPlan.getConfig();
       for(Entry<String, String> entry : config.entrySet()) {

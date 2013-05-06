@@ -39,11 +39,6 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_PREFIX = "tez.";
   public static final String DAG_AM_PREFIX = TEZ_PREFIX + "dag.am.";
   
-  public static final String JOB_NAME = TEZ_PREFIX + "job.name";
-  public static final String JOB_NAME_DEFAULT = "TezJob";
-  
-  public static final String USER_NAME = TEZ_PREFIX + "user.name";
-  
   public static final String DAG_AM_STAGING_DIR = TEZ_PREFIX + "staging-dir";
   public static final String DAG_AM_STAGING_DIR_DEFAULT = "/tmp/hadoop-yarn/staging";
   

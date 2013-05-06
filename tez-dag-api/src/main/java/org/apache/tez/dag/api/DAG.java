@@ -24,7 +24,7 @@ import java.util.List;
 public class DAG { // FIXME rename to Topology
   List<Vertex> vertices;
   List<Edge> edges;
-  String name = "TezDagApplication";
+  String name;
   
   HashMap<String, String> config = new HashMap<String, String>();
   
@@ -70,7 +70,7 @@ public class DAG { // FIXME rename to Topology
   public void setName(String name) {
     this.name = name;
   }
-
+  
   public void verify() throws TezException { // FIXME better exception
     //FIXME are task resources compulsory or will the DAG AM put in a default
     //for each vertex if not specified?

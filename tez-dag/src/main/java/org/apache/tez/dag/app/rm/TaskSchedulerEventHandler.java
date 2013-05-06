@@ -463,7 +463,7 @@ public class TaskSchedulerEventHandler extends AbstractService
           taskAttempt.getID().getTaskID().getVertexID(),
           event.getJobToken(),
           // TODO getConf from AMSchedulerEventTALaunchRequest
-          event.getCredentials(), false, event.getConf(), 
+          event.getCredentials(), false, event.getConf(),
           taskAttempt.getLocalResources(),
           taskAttempt.getEnvironment(),
           taskAttempt.getJavaOpts()));

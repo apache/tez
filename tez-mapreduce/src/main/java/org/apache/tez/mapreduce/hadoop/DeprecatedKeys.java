@@ -110,16 +110,9 @@ public class DeprecatedKeys {
     mrParamToDAGParamMap.put(MRJobConfig.APPLICATION_TOKENS_FILE,
         TezConfiguration.APPLICATION_TOKENS_FILE);
 
-    mrParamToDAGParamMap.put(MRJobConfig.JOB_NAME, TezConfiguration.JOB_NAME);
-
-//    mrParamToDAGParamMap.put(MRJobConfig.MR_AM_JOB_SPECULATOR,
-//        TezConfiguration.DAG_AM_SPECULATOR_CLASS);
-
     // TODO Default value handling.
     mrParamToDAGParamMap.put(MRJobConfig.MR_AM_TASK_LISTENER_THREAD_COUNT,
         TezConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT);
-    
-    mrParamToDAGParamMap.put(MRJobConfig.USER_NAME, TezConfiguration.USER_NAME);
     
     mrParamToDAGParamMap.put(MRJobConfig.MAX_TASK_FAILURES_PER_TRACKER,
         TezConfiguration.DAG_MAX_TASK_FAILURES_PER_NODE);
