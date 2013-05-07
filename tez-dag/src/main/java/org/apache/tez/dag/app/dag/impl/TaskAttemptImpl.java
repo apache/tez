@@ -148,7 +148,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final boolean isRescheduled;
 
   private boolean speculatorContainerRequestSent = false;
-  protected String mrxModuleClassName;
+  protected String processorName;
   
   protected static final FailedTransitionHelper FAILED_HELPER =
       new FailedTransitionHelper();
@@ -259,7 +259,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       TezConfiguration conf,
       Token<JobTokenIdentifier> jobToken, Credentials credentials, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
-      String mrxModuleClassName, TaskLocationHint locationHint,
+      String processorName, TaskLocationHint locationHint,
       Resource resource, Map<String, LocalResource> localResources,
       Map<String, String> environment, 
       String javaOpts, boolean isRescheduled) {
@@ -279,7 +279,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.appContext = appContext;
     this.taskResource = resource;
     this.reportedStatus = new TaskAttemptStatus();
-    this.mrxModuleClassName = mrxModuleClassName;
+    this.processorName = processorName;
     initTaskAttemptStatus(reportedStatus);
     RackResolver.init(conf);
     this.stateMachine = stateMachineFactory.make(this);
@@ -303,7 +303,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     // TODO  TEZ-50 user and jobname
     return new TezEngineTaskContext(getID(), dag.getUserName(), 
         dag.getName(), getTask()
-        .getVertex().getName(), mrxModuleClassName,
+        .getVertex().getName(), processorName,
         vertex.getInputSpecList(), vertex.getOutputSpecList());
   }
   
@@ -803,7 +803,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
         attemptId, getTask().getVertex().getName(),
-        getFinishTime(), TaskAttemptState.SUCCEEDED);
+        getFinishTime(), TaskAttemptState.SUCCEEDED, "");
     // FIXME how do we store information regd completion events
     eventHandler.handle(new DAGHistoryEvent(
         attemptId.getTaskID().getVertexID().getDAGId(),
@@ -815,7 +815,9 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskAttemptState state) {
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
         attemptId, getTask().getVertex().getName(),
-        clock.getTime(), state);
+        clock.getTime(), state,
+        StringUtils.join(
+            LINE_SEPARATOR, getDiagnostics()));
     // FIXME how do we store information regd completion events
     eventHandler.handle(new DAGHistoryEvent(
         attemptId.getTaskID().getVertexID().getDAGId(),

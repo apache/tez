@@ -279,7 +279,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // TODO Metrics
       //MRAppMetrics metrics, 
       TaskHeartbeatHandler thh, AppContext appContext,
-      String mrxModuleClassName,
+      String processorName,
       boolean leafVertex, TaskLocationHint locationHint, Resource resource,
       Map<String, LocalResource> localResources,
       Map<String, String> environment,
@@ -307,7 +307,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.encryptedShuffle = false;
     //conf.getBoolean(MRConfig.SHUFFLE_SSL_ENABLED_KEY,
      //                                       MRConfig.SHUFFLE_SSL_ENABLED_DEFAULT);
-    this.processorName = mrxModuleClassName;
+    this.processorName = processorName;
 
     this.leafVertex = leafVertex;
     this.locationHint = locationHint;

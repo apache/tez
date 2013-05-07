@@ -31,11 +31,13 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
   public TaskAttemptFinishedEvent(TezTaskAttemptID taId,
       String vertexName,
       long finishTime,
-      TaskAttemptState state) {
+      TaskAttemptState state,
+      String diagnostics) {
     datum.taskAttemptId = taId.toString();
     datum.vertexName = vertexName;
     datum.finishTime = finishTime;
     datum.status = state.name();
+    datum.diagnostics = diagnostics;
   }
 
   @Override
@@ -59,6 +61,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     return "vertexName=" + datum.vertexName
         + ", taskAttemptId=" + datum.taskAttemptId
         + ", finishTime=" + datum.finishTime
-        + ", status=" + datum.status;
+        + ", status=" + datum.status
+        + ", diagnostics=" + datum.diagnostics;
   }
 }
