@@ -241,7 +241,7 @@ public class MRCombiner implements Processor {
     // make a reducer
     org.apache.hadoop.mapreduce.Reducer reducer =
         (org.apache.hadoop.mapreduce.Reducer)
-        ReflectionUtils.newInstance(taskContext.getReducerClass(), job);
+        ReflectionUtils.newInstance(taskContext.getCombinerClass(), job);
 
     org.apache.hadoop.mapreduce.RecordWriter trackedRW =
         new org.apache.hadoop.mapreduce.RecordWriter() {

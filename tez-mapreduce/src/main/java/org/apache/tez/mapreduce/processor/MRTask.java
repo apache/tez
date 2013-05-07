@@ -217,8 +217,23 @@ extends RunningTaskContext {
     
     partitioner = new MRPartitioner(this);
     ((MRPartitioner)partitioner).initialize(job, getTaskReporter());
-    combineProcessor = new MRCombiner(this);
-    combineProcessor.initialize(job, getTaskReporter());
+
+    boolean useCombiner = false;
+    combineProcessor = null;
+    if (useNewApi) {
+      try {
+        useCombiner = (taskAttemptContext.getCombinerClass() != null);
+      } catch (ClassNotFoundException e) {
+        throw new IOException("Could not find combiner class", e);
+      }
+    } else {
+      useCombiner = (job.getCombinerClass() != null);
+    }
+    if (useCombiner) {
+      combineProcessor = new MRCombiner(this);
+      combineProcessor.initialize(job, getTaskReporter());
+    } else {
+    }
 
     localizeConfiguration(jobConf);
   }
