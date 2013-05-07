@@ -23,6 +23,7 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -73,6 +74,7 @@ public class IFile {
     boolean ownOutputStream = false;
     long start = 0;
     FSDataOutputStream rawOut;
+    AtomicBoolean closed = new AtomicBoolean(false);
     
     CompressionOutputStream compressedOut;
     Compressor compressor;
@@ -153,6 +155,9 @@ public class IFile {
     }
 
     public void close() throws IOException {
+      if (closed.getAndSet(true)) {
+        throw new IOException("Writer was already closed earlier");
+      }
 
       // When IFile writer is created by BackupStore, we do not have
       // Key and Value classes set. So, check before closing the

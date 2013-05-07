@@ -193,11 +193,18 @@ public abstract class ExternalSorter {
     CombineOutput combineOut = new CombineOutput(writer);
     combineOut.initialize(job, runningTaskContext.getTaskReporter());
 
-    combineProcessor.process(new Input[] {combineIn},
-        new Output[] {combineOut});
+    try {
+      combineProcessor.process(new Input[] {combineIn},
+          new Output[] {combineOut});
+    } catch (IOException ioe) {
+      try {
+        combineProcessor.close();
+      } catch (IOException ignored) {}
 
-    combineIn.close();
-    combineOut.close();
+      // Do not close output here as the sorter should close the combine output
+
+      throw ioe;
+    }
 
   }
 

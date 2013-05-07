@@ -673,6 +673,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
             spillLock.unlock();
             sortAndSpill();
           } catch (Throwable t) {
+            LOG.warn("ZZZZ: Got an exception in sortAndSpill", t);
             sortSpillException = t;
           } finally {
             spillLock.lock();
@@ -794,6 +795,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
             if (spstart != spindex) {
               TezRawKeyValueIterator kvIter =
                 new MRResultIterator(spstart, spindex);
+              LOG.info("DEBUG: Running combine processor");
               runCombineProcessor(kvIter, writer);
             }
           }
@@ -1052,7 +1054,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
       sortPhase.complete();
       return;
     }
-    {
+    else {
       sortPhase.addPhases(partitions); // Divide sort phase into sub-phases
       TezMerger.considerFinalMergeForProgress();
       
@@ -1096,16 +1098,16 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         long segmentStart = finalOut.getPos();
         Writer writer =
             new Writer(job, finalOut, keyClass, valClass, codec,
-                             spilledRecordsCounter);
+                spilledRecordsCounter);
         if (combineProcessor == null || numSpills < minSpillsForCombine) {
-          TezMerger.writeFile(kvIter, writer, runningTaskContext.getTaskReporter(), job);
-          writer.close();
+          TezMerger.writeFile(kvIter, writer,
+              runningTaskContext.getTaskReporter(), job);
         } else {
           runCombineProcessor(kvIter, writer);
         }
+        writer.close();
 
         sortPhase.startNextPhase();
-        
         // record offsets
         final TezIndexRecord rec = 
             new TezIndexRecord(

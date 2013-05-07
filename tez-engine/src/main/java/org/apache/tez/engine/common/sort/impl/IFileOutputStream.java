@@ -101,12 +101,15 @@ public class IFileOutputStream extends FilterOutputStream {
       sum.update(buffer, 0, offset);
       offset = 0;
     }
+    /*
+    // FIXME if needed re-enable this in debug mode
     if (LOG.isDebugEnabled()) {
       LOG.debug("XXX checksum" +
           " b=" + b + " off=" + off + 
           " buffer=" + " offset=" + offset + 
           " len=" + len);
     }
+    */
     /* now we should have len < buffer.length */
     System.arraycopy(b, off, buffer, offset, len);
     offset += len;

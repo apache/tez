@@ -68,6 +68,7 @@ import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.records.TezDAGID;
 import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRTaskStatus;
@@ -216,6 +217,8 @@ extends RunningTaskContext {
     
     partitioner = new MRPartitioner(this);
     ((MRPartitioner)partitioner).initialize(job, getTaskReporter());
+    combineProcessor = new MRCombiner(this);
+    combineProcessor.initialize(job, getTaskReporter());
 
     localizeConfiguration(jobConf);
   }

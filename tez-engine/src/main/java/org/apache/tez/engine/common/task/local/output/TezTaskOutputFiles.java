@@ -20,6 +20,8 @@ package org.apache.tez.engine.common.task.local.output;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
@@ -42,6 +44,7 @@ import org.apache.tez.engine.records.TezTaskID;
 @InterfaceStability.Unstable
 public class TezTaskOutputFiles extends TezTaskOutput {
 
+  private static final Log LOG = LogFactory.getLog(TezTaskOutputFiles.class);
   private Configuration conf;
 
   private static final String SPILL_FILE_PATTERN = "%s_spill_%d.out";
@@ -56,9 +59,11 @@ public class TezTaskOutputFiles extends TezTaskOutput {
     new LocalDirAllocator(TezJobConfig.LOCAL_DIR);
 
   private Path getAttemptOutputDir() {
-    System.err.println("getAttemptOutputDir: " + 
-        Constants.TASK_OUTPUT_DIR + "/" + conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
-    return new Path(Constants.TASK_OUTPUT_DIR, conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
+    LOG.info("DEBUG: getAttemptOutputDir: "
+        + Constants.TASK_OUTPUT_DIR + "/"
+        + conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
+    return new Path(Constants.TASK_OUTPUT_DIR,
+        conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
   }
   
   /**

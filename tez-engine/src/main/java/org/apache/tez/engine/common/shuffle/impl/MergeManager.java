@@ -373,12 +373,17 @@ public class MergeManager {
     
     CombineOutput combineOut = new CombineOutput(writer);
     combineOut.initialize(conf, reporter);
-    
-    combineProcessor.process(new Input[] {combineIn},
-        new Output[] {combineOut});
-    
-    combineIn.close();
-    combineOut.close();
+
+    try {
+      combineProcessor.process(new Input[] {combineIn},
+          new Output[] {combineOut});
+    } catch (IOException ioe) {
+      try {
+        combineProcessor.close();
+      } catch (IOException ignoredException) {}
+
+      throw ioe;
+    }
   
   }
 
@@ -471,31 +476,33 @@ public class MergeManager {
                                            mergeOutputSize).suffix(
                                                Constants.MERGED_OUTPUT_PREFIX);
 
-      Writer writer = 
-        new Writer(conf, rfs, outputPath,
-                        (Class)ConfigUtils.getIntermediateInputKeyClass(conf),
-                        (Class)ConfigUtils.getIntermediateInputValueClass(conf),
-                        codec, null);
-
-      TezRawKeyValueIterator rIter = null;
+      Writer writer = null;
       try {
+        writer =
+            new Writer(conf, rfs, outputPath,
+                (Class)ConfigUtils.getIntermediateInputKeyClass(conf),
+                (Class)ConfigUtils.getIntermediateInputValueClass(conf),
+                codec, null);
+
+        TezRawKeyValueIterator rIter = null;
         LOG.info("Initiating in-memory merge with " + noInMemorySegments + 
-                 " segments...");
-        
+            " segments...");
+
         rIter = TezMerger.merge(conf, rfs,
-                             (Class)ConfigUtils.getIntermediateInputKeyClass(conf),
-                             (Class)ConfigUtils.getIntermediateInputValueClass(conf),
-                             inMemorySegments, inMemorySegments.size(),
-                             new Path(taskAttemptId.toString()),
-                             (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
-                             reporter, spilledRecordsCounter, null, null);
-        
+            (Class)ConfigUtils.getIntermediateInputKeyClass(conf),
+            (Class)ConfigUtils.getIntermediateInputValueClass(conf),
+            inMemorySegments, inMemorySegments.size(),
+            new Path(taskAttemptId.toString()),
+            (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
+            reporter, spilledRecordsCounter, null, null);
+
         if (null == combineProcessor) {
           TezMerger.writeFile(rIter, writer, reporter, conf);
         } else {
           runCombineProcessor(rIter, writer);
         }
         writer.close();
+        writer = null;
 
         LOG.info(taskAttemptId +  
             " Merge of the " + noInMemorySegments +
@@ -507,6 +514,10 @@ public class MergeManager {
         //earlier when we invoked cloneFileAttributes
         localFS.delete(outputPath, true);
         throw e;
+      } finally {
+        if (writer != null) {
+          writer.close();
+        }
       }
 
       // Note the output of the merge

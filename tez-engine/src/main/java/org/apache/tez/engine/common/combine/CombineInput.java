@@ -121,7 +121,11 @@ public class CombineInput implements Input {
   public void close() throws IOException {
     input.close();
   }
-  
+
+  public TezRawKeyValueIterator getIterator() {
+    return this.input;
+  }
+
   protected class ValueIterator implements Iterator<Object> {
 
 
