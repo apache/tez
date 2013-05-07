@@ -92,6 +92,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.util.Apps;
@@ -887,51 +888,51 @@ public class YARNRunner implements ClientProtocol {
             jobLocalResources);
 
     // Submit to ResourceManager
-    ApplicationId applicationId = resMgrDelegate.submitApplication(appContext);
+    try {
+      ApplicationId applicationId = resMgrDelegate
+          .submitApplication(appContext);
 
-    ApplicationReport appMasterReport = resMgrDelegate
-        .getApplicationReport(applicationId);
-    String diagnostics =
-        (appMasterReport == null ?
-            "application report is null" : appMasterReport.getDiagnostics());
-    if (appMasterReport == null
-        || appMasterReport.getYarnApplicationState() == YarnApplicationState.FAILED
-        || appMasterReport.getYarnApplicationState() == YarnApplicationState.KILLED) {
-      throw new IOException("Failed to run job : " +
-        diagnostics);
-    }
+      ApplicationReport appMasterReport = resMgrDelegate
+          .getApplicationReport(applicationId);
+      String diagnostics = (appMasterReport == null ? "application report is null"
+          : appMasterReport.getDiagnostics());
+      if (appMasterReport == null
+          || appMasterReport.getYarnApplicationState() == YarnApplicationState.FAILED
+          || appMasterReport.getYarnApplicationState() == YarnApplicationState.KILLED) {
+        throw new IOException("Failed to run job : " + diagnostics);
+      }
 
-    if (LOG.isDebugEnabled()) {
-      while (true) {
-        appMasterReport = resMgrDelegate
-            .getApplicationReport(applicationId);
-        diagnostics =
-            (appMasterReport == null ?
-                "application report is null"
-                : appMasterReport.getDiagnostics());
-        if (appMasterReport == null) {
-          throw new IOException("Failed to run job : " +
-            diagnostics);
-        }
-        YarnApplicationState state = appMasterReport.getYarnApplicationState();
-        if (state.equals(YarnApplicationState.FAILED)
-            || state.equals(YarnApplicationState.FINISHED)
-            || state.equals(YarnApplicationState.KILLED)) {
-          LOG.info("Job completed"
-              + ", finalStatus=" + appMasterReport.getFinalApplicationStatus()
-              + ", finalState=" + appMasterReport.getYarnApplicationState()
-              + ", diagnostics=" + diagnostics);
-          break;
-        } else {
-          LOG.info("Job in progress"
-              + ", finalStatus=" + appMasterReport.getFinalApplicationStatus()
-              + ", finalState=" + appMasterReport.getYarnApplicationState());
-        }
-        try {
-          Thread.sleep(1000);
-        } catch (InterruptedException e) {
+      if (LOG.isDebugEnabled()) {
+        while (true) {
+          appMasterReport = resMgrDelegate.getApplicationReport(applicationId);
+          diagnostics = (appMasterReport == null ? "application report is null"
+              : appMasterReport.getDiagnostics());
+          if (appMasterReport == null) {
+            throw new IOException("Failed to run job : " + diagnostics);
+          }
+          YarnApplicationState state = appMasterReport
+              .getYarnApplicationState();
+          if (state.equals(YarnApplicationState.FAILED)
+              || state.equals(YarnApplicationState.FINISHED)
+              || state.equals(YarnApplicationState.KILLED)) {
+            LOG.info("Job completed" + ", finalStatus="
+                + appMasterReport.getFinalApplicationStatus() + ", finalState="
+                + appMasterReport.getYarnApplicationState() + ", diagnostics="
+                + diagnostics);
+            break;
+          } else {
+            LOG.info("Job in progress" + ", finalStatus="
+                + appMasterReport.getFinalApplicationStatus() + ", finalState="
+                + appMasterReport.getYarnApplicationState());
+          }
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e) {
+          }
         }
       }
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
     }
 
     // FIXME
@@ -1011,7 +1012,11 @@ public class YARNRunner implements ClientProtocol {
     /* check if the status is not running, if not send kill to RM */
     JobStatus status = clientCache.getClient(arg0).getJobStatus(arg0);
     if (status.getState() != JobStatus.State.RUNNING) {
-      resMgrDelegate.killApplication(TypeConverter.toYarn(arg0).getAppId());
+      try {
+        resMgrDelegate.killApplication(TypeConverter.toYarn(arg0).getAppId());
+      } catch (YarnRemoteException e) {
+        throw new IOException(e);
+      }
       return;
     }
 
@@ -1035,7 +1040,11 @@ public class YARNRunner implements ClientProtocol {
       LOG.debug("Error when checking for application status", io);
     }
     if (status.getState() != JobStatus.State.KILLED) {
-      resMgrDelegate.killApplication(TypeConverter.toYarn(arg0).getAppId());
+      try {
+        resMgrDelegate.killApplication(TypeConverter.toYarn(arg0).getAppId());
+      } catch (YarnRemoteException e) {
+        throw new IOException(e);
+      }
     }
   }
 
@@ -1066,7 +1075,11 @@ public class YARNRunner implements ClientProtocol {
   @Override
   public LogParams getLogFileParams(JobID jobID, TaskAttemptID taskAttemptID)
       throws IOException {
-    return clientCache.getClient(jobID).getLogFilePath(jobID, taskAttemptID);
+    try {
+      return clientCache.getClient(jobID).getLogFilePath(jobID, taskAttemptID);
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
   }
 
   private static void warnForJavaLibPath(String opts, String component,

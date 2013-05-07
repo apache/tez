@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.YarnClusterMetrics;
 import org.apache.hadoop.yarn.client.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.util.ProtoUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
@@ -64,11 +65,19 @@ public class ResourceMgrDelegate extends YarnClientImpl {
 
   public TaskTrackerInfo[] getActiveTrackers() throws IOException,
       InterruptedException {
-    return TypeConverter.fromYarnNodes(super.getNodeReports());
+    try {
+      return TypeConverter.fromYarnNodes(super.getNodeReports());
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
   }
 
   public JobStatus[] getAllJobs() throws IOException, InterruptedException {
-    return TypeConverter.fromYarnApps(super.getApplicationList(), this.conf);
+    try {
+      return TypeConverter.fromYarnApps(super.getApplicationList(), this.conf);
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
   }
 
   public TaskTrackerInfo[] getBlacklistedTrackers() throws IOException,
@@ -80,7 +89,12 @@ public class ResourceMgrDelegate extends YarnClientImpl {
 
   public ClusterMetrics getClusterMetrics() throws IOException,
       InterruptedException {
-    YarnClusterMetrics metrics = super.getYarnClusterMetrics();
+    YarnClusterMetrics metrics;
+    try {
+      metrics = super.getYarnClusterMetrics();
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
     ClusterMetrics oldMetrics = new ClusterMetrics(1, 1, 1, 1, 1, 1, 
         metrics.getNumNodeManagers() * 10, metrics.getNumNodeManagers() * 2, 1,
         metrics.getNumNodeManagers(), 0, 0);
@@ -90,8 +104,12 @@ public class ResourceMgrDelegate extends YarnClientImpl {
   @SuppressWarnings("rawtypes")
   public Token getDelegationToken(Text renewer) throws IOException,
       InterruptedException {
-    return ProtoUtils.convertFromProtoFormat(
-      super.getRMDelegationToken(renewer), rmAddress);
+    try {
+      return ProtoUtils.convertFromProtoFormat(
+        super.getRMDelegationToken(renewer), rmAddress);
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
   }
 
   public String getFilesystemName() throws IOException, InterruptedException {
@@ -99,35 +117,59 @@ public class ResourceMgrDelegate extends YarnClientImpl {
   }
 
   public JobID getNewJobID() throws IOException, InterruptedException {
-    this.application = super.getNewApplication();
+    try {
+      this.application = super.getNewApplication();
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
     this.applicationId = this.application.getApplicationId();
     return TypeConverter.fromYarn(applicationId);
   }
 
   public QueueInfo getQueue(String queueName) throws IOException,
   InterruptedException {
-    return TypeConverter.fromYarn(
-        super.getQueueInfo(queueName), this.conf);
+    try {
+      return TypeConverter.fromYarn(
+          super.getQueueInfo(queueName), this.conf);
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
   }
 
   public QueueAclsInfo[] getQueueAclsForCurrentUser() throws IOException,
       InterruptedException {
-    return TypeConverter.fromYarnQueueUserAclsInfo(super
-      .getQueueAclsInfo());
+    try {
+      return TypeConverter.fromYarnQueueUserAclsInfo(super
+        .getQueueAclsInfo());
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
   }
 
   public QueueInfo[] getQueues() throws IOException, InterruptedException {
-    return TypeConverter.fromYarnQueueInfo(super.getAllQueues(), this.conf);
+    try {
+      return TypeConverter.fromYarnQueueInfo(super.getAllQueues(), this.conf);
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
   }
 
   public QueueInfo[] getRootQueues() throws IOException, InterruptedException {
-    return TypeConverter.fromYarnQueueInfo(super.getRootQueueInfos(), this.conf);
+    try {
+      return TypeConverter.fromYarnQueueInfo(super.getRootQueueInfos(), this.conf);
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
   }
 
   public QueueInfo[] getChildQueues(String parent) throws IOException,
       InterruptedException {
-    return TypeConverter.fromYarnQueueInfo(super.getChildQueueInfos(parent),
-      this.conf);
+    try {
+      return TypeConverter.fromYarnQueueInfo(super.getChildQueueInfos(parent),
+        this.conf);
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
   }
 
   public String getStagingAreaDir() throws IOException, InterruptedException {

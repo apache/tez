@@ -76,8 +76,12 @@ public class ClientServiceDelegate {
   public JobStatus getJobStatus(JobID oldJobID) throws IOException {
     org.apache.hadoop.mapreduce.v2.api.records.JobId jobId =
       TypeConverter.toYarn(oldJobID);
-    ApplicationReport appReport =
-        rm.getApplicationReport(jobId.getAppId());
+    ApplicationReport appReport;
+    try {
+      appReport = rm.getApplicationReport(jobId.getAppId());
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
     JobStatus jobStatus =
         new DAGJobStatus(appReport);
     return jobStatus;
