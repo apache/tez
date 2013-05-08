@@ -49,7 +49,8 @@
       "fields": [
           {"name": "dagId", "type": "string"},
           {"name": "finishTime", "type": "long"},
-          {"name": "status", "type": "string"}
+          {"name": "status", "type": "string"},
+          {"name": "diagnostics", "type": "string"}
       ]
      },
 
@@ -69,7 +70,8 @@
           {"name": "vertexName", "type": "string"},
           {"name": "vertexId", "type": "string"},
           {"name": "finishTime", "type": "long"},
-          {"name": "status", "type": "string"}
+          {"name": "status", "type": "string"},
+          {"name": "diagnostics", "type": "string"}
       ]
      },
 

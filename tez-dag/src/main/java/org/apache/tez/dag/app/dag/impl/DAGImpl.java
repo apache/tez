@@ -97,6 +97,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   EventHandler<DAGEvent> {
 
   private static final Log LOG = LogFactory.getLog(DAGImpl.class);
+  private static final String LINE_SEPARATOR = System
+      .getProperty("line.separator");
 
   //final fields
   private final ApplicationAttemptId applicationAttemptId;
@@ -586,7 +588,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   void logJobHistoryFinishedEvent() {
     this.setFinishTime();
     DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, finishTime,
-        DAGStatus.State.SUCCEEDED);
+        DAGStatus.State.SUCCEEDED, "");
     this.eventHandler.handle(
         new DAGHistoryEvent(dagId, finishEvt));
   }
@@ -602,7 +604,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   void logJobHistoryUnsuccesfulEvent(DAGStatus.State state) {
     DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, clock.getTime(),
-        state);
+        state, StringUtils.join(LINE_SEPARATOR, getDiagnostics()));
     this.eventHandler.handle(
         new DAGHistoryEvent(dagId, finishEvt));
   }
@@ -617,14 +619,20 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return FileSystem.get(conf);
   }
 
-  static DAGState checkJobCompleteSuccess(DAGImpl job) {
-    // check for Job success
-    if (job.numCompletedVertices == job.vertices.size()) {
-      // TODO: Maybe set cleanup progress. Otherwise job progress will
+  static DAGState checkJobCompleteSuccess(DAGImpl dag) {
+    // check for dag success
+    LOG.info("ZZZZ: Checking dag completion"
+        + ", numCompletedVertices=" + dag.numCompletedVertices
+        + ", numFailedVertices=" + dag.numFailedVertices
+        + ", numKilledVertices=" + dag.numKilledVertices
+        + ", numVertices=" + dag.numVertices);
+
+    if (dag.numCompletedVertices == dag.vertices.size()) {
+      // TODO: Maybe set cleanup progress. Otherwise dag progress will
       // always stay at 0.95 when reported from an AM.
       // TODO DAG committer
-      job.logJobHistoryFinishedEvent();
-      return job.finished(DAGState.SUCCEEDED);
+      dag.logJobHistoryFinishedEvent();
+      return dag.finished(DAGState.SUCCEEDED);
     }
     return null;
   }
@@ -1008,9 +1016,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     @Override
     public DAGState transition(DAGImpl job, DAGEvent event) {
-      job.numCompletedVertices++;
-      LOG.info("Num completed vertices: " + job.numCompletedVertices);
+
       DAGEventVertexCompleted vertexEvent = (DAGEventVertexCompleted) event;
+      LOG.info("DEBUG: Received a vertex completion event"
+          + ", vertexId=" + vertexEvent.getVertexId()
+          + ", vertexState=" + vertexEvent.getVertexState());
+
       Vertex vertex = job.vertices.get(vertexEvent.getVertexId());
       if (vertexEvent.getVertexState() == VertexState.SUCCEEDED) {
         vertexSucceeded(job, vertex);
@@ -1019,7 +1030,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       } else if (vertexEvent.getVertexState() == VertexState.KILLED) {
         vertexKilled(job, vertex);
       }
-      
+
+      LOG.info("ZZZZ: Num completed vertices: " + job.numCompletedVertices
+          + ", Num failed vertices: " + job.numFailedVertices
+          + ", Num killed vertices: " + job.numKilledVertices);
+
       job.dagScheduler.vertexCompleted(vertex);
 
       return checkJobForCompletion(job);

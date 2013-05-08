@@ -75,6 +75,9 @@ import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexScheduler;
 import org.apache.tez.dag.app.dag.VertexState;
+import org.apache.tez.dag.app.dag.event.DAGEvent;
+import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
+import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
@@ -105,6 +108,8 @@ import org.apache.tez.engine.records.TezVertexID;
 public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   EventHandler<VertexEvent>, VertexContext {
 
+  private static final String LINE_SEPARATOR = System
+      .getProperty("line.separator");
   private static final TezDependentTaskCompletionEvent[]
     EMPTY_TASK_ATTEMPT_COMPLETION_EVENTS = new TezDependentTaskCompletionEvent[0];
 
@@ -618,13 +623,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   void logJobHistoryVertexFinishedEvent() {
     this.setFinishTime();
     VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
-        vertexName, finishTime, VertexStatus.State.SUCCEEDED);
+        vertexName, finishTime, VertexStatus.State.SUCCEEDED, "");
     this.eventHandler.handle(new DAGHistoryEvent(getDAGId(), finishEvt));
   }
 
   void logJobHistoryVertexFailedEvent(VertexStatus.State state) {
     VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
-        vertexName, clock.getTime(), state);
+        vertexName, clock.getTime(), state,
+        StringUtils.join(LINE_SEPARATOR, getDiagnostics()));
     this.eventHandler.handle(new DAGHistoryEvent(getDAGId(), finishEvt));
   }
 
@@ -640,7 +646,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   static VertexState checkVertexForCompletion(VertexImpl vertex) {
     //check for vertex failure first
-    if (vertex.failedTaskCount > 1) {
+
+    LOG.info("ZZZZ: checking for vertex completion"
+        + ", failedTaskCount=" + vertex.failedTaskCount
+        + ", killedTaskCount=" + vertex.killedTaskCount
+        + ", successfulTaskCount=" + vertex.succeededTaskCount
+        + ", completedTaskCount=" + vertex.completedTaskCount);
+
+    if (vertex.failedTaskCount > 0) {
       vertex.setFinishTime();
       String diagnosticMsg = "Vertex failed as tasks failed. "
           + "failedTasks:"
@@ -648,8 +661,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       LOG.info(diagnosticMsg);
       vertex.addDiagnostic(diagnosticMsg);
       vertex.abortVertex(VertexStatus.State.FAILED);
-      vertex.eventHandler.handle(new DAGEventVertexCompleted(vertex
-          .getVertexId(), VertexState.FAILED));
       return vertex.finished(VertexState.FAILED);
     }
     
@@ -661,12 +672,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         }
       } catch (IOException e) {
         LOG.error("Failed to do commit on vertex, name=" + vertex.getName(), e);
-        vertex.eventHandler.handle(new DAGEventVertexCompleted(vertex
-            .getVertexId(), VertexState.FAILED));
         return vertex.finished(VertexState.FAILED);
       }
-      vertex.eventHandler.handle(new DAGEventVertexCompleted(vertex
-          .getVertexId(), vertex.getState()));
       return vertex.finished(VertexState.SUCCEEDED);      
     }
     
@@ -683,29 +690,30 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   VertexState finished(VertexState finalState) {
-    if (getInternalState() == VertexState.RUNNING) {
-      // TODO: Metrics
-      // metrics.endRunningJob(this);
-    }
     if (finishTime == 0) setFinishTime();
 
     switch (finalState) {
       case KILLED:
       case KILL_WAIT:
-        // TODO: Metrics
-        //metrics.killedJob(this);
+        eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
+            finalState));
         logJobHistoryVertexFailedEvent(State.KILLED);
         break;
       case ERROR:
+        eventHandler.handle(new DAGEvent(getDAGId(),
+            DAGEventType.INTERNAL_ERROR));
+        logJobHistoryVertexFailedEvent(State.FAILED);
+        break;
       case FAILED:
-        // TODO: Metrics
-        //metrics.failedJob(this);
+        eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
+            finalState));
         logJobHistoryVertexFailedEvent(State.FAILED);
         break;
       case SUCCEEDED:
+        eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
+            finalState));
         logJobHistoryVertexFinishedEvent();
-        // TODO: Metrics
-        //metrics.completedJob(this);
+        break;
     }
     return finalState;
   }
@@ -1146,7 +1154,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       SingleArcTransition<VertexImpl, VertexEvent> {
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
-      //TODO Is this JH event required.
+      LOG.error("Invalid event " + event.getType() + " on Vertex "
+          + vertex.getVertexId());
+      vertex.eventHandler.handle(new DAGEventDiagnosticsUpdate(
+          vertex.getDAGId(), "Invalid event " + event.getType()
+          + " on Vertex " + vertex.getVertexId()));
       vertex.setFinishTime();
       vertex.finished(VertexState.ERROR);
     }

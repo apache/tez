@@ -30,11 +30,12 @@ public class VertexFinishedEvent implements HistoryEvent {
 
   public VertexFinishedEvent(TezVertexID vertexId,
       String vertexName, long finishTime,
-      VertexStatus.State state) {
+      VertexStatus.State state, String diagnostics) {
     datum.vertexName = vertexName;
     datum.vertexId = vertexId.toString();
     datum.finishTime = finishTime;
     datum.status = state.name();
+    datum.diagnostics = diagnostics;
   }
 
   @Override
@@ -58,6 +59,7 @@ public class VertexFinishedEvent implements HistoryEvent {
     return "vertexName=" + datum.vertexName
         + ", vertexId=" + datum.vertexId
         + ", finishTime=" + datum.finishTime
-        + ", status=" + datum.status;
+        + ", status=" + datum.status
+        + ", diagnostics=" + datum.diagnostics;
   }
 }

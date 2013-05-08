@@ -29,10 +29,12 @@ public class DAGFinishedEvent implements HistoryEvent {
   private DAGFinished datum = new DAGFinished();
 
   public DAGFinishedEvent(TezDAGID dagId,
-      long finishTime, DAGStatus.State state) {
+      long finishTime, DAGStatus.State state,
+      String diagnostics) {
     datum.dagId = dagId.toString();
     datum.finishTime = finishTime;
     datum.status = state.name();
+    datum.diagnostics = diagnostics;
   }
 
   @Override
@@ -55,6 +57,7 @@ public class DAGFinishedEvent implements HistoryEvent {
   public String toString() {
     return "dagId=" + datum.dagId
         + ", finishTime=" + datum.finishTime
-        + ", status=" + datum.status;
+        + ", status=" + datum.status
+        + ", diagnostics=" + datum.diagnostics;
   }
 }
