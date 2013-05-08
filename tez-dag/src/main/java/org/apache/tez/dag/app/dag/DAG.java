@@ -52,7 +52,7 @@ public interface DAG {
   Vertex getVertex(TezVertexID vertexId);
   List<String> getDiagnostics();
   int getTotalVertices();
-  int getCompletedVertices();
+  int getSuccessfulVertices();
   float getProgress();
   boolean isUber();
   String getUserName();

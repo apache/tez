@@ -1078,7 +1078,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     @Override
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
-      vertex.completedTaskCount++;// TEZ-39 this is a bug
+      vertex.completedTaskCount++;
       LOG.info("Num completed Tasks: " + vertex.completedTaskCount);
       VertexEventTaskCompleted taskEvent = (VertexEventTaskCompleted) event;
       Task task = vertex.tasks.get(taskEvent.getTaskID());
