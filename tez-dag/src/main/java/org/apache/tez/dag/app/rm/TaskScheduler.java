@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.rm;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -44,7 +45,8 @@ import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.hadoop.yarn.util.RackResolver;
-import org.apache.tez.dag.app.rm.AMRMClient.ContainerRequest;
+import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.app.rm.AMRMClient.StoredContainerRequest;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback.AppFinalStatus;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -96,11 +98,11 @@ public class TaskScheduler extends AbstractService
     public AppFinalStatus getFinalAppStatus();
   }
   
-  final AMRMClientAsync<CRCookie> amRmClient;
+  final AMRMClientAsync<StoredContainerRequest<CRCookie>> amRmClient;
   final TaskSchedulerAppCallback appClient;
   
-  Map<Object, ContainerRequest<CRCookie>> taskRequests =  
-                  new HashMap<Object, ContainerRequest<CRCookie>>();
+  Map<Object, StoredContainerRequest<CRCookie>> taskRequests =  
+                  new HashMap<Object, StoredContainerRequest<CRCookie>>();
   Map<Object, Container> taskAllocations = 
                   new HashMap<Object, Container>();
   Map<ContainerId, Object> containerAssigments = 
@@ -126,7 +128,8 @@ public class TaskScheduler extends AbstractService
                         String appTrackingUrl) {
     super(TaskScheduler.class.getName());
     this.appClient = appClient;
-    this.amRmClient = new AMRMClientAsync<CRCookie>(id, 1000, this);
+    this.amRmClient = 
+        new AMRMClientAsync<StoredContainerRequest<CRCookie>>(id, 1000, this);
     this.appHostName = appHostName;
     this.appHostPort = appHostPort;
     this.appTrackingUrl = appTrackingUrl;
@@ -139,7 +142,7 @@ public class TaskScheduler extends AbstractService
       String appHostName, 
       int appHostPort,
       String appTrackingUrl,
-      AMRMClientAsync<CRCookie> client) {
+      AMRMClientAsync<StoredContainerRequest<CRCookie>> client) {
     super(TaskScheduler.class.getName());
     this.appClient = appClient;
     this.amRmClient = client;
@@ -180,7 +183,10 @@ public class TaskScheduler extends AbstractService
                                       response.getMaximumResourceCapability(),
                                       response.getApplicationACLs());
     } catch (YarnRemoteException e) {
-      LOG.error("Exception while registering", e);
+      LOG.error("Yarn Exception while registering", e);
+      throw new YarnException(e);
+    } catch (IOException e) {
+      LOG.error("IO Exception while registering", e);
       throw new YarnException(e);
     }
   }
@@ -204,8 +210,11 @@ public class TaskScheduler extends AbstractService
       amRmClient.stop();
       super.stop();
     } catch (YarnRemoteException e) {
-      LOG.error("Exception while unregistering ", e);
-      throw new YarnException(e);
+      LOG.error("Yarn Exception while unregistering ", e);
+      throw new TezException(e);
+    } catch (IOException e) {
+      LOG.error("IOException while unregistering ", e);
+      throw new TezException(e);
     }
   }
   
@@ -261,12 +270,13 @@ public class TaskScheduler extends AbstractService
     if(isStopped) {
       return;
     }
-    Map<ContainerRequest<CRCookie>, Container> appContainers = 
-                  new HashMap<ContainerRequest<CRCookie>, Container>(containers.size());
+    Map<StoredContainerRequest<CRCookie>, Container> appContainers = 
+        new HashMap<StoredContainerRequest<CRCookie>, Container>
+                                                        (containers.size());
     synchronized (this) {
       for(Container container : containers) {
         String location = container.getNodeId().getHost();
-        ContainerRequest<CRCookie> assigned = getMatchingRequest(container, location);
+        StoredContainerRequest<CRCookie> assigned = getMatchingRequest(container, location);
         if(assigned == null) {
           location = RackResolver.resolve(location).getNetworkLocation();
           assigned = getMatchingRequest(container, location);
@@ -297,10 +307,12 @@ public class TaskScheduler extends AbstractService
     }
     
     // upcall to app must be outside locks
-    for(Entry<ContainerRequest<CRCookie>, Container> entry : appContainers.entrySet()) {
-      ContainerRequest<CRCookie> assigned = entry.getKey();
-      appClient.taskAllocated(getTask(assigned), getAppCookie(assigned), entry.getValue());
-    }    
+    for (Entry<StoredContainerRequest<CRCookie>, Container> entry : 
+              appContainers.entrySet()) {
+      StoredContainerRequest<CRCookie> assigned = entry.getKey();
+      appClient.taskAllocated(getTask(assigned), getAppCookie(assigned),
+          entry.getValue());
+    }   
   }
 
   @Override
@@ -345,12 +357,11 @@ public class TaskScheduler extends AbstractService
                                            Priority priority,
                                            Object clientCookie) {
     // TODO check for nulls etc
-    ContainerRequest<CRCookie> request = 
-                              new ContainerRequest<CRCookie>(capability, 
+    StoredContainerRequest<CRCookie> request = 
+             new StoredContainerRequest<CRCookie>(capability, 
                                                    hosts, 
                                                    racks, 
-                                                   priority,
-                                                   1);
+                                                   priority);
     // TODO extra memory allocation
     CRCookie cookie = new CRCookie();
     cookie.task = task;
@@ -363,7 +374,7 @@ public class TaskScheduler extends AbstractService
   }
   
   public synchronized Container deallocateTask(Object task) {
-    ContainerRequest<CRCookie> request = removeTaskRequest(task);
+    StoredContainerRequest<CRCookie> request = removeTaskRequest(task);
     if(request != null) {
       // task not allocated yet
       LOG.info("Deallocating task: " + task + " before allocation");
@@ -395,16 +406,17 @@ public class TaskScheduler extends AbstractService
     return null;
   }
   
-  private ContainerRequest<CRCookie> getMatchingRequest(Container container, String location) {
+  private StoredContainerRequest<CRCookie> getMatchingRequest(
+                                      Container container, String location) {
     Priority priority = container.getPriority();
     Resource capability = container.getResource();
-    ContainerRequest<CRCookie> assigned = null;
-    Collection<ContainerRequest<CRCookie>> requests =
+    StoredContainerRequest<CRCookie> assigned = null;
+    Collection<StoredContainerRequest<CRCookie>> requests =
         amRmClient.getMatchingRequests(priority, location, capability);
     
     if(requests != null) {
       // TODO maybe do FIFO
-      Iterator<ContainerRequest<CRCookie>> iterator = requests.iterator();
+      Iterator<StoredContainerRequest<CRCookie>> iterator = requests.iterator();
       if(iterator.hasNext()) {
         assigned = requests.iterator().next();
       }
@@ -413,11 +425,11 @@ public class TaskScheduler extends AbstractService
     return assigned;
   }
   
-  private Object getTask(ContainerRequest<CRCookie> request) {
+  private Object getTask(StoredContainerRequest<CRCookie> request) {
     return ((CRCookie)request.getCookie()).task;
   }
   
-  private Object getAppCookie(ContainerRequest<CRCookie> request) {
+  private Object getAppCookie(StoredContainerRequest<CRCookie> request) {
     return ((CRCookie)request.getCookie()).appCookie;
   }
   
@@ -430,8 +442,8 @@ public class TaskScheduler extends AbstractService
   
   private void assignContainer(Object task, 
                                 Container container, 
-                                ContainerRequest<CRCookie> assigned) {
-    ContainerRequest<CRCookie> request = removeTaskRequest(task);
+                                StoredContainerRequest<CRCookie> assigned) {
+    StoredContainerRequest<CRCookie> request = removeTaskRequest(task);
     assert request != null;
     //assert assigned.equals(request);
 
@@ -441,8 +453,8 @@ public class TaskScheduler extends AbstractService
     
   }
   
-  private ContainerRequest<CRCookie> removeTaskRequest(Object task) {
-    ContainerRequest<CRCookie> request = taskRequests.remove(task);
+  private StoredContainerRequest<CRCookie> removeTaskRequest(Object task) {
+    StoredContainerRequest<CRCookie> request = taskRequests.remove(task);
     if(request != null) {
       // remove all references of the request from AMRMClient
       amRmClient.removeContainerRequest(request);
@@ -450,7 +462,8 @@ public class TaskScheduler extends AbstractService
     return request;
   }
   
-  private void addTaskRequest(Object task, ContainerRequest<CRCookie> request) {
+  private void addTaskRequest(Object task, 
+                                StoredContainerRequest<CRCookie> request) {
     // TODO TEZ-37 fix duplicate handling
     taskRequests.put(task, request);
     amRmClient.addContainerRequest(request);

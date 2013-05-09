@@ -35,13 +35,9 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.ipc.RPC;
-import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.api.AMRMProtocol;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.FinishApplicationMasterRequest;
@@ -61,10 +57,11 @@ import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.hadoop.yarn.util.BuilderUtils;
 
-// TODO check inputs for null etc.
+// TODO check inputs for null etc. YARN-654
 
 @Unstable
-public class AMRMClientImpl<T> extends AbstractService implements AMRMClient<T> {
+public class AMRMClientImpl<T extends org.apache.tez.dag.app.rm.AMRMClient.ContainerRequest> 
+                          extends AbstractService implements AMRMClient<T> {
 
   private static final Log LOG = LogFactory.getLog(AMRMClientImpl.class);
   
@@ -80,12 +77,12 @@ public class AMRMClientImpl<T> extends AbstractService implements AMRMClient<T> 
   
   class ResourceRequestInfo {
     ResourceRequest remoteRequest;
-    HashSet<ContainerRequest<T>> containerRequests;
+    HashSet<T> containerRequests;
     
     ResourceRequestInfo(Priority priority, String resourceName, Resource capability) {
       remoteRequest = BuilderUtils.
           newResourceRequest(priority, resourceName, capability, 0);
-      containerRequests = new HashSet<ContainerRequest<T>>();
+      containerRequests = new HashSet<T>();
     }
   }
   
@@ -153,7 +150,7 @@ public class AMRMClientImpl<T> extends AbstractService implements AMRMClient<T> 
   @Override
   public RegisterApplicationMasterResponse registerApplicationMaster(
       String appHostName, int appHostPort, String appTrackingUrl)
-      throws YarnRemoteException {
+      throws YarnRemoteException, IOException {
     // do this only once ???
     RegisterApplicationMasterRequest request = recordFactory
         .newRecordInstance(RegisterApplicationMasterRequest.class);
@@ -172,7 +169,7 @@ public class AMRMClientImpl<T> extends AbstractService implements AMRMClient<T> 
 
   @Override
   public AllocateResponse allocate(float progressIndicator) 
-      throws YarnRemoteException {
+      throws YarnRemoteException, IOException {
     AllocateResponse allocateResponse = null;
     ArrayList<ResourceRequest> askList = null;
     ArrayList<ContainerId> releaseList = null;
@@ -226,7 +223,8 @@ public class AMRMClientImpl<T> extends AbstractService implements AMRMClient<T> 
 
   @Override
   public void unregisterApplicationMaster(FinalApplicationStatus appStatus,
-      String appMessage, String appTrackingUrl) throws YarnRemoteException {
+      String appMessage, String appTrackingUrl) throws YarnRemoteException,
+      IOException {
     FinishApplicationMasterRequest request = recordFactory
                   .newRecordInstance(FinishApplicationMasterRequest.class);
     request.setAppAttemptId(appAttemptId);
@@ -241,7 +239,7 @@ public class AMRMClientImpl<T> extends AbstractService implements AMRMClient<T> 
   }
   
   @Override
-  public synchronized void addContainerRequest(ContainerRequest<T> req) {
+  public synchronized void addContainerRequest(T req) {
     // Create resource requests
     // add check for dup locations
     if(req.hosts != null) {
@@ -261,7 +259,7 @@ public class AMRMClientImpl<T> extends AbstractService implements AMRMClient<T> 
   }
 
   @Override
-  public synchronized void removeContainerRequest(ContainerRequest<T> req) {
+  public synchronized void removeContainerRequest(T req) {
     // Update resource requests
     if(req.hosts != null) {
       for (String hostName : req.hosts) {
@@ -294,7 +292,8 @@ public class AMRMClientImpl<T> extends AbstractService implements AMRMClient<T> 
     return clusterNodeCount;
   }
   
-  public synchronized Collection<ContainerRequest<T>> getMatchingRequests(
+  @Override
+  public synchronized Collection<T> getMatchingRequests(
                                           Priority priority, 
                                           String resourceName, 
                                           Resource capability) {
@@ -334,7 +333,7 @@ public class AMRMClientImpl<T> extends AbstractService implements AMRMClient<T> 
   }
 
   private void addResourceRequest(Priority priority, String resourceName,
-      Resource capability, int containerCount, ContainerRequest<T> req) {
+      Resource capability, int containerCount, T req) {
     Map<String, Map<Resource, ResourceRequestInfo>> remoteRequests =
       this.remoteRequestsTable.get(priority);
     if (remoteRequests == null) {
@@ -358,7 +357,10 @@ public class AMRMClientImpl<T> extends AbstractService implements AMRMClient<T> 
     
     resourceRequestInfo.remoteRequest.setNumContainers(
          resourceRequestInfo.remoteRequest.getNumContainers() + containerCount);
-    resourceRequestInfo.containerRequests.add(req);
+
+    if(req instanceof StoredContainerRequest<?>) {
+      resourceRequestInfo.containerRequests.add(req);
+    }
 
     // Note this down for next interaction with ResourceManager
     addResourceRequestToAsk(resourceRequestInfo.remoteRequest);
@@ -376,7 +378,7 @@ public class AMRMClientImpl<T> extends AbstractService implements AMRMClient<T> 
                                    String resourceName,
                                    Resource capability, 
                                    int containerCount, 
-                                   ContainerRequest<T> req) {
+                                   T req) {
     Map<String, Map<Resource, ResourceRequestInfo>> remoteRequests =
       this.remoteRequestsTable.get(priority);
     
@@ -408,7 +410,11 @@ public class AMRMClientImpl<T> extends AbstractService implements AMRMClient<T> 
 
     resourceRequestInfo.remoteRequest.setNumContainers(
         resourceRequestInfo.remoteRequest.getNumContainers() - containerCount);
-    resourceRequestInfo.containerRequests.remove(req);
+
+    if(req instanceof StoredContainerRequest<?>) {
+      resourceRequestInfo.containerRequests.remove(req);
+    }
+    
     if(resourceRequestInfo.remoteRequest.getNumContainers() < 0) {
       // guard against spurious removals
       resourceRequestInfo.remoteRequest.setNumContainers(0);

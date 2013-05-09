@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.rm;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -90,11 +91,11 @@ import com.google.common.annotations.VisibleForTesting;
  */
 @Unstable
 @Evolving
-public class AMRMClientAsync<T> extends AbstractService {
+public class AMRMClientAsync<T extends ContainerRequest> extends AbstractService {
   
   private static final Log LOG = LogFactory.getLog(AMRMClientAsync.class);
   
-  private final AMRMClientImpl<T> client;
+  private final AMRMClient<T> client;
   private final int intervalMs;
   private final HeartbeatThread heartbeatThread;
   private final CallbackHandlerThread handlerThread;
@@ -114,7 +115,7 @@ public class AMRMClientAsync<T> extends AbstractService {
   
   @Private
   @VisibleForTesting
-  public AMRMClientAsync(AMRMClientImpl<T> client, int intervalMs,
+  public AMRMClientAsync(AMRMClient<T> client, int intervalMs,
       CallbackHandler callbackHandler) {
     super(AMRMClientAsync.class.getName());
     this.client = client;
@@ -166,20 +167,22 @@ public class AMRMClientAsync<T> extends AbstractService {
     super.stop();
   }
   
-  public Collection<ContainerRequest<T>> getMatchingRequests(
-      Priority priority, 
-      String resourceName, 
-      Resource capability) {
+  public Collection<T> getMatchingRequests(
+                                     Priority priority, 
+                                     String resourceName, 
+                                     Resource capability) {
     return client.getMatchingRequests(priority, resourceName, capability);
   }
   
   /**
    * Registers this application master with the resource manager. On successful
    * registration, starts the heartbeating thread.
+   * @throws YarnRemoteException
+   * @throws IOException
    */
   public RegisterApplicationMasterResponse registerApplicationMaster(
       String appHostName, int appHostPort, String appTrackingUrl)
-      throws YarnRemoteException {
+      throws YarnRemoteException, IOException {
     RegisterApplicationMasterResponse response =
         client.registerApplicationMaster(appHostName, appHostPort, appTrackingUrl);
     heartbeatThread.start();
@@ -192,9 +195,10 @@ public class AMRMClientAsync<T> extends AbstractService {
    * @param appMessage Diagnostics message on failure
    * @param appTrackingUrl New URL to get master info
    * @throws YarnRemoteException
+   * @throws IOException
    */
   public void unregisterApplicationMaster(FinalApplicationStatus appStatus,
-      String appMessage, String appTrackingUrl) throws YarnRemoteException {
+      String appMessage, String appTrackingUrl) throws YarnRemoteException, IOException {
     synchronized (client) {
       keepRunning = false;
       client.unregisterApplicationMaster(appStatus, appMessage, appTrackingUrl);
@@ -205,7 +209,7 @@ public class AMRMClientAsync<T> extends AbstractService {
    * Request containers for resources before calling <code>allocate</code>
    * @param req Resource request
    */
-  public void addContainerRequest(AMRMClient.ContainerRequest<T> req) {
+  public void addContainerRequest(T req) {
     client.addContainerRequest(req);
   }
 
@@ -216,7 +220,7 @@ public class AMRMClientAsync<T> extends AbstractService {
    * even after the remove request
    * @param req Resource request
    */
-  public void removeContainerRequest(AMRMClient.ContainerRequest<T> req) {
+  public void removeContainerRequest(T req) {
     client.removeContainerRequest(req);
   }
 
@@ -265,11 +269,18 @@ public class AMRMClientAsync<T> extends AbstractService {
             
           try {
             response = client.allocate(progress);
-            savedException = null;
           } catch (YarnRemoteException ex) {
-            LOG.error("Failed to heartbeat", ex);
+            LOG.error("Yarn exception on heartbeat", ex);
             savedException = ex;
+            // interrupt handler thread in case it waiting on the queue
             handlerThread.interrupt();
+            break;
+          } catch (IOException e) {
+            LOG.error("IO exception on heartbeat", e);
+            savedException = e;
+            // interrupt handler thread in case it waiting on the queue
+            handlerThread.interrupt();
+            break;
           }
         }
         if (response != null) {
@@ -297,19 +308,15 @@ public class AMRMClientAsync<T> extends AbstractService {
       super("AMRM Callback Handler Thread");
     }
     
-    void handleError() {
-      Exception e = savedException;
-      savedException = null;
-      if(e != null) {
-        handler.onError(e);
-      }
-    }
-    
     public void run() {
       while (keepRunning) {
         AllocateResponse response;
         try {
-          handleError();
+          if(savedException != null) {
+            LOG.error("Stopping callback due to: ", savedException);
+            handler.onError(savedException);
+            break;
+          }
           response = responseQueue.take();
         } catch (InterruptedException ex) {
           LOG.info("Interrupted while waiting for queue", ex);
@@ -318,7 +325,8 @@ public class AMRMClientAsync<T> extends AbstractService {
 
         if (response.getReboot()) {
           handler.onRebootRequest();
-          /* TODO dont callback after this */
+          LOG.info("Reboot requested. Stopping callback.");
+          break;
         }
         List<NodeReport> updatedNodes = response.getUpdatedNodes();
         if (!updatedNodes.isEmpty()) {
@@ -359,12 +367,13 @@ public class AMRMClientAsync<T> extends AbstractService {
     
     /**
      * Called when the ResourceManager wants the ApplicationMaster to reboot
-     * for being out of sync.
+     * for being out of sync. The ApplicationMaster should not unregister with 
+     * the RM unless the ApplicationMaster wants to be the last attempt.
      */
     public void onRebootRequest();
     
     /**
-     * Called when nodes tracked by the ResourceManager have changed in in health,
+     * Called when nodes tracked by the ResourceManager have changed in health,
      * availability etc.
      */
     public void onNodesUpdated(List<NodeReport> updatedNodes);

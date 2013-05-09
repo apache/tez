@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.app.rm;
 
+import java.io.IOException;
+import java.util.Collection;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -32,7 +34,7 @@ import org.apache.hadoop.yarn.service.Service;
 
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
-public interface AMRMClient <T> extends Service {
+public interface AMRMClient<T extends AMRMClient.ContainerRequest> extends Service {
 
   /**
    * Object to represent container request for resources.
@@ -40,14 +42,12 @@ public interface AMRMClient <T> extends Service {
    * Resources may be assigned priorities.
    * Can ask for multiple containers of a given type.
    */
-  public static class ContainerRequest<T> {
-    // TODO define equals()
+  public static class ContainerRequest {
     Resource capability;
     String[] hosts;
     String[] racks;
     Priority priority;
     int containerCount;
-    T cookie;
         
     public ContainerRequest(Resource capability, String[] hosts,
         String[] racks, Priority priority, int containerCount) {
@@ -56,14 +56,6 @@ public interface AMRMClient <T> extends Service {
       this.racks = (racks != null ? racks.clone() : null);
       this.priority = priority;
       this.containerCount = containerCount;
-    }
-    
-    void setCookie(T cookie) {
-      this.cookie = cookie;
-    }
-    
-    T getCookie() {
-      return cookie;
     }
     
     public String toString() {
@@ -75,6 +67,23 @@ public interface AMRMClient <T> extends Service {
     }
   }
   
+  public static class StoredContainerRequest <T> extends ContainerRequest {
+    T cookie;
+    
+    public StoredContainerRequest(Resource capability, String[] hosts,
+        String[] racks, Priority priority) {
+      super(capability, hosts, racks, priority, 1);
+    }
+    
+    void setCookie(T cookie) {
+      this.cookie = cookie;
+    }
+    
+    T getCookie() {
+      return cookie;
+    }    
+  }
+  
   /**
    * Register the application master. This must be called before any 
    * other interaction
@@ -83,12 +92,13 @@ public interface AMRMClient <T> extends Service {
    * @param appTrackingUrl URL at which the master info can be seen
    * @return <code>RegisterApplicationMasterResponse</code>
    * @throws YarnRemoteException
+   * @throws IOException
    */
   public RegisterApplicationMasterResponse 
                registerApplicationMaster(String appHostName,
                                          int appHostPort,
                                          String appTrackingUrl) 
-               throws YarnRemoteException;
+               throws YarnRemoteException, IOException;
   
   /**
    * Request additional containers and receive new container allocations.
@@ -103,9 +113,10 @@ public interface AMRMClient <T> extends Service {
    * @param progressIndicator Indicates progress made by the master
    * @return the response of the allocate request
    * @throws YarnRemoteException
+   * @throws IOException
    */
   public AllocateResponse allocate(float progressIndicator) 
-                           throws YarnRemoteException;
+                           throws YarnRemoteException, IOException;
   
   /**
    * Unregister the application master. This must be called in the end.
@@ -113,17 +124,18 @@ public interface AMRMClient <T> extends Service {
    * @param appMessage Diagnostics message on failure
    * @param appTrackingUrl New URL to get master info
    * @throws YarnRemoteException
+   * @throws IOException
    */
   public void unregisterApplicationMaster(FinalApplicationStatus appStatus,
                                            String appMessage,
                                            String appTrackingUrl) 
-               throws YarnRemoteException;
+               throws YarnRemoteException, IOException;
   
   /**
    * Request containers for resources before calling <code>allocate</code>
    * @param req Resource request
    */
-  public void addContainerRequest(ContainerRequest<T> req);
+  public void addContainerRequest(T req);
   
   /**
    * Remove previous container request. The previous container request may have 
@@ -132,7 +144,7 @@ public interface AMRMClient <T> extends Service {
    * even after the remove request
    * @param req Resource request
    */
-  public void removeContainerRequest(ContainerRequest<T> req);
+  public void removeContainerRequest(T req);
   
   /**
    * Release containers assigned by the Resource Manager. If the app cannot use
@@ -156,4 +168,15 @@ public interface AMRMClient <T> extends Service {
    * @return Current number of nodes in the cluster
    */
   public int getClusterNodeCount();
+
+  /**
+   * Get outstanding <code>StoredContainerRequest</code>s matching the given 
+   * parameters. These StoredContainerRequests should have been added via
+   * <code>addContainerRequest</code> earlier in the lifecycle.
+   */
+  public Collection<T> getMatchingRequests(
+                                     Priority priority, 
+                                     String resourceName, 
+                                     Resource capability);
+
 }
