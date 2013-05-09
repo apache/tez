@@ -28,12 +28,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.Clock;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
 import org.apache.hadoop.yarn.state.MultipleArcTransition;
@@ -56,8 +55,8 @@ import org.apache.tez.dag.app.dag.TaskStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
-import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
+import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
@@ -85,7 +84,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private static final Log LOG = LogFactory.getLog(TaskImpl.class);
 
   protected final TezConfiguration conf;
-  protected final Path jobFile;
   protected final int partition;
   protected final TaskAttemptListener taskAttemptListener;
   protected final TaskHeartbeatHandler taskHeartbeatHandler;
@@ -106,9 +104,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   protected Token<JobTokenIdentifier> jobToken;
   protected String processorName;
   protected TaskLocationHint locationHint;
-  private Resource taskResource;
-  private Map<String, LocalResource> localResources;
-  private Map<String, String> environment;
+  protected Resource taskResource;
+  protected Map<String, LocalResource> localResources;
+  protected Map<String, String> environment;
   
   // counts the number of attempts that are either running or in a state where
   //  they will come to be running when they get a Container
@@ -256,7 +254,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   private final boolean leafVertex;
 
-  private String javaOpts;
+  protected String javaOpts;
 
   @Override
   public TaskState getState() {
@@ -269,7 +267,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   public TaskImpl(TezVertexID vertexId, int partition,
-      EventHandler eventHandler, Path remoteJobConfFile, TezConfiguration conf,
+      EventHandler eventHandler, TezConfiguration conf,
       TaskAttemptListener taskAttemptListener,
       Token<JobTokenIdentifier> jobToken,
       Credentials credentials, Clock clock,
@@ -286,7 +284,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       String javaOpts) {
     this.conf = conf;
     this.clock = clock;
-    this.jobFile = remoteJobConfFile;
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     readLock = readWriteLock.readLock();
     writeLock = readWriteLock.writeLock();
@@ -605,7 +602,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   TaskAttemptImpl createAttempt(int attemptNumber) {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
-        taskAttemptListener, null, 0, conf,
+        taskAttemptListener, 0, conf,
         jobToken, credentials, clock, taskHeartbeatHandler,
         appContext, processorName, locationHint, taskResource,
         localResources, environment, javaOpts, (failedAttempts>0));
@@ -797,14 +794,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 	  return "";
   }
 
-  private void logJobHistoryTaskStartedEvent() {
+  protected void logJobHistoryTaskStartedEvent() {
     TaskStartedEvent startEvt = new TaskStartedEvent(taskId,
         getVertex().getName(), scheduledTime, getLaunchTime());
     this.eventHandler.handle(new DAGHistoryEvent(
         taskId.getVertexID().getDAGId(), startEvt));
   }
   
-  private void logJobHistoryTaskFinishedEvent() {
+  protected void logJobHistoryTaskFinishedEvent() {
     // FIXME need to handle getting finish time as this function
     // is called from within a transition
     TaskFinishedEvent finishEvt = new TaskFinishedEvent(taskId,
@@ -813,7 +810,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         taskId.getVertexID().getDAGId(), finishEvt));
   }
   
-  private void logJobHistoryTaskFailedEvent(TaskState finalState) {
+  protected void logJobHistoryTaskFailedEvent(TaskState finalState) {
     TaskFinishedEvent finishEvt = new TaskFinishedEvent(taskId,
         getVertex().getName(), clock.getTime(), finalState);
     this.eventHandler.handle(new DAGHistoryEvent(

@@ -822,7 +822,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         TaskImpl task =
             new TaskImpl(vertex.getVertexId(), i,
                 vertex.eventHandler,
-                null,
                 conf,
                 vertex.taskAttemptListener,
                 vertex.jobToken,

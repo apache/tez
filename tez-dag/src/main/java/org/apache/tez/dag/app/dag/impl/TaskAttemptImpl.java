@@ -31,7 +31,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
@@ -112,7 +111,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   private static final long MEMORY_SPLITS_RESOLUTION = 1024; //TODO Make configurable?
 
   protected final TezConfiguration conf;
-  protected final Path jobFile;
   protected final int partition;
   @SuppressWarnings("rawtypes")
   protected EventHandler eventHandler;
@@ -141,11 +139,11 @@ public class TaskAttemptImpl implements TaskAttempt,
   private TaskAttemptStatus reportedStatus;
 
   protected final TaskLocationHint locationHint;
-  private final Resource taskResource;
-  private final Map<String, LocalResource> localResources;
-  private final Map<String, String> environment;
-  private final String javaOpts;
-  private final boolean isRescheduled;
+  protected final Resource taskResource;
+  protected final Map<String, LocalResource> localResources;
+  protected final Map<String, String> environment;
+  protected final String javaOpts;
+  protected final boolean isRescheduled;
 
   private boolean speculatorContainerRequestSent = false;
   protected String processorName;
@@ -255,7 +253,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   // TODO Remove TaskAttemptListener from the constructor.
   @SuppressWarnings("rawtypes")
   public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
-      TaskAttemptListener tal, Path jobFile, int partition, 
+      TaskAttemptListener tal, int partition, 
       TezConfiguration conf,
       Token<JobTokenIdentifier> jobToken, Credentials credentials, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
@@ -269,7 +267,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.attemptId = TezBuilderUtils.newTaskAttemptId(taskId, attemptNumber);
     this.eventHandler = eventHandler;
     //Reported status
-    this.jobFile = jobFile;
     this.partition = partition;
     this.conf = conf;
     this.jobToken = jobToken;
@@ -787,7 +784,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   @SuppressWarnings("unchecked")
-  private void logJobHistoryAttemptStarted() {
+  protected void logJobHistoryAttemptStarted() {
     TaskAttemptStartedEvent startEvt = new TaskAttemptStartedEvent(
         attemptId, getTask().getVertex().getName(),
         launchTime, containerId, containerNodeId);
@@ -797,7 +794,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   @SuppressWarnings("unchecked")
-  private void logJobHistoryAttemptFinishedEvent(TaskAttemptStateInternal state) {
+  protected void logJobHistoryAttemptFinishedEvent(TaskAttemptStateInternal state) {
     //Log finished events only if an attempt started.
     if (getLaunchTime() == 0) return;
     
@@ -811,7 +808,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   @SuppressWarnings("unchecked")
-  private void logJobHistoryAttemptUnsuccesfulCompletion(
+  protected void logJobHistoryAttemptUnsuccesfulCompletion(
       TaskAttemptState state) {
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
         attemptId, getTask().getVertex().getName(),
