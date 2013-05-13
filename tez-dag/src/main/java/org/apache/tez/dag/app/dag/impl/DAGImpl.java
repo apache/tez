@@ -44,7 +44,6 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.Clock;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
@@ -53,13 +52,15 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DAGConfiguration;
-import org.apache.tez.dag.api.DAGLocationHint;
+import org.apache.tez.dag.api.DAGPlan.EdgePlan;
+import org.apache.tez.dag.api.DAGPlan.JobPlan;
+import org.apache.tez.dag.api.DAGPlan.VertexPlan;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.impl.TezBuilderUtils;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
@@ -124,16 +125,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final long appSubmitTime;
   private final AppContext appContext;
 
-  volatile Map<TezVertexID, Vertex> vertices =
-      new HashMap<TezVertexID, Vertex>();
-  private Map<String, EdgeProperty> edgeProperties = 
-                                          new HashMap<String, EdgeProperty>();
+  volatile Map<TezVertexID, Vertex> vertices = new HashMap<TezVertexID, Vertex>();
+  private Map<String, EdgeProperty> edges = new HashMap<String, EdgeProperty>(); 
   private TezCounters dagCounters = new TezCounters();
   private Object fullCountersLock = new Object();
   private TezCounters fullCounters = null;
 
   public final TezConfiguration conf;
-  public final DAGConfiguration dagPlan;
+  private final JobPlan jobPlan;
 
   //fields initialized in init
   private FileSystem fs;
@@ -150,9 +149,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       new CounterUpdateTransition();
   private static final DAGSchedulerUpdateTransition 
           DAG_SCHEDULER_UPDATE_TRANSITION = new DAGSchedulerUpdateTransition();
-
-  // Location hints for all vertices in DAG
-  private final DAGLocationHint dagLocationHint;
 
   protected static final
     StateMachineFactory<DAGImpl, DAGState, DAGEventType, DAGEvent>
@@ -315,7 +311,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   public DAGImpl(TezDAGID dagId, ApplicationAttemptId applicationAttemptId,
       TezConfiguration conf,
-      DAGConfiguration dagPlan,
+      JobPlan jobPlan,
       EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
       JobTokenSecretManager jobTokenSecretManager,
@@ -327,14 +323,13 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       // TODO Recovery
       //List<AMInfo> amInfos,
       TaskHeartbeatHandler thh,
-      AppContext appContext,
-      DAGLocationHint dagLocationHint) {
+      AppContext appContext) {
     this.applicationAttemptId = applicationAttemptId;
     this.dagId = dagId;
-    this.dagPlan = dagPlan;
+    this.jobPlan = jobPlan;
     this.conf = conf;
-    this.dagName = (dagPlan.getName() != null) ? dagPlan.getName() : 
-                                                  "<missing app name>";
+    this.dagName = (jobPlan.getName() != null) ? jobPlan.getName() : "<missing app name>";
+    
     this.userName = appUserName;
     // TODO Metrics
     //this.metrics = metrics;
@@ -357,8 +352,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     this.aclsManager = new ApplicationACLsManager(conf);
 
-    this.dagLocationHint = dagLocationHint;
-
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
@@ -380,8 +373,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
   
   @Override
-  public DAGConfiguration getDagPlan() {
-    return dagPlan;
+  public JobPlan getJobPlan() {
+    return jobPlan;
   }
 
   EventHandler getEventHandler() {
@@ -812,18 +805,19 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         */
 
         // create the vertices
-        String[] vertexNames = dag.getDagPlan().getVertices();
-        dag.numVertices = vertexNames.length;
+        dag.numVertices = dag.getJobPlan().getVertexCount();
         for (int i=0; i < dag.numVertices; ++i) {
-          VertexImpl v = createVertex(dag, vertexNames[i], i);
+          String vertexName = dag.getJobPlan().getVertex(i).getName();
+          VertexImpl v = createVertex(dag, vertexName, i);
           dag.addVertex(v);
         }
 
-        dag.edgeProperties = dag.getDagPlan().getEdgeProperties();
-
+        dag.edges = DagTypeConverters.createEdgePropertyMapFromDAGPlan(dag.getJobPlan().getEdgeList());
+        Map<String,EdgePlan> edgePlans = DagTypeConverters.createEdgePlanMapFromDAGPlan(dag.getJobPlan().getEdgeList());
+        
         // setup the dag
         for (Vertex v : dag.vertices.values()) {
-          parseVertexEdges(dag, v);
+          parseVertexEdges(dag, edgePlans, v);
         }
 
         dag.dagScheduler = new DAGSchedulerNaturalOrder(dag, dag.eventHandler);
@@ -846,39 +840,43 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     private VertexImpl createVertex(DAGImpl dag, String vertexName, int vId) {
       TezVertexID vertexId = TezBuilderUtils.newVertexID(dag.getID(), vId);
+      
+      VertexPlan vertexPlan = dag.getJobPlan().getVertex(vId);
+      VertexLocationHint vertexLocationHint = DagTypeConverters.convertFromDAGPlan(vertexPlan.getTaskLocationHintList());
+        
       return new VertexImpl(
-          vertexId, vertexName, dag.conf,
+          vertexId, vertexPlan, vertexName, dag.conf,
           dag.eventHandler, dag.taskAttemptListener,
           dag.jobToken, dag.fsTokens, dag.clock,
           dag.taskHeartbeatHandler, dag.appContext,
-          dag.dagLocationHint.getVertexLocationHint(vertexName));
+          vertexLocationHint);
     }
 
-    private void parseVertexEdges(DAGImpl dag, Vertex vertex) {
-      String[] inVerticesNames =
-          dag.getDagPlan().getInputVertices(vertex.getName());
-      List<String> inEdges =
-          dag.getDagPlan().getInputEdgeIds(vertex.getName());
+    // hooks up this VertexImpl to input and output EdgeProperties
+    private void parseVertexEdges(DAGImpl dag, Map<String, EdgePlan> edgePlans, Vertex vertex) {
+      VertexPlan vertexPlan = vertex.getVertexPlan();
+
       Map<Vertex, EdgeProperty> inVertices =
           new HashMap<Vertex, EdgeProperty>();
-      for (int i=0; i < inVerticesNames.length; ++i) {
-        String vertexName = inVerticesNames[i];
-        inVertices.put(dag.getVertex(vertexName), 
-                       dag.edgeProperties.get(inEdges.get(i)));
-      }
-      vertex.setInputVertices(inVertices);
 
-      String[] outVerticesNames =
-          dag.getDagPlan().getOutputVertices(vertex.getName());
-      List<String> outEdges =
-          dag.getDagPlan().getOutputEdgeIds(vertex.getName());
       Map<Vertex, EdgeProperty> outVertices =
           new HashMap<Vertex, EdgeProperty>();
-      for (int i=0; i < outVerticesNames.length; ++i) {
-        String vertexName = outVerticesNames[i];
-        outVertices.put(dag.getVertex(vertexName), 
-                        dag.edgeProperties.get(outEdges.get(i)));
+
+      for(String inEdgeId : vertexPlan.getInEdgeIdList()){
+        EdgePlan edgePlan = edgePlans.get(inEdgeId);
+        Vertex inVertex = dag.vertexMap.get(edgePlan.getInputVertexName());    
+        EdgeProperty edgeProp = dag.edges.get(inEdgeId);
+        inVertices.put(inVertex, edgeProp);
       }
+      
+      for(String outEdgeId : vertexPlan.getOutEdgeIdList()){
+        EdgePlan edgePlan = edgePlans.get(outEdgeId);
+        Vertex outVertex = dag.vertexMap.get(edgePlan.getOutputVertexName());    
+        EdgeProperty edgeProp = dag.edges.get(outEdgeId);
+        outVertices.put(outVertex, edgeProp);
+      }
+      
+      vertex.setInputVertices(inVertices);
       vertex.setOutputVertices(outVertices);
     }
 
@@ -1145,11 +1143,4 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       job.finished(DAGState.ERROR);
     }
   }
-
-  @Override
-  public VertexLocationHint getVertexLocationHint(TezVertexID vertexId) {
-    return dagLocationHint.getVertexLocationHint(
-        getVertex(vertexId).getName());
-  }
-
 }

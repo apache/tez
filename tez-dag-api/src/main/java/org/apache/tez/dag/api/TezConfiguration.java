@@ -98,5 +98,6 @@ private static final String TEZ_CONF_DIR_ENV = "TEZ_CONF_DIR";
     TEZ_HOME_ENV + "/lib/*"
   };
 
-  public static final String DAG_AM_PLAN_CONFIG_XML = "tez-dag.xml";
+  public static final String DAG_AM_PLAN_PB_BINARY = "tez-dag.pb";
+  public static final String DAG_AM_PLAN_PB_TEXT = "tez-dag.pb.txt";
 }

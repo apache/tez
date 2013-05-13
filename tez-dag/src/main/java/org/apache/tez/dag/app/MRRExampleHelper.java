@@ -17,7 +17,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.BuilderUtils;
-import org.apache.tez.dag.api.DAGConfiguration;
+import org.apache.tez.dag.api.DAGPlan.JobPlan;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
@@ -84,7 +84,10 @@ public class MRRExampleHelper {
    return resourceNames;
  }
 
- static Configuration createDAGConfigurationForMRR() throws IOException {
+ // TODO: these preconfigured jobs seem to require User and perhaps some other work.
+ //       -> not tested with new DagPB system.
+ 
+ static JobPlan createDAGConfigurationForMRR() throws IOException {
    org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG();
    Vertex mapVertex = new Vertex("map",
        "org.apache.tez.mapreduce.task.InitialTask", 6);
@@ -143,16 +146,15 @@ public class MRRExampleHelper {
    dag.addEdge(edge1);
    dag.addEdge(edge2);
    dag.verify();
-   DAGConfiguration dagConf = dag.serializeDag();
-
-   dagConf.setBoolean(MRJobConfig.MAP_SPECULATIVE, false);
-   dagConf.setBoolean(MRJobConfig.REDUCE_SPECULATIVE, false);
-
-   return dagConf;
+   dag.addConfiguration(MRJobConfig.MAP_SPECULATIVE, new Boolean(false).toString());
+   dag.addConfiguration(MRJobConfig.REDUCE_SPECULATIVE, new Boolean(false).toString());
+   
+   JobPlan dagPB = dag.createDag();
+   return dagPB;
  }
 
  // TODO remove once client is in place
- static Configuration createDAGConfigurationForMR() throws IOException {
+ static JobPlan createDAGConfigurationForMR() throws IOException {
    org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG();
    Vertex mapVertex = new Vertex("map",
        "org.apache.tez.mapreduce.task.InitialTask", 6);
@@ -194,12 +196,13 @@ public class MRRExampleHelper {
    dag.addVertex(reduceVertex);
    dag.addEdge(edge);
    dag.verify();
-   DAGConfiguration dagConf = dag.serializeDag();
-
-   dagConf.setBoolean(MRJobConfig.MAP_SPECULATIVE, false);
-   dagConf.setBoolean(MRJobConfig.REDUCE_SPECULATIVE, false);
-
-   return dagConf;
+   
+   dag.addConfiguration(MRJobConfig.MAP_SPECULATIVE, new Boolean(false).toString());
+   dag.addConfiguration(MRJobConfig.REDUCE_SPECULATIVE, new Boolean(false).toString());
+   
+   JobPlan dagPB = dag.createDag();
+   
+   return dagPB;
  }
   
 }

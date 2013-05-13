@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.EnumSet;
@@ -62,8 +63,9 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.service.CompositeService;
 import org.apache.hadoop.yarn.service.Service;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.dag.api.DAGConfiguration;
-import org.apache.tez.dag.api.DAGLocationHint;
+import org.apache.tez.dag.api.DAGPlan.JobPlan;
+import org.apache.tez.dag.api.DAGPlan.VertexPlan;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.client.ClientService;
 import org.apache.tez.dag.app.client.impl.TezClientService;
@@ -131,7 +133,7 @@ public class DAGAppMaster extends CompositeService {
   public static final int SHUTDOWN_HOOK_PRIORITY = 30;
 
   private Clock clock;
-  private final DAGConfiguration dagPlan;
+  private final JobPlan jobPlan;
   private long dagsStartTime;
   private final long startTime;
   private final long appSubmitTime;
@@ -170,8 +172,6 @@ public class DAGAppMaster extends CompositeService {
   private TaskSchedulerEventHandler taskSchedulerEventHandler;
   private HistoryEventHandler historyEventHandler;
 
-  private DAGLocationHint dagLocationHint;
-
   private DAGAppMasterState state;
 
   private DAG dag;
@@ -180,16 +180,16 @@ public class DAGAppMaster extends CompositeService {
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      long appSubmitTime, DAGConfiguration dagPlan) {
+      long appSubmitTime, JobPlan dagPB) {
     this(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort,
-        new SystemClock(), appSubmitTime, dagPlan);
+        new SystemClock(), appSubmitTime, dagPB);
   }
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      Clock clock, long appSubmitTime, DAGConfiguration dagPlan) {
+      Clock clock, long appSubmitTime, JobPlan dagPB) {
     super(DAGAppMaster.class.getName());
-    this.dagPlan = dagPlan;
+    this.jobPlan = dagPB;
     this.clock = clock;
     this.startTime = clock.getTime();
     this.appSubmitTime = appSubmitTime;
@@ -215,13 +215,12 @@ public class DAGAppMaster extends CompositeService {
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
 
     downloadTokensAndSetupUGI(conf);
-    setupDAGLocationHint(dagPlan);
 
     context = new RunningAppContext(conf);
 
     // Job name is the same as the app name util we support DAG of jobs
     // for an app later
-    appName = dagPlan.getName();
+    appName = jobPlan.getName();
 
     dagId = new TezDAGID(appAttemptID.getApplicationId(), 1);
 
@@ -521,11 +520,11 @@ public class DAGAppMaster extends CompositeService {
 //  }
 
   /** Create and initialize (but don't start) a single dag. */
-  protected DAG createDAG(DAGConfiguration dagPlan) {
+  protected DAG createDAG(JobPlan dagPB) {
 
     // create single job
     DAG newDag =
-        new DAGImpl(dagId, appAttemptID, conf, dagPlan, dispatcher.getEventHandler(),
+        new DAGImpl(dagId, appAttemptID, conf, dagPB, dispatcher.getEventHandler(),
             taskAttemptListener, jobTokenSecretManager, fsTokens, clock,
             // TODO Recovery
             //completedTasksFromPreviousRun,
@@ -534,7 +533,7 @@ public class DAGAppMaster extends CompositeService {
             //committer, newApiCommitter,
             currentUser.getShortUserName(), appSubmitTime,
             //amInfos,
-            taskHeartbeatHandler, context, dagLocationHint);
+            taskHeartbeatHandler, context);
     ((RunningAppContext) context).setDAG(newDag);
 
     dispatcher.register(DAGFinishEvent.Type.class,
@@ -572,23 +571,6 @@ public class DAGAppMaster extends CompositeService {
           }
           currentUser.addToken(tk); // For use by AppMaster itself.
         }
-      }
-    } catch (IOException e) {
-      throw new YarnException(e);
-    }
-  }
-
-  protected void setupDAGLocationHint(DAGConfiguration conf) {
-    try {
-      String dagLocationHintFile =
-          conf.get(DAGConfiguration.DAG_LOCATION_HINT_RESOURCE_FILE,
-              DAGConfiguration.DEFAULT_DAG_LOCATION_HINT_RESOURCE_FILE);
-      File f = new File(dagLocationHintFile);
-      if (f.exists()) {
-        this.dagLocationHint = DAGLocationHint.initDAGDagLocationHint(
-            dagLocationHintFile);
-      } else {
-        this.dagLocationHint = new DAGLocationHint();
       }
     } catch (IOException e) {
       throw new YarnException(e);
@@ -846,7 +828,7 @@ public class DAGAppMaster extends CompositeService {
     */
     
     // /////////////////// Create the job itself.
-    dag = createDAG(dagPlan);
+    dag = createDAG(jobPlan);
 
     // End of creating the job.
 
@@ -973,27 +955,41 @@ public class DAGAppMaster extends CompositeService {
       // Default to running mr if nothing specified.
       // TODO change this once the client is ready.
       String type;
-      DAGConfiguration dagPlan = null;
       TezConfiguration conf = new TezConfiguration(new YarnConfiguration());
+      
+      JobPlan jobPlan = null;
       if (cliParser.hasOption(OPT_PREDEFINED)) {
         LOG.info("Running with PreDefined configuration");
         type = cliParser.getOptionValue(OPT_PREDEFINED, "mr");
         LOG.info("Running job type: " + type);
 
         if (type.equals("mr")) {
-          dagPlan = (DAGConfiguration)MRRExampleHelper.createDAGConfigurationForMR();
+          jobPlan = MRRExampleHelper.createDAGConfigurationForMR();
         } else if (type.equals("mrr")) {
-          dagPlan = (DAGConfiguration)MRRExampleHelper.createDAGConfigurationForMRR();
+          jobPlan = MRRExampleHelper.createDAGConfigurationForMRR();
         }
-      } else {
-        dagPlan = new DAGConfiguration();
-        dagPlan.addResource(TezConfiguration.DAG_AM_PLAN_CONFIG_XML);
+      } 
+      else {
+        // Read the protobuf DAG
+        JobPlan.Builder dagPlanBuilder = JobPlan.newBuilder(); 
+        FileInputStream dagPBBinaryStream = null;
+        try {
+          dagPBBinaryStream = new FileInputStream(TezConfiguration.DAG_AM_PLAN_PB_BINARY);
+          dagPlanBuilder.mergeFrom(dagPBBinaryStream);
+        }
+        finally {
+          if(dagPBBinaryStream != null){
+            dagPBBinaryStream.close();  
+          }
+        }
+
+        jobPlan = dagPlanBuilder.build();
       }
 
       LOG.info("XXXX Running a DAG with "
-          + dagPlan.getVertices().length + " vertices ");
-      for (String v : dagPlan.getVertices()) {
-        LOG.info("XXXX DAG has vertex " + v);
+          + jobPlan.getVertexCount() + " vertices ");
+      for (VertexPlan v : jobPlan.getVertexList()) {
+        LOG.info("XXXX DAG has vertex " + v.getName());
       }
 
       String jobUserName = System
@@ -1004,7 +1000,7 @@ public class DAGAppMaster extends CompositeService {
       // the objects myself.
       conf.setBoolean("fs.automatic.close", false);
       
-      Map<String, String> config = dagPlan.getConfig();
+      Map<String, String> config = DagTypeConverters.createSettingsMapFromDAGPlan(jobPlan.getJobSettingList());
       for(Entry<String, String> entry : config.entrySet()) {
         conf.set(entry.getKey(), entry.getValue());
       }
@@ -1012,7 +1008,7 @@ public class DAGAppMaster extends CompositeService {
       DAGAppMaster appMaster =
           new DAGAppMaster(applicationAttemptId, containerId, nodeHostString,
               Integer.parseInt(nodePortString),
-              Integer.parseInt(nodeHttpPortString), appSubmitTime, dagPlan);
+              Integer.parseInt(nodeHttpPortString), appSubmitTime, jobPlan);
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 

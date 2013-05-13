@@ -82,6 +82,12 @@ public class TezEngineChildJVM {
     //set custom javaOpts
     vargs.add(javaOpts); 
     
+//[Debug Task] Current simplest way to attach debugger to  Tez Child Task
+// Uncomment the following, then launch a regular job
+// Works best on one-box configured with a single container (hence one task at a time). 
+//    LOG.error(" !!!!!!!!! Launching Child-Task in debug/suspend mode.  Attach to port 8003 !!!!!!!!");
+//    vargs.add("-Xdebug -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=8003,server=y,suspend=y");
+    
     Path childTmpDir = new Path(Environment.PWD.$(),
         YarnConfiguration.DEFAULT_CONTAINER_TEMP_DIR);
     vargs.add("-Djava.io.tmpdir=" + childTmpDir);

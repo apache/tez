@@ -18,14 +18,7 @@
 
 package org.apache.tez.dag.api;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
-
-public class VertexLocationHint implements Writable {
+public class VertexLocationHint  {
 
   private int numTasks;
   private TaskLocationHint[] taskLocationHints;
@@ -56,7 +49,7 @@ public class VertexLocationHint implements Writable {
     this.taskLocationHints = taskLocationHints;
   }
 
-  public static class TaskLocationHint implements Writable {
+  public static class TaskLocationHint {
 
     // Host names if any to be used
     private String[] hosts;
@@ -84,77 +77,5 @@ public class VertexLocationHint implements Writable {
     public void setRacks(String[] racks) {
       this.racks = racks;
     }
-
-    private void writeStringArray(DataOutput out, String[] array)
-        throws IOException {
-      if (array == null) {
-        out.writeInt(-1);
-        return;
-      }
-      out.writeInt(array.length);
-      for (String entry : array) {
-        out.writeBoolean(entry != null);
-        if (entry != null) {
-          Text.writeString(out, entry);
-        }
-      }
-    }
-
-    private String[] readStringArray(DataInput in)
-        throws IOException {
-      int arrayLen = in.readInt();
-      if (arrayLen == -1) {
-        return null;
-      }
-      String[] array = new String[arrayLen];
-      for (int i = 0; i < arrayLen; ++i) {
-        if (!in.readBoolean()) {
-          array[i] = null;
-        } else {
-          array[i] = Text.readString(in);
-        }
-      }
-      return array;
-    }
-
-    @Override
-    public void write(DataOutput out) throws IOException {
-      writeStringArray(out, hosts);
-      writeStringArray(out, racks);
-    }
-
-    @Override
-    public void readFields(DataInput in) throws IOException {
-      hosts = readStringArray(in);
-      racks = readStringArray(in);
-    }
-
-
   }
-
-  @Override
-  public void write(DataOutput out) throws IOException {
-    out.writeInt(numTasks);
-    for (int i = 0; i < numTasks; ++i) {
-      out.writeBoolean(taskLocationHints[i] != null);
-      if (taskLocationHints[i] != null) {
-        taskLocationHints[i].write(out);
-      }
-    }
-  }
-
-  @Override
-  public void readFields(DataInput in) throws IOException {
-    numTasks = in.readInt();
-    taskLocationHints = new TaskLocationHint[numTasks];
-    for (int i = 0; i < numTasks; ++i) {
-      if (!in.readBoolean()) {
-        taskLocationHints[i] = null;
-      } else {
-        taskLocationHints[i] = new TaskLocationHint(null, null);
-        taskLocationHints[i].readFields(in);
-      }
-    }
-  }
-
 }

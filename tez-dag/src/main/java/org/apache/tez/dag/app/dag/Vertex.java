@@ -28,6 +28,7 @@ import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.DAGPlan.VertexPlan;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 import org.apache.tez.engine.records.TezTaskID;
 import org.apache.tez.engine.records.TezVertexID;
@@ -39,6 +40,8 @@ import org.apache.tez.engine.records.TezVertexID;
 public interface Vertex extends Comparable<Vertex> {
 
   TezVertexID getVertexId();
+  public VertexPlan getVertexPlan();
+  
   int getDistanceFromRoot();
   String getName();
   VertexState getState();

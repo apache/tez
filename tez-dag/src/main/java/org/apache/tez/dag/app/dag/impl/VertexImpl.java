@@ -55,7 +55,8 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DAGConfiguration;
+import org.apache.tez.dag.api.DAGPlan.VertexPlan;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -324,7 +325,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private Credentials fsTokens;
   private Token<JobTokenIdentifier> jobToken;
 
-  private final TezVertexID vertexId;
+  private final TezVertexID vertexId;  //runtime assigned id.
+  private final VertexPlan vertexPlan;  
 
   private final String vertexName;
   private final String processorName;
@@ -341,7 +343,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private Map<String, String> environment;
   private String javaOpts;
   
-  public VertexImpl(TezVertexID vertexId, String vertexName,
+  public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan, String vertexName,
       TezConfiguration conf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
       Token<JobTokenIdentifier> jobToken,
@@ -353,6 +355,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       TaskHeartbeatHandler thh,
       AppContext appContext, VertexLocationHint vertexLocationHint) {
     this.vertexId = vertexId;
+    this.vertexPlan = vertexPlan;
     this.vertexName = vertexName;
     this.conf = conf;
     //this.metrics = metrics;
@@ -373,12 +376,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.committer = new NullVertexOutputCommitter();
     this.vertexLocationHint = vertexLocationHint;
     
-    this.taskResource = getDAGPlan().getVertexResource(getName());
-    this.processorName = getDAGPlan().getVertexTaskModuleClassName(getName());
-    this.localResources = getDAGPlan().getVertexLocalResources(getName());
-    this.environment = getDAGPlan().getVertexEnv(getName());
-    
-    this.javaOpts = getDAGPlan().getVertexJavaOpts(getName());
+    this.taskResource = DagTypeConverters.CreateResourceRequestFromTaskConfig(vertexPlan.getTaskConfig());
+    this.processorName = vertexPlan.hasProcessorName() ? vertexPlan.getProcessorName() : null;  
+    this.localResources = DagTypeConverters.createLocalResourceMapFromDAGPlan(vertexPlan.getTaskConfig().getLocalResourceList());
+    this.environment = DagTypeConverters.createEnvironmentMapFromDAGPlan(vertexPlan.getTaskConfig().getEnvironmentSettingList());
+    this.javaOpts = vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan.getTaskConfig().getJavaOpts() : null;
     
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
@@ -392,6 +394,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @Override
   public TezVertexID getVertexId() {
     return vertexId;
+  }
+  
+  @Override
+  public VertexPlan getVertexPlan() {
+    return vertexPlan;
   }
   
   @Override
@@ -727,7 +734,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
         // TODODAGAM
         // TODO: Splits?
-        vertex.numTasks = vertex.getDAGPlan().getNumVertexTasks(vertex.getName());
+        
+        vertex.numTasks = vertex.getVertexPlan().getTaskConfig().getNumTasks();
+        
         /*
         TaskSplitMetaInfo[] taskSplitMetaInfo = createSplits(job, job.jobId);
         job.numMapTasks = taskSplitMetaInfo.length;
@@ -1217,10 +1226,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     return appContext.getDAG();
   }
   
-  DAGConfiguration getDAGPlan() {
-    return getDAG().getDagPlan();
-  }
-
   // TODO Eventually remove synchronization.
   @Override
   public synchronized List<InputSpec> getInputSpecList() {

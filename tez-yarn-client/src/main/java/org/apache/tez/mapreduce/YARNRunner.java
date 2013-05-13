@@ -99,7 +99,7 @@ import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.DAG;
-import org.apache.tez.dag.api.DAGConfiguration;
+import org.apache.tez.dag.api.DAGPlan.JobPlan;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -737,6 +737,14 @@ public class YARNRunner implements ClientProtocol {
     List<String> vargs = new ArrayList<String>(8);
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
 
+//[Debug AppMaster] Current simplest way to attach debugger to AppMaster
+// Uncomment the following, then launch a regular job, eg 
+// >hadoop jar {path}\hadoop-mapreduce-examples-3.0.0-SNAPSHOT.jar pi 2 2                  
+//     LOG.error(" !!!!!!!!!");
+//     LOG.error(" !!!!!!!!! Launching AppMaster in debug/suspend mode.  Attach to port 8002");
+//     LOG.error(" !!!!!!!!!");
+//     vargs.add("-Xdebug -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=8002,server=y,suspend=y");
+    
     // FIXME set up logging related properties
     // TODO -Dtez.root.logger??
     // MRApps.addLog4jSystemProperties(logLevel, logSize, vargs);
@@ -795,24 +803,38 @@ public class YARNRunner implements ClientProtocol {
 
     setDAGParamsFromMRConf(dag);
 
-    // FIXME add serialized dag conf
-    DAGConfiguration dagConf = dag.serializeDag();
-    
-    Path dagConfFilePath = new Path(jobSubmitDir,
-        TezConfiguration.DAG_AM_PLAN_CONFIG_XML);
-    FSDataOutputStream dagConfOut =
-        FileSystem.create(fs, dagConfFilePath,
-            new FsPermission(DAG_FILE_PERMISSION));
+    // emit protobuf DAG file style
+    JobPlan dagPB = dag.createDag();
+    FSDataOutputStream dagPBOutBinaryStream = null;
+    FSDataOutputStream dagPBOutTextStream = null;
+    Path binaryPath =  new Path(jobSubmitDir, TezConfiguration.DAG_AM_PLAN_PB_BINARY);
+    Path textPath =  new Path(jobSubmitDir, TezConfiguration.DAG_AM_PLAN_PB_TEXT);
     try {
-      dagConf.writeXml(dagConfOut);
-    } finally {
-      dagConfOut.close();
-    }
-    localResources.put(TezConfiguration.DAG_AM_PLAN_CONFIG_XML,
-        createApplicationResource(defaultFileContext,
-            dagConfFilePath, LocalResourceType.FILE));
+      //binary output
+      dagPBOutBinaryStream = FileSystem.create(fs, binaryPath,
+          new FsPermission(DAG_FILE_PERMISSION));
+      dagPB.writeTo(dagPBOutBinaryStream);
 
-    // FIXME add tez conf if needed
+      // text / human-readable output
+      dagPBOutTextStream = FileSystem.create(fs, textPath,
+          new FsPermission(DAG_FILE_PERMISSION));
+      dagPBOutTextStream.writeUTF(dagPB.toString());
+    } finally {
+      if(dagPBOutBinaryStream != null){
+        dagPBOutBinaryStream.close();
+      }
+      if(dagPBOutTextStream != null){
+        dagPBOutTextStream.close();
+      }
+    }
+
+    localResources.put(TezConfiguration.DAG_AM_PLAN_PB_BINARY,
+        createApplicationResource(defaultFileContext,
+            binaryPath, LocalResourceType.FILE));
+
+    localResources.put(TezConfiguration.DAG_AM_PLAN_PB_TEXT,
+        createApplicationResource(defaultFileContext,
+            textPath, LocalResourceType.FILE));
 
     // FIXME are we using MR acls for tez?
     Map<ApplicationAccessType, String> acls
