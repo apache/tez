@@ -17,7 +17,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.BuilderUtils;
-import org.apache.tez.dag.api.DAGPlan.JobPlan;
+import org.apache.tez.dag.api.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
@@ -87,7 +87,7 @@ public class MRRExampleHelper {
  // TODO: these preconfigured jobs seem to require User and perhaps some other work.
  //       -> not tested with new DagPB system.
  
- static JobPlan createDAGConfigurationForMRR() throws IOException {
+ static DAGPlan createDAGConfigurationForMRR() throws IOException {
    org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG();
    Vertex mapVertex = new Vertex("map",
        "org.apache.tez.mapreduce.task.InitialTask", 6);
@@ -149,12 +149,12 @@ public class MRRExampleHelper {
    dag.addConfiguration(MRJobConfig.MAP_SPECULATIVE, new Boolean(false).toString());
    dag.addConfiguration(MRJobConfig.REDUCE_SPECULATIVE, new Boolean(false).toString());
    
-   JobPlan dagPB = dag.createDag();
+   DAGPlan dagPB = dag.createDag();
    return dagPB;
  }
 
  // TODO remove once client is in place
- static JobPlan createDAGConfigurationForMR() throws IOException {
+ static DAGPlan createDAGConfigurationForMR() throws IOException {
    org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG();
    Vertex mapVertex = new Vertex("map",
        "org.apache.tez.mapreduce.task.InitialTask", 6);
@@ -200,7 +200,7 @@ public class MRRExampleHelper {
    dag.addConfiguration(MRJobConfig.MAP_SPECULATIVE, new Boolean(false).toString());
    dag.addConfiguration(MRJobConfig.REDUCE_SPECULATIVE, new Boolean(false).toString());
    
-   JobPlan dagPB = dag.createDag();
+   DAGPlan dagPB = dag.createDag();
    
    return dagPB;
  }

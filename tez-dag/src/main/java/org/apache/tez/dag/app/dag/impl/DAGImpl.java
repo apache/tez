@@ -52,9 +52,9 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DAGPlan.EdgePlan;
-import org.apache.tez.dag.api.DAGPlan.JobPlan;
-import org.apache.tez.dag.api.DAGPlan.VertexPlan;
+import org.apache.tez.dag.api.DAGProtos.EdgePlan;
+import org.apache.tez.dag.api.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -132,7 +132,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private TezCounters fullCounters = null;
 
   public final TezConfiguration conf;
-  private final JobPlan jobPlan;
+  private final DAGPlan jobPlan;
 
   //fields initialized in init
   private FileSystem fs;
@@ -311,7 +311,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   public DAGImpl(TezDAGID dagId, ApplicationAttemptId applicationAttemptId,
       TezConfiguration conf,
-      JobPlan jobPlan,
+      DAGPlan jobPlan,
       EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
       JobTokenSecretManager jobTokenSecretManager,
@@ -373,7 +373,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
   
   @Override
-  public JobPlan getJobPlan() {
+  public DAGPlan getJobPlan() {
     return jobPlan;
   }
 

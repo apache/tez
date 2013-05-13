@@ -55,7 +55,7 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DAGPlan.VertexPlan;
+import org.apache.tez.dag.api.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;

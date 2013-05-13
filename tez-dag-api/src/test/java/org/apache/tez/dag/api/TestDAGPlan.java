@@ -23,8 +23,11 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
-import org.apache.tez.dag.api.DAGPlan.*;
+import org.apache.tez.dag.api.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.DAGProtos.PlanTaskConfiguration;
+import org.apache.tez.dag.api.DAGProtos.PlanTaskLocationHint;
+import org.apache.tez.dag.api.DAGProtos.PlanVertexType;
+import org.apache.tez.dag.api.DAGProtos.VertexPlan;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,7 +41,7 @@ public class TestDAGPlan {
   @Test
   public void testBasicJobPlanSerde() throws IOException {
 
-    JobPlan job = JobPlan.newBuilder()
+    DAGPlan job = DAGPlan.newBuilder()
        .setName("test")
        .addVertex(
            VertexPlan.newBuilder()
@@ -46,7 +49,7 @@ public class TestDAGPlan {
              .setType(PlanVertexType.NORMAL)
              .addTaskLocationHint(PlanTaskLocationHint.newBuilder().addHost("machineName").addRack("rack1").build())
              .setTaskConfig(
-                 DAGPlan.PlanTaskConfiguration.newBuilder()
+                 PlanTaskConfiguration.newBuilder()
                    .setNumTasks(2)
                    .setVirtualCores(4)
                    .setMemoryMb(1024)
@@ -67,11 +70,11 @@ public class TestDAGPlan {
      }
    }
 
-   JobPlan inJob;
+   DAGPlan inJob;
    FileInputStream inputStream;
    try {
      inputStream = new FileInputStream(file);
-     inJob = JobPlan.newBuilder().mergeFrom(inputStream).build();
+     inJob = DAGPlan.newBuilder().mergeFrom(inputStream).build();
    }
    finally {
      outStream.close();  

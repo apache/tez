@@ -31,15 +31,19 @@ import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
 import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.dag.api.DAGPlan.EdgePlan;
-import org.apache.tez.dag.api.DAGPlan.PlanKeyValuePair;
-import org.apache.tez.dag.api.DAGPlan.PlanLocalResource;
-import org.apache.tez.dag.api.DAGPlan.PlanTaskConfiguration;
-import org.apache.tez.dag.api.DAGPlan.PlanTaskLocationHint;
+import org.apache.tez.dag.api.DAGProtos.EdgePlan;
+import org.apache.tez.dag.api.DAGProtos.PlanEdgeConnectionPattern;
+import org.apache.tez.dag.api.DAGProtos.PlanEdgeSourceType;
+import org.apache.tez.dag.api.DAGProtos.PlanKeyValuePair;
+import org.apache.tez.dag.api.DAGProtos.PlanLocalResource;
+import org.apache.tez.dag.api.DAGProtos.PlanLocalResourceType;
+import org.apache.tez.dag.api.DAGProtos.PlanTaskConfiguration;
+import org.apache.tez.dag.api.DAGProtos.PlanTaskLocationHint;
+import org.apache.tez.dag.api.DAGProtos.PlanLocalResourceVisibility;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty.SourceType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
-import org.apache.tez.dag.api.DAGPlan.*;
+
 
 public class DagTypeConverters {
   

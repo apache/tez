@@ -63,8 +63,8 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.service.CompositeService;
 import org.apache.hadoop.yarn.service.Service;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.dag.api.DAGPlan.JobPlan;
-import org.apache.tez.dag.api.DAGPlan.VertexPlan;
+import org.apache.tez.dag.api.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.client.ClientService;
@@ -133,7 +133,7 @@ public class DAGAppMaster extends CompositeService {
   public static final int SHUTDOWN_HOOK_PRIORITY = 30;
 
   private Clock clock;
-  private final JobPlan jobPlan;
+  private final DAGPlan jobPlan;
   private long dagsStartTime;
   private final long startTime;
   private final long appSubmitTime;
@@ -180,14 +180,14 @@ public class DAGAppMaster extends CompositeService {
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      long appSubmitTime, JobPlan dagPB) {
+      long appSubmitTime, DAGPlan dagPB) {
     this(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort,
         new SystemClock(), appSubmitTime, dagPB);
   }
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      Clock clock, long appSubmitTime, JobPlan dagPB) {
+      Clock clock, long appSubmitTime, DAGPlan dagPB) {
     super(DAGAppMaster.class.getName());
     this.jobPlan = dagPB;
     this.clock = clock;
@@ -520,7 +520,7 @@ public class DAGAppMaster extends CompositeService {
 //  }
 
   /** Create and initialize (but don't start) a single dag. */
-  protected DAG createDAG(JobPlan dagPB) {
+  protected DAG createDAG(DAGPlan dagPB) {
 
     // create single job
     DAG newDag =
@@ -957,7 +957,7 @@ public class DAGAppMaster extends CompositeService {
       String type;
       TezConfiguration conf = new TezConfiguration(new YarnConfiguration());
       
-      JobPlan jobPlan = null;
+      DAGPlan jobPlan = null;
       if (cliParser.hasOption(OPT_PREDEFINED)) {
         LOG.info("Running with PreDefined configuration");
         type = cliParser.getOptionValue(OPT_PREDEFINED, "mr");
@@ -971,7 +971,7 @@ public class DAGAppMaster extends CompositeService {
       } 
       else {
         // Read the protobuf DAG
-        JobPlan.Builder dagPlanBuilder = JobPlan.newBuilder(); 
+        DAGPlan.Builder dagPlanBuilder = DAGPlan.newBuilder(); 
         FileInputStream dagPBBinaryStream = null;
         try {
           dagPBBinaryStream = new FileInputStream(TezConfiguration.DAG_AM_PLAN_PB_BINARY);

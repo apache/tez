@@ -27,10 +27,15 @@ import java.util.Map.Entry;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.dag.api.DAGPlan.PlanTaskLocationHint;
+import org.apache.tez.dag.api.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.DAGProtos.EdgePlan;
+import org.apache.tez.dag.api.DAGProtos.PlanKeyValuePair;
+import org.apache.tez.dag.api.DAGProtos.PlanLocalResource;
+import org.apache.tez.dag.api.DAGProtos.PlanTaskConfiguration;
+import org.apache.tez.dag.api.DAGProtos.PlanTaskLocationHint;
+import org.apache.tez.dag.api.DAGProtos.PlanVertexType;
+import org.apache.tez.dag.api.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
-import org.apache.tez.dag.api.DAGPlan.*;
-
 
 public class DAG { // FIXME rename to Topology
   List<Vertex> vertices;
@@ -88,8 +93,8 @@ public class DAG { // FIXME rename to Topology
   }
     
   // create protobuf message describing DAG
-  public JobPlan createDag(){
-    JobPlan.Builder jobBuilder = JobPlan.newBuilder();
+  public DAGPlan createDag(){
+    DAGPlan.Builder jobBuilder = DAGPlan.newBuilder();  
 
     jobBuilder.setName(this.name);
 

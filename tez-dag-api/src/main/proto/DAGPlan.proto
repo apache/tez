@@ -17,7 +17,7 @@
  */
 
 option java_package = "org.apache.tez.dag.api";
-option java_outer_classname = "DAGPlan";
+option java_outer_classname = "DAGProtos";
 option java_generate_equals_and_hash = true;
 package org.apache.tez.dag.api;
 
@@ -111,7 +111,7 @@ message EdgePlan {
   required string outputClass = 7;
 }
 
-message JobPlan {
+message DAGPlan {
   required string name = 1;
   repeated VertexPlan vertex = 3;
   repeated EdgePlan edge = 4;

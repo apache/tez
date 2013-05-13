@@ -99,7 +99,7 @@ import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.DAG;
-import org.apache.tez.dag.api.DAGPlan.JobPlan;
+import org.apache.tez.dag.api.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -804,7 +804,7 @@ public class YARNRunner implements ClientProtocol {
     setDAGParamsFromMRConf(dag);
 
     // emit protobuf DAG file style
-    JobPlan dagPB = dag.createDag();
+    DAGPlan dagPB = dag.createDag();
     FSDataOutputStream dagPBOutBinaryStream = null;
     FSDataOutputStream dagPBOutTextStream = null;
     Path binaryPath =  new Path(jobSubmitDir, TezConfiguration.DAG_AM_PLAN_PB_BINARY);

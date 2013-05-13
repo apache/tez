@@ -24,9 +24,8 @@ import java.util.Map;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DAGPlan.JobPlan;
+import org.apache.tez.dag.api.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.engine.records.TezDAGID;
 import org.apache.tez.engine.records.TezVertexID;
 
@@ -60,7 +59,7 @@ public interface DAG {
   
   TezConfiguration getConf();
   
-  JobPlan getJobPlan();
+  DAGPlan getJobPlan();
   
   /**
    * @return the ACLs for this job for each type of JobACL given. 
