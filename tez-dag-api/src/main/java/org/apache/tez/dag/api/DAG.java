@@ -26,13 +26,8 @@ import java.util.Map.Entry;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.dag.api.*;
-import org.apache.tez.dag.api.DAGPlan.PlanKeyValuePair.Builder;
 import org.apache.tez.dag.api.DAGPlan.PlanTaskLocationHint;
-import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
-import org.apache.tez.dag.api.EdgeProperty.SourceType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.DAGPlan.*;
 
