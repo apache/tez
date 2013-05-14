@@ -21,8 +21,8 @@ package org.apache.tez.dag.app.speculate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatus;
-import org.apache.tez.engine.records.TezTaskAttemptID;
-import org.apache.tez.engine.records.TezTaskID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
 
 
 /*

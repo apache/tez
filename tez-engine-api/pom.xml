@@ -25,6 +25,10 @@
   <artifactId>tez-engine-api</artifactId>
   <dependencies>
     <dependency>
+      <groupId>org.apache.tez</groupId>
+      <artifactId>tez-common</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-common</artifactId>
     </dependency>

@@ -19,7 +19,7 @@ package org.apache.tez.dag.app.rm.container;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.common.TezTaskContext;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class AMContainerEventAssignTA extends AMContainerEvent {
 

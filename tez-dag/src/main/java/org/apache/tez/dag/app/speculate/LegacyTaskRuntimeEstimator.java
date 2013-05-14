@@ -28,8 +28,8 @@ import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatus;
-import org.apache.tez.engine.records.TezTaskAttemptID;
-import org.apache.tez.engine.records.TezTaskID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
 
 public class LegacyTaskRuntimeEstimator extends StartEndTimesBase {
 

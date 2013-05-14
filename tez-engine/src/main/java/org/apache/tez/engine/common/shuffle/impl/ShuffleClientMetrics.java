@@ -24,7 +24,7 @@ import org.apache.hadoop.metrics.MetricsUtil;
 import org.apache.hadoop.metrics.Updater;
 import org.apache.tez.common.Constants;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 class ShuffleClientMetrics implements Updater {
 

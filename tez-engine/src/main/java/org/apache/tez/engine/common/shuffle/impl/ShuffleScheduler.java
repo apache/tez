@@ -39,8 +39,8 @@ import org.apache.hadoop.util.Progress;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.engine.records.TezTaskAttemptID;
-import org.apache.tez.engine.records.TezTaskID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
 
 class ShuffleScheduler {
   static ThreadLocal<Long> shuffleStart = new ThreadLocal<Long>() {

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.records;
+package org.apache.tez.dag.records;
 
 import java.io.DataInput;
 import java.io.DataOutput;

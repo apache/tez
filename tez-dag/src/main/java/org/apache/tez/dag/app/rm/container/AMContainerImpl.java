@@ -56,7 +56,7 @@ import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
 import org.apache.tez.dag.app.rm.NMCommunicatorStopRequestEvent;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 @SuppressWarnings("rawtypes")
 public class AMContainerImpl implements AMContainer {

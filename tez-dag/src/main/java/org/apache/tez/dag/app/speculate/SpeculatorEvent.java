@@ -20,9 +20,9 @@ package org.apache.tez.dag.app.speculate;
 
 import org.apache.hadoop.yarn.event.AbstractEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatus;
-import org.apache.tez.engine.records.TezDAGID;
-import org.apache.tez.engine.records.TezTaskAttemptID;
-import org.apache.tez.engine.records.TezTaskID;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
 
 public class SpeculatorEvent extends AbstractEvent<Speculator.EventType> {
 

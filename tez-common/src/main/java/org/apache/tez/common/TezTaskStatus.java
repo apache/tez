@@ -24,7 +24,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public interface TezTaskStatus extends Writable {
 

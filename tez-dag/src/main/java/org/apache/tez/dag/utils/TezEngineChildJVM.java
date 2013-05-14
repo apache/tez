@@ -30,7 +30,8 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.engine.records.TezVertexID;
+import org.apache.tez.dag.app.rm.container.AMContainerHelpers;
+import org.apache.tez.dag.records.TezVertexID;
 
 public class TezEngineChildJVM {
 

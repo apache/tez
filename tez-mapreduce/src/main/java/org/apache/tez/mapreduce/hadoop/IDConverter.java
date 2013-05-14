@@ -24,10 +24,10 @@ import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.util.BuilderUtils;
-import org.apache.tez.engine.records.TezDAGID;
-import org.apache.tez.engine.records.TezTaskAttemptID;
-import org.apache.tez.engine.records.TezTaskID;
-import org.apache.tez.engine.records.TezVertexID;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 
 public class IDConverter {
 

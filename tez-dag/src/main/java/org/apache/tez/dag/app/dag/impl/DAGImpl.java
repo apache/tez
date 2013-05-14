@@ -58,8 +58,8 @@ import org.apache.tez.dag.api.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
-import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.impl.TezBuilderUtils;
+import org.apache.tez.dag.api.impl.DAGStatus;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
@@ -81,12 +81,12 @@ import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGStartedEvent;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.DAGApps;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
 import org.apache.tez.engine.common.security.TokenCache;
-import org.apache.tez.engine.records.TezDAGID;
-import org.apache.tez.engine.records.TezVertexID;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 /** Implementation of Job interface. Maintains the state machines of Job.

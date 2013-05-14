@@ -31,7 +31,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
 
 @InterfaceAudience.Private

@@ -29,8 +29,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutputFiles;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 
 class MapOutput {
   private static final Log LOG = LogFactory.getLog(MapOutput.class);

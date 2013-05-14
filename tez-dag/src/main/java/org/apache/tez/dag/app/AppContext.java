@@ -30,7 +30,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.node.AMNodeMap;
-import org.apache.tez.engine.records.TezDAGID;
+import org.apache.tez.dag.records.TezDAGID;
 
 
 /**

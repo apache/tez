@@ -26,8 +26,9 @@ import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.engine.records.TezDAGID;
-import org.apache.tez.engine.records.TezVertexID;
+import org.apache.tez.dag.api.VertexLocationHint;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezVertexID;
 
 /**
  * Main interface to interact with the job. Provides only getters. 

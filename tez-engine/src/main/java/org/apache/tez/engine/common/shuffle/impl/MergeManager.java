@@ -45,6 +45,8 @@ import org.apache.tez.common.Constants;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskReporter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.engine.api.Input;
 import org.apache.tez.engine.api.Output;
 import org.apache.tez.engine.api.Processor;
@@ -57,8 +59,6 @@ import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 import org.apache.tez.engine.common.sort.impl.TezMerger.Segment;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutputFiles;
-import org.apache.tez.engine.records.TezTaskAttemptID;
-import org.apache.tez.engine.records.TezTaskID;
 
 @InterfaceAudience.Private
 @InterfaceStability.Unstable

@@ -49,11 +49,11 @@ import org.apache.tez.common.IDUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskReporter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.security.SecureShuffleUtils;
 import org.apache.tez.engine.common.shuffle.impl.MapOutput.Type;
 import org.apache.tez.engine.common.sort.impl.IFileInputStream;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 
 import com.google.common.annotations.VisibleForTesting;
 

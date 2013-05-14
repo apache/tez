@@ -45,6 +45,7 @@ import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.api.Input;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.api.Output;
@@ -58,7 +59,6 @@ import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutputFiles;
 import org.apache.tez.engine.records.OutputContext;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public abstract class ExternalSorter {

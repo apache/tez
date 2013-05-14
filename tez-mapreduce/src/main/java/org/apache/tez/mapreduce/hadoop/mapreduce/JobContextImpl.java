@@ -43,7 +43,7 @@ import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Progressable;
-import org.apache.tez.engine.records.TezDAGID;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;

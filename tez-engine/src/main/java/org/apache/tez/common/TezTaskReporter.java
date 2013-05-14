@@ -23,8 +23,8 @@ import java.io.IOException;
 import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.util.Progressable;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.api.Master;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
 
 public interface TezTaskReporter extends Progressable, Master {

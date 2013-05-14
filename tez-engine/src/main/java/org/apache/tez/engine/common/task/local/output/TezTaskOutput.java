@@ -25,7 +25,7 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.fs.Path;
-import org.apache.tez.engine.records.TezTaskID;
+import org.apache.tez.dag.records.TezTaskID;
 
 /**
  * Manipulate the working area for the transient store for maps and reduces.

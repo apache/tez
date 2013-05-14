@@ -28,7 +28,7 @@ import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.common.Constants;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.engine.records.TezTaskID;
+import org.apache.tez.dag.records.TezTaskID;
 
 /**
  * Manipulate the working area for the transient store for maps and reduces.

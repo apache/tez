@@ -21,7 +21,7 @@ package org.apache.tez.dag.app.taskclean;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.yarn.event.AbstractEvent;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 /**
  * This class encapsulates task cleanup event.

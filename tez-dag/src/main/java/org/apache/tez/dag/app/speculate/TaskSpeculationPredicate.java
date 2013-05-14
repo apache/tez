@@ -21,7 +21,7 @@ package org.apache.tez.dag.app.speculate;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.engine.records.TezTaskID;
+import org.apache.tez.dag.records.TezTaskID;
 
 
 public class TaskSpeculationPredicate {

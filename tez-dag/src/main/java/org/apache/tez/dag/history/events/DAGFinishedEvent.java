@@ -18,11 +18,11 @@
 
 package org.apache.tez.dag.history.events;
 
-import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.impl.DAGStatus;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.avro.DAGFinished;
 import org.apache.tez.dag.history.avro.HistoryEventType;
-import org.apache.tez.engine.records.TezDAGID;
+import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGFinishedEvent implements HistoryEvent {
 

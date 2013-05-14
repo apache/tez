@@ -21,7 +21,7 @@ package org.apache.tez.dag.history.events;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.history.avro.VertexStarted;
-import org.apache.tez.engine.records.TezVertexID;
+import org.apache.tez.dag.records.TezVertexID;
 
 public class VertexStartedEvent implements HistoryEvent {
 

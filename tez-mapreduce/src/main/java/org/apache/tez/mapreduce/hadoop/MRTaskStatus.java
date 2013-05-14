@@ -30,7 +30,7 @@ import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapred.TaskStatus;
 import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class MRTaskStatus implements TezTaskStatus {
 

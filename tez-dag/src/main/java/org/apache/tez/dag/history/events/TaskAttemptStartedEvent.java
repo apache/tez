@@ -23,7 +23,7 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.history.avro.TaskAttemptStarted;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class TaskAttemptStartedEvent implements HistoryEvent {
 

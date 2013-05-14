@@ -18,8 +18,8 @@
 
 package org.apache.tez.dag.app.dag.event;
 
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
-import org.apache.tez.engine.records.TezVertexID;
 
 public class VertexEventSourceTaskAttemptCompleted extends VertexEvent {
 

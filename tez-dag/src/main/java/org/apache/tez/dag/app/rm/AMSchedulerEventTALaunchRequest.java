@@ -27,8 +27,8 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 
 public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
 

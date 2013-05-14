@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.app.dag;
 
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public interface VertexScheduler {
   void onVertexStarted();

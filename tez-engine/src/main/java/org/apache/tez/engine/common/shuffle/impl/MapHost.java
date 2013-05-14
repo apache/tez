@@ -20,7 +20,7 @@ package org.apache.tez.engine.common.shuffle.impl;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 
 class MapHost {

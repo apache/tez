@@ -28,9 +28,9 @@ import org.apache.tez.common.TezTaskStatus.Phase;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.engine.records.TezDAGID;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 
 public class TezTypeConverters {
 

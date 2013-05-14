@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.records;
+package org.apache.tez.dag.records;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -25,6 +25,7 @@ import java.text.NumberFormat;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.tez.dag.records.TezVertexID;
 
 
 /**

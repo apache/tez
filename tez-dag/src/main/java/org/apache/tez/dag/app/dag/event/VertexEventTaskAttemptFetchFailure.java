@@ -19,7 +19,7 @@ package org.apache.tez.dag.app.dag.event;
 
 import java.util.List;
 
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class VertexEventTaskAttemptFetchFailure extends VertexEvent {
 

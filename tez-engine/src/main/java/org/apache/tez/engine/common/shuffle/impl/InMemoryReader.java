@@ -26,9 +26,9 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.common.sort.impl.IFile;
 import org.apache.tez.engine.common.sort.impl.IFile.Reader;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 
 /**
  * <code>IFile.InMemoryReader</code> to read map-outputs present in-memory.

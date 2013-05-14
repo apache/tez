@@ -21,7 +21,7 @@ package org.apache.tez.dag.app.dag.event;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.tez.engine.records.TezDAGID;
+import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGEventCounterUpdate extends DAGEvent {
 

@@ -27,7 +27,7 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.records.TaskAttemptReport;
 import org.apache.tez.dag.api.records.TaskAttemptState;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 /**
  * Read only view of TaskAttempt.

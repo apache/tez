@@ -22,9 +22,9 @@ import java.net.URI;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
 
 class EventFetcher extends Thread {

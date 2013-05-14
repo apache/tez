@@ -29,9 +29,9 @@ import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.DAGProtos.VertexPlan;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
-import org.apache.tez.engine.records.TezTaskID;
-import org.apache.tez.engine.records.TezVertexID;
 
 
 /**

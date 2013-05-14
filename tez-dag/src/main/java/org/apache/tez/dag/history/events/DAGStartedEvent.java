@@ -21,7 +21,7 @@ package org.apache.tez.dag.history.events;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.avro.DAGStarted;
 import org.apache.tez.dag.history.avro.HistoryEventType;
-import org.apache.tez.engine.records.TezDAGID;
+import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGStartedEvent implements HistoryEvent {
 

@@ -42,6 +42,7 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskContext;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.sort.impl.ExternalSorter;
@@ -53,7 +54,6 @@ import org.apache.tez.engine.common.sort.impl.TezSpillRecord;
 import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 import org.apache.tez.engine.common.sort.impl.TezMerger.Segment;
 import org.apache.tez.engine.records.OutputContext;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class DefaultSorter extends ExternalSorter implements IndexedSortable {

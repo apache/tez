@@ -22,7 +22,7 @@ import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class TaskAttemptEventStartedRemotely extends TaskAttemptEvent {
 

@@ -19,7 +19,7 @@
 package org.apache.tez.dag.app.dag.event;
 
 import org.apache.hadoop.yarn.event.AbstractEvent;
-import org.apache.tez.engine.records.TezTaskID;
+import org.apache.tez.dag.records.TezTaskID;
 
 /**
  * this class encapsulates task related events.

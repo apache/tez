@@ -25,9 +25,9 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
-import org.apache.tez.engine.records.TezDAGID;
-import org.apache.tez.engine.records.TezVertexID;
 
 public class AMContainerEventLaunchRequest extends AMContainerEvent {
 

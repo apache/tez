@@ -20,7 +20,7 @@ package org.apache.tez.dag.api.records;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public interface TaskAttemptReport {
   public abstract TezTaskAttemptID getTaskAttemptId();

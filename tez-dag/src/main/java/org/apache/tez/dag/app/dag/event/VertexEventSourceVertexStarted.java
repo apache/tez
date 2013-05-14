@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.engine.records.TezVertexID;
+import org.apache.tez.dag.records.TezVertexID;
 
 public class VertexEventSourceVertexStarted extends VertexEvent {
 

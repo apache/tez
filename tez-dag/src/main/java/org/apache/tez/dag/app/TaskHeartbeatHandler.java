@@ -23,7 +23,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 

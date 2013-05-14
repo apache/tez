@@ -17,8 +17,8 @@
 
 package org.apache.tez.dag.app.dag.event;
 
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.OutputContext;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 
 public class TaskAttemptEventOutputConsumable extends TaskAttemptEvent {
 

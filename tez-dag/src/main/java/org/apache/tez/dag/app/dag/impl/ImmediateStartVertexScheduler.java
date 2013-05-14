@@ -20,7 +20,7 @@ package org.apache.tez.dag.app.dag.impl;
 
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexScheduler;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 /**
  * Starts all tasks immediately on vertex start

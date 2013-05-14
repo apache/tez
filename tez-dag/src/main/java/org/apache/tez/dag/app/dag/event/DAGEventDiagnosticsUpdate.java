@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.engine.records.TezDAGID;
+import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGEventDiagnosticsUpdate extends DAGEvent {
 

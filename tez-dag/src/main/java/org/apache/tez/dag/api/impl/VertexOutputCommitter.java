@@ -22,7 +22,6 @@ import java.io.IOException;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
-import org.apache.tez.dag.api.client.VertexStatus;
 
 @Public
 @Unstable

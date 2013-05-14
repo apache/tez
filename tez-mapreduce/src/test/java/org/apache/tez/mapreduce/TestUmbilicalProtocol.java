@@ -28,8 +28,8 @@ import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.records.ProceedToCompletionResponse;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.OutputContext;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
 
 public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {

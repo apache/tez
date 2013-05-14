@@ -23,8 +23,8 @@ import java.util.Map;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.records.TaskReport;
 import org.apache.tez.dag.api.records.TaskState;
-import org.apache.tez.engine.records.TezTaskAttemptID;
-import org.apache.tez.engine.records.TezTaskID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
 
 /**
  * Read only view of Task.

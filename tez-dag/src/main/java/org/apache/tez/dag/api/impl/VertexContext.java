@@ -20,8 +20,8 @@ package org.apache.tez.dag.api.impl;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.tez.engine.records.TezDAGID;
-import org.apache.tez.engine.records.TezVertexID;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezVertexID;
 
 public interface VertexContext {
 

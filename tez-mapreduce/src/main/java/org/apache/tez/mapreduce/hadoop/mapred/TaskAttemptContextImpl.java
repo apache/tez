@@ -26,7 +26,7 @@ import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.util.Progressable;
-import org.apache.tez.engine.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 
 @InterfaceAudience.Private

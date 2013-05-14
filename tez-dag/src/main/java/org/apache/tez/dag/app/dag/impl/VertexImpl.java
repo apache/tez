@@ -62,11 +62,11 @@ import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
-import org.apache.tez.dag.api.client.VertexStatus;
-import org.apache.tez.dag.api.client.VertexStatus.State;
 import org.apache.tez.dag.api.impl.NullVertexOutputCommitter;
 import org.apache.tez.dag.api.impl.VertexContext;
 import org.apache.tez.dag.api.impl.VertexOutputCommitter;
+import org.apache.tez.dag.api.impl.VertexStatus;
+import org.apache.tez.dag.api.impl.VertexStatus.State;
 import org.apache.tez.dag.api.records.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
@@ -94,12 +94,12 @@ import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
-import org.apache.tez.engine.records.TezDAGID;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
-import org.apache.tez.engine.records.TezTaskAttemptID;
-import org.apache.tez.engine.records.TezTaskID;
-import org.apache.tez.engine.records.TezVertexID;
 
 
 /** Implementation of Vertex interface. Maintains the state machines of Vertex.

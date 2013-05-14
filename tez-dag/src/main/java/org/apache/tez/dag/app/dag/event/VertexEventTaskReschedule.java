@@ -17,7 +17,7 @@
 */
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.engine.records.TezTaskID;
+import org.apache.tez.dag.records.TezTaskID;
 
 public class VertexEventTaskReschedule extends VertexEvent {
   private TezTaskID taskID;

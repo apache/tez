@@ -20,7 +20,7 @@ package org.apache.tez.dag.history;
 
 import org.apache.hadoop.yarn.event.AbstractEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
-import org.apache.tez.engine.records.TezDAGID;
+import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGHistoryEvent extends AbstractEvent<HistoryEventType>{
 

@@ -55,10 +55,10 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttempt
 import org.apache.tez.dag.app.rm.container.AMContainerImpl;
 import org.apache.tez.dag.app.rm.container.AMContainerTask;
 import org.apache.tez.dag.app.security.authorize.MRAMPolicyProvider;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
 import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
-import org.apache.tez.engine.records.TezTaskAttemptID;
 import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
 
 @SuppressWarnings("unchecked")
