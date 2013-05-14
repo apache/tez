@@ -190,7 +190,7 @@ public class AMContainerHelpers {
     // Construct the actual Container
     ContainerLaunchContext container = BuilderUtils.newContainerLaunchContext(
         commonContainerSpec.getUser(), lResources, myEnv, commands,
-        myServiceData, commonContainerSpec.getContainerTokens().duplicate(),
+        myServiceData, commonContainerSpec.getTokens().duplicate(),
         acls);
 
     return container;
