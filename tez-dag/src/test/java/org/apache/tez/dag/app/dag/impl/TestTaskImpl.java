@@ -363,6 +363,8 @@ public class TestTaskImpl {
     assertTaskSucceededState();
 
   }
+  
+  // TODO Add test to validate the correct commit attempt.
 
   @SuppressWarnings("rawtypes")
   private class MockTaskImpl extends TaskImpl {

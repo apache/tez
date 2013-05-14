@@ -116,7 +116,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   protected EventHandler eventHandler;
   private final TezTaskAttemptID attemptId;
   private final Clock clock;
-//  private final TaskAttemptListener taskAttemptListener;
   private final List<String> diagnostics = new ArrayList<String>();
   private final Lock readLock;
   private final Lock writeLock;
@@ -923,10 +922,6 @@ public class TaskAttemptImpl implements TaskAttempt,
       // Send out events to the Task - indicating TaskAttemptTermination(F/K)
       ta.sendEvent(new TaskEventTAUpdate(ta.attemptId, helper
           .getTaskEventType()));
-
-      if (event instanceof DiagnosableEvent) {
-        ta.addDiagnosticInfo(((DiagnosableEvent) event).getDiagnosticInfo());
-      }
     }
   }
 
