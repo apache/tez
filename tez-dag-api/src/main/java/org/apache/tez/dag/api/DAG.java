@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Stack;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -87,13 +88,155 @@ public class DAG { // FIXME rename to Topology
     this.name = name;
   }
   
-  public void verify() throws TezException { // FIXME better exception
-    //FIXME are task resources compulsory or will the DAG AM put in a default
-    //for each vertex if not specified?
-  }
+  // AnnotatedVertex is used by verify() 
+  private class AnnotatedVertex {
+    Vertex v;
+  
+    int index; //for Tarjan's algorithm    
+    int lowlink; //for Tarjan's algorithm
+    boolean onstack; //for Tarjan's algorithm 
+
+    int inDegree;
+    int outDegree;
     
+    private AnnotatedVertex(Vertex v){
+       this.v = v;
+       index = -1;
+       lowlink = -1;
+       inDegree = 0;
+       outDegree = 0;
+    }
+  }
+  
+  // verify()
+  // 
+  // Default rules
+  //   Illegal:
+  //     - duplicate vertex id
+  //     - cycles
+  //
+  //   Ok:
+  //     - orphaned vertex.  Occurs in map-only
+  //     - islands.  Occurs if job has unrelated workflows.
+  //
+  //   Not yet categorized:
+  //     - orphaned vertex in DAG of >1 vertex.  Could be unrelated map-only job.
+  //     - v1->v2 via two edges.  perhaps some self-join job would use this?
+  //
+  // "restricted" mode: 
+  //   In short term, the supported DAGs are limited. Call with restricted=true for these verifications.  
+  //   Illegal: 
+  //     - any vertex with more than one input or output edge. (n-ary input, n-ary merge) 
+  public void verify() throws IllegalStateException {
+    verify(true);
+  }
+  
+  public void verify(boolean restricted) throws IllegalStateException  { 
+    Map<Vertex, List<Edge>> edgeMap = new HashMap<Vertex, List<Edge>>();
+    for(Edge e : edges){
+      Vertex inputVertex = e.getInputVertex();
+      List<Edge> edgeList = edgeMap.get(inputVertex);
+      if(edgeList == null){
+        edgeList = new ArrayList<Edge>();
+        edgeMap.put(inputVertex, edgeList);
+      }
+      edgeList.add(e);
+    }
+    
+    // check for duplicate vertex names, and prepare for cycle detection
+    Map<String, AnnotatedVertex> vertexMap = new HashMap<String, AnnotatedVertex>();
+    for(Vertex v : vertices){
+      if(vertexMap.containsKey(v.getVertexName())){
+         throw new IllegalStateException("DAG contains multiple vertices with name: " + v.getVertexName());
+      }
+      vertexMap.put(v.getVertexName(), new AnnotatedVertex(v));
+    }
+    
+    detectCycles(edgeMap, vertexMap);
+    
+    if(restricted){
+      for(Edge e : edges){
+        vertexMap.get(e.getInputVertex().getVertexName()).outDegree++;
+        vertexMap.get(e.getOutputVertex().getVertexName()).inDegree++;
+      }
+      for(AnnotatedVertex av: vertexMap.values()){
+        if(av.inDegree > 1){
+          throw new IllegalStateException("Vertex has inDegree>1: " + av.v.getVertexName());
+        }
+        if(av.outDegree > 1){
+          throw new IllegalStateException("Vertex has outDegree>1: " + av.v.getVertexName());
+        }
+      }
+    }
+  }
+  
+  // Adaptation of Tarjan's algorithm for connected components.
+  // http://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+  private void detectCycles(Map<Vertex, List<Edge>> edgeMap, Map<String, AnnotatedVertex> vertexMap) 
+      throws IllegalStateException{
+    Integer nextIndex = 0; // boxed integer so it is passed by reference.
+    Stack<AnnotatedVertex> stack = new Stack<DAG.AnnotatedVertex>();
+    for(AnnotatedVertex av: vertexMap.values()){
+      if(av.index == -1){
+        assert stack.empty();
+        strongConnect(av, vertexMap, edgeMap, stack, nextIndex);
+      }
+    }
+  }
+
+  // part of Tarjan's algorithm for connected components.
+  // http://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+  private void strongConnect(
+          AnnotatedVertex av, 
+          Map<String, AnnotatedVertex> vertexMap, 
+          Map<Vertex, List<Edge>> edgeMap, 
+          Stack<AnnotatedVertex> stack, Integer nextIndex) throws IllegalStateException{
+    av.index = nextIndex;
+    av.lowlink = nextIndex;
+    nextIndex++;
+    stack.push(av);
+    av.onstack = true;
+    
+    List<Edge> edges = edgeMap.get(av.v);
+    if(edges != null){
+      for(Edge e : edgeMap.get(av.v)){
+        AnnotatedVertex outVertex = vertexMap.get(e.getOutputVertex().getVertexName());
+        if(outVertex.index == -1){
+          strongConnect(outVertex, vertexMap, edgeMap, stack, nextIndex);
+          av.lowlink = Math.min(av.lowlink, outVertex.lowlink);
+        }
+        else if(outVertex.onstack){
+          // strongly connected component detected, but we will wait till later so that the full cycle can be displayed.
+          // update lowlink in case outputVertex should be considered the root of this component.
+          av.lowlink = Math.min(av.lowlink, outVertex.index);
+        }
+      }
+    }
+
+    if(av.lowlink == av.index ){
+       AnnotatedVertex pop = stack.pop();
+       pop.onstack = false;
+       if(pop != av){
+         // there was something on the stack other than this "av".
+         // this indicates there is a scc/cycle. It comprises all nodes from top of stack to "av"
+         StringBuilder message = new StringBuilder();
+         message.append(av.v.getVertexName() + " <- ");
+         for( ; pop != av; pop = stack.pop()){ 
+           message.append(pop.v.getVertexName() + " <- ");
+           pop.onstack = false;
+         }
+         message.append(av.v.getVertexName());
+         throw new IllegalStateException("DAG contains a cycle: " + message);
+       }
+    }
+  }
+ 
+  
   // create protobuf message describing DAG
   public DAGPlan createDag(){
+    
+    verify(true);
+    
     DAGPlan.Builder jobBuilder = DAGPlan.newBuilder();  
 
     jobBuilder.setName(this.name);
