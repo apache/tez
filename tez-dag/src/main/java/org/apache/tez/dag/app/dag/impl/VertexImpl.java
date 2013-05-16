@@ -101,6 +101,8 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
+import com.google.common.annotations.VisibleForTesting;
+
 
 /** Implementation of Vertex interface. Maintains the state machines of Vertex.
  * The read and write calls use ReadWriteLock for concurrency.
@@ -112,7 +114,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private static final String LINE_SEPARATOR = System
       .getProperty("line.separator");
   private static final TezDependentTaskCompletionEvent[]
-    EMPTY_TASK_ATTEMPT_COMPLETION_EVENTS = new TezDependentTaskCompletionEvent[0];
+      EMPTY_TASK_ATTEMPT_COMPLETION_EVENTS =
+      new TezDependentTaskCompletionEvent[0];
 
   private static final Log LOG = LogFactory.getLog(VertexImpl.class);
 
@@ -154,7 +157,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private final List<String> diagnostics = new ArrayList<String>();
 
   //task/attempt related datastructures
-  private final Map<TezTaskID, Integer> successSourceAttemptCompletionEventNoMap =
+  @VisibleForTesting
+  final Map<TezTaskID, Integer> successSourceAttemptCompletionEventNoMap =
     new HashMap<TezTaskID, Integer>();
   private final Map<TezTaskAttemptID, Integer> fetchFailuresMapping =
     new HashMap<TezTaskAttemptID, Integer>();
@@ -214,12 +218,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
           .addTransition
               (VertexState.RUNNING,
-              EnumSet.of(VertexState.RUNNING, VertexState.SUCCEEDED, VertexState.FAILED),
+              EnumSet.of(VertexState.RUNNING, VertexState.KILLED,
+                  VertexState.SUCCEEDED, VertexState.FAILED),
               VertexEventType.V_TASK_COMPLETED,
               new TaskCompletedTransition())
           .addTransition
               (VertexState.RUNNING,
-              EnumSet.of(VertexState.RUNNING, VertexState.SUCCEEDED, VertexState.FAILED),
+              EnumSet.of(VertexState.RUNNING, VertexState.SUCCEEDED,
+                  VertexState.FAILED),
               VertexEventType.V_COMPLETED,
               new VertexNoTasksCompletedTransition())
           .addTransition(VertexState.RUNNING, VertexState.KILL_WAIT,
@@ -308,7 +314,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // create the topology tables
           .installTopology();
 
-  private final StateMachine<VertexState, VertexEventType, VertexEvent> stateMachine;
+  private final StateMachine<VertexState, VertexEventType, VertexEvent>
+      stateMachine;
 
   //changing fields while the vertex is running
   private int numTasks;
@@ -341,10 +348,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private VertexLocationHint vertexLocationHint;
   private Map<String, LocalResource> localResources;
   private Map<String, String> environment;
-  private String javaOpts;
+  private final String javaOpts;
   
-  public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan, String vertexName,
-      TezConfiguration conf, EventHandler eventHandler,
+  public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan, 
+      String vertexName, TezConfiguration conf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
       Token<JobTokenIdentifier> jobToken,
       Credentials fsTokenCredentials, Clock clock,
@@ -573,9 +580,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       try {
          getStateMachine().doTransition(event.getType(), event);
       } catch (InvalidStateTransitonException e) {
-        LOG.error("Can't handle this event at current state", e);
-        addDiagnostic("Invalid event " + event.getType() +
-            " on Job " + this.vertexId);
+        String message = "Invalid event " + event.getType() +
+            " on vertex " + this.vertexId +
+            " at current state " + oldState;
+        LOG.error("Can't handle " + message, e);
+        addDiagnostic(message);
         eventHandler.handle(new VertexEvent(this.vertexId,
             VertexEventType.INTERNAL_ERROR));
       }
@@ -957,6 +966,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
       vertex.setFinishTime();
+      vertex.addDiagnostic("Vertex received Kill in NEW state.");
       vertex.finished(VertexState.KILLED);
     }
   }
@@ -966,7 +976,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
       vertex.abortVertex(VertexStatus.State.KILLED);
-      vertex.addDiagnostic("Job received Kill in INITED state.");
+      vertex.addDiagnostic("Vertex received Kill in INITED state.");
       vertex.finished(VertexState.KILLED);
     }
   }
@@ -975,7 +985,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       implements SingleArcTransition<VertexImpl, VertexEvent> {
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
-      vertex.addDiagnostic("Job received Kill while in RUNNING state.");
+      vertex.addDiagnostic("Vertex received Kill while in RUNNING state.");
       for (Task task : vertex.tasks.values()) {
         vertex.eventHandler.handle(
             new TaskEvent(task.getTaskId(), TaskEventType.T_KILL));
@@ -1133,14 +1143,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     @Override
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
-      VertexState vertexCompleteSuccess =
-          VertexImpl.checkVertexForCompletion(vertex);
-      if (vertexCompleteSuccess != null) {
-        return vertexCompleteSuccess;
-      }
-
-      // Return the current state, Job not finished yet
-      return vertex.getInternalState();
+      return VertexImpl.checkVertexForCompletion(vertex);
     }
   }
 
@@ -1226,6 +1229,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     return appContext.getDAG();
   }
   
+  @VisibleForTesting
+  String getProcessorName() {
+    return this.processorName;
+  }
+
+  @VisibleForTesting
+  String getJavaOpts() {
+    return this.javaOpts;
+  }
+
   // TODO Eventually remove synchronization.
   @Override
   public synchronized List<InputSpec> getInputSpecList() {
@@ -1261,4 +1274,19 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     return outputSpecList;
   }
 
+  @VisibleForTesting
+  VertexOutputCommitter getVertexOutputCommitter() {
+    return this.committer;
+  }
+
+  @VisibleForTesting
+  // Only to be used for testing
+  void setVertexOutputCommitter(VertexOutputCommitter committer) {
+    this.committer = committer;
+  }
+
+  @VisibleForTesting
+  VertexScheduler getVertexScheduler() {
+    return this.vertexScheduler;
+  }
 }
