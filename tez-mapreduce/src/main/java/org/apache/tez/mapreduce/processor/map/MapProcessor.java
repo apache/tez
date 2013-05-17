@@ -69,11 +69,7 @@ public class MapProcessor extends MRTask implements Processor {
   public void initialize(Configuration conf, Master master) throws IOException,
   InterruptedException {
     super.initialize(conf, master);
-    TaskSplitMetaInfo[] allMetaInfo = readSplits();
-    TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[tezEngineTaskContext
-        .getTaskAttemptId().getTaskID().getId()];
-    splitMetaInfo = new TaskSplitIndex(thisTaskMetaInfo.getSplitLocation(),
-        thisTaskMetaInfo.getStartOffset());
+    
   }
 
   @Override
@@ -81,6 +77,14 @@ public class MapProcessor extends MRTask implements Processor {
       final Input[] ins,
       final Output[] outs)
           throws IOException, InterruptedException {
+    
+    // Read split information.
+    TaskSplitMetaInfo[] allMetaInfo = readSplits();
+    TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[tezEngineTaskContext
+        .getTaskAttemptId().getTaskID().getId()];
+    splitMetaInfo = new TaskSplitIndex(thisTaskMetaInfo.getSplitLocation(),
+        thisTaskMetaInfo.getStartOffset());
+    
     MRTaskReporter reporter = new MRTaskReporter(getTaskReporter());
     boolean useNewApi = jobConf.getUseNewMapper();
     initTask(jobConf, taskAttemptId.getTaskID().getVertexID().getDAGId(),

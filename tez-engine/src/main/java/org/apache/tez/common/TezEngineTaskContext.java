@@ -39,7 +39,7 @@ public class TezEngineTaskContext extends TezTaskContext {
   }
 
   public TezEngineTaskContext(TezTaskAttemptID taskAttemptID, String user,
-      String jobName, String vertexName, String moduleClassName,
+      String jobName, String vertexName, String processorName,
       List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList) {
     super(taskAttemptID, user, jobName, vertexName);
     this.inputSpecList = inputSpecList;
@@ -52,7 +52,7 @@ public class TezEngineTaskContext extends TezTaskContext {
     }
     this.inputSpecList = inputSpecList;
     this.outputSpecList = outputSpecList;
-    this.processorName = moduleClassName;
+    this.processorName = processorName;
   }
 
   public String getProcessorName() {

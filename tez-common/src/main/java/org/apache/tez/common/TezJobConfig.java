@@ -68,6 +68,13 @@ public class TezJobConfig {
   public static final String DEFAULT_LOCAL_DIR = "/tmp";
 
   /**
+   * The directory which contains the localized files for this task.
+   */
+  @Private
+  public static final String TASK_LOCAL_RESOURCE_DIR = "tez.engine.task-local-resource.dir";
+  public static final String DEFAULT_TASK_LOCAL_RESOURCE_DIR = "/tmp";
+  
+  /**
    * 
    */
   public static final String TEZ_ENGINE_TASK_INDEGREE = 

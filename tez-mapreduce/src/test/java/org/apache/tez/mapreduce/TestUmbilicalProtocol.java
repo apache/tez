@@ -111,7 +111,7 @@ public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
   @Override
   public boolean canCommit(TezTaskAttemptID taskid) throws IOException {
     LOG.info("Got 'can-commit' from " + taskid);
-    return false;
+    return true;
   }
 
   @Override

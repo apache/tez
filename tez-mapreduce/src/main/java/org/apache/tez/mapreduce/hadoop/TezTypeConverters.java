@@ -34,6 +34,8 @@ import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
 public class TezTypeConverters {
 
+  // TODO Remove unused methods
+  
   // Tez objects will be imported. Others will use the fully qualified name when
   // required.
   // All public methods named toYarn / toTez / toMapReduce

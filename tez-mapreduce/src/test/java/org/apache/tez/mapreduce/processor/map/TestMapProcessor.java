@@ -19,9 +19,11 @@ package org.apache.tez.mapreduce.processor.map;
 
 
 import java.io.IOException;
+import java.util.Collections;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -29,6 +31,8 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.tez.common.Constants;
+import org.apache.tez.common.InputSpec;
+import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.sort.impl.IFile;
@@ -37,11 +41,15 @@ import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 import org.apache.tez.engine.lib.output.InMemorySortedOutput;
 import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
 import org.apache.tez.mapreduce.TestUmbilicalProtocol;
+import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
+import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
+import org.apache.tez.mapreduce.input.SimpleInput;
 import org.apache.tez.mapreduce.processor.MapUtils;
 import org.jboss.netty.buffer.BigEndianHeapChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.TruncatedChannelBuffer;
 import org.jboss.netty.handler.stream.ChunkedStream;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -49,9 +57,7 @@ import org.junit.Test;
 
 public class TestMapProcessor {
   
-  private static final Log LOG = LogFactory.getLog(TestMapProcessor.class);
-  
-  JobConf job;
+  private static final Log LOG = LogFactory.getLog(TestMapProcessor.class);  
   
   private static JobConf defaultConf = new JobConf();
   private static FileSystem localFs = null; 
@@ -63,32 +69,51 @@ public class TestMapProcessor {
       throw new RuntimeException("init failure", e);
     }
   }
+  @SuppressWarnings("deprecation")
   private static Path workDir =
     new Path(new Path(System.getProperty("test.build.data", "/tmp")),
              "TestMapProcessor").makeQualified(localFs);
 
   TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles();
-  
-  @Before
-  public void setUp() {
-    job = new JobConf(defaultConf);
+
+  public void setUpJobConf(JobConf job) {
     job.set(TezJobConfig.LOCAL_DIR, workDir.toString());
     job.setClass(
         Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER,
         TezLocalTaskOutputFiles.class, 
         TezTaskOutput.class);
     job.setNumReduceTasks(1);
-    mapOutputs.setConf(job);
+  }
+  
+  @Before
+  @After
+  public void cleanup() throws Exception {
+    localFs.delete(workDir, true);
   }
   
   @Test
-  @Ignore
   public void testMapProcessor() throws Exception {
-    localFs.delete(workDir, true);
-    MapUtils.runMapProcessor(
-        localFs, workDir, job, 0, new Path(workDir, "map0"), 
-        new TestUmbilicalProtocol(),
-        LocalOnFileSorterOutput.class).close();
+    String vertexName = MultiStageMRConfigUtil.getInitialMapVertexName();
+    JobConf jobConf = new JobConf(defaultConf);
+    setUpJobConf(jobConf);
+    TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles();
+    mapOutputs.setConf(jobConf);
+    
+    Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
+    Configuration stageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
+        vertexName);
+    
+    JobConf job = new JobConf(stageConf);
+    
+    job.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
+        "localized-resources").toUri().toString());
+
+    MapUtils.runMapProcessor(localFs, workDir, job, 0,
+        new Path(workDir, "map0"), new TestUmbilicalProtocol(), vertexName,
+        Collections.singletonList(new InputSpec("NullVertex", 0,
+            SimpleInput.class.getName())),
+        Collections.singletonList(new OutputSpec("FakeVertex", 1,
+            LocalOnFileSorterOutput.class.getName()))).close();
 
     Path mapOutputFile = mapOutputs.getInputFile(0);
     LOG.info("mapOutputFile = " + mapOutputFile);
@@ -115,16 +140,34 @@ public class TestMapProcessor {
   @Test
   @Ignore
   public void testMapProcessorWithInMemSort() throws Exception {
+    
+    String vertexName = MultiStageMRConfigUtil.getInitialMapVertexName();
+    
     final int partitions = 2;
-    job.setNumReduceTasks(partitions);
-    job.setInt(TezJobConfig.TEZ_ENGINE_TASK_OUTDEGREE, partitions); 
+    JobConf jobConf = new JobConf(defaultConf);
+    jobConf.setNumReduceTasks(partitions);
+    setUpJobConf(jobConf);
+    TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles();
+    mapOutputs.setConf(jobConf);
+    
+    Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
+    Configuration stageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
+        vertexName);
+    
+    JobConf job = new JobConf(stageConf);
 
+    job.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
+        "localized-resources").toUri().toString());
     localFs.delete(workDir, true);
     Task t =
         MapUtils.runMapProcessor(
             localFs, workDir, job, 0, new Path(workDir, "map0"), 
-            new TestUmbilicalProtocol(true),
-            InMemorySortedOutput.class);
+            new TestUmbilicalProtocol(true), vertexName, 
+            Collections.singletonList(new InputSpec("NullVertex", 0,
+                SimpleInput.class.getName())),
+            Collections.singletonList(new OutputSpec("FakeVertex", 1,
+                InMemorySortedOutput.class.getName()))
+            );
     InMemorySortedOutput[] outputs = (InMemorySortedOutput[])t.getOutputs();
     
     verifyInMemSortedStream(outputs[0], 0, 4096);

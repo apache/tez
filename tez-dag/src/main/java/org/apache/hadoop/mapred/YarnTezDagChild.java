@@ -249,12 +249,16 @@ public class YarnTezDagChild {
    * out an output directory.
    * @throws IOException 
    */
-  private static void configureLocalDirs(MRTask task, JobConf job) throws IOException {
+  private static void configureLocalDirs(JobConf job) throws IOException {
     String[] localSysDirs = StringUtils.getTrimmedStrings(
         System.getenv(Environment.LOCAL_DIRS.name()));
     job.setStrings(TezJobConfig.LOCAL_DIR, localSysDirs);
+    job.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR,
+        System.getenv(Environment.PWD.name()));
     LOG.info(TezJobConfig.LOCAL_DIR + " for child: " +
         job.get(TezJobConfig.LOCAL_DIR));
+    LOG.info(TezJobConfig.TASK_LOCAL_RESOURCE_DIR + " for child: "
+        + job.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR));
     LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezJobConfig.LOCAL_DIR);
     Path workDir = null;
     // First, try to find the JOB_LOCAL_DIR on this host.
@@ -285,7 +289,7 @@ public class YarnTezDagChild {
       }
     }
     // TODO TEZ This likely needs fixing to make sure things work when there are multiple local-dirs etc.
-    job.set(MRJobConfig.JOB_LOCAL_DIR,workDir.toString());
+    job.set(MRJobConfig.JOB_LOCAL_DIR, workDir.toString());
   }
 
   private static JobConf configureTask(MRTask task, Credentials credentials,
@@ -308,7 +312,7 @@ public class YarnTezDagChild {
 //        JobTokenSecretManager.createSecretKey(jt.getPassword()));
 
     // setup the child's MRConfig.LOCAL_DIR.
-    configureLocalDirs(task, job);
+    configureLocalDirs(job);
 
     // setup the child's attempt directories
     // Do the task-type specific localization

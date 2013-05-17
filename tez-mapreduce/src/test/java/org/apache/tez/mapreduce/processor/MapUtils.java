@@ -18,40 +18,37 @@
 
 package org.apache.tez.mapreduce.processor;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
-
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.SequenceFileInputFormat;
-import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
+import org.apache.hadoop.mapreduce.split.JobSplit;
+import org.apache.hadoop.mapreduce.split.JobSplit.SplitMetaInfo;
+import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
-import org.apache.tez.engine.api.Input;
-import org.apache.tez.engine.api.Output;
-import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.api.Task;
-import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
 import org.apache.tez.engine.runtime.RuntimeUtils;
-import org.apache.tez.engine.task.RuntimeTask;
 import org.apache.tez.mapreduce.TezTestUtils;
-import org.apache.tez.mapreduce.input.SimpleInput;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 
 public class MapUtils {
@@ -62,8 +59,7 @@ public class MapUtils {
   createInputSplit(FileSystem fs, Path workDir, JobConf job, Path file) 
       throws IOException {
     FileInputFormat.setInputPaths(job, workDir);
-  
-    
+
     // create a file with length entries
     SequenceFile.Writer writer = 
         SequenceFile.createWriter(fs, job, file, 
@@ -92,30 +88,59 @@ public class MapUtils {
         "file = " + ((FileSplit)splits[0]).getPath());
     return splits[0];
   }
+  
+  final private static FsPermission JOB_FILE_PERMISSION = FsPermission
+      .createImmutable((short) 0644); // rw-r--r--
+
+  // Will write files to PWD, from where they are read.
+  
+  private static void writeSplitFiles(FileSystem fs, JobConf conf,
+      InputSplit split) throws IOException {
+    Path jobSplitFile = new Path(conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR,
+        TezJobConfig.DEFAULT_TASK_LOCAL_RESOURCE_DIR), MRJobConfig.JOB_SPLIT);
+    FSDataOutputStream out = FileSystem.create(fs, jobSplitFile,
+        new FsPermission(JOB_FILE_PERMISSION));
+
+    long offset = out.getPos();
+    Text.writeString(out, split.getClass().getName());
+    split.write(out);
+    out.close();
+
+    String[] locations = split.getLocations();
+
+    SplitMetaInfo info = null;
+    info = new JobSplit.SplitMetaInfo(locations, offset, split.getLength());
+
+    Path jobSplitMetaInfoFile = new Path(
+        conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR),
+        MRJobConfig.JOB_SPLIT_METAINFO);
+
+    FSDataOutputStream outMeta = FileSystem.create(fs, jobSplitMetaInfoFile,
+        new FsPermission(JOB_FILE_PERMISSION));
+    outMeta.write(SplitMetaInfoReaderTez.META_SPLIT_FILE_HEADER);
+    WritableUtils.writeVInt(outMeta, SplitMetaInfoReaderTez.META_SPLIT_VERSION);
+    WritableUtils.writeVInt(outMeta, 1); // Only 1 split meta info being written
+    info.write(outMeta);
+    outMeta.close();
+  }
 
   public static Task runMapProcessor(FileSystem fs, Path workDir,
-      JobConf jobConf,
-      int mapId, Path mapInput,
+      JobConf jobConf, int mapId, Path mapInput,
       TezTaskUmbilicalProtocol umbilical,
-      Class<?> outputClazz) throws Exception {
+      String vertexName, List<InputSpec> inputSpecs,
+      List<OutputSpec> outputSpecs) throws Exception {
     jobConf.setInputFormat(SequenceFileInputFormat.class);
     InputSplit split = createInputSplit(fs, workDir, jobConf, mapInput);
-    TezEngineTaskContext taskContext = 
-        new TezEngineTaskContext(
-        TezTestUtils.getMockTaskAttemptId(0, 0, mapId, 0), "tez",
-        "tez", "TODO_vertexName", MapProcessor.class.getName(),
-        Collections.singletonList(new InputSpec("srcVertex", 0,
-            SimpleInput.class.getName())),
-        Collections.singletonList(new OutputSpec("targetVertex", 0,
-            outputClazz.getName())));
+
+    writeSplitFiles(fs, jobConf, split);
+    TezEngineTaskContext taskContext = new TezEngineTaskContext(
+        TezTestUtils.getMockTaskAttemptId(0, 0, mapId, 0), "testuser",
+        "testJob", vertexName, MapProcessor.class.getName(),
+        inputSpecs, outputSpecs);
 
     Task t = RuntimeUtils.createRuntimeTask(taskContext);
     t.initialize(jobConf, umbilical);
-    SimpleInput[] real = ((SimpleInput[])t.getInputs());
-    SimpleInput[] inputs = spy(real);
-    doReturn(split).when(inputs[0]).getOldSplitDetails(any(TaskSplitIndex.class));
-    t.getProcessor().process(inputs, t.getOutputs());
+    t.getProcessor().process(t.getInputs(), t.getOutputs());
     return t;
   }
-
 }

@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 /**
@@ -44,6 +45,9 @@ public class SplitMetaInfoReaderTez {
 
   public static final Log LOG = LogFactory.getLog(SplitMetaInfoReaderTez.class);
 
+  public static final int META_SPLIT_VERSION = JobSplit.META_SPLIT_VERSION;
+  public static final byte[] META_SPLIT_FILE_HEADER = JobSplit.META_SPLIT_FILE_HEADER;
+
   // Forked from the MR variant so that the metaInfo file as well as the split
   // file can be read from local fs - relying on these files being localized.
   public static TaskSplitMetaInfo[] readSplitMetaInfo(Configuration conf,
@@ -53,9 +57,11 @@ public class SplitMetaInfoReaderTez {
         MRJobConfig.SPLIT_METAINFO_MAXSIZE,
         MRJobConfig.DEFAULT_SPLIT_METAINFO_MAXSIZE);
 
-    Path metaSplitFile = new Path(MRJobConfig.JOB_SPLIT_METAINFO);
+    Path metaSplitFile = new Path(
+        conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR),
+        MRJobConfig.JOB_SPLIT_METAINFO);
     String jobSplitFile = MRJobConfig.JOB_SPLIT;
-
+    
     File file = new File(metaSplitFile.toUri().getPath()).getAbsoluteFile();
     LOG.info("DEBUG: Setting up JobSplitIndex with JobSplitFile at: "
         + file.getAbsolutePath() + ", defaultFS from conf: "
@@ -83,12 +89,12 @@ public class SplitMetaInfoReaderTez {
       JobSplit.SplitMetaInfo splitMetaInfo = new JobSplit.SplitMetaInfo();
       splitMetaInfo.readFields(in);
       JobSplit.TaskSplitIndex splitIndex = new JobSplit.TaskSplitIndex(
-          jobSplitFile, splitMetaInfo.getStartOffset());
+          new Path(conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR), jobSplitFile)
+              .toUri().toString(), splitMetaInfo.getStartOffset());
       allSplitMetaInfo[i] = new JobSplit.TaskSplitMetaInfo(splitIndex,
           splitMetaInfo.getLocations(), splitMetaInfo.getInputDataLength());
     }
     in.close();
     return allSplitMetaInfo;
   }
-
 }

@@ -149,7 +149,7 @@ extends RunningTaskContext {
     
     jobConf.set(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID, 
         taskAttemptId.toString());
-    
+
     initResourceCalculatorPlugin();
     
     LOG.info("MRTask.inited: taskAttemptId = " + taskAttemptId.toString());
@@ -695,8 +695,10 @@ extends RunningTaskContext {
 
   public void localizeConfiguration(JobConf jobConf) 
       throws IOException, InterruptedException {
-    jobConf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString()); 
-    jobConf.set(JobContext.TASK_ATTEMPT_ID, taskAttemptId.toString());
+    jobConf.set(JobContext.TASK_ID, IDConverter
+        .toMRTaskAttemptId(taskAttemptId).toString());
+    jobConf.set(JobContext.TASK_ATTEMPT_ID,
+        IDConverter.toMRTaskAttemptId(taskAttemptId).toString());
     jobConf.setInt(JobContext.TASK_PARTITION, 
         taskAttemptId.getTaskID().getId());
     jobConf.set(JobContext.ID, taskAttemptId.getTaskID().getVertexID().getDAGId().toString());
