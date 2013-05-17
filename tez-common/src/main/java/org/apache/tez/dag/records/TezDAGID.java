@@ -100,6 +100,20 @@ public class TezDAGID extends TezID {
   public String toString() {
     return appendTo(new StringBuilder(DAG)).toString();
   }
+  
+  public static TezDAGID fromString(String dagId) {
+    try {
+      String[] split = dagId.split("_");
+      String rmId = split[1];
+      int appId = Integer.parseInt(split[2]);
+      int id;
+      id = idFormat.parse(split[3]).intValue();
+      return new TezDAGID(rmId, appId, id);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return null;
+  }
 
   @Override
   public void readFields(DataInput in) throws IOException {

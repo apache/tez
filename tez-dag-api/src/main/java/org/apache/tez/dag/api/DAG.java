@@ -28,14 +28,14 @@ import java.util.Stack;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.dag.api.DAGProtos.DAGPlan;
-import org.apache.tez.dag.api.DAGProtos.EdgePlan;
-import org.apache.tez.dag.api.DAGProtos.PlanKeyValuePair;
-import org.apache.tez.dag.api.DAGProtos.PlanLocalResource;
-import org.apache.tez.dag.api.DAGProtos.PlanTaskConfiguration;
-import org.apache.tez.dag.api.DAGProtos.PlanTaskLocationHint;
-import org.apache.tez.dag.api.DAGProtos.PlanVertexType;
-import org.apache.tez.dag.api.DAGProtos.VertexPlan;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
+import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
+import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResource;
+import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
+import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
+import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
+import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 
 public class DAG { // FIXME rename to Topology

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.api.records;
+package org.apache.tez.dag.api.oldrecords;
 
 import java.util.List;
 

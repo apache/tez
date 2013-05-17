@@ -55,19 +55,21 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DAGProtos.VertexPlan;
+import org.apache.tez.dag.api.oldrecords.TaskState;
+import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
-import org.apache.tez.dag.api.impl.NullVertexOutputCommitter;
-import org.apache.tez.dag.api.impl.VertexContext;
-import org.apache.tez.dag.api.impl.VertexOutputCommitter;
-import org.apache.tez.dag.api.impl.VertexStatus;
-import org.apache.tez.dag.api.impl.VertexStatus.State;
-import org.apache.tez.dag.api.records.TaskState;
+import org.apache.tez.dag.api.client.ProgressBuilder;
+import org.apache.tez.dag.api.client.VertexStatusBuilder;
+import org.apache.tez.dag.api.committer.NullVertexOutputCommitter;
+import org.apache.tez.dag.api.committer.VertexContext;
+import org.apache.tez.dag.api.committer.VertexOutputCommitter;
+import org.apache.tez.dag.api.committer.VertexStatus;
+import org.apache.tez.dag.api.committer.VertexStatus.State;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
@@ -519,6 +521,36 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       this.readLock.unlock();
     }
   }
+  
+  @Override
+  public ProgressBuilder getVertexProgress() {
+    this.readLock.lock();
+    try {
+      ProgressBuilder progress = new ProgressBuilder();
+      progress.setTotalTaskCount(numTasks);
+      progress.setSucceededTaskCount(succeededTaskCount);
+      progress.setRunningTaskCount(0); // TODO TEZ-130
+      progress.setFailedTaskCount(failedTaskCount);
+      progress.setKilledTaskCount(killedTaskCount);
+      return progress;
+    } finally {
+      this.readLock.unlock();
+    }
+  }
+  
+  @Override
+  public VertexStatusBuilder getVertexStatus() {
+    this.readLock.lock();
+    try {
+      VertexStatusBuilder status = new VertexStatusBuilder();
+      status.setState(getInternalState());
+      status.setDiagnostics(diagnostics);
+      status.setProgress(getVertexProgress());
+      return status;
+    } finally {
+      this.readLock.unlock();
+    }
+  }
 
   private void computeProgress() {
     this.readLock.lock();
@@ -599,9 +631,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       writeLock.unlock();
     }
   }
-
-  @Private
-  public VertexState getInternalState() {
+  
+  private VertexState getInternalState() {
     readLock.lock();
     try {
      return getStateMachine().getCurrentState();

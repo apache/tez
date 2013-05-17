@@ -15,37 +15,25 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package org.apache.tez.dag.api.impl;
+package org.apache.tez.dag.api.committer;
 
-public class VertexStatus {
-
+public class DAGStatus {
   public static enum State {
     RUNNING(1),
     SUCCEEDED(2),
     FAILED(3),
     PREP(4),
     KILLED(5);
-
+    
     int value;
-
+    
     State(int value) {
       this.value = value;
     }
-
+    
     public int getValue() {
-      return value;
+      return value; 
     }
-
+    
   };
-
-  private State runState;
-
-  public synchronized State getState() {
-    return runState;
-  }
-
-  public synchronized void setState(State state) {
-    this.runState = state;
-  }
-
 }

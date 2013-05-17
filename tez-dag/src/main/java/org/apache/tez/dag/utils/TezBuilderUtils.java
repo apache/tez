@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.api.client.impl;
+package org.apache.tez.dag.utils;
 
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.tez.dag.api.records.AMInfo;
+import org.apache.tez.dag.api.oldrecords.AMInfo;
 import org.apache.tez.dag.app.dag.DAGReport;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;

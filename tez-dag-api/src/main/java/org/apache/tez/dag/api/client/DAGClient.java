@@ -15,25 +15,32 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package org.apache.tez.dag.api.impl;
 
-public class DAGStatus {
-  public static enum State {
-    RUNNING(1),
-    SUCCEEDED(2),
-    FAILED(3),
-    PREP(4),
-    KILLED(5);
-    
-    int value;
-    
-    State(int value) {
-      this.value = value;
-    }
-    
-    public int getValue() {
-      return value; 
-    }
-    
-  };
+package org.apache.tez.dag.api.client;
+
+import java.util.List;
+
+import org.apache.tez.dag.api.TezException;
+
+/*
+ * Inteface class for monitoring the <code>DAG</code> running in a Tez DAG
+ * Application Master.
+ */
+public interface DAGClient {
+  
+  /**
+   * Return the identifiers for all DAG's
+   */
+  List<String> getAllDAGs() throws TezException;
+  
+  /**
+   * Get the status of a DAG
+   */
+  DAGStatus getDAGStatus(String dagId) throws TezException;
+  
+  /**
+   * Get the status of a Vertex of a DAG 
+   */
+  VertexStatus getVertexStatus(String dagId, 
+                               String vertexName) throws TezException;
 }

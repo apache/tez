@@ -16,23 +16,32 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.api.records;
+package org.apache.tez.dag.api.committer;
 
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.ContainerId;
+import java.io.IOException;
 
-public interface AMInfo {
-  public ApplicationAttemptId getAppAttemptId();
-  public long getStartTime();
-  public ContainerId getContainerId();
-  public String getNodeManagerHost();
-  public int getNodeManagerPort();
-  public int getNodeManagerHttpPort();
+import org.apache.tez.dag.api.committer.VertexStatus.State;
 
-  public void setAppAttemptId(ApplicationAttemptId appAttemptId);
-  public void setStartTime(long startTime);
-  public void setContainerId(ContainerId containerId);
-  public void setNodeManagerHost(String nmHost);
-  public void setNodeManagerPort(int nmPort);
-  public void setNodeManagerHttpPort(int mnHttpPort);
+public class NullVertexOutputCommitter extends VertexOutputCommitter {
+
+  @Override
+  public void init(VertexContext context) throws IOException {
+    // Nothing to do
+  }
+
+  @Override
+  public void setupVertex() throws IOException {
+    // Nothing to do
+  }
+
+  @Override
+  public void commitVertex() throws IOException {
+    // Nothing to do
+  }
+
+  @Override
+  public void abortVertex(State finalState) throws IOException {
+    // Nothing to do
+  }
+
 }

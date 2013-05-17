@@ -15,29 +15,37 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+package org.apache.tez.dag.api.committer;
 
-package org.apache.tez.dag.app.dag.event;
+public class VertexStatus {
 
-import org.apache.tez.dag.api.oldrecords.TaskState;
-import org.apache.tez.dag.records.TezTaskID;
+  public static enum State {
+    RUNNING(1),
+    SUCCEEDED(2),
+    FAILED(3),
+    PREP(4), // TODO change to INITING
+    KILLED(5);
 
+    int value;
 
-public class VertexEventTaskCompleted extends VertexEvent {
+    State(int value) {
+      this.value = value;
+    }
 
-  private TezTaskID taskID;
-  private TaskState taskState;
+    public int getValue() {
+      return value;
+    }
 
-  public VertexEventTaskCompleted(TezTaskID taskID, TaskState taskState) {
-    super(taskID.getVertexID(), VertexEventType.V_TASK_COMPLETED);
-    this.taskID = taskID;
-    this.taskState = taskState;
+  };
+
+  private State runState;
+
+  public synchronized State getState() {
+    return runState;
   }
 
-  public TezTaskID getTaskID() {
-    return taskID;
+  public synchronized void setState(State state) {
+    this.runState = state;
   }
 
-  public TaskState getState() {
-    return taskState;
-  }
 }

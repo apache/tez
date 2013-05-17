@@ -20,7 +20,7 @@ package org.apache.tez.dag.app.dag;
 import java.util.List;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.tez.dag.api.records.AMInfo;
+import org.apache.tez.dag.api.oldrecords.AMInfo;
 
 public abstract class DAGReport {
   public abstract ApplicationId getDAGId();

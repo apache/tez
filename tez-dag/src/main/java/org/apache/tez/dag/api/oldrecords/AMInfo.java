@@ -16,8 +16,23 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.api.records;
+package org.apache.tez.dag.api.oldrecords;
 
-public enum TaskState {
-  NEW, SCHEDULED, RUNNING, SUCCEEDED, FAILED, KILLED
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ContainerId;
+
+public interface AMInfo {
+  public ApplicationAttemptId getAppAttemptId();
+  public long getStartTime();
+  public ContainerId getContainerId();
+  public String getNodeManagerHost();
+  public int getNodeManagerPort();
+  public int getNodeManagerHttpPort();
+
+  public void setAppAttemptId(ApplicationAttemptId appAttemptId);
+  public void setStartTime(long startTime);
+  public void setContainerId(ContainerId containerId);
+  public void setNodeManagerHost(String nmHost);
+  public void setNodeManagerPort(int nmPort);
+  public void setNodeManagerHttpPort(int mnHttpPort);
 }

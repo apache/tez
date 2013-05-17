@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.api.impl;
+package org.apache.tez.dag.api.committer;
 
 import java.io.IOException;
 

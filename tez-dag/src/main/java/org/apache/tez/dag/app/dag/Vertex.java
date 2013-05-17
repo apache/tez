@@ -28,7 +28,9 @@ import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.DAGProtos.VertexPlan;
+import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
+import org.apache.tez.dag.api.client.ProgressBuilder;
+import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
@@ -59,6 +61,8 @@ public interface Vertex extends Comparable<Vertex> {
   int getTotalTasks();
   int getCompletedTasks();
   float getProgress();
+  ProgressBuilder getVertexProgress();
+  VertexStatusBuilder getVertexStatus();
   
   TezDependentTaskCompletionEvent[]
       getTaskAttemptCompletionEvents(int fromEventId, int maxEvents);

@@ -16,28 +16,36 @@
 * limitations under the License.
 */
 
-package org.apache.tez.dag.app.dag.event;
+package org.apache.tez.dag.api.client;
 
-import org.apache.tez.dag.api.oldrecords.TaskState;
-import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.api.records.DAGProtos.ProgressProtoOrBuilder;
 
-
-public class VertexEventTaskCompleted extends VertexEvent {
-
-  private TezTaskID taskID;
-  private TaskState taskState;
-
-  public VertexEventTaskCompleted(TezTaskID taskID, TaskState taskState) {
-    super(taskID.getVertexID(), VertexEventType.V_TASK_COMPLETED);
-    this.taskID = taskID;
-    this.taskState = taskState;
+public class Progress {
+  
+  ProgressProtoOrBuilder proxy = null;
+  
+  Progress(ProgressProtoOrBuilder proxy) {
+    this.proxy = proxy;
+  }
+  
+  public int getTotalTaskCount() {
+    return proxy.getTotalTaskCount();
   }
 
-  public TezTaskID getTaskID() {
-    return taskID;
+  public int getSucceededTaskCount() {
+    return proxy.getSucceededTaskCount();
   }
 
-  public TaskState getState() {
-    return taskState;
+  public int getRunningTaskCount() {
+    return proxy.getRunningTaskCount();
   }
+
+  public int getFailedTaskCount() {
+    return proxy.getFailedTaskCount();
+  }
+
+  public int getKilledTaskCount() {
+    return proxy.getKilledTaskCount();
+  }
+
 }

@@ -23,11 +23,11 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import org.apache.tez.dag.api.DAGProtos.DAGPlan;
-import org.apache.tez.dag.api.DAGProtos.PlanTaskConfiguration;
-import org.apache.tez.dag.api.DAGProtos.PlanTaskLocationHint;
-import org.apache.tez.dag.api.DAGProtos.PlanVertexType;
-import org.apache.tez.dag.api.DAGProtos.VertexPlan;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
+import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
+import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
+import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;

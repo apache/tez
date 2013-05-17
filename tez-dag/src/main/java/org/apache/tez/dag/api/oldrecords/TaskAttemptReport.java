@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.api.records;
+package org.apache.tez.dag.api.oldrecords;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.common.counters.TezCounters;

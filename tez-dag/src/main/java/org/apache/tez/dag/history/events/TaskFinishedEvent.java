@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.history.events;
 
-import org.apache.tez.dag.api.records.TaskState;
+import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.history.avro.TaskFinished;

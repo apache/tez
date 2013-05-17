@@ -24,9 +24,10 @@ import java.util.Map;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.client.DAGStatusBuilder;
+import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 
@@ -61,6 +62,8 @@ public interface DAG {
   TezConfiguration getConf();
   
   DAGPlan getJobPlan();
+  DAGStatusBuilder getDAGStatus();
+  VertexStatusBuilder getVertexStatus(String vertexName);
   
   /**
    * @return the ACLs for this job for each type of JobACL given. 

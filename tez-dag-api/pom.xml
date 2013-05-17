@@ -64,7 +64,8 @@
               <source>
                 <directory>${basedir}/src/main/proto</directory>
                 <includes>
-                  <include>DAGPlan.proto</include>
+                  <include>DAGApiRecords.proto</include>
+                  <include>DAGClientAMProtocol.proto</include>
                 </includes>
               </source>
               <output>${project.build.directory}/generated-sources/java</output>

@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -63,10 +64,14 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.service.CompositeService;
 import org.apache.hadoop.yarn.service.Service;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.dag.api.DAGProtos.DAGPlan;
-import org.apache.tez.dag.api.DAGProtos.VertexPlan;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
+import org.apache.tez.dag.api.client.DAGClient;
+import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.app.client.ClientService;
 import org.apache.tez.dag.app.client.impl.TezClientService;
 import org.apache.tez.dag.app.dag.DAG;
@@ -173,6 +178,7 @@ public class DAGAppMaster extends CompositeService {
   private HistoryEventHandler historyEventHandler;
 
   private DAGAppMasterState state;
+  private DAGMonitorServer monitor;
 
   private DAG dag;
   private Credentials fsTokens = new Credentials(); // Filled during init
@@ -223,6 +229,8 @@ public class DAGAppMaster extends CompositeService {
     appName = jobPlan.getName();
 
     dagId = new TezDAGID(appAttemptID.getApplicationId(), 1);
+    
+    monitor = new DAGMonitorServer();
 
     // TODO Committer.
     //    committer = createOutputCommitter(conf);
@@ -702,6 +710,35 @@ public class DAGAppMaster extends CompositeService {
       }
     }
     LOG.info("On DAG completion. Old state: " + oldState + " new state: " + state);
+  }
+  
+  class DAGMonitorServer implements DAGClient {
+
+    @Override
+    public List<String> getAllDAGs() {
+      return Collections.singletonList(dag.getID().toString());
+    }
+
+    @Override
+    public DAGStatus getDAGStatus(String dagIdStr) throws TezException {
+      return getDAG(dagIdStr).getDAGStatus();
+    }
+
+    @Override
+    public VertexStatus getVertexStatus(String dagIdStr, String vertexName) {
+      return getDAG(dagIdStr).getVertexStatus(vertexName);
+    }
+    
+    DAG getDAG(String dagIdStr) {
+      TezDAGID dagId = TezDAGID.fromString(dagIdStr);
+      if(dagId == null) {
+        throw new TezException("Bad dagId: " + dagIdStr);
+      }
+      if(!dagId.equals(dag.getID())) {
+        throw new TezException("Unknown dagId: " + dagIdStr);
+      }
+      return dag;
+    }
   }
 
   private class RunningAppContext implements AppContext {

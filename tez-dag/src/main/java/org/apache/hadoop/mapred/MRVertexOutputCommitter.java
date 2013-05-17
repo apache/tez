@@ -33,12 +33,12 @@ import org.apache.hadoop.mapreduce.TypeConverter;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.yarn.YarnException;
-import org.apache.tez.dag.api.client.impl.TezBuilderUtils;
-import org.apache.tez.dag.api.impl.VertexContext;
-import org.apache.tez.dag.api.impl.VertexOutputCommitter;
-import org.apache.tez.dag.api.impl.VertexStatus;
+import org.apache.tez.dag.api.committer.VertexContext;
+import org.apache.tez.dag.api.committer.VertexOutputCommitter;
+import org.apache.tez.dag.api.committer.VertexStatus;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 public class MRVertexOutputCommitter extends VertexOutputCommitter {

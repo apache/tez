@@ -16,10 +16,11 @@
  * limitations under the License.
  */
 
-option java_package = "org.apache.tez.dag.api";
+option java_package = "org.apache.tez.dag.api.records";
 option java_outer_classname = "DAGProtos";
 option java_generate_equals_and_hash = true;
-package org.apache.tez.dag.api;
+
+// DAG plan messages
 
 // Many of these types have a dual in the Tez-api.  To reduce confusion, these types have prefix or suffix 
 // of "Plan" to indicate they are to be used in the dag-plan.
@@ -113,7 +114,54 @@ message EdgePlan {
 
 message DAGPlan {
   required string name = 1;
-  repeated VertexPlan vertex = 3;
-  repeated EdgePlan edge = 4;
-  repeated PlanKeyValuePair jobSetting = 5;
+  repeated VertexPlan vertex = 2;
+  repeated EdgePlan edge = 3;
+  repeated PlanKeyValuePair jobSetting = 4;
+}
+
+
+// DAG monitoring messages
+message ProgressProto {
+  optional int32 totalTaskCount = 1;
+  optional int32 succeededTaskCount = 2;
+  optional int32 runningTaskCount = 3;
+  optional int32 failedTaskCount = 4;
+  optional int32 killedTaskCount = 5;
+}
+
+enum VertexStatusStateProto {
+  VERTEX_INITED = 0;
+  VERTEX_RUNNING = 1;
+  VERTEX_SUCCEEDED = 2;
+  VERTEX_KILLED = 3;
+  VERTEX_FAILED = 4;
+  VERTEX_ERROR = 5;
+}
+
+message VertexStatusProto {
+  optional VertexStatusStateProto state = 1;
+  repeated string diagnostics = 2;
+  optional ProgressProto progress = 3;
+}
+
+enum DAGStatusStateProto {
+  DAG_SUBMITTED = 0;
+  DAG_INITING = 1;
+  DAG_RUNNING = 2;
+  DAG_SUCCEEDED = 3;
+  DAG_KILLED = 4;
+  DAG_FAILED = 5;
+  DAG_ERROR = 6;
+}
+
+message StringProgressPairProto {
+  required string key = 1;
+  required ProgressProto progress = 2;
+}
+
+message DAGStatusProto {
+  optional DAGStatusStateProto state = 1;
+  repeated string diagnostics = 2;
+  optional ProgressProto DAGProgress = 3;
+  repeated StringProgressPairProto vertexProgress = 4;  
 }

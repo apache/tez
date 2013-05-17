@@ -16,32 +16,14 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.api.impl;
+package org.apache.tez.dag.api.oldrecords;
 
-import java.io.IOException;
-
-import org.apache.tez.dag.api.impl.VertexStatus.State;
-
-public class NullVertexOutputCommitter extends VertexOutputCommitter {
-
-  @Override
-  public void init(VertexContext context) throws IOException {
-    // Nothing to do
-  }
-
-  @Override
-  public void setupVertex() throws IOException {
-    // Nothing to do
-  }
-
-  @Override
-  public void commitVertex() throws IOException {
-    // Nothing to do
-  }
-
-  @Override
-  public void abortVertex(State finalState) throws IOException {
-    // Nothing to do
-  }
-
+public enum TaskAttemptState {
+  NEW, 
+  STARTING, 
+  RUNNING, 
+  COMMIT_PENDING,  
+  SUCCEEDED,
+  FAILED,
+  KILLED
 }

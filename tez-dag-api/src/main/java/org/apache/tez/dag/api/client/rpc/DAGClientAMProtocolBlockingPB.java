@@ -16,14 +16,15 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.api.records;
+package org.apache.tez.dag.api.client.rpc;
 
-public enum TaskAttemptState {
-  NEW, 
-  STARTING, 
-  RUNNING, 
-  COMMIT_PENDING,  
-  SUCCEEDED,
-  FAILED,
-  KILLED
+import org.apache.hadoop.ipc.ProtocolInfo;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.DAGClientAMProtocol;
+
+@ProtocolInfo(
+    protocolName = "org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolPB",
+    protocolVersion = 1)
+public interface DAGClientAMProtocolBlockingPB 
+                              extends DAGClientAMProtocol.BlockingInterface {
+
 }

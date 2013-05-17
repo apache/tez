@@ -52,14 +52,16 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DAGProtos.EdgePlan;
-import org.apache.tez.dag.api.DAGProtos.DAGPlan;
-import org.apache.tez.dag.api.DAGProtos.VertexPlan;
+import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
-import org.apache.tez.dag.api.client.impl.TezBuilderUtils;
-import org.apache.tez.dag.api.impl.DAGStatus;
+import org.apache.tez.dag.api.client.DAGStatusBuilder;
+import org.apache.tez.dag.api.client.ProgressBuilder;
+import org.apache.tez.dag.api.client.VertexStatusBuilder;
+import org.apache.tez.dag.api.committer.DAGStatus;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
@@ -84,6 +86,7 @@ import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.DAGApps;
+import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
 import org.apache.tez.engine.common.security.TokenCache;
@@ -505,7 +508,52 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       readLock.unlock();
     }
   }
+  
+  // monitoring apis
+  @Override
+  public DAGStatusBuilder getDAGStatus() {
+    DAGStatusBuilder status = new DAGStatusBuilder();
+    int totalTaskCount = 0;
+    int totalSucceededTaskCount = 0;
+    int totalRunningTaskCount = 0;
+    int totalFailedTaskCount = 0;
+    int totalKilledTaskCount = 0;
+    readLock.lock();
+    try {
+      for(Map.Entry<String, Vertex> entry : vertexMap.entrySet()) {
+        ProgressBuilder progress = entry.getValue().getVertexProgress();
+        status.addVertexProgress(entry.getKey(), progress);
+        totalTaskCount += progress.getTotalTaskCount();
+        totalSucceededTaskCount += progress.getSucceededTaskCount();
+        totalRunningTaskCount += progress.getRunningTaskCount();
+        totalFailedTaskCount += progress.getFailedTaskCount();
+        totalKilledTaskCount += progress.getKilledTaskCount();
+      }
+      ProgressBuilder dagProgress = new ProgressBuilder();
+      dagProgress.setTotalTaskCount(totalTaskCount);
+      dagProgress.setSucceededTaskCount(totalSucceededTaskCount);
+      dagProgress.setRunningTaskCount(totalRunningTaskCount);
+      dagProgress.setFailedTaskCount(totalFailedTaskCount);
+      dagProgress.setKilledTaskCount(totalKilledTaskCount);
+      status.setState(getState());
+      status.setDiagnostics(diagnostics);
+      status.setDAGProgress(dagProgress);
+      return status;
+    } finally {
+      readLock.unlock();
+    }
+  }
 
+  @Override
+  public VertexStatusBuilder getVertexStatus(String vertexName) {
+    Vertex vertex = vertexMap.get(vertexName);
+    if(vertex == null) {
+      return null;
+    }
+    return vertex.getVertexStatus();
+  }
+  
+  
   protected void startRootVertices() {
     for (Vertex v : vertices.values()) {
       if (v.getInputVerticesCount() == 0) {
