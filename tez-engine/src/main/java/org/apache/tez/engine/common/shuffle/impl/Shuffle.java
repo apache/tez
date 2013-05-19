@@ -80,7 +80,7 @@ public class Shuffle implements ExceptionReporter {
     
     FileSystem localFS = FileSystem.getLocal(this.conf);
     LocalDirAllocator localDirAllocator = 
-        new LocalDirAllocator(TezJobConfig.LOCAL_DIR);
+        new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
     
     copyPhase = this.runningTaskContext.getProgress().addPhase("copy", 0.33f);
     mergePhase = this.runningTaskContext.getProgress().addPhase("merge", 0.66f);

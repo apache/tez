@@ -57,7 +57,7 @@ public class TezMerger {
 
   // Local directories
   private static LocalDirAllocator lDirAlloc = 
-    new LocalDirAllocator(TezJobConfig.LOCAL_DIR);
+    new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
 
   public static
   TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,

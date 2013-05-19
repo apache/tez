@@ -66,6 +66,7 @@ public class RuntimeUtils {
         + ", Processor: " + taskContext.getProcessorName()
         + ", InputCount=" + taskContext.getInputSpecList().size()
         + ", OutputCount=" + taskContext.getOutputSpecList().size());
+
     RuntimeTask t = null;
     try {
       Class<?> processorClazz =
@@ -108,11 +109,30 @@ public class RuntimeUtils {
           outputs[i] = output;
         }
       }
-      t = new RuntimeTask(processor, inputs, outputs);
+      // t = new RuntimeTask(taskContext, processor, inputs, outputs);
+      t = createRuntime(taskContext, processor, inputs, outputs);
     } catch (ClassNotFoundException e) {
       throw new YarnException("Unable to initialize RuntimeTask, context="
           + taskContext, e);
     }
     return t;
+  }
+  
+  private static RuntimeTask createRuntime(TezEngineTaskContext taskContext,
+      Processor processor, Input[] inputs, Output[] outputs) {
+    try {
+      // TODO Change this to use getNewInstance
+      Class<?> runtimeClazz = Class.forName(taskContext.getRuntimeName());
+      Constructor<?> ctor = runtimeClazz.getConstructor(
+          TezEngineTaskContext.class, Processor.class, Input[].class,
+          Output[].class);
+      ctor.setAccessible(true);
+      return (RuntimeTask) ctor.newInstance(taskContext, processor, inputs, outputs);
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException("Unable to load runtimeClass: "
+          + taskContext.getRuntimeName(), e);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 }

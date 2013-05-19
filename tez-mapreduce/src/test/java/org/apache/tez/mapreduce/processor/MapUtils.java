@@ -24,14 +24,17 @@ import java.util.Random;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;
+import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputSplit;
@@ -40,6 +43,8 @@ import org.apache.hadoop.mapred.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.split.JobSplit;
 import org.apache.hadoop.mapreduce.split.JobSplit.SplitMetaInfo;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
+import org.apache.hadoop.util.DiskChecker.DiskErrorException;
+import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
@@ -54,6 +59,51 @@ import org.apache.tez.mapreduce.processor.map.MapProcessor;
 public class MapUtils {
 
   private static final Log LOG = LogFactory.getLog(MapUtils.class);
+  
+  public static void configureLocalDirs(Configuration conf, String localDir)
+      throws IOException {
+    String[] localSysDirs = new String[1];
+    localSysDirs[0] = localDir;
+
+    conf.setStrings(TezJobConfig.LOCAL_DIRS, localSysDirs);
+    conf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR,
+        System.getenv(Environment.PWD.name()));
+
+    LOG.info(TezJobConfig.LOCAL_DIRS + " for child: "
+        + conf.get(TezJobConfig.LOCAL_DIRS));
+    LOG.info(TezJobConfig.TASK_LOCAL_RESOURCE_DIR + " for child: "
+        + conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR));
+
+    LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
+    Path workDir = null;
+    // First, try to find the JOB_LOCAL_DIR on this host.
+    try {
+      workDir = lDirAlloc.getLocalPathToRead("work", conf);
+    } catch (DiskErrorException e) {
+      // DiskErrorException means dir not found. If not found, it will
+      // be created below.
+    }
+    if (workDir == null) {
+      // JOB_LOCAL_DIR doesn't exist on this host -- Create it.
+      workDir = lDirAlloc.getLocalPathForWrite("work", conf);
+      FileSystem lfs = FileSystem.getLocal(conf).getRaw();
+      boolean madeDir = false;
+      try {
+        madeDir = lfs.mkdirs(workDir);
+      } catch (FileAlreadyExistsException e) {
+        // Since all tasks will be running in their own JVM, the race condition
+        // exists where multiple tasks could be trying to create this directory
+        // at the same time. If this task loses the race, it's okay because
+        // the directory already exists.
+        madeDir = true;
+        workDir = lDirAlloc.getLocalPathToRead("work", conf);
+      }
+      if (!madeDir) {
+        throw new IOException("Mkdirs failed to create " + workDir.toString());
+      }
+    }
+    conf.set(TezJobConfig.JOB_LOCAL_DIR, workDir.toString());
+  }
   
   private static InputSplit 
   createInputSplit(FileSystem fs, Path workDir, JobConf job, Path file) 

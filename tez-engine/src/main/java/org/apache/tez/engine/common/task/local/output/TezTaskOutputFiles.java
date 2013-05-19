@@ -56,7 +56,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
 
   // assume configured to $localdir/usercache/$user/appcache/$appId
   private LocalDirAllocator lDirAlloc = 
-    new LocalDirAllocator(TezJobConfig.LOCAL_DIR);
+    new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
 
   private Path getAttemptOutputDir() {
     LOG.info("DEBUG: getAttemptOutputDir: "

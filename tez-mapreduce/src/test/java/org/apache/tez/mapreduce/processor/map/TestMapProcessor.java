@@ -55,36 +55,40 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class TestMapProcessor {
   
   private static final Log LOG = LogFactory.getLog(TestMapProcessor.class);  
   
   private static JobConf defaultConf = new JobConf();
   private static FileSystem localFs = null; 
+  private static Path workDir = null;
   static {
     try {
       defaultConf.set("fs.defaultFS", "file:///");
       localFs = FileSystem.getLocal(defaultConf);
+      workDir =
+          new Path(new Path(System.getProperty("test.build.data", "/tmp")),
+                   "TestMapProcessor").makeQualified(localFs);
+      MapUtils.configureLocalDirs(defaultConf, workDir.toString());
     } catch (IOException e) {
       throw new RuntimeException("init failure", e);
     }
   }
-  @SuppressWarnings("deprecation")
-  private static Path workDir =
-    new Path(new Path(System.getProperty("test.build.data", "/tmp")),
-             "TestMapProcessor").makeQualified(localFs);
+  
+
 
   TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles();
 
   public void setUpJobConf(JobConf job) {
-    job.set(TezJobConfig.LOCAL_DIR, workDir.toString());
+    job.set(TezJobConfig.LOCAL_DIRS, workDir.toString());
     job.setClass(
         Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER,
         TezLocalTaskOutputFiles.class, 
         TezTaskOutput.class);
     job.setNumReduceTasks(1);
   }
-  
+
   @Before
   @After
   public void cleanup() throws Exception {
@@ -98,15 +102,18 @@ public class TestMapProcessor {
     setUpJobConf(jobConf);
     TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles();
     mapOutputs.setConf(jobConf);
-    
+
     Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
+    conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, 0);
+
     Configuration stageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
         vertexName);
     
     JobConf job = new JobConf(stageConf);
-    
+
     job.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
+    
 
     MapUtils.runMapProcessor(localFs, workDir, job, 0,
         new Path(workDir, "map0"), new TestUmbilicalProtocol(), vertexName,

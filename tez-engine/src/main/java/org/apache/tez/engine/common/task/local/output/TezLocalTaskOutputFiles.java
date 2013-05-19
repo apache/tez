@@ -42,7 +42,7 @@ import org.apache.tez.dag.records.TezTaskID;
 public class TezLocalTaskOutputFiles extends TezTaskOutput {
 
   private LocalDirAllocator lDirAlloc =
-    new LocalDirAllocator(TezJobConfig.LOCAL_DIR);
+    new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
 
   public TezLocalTaskOutputFiles() {
   }
@@ -223,7 +223,7 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
   }
 
   private String[] getLocalDirs() throws IOException {
-    return getConf().getStrings(TezJobConfig.LOCAL_DIR);
+    return getConf().getStrings(TezJobConfig.LOCAL_DIRS);
   }
 
   @SuppressWarnings("deprecation")

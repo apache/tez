@@ -62,17 +62,24 @@ public class TezJobConfig {
   public static final long DEFAULT_RECORDS_BEFORE_PROGRESS = 10000; 
 
   /**
-   * 
+   * List of directories avialble to the engine. 
    */
-  public static final String LOCAL_DIR = "tez.engine.local.dir";
-  public static final String DEFAULT_LOCAL_DIR = "/tmp";
-
+  public static final String LOCAL_DIRS = "tez.engine.local.dirs";
+  public static final String DEFAULT_LOCAL_DIRS = "/tmp";
+  
+  /**
+   * One local dir for the speicfic job.
+   */
+  public static final String JOB_LOCAL_DIR = "tez.engine.job.local.dir";
+  
   /**
    * The directory which contains the localized files for this task.
    */
   @Private
   public static final String TASK_LOCAL_RESOURCE_DIR = "tez.engine.task-local-resource.dir";
   public static final String DEFAULT_TASK_LOCAL_RESOURCE_DIR = "/tmp";
+  
+  public static final String TEZ_TASK_WORKING_DIR = "tez.engine.task.working.dir";
   
   /**
    * 
@@ -299,4 +306,8 @@ public class TezJobConfig {
    * credentials.
    */
   public static final String DAG_CREDENTIALS_BINARY =  "tez.dag.credentials.binary";
+  
+  
+  public static final String APPLICATION_ATTEMPT_ID =
+      "tez.job.application.attempt.id";
 }

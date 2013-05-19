@@ -20,17 +20,9 @@ package org.apache.hadoop.mapred;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.crypto.SecretKey;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,16 +31,8 @@ import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.ipc.RPC;
-import org.apache.hadoop.mapreduce.MRConfig;
-import org.apache.hadoop.mapreduce.filecache.DistributedCache;
-import org.apache.hadoop.mapreduce.security.TokenCache;
-import org.apache.hadoop.mapreduce.security.token.JobTokenIdentifier;
-import org.apache.hadoop.mapreduce.security.token.JobTokenSecretManager;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
-import org.apache.hadoop.metrics2.source.JvmMetrics;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
@@ -72,16 +56,15 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.api.Task;
+import org.apache.tez.engine.common.security.JobTokenIdentifier;
+import org.apache.tez.engine.common.security.TokenCache;
 import org.apache.tez.engine.runtime.RuntimeUtils;
-import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
+import org.apache.tez.engine.task.RuntimeTask;
 import org.apache.tez.mapreduce.input.SimpleInput;
 import org.apache.tez.mapreduce.output.SimpleOutput;
-import org.apache.tez.mapreduce.processor.MRTask;
 
 /**
- * The main() for TEZ MapReduce task processes.
+ * The main() for TEZ Task processes.
  */
 public class YarnTezDagChild {
 
@@ -91,11 +74,9 @@ public class YarnTezDagChild {
     Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
     LOG.debug("Child starting");
 
-    DeprecatedKeys.init();
-    
-    final JobConf defaultConf = new JobConf();
-    // HACK Eventually load the DagConf for security etc setup.
-//    defaultConf.addResource(MRJobConfig.JOB_CONF_FILE);
+    final Configuration defaultConf = new Configuration();
+    // Security settings will be loaded based on core-site and core-default. Don't
+    // depend on the jobConf for this.
     UserGroupInformation.setConfiguration(defaultConf);
 
     String host = args[0];
@@ -121,9 +102,10 @@ public class YarnTezDagChild {
     // Create TaskUmbilicalProtocol as actual task owner.
     UserGroupInformation taskOwner =
       UserGroupInformation.createRemoteUser(appID.toString());
-    Token<JobTokenIdentifier> jt = TokenCache.getJobToken(credentials);
-    SecurityUtil.setTokenService(jt, address);
-    taskOwner.addToken(jt);
+
+    Token<JobTokenIdentifier> jobToken = TokenCache.getJobToken(credentials);
+    SecurityUtil.setTokenService(jobToken, address);
+    taskOwner.addToken(jobToken);
     final TezTaskUmbilicalProtocol umbilical =
       taskOwner.doAs(new PrivilegedExceptionAction<TezTaskUmbilicalProtocol>() {
       @Override
@@ -142,9 +124,8 @@ public class YarnTezDagChild {
     ContainerTask containerTask = null;
     UserGroupInformation childUGI = null;
     TezTaskAttemptID taskAttemptId = null;
-    MRTask task = null;
     ContainerContext containerContext = new ContainerContext(containerId, pid);
-    
+
     try {
       while (true) {
         // poll for new task
@@ -165,19 +146,19 @@ public class YarnTezDagChild {
         }
         taskContext = (TezEngineTaskContext) containerTask
             .getTezEngineTaskContext();
-        LOG.info("XXXX: New container task context:"
+        LOG.info("DEBUG: New container task context:"
                 + taskContext.toString());
 
         taskAttemptId = taskContext.getTaskAttemptId();
 
         final Task t = createAndConfigureTezTask(taskContext, umbilical,
-            credentials, jt,
+            credentials, jobToken,
             containerId.getApplicationAttemptId().getAttemptId());
-        task = (MRTask) t.getProcessor();
-        final JobConf job = task.getConf();
 
-        // Initiate Java VM metrics
-        JvmMetrics.initSingleton(containerId.toString(), job.getSessionId());
+        final Configuration conf = ((RuntimeTask)t).getConfiguration();
+
+        // TODO Initiate Java VM metrics
+        // JvmMetrics.initSingleton(containerId.toString(), job.getSessionId());
         childUGI = UserGroupInformation.createRemoteUser(System
             .getenv(ApplicationConstants.Environment.USER.toString()));
         // Add tokens to new user so that it may execute its task correctly.
@@ -186,7 +167,7 @@ public class YarnTezDagChild {
         childUGI.doAs(new PrivilegedExceptionAction<Object>() {
           @Override
           public Object run() throws Exception {
-            runTezTask(t, umbilical, job); // run the task
+            runTezTask(t, umbilical, conf); // run the task
             return null;
           }
         });
@@ -196,34 +177,6 @@ public class YarnTezDagChild {
     } catch (FSError e) {
       LOG.fatal("FSError from child", e);
       umbilical.fsError(taskAttemptId, e.getMessage());
-    } catch (Exception exception) {
-      LOG.warn("Exception running child : "
-          + StringUtils.stringifyException(exception));
-      try {
-        if (task != null) {
-          // do cleanup for the task
-          if (childUGI == null) { // no need to job into doAs block
-            task.taskCleanup(umbilical);
-          } else {
-            final MRTask taskFinal = task;
-            childUGI.doAs(new PrivilegedExceptionAction<Object>() {
-              @Override
-              public Object run() throws Exception {
-                taskFinal.taskCleanup(umbilical);
-                return null;
-              }
-            });
-          }
-        }
-      } catch (Exception e) {
-        LOG.info("Exception cleaning up: " + StringUtils.stringifyException(e));
-      }
-      // Report back any failures, for diagnostic purposes
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      exception.printStackTrace(new PrintStream(baos));
-      if (taskAttemptId != null) {
-        umbilical.fatalError(taskAttemptId, baos.toString());
-      }
     } catch (Throwable throwable) {
       LOG.fatal("Error running child : "
     	        + StringUtils.stringifyException(throwable));
@@ -249,29 +202,36 @@ public class YarnTezDagChild {
    * out an output directory.
    * @throws IOException 
    */
-  private static void configureLocalDirs(JobConf job) throws IOException {
+  /**
+   * Configure tez-local-dirs, tez-localized-file-dir, etc. Also create these
+   * dirs.
+   */
+  
+  private static void configureLocalDirs(Configuration conf) throws IOException {
     String[] localSysDirs = StringUtils.getTrimmedStrings(
         System.getenv(Environment.LOCAL_DIRS.name()));
-    job.setStrings(TezJobConfig.LOCAL_DIR, localSysDirs);
-    job.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR,
+    conf.setStrings(TezJobConfig.LOCAL_DIRS, localSysDirs);
+    conf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR,
         System.getenv(Environment.PWD.name()));
-    LOG.info(TezJobConfig.LOCAL_DIR + " for child: " +
-        job.get(TezJobConfig.LOCAL_DIR));
+    
+    LOG.info(TezJobConfig.LOCAL_DIRS + " for child: " +
+        conf.get(TezJobConfig.LOCAL_DIRS));
     LOG.info(TezJobConfig.TASK_LOCAL_RESOURCE_DIR + " for child: "
-        + job.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR));
-    LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezJobConfig.LOCAL_DIR);
+        + conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR));
+    
+    LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
     Path workDir = null;
     // First, try to find the JOB_LOCAL_DIR on this host.
     try {
-      workDir = lDirAlloc.getLocalPathToRead("work", job);
+      workDir = lDirAlloc.getLocalPathToRead("work", conf);
     } catch (DiskErrorException e) {
       // DiskErrorException means dir not found. If not found, it will
       // be created below.
     }
     if (workDir == null) {
       // JOB_LOCAL_DIR doesn't exist on this host -- Create it.
-      workDir = lDirAlloc.getLocalPathForWrite("work", job);
-      FileSystem lfs = FileSystem.getLocal(job).getRaw();
+      workDir = lDirAlloc.getLocalPathForWrite("work", conf);
+      FileSystem lfs = FileSystem.getLocal(conf).getRaw();
       boolean madeDir = false;
       try {
         madeDir = lfs.mkdirs(workDir);
@@ -281,155 +241,29 @@ public class YarnTezDagChild {
         // at the same time. If this task loses the race, it's okay because
         // the directory already exists.
         madeDir = true;
-        workDir = lDirAlloc.getLocalPathToRead("work", job);
+        workDir = lDirAlloc.getLocalPathToRead("work", conf);
       }
       if (!madeDir) {
           throw new IOException("Mkdirs failed to create "
               + workDir.toString());
       }
     }
-    // TODO TEZ This likely needs fixing to make sure things work when there are multiple local-dirs etc.
-    job.set(MRJobConfig.JOB_LOCAL_DIR, workDir.toString());
+    conf.set(TezJobConfig.JOB_LOCAL_DIR, workDir.toString());
   }
-
-  private static JobConf configureTask(MRTask task, Credentials credentials,
-      Token<JobTokenIdentifier> jt, int appAttemptId)
-          throws IOException, InterruptedException {
-    JobConf job = task.getConf();
-    
-    // Set it in conf, so as to be able to be used the the OutputCommitter.
-    job.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, appAttemptId);
-
-    // set tcp nodelay
-    job.setBoolean("ipc.client.tcpnodelay", true);
-    job.setClass(MRConfig.TASK_LOCAL_OUTPUT_CLASS,
-        YarnOutputFiles.class, MapOutputFile.class);
-    // set the jobTokenFile into task
-    SecretKey sk = JobTokenSecretManager.createSecretKey(jt.getPassword());
-
-    task.setJobTokenSecret(sk);
-//    task.setJobTokenSecret(
-//        JobTokenSecretManager.createSecretKey(jt.getPassword()));
-
-    // setup the child's MRConfig.LOCAL_DIR.
-    configureLocalDirs(job);
-
-    // setup the child's attempt directories
-    // Do the task-type specific localization
-    task.localizeConfiguration(job);
-
-    // Set up the DistributedCache related configs
-    setupDistributedCacheConfig(job);
-
-    // Overwrite the localized task jobconf which is linked to in the current
-    // work-dir.
-    Path localTaskFile = new Path(MRJobConfig.JOB_CONF_FILE);
-    writeLocalJobFile(localTaskFile, job);
-    task.setConf(job);
-    return job;
-  }
-
-  /**
-   * Set up the DistributedCache related configs to make
-   * {@link DistributedCache#getLocalCacheFiles(Configuration)}
-   * and
-   * {@link DistributedCache#getLocalCacheArchives(Configuration)}
-   * working.
-   * @param job
-   * @throws IOException
-   */
-  private static void setupDistributedCacheConfig(final JobConf job)
-      throws IOException {
-
-    String localWorkDir = System.getenv("PWD");
-    //        ^ ^ all symlinks are created in the current work-dir
-
-    // Update the configuration object with localized archives.
-    URI[] cacheArchives = DistributedCache.getCacheArchives(job);
-    if (cacheArchives != null) {
-      List<String> localArchives = new ArrayList<String>();
-      for (int i = 0; i < cacheArchives.length; ++i) {
-        URI u = cacheArchives[i];
-        Path p = new Path(u);
-        Path name =
-            new Path((null == u.getFragment()) ? p.getName()
-                : u.getFragment());
-        String linkName = name.toUri().getPath();
-        localArchives.add(new Path(localWorkDir, linkName).toUri().getPath());
-      }
-      if (!localArchives.isEmpty()) {
-        job.set(MRJobConfig.CACHE_LOCALARCHIVES, StringUtils
-            .arrayToString(localArchives.toArray(new String[localArchives
-                .size()])));
-      }
-    }
-
-    // Update the configuration object with localized files.
-    URI[] cacheFiles = DistributedCache.getCacheFiles(job);
-    if (cacheFiles != null) {
-      List<String> localFiles = new ArrayList<String>();
-      for (int i = 0; i < cacheFiles.length; ++i) {
-        URI u = cacheFiles[i];
-        Path p = new Path(u);
-        Path name =
-            new Path((null == u.getFragment()) ? p.getName()
-                : u.getFragment());
-        String linkName = name.toUri().getPath();
-        localFiles.add(new Path(localWorkDir, linkName).toUri().getPath());
-      }
-      if (!localFiles.isEmpty()) {
-        job.set(MRJobConfig.CACHE_LOCALFILES,
-            StringUtils.arrayToString(localFiles
-                .toArray(new String[localFiles.size()])));
-      }
-    }
-  }
-
-  private static final FsPermission urw_gr =
-    FsPermission.createImmutable((short) 0640);
-
-  /**
-   * Write the task specific job-configuration file.
-   * @throws IOException
-   */
-  private static void writeLocalJobFile(Path jobFile, JobConf conf)
-      throws IOException {
-    FileSystem localFs = FileSystem.getLocal(conf);
-    localFs.delete(jobFile);
-    OutputStream out = null;
-    try {
-      out = FileSystem.create(localFs, jobFile, urw_gr);
-      conf.writeXml(out);
-    } finally {
-      IOUtils.cleanup(LOG, out);
-    }
-  }
-
+  
   private static Task createAndConfigureTezTask(
-      TezEngineTaskContext taskContext,
-      TezTaskUmbilicalProtocol master,
-      Credentials credentials, Token<JobTokenIdentifier> jt,
-      int appAttemptId)
-      throws IOException, InterruptedException {
+      TezEngineTaskContext taskContext, TezTaskUmbilicalProtocol master,
+      Credentials cxredentials, Token<JobTokenIdentifier> jobToken,
+      int appAttemptId) throws IOException, InterruptedException {
 
-    Configuration jConf = new JobConf(MRJobConfig.JOB_CONF_FILE);
-    Configuration conf = MultiStageMRConfigUtil.getConfForVertex(jConf,
-        taskContext.getVertexName());
+    Configuration conf = new Configuration();
+    // set tcp nodelay
+    conf.setBoolean("ipc.client.tcpnodelay", true);
+    conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, appAttemptId);
     
-    // TOOD Post MRR
-    // A single file per vertex will likely be a better solution. Does not
-    // require translation - client can take care of this. Will work independent
-    // of whether the configuration is for intermediate tasks or not. Has the
-    // overhead of localizing multiple files per job - i.e. the client would
-    // need to write these files to hdfs, add them as local resources per
-    // vertex. A solution like this may be more practical once it's possible to
-    // submit configuration parameters to the AM and effectively tasks via RPC.
-
-    // TODO Avoid all this extra config manipulation.
-    // FIXME we need I/O/p level configs to be used in init below
-    final JobConf job = new JobConf(conf);
-    job.setCredentials(credentials);
-
+    configureLocalDirs(conf);
+    
+    
     // FIXME need Input/Output vertices else we have this hack
     if (taskContext.getInputSpecList().isEmpty()) {
       taskContext.getInputSpecList().add(
@@ -440,26 +274,37 @@ public class YarnTezDagChild {
           new OutputSpec("null", 0, SimpleOutput.class.getName()));
     }
     Task t = RuntimeUtils.createRuntimeTask(taskContext);
-    
+    t.initialize(conf, master);
+
     // FIXME wrapper should initialize all of processor, inputs and outputs
     // Currently, processor is inited via task init
     // and processor then inits inputs and outputs
-    t.initialize(job, master);
-    
-    MRTask task = (MRTask)t.getProcessor();
-    configureTask(task, credentials, jt, appAttemptId);
-    
     return t;
   }
   
   private static void runTezTask(
-      Task t, TezTaskUmbilicalProtocol master, JobConf job) 
+      Task t, TezTaskUmbilicalProtocol master, Configuration conf) 
   throws IOException, InterruptedException {
     // use job-specified working directory
-    FileSystem.get(job).setWorkingDirectory(job.getWorkingDirectory());
+    FileSystem.get(conf).setWorkingDirectory(getWorkingDirectory(conf));
     
     // Run!
     t.run();
     t.close();
+  }
+  
+  private static Path getWorkingDirectory(Configuration conf) {
+    String name = conf.get(JobContext.WORKING_DIR);
+    if (name != null) {
+      return new Path(name);
+    } else {
+      try {
+        Path dir = FileSystem.get(conf).getWorkingDirectory();
+        conf.set(JobContext.WORKING_DIR, dir.toString());
+        return dir;
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 }

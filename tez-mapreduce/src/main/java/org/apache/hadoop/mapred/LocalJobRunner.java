@@ -465,7 +465,7 @@ public class LocalJobRunner implements ClientProtocol {
                 LOG.info("XXX mapId: " + i + 
                     " LOCAL_DIR = " + 
                     mapOutputFiles.get(mapId).getConf().get(
-                        TezJobConfig.LOCAL_DIR));
+                        TezJobConfig.LOCAL_DIRS));
                 Path mapOut = mapOutputFiles.get(mapId).getOutputFile();
                 TezTaskOutput localOutputFile = new TezLocalTaskOutputFiles();
                 localOutputFile.setConf(localConf);
@@ -902,7 +902,7 @@ public class LocalJobRunner implements ClientProtocol {
       TaskAttemptID taskAttemptID, String user, JobConf conf) {
     String[] localDirs = 
         conf.getTrimmedStrings(
-            TezJobConfig.LOCAL_DIR, TezJobConfig.DEFAULT_LOCAL_DIR);
+            TezJobConfig.LOCAL_DIRS, TezJobConfig.DEFAULT_LOCAL_DIRS);
     String jobId = taskAttemptID.getJobID().toString();
     String taskId = taskAttemptID.getTaskID().toString();
     boolean isCleanup = false;
@@ -913,9 +913,9 @@ public class LocalJobRunner implements ClientProtocol {
       childMapredLocalDir.append("," + localDirs[i] + Path.SEPARATOR
           + getLocalTaskDir(user, jobId, taskId, isCleanup));
     }
-    LOG.info(TezJobConfig.LOCAL_DIR + " for child : " + taskAttemptID + 
+    LOG.info(TezJobConfig.LOCAL_DIRS + " for child : " + taskAttemptID + 
         " is " + childMapredLocalDir);
-    conf.set(TezJobConfig.LOCAL_DIR, childMapredLocalDir.toString());
+    conf.set(TezJobConfig.LOCAL_DIRS, childMapredLocalDir.toString());
     conf.setClass(Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER, 
         TezLocalTaskOutputFiles.class, TezTaskOutput.class);
   }

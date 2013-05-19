@@ -74,4 +74,6 @@ public interface Task {
    */
   public void close() throws IOException, InterruptedException;
   
+  
+  public Configuration getConfiguration();
 }

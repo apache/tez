@@ -56,27 +56,30 @@ import org.junit.Before;
 import org.junit.Test;
 
 
+@SuppressWarnings("deprecation")
 public class TestReduceProcessor {
   
   private static final Log LOG = LogFactory.getLog(TestReduceProcessor.class);
 
   private static JobConf defaultConf = new JobConf();
-  private static FileSystem localFs = null; 
+  private static FileSystem localFs = null;
+  private static Path workDir = null;
   static {
     try {
       defaultConf.set("fs.defaultFS", "file:///");
       localFs = FileSystem.getLocal(defaultConf);
+      workDir =
+          new Path(new Path(System.getProperty("test.build.data", "/tmp")),
+                   "TestReduceProcessor").makeQualified(localFs);
+      
+      MapUtils.configureLocalDirs(defaultConf, workDir.toString());
     } catch (IOException e) {
       throw new RuntimeException("init failure", e);
     }
   }
-  @SuppressWarnings("deprecation")
-  private static Path workDir =
-    new Path(new Path(System.getProperty("test.build.data", "/tmp")),
-             "TestReduceProcessor").makeQualified(localFs);
 
   public void setUpJobConf(JobConf job) {
-    job.set(TezJobConfig.LOCAL_DIR, workDir.toString());
+    job.set(TezJobConfig.LOCAL_DIRS, workDir.toString());
     job.setClass(
         Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER,
         TezLocalTaskOutputFiles.class, 
@@ -101,6 +104,7 @@ public class TestReduceProcessor {
     mapOutputs.setConf(jobConf);
     
     Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
+    conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, 0);
     Configuration mapStageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
         mapVertexName);
     
@@ -108,6 +112,7 @@ public class TestReduceProcessor {
     
     mapConf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
+    
     
     // Run a map
     MapUtils.runMapProcessor(localFs, workDir, mapConf, 0,
@@ -124,6 +129,8 @@ public class TestReduceProcessor {
         reduceVertexName);
     JobConf reduceConf = new JobConf(reduceStageConf);
     reduceConf.setOutputFormat(SequenceFileOutputFormat.class);
+    reduceConf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
+        "localized-resources").toUri().toString());
     FileOutputFormat.setOutputPath(reduceConf, new Path(workDir, "output"));
     
     // Now run a reduce
@@ -147,8 +154,8 @@ public class TestReduceProcessor {
             .toMRTaskId(taskContext.getTaskAttemptId().getTaskID()));
     Path reduceOutputFile = new Path(reduceOutputDir, "part-00000");
 
-    @SuppressWarnings("deprecation")
-    SequenceFile.Reader reader = new SequenceFile.Reader(localFs, reduceOutputFile, reduceConf);
+    SequenceFile.Reader reader = new SequenceFile.Reader(localFs,
+        reduceOutputFile, reduceConf);
 
     LongWritable key = new LongWritable();
     Text value = new Text();

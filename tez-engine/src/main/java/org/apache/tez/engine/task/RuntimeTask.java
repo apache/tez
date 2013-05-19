@@ -20,6 +20,7 @@ package org.apache.tez.engine.task;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.engine.api.Input;
 import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.api.Output;
@@ -28,17 +29,19 @@ import org.apache.tez.engine.api.Task;
 
 public class RuntimeTask implements Task {
 
-  private final Input[] inputs;
-  private final Output[] outputs;
-  private final Processor processor;
+  protected final Input[] inputs;
+  protected final Output[] outputs;
+  protected final Processor processor;
   
-  private Configuration conf;
-  private Master master;
+  protected TezEngineTaskContext taskContext;
+  protected Configuration conf;
+  protected Master master;
   
-  public RuntimeTask(
+  public RuntimeTask(TezEngineTaskContext taskContext,
       Processor processor,
       Input[] inputs,
       Output[] outputs) {
+    this.taskContext = taskContext;
     this.inputs = inputs;
     this.processor = processor;
     this.outputs = outputs;
@@ -74,7 +77,13 @@ public class RuntimeTask implements Task {
 
   public void close() throws IOException, InterruptedException {
     // NOTE: Allow processor to close input/output
+    // This can be changed to close input/output since MRRuntimeTask is used for
+    // MR jobs, which changes the order.
     processor.close();
   }
 
+  @Override
+  public Configuration getConfiguration() {
+    return this.conf;
+  }
 }

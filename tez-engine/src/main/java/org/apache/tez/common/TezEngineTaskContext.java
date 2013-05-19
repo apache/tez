@@ -55,6 +55,11 @@ public class TezEngineTaskContext extends TezTaskContext {
     this.processorName = processorName;
   }
 
+  public String getRuntimeName() {
+    // FIXME. Add this to the DAG configuration, and fetch from there.
+    return "org.apache.tez.mapreduce.task.MRRuntimeTask";
+  }
+
   public String getProcessorName() {
     return processorName;
   }
