@@ -117,7 +117,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final TaskAttemptListener taskAttemptListener;
   private final TaskHeartbeatHandler taskHeartbeatHandler;
   private final Object tasksSyncHandle = new Object();
-  
+
   private DAGScheduler dagScheduler;
 
   private final EventHandler eventHandler;
@@ -129,7 +129,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final AppContext appContext;
 
   volatile Map<TezVertexID, Vertex> vertices = new HashMap<TezVertexID, Vertex>();
-  private Map<String, EdgeProperty> edges = new HashMap<String, EdgeProperty>(); 
+  private Map<String, EdgeProperty> edges = new HashMap<String, EdgeProperty>();
   private TezCounters dagCounters = new TezCounters();
   private Object fullCountersLock = new Object();
   private TezCounters fullCounters = null;
@@ -150,7 +150,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       INTERNAL_ERROR_TRANSITION = new InternalErrorTransition();
   private static final CounterUpdateTransition COUNTER_UPDATE_TRANSITION =
       new CounterUpdateTransition();
-  private static final DAGSchedulerUpdateTransition 
+  private static final DAGSchedulerUpdateTransition
           DAG_SCHEDULER_UPDATE_TRANSITION = new DAGSchedulerUpdateTransition();
 
   protected static final
@@ -211,8 +211,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               DIAGNOSTIC_UPDATE_TRANSITION)
           .addTransition(DAGState.RUNNING, DAGState.RUNNING,
               DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
-          .addTransition(DAGState.RUNNING, DAGState.RUNNING, 
-              DAGEventType.DAG_SCHEDULER_UPDATE, 
+          .addTransition(DAGState.RUNNING, DAGState.RUNNING,
+              DAGEventType.DAG_SCHEDULER_UPDATE,
               DAG_SCHEDULER_UPDATE_TRANSITION)
           .addTransition(
               DAGState.RUNNING,
@@ -332,7 +332,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     this.jobPlan = jobPlan;
     this.conf = conf;
     this.dagName = (jobPlan.getName() != null) ? jobPlan.getName() : "<missing app name>";
-    
+
     this.userName = appUserName;
     // TODO Metrics
     //this.metrics = metrics;
@@ -374,7 +374,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public TezConfiguration getConf() {
     return conf;
   }
-  
+
   @Override
   public DAGPlan getJobPlan() {
     return jobPlan;
@@ -508,7 +508,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       readLock.unlock();
     }
   }
-  
+
   // monitoring apis
   @Override
   public DAGStatusBuilder getDAGStatus() {
@@ -552,11 +552,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
     return vertex.getVertexStatus();
   }
-  
-  
+
+
   protected void startRootVertices() {
     for (Vertex v : vertices.values()) {
       if (v.getInputVerticesCount() == 0) {
+        LOG.info("DEBUG: Starting root vertex " + v.getName());
         eventHandler.handle(new VertexEvent(v.getVertexId(),
             VertexEventType.V_START));
       }
@@ -605,7 +606,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       writeLock.unlock();
     }
   }
-  
+
   @Private
   public DAGState getInternalState() {
     readLock.lock();
@@ -727,7 +728,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public String getUserName() {
     return userName;
   }
-  
+
   @Override
   public String getQueueName() {
     return queueName;
@@ -862,7 +863,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
         dag.edges = DagTypeConverters.createEdgePropertyMapFromDAGPlan(dag.getJobPlan().getEdgeList());
         Map<String,EdgePlan> edgePlans = DagTypeConverters.createEdgePlanMapFromDAGPlan(dag.getJobPlan().getEdgeList());
-        
+
         // setup the dag
         for (Vertex v : dag.vertices.values()) {
           parseVertexEdges(dag, edgePlans, v);
@@ -888,10 +889,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     private VertexImpl createVertex(DAGImpl dag, String vertexName, int vId) {
       TezVertexID vertexId = TezBuilderUtils.newVertexID(dag.getID(), vId);
-      
+
       VertexPlan vertexPlan = dag.getJobPlan().getVertex(vId);
       VertexLocationHint vertexLocationHint = DagTypeConverters.convertFromDAGPlan(vertexPlan.getTaskLocationHintList());
-        
+
       return new VertexImpl(
           vertexId, vertexPlan, vertexName, dag.conf,
           dag.eventHandler, dag.taskAttemptListener,
@@ -912,18 +913,18 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
       for(String inEdgeId : vertexPlan.getInEdgeIdList()){
         EdgePlan edgePlan = edgePlans.get(inEdgeId);
-        Vertex inVertex = dag.vertexMap.get(edgePlan.getInputVertexName());    
+        Vertex inVertex = dag.vertexMap.get(edgePlan.getInputVertexName());
         EdgeProperty edgeProp = dag.edges.get(inEdgeId);
         inVertices.put(inVertex, edgeProp);
       }
-      
+
       for(String outEdgeId : vertexPlan.getOutEdgeIdList()){
         EdgePlan edgePlan = edgePlans.get(outEdgeId);
-        Vertex outVertex = dag.vertexMap.get(edgePlan.getOutputVertexName());    
+        Vertex outVertex = dag.vertexMap.get(edgePlan.getOutputVertexName());
         EdgeProperty edgeProp = dag.edges.get(outEdgeId);
         outVertices.put(outVertex, edgeProp);
       }
-      
+
       vertex.setInputVertices(inVertices);
       vertex.setOutputVertices(outVertices);
     }
@@ -931,9 +932,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     protected void setup(DAGImpl job) throws IOException {
       job.initTime = job.clock.getTime();
       String dagIdString = job.dagId.toString();
-      
+
       dagIdString.replace("application", "job");
-      
+
       // TODO remove - TEZ-71
       String user =
         UserGroupInformation.getCurrentUser().getShortUserName();
@@ -1165,7 +1166,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       }
     }
   }
-  
+
   private static class DAGSchedulerUpdateTransition implements
   SingleArcTransition<DAGImpl, DAGEvent> {
   @Override

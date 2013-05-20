@@ -141,7 +141,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   // TODO Metrics
   //private final MRAppMetrics metrics;
   private final AppContext appContext;
-  
+
   private boolean lazyTasksCopyNeeded = false;
   volatile Map<TezTaskID, Task> tasks = new LinkedHashMap<TezTaskID, Task>();
   private Object fullCountersLock = new Object();
@@ -154,7 +154,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private int numStartedSourceVertices = 0;
   private int distanceFromRoot = 0;
-  
+
   private List<TezDependentTaskCompletionEvent> sourceTaskAttemptCompletionEvents;
   private final List<String> diagnostics = new ArrayList<String>();
 
@@ -167,7 +167,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   List<InputSpec> inputSpecList;
   List<OutputSpec> outputSpecList;
-  
+
   private static final InternalErrorTransition
       INTERNAL_ERROR_TRANSITION = new InternalErrorTransition();
   private static final TaskAttemptCompletedEventTransition
@@ -200,7 +200,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.INITED, VertexState.INITED,
               VertexEventType.V_SOURCE_VERTEX_STARTED,
               new SourceVertexStartedTransition())
-          .addTransition(VertexState.INITED, VertexState.RUNNING, 
+          .addTransition(VertexState.INITED, VertexState.RUNNING,
               VertexEventType.V_START,
               new StartTransition())
 
@@ -220,7 +220,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
           .addTransition
               (VertexState.RUNNING,
-              EnumSet.of(VertexState.RUNNING, VertexState.KILLED,
+              EnumSet.of(VertexState.RUNNING,
                   VertexState.SUCCEEDED, VertexState.FAILED),
               VertexEventType.V_TASK_COMPLETED,
               new TaskCompletedTransition())
@@ -335,14 +335,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private Token<JobTokenIdentifier> jobToken;
 
   private final TezVertexID vertexId;  //runtime assigned id.
-  private final VertexPlan vertexPlan;  
+  private final VertexPlan vertexPlan;
 
   private final String vertexName;
   private final String processorName;
 
   private Map<Vertex, EdgeProperty> sourceVertices;
   private Map<Vertex, EdgeProperty> targetVertices;
-  
+
   private VertexScheduler vertexScheduler;
 
   private VertexOutputCommitter committer;
@@ -351,8 +351,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private Map<String, LocalResource> localResources;
   private Map<String, String> environment;
   private final String javaOpts;
-  
-  public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan, 
+
+  public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
       String vertexName, TezConfiguration conf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
       Token<JobTokenIdentifier> jobToken,
@@ -384,13 +384,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.jobToken = jobToken;
     this.committer = new NullVertexOutputCommitter();
     this.vertexLocationHint = vertexLocationHint;
-    
+
     this.taskResource = DagTypeConverters.CreateResourceRequestFromTaskConfig(vertexPlan.getTaskConfig());
-    this.processorName = vertexPlan.hasProcessorName() ? vertexPlan.getProcessorName() : null;  
+    this.processorName = vertexPlan.hasProcessorName() ? vertexPlan.getProcessorName() : null;
     this.localResources = DagTypeConverters.createLocalResourceMapFromDAGPlan(vertexPlan.getTaskConfig().getLocalResourceList());
     this.environment = DagTypeConverters.createEnvironmentMapFromDAGPlan(vertexPlan.getTaskConfig().getEnvironmentSettingList());
     this.javaOpts = vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan.getTaskConfig().getJavaOpts() : null;
-    
+
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
@@ -404,12 +404,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public TezVertexID getVertexId() {
     return vertexId;
   }
-  
+
   @Override
   public VertexPlan getVertexPlan() {
     return vertexPlan;
   }
-  
+
   @Override
   public int getDistanceFromRoot() {
     return distanceFromRoot;
@@ -521,7 +521,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       this.readLock.unlock();
     }
   }
-  
+
   @Override
   public ProgressBuilder getVertexProgress() {
     this.readLock.lock();
@@ -537,7 +537,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       this.readLock.unlock();
     }
   }
-  
+
   @Override
   public VertexStatusBuilder getVertexStatus() {
     this.readLock.lock();
@@ -631,7 +631,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       writeLock.unlock();
     }
   }
-  
+
   private VertexState getInternalState() {
     readLock.lock();
     try {
@@ -710,7 +710,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       vertex.abortVertex(VertexStatus.State.FAILED);
       return vertex.finished(VertexState.FAILED);
     }
-    
+
     if(vertex.succeededTaskCount == vertex.tasks.size()) {
       try {
         if (!vertex.committed.getAndSet(true)) {
@@ -721,9 +721,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.error("Failed to do commit on vertex, name=" + vertex.getName(), e);
         return vertex.finished(VertexState.FAILED);
       }
-      return vertex.finished(VertexState.SUCCEEDED);      
+      return vertex.finished(VertexState.SUCCEEDED);
     }
-    
+
     if (vertex.completedTaskCount == vertex.tasks.size()) {
       // this means the vertex has some killed tasks
       assert vertex.killedTaskCount > 0;
@@ -731,9 +731,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       vertex.abortVertex(VertexStatus.State.KILLED);
       return vertex.finished(VertexState.KILLED);
     }
-    
+
     //return the current state, Vertex not finished yet
-    return vertex.getInternalState();    
+    return vertex.getInternalState();
   }
 
   VertexState finished(VertexState finalState) {
@@ -774,9 +774,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
         // TODODAGAM
         // TODO: Splits?
-        
+
         vertex.numTasks = vertex.getVertexPlan().getTaskConfig().getNumTasks();
-        
+
         /*
         TaskSplitMetaInfo[] taskSplitMetaInfo = createSplits(job, job.jobId);
         job.numMapTasks = taskSplitMetaInfo.length;
@@ -794,8 +794,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
         // create the Tasks but don't start them yet
         createTasks(vertex);
-        
-        
+
+
 
         boolean hasBipartite = false;
         if (vertex.sourceVertices != null) {
@@ -806,10 +806,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             }
           }
         }
-        
+
         if (hasBipartite) {
           // setup vertex scheduler
-          // TODO this needs to consider data size and perhaps API. 
+          // TODO this needs to consider data size and perhaps API.
           // Currently implicitly BIPARTITE is the only edge type
           vertex.vertexScheduler = new BipartiteSlowStartVertexScheduler(
               vertex,
@@ -907,7 +907,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
-      VertexEventSourceVertexStarted startEvent = 
+      VertexEventSourceVertexStarted startEvent =
                                       (VertexEventSourceVertexStarted) event;
       int distanceFromRoot = startEvent.getSourceDistanceFromRoot() + 1;
       if(vertex.distanceFromRoot < distanceFromRoot) {
@@ -916,8 +916,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       vertex.numStartedSourceVertices++;
       if (vertex.numStartedSourceVertices == vertex.sourceVertices.size()) {
         // Consider inlining this.
-        LOG.info("Starting vertex: " + vertex.getVertexId() + 
-                 " with name: " + vertex.getName() + 
+        LOG.info("Starting vertex: " + vertex.getVertexId() +
+                 " with name: " + vertex.getName() +
                  " with distanceFromRoot: " + vertex.distanceFromRoot );
         vertex.eventHandler.handle(new VertexEvent(vertex.vertexId,
             VertexEventType.V_START));
@@ -1040,10 +1040,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       //eventId is equal to index in the arraylist
       tce.setEventId(vertex.sourceTaskAttemptCompletionEvents.size());
       vertex.sourceTaskAttemptCompletionEvents.add(tce);
-      // TODO this needs to be ordered/grouped by source vertices or else 
-      // my tasks will not know which events are for which vertices' tasks. This 
+      // TODO this needs to be ordered/grouped by source vertices or else
+      // my tasks will not know which events are for which vertices' tasks. This
       // differentiation was not needed for MR because there was only 1 M stage.
-      // if the tce is sent to the task then a solution could be to add vertex 
+      // if the tce is sent to the task then a solution could be to add vertex
       // name to the tce
       // need to send vertex name and task index in that vertex
 
@@ -1060,7 +1060,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         }
         vertex.successSourceAttemptCompletionEventNoMap.put(taskId, tce.getEventId());
       }
-      
+
       vertex.vertexScheduler.onSourceTaskCompleted(attemptId);
     }
   }
@@ -1073,7 +1073,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       TezDependentTaskCompletionEvent tce =
         ((VertexEventTaskAttemptCompleted) event).getCompletionEvent();
 
-      // TODO this should only be sent for successful events? looks like all 
+      // TODO this should only be sent for successful events? looks like all
       // need to be sent in the existing shuffle code
       // Notify all target vertices
       if (vertex.targetVertices != null) {
@@ -1245,7 +1245,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public TezDAGID getDAGId() {
     return getDAG().getID();
   }
-  
+
   @Override
   public ApplicationAttemptId getApplicationAttemptId() {
     return appContext.getApplicationAttemptId();
@@ -1259,7 +1259,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public DAG getDAG() {
     return appContext.getDAG();
   }
-  
+
   @VisibleForTesting
   String getProcessorName() {
     return this.processorName;

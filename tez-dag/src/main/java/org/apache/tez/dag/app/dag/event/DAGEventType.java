@@ -30,24 +30,17 @@ public enum DAGEventType {
   DAG_INIT,
   DAG_START,
 
-  //Producer:Task
-  /*
-  JOB_TASK_COMPLETED,
-  JOB_MAP_TASK_RESCHEDULED,
-  JOB_TASK_ATTEMPT_COMPLETED,
-  */
-  
   //Producer: Vertex
-  DAG_VERTEX_INITED,
-  DAG_VERTEX_STARTED,
   DAG_VERTEX_COMPLETED,
+
+  //Producer: TaskImpl
   DAG_SCHEDULER_UPDATE,
-  
-  //Producer:Job
+
+  //Producer:Dag
   DAG_COMPLETED,
 
   //Producer:Any component
   DAG_DIAGNOSTIC_UPDATE,
   INTERNAL_ERROR,
-  DAG_COUNTER_UPDATE,  
+  DAG_COUNTER_UPDATE,
 }

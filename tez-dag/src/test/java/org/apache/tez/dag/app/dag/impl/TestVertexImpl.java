@@ -62,6 +62,8 @@ import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
+import org.apache.tez.dag.app.dag.event.TaskEvent;
+import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
@@ -115,7 +117,7 @@ public class TestVertexImpl {
     public int abortCounter = 0;
     private boolean throwError;
     private boolean throwErrorOnAbort;
-    
+
     public CountingVertexOutputCommitter(boolean throwError,
         boolean throwOnAbort) {
       this.throwError = throwError;
@@ -125,7 +127,7 @@ public class TestVertexImpl {
     public CountingVertexOutputCommitter() {
       this(false, false);
     }
-    
+
     @Override
     public void init(VertexContext context) throws IOException {
       ++initCounter;
@@ -150,12 +152,26 @@ public class TestVertexImpl {
       if (throwErrorOnAbort) {
         throw new IOException("I can throwz exceptions in abort");
       }
-    }    
+    }
   }
-  
+
+  private class TaskEventHandler implements EventHandler<TaskEvent> {
+    @Override
+    public void handle(TaskEvent event) {
+    }
+  }
+
   private class DagEventDispatcher implements EventHandler<DAGEvent> {
+    public Map<DAGEventType, Integer> eventCount =
+        new HashMap<DAGEventType, Integer>();
+
     @Override
     public void handle(DAGEvent event) {
+      int count = 1;
+      if (eventCount.containsKey(event.getType())) {
+        count = eventCount.get(event.getType()) + 1;
+      }
+      eventCount.put(event.getType(), count);
     }
   }
 
@@ -164,7 +180,7 @@ public class TestVertexImpl {
     public void handle(DAGHistoryEvent event) {
     }
   }
-  
+
   private class VertexEventDispatcher
       implements EventHandler<VertexEvent> {
 
@@ -421,7 +437,7 @@ public class TestVertexImpl {
 
       Map<Vertex, EdgeProperty> outVertices =
           new HashMap<Vertex, EdgeProperty>();
-      
+
       for(String inEdgeId : vertexPlan.getInEdgeIdList()){
         EdgePlan edgePlan = edgePlans.get(inEdgeId);
         Vertex inVertex = this.vertices.get(edgePlan.getInputVertexName());
@@ -469,6 +485,7 @@ public class TestVertexImpl {
     dispatcher.register(DAGEventType.class, dagEventDispatcher);
     dispatcher.register(HistoryEventType.class,
         new HistoryHandler());
+    dispatcher.register(TaskEventType.class, new TaskEventHandler());
     dispatcher.init(conf);
     dispatcher.start();
   }
@@ -500,10 +517,10 @@ public class TestVertexImpl {
     if (checkKillWait) {
       Assert.assertEquals(VertexState.KILL_WAIT, v.getState());
     } else {
-      Assert.assertEquals(VertexState.KILLED, v.getState());      
+      Assert.assertEquals(VertexState.KILLED, v.getState());
     }
   }
-  
+
   private void startVertex(VertexImpl v,
       boolean checkRunningState) {
     Assert.assertEquals(VertexState.INITED, v.getState());
@@ -522,10 +539,10 @@ public class TestVertexImpl {
 
     VertexImpl v3 = vertices.get("vertex3");
     initVertex(v3);
-    
+
     Assert.assertEquals("x3.y3", v3.getProcessorName());
     Assert.assertEquals("foo", v3.getJavaOpts());
-    
+
     Assert.assertEquals(2, v3.getInputSpecList().size());
     Assert.assertEquals(2, v3.getInputVerticesCount());
     Assert.assertEquals(2, v3.getOutputVerticesCount());
@@ -547,7 +564,7 @@ public class TestVertexImpl {
         .getInputClassName())
         || "i3_v2".equals(v3.getInputSpecList().get(1)
             .getInputClassName()));
-    
+
     Assert.assertTrue("vertex4".equals(v3.getOutputSpecList().get(0)
         .getVertexName())
         || "vertex5".equals(v3.getOutputSpecList().get(0)
@@ -606,7 +623,7 @@ public class TestVertexImpl {
     v.handle(new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v.getState());
-    
+
     v.handle(new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v.getState());
@@ -632,7 +649,7 @@ public class TestVertexImpl {
         StringUtils.join(",", v.getDiagnostics()).toLowerCase();
     Assert.assertTrue(diagnostics.contains("task failed " + t1.toString()));
   }
-  
+
   @Test
   public void testVertexWithNoTasks() {
     // FIXME a vertex with no tasks should not be allowed
@@ -644,14 +661,14 @@ public class TestVertexImpl {
   }
 
   @Test
-  public void testVertexKill() {
+  public void testVertexKillDiagnostics() {
     VertexImpl v1 = vertices.get("vertex1");
     killVertex(v1, false);
     String diagnostics =
         StringUtils.join(",", v1.getDiagnostics()).toLowerCase();
     Assert.assertTrue(diagnostics.contains(
         "vertex received kill in new state"));
-    
+
     VertexImpl v2 = vertices.get("vertex2");
     initVertex(v2);
     killVertex(v2, false);
@@ -672,6 +689,52 @@ public class TestVertexImpl {
   }
 
   @Test
+  public void testVertexKillPending() {
+    VertexImpl v = vertices.get("vertex2");
+    initVertex(v);
+    VertexImpl v3 = vertices.get("vertex3");
+    initVertex(v3);
+
+    startVertex(v);
+
+    v.handle(new VertexEvent(v.getVertexId(), VertexEventType.V_KILL));
+    Assert.assertEquals(VertexState.KILL_WAIT, v.getState());
+
+    v.handle(new VertexEventTaskCompleted(
+        new TezTaskID(v.getVertexId(), 0), TaskState.SUCCEEDED));
+    Assert.assertEquals(VertexState.KILL_WAIT, v.getState());
+
+    v.handle(new VertexEventTaskCompleted(
+        new TezTaskID(v.getVertexId(), 1), TaskState.KILLED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.KILLED, v.getState());
+  }
+
+  @Test
+  @Ignore
+  public void testVertexKill() {
+    VertexImpl v = vertices.get("vertex2");
+    initVertex(v);
+    VertexImpl v3 = vertices.get("vertex3");
+    initVertex(v3);
+
+    startVertex(v);
+
+    v.handle(new VertexEvent(v.getVertexId(), VertexEventType.V_KILL));
+    Assert.assertEquals(VertexState.KILL_WAIT, v.getState());
+
+    v.handle(new VertexEventTaskCompleted(
+        new TezTaskID(v.getVertexId(), 0), TaskState.SUCCEEDED));
+    Assert.assertEquals(VertexState.KILL_WAIT, v.getState());
+
+    v.handle(new VertexEventTaskCompleted(
+        new TezTaskID(v.getVertexId(), 1), TaskState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.KILLED, v.getState());
+  }
+
+  @Test
+  @Ignore
   public void testKilledTasksHandling() {
     VertexImpl v = vertices.get("vertex2");
     initVertex(v);
@@ -680,13 +743,10 @@ public class TestVertexImpl {
     TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
     TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
 
-    v.handle(new VertexEventTaskCompleted(t1, TaskState.KILLED));
+    v.handle(new VertexEventTaskCompleted(t1, TaskState.FAILED));
     dispatcher.await();
-    Assert.assertEquals(VertexState.RUNNING, v.getState());
-
-    v.handle(new VertexEventTaskCompleted(t2, TaskState.KILLED));
-    dispatcher.await();
-    Assert.assertEquals(VertexState.KILLED, v.getState());
+    Assert.assertEquals(VertexState.FAILED, v.getState());
+    Assert.assertEquals(TaskState.KILLED, v.getTask(t2).getState());
   }
 
   @Test
@@ -695,7 +755,7 @@ public class TestVertexImpl {
     initVertex(v2);
     Assert.assertTrue(v2.getVertexOutputCommitter()
         instanceof NullVertexOutputCommitter);
-    
+
     VertexImpl v6 = vertices.get("vertex6");
     initVertex(v6);
     Assert.assertTrue(v6.getVertexOutputCommitter()
@@ -708,13 +768,13 @@ public class TestVertexImpl {
     initVertex(v2);
     Assert.assertTrue(v2.getVertexScheduler()
         instanceof ImmediateStartVertexScheduler);
-    
+
     VertexImpl v6 = vertices.get("vertex6");
     initVertex(v6);
     Assert.assertTrue(v6.getVertexScheduler()
         instanceof BipartiteSlowStartVertexScheduler);
   }
-  
+
   @Test
   public void testVertexTaskFailure() {
     VertexImpl v = vertices.get("vertex2");
@@ -730,7 +790,7 @@ public class TestVertexImpl {
     v.handle(new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v.getState());
-    
+
     v.handle(new VertexEventTaskCompleted(t2, TaskState.FAILED));
     v.handle(new VertexEventTaskCompleted(t2, TaskState.FAILED));
     dispatcher.await();
@@ -765,9 +825,9 @@ public class TestVertexImpl {
   public void testDiagnostics() {
     // FIXME need to test diagnostics in various cases
   }
-  
+
   @Test
-  public void testTaskAttemptCompletionEvents() {    
+  public void testTaskAttemptCompletionEvents() {
     // FIXME need to test handling of task attempt events
   }
 
@@ -821,7 +881,7 @@ public class TestVertexImpl {
     v4.handle(new VertexEventTaskAttemptCompleted(cEvt3));
     v5.handle(new VertexEventTaskAttemptCompleted(cEvt4));
     v5.handle(new VertexEventTaskAttemptCompleted(cEvt5));
-    v5.handle(new VertexEventTaskAttemptCompleted(cEvt6));    
+    v5.handle(new VertexEventTaskAttemptCompleted(cEvt6));
 
     v4.handle(new VertexEventTaskCompleted(t1_v4, TaskState.SUCCEEDED));
     v4.handle(new VertexEventTaskCompleted(t2_v4, TaskState.SUCCEEDED));
@@ -850,7 +910,9 @@ public class TestVertexImpl {
     v.handle(new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-
+    Assert.assertEquals(1,
+        dagEventDispatcher.eventCount.get(
+            DAGEventType.DAG_VERTEX_COMPLETED).intValue());
   }
 
   @Test
@@ -861,7 +923,7 @@ public class TestVertexImpl {
     CountingVertexOutputCommitter committer =
         new CountingVertexOutputCommitter();
     v.setVertexOutputCommitter(committer);
-    
+
     startVertex(v);
 
     TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
@@ -873,14 +935,14 @@ public class TestVertexImpl {
     // v.handle(new VertexEventTaskReschedule(t1));
     v.handle(new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(VertexState.RUNNING, v.getState());    
+    Assert.assertEquals(VertexState.RUNNING, v.getState());
     Assert.assertEquals(0, committer.commitCounter);
-    
+
     v.handle(new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());    
+    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, committer.commitCounter);
-    
+
   }
 
   @Test
@@ -890,7 +952,7 @@ public class TestVertexImpl {
     CountingVertexOutputCommitter committer =
         new CountingVertexOutputCommitter();
     v.setVertexOutputCommitter(committer);
-    
+
     startVertex(v);
 
     TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
@@ -900,23 +962,23 @@ public class TestVertexImpl {
     v.handle(new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
     v.handle(new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());    
+    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, committer.commitCounter);
-    
+
     v.handle(new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());    
+    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, committer.commitCounter);
     Assert.assertEquals(0, committer.abortCounter);
     Assert.assertEquals(0, committer.initCounter); // already done in init
     Assert.assertEquals(0, committer.setupCounter); // already done in init
   }
-  
+
   @Test
   public void testCommitterInitAndSetup() {
     // FIXME need to add a test for this
   }
-  
+
   @Test
   public void testTaskAttemptFetchFailureHandling() {
     // FIXME needs testing
@@ -929,7 +991,7 @@ public class TestVertexImpl {
     CountingVertexOutputCommitter committer =
         new CountingVertexOutputCommitter(true, true);
     v.setVertexOutputCommitter(committer);
-    
+
     startVertex(v);
 
     TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
@@ -938,13 +1000,28 @@ public class TestVertexImpl {
     v.handle(new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
     v.handle(new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(VertexState.FAILED, v.getState());    
+    Assert.assertEquals(VertexState.FAILED, v.getState());
     Assert.assertEquals(1, committer.commitCounter);
-    
+
     // FIXME need to verify whether abort needs to be called if commit fails
     Assert.assertEquals(0, committer.abortCounter);
     Assert.assertEquals(0, committer.initCounter); // already done in init
-    Assert.assertEquals(0, committer.setupCounter); // already done in init  
+    Assert.assertEquals(0, committer.setupCounter); // already done in init
   }
-  
+
+  @Test
+  public void testHistoryEventGeneration() {
+  }
+
+  @Test
+  public void testInvalidEvent() {
+    VertexImpl v = vertices.get("vertex2");
+    v.handle(new VertexEvent(v.getVertexId(),
+        VertexEventType.V_START));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.ERROR, v.getState());
+    Assert.assertEquals(1,
+        dagEventDispatcher.eventCount.get(
+            DAGEventType.INTERNAL_ERROR).intValue());
+  }
 }
