@@ -198,7 +198,7 @@ public class MRRuntimeTask extends RuntimeTask {
   private static void setupDistributedCacheConfig(final JobConf job)
       throws IOException {
 
-    String localWorkDir = System.getenv(System.getenv(Environment.PWD.name()));
+    String localWorkDir = (job.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR));
     // ^ ^ all symlinks are created in the current work-dir
 
     // Update the configuration object with localized archives.

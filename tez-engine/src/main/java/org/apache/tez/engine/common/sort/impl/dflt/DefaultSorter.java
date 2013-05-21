@@ -219,7 +219,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     }
     if (partition < 0 || partition >= partitions) {
       throw new IOException("Illegal partition for " + key + " (" +
-          partition + ")");
+          partition + ")" + ", TotalPartitions: " + partitions);
     }
     checkSpillException();
     bufferRemaining -= METASIZE;

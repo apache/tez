@@ -303,7 +303,7 @@ implements Processor {
     org.apache.hadoop.mapreduce.Reducer reducer =
         (org.apache.hadoop.mapreduce.Reducer)
         ReflectionUtils.newInstance(taskContext.getReducerClass(), job);
-    
+
     org.apache.hadoop.mapreduce.RecordWriter trackedRW = 
         new org.apache.hadoop.mapreduce.RecordWriter() {
 
