@@ -45,7 +45,6 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
@@ -169,6 +168,7 @@ public class MRRuntimeTask extends RuntimeTask {
     }
 
     job.set(MRJobConfig.JOB_LOCAL_DIR, job.get(TezJobConfig.JOB_LOCAL_DIR));
+    job.set(MRConfig.LOCAL_DIR, job.get(TezJobConfig.LOCAL_DIRS));
 
     // setup the child's attempt directories
     // Do the task-type specific localization
