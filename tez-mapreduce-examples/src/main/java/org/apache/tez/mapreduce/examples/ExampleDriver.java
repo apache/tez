@@ -61,7 +61,7 @@ public class ExampleDriver {
           + " containing employee_name department name per line of input"
           + " and generates count of employees per department and"
           + " sorted on employee count");
-      exitCode = pgd.driver(argv);
+      exitCode = pgd.run(argv);
     }
     catch(Throwable e){
       e.printStackTrace();
