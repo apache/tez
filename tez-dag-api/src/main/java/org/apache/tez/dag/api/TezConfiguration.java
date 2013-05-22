@@ -65,6 +65,17 @@ public class TezConfiguration extends Configuration {
   public static final String DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD = TEZ_PREFIX
       + "node-blacklisting.ignore-threshold-node-percent";
   public static final int DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT = 33;
+  
+  /** Number of threads to handle job client RPC requests.*/
+  public static final String DAG_CLIENT_AM_THREAD_COUNT =
+                                    TEZ_PREFIX + "client.am.thread-count";
+  public static final int DAG_CLIENT_AM__THREAD_COUNT_DEFAULT = 1;
+  /** 
+   * Range of ports that the AM can use when binding. Leave blank
+   * if you want all possible ports.
+   */
+  public static final String DAG_CLIENT_AM_PORT_RANGE = 
+                                    TEZ_PREFIX + "client.am.port-range";
 
 
   public static final String DAG_AM_RESOURCE_MEMORY_MB = DAG_AM_PREFIX

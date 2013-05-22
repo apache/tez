@@ -16,14 +16,16 @@
 * limitations under the License.
 */
 
-package org.apache.tez.dag.app.client;
+package org.apache.tez.dag.api;
 
-import java.net.InetSocketAddress;
-
-// TODONOTES - RPC service for clients
-public interface ClientService {
-
-  InetSocketAddress getBindAddress();
-
-  int getHttpPort();
+/**
+ *  Base TezRemoteException
+ */
+public class TezRemoteException extends Exception {
+  private static final long serialVersionUID = 6337442733802964447L;
+  public TezRemoteException(Throwable cause) { super(cause); }
+  public TezRemoteException(String message) { super(message); }
+  public TezRemoteException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

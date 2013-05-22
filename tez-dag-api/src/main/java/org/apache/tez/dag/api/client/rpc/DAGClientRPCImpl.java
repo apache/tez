@@ -26,7 +26,7 @@ import java.util.List;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezRemoteException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.VertexStatus;
@@ -55,18 +55,20 @@ public class DAGClientRPCImpl implements DAGClient, Closeable {
   }
   
   @Override
-  public List<String> getAllDAGs() throws TezException {
+  public List<String> getAllDAGs() throws IOException, TezRemoteException {
     GetAllDAGsRequestProto requestProto = 
         GetAllDAGsRequestProto.newBuilder().build();
     try {
       return proxy.getAllDAGs(null, requestProto).getDagIdList();
     } catch (ServiceException e) {
-      throw new TezException(e);
+      // TEZ-151 retrieve wrapped TezRemoteException
+      throw new TezRemoteException(e);
     }
   }
 
   @Override
-  public DAGStatus getDAGStatus(String dagId) throws TezException {
+  public DAGStatus getDAGStatus(String dagId) 
+                                    throws IOException, TezRemoteException {
     GetDAGStatusRequestProto requestProto = 
         GetDAGStatusRequestProto.newBuilder().setDagId(dagId).build();
     
@@ -74,13 +76,14 @@ public class DAGClientRPCImpl implements DAGClient, Closeable {
       return new DAGStatus(
                  proxy.getDAGStatus(null, requestProto).getDagStatus());
     } catch (ServiceException e) {
-      throw new TezException(e);
+      // TEZ-151 retrieve wrapped TezRemoteException
+      throw new TezRemoteException(e);
     }
   }
 
   @Override
   public VertexStatus getVertexStatus(String dagId, String vertexName)
-      throws TezException {
+                                    throws IOException, TezRemoteException {
     GetVertexStatusRequestProto requestProto = 
         GetVertexStatusRequestProto.newBuilder().
                         setDagId(dagId).setVertexName(vertexName).build();
@@ -89,7 +92,8 @@ public class DAGClientRPCImpl implements DAGClient, Closeable {
       return new VertexStatus(
                  proxy.getVertexStatus(null, requestProto).getVertexStatus());
     } catch (ServiceException e) {
-      throw new TezException(e);
+      // TEZ-151 retrieve wrapped TezRemoteException
+      throw new TezRemoteException(e);
     }
   }
 

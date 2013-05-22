@@ -18,34 +18,47 @@
 
 package org.apache.tez.mapreduce;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.mapreduce.*;
-import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.v2.LogParams;
 import org.apache.hadoop.mapreduce.TaskCompletionEvent;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
+import org.apache.tez.client.TezClient;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezRemoteException;
+import org.apache.tez.dag.api.client.DAGClient;
+import org.apache.tez.dag.api.client.DAGStatus;
 
 import java.io.IOException;
 
 public class ClientServiceDelegate {
+  private static final Log LOG = LogFactory.getLog(ClientServiceDelegate.class);
 
-  private final Configuration conf;
+  private final TezConfiguration conf;
   private final ResourceMgrDelegate rm;
+  private DAGClient dagClient;
+  private String currentDAGId;
+  private TezClient tezClient;
+  private ApplicationReport appReport;
 
   // FIXME
   // how to handle completed jobs that the RM does not know about?
 
   public ClientServiceDelegate(Configuration conf, ResourceMgrDelegate rm,
       JobID jobId) {
-    this.conf = new Configuration(conf); // Cloning for modifying.
+    this.conf = new TezConfiguration(conf); // Cloning for modifying.
     // For faster redirects from AM to HS.
     this.conf.setInt(
         CommonConfigurationKeysPublic.IPC_CLIENT_CONNECT_MAX_RETRIES_KEY,
         this.conf.getInt(MRJobConfig.MR_CLIENT_TO_AM_IPC_MAX_RETRIES,
             MRJobConfig.DEFAULT_MR_CLIENT_TO_AM_IPC_MAX_RETRIES));
     this.rm = rm;
+    tezClient = new TezClient(this.conf);
   }
 
   public org.apache.hadoop.mapreduce.Counters getJobCounters(JobID jobId)
@@ -74,17 +87,42 @@ public class ClientServiceDelegate {
   }
   
   public JobStatus getJobStatus(JobID oldJobID) throws IOException {
-    org.apache.hadoop.mapreduce.v2.api.records.JobId jobId =
-      TypeConverter.toYarn(oldJobID);
-    ApplicationReport appReport;
     try {
-      appReport = rm.getApplicationReport(jobId.getAppId());
-    } catch (YarnRemoteException e) {
-      throw new IOException(e);
+      if(dagClient == null) {
+        appReport = getAppReport(oldJobID);
+        if(appReport.getYarnApplicationState() != YarnApplicationState.RUNNING) {
+          // if job not running return status from appReport;
+          return getJobStatusFromRM(appReport);
+        } else {
+          // job is running. create dag am client
+          dagClient = tezClient.getDAGClient(appReport.getHost(), 
+                                             appReport.getRpcPort());
+          currentDAGId = dagClient.getAllDAGs().get(0);
+        }
+      }
+      // return status from client. use saved appReport for queue etc
+      DAGStatus dagStatus = dagClient.getDAGStatus(currentDAGId);
+      return new DAGJobStatus(appReport, dagStatus);
+    } catch (TezRemoteException e) {
+      // AM not responding
+      dagClient = null;
+      currentDAGId = null;
+      appReport = getAppReport(oldJobID);
+      if(appReport.getYarnApplicationState() != YarnApplicationState.RUNNING) {
+        LOG.info("App not running. Falling back to RM for report.");
+      } else {
+        LOG.warn("App running but failed to get report from AM.", e);
+      }
     }
+    
+    // final fallback
+    return getJobStatusFromRM(appReport);
+  }
+  
+  private JobStatus getJobStatusFromRM(ApplicationReport appReport) {
     JobStatus jobStatus =
-        new DAGJobStatus(appReport);
-    return jobStatus;
+        new DAGJobStatus(appReport, null);
+    return jobStatus;            
   }
 
   public org.apache.hadoop.mapreduce.TaskReport[] getTaskReports(
@@ -113,5 +151,15 @@ public class ClientServiceDelegate {
       throws YarnRemoteException, IOException {
     // FIXME logs for an attempt?
     throw new UnsupportedOperationException();
+  }
+  
+  private ApplicationReport getAppReport(JobID oldJobID) throws IOException {
+    org.apache.hadoop.mapreduce.v2.api.records.JobId jobId =
+      TypeConverter.toYarn(oldJobID);
+    try {
+      return rm.getApplicationReport(jobId.getAppId());
+    } catch (YarnRemoteException e) {
+      throw new IOException(e);
+    }
   }
 }

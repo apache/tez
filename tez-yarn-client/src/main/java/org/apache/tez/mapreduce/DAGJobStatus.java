@@ -32,14 +32,20 @@ import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.Progress;
+import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
+import org.mortbay.log.Log;
 
 public class DAGJobStatus extends JobStatus {
 
   private final ApplicationReport report;
+  private final DAGStatus dagStatus;
   
-  public DAGJobStatus(ApplicationReport appReport) {
+  public DAGJobStatus(ApplicationReport appReport, DAGStatus dagStatus) {
     super();
     this.report = appReport;
+    this.dagStatus = dagStatus;
   }
   
   @Override
@@ -129,6 +135,9 @@ public class DAGJobStatus extends JobStatus {
 
   @Override
   public synchronized float getMapProgress() {
+    if(dagStatus != null) {
+      return getProgress(MultiStageMRConfigUtil.getInitialMapVertexName());
+    }
     if (report.getYarnApplicationState().equals(
         YarnApplicationState.FINISHED)
         && report.getFinalApplicationStatus().equals(
@@ -160,6 +169,9 @@ public class DAGJobStatus extends JobStatus {
 
   @Override
   public synchronized float getReduceProgress() {
+    if(dagStatus != null) {
+      return getProgress(MultiStageMRConfigUtil.getFinalReduceVertexName());
+    }
     if (report.getYarnApplicationState().equals(
         YarnApplicationState.FINISHED)
         && report.getFinalApplicationStatus().equals(
@@ -349,6 +361,19 @@ public class DAGJobStatus extends JobStatus {
     buffer.append("reserved-mem" + getReservedMem());
     buffer.append("needed-mem" + getNeededMem());
     return buffer.toString();
+  }
+  
+  private float getProgress(String vertexName) {
+    Progress progress = dagStatus.getVertexProgress().get(vertexName);
+    if(progress == null) {
+      // no such stage. return 0 like MR app currently does.
+      return 0;
+    }
+    float totalTasks = (float) progress.getTotalTaskCount();
+    if(totalTasks != 0) {
+      return progress.getSucceededTaskCount()/totalTasks;
+    }
+    return 1;
   }
 
 }

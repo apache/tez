@@ -18,9 +18,10 @@
 
 package org.apache.tez.dag.api.client;
 
+import java.io.IOException;
 import java.util.List;
 
-import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezRemoteException;
 
 /*
  * Inteface class for monitoring the <code>DAG</code> running in a Tez DAG
@@ -31,16 +32,17 @@ public interface DAGClient {
   /**
    * Return the identifiers for all DAG's
    */
-  List<String> getAllDAGs() throws TezException;
+  List<String> getAllDAGs() throws IOException, TezRemoteException;
   
   /**
    * Get the status of a DAG
    */
-  DAGStatus getDAGStatus(String dagId) throws TezException;
+  DAGStatus getDAGStatus(String dagId) throws IOException, TezRemoteException;
   
   /**
    * Get the status of a Vertex of a DAG 
    */
   VertexStatus getVertexStatus(String dagId, 
-                               String vertexName) throws TezException;
+                               String vertexName) 
+                                   throws IOException, TezRemoteException;
 }

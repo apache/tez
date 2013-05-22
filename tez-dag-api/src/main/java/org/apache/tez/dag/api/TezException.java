@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.api;
 
-/*
+/**
  * Base Tez Exception
  */
 public class TezException extends RuntimeException {

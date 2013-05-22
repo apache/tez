@@ -67,13 +67,12 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.client.DAGClient;
+import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.app.client.ClientService;
-import org.apache.tez.dag.app.client.impl.TezClientService;
+import org.apache.tez.dag.api.TezRemoteException;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
@@ -157,7 +156,6 @@ public class DAGAppMaster extends CompositeService {
   private AppContext context;
   private TezConfiguration conf; 
   private Dispatcher dispatcher;
-  private ClientService clientService;
   // TODO Recovery
   //private Recovery recoveryServ;
   private ContainerLauncher containerLauncher;
@@ -178,7 +176,9 @@ public class DAGAppMaster extends CompositeService {
   private HistoryEventHandler historyEventHandler;
 
   private DAGAppMasterState state;
-  private DAGMonitorServer monitor;
+  
+  DAGClientServer clientRpcServer;
+  private DAGClientHandler clientHandler;
 
   private DAG dag;
   private Credentials fsTokens = new Credentials(); // Filled during init
@@ -230,13 +230,16 @@ public class DAGAppMaster extends CompositeService {
 
     dagId = new TezDAGID(appAttemptID.getApplicationId(), 1);
     
-    monitor = new DAGMonitorServer();
+    clientHandler = new DAGClientHandler();
 
     // TODO Committer.
     //    committer = createOutputCommitter(conf);
 
     dispatcher = createDispatcher();
     addIfService(dispatcher);
+    
+    clientRpcServer = new DAGClientServer(clientHandler);
+    addIfService(clientRpcServer);
 
     taskHeartbeatHandler = createTaskHeartbeatHandler(context, conf);
     addIfService(taskHeartbeatHandler);
@@ -262,11 +265,6 @@ public class DAGAppMaster extends CompositeService {
     taskCleaner = createTaskCleaner(context);
     addIfService(taskCleaner);
 
-    // TODO TEZ-9
-    //service to handle requests from JobClient
-    clientService = new TezClientService();
-    addIfService(clientService);
-
     this.dagEventDispatcher = new DagEventDispatcher();
     this.vertexEventDispatcher = new VertexEventDispatcher();
 
@@ -287,7 +285,7 @@ public class DAGAppMaster extends CompositeService {
     dispatcher.register(NMCommunicatorEventType.class, containerLauncher);
 
     taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
-        clientService);
+        clientRpcServer);
     addIfService(taskSchedulerEventHandler);
     dispatcher.register(AMSchedulerEventType.class,
         taskSchedulerEventHandler);
@@ -712,30 +710,37 @@ public class DAGAppMaster extends CompositeService {
     LOG.info("On DAG completion. Old state: " + oldState + " new state: " + state);
   }
   
-  class DAGMonitorServer implements DAGClient {
+  class DAGClientHandler implements DAGClient {
 
     @Override
-    public List<String> getAllDAGs() {
+    public List<String> getAllDAGs() throws TezRemoteException {
       return Collections.singletonList(dag.getID().toString());
     }
 
     @Override
-    public DAGStatus getDAGStatus(String dagIdStr) throws TezException {
+    public DAGStatus getDAGStatus(String dagIdStr) 
+                                      throws IOException, TezRemoteException {
       return getDAG(dagIdStr).getDAGStatus();
     }
 
     @Override
-    public VertexStatus getVertexStatus(String dagIdStr, String vertexName) {
-      return getDAG(dagIdStr).getVertexStatus(vertexName);
+    public VertexStatus getVertexStatus(String dagIdStr, String vertexName) 
+        throws IOException, TezRemoteException{
+      VertexStatus status = getDAG(dagIdStr).getVertexStatus(vertexName);
+      if(status == null) {
+        throw new TezRemoteException("Unknown vertexName: " + vertexName);
+      }
+      
+      return status;
     }
     
-    DAG getDAG(String dagIdStr) {
+    DAG getDAG(String dagIdStr) throws IOException, TezRemoteException {
       TezDAGID dagId = TezDAGID.fromString(dagIdStr);
       if(dagId == null) {
-        throw new TezException("Bad dagId: " + dagIdStr);
+        throw new TezRemoteException("Bad dagId: " + dagIdStr);
       }
       if(!dagId.equals(dag.getID())) {
-        throw new TezException("Unknown dagId: " + dagIdStr);
+        throw new TezRemoteException("Unknown dagId: " + dagIdStr);
       }
       return dag;
     }
@@ -1083,7 +1088,9 @@ public class DAGAppMaster extends CompositeService {
       // that it doesnt take too long in shutting down
 
       // Signal the task scheduler.
-      appMaster.taskSchedulerEventHandler.setSignalled(true);
+      if(appMaster.getServiceState() == STATE.STARTED) {
+        appMaster.taskSchedulerEventHandler.setSignalled(true);
+      }
       if (EnumSet.of(DAGAppMasterState.NEW, DAGAppMasterState.INITED,
           DAGAppMasterState.RUNNING).contains(appMaster.state)) {
         // DAG not in a final state. Must have receive a KILL signal

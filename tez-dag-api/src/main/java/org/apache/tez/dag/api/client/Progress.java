@@ -47,5 +47,14 @@ public class Progress {
   public int getKilledTaskCount() {
     return proxy.getKilledTaskCount();
   }
+  
+  @Override
+  public String toString() {
+    return new String("Total: " + getTotalTaskCount() +
+                       " Succeeded: " + getSucceededTaskCount() +
+                       " Running: " + getRunningTaskCount() + 
+                       " Failed: " + getFailedTaskCount() + 
+                       " Killed: " + getKilledTaskCount());
+  }
 
 }

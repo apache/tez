@@ -38,11 +38,11 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.service.AbstractService;
+import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
-import org.apache.tez.dag.app.client.ClientService;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
@@ -69,31 +69,24 @@ public class TaskSchedulerEventHandler extends AbstractService
   protected final AppContext appContext;
   @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
-  private final TaskScheduler taskScheduler;
-  // TODO change this to DAGAppMaster
+  private TaskScheduler taskScheduler;
   private DAGAppMaster dagAppMaster;
   private Map<ApplicationAccessType, String> appAcls = null;
   private Thread eventHandlingThread;
   private volatile boolean stopEventHandling;
   // Has a signal (SIGTERM etc) been issued?
   protected volatile boolean isSignalled = false;
+  final DAGClientServer clientService;
 
   BlockingQueue<AMSchedulerEvent> eventQueue
                               = new LinkedBlockingQueue<AMSchedulerEvent>();
 
   public TaskSchedulerEventHandler(AppContext appContext,
-      ClientService clientService) {
+      DAGClientServer clientService) {
     super(TaskSchedulerEventHandler.class.getName());
     this.appContext = appContext;
-    eventHandler = appContext.getEventHandler();
-    InetSocketAddress serviceAddr = clientService.getBindAddress();
-    taskScheduler = 
-        new TaskScheduler(appContext.getApplicationAttemptId(),
-                          this,
-                          serviceAddr.getHostName(),
-                          serviceAddr.getPort(),
-                          serviceAddr.getHostName() + 
-                            ":" + clientService.getHttpPort());
+    this.eventHandler = appContext.getEventHandler();
+    this.clientService = clientService;
   }
   
   public Map<ApplicationAccessType, String> getApplicationAcls() {
@@ -346,14 +339,22 @@ public class TaskSchedulerEventHandler extends AbstractService
   @Override
   public synchronized void init(Configuration conf) {
     super.init(conf);
-    taskScheduler.init(conf);
-    // todo set heartbeat value from conf here
   }
   
   @Override
   public synchronized void start() {
     // FIXME hack alert how is this supposed to support multiple DAGs?
     // Answer: this is shared across dags. need job==app-dag-master
+    // TODO set heartbeat value from conf here
+    InetSocketAddress serviceAddr = clientService.getBindAddress();
+    taskScheduler = 
+        new TaskScheduler(appContext.getApplicationAttemptId(),
+                          this,
+                          serviceAddr.getHostName(),
+                          serviceAddr.getPort(),
+                          "");
+    taskScheduler.init(getConfig());
+
     dagAppMaster = appContext.getAppMaster();
     taskScheduler.start();
     this.eventHandlingThread = new Thread() {
