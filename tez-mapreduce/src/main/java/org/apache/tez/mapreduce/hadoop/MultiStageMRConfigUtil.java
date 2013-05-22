@@ -96,13 +96,30 @@ public class MultiStageMRConfigUtil {
   public static String getInitialMapVertexName() {
     return INITIAL_MAP_VERTEX_NAME;
   }
+  
+  public boolean isInitialMapVertex(String vertexName) {
+    return vertexName.equals(INITIAL_MAP_VERTEX_NAME);
+  }
 
   public static String getFinalReduceVertexName() {
     return FINAL_REDUCE_VERTEX_NAME;
   }
 
+  public boolean isFinalReduceVertex(String vertexName) {
+    return vertexName.equals(FINAL_REDUCE_VERTEX_NAME);
+  }
+
   public static String getIntermediateStageVertexName(int stageNum) {
     return INTERMEDIATE_TASK_VERTEX_NAME_PREFIX + stageNum;
+  }
+  
+  public static int getIntermediateStageNum(String vertexName) {
+    if (vertexName.matches(INTERMEDIATE_TASK_VERTEX_NAME_PREFIX + "\\d+")) {
+      return Integer.parseInt(vertexName
+          .substring(INTERMEDIATE_TASK_VERTEX_NAME_PREFIX.length()));
+    } else {
+      return -1;
+    }
   }
 
   // Returns config settings specific to named vertex

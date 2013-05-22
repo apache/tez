@@ -649,6 +649,8 @@ public interface MRJobConfig {
   public static final String MRR_VERTEX_PREFIX = 
       "mrr.vertex.";
 
+  public static final String VERTEX_NAME = "mapreduce.task.vertex.name";
+  
   // Stage specific properties
   // Format of each property is mapred.ireducer.stage.<stage-num>.<suffix>
   // where suffix is one of MRR_INTERMEDIATE_STAGE_* fields defined below.

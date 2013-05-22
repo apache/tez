@@ -97,6 +97,7 @@ public class MRRuntimeTask extends RuntimeTask {
     // submit configuration parameters to the AM and effectively tasks via RPC.
 
     final JobConf job = new JobConf(taskConf);
+    job.set(MRJobConfig.VERTEX_NAME, taskContext.getVertexName());
 
     MRTask mrTask = (MRTask) getProcessor();
     this.mrTask = mrTask;
