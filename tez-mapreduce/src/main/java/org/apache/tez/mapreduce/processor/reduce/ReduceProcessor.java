@@ -338,7 +338,6 @@ implements Processor {
       throws IOException, InterruptedException {
     super.localizeConfiguration(jobConf);
     jobConf.setBoolean(JobContext.TASK_ISMAP, false);
-    jobConf.setInt(TezJobConfig.TEZ_ENGINE_TASK_INDEGREE, numMapTasks); 
   }
 
   @Override

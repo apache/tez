@@ -66,7 +66,7 @@ public class TezJobConfig {
    */
   public static final String LOCAL_DIRS = "tez.engine.local.dirs";
   public static final String DEFAULT_LOCAL_DIRS = "/tmp";
-  
+
   /**
    * One local dir for the speicfic job.
    */
@@ -80,20 +80,6 @@ public class TezJobConfig {
   public static final String DEFAULT_TASK_LOCAL_RESOURCE_DIR = "/tmp";
   
   public static final String TEZ_TASK_WORKING_DIR = "tez.engine.task.working.dir";
-  
-  /**
-   * 
-   */
-  public static final String TEZ_ENGINE_TASK_INDEGREE = 
-      "tez.engine.task.in-degree";
-  public static final int DEFAULT_TEZ_ENGINE_TASK_INDEGREE = 1;
-
-  /**
-   * 
-   */
-  public static final String TEZ_ENGINE_TASK_OUTDEGREE = 
-      "tez.engine.task.out-degree";
-  public static final int DEFAULT_TEZ_ENGINE_TASK_OUTDEGREE = 1;
 
   /**
    * 

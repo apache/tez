@@ -445,7 +445,6 @@ public class LocalJobRunner implements ClientProtocol {
             JobConf localConf = new JobConf(job);
             localConf.setUser(user);
             localConf.set("mapreduce.jobtracker.address", "local");
-            localConf.setInt(TezJobConfig.TEZ_ENGINE_TASK_INDEGREE, mapIds.size());
             setupChildMapredLocalDirs(reduceId, user, localConf);
 
             // FIXME invalid task context

@@ -18,28 +18,9 @@
 
 package org.apache.tez.mapreduce.hadoop;
 
-import org.junit.Assert;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.tez.common.TezJobConfig;
-import org.junit.Test;
 
 public class TestDeprecatedKeys {
 
-  @Test
-  public void testNumTasksDeprecation() {
-    
-    Configuration conf = new Configuration(false);
-    conf.setInt(TezJobConfig.TEZ_ENGINE_TASK_INDEGREE, 6);
-    conf.setInt(TezJobConfig.TEZ_ENGINE_TASK_OUTDEGREE, 3);
-    
-    
-    DeprecatedKeys.init();
-    JobConf jobConf = new JobConf(conf);
-    
-    Assert.assertEquals(6, jobConf.getNumMapTasks());
-    Assert.assertEquals(3, jobConf.getNumReduceTasks());
-  }
-  
+  // TODO Add tests
+
 }

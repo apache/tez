@@ -170,6 +170,10 @@ public class MRRuntimeTask extends RuntimeTask {
 
     job.set(MRJobConfig.JOB_LOCAL_DIR, job.get(TezJobConfig.JOB_LOCAL_DIR));
     job.set(MRConfig.LOCAL_DIR, job.get(TezJobConfig.LOCAL_DIRS));
+    if (job.get(TezJobConfig.DAG_CREDENTIALS_BINARY) != null) {
+      job.set(MRJobConfig.MAPREDUCE_JOB_CREDENTIALS_BINARY,
+          job.get(TezJobConfig.DAG_CREDENTIALS_BINARY));
+    }
 
     // setup the child's attempt directories
     // Do the task-type specific localization
