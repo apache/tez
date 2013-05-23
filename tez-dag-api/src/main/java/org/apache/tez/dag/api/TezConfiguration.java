@@ -45,7 +45,9 @@ public class TezConfiguration extends Configuration {
   // TODO Should not be required once all tokens are handled via AppSubmissionContext
   public static final String JOB_SUBMIT_DIR = TEZ_PREFIX + "jobSubmitDir";
   public static final String APPLICATION_TOKENS_FILE = "appTokens";
-  
+  public static final String DAG_APPLICATION_MASTER_CLASS = 
+      "org.apache.tez.dag.app.DAGAppMaster";
+
   public static final String DAG_AM_TASK_LISTENER_THREAD_COUNT = 
                                 TEZ_PREFIX + "task.listener.thread-count";
   public static final int DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
