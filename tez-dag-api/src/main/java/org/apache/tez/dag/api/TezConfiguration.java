@@ -61,6 +61,11 @@ public class TezConfiguration extends Configuration {
   public static final String DAG_MAX_TASK_FAILURES_PER_NODE = TEZ_PREFIX
       + "maxtaskfailures.per.node";
   public static final int DAG_MAX_TASK_FAILURES_PER_NODE_DEFAULT = 3;
+  
+  public static final String DAG_MAX_TASK_ATTEMPTS = 
+      DAG_AM_PREFIX + "max.task.attempts";
+  public static final int DAG_MAX_TASK_ATTEMPTS_DEFAULT = 4;
+  
   public static final String DAG_NODE_BLACKLISTING_ENABLED = TEZ_PREFIX
       + "node-blacklisting.enabled";
   public static final boolean DAG_NODE_BLACKLISTING_ENABLED_DEFAULT = true;

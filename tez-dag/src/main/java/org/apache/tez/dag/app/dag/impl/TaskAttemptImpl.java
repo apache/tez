@@ -101,14 +101,13 @@ public class TaskAttemptImpl implements TaskAttempt,
     EventHandler<TaskAttemptEvent> {
 
   // TODO Ensure MAPREDUCE-4457 is factored in. Also MAPREDUCE-4068.
-  // TODO Consider TAL registartion in the TaskAttempt instead of the container.
+  // TODO Consider TAL registration in the TaskAttempt instead of the container.
 
   private static final Log LOG = LogFactory.getLog(TaskAttemptImpl.class);
   private static final String LINE_SEPARATOR = System
       .getProperty("line.separator");
   
   static final TezCounters EMPTY_COUNTERS = new TezCounters();
-  private static final long MEMORY_SPLITS_RESOLUTION = 1024; //TODO Make configurable?
 
   protected final TezConfiguration conf;
   protected final int partition;
@@ -144,7 +143,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   protected final String javaOpts;
   protected final boolean isRescheduled;
 
-  private boolean speculatorContainerRequestSent = false;
   protected String processorName;
   
   protected static final FailedTransitionHelper FAILED_HELPER =

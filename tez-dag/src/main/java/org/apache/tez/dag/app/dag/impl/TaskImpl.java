@@ -289,7 +289,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     writeLock = readWriteLock.writeLock();
     this.attempts = Collections.emptyMap();
     // TODO TEZ-47 get from conf or API
-    maxAttempts = 4;
+    maxAttempts = this.conf.getInt(TezConfiguration.DAG_MAX_TASK_ATTEMPTS, 
+                              TezConfiguration.DAG_MAX_TASK_ATTEMPTS_DEFAULT);
     taskId = new TezTaskID(vertexId, partition);
     this.partition = partition;
     this.taskAttemptListener = taskAttemptListener;
