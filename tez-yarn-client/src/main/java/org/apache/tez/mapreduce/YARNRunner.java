@@ -816,10 +816,9 @@ public class YARNRunner implements ClientProtocol {
         = new HashMap<ApplicationAccessType, String>();
 
     // Setup ContainerLaunchContext for AM container
-    ContainerLaunchContext amContainer = BuilderUtils
-        .newContainerLaunchContext(UserGroupInformation
-            .getCurrentUser().getShortUserName(), localResources,
-            environment, vargsFinal, null, securityTokens, acls);
+    ContainerLaunchContext amContainer =
+        ContainerLaunchContext.newInstance(localResources, environment,
+            vargsFinal, null, securityTokens, acls);
 
     // Set up the ApplicationSubmissionContext
     ApplicationSubmissionContext appContext = Records

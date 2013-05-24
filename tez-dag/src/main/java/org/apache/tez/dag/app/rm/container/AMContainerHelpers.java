@@ -136,10 +136,9 @@ public class AMContainerHelpers {
     // Construct the actual Container
     // The null fields are per-container and will be constructed for each
     // container separately.
-    ContainerLaunchContext container = BuilderUtils.newContainerLaunchContext(
-        appContext.getDAG().getUserName(), localResources,
-        environment, null, serviceData, taskCredentialsBuffer, applicationACLs);
-
+    ContainerLaunchContext container =
+        ContainerLaunchContext.newInstance(localResources, environment, null,
+            serviceData, taskCredentialsBuffer, applicationACLs);
     return container;
   }
 
@@ -188,10 +187,9 @@ public class AMContainerHelpers {
     }
 
     // Construct the actual Container
-    ContainerLaunchContext container = BuilderUtils.newContainerLaunchContext(
-        commonContainerSpec.getUser(), lResources, myEnv, commands,
-        myServiceData, commonContainerSpec.getTokens().duplicate(),
-        acls);
+    ContainerLaunchContext container =
+        ContainerLaunchContext.newInstance(lResources, myEnv, commands,
+            myServiceData, commonContainerSpec.getTokens(), acls);
 
     return container;
   }

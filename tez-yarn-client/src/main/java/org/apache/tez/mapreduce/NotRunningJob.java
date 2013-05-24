@@ -87,9 +87,9 @@ public class NotRunningJob implements MRClientProtocol {
 
     // Setting AppState to NEW and finalStatus to UNDEFINED as they are never
     // used for a non running job
-    return BuilderUtils.newApplicationReport(unknownAppId, unknownAttemptId,
-        "N/A", "N/A", "N/A", "N/A", 0, null, YarnApplicationState.NEW, "N/A",
-        "N/A", 0, 0, FinalApplicationStatus.UNDEFINED, null, "N/A", 0.0f);
+    return ApplicationReport.newInstance(unknownAppId, unknownAttemptId, "N/A",
+        "N/A", "N/A", "N/A", 0, null, YarnApplicationState.NEW, "N/A", "N/A",
+        0, 0, FinalApplicationStatus.UNDEFINED, null, "N/A", 0.0f, "TEZ_MRR");
   }
 
   NotRunningJob(ApplicationReport applicationReport, JobState jobState) {
