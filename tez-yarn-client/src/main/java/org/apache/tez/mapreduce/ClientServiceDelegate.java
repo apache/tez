@@ -24,7 +24,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.mapreduce.v2.LogParams;
+import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.mapreduce.TaskCompletionEvent;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
@@ -87,12 +89,17 @@ public class ClientServiceDelegate {
   }
   
   public JobStatus getJobStatus(JobID oldJobID) throws IOException {
+    org.apache.hadoop.mapreduce.v2.api.records.JobId jobId =
+      TypeConverter.toYarn(oldJobID);
+    String user = UserGroupInformation.getCurrentUser().getShortUserName();
+    String jobFile = MRApps.getJobFile(conf, user, oldJobID);
+
     try {
       if(dagClient == null) {
         appReport = getAppReport(oldJobID);
         if(appReport.getYarnApplicationState() != YarnApplicationState.RUNNING) {
           // if job not running return status from appReport;
-          return getJobStatusFromRM(appReport);
+          return getJobStatusFromRM(appReport, jobFile);
         } else {
           // job is running. create dag am client
           dagClient = tezClient.getDAGClient(appReport.getHost(), 
@@ -102,7 +109,7 @@ public class ClientServiceDelegate {
       }
       // return status from client. use saved appReport for queue etc
       DAGStatus dagStatus = dagClient.getDAGStatus(currentDAGId);
-      return new DAGJobStatus(appReport, dagStatus);
+      return new DAGJobStatus(appReport, dagStatus, jobFile);
     } catch (TezRemoteException e) {
       // AM not responding
       dagClient = null;
@@ -116,20 +123,20 @@ public class ClientServiceDelegate {
     }
     
     // final fallback
-    return getJobStatusFromRM(appReport);
+    return getJobStatusFromRM(appReport, jobFile);
   }
   
-  private JobStatus getJobStatusFromRM(ApplicationReport appReport) {
+  private JobStatus getJobStatusFromRM(ApplicationReport appReport, String jobFile) {
     JobStatus jobStatus =
-        new DAGJobStatus(appReport, null);
+      new DAGJobStatus(appReport, null, jobFile);
     return jobStatus;            
   }
 
   public org.apache.hadoop.mapreduce.TaskReport[] getTaskReports(
       JobID oldJobID, TaskType taskType)
        throws IOException{
-    // FIXME need support to query task reports?
-    throw new UnsupportedOperationException();
+    // TEZ-146: need to return real task reports
+    return new org.apache.hadoop.mapreduce.TaskReport[0];
   }
 
   public boolean killTask(TaskAttemptID taskAttemptID, boolean fail)

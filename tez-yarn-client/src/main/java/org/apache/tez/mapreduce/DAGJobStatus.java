@@ -39,13 +39,15 @@ import org.mortbay.log.Log;
 
 public class DAGJobStatus extends JobStatus {
 
+  String jobFile;
   private final ApplicationReport report;
   private final DAGStatus dagStatus;
   
-  public DAGJobStatus(ApplicationReport appReport, DAGStatus dagStatus) {
+  public DAGJobStatus(ApplicationReport appReport, DAGStatus dagStatus, String jobFile) {
     super();
     this.report = appReport;
     this.dagStatus = dagStatus;
+    this.jobFile = jobFile;
   }
   
   @Override
@@ -215,8 +217,8 @@ public class DAGJobStatus extends JobStatus {
 
   @Override
   public synchronized JobPriority getPriority() {
-    // TODO Auto-generated method stub
-    return super.getPriority();
+    // TEX-147: return real priority
+    return JobPriority.NORMAL;
   }
 
   @Override
@@ -251,8 +253,7 @@ public class DAGJobStatus extends JobStatus {
 
   @Override
   public String getJobFile() {
-    // FIXME
-    throw new UnsupportedOperationException();
+    return jobFile;
   }
 
   @Override
