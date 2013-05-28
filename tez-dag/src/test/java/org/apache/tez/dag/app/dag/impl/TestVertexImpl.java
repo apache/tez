@@ -50,10 +50,10 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.committer.NullVertexOutputCommitter;
 import org.apache.tez.dag.api.committer.VertexContext;
 import org.apache.tez.dag.api.committer.VertexOutputCommitter;
-import org.apache.tez.dag.api.committer.VertexStatus.State;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
@@ -147,7 +147,7 @@ public class TestVertexImpl {
     }
 
     @Override
-    public void abortVertex(State finalState) throws IOException {
+    public void abortVertex(VertexStatus.State finalState) throws IOException {
       ++abortCounter;
       if (throwErrorOnAbort) {
         throw new IOException("I can throwz exceptions in abort");

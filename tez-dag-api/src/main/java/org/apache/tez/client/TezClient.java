@@ -30,7 +30,6 @@ import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.TezRemoteException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.VertexStatus;
@@ -45,7 +44,6 @@ public class TezClient {
 
   public DAGClient getDAGClient(String appIdStr) throws IOException, TezException {
     try {
-      System.out.println("Fetching app: " + appIdStr);
       ApplicationId appId = ConverterUtils.toApplicationId(appIdStr);
       YarnClient yarnClient = new YarnClientImpl();
       yarnClient.init(conf);
@@ -60,7 +58,6 @@ public class TezClient {
   }
   
   public DAGClient getDAGClient(String host, int port) throws IOException {
-    System.out.println("App host port: " + host + ":" + port);
     InetSocketAddress addr = new InetSocketAddress(host, port);
     DAGClient dagClient;
     dagClient = new DAGClientRPCImpl(1, addr, conf);

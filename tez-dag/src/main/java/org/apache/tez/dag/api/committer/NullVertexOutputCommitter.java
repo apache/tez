@@ -20,7 +20,7 @@ package org.apache.tez.dag.api.committer;
 
 import java.io.IOException;
 
-import org.apache.tez.dag.api.committer.VertexStatus.State;
+import org.apache.tez.dag.api.client.VertexStatus;
 
 public class NullVertexOutputCommitter extends VertexOutputCommitter {
 
@@ -40,7 +40,7 @@ public class NullVertexOutputCommitter extends VertexOutputCommitter {
   }
 
   @Override
-  public void abortVertex(State finalState) throws IOException {
+  public void abortVertex(VertexStatus.State finalState) throws IOException {
     // Nothing to do
   }
 

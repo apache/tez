@@ -33,9 +33,10 @@ import org.apache.hadoop.mapreduce.TypeConverter;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.yarn.YarnException;
+import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.committer.VertexContext;
 import org.apache.tez.dag.api.committer.VertexOutputCommitter;
-import org.apache.tez.dag.api.committer.VertexStatus;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
@@ -102,7 +103,21 @@ public class MRVertexOutputCommitter extends VertexOutputCommitter {
   }
 
   private State getJobStateFromVertexStatusState(VertexStatus.State state) {
-    return JobStatus.State.valueOf(state.name());
+    switch(state) {
+    case INITED:
+      return JobStatus.State.PREP;
+    case RUNNING:
+      return JobStatus.State.RUNNING;
+    case SUCCEEDED:
+      return JobStatus.State.SUCCEEDED;
+    case KILLED:
+      return JobStatus.State.KILLED;
+    case FAILED:
+    case ERROR:
+      return JobStatus.State.FAILED;
+    default:
+      throw new TezException("Unknown VertexStatus.State: " + state);
+    }
   }
 
   @Override

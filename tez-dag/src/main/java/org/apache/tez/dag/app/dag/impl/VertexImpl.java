@@ -61,15 +61,15 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.ProgressBuilder;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.api.committer.NullVertexOutputCommitter;
 import org.apache.tez.dag.api.committer.VertexContext;
 import org.apache.tez.dag.api.committer.VertexOutputCommitter;
-import org.apache.tez.dag.api.committer.VertexStatus;
-import org.apache.tez.dag.api.committer.VertexStatus.State;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
@@ -744,23 +744,25 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       case KILL_WAIT:
         eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
             finalState));
-        logJobHistoryVertexFailedEvent(State.KILLED);
+        logJobHistoryVertexFailedEvent(VertexStatus.State.KILLED);
         break;
       case ERROR:
         eventHandler.handle(new DAGEvent(getDAGId(),
             DAGEventType.INTERNAL_ERROR));
-        logJobHistoryVertexFailedEvent(State.FAILED);
+        logJobHistoryVertexFailedEvent(VertexStatus.State.FAILED);
         break;
       case FAILED:
         eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
             finalState));
-        logJobHistoryVertexFailedEvent(State.FAILED);
+        logJobHistoryVertexFailedEvent(VertexStatus.State.FAILED);
         break;
       case SUCCEEDED:
         eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
             finalState));
         logJobHistoryVertexFinishedEvent();
         break;
+      default:
+        throw new TezException("Unexpected VertexState: " + finalState);
     }
     return finalState;
   }

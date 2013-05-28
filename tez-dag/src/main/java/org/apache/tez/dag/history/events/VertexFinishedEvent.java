@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.history.events;
 
-import org.apache.tez.dag.api.committer.VertexStatus;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.history.avro.VertexFinished;
