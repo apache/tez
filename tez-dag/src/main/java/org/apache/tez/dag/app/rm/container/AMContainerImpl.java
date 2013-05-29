@@ -18,7 +18,6 @@
 
 package org.apache.tez.dag.app.rm.container;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -48,13 +47,13 @@ import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminating;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventNodeFailed;
 import org.apache.tez.dag.app.rm.AMSchedulerEventContainerCompleted;
 import org.apache.tez.dag.app.rm.AMSchedulerEventDeallocateContainer;
 import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
 import org.apache.tez.dag.app.rm.NMCommunicatorStopRequestEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+//import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 
 @SuppressWarnings("rawtypes")
 public class AMContainerImpl implements AMContainer {
@@ -222,10 +221,19 @@ public class AMContainerImpl implements AMContainer {
   }
 
   @Override
-  public List<TezTaskAttemptID> getCompletedTaskAttempts() {
+  public List<TezTaskAttemptID> getAllTaskAttempts() {
     readLock.lock();
     try {
-      return new ArrayList<TezTaskAttemptID>(this.completedAttempts);
+      List<TezTaskAttemptID> allAttempts = new LinkedList<TezTaskAttemptID>();
+      allAttempts.addAll(this.completedAttempts);
+      allAttempts.addAll(this.failedAssignments);
+      if (this.pendingAttempt != null) {
+        allAttempts.add(this.pendingAttempt);
+      }
+      if (this.runningAttempt != null) {
+        allAttempts.add(this.runningAttempt);
+      }
+      return allAttempts;
     } finally {
       readLock.unlock();
     }
@@ -359,6 +367,7 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventAssignTA event = (AMContainerEventAssignTA) cEvent;
       container.inError = true;
+      container.registerFailedAttempt(event.getTaskAttemptId());
       container.maybeSendNodeFailureForFailedAssignment(event
           .getTaskAttemptId());
       container.sendTerminatedToTaskAttempt(event.getTaskAttemptId(),
@@ -378,7 +387,6 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventCompleted event = (AMContainerEventCompleted)cEvent;
       container.sendCompletedToScheduler();
-      container.sendDiagUpdateOnContainerComplete(event);
       String diag = event.getContainerStatus().getDiagnostics();
       if (!(diag == null || diag.equals(""))) {
         LOG.info("Container " + container.getContainerId()
@@ -402,10 +410,11 @@ public class AMContainerImpl implements AMContainer {
     }
   }
 
-  protected static class NodeFailedAtAllocatedTransition implements
-      SingleArcTransition<AMContainerImpl, AMContainerEvent> {
+  protected static class NodeFailedAtAllocatedTransition extends
+      NodeFailedBaseTransition {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
+      super.transition(container, cEvent);
       container.sendCompletedToScheduler();
       container.deAllocate();
     }
@@ -414,6 +423,7 @@ public class AMContainerImpl implements AMContainer {
   protected static class ErrorTransition extends ErrorBaseTransition {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
+      super.transition(container, cEvent);
       container.sendCompletedToScheduler();
       container.deAllocate();
       LOG.info(
@@ -464,7 +474,7 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       if (container.pendingAttempt != null) {
         AMContainerEventLaunchFailed event = (AMContainerEventLaunchFailed) cEvent;
-        container.sendTerminatingToTA(container.pendingAttempt,
+        container.sendTerminatingToTaskAttempt(container.pendingAttempt,
             event.getMessage());
       }
       container.unregisterFromTAListener();
@@ -481,9 +491,10 @@ public class AMContainerImpl implements AMContainer {
         String errorMessage = getMessage(container, event);
         container.sendTerminatedToTaskAttempt(container.pendingAttempt,
             errorMessage);
+        container.registerFailedAttempt(container.pendingAttempt);
+        container.pendingAttempt = null;
         LOG.warn(errorMessage);
       }
-      container.sendDiagUpdateOnContainerComplete(event);
       container.unregisterFromTAListener();
       container.sendCompletedToScheduler();
       String diag = event.getContainerStatus().getDiagnostics();
@@ -507,7 +518,7 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       if (container.pendingAttempt != null) {
-        container.sendTerminatingToTA(container.pendingAttempt,
+        container.sendTerminatingToTaskAttempt(container.pendingAttempt,
             getMessage(container, cEvent));
       }
       container.unregisterFromTAListener();
@@ -541,12 +552,14 @@ public class AMContainerImpl implements AMContainer {
       }
 
       if (container.pendingAttempt != null) {
+        // Will be null in COMPLETED state.
         container.sendNodeFailureToTA(container.pendingAttempt, errorMessage);
-        container.sendTerminatingToTA(container.pendingAttempt, "Node failure");
+        container.sendTerminatingToTaskAttempt(container.pendingAttempt, "Node failure");
       }
       if (container.runningAttempt != null) {
+        // Will be null in COMPLETED state.
         container.sendNodeFailureToTA(container.runningAttempt, errorMessage);
-        container.sendTerminatingToTA(container.runningAttempt, "Node failure");
+        container.sendTerminatingToTaskAttempt(container.runningAttempt, "Node failure");
       }
     }
   }
@@ -562,16 +575,17 @@ public class AMContainerImpl implements AMContainer {
   }
 
   protected static class ErrorAtLaunchingTransition
-      extends ErrorTransition {
+      extends ErrorBaseTransition {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
       if (container.pendingAttempt != null) {
-        container.sendTerminatedToTaskAttempt(container.pendingAttempt,
+        container.sendTerminatingToTaskAttempt(container.pendingAttempt, 
             "Container " + container.getContainerId() +
                 " hit an invalid transition - " + cEvent.getType() + " at " +
                 container.getState());
       }
+      container.sendStopRequestToNM();
       container.unregisterFromTAListener();
     }
   }
@@ -625,7 +639,6 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
       container.unregisterFromContainerListener();
-      container.sendDiagUpdateOnContainerComplete((AMContainerEventCompleted)cEvent);
     }
 
     @Override
@@ -707,6 +720,8 @@ public class AMContainerImpl implements AMContainer {
       container.sendTerminatedToTaskAttempt(container.runningAttempt,
           getMessage(container, event));
       container.unregisterAttemptFromListener(container.runningAttempt);
+      container.registerFailedAttempt(container.runningAttempt);
+      container.runningAttempt = null;
       super.transition(container, cEvent);
     }
   }
@@ -716,7 +731,7 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
 
       container.unregisterAttemptFromListener(container.runningAttempt);
-      container.sendTerminatingToTA(container.runningAttempt,
+      container.sendTerminatingToTaskAttempt(container.runningAttempt,
           " Container" + container.getContainerId() +
               " received a STOP_REQUEST");
       super.transition(container, cEvent);
@@ -749,7 +764,7 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
       container.unregisterAttemptFromListener(container.runningAttempt);
-      container.sendTerminatedToTaskAttempt(container.runningAttempt,
+      container.sendTerminatingToTaskAttempt(container.runningAttempt,
           "Container " + container.getContainerId() +
               " hit an invalid transition - " + cEvent.getType() + " at " +
               container.getState());
@@ -766,8 +781,8 @@ public class AMContainerImpl implements AMContainer {
           " cannot be allocated to container: " + container.getContainerId() +
           " in " + container.getState() + " state";
       container.maybeSendNodeFailureForFailedAssignment(event.getTaskAttemptId());
-      container.sendTerminatingToTA(event.getTaskAttemptId(), errorMessage);
-      container.registerFailedTAAssignment(event.getTaskAttemptId());
+      container.sendTerminatingToTaskAttempt(event.getTaskAttemptId(), errorMessage);
+      container.registerFailedAttempt(event.getTaskAttemptId());
     }
   }
   
@@ -788,14 +803,18 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventCompleted event = (AMContainerEventCompleted) cEvent;
       String diag = event.getContainerStatus().getDiagnostics();
+      for (TezTaskAttemptID taId : container.failedAssignments) {
+        container.sendTerminatedToTaskAttempt(taId, diag);
+      }
       if (container.pendingAttempt != null) {
         container.sendTerminatedToTaskAttempt(container.pendingAttempt, diag);
+        container.registerFailedAttempt(container.pendingAttempt);
+        container.pendingAttempt = null;
       }
       if (container.runningAttempt != null) {
         container.sendTerminatedToTaskAttempt(container.runningAttempt, diag);
-      }
-      for (TezTaskAttemptID taId : container.failedAssignments) {
-        container.sendTerminatedToTaskAttempt(taId, diag);
+        container.registerFailedAttempt(container.runningAttempt);
+        container.runningAttempt = null;
       }
       if (!(diag == null || diag.equals(""))) {
         LOG.info("Container " + container.getContainerId()
@@ -822,10 +841,9 @@ public class AMContainerImpl implements AMContainer {
   }
 
   protected static class ErrorAtNMStopRequestedTransition
-      extends ErrorAtStoppingTransition {
+      extends ErrorBaseTransition {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
-      container.deAllocate();
     }
   }
 
@@ -833,15 +851,6 @@ public class AMContainerImpl implements AMContainer {
       extends ErrorBaseTransition {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
-      if (container.pendingAttempt != null) {
-        container.sendTerminatedToTaskAttempt(container.pendingAttempt, null);
-      }
-      if (container.runningAttempt != null) {
-        container.sendTerminatedToTaskAttempt(container.runningAttempt, null);
-      }
-      for (TezTaskAttemptID taId : container.failedAssignments) {
-        container.sendTerminatedToTaskAttempt(taId, null);
-      }
       container.sendCompletedToScheduler();
     }
   }
@@ -873,7 +882,7 @@ public class AMContainerImpl implements AMContainer {
       container.maybeSendNodeFailureForFailedAssignment(event.getTaskAttemptId());
       container.sendTerminatedToTaskAttempt(event.getTaskAttemptId(),
           errorMessage);
-      container.registerFailedTAAssignment(event.getTaskAttemptId());
+      container.registerFailedAttempt(event.getTaskAttemptId());
     }
   }
 
@@ -886,17 +895,16 @@ public class AMContainerImpl implements AMContainer {
         ". Attempts: " + currentTaId + ", " + event.getTaskAttemptId() +
         ". Current state: " + this.getState();
     this.maybeSendNodeFailureForFailedAssignment(event.getTaskAttemptId());
-    this.sendTerminatingToTA(event.getTaskAttemptId(), errorMessage);
-    this.sendTerminatingToTA(currentTaId, errorMessage);
-    this.registerFailedTAAssignment(event.getTaskAttemptId());
+    this.sendTerminatingToTaskAttempt(event.getTaskAttemptId(), errorMessage);
+    this.sendTerminatingToTaskAttempt(currentTaId, errorMessage);
+    this.registerFailedAttempt(event.getTaskAttemptId());
     LOG.warn(errorMessage);
     this.sendStopRequestToNM();
     this.unregisterFromTAListener();
     this.unregisterFromContainerListener();
   }
 
-
-  protected void registerFailedTAAssignment(TezTaskAttemptID taId) {
+  protected void registerFailedAttempt(TezTaskAttemptID taId) {
     failedAssignments.add(taId);
   }
   
@@ -908,23 +916,13 @@ public class AMContainerImpl implements AMContainer {
     sendEvent(new AMSchedulerEventContainerCompleted(containerId));
   }
 
-  protected void sendDiagUpdateOnContainerComplete(
-      AMContainerEventCompleted cEvent) {
-    String diag = cEvent.getContainerStatus().getDiagnostics();
-    if (pendingAttempt != null) {
-      sendEvent(new TaskAttemptEventDiagnosticsUpdate(pendingAttempt, diag));
-    }
-    if (runningAttempt != null) {
-      sendEvent(new TaskAttemptEventDiagnosticsUpdate(runningAttempt, diag));
-    }
-  }
-
   protected void sendTerminatedToTaskAttempt(
       TezTaskAttemptID taId, String message) {
     sendEvent(new TaskAttemptEventContainerTerminated(taId, message));
   }
 
-  protected void sendTerminatingToTA(TezTaskAttemptID taId, String message) {
+  protected void sendTerminatingToTaskAttempt(TezTaskAttemptID taId,
+      String message) {
     sendEvent(new TaskAttemptEventContainerTerminating(taId, message));
   }
 

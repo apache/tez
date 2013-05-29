@@ -30,8 +30,7 @@ public interface AMContainer extends EventHandler<AMContainerEvent>{
   public AMContainerState getState();
   public ContainerId getContainerId();
   public Container getContainer();
-  //TODO Rename - CompletedTaskAttempts, ideally means FAILED / KILLED as well.
-  public List<TezTaskAttemptID> getCompletedTaskAttempts();
+  public List<TezTaskAttemptID> getAllTaskAttempts();
   public TezTaskAttemptID getRunningTaskAttempt();
   public List<TezTaskAttemptID> getQueuedTaskAttempts();
   
