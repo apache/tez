@@ -504,9 +504,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     return COMPLETION_RESPONSE_NO_WAIT;
   }
   
-  
-  
-  // TODO EVENTUALLY remove all mrv2 ids.
+
   @Override
   public void unregisterTaskAttempt(TezTaskAttemptID attemptId) {
     attemptToContainerIdMap.remove(attemptId);

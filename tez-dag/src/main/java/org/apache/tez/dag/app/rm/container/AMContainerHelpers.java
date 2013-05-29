@@ -172,7 +172,6 @@ public class AMContainerHelpers {
     Map<String, String> myEnv = new HashMap<String, String>(env.size());
     myEnv.putAll(env);
     myEnv.putAll(vertexEnv);
-    // TODO TEZ-38 MRChildJVM2.setEnv should become a no-op
 
     // Set up the launch command
     List<String> commands = TezEngineChildJVM.getVMCommand(

@@ -53,7 +53,7 @@ public interface AppContext {
 
   long getStartTime();
 
-  CharSequence getUser();
+  String getUser();
 
   DAG getDAG();
 
