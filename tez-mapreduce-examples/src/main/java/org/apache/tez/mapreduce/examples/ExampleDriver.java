@@ -24,23 +24,23 @@ import org.apache.tez.mapreduce.examples.terasort.TeraSort;
 import org.apache.tez.mapreduce.examples.terasort.TeraValidate;
 
 /**
- * A description of an example program based on its class and a 
+ * A description of an example program based on its class and a
  * human-readable description.
  */
 public class ExampleDriver {
-  
+
   public static void main(String argv[]){
     int exitCode = -1;
     ProgramDriver pgd = new ProgramDriver();
     try {
-      pgd.addClass("wordcount", WordCount.class, 
+      pgd.addClass("wordcount", WordCount.class,
           "A map/reduce program that counts the words in the input files.");
-      pgd.addClass("wordcountmrrtest", WordCountMRRTest.class, 
+      pgd.addClass("wordcountmrrtest", WordCountMRRTest.class,
           "A map/reduce program that counts the words in the input files."
           + " Map splits on spaces. First reduce splits on \".\"");
-      pgd.addClass("randomwriter", RandomWriter.class, 
+      pgd.addClass("randomwriter", RandomWriter.class,
           "A map/reduce program that writes 10GB of random data per node.");
-      pgd.addClass("randomtextwriter", RandomTextWriter.class, 
+      pgd.addClass("randomtextwriter", RandomTextWriter.class,
       "A map/reduce program that writes 10GB of random textual data per node.");
       pgd.addClass("sort", Sort.class,
           "A map/reduce program that sorts the data written by the random"
@@ -61,12 +61,14 @@ public class ExampleDriver {
           + " containing employee_name department name per line of input"
           + " and generates count of employees per department and"
           + " sorted on employee count");
+      pgd.addClass("mrrsleep", MRRSleepJob.class,
+          "MRR Sleep Job");
       exitCode = pgd.run(argv);
     }
     catch(Throwable e){
       e.printStackTrace();
     }
-    
+
     System.exit(exitCode);
   }
 }

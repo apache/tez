@@ -126,6 +126,7 @@ public class YARNRunner implements ClientProtocol {
 
   final public static FsPermission DAG_FILE_PERMISSION =
       FsPermission.createImmutable((short) 0644);
+  final public static int UTF8_CHUNK_SIZE = 16 * 1024;
 
   /**
    * Yarn runner incapsulates the client interface of
@@ -395,7 +396,7 @@ public class YARNRunner implements ClientProtocol {
     }
   }
 
-  
+
   private void setupMapReduceEnv(Configuration jobConf,
       Map<String, String> environment, boolean isMap) throws IOException {
 
@@ -470,7 +471,7 @@ public class YARNRunner implements ClientProtocol {
           + "=" + entry.getValue());
     }
   }
-  
+
   private Vertex configureIntermediateReduceStage(FileSystem fs, JobID jobId,
       Configuration jobConf, String jobSubmitDir, Credentials ts,
       Map<String, LocalResource> jobLocalResources, int iReduceIndex)
@@ -482,7 +483,7 @@ public class YARNRunner implements ClientProtocol {
     Vertex vertex = new Vertex(
         MultiStageMRConfigUtil.getIntermediateStageVertexName(stageNum),
         "org.apache.tez.mapreduce.processor.reduce.ReduceProcessor", numTasks);
-    
+
     Map<String, String> reduceEnv = new HashMap<String, String>();
     setupMapReduceEnv(conf, reduceEnv, false);
 
@@ -501,7 +502,7 @@ public class YARNRunner implements ClientProtocol {
     vertex.setTaskResource(reduceResource);
 
     vertex.setJavaOpts(getReduceJavaOpts(conf));
-    
+
     return vertex;
   }
 
@@ -518,7 +519,7 @@ public class YARNRunner implements ClientProtocol {
       vertices[i] = configureIntermediateReduceStage(fs, jobId, jobConf, jobSubmitDir, ts,
           jobLocalResources, i);
       dag.addVertex(vertices[i]);
-      
+
       LOG.info("XXXX Adding intermediate vertex to DAG"
           + ", vertexName=" + vertices[i].getVertexName()
           + ", processor=" + vertices[i].getProcessorName()
@@ -550,7 +551,7 @@ public class YARNRunner implements ClientProtocol {
     String mapProcessor = "org.apache.tez.mapreduce.processor.map.MapProcessor";
     Vertex mapVertex = new Vertex(
         MultiStageMRConfigUtil.getInitialMapVertexName(),
-        mapProcessor, numMaps); 
+        mapProcessor, numMaps);
 
     // FIXME set up map environment
     Map<String, String> mapEnv = new HashMap<String, String>();
@@ -575,7 +576,7 @@ public class YARNRunner implements ClientProtocol {
     mapVertex.setTaskResource(mapResource);
 
     mapVertex.setJavaOpts(getMapJavaOpts(jobConf));
-    
+
     LOG.info("XXXX Adding map vertex to DAG"
         + ", vertexName=" + mapVertex.getVertexName()
         + ", processor=" + mapVertex.getProcessorName()
@@ -618,7 +619,7 @@ public class YARNRunner implements ClientProtocol {
       reduceVertex.setTaskResource(reduceResource);
 
       reduceVertex.setJavaOpts(getReduceJavaOpts(jobConf));
-      
+
       LOG.info("XXXX Adding reduce vertex to DAG"
           + ", vertexName=" + reduceVertex.getVertexName()
           + ", processor=" + reduceVertex.getProcessorName()
@@ -677,11 +678,11 @@ public class YARNRunner implements ClientProtocol {
         dag.addConfiguration(entry.getValue(), mrConf.get(entry.getKey()));
       }
     }
-    
+
     String jobName = mrConf.get(MRJobConfig.JOB_NAME);
     if(jobName != null) {
       dag.setName(jobName);
-    }    
+    }
   }
 
   private ApplicationSubmissionContext createApplicationSubmissionContext(
@@ -712,13 +713,13 @@ public class YARNRunner implements ClientProtocol {
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
 
 //[Debug AppMaster] Current simplest way to attach debugger to AppMaster
-// Uncomment the following, then launch a regular job, eg 
-// >hadoop jar {path}\hadoop-mapreduce-examples-3.0.0-SNAPSHOT.jar pi 2 2                  
+// Uncomment the following, then launch a regular job, eg
+// >hadoop jar {path}\hadoop-mapreduce-examples-3.0.0-SNAPSHOT.jar pi 2 2
 //     LOG.error(" !!!!!!!!!");
 //     LOG.error(" !!!!!!!!! Launching AppMaster in debug/suspend mode.  Attach to port 8002");
 //     LOG.error(" !!!!!!!!!");
 //     vargs.add("-Xdebug -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=8002,server=y,suspend=y");
-    
+
     // TODO -Dtez.root.logger??
     String amLogLevel = jobConf.get(MRJobConfig.MR_AM_LOG_LEVEL,
         MRJobConfig.DEFAULT_MR_AM_LOG_LEVEL);
@@ -782,8 +783,10 @@ public class YARNRunner implements ClientProtocol {
     DAGPlan dagPB = dag.createDag();
     FSDataOutputStream dagPBOutBinaryStream = null;
     FSDataOutputStream dagPBOutTextStream = null;
-    Path binaryPath =  new Path(jobSubmitDir, TezConfiguration.DAG_AM_PLAN_PB_BINARY);
-    Path textPath =  new Path(jobSubmitDir, TezConfiguration.DAG_AM_PLAN_PB_TEXT);
+    Path binaryPath =  new Path(jobSubmitDir,
+        TezConfiguration.DAG_AM_PLAN_PB_BINARY);
+    Path textPath =  new Path(jobSubmitDir,
+        TezConfiguration.DAG_AM_PLAN_PB_TEXT);
     try {
       //binary output
       dagPBOutBinaryStream = FileSystem.create(fs, binaryPath,
@@ -793,7 +796,22 @@ public class YARNRunner implements ClientProtocol {
       // text / human-readable output
       dagPBOutTextStream = FileSystem.create(fs, textPath,
           new FsPermission(DAG_FILE_PERMISSION));
-      dagPBOutTextStream.writeUTF(dagPB.toString());
+      String dagPBStr = dagPB.toString();
+      int dagPBStrLen = dagPBStr.length();
+      if (dagPBStrLen <= UTF8_CHUNK_SIZE) {
+        dagPBOutTextStream.writeUTF(dagPBStr);
+      } else {
+        int startIndex = 0;
+        while (startIndex < dagPBStrLen) {
+          int endIndex = startIndex + UTF8_CHUNK_SIZE;
+          if (endIndex > dagPBStrLen) {
+            endIndex = dagPBStrLen;
+          }
+          dagPBOutTextStream.writeUTF(
+              dagPBStr.substring(startIndex, endIndex));
+          startIndex += UTF8_CHUNK_SIZE;
+        }
+      }
     } finally {
       if(dagPBOutBinaryStream != null){
         dagPBOutBinaryStream.close();
@@ -823,7 +841,7 @@ public class YARNRunner implements ClientProtocol {
     // Set up the ApplicationSubmissionContext
     ApplicationSubmissionContext appContext = Records
         .newRecord(ApplicationSubmissionContext.class);
-    
+
     appContext.setApplicationId(applicationId);                // ApplicationId
     appContext.setResource(capability);                        // resource
     appContext.setQueue(                                       // Queue name
@@ -870,12 +888,12 @@ public class YARNRunner implements ClientProtocol {
     Configuration tezJobConf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
 
     // This will replace job.xml in the staging dir.
-    writeTezConf(jobSubmitDir, fs, tezJobConf);    
+    writeTezConf(jobSubmitDir, fs, tezJobConf);
 
     // FIXME set up job resources
     Map<String, LocalResource> jobLocalResources =
         createJobLocalResources(tezJobConf, jobSubmitDir);
-    
+
     // FIXME createDAG should take the tezConf as a parameter, instead of using
     // MR keys.
     DAG dag = createDAG(fs, jobId, jobConf, jobSubmitDir, ts,
@@ -897,36 +915,6 @@ public class YARNRunner implements ClientProtocol {
           || appMasterReport.getYarnApplicationState() == YarnApplicationState.FAILED
           || appMasterReport.getYarnApplicationState() == YarnApplicationState.KILLED) {
         throw new IOException("Failed to run job : " + diagnostics);
-      }
-
-      if (LOG.isDebugEnabled()) {
-        while (true) {
-          appMasterReport = resMgrDelegate.getApplicationReport(applicationId);
-          diagnostics = (appMasterReport == null ? "application report is null"
-              : appMasterReport.getDiagnostics());
-          if (appMasterReport == null) {
-            throw new IOException("Failed to run job : " + diagnostics);
-          }
-          YarnApplicationState state = appMasterReport
-              .getYarnApplicationState();
-          if (state.equals(YarnApplicationState.FAILED)
-              || state.equals(YarnApplicationState.FINISHED)
-              || state.equals(YarnApplicationState.KILLED)) {
-            LOG.info("Job completed" + ", finalStatus="
-                + appMasterReport.getFinalApplicationStatus() + ", finalState="
-                + appMasterReport.getYarnApplicationState() + ", diagnostics="
-                + diagnostics);
-            break;
-          } else {
-            LOG.info("Job in progress" + ", finalStatus="
-                + appMasterReport.getFinalApplicationStatus() + ", finalState="
-                + appMasterReport.getYarnApplicationState());
-          }
-          try {
-            Thread.sleep(1000);
-          } catch (InterruptedException e) {
-          }
-        }
       }
     } catch (YarnRemoteException e) {
       throw new IOException(e);
@@ -1089,7 +1077,7 @@ public class YARNRunner implements ClientProtocol {
                envConf + " config settings.");
     }
   }
-  
+
   @SuppressWarnings("deprecation")
   private String getMapJavaOpts(Configuration jobConf) {
     // follows pattern from YARN MapReduceChildJVM.java
@@ -1097,9 +1085,9 @@ public class YARNRunner implements ClientProtocol {
     adminOpts = jobConf.get(
         MRJobConfig.MAPRED_MAP_ADMIN_JAVA_OPTS,
         MRJobConfig.DEFAULT_MAPRED_ADMIN_JAVA_OPTS);
-    
+
     String userOpts = "";
-    userOpts = 
+    userOpts =
         jobConf.get(
             MRJobConfig.MAP_JAVA_OPTS, // same as JobConf.MAPRED_REDUCE_TASK_JAVA_OPTS
                 jobConf.get(
@@ -1109,23 +1097,23 @@ public class YARNRunner implements ClientProtocol {
     return adminOpts.trim() + " " + userOpts.trim() + " "
     + getLog4jCmdLineProperties(jobConf, true);
   }
-  
+
   @SuppressWarnings("deprecation")
   private String getReduceJavaOpts(Configuration jobConf) {
-    // follows pattern from YARN MapReduceChildJVM.java 
+    // follows pattern from YARN MapReduceChildJVM.java
     String adminOpts = "";
     adminOpts = jobConf.get(
         MRJobConfig.MAPRED_REDUCE_ADMIN_JAVA_OPTS,
         MRJobConfig.DEFAULT_MAPRED_ADMIN_JAVA_OPTS);
-    
+
     String userOpts = "";
-    userOpts = 
+    userOpts =
         jobConf.get(
-            MRJobConfig.REDUCE_JAVA_OPTS, // same as JobConf.MAPRED_REDUCE_TASK_JAVA_OPTS 
+            MRJobConfig.REDUCE_JAVA_OPTS, // same as JobConf.MAPRED_REDUCE_TASK_JAVA_OPTS
                 jobConf.get(
                     JobConf.MAPRED_TASK_JAVA_OPTS,
                     JobConf.DEFAULT_MAPRED_TASK_JAVA_OPTS));
-    
+
     return adminOpts.trim() + " " + userOpts.trim() + " "
         + getLog4jCmdLineProperties(jobConf, false);
   }
@@ -1144,7 +1132,7 @@ public class YARNRunner implements ClientProtocol {
   /**
    * Add the JVM system properties necessary to configure
    * {@link ContainerLogAppender}.
-   * 
+   *
    * @param logLevel
    *          the desired log level (eg INFO/WARN/DEBUG)
    * @param vargs

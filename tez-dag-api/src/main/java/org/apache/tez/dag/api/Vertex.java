@@ -30,30 +30,30 @@ public class Vertex { // FIXME rename to Task
 
   private final String vertexName;
   private final String processorName;
-  
+
   private final int parallelism;
   private VertexLocationHint taskLocationsHint;
   private Resource taskResource;
   private Map<String, LocalResource> taskLocalResources;
   private Map<String, String> taskEnvironment;
-  
+
   private final List<Vertex> inputVertices = new ArrayList<Vertex>();
   private final List<Vertex> outputVertices = new ArrayList<Vertex>();
   private final List<String> inputEdgeIds = new ArrayList<String>();
   private final List<String> outputEdgeIds = new ArrayList<String>();
   private String javaOpts = "";
-  
-  
+
+
   public Vertex(String vertexName, String processorName, int parallelism) {
     this.vertexName = vertexName;
     this.processorName = processorName;
     this.parallelism = parallelism;
   }
-  
+
   public String getVertexName() { // FIXME rename to getName()
     return vertexName;
   }
-  
+
   public String getProcessorName() {
     return processorName;
   }
@@ -61,16 +61,19 @@ public class Vertex { // FIXME rename to Task
   public int getParallelism() {
     return parallelism;
   }
-  
+
   public void setTaskResource(Resource resource) {
     this.taskResource = resource;
   }
-  
+
   public Resource getTaskResource() {
     return taskResource;
   }
-  
+
   public void setTaskLocationsHint(TaskLocationHint[] locations) {
+    if (locations == null) {
+      return;
+    }
     assert locations.length == parallelism;
     taskLocationsHint = new VertexLocationHint(parallelism, locations);
   }
@@ -79,31 +82,31 @@ public class Vertex { // FIXME rename to Task
   VertexLocationHint getTaskLocationsHint() {
     return taskLocationsHint;
   }
-  
+
   public void setTaskLocalResources(Map<String, LocalResource> localResources) {
     this.taskLocalResources = localResources;
   }
-  
+
   public Map<String, LocalResource> getTaskLocalResources() {
     return taskLocalResources;
   }
-  
+
   public void setTaskEnvironment(Map<String, String> environment) {
     this.taskEnvironment = environment;
   }
-  
+
   public Map<String, String> getTaskEnvironment() {
     return taskEnvironment;
   }
-  
+
   public void setJavaOpts(String javaOpts){
      this. javaOpts = javaOpts;
   }
-  
+
   public String getJavaOpts(){
 	  return javaOpts;
   }
-  
+
   @Override
   public String toString() {
     return "[" + vertexName + " : " + processorName + "]";
@@ -118,15 +121,15 @@ public class Vertex { // FIXME rename to Task
     outputVertices.add(outputVertex);
     outputEdgeIds.add(edgeId);
   }
-  
+
   List<Vertex> getInputVertices() {
     return inputVertices;
   }
-  
+
   List<Vertex> getOutputVertices() {
     return outputVertices;
   }
-  
+
   List<String> getInputEdgeIds() {
     return inputEdgeIds;
   }
