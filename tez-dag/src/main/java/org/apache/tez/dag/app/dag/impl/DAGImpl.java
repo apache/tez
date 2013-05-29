@@ -869,9 +869,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         for (Vertex v : dag.vertices.values()) {
           parseVertexEdges(dag, edgePlans, v);
         }
-
-        dag.dagScheduler = new DAGSchedulerNaturalOrder(dag, dag.eventHandler);
-        //dag.dagScheduler = new DAGSchedulerMRR(dag, dag.eventHandler);
+        
+        assignDAGScheduler(dag);
 
         // TODO Metrics
         //dag.metrics.endPreparingJob(dag);
@@ -885,6 +884,31 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         // TODO Metrics
         //dag.metrics.endPreparingJob(dag);
         return dag.finished(DAGState.FAILED);
+      }
+    }
+    
+    private void assignDAGScheduler(DAGImpl dag) {
+      boolean isMRR = true;
+      for(Vertex vertex : dag.vertices.values()) {
+        Map<Vertex, EdgeProperty> outVertices = vertex.getOutputVertices();
+        if(outVertices == null || outVertices.isEmpty()) {
+          continue;
+        }
+        if(outVertices.size() > 1 || 
+           outVertices.values().iterator().next().getConnectionPattern() != 
+           EdgeProperty.ConnectionPattern.BIPARTITE) {
+          // more than 1 output OR single output is not bipartite
+          isMRR = false;
+          break;
+        }          
+      }
+      
+      if(isMRR) {
+        LOG.info("Using MRR dag scheduler");
+        dag.dagScheduler = new DAGSchedulerMRR(dag, dag.eventHandler);
+      } else {
+        LOG.info("Using Natural order dag scheduler");
+        dag.dagScheduler = new DAGSchedulerNaturalOrder(dag, dag.eventHandler);
       }
     }
 

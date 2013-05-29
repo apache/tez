@@ -48,7 +48,7 @@ public class DAGSchedulerMRR implements DAGScheduler {
   
   @Override
   public void vertexCompleted(Vertex vertex) {
-    if(currentPartitioner!= null) {
+    if(currentPartitioner != null) {
       if(vertex != currentPartitioner) {
         String message = vertex.getVertexId() + " finished. Expecting "
             + currentPartitioner + " to finish.";
@@ -57,68 +57,59 @@ public class DAGSchedulerMRR implements DAGScheduler {
       }
       LOG.info("Current partitioner " + currentPartitioner.getVertexId()
           + " is completed. " 
-          + (currentShuffler!=null?currentShuffler.getVertexId():"null")
-          + " is new partitioner");
+          + (currentShuffler!=null ? 
+             currentShuffler.getVertexId() + " is new partitioner":
+             "No current shuffler to replace the partitioner"));
       currentPartitioner = currentShuffler;
-      currentShuffler = null;
-    } else {
-      if(vertex != currentShuffler) {
-        String message = vertex.getVertexId() + " finished. Expecting "
-            + currentShuffler.getVertexId() + " to finish";
-        LOG.fatal(message);
-        throw new TezException(message);
-      }      
+      currentShuffler = null;     
     }
   }
   
   @Override
   public void scheduleTask(DAGEventSchedulerUpdate event) {
     TaskAttempt attempt = event.getAttempt();
-    Vertex vertex = dag.getVertex(attempt.getID().getTaskID().getVertexID());
+    Vertex vertex = dag.getVertex(attempt.getVertexID());
     int vertexDistanceFromRoot = vertex.getDistanceFromRoot();
-    if(vertexDistanceFromRoot == 0) {
+    boolean reOrderPriority = false;
+    
+    if(currentPartitioner == null) {
+      // no partitioner. so set it.
       currentPartitioner = vertex;
-      LOG.info(vertex.getVertexId() + " is first partitioner");
+      currentShufflerDepth = vertexDistanceFromRoot;
+      LOG.info(vertex.getVertexId() + " is new partitioner at depth "
+          + vertexDistanceFromRoot);
+    } else if (currentShuffler == null && 
+        vertexDistanceFromRoot > currentShufflerDepth) {
+      // vertex not a partitioner. no shuffler set. has more depth than current
+      // shuffler. this must be the new shuffler.
+      currentShuffler = vertex;
+      currentShufflerDepth = vertexDistanceFromRoot;
+      LOG.info(vertex.getVertexId() + " is new shuffler at depth "
+          + currentShufflerDepth);
     }
-    if(vertexDistanceFromRoot > currentShufflerDepth) {
-      if(currentShuffler == null) {
-        currentShuffler = vertex;
-        currentShufflerDepth = vertexDistanceFromRoot;
-        LOG.info(currentShuffler.getVertexId() + " is new shuffler at depth " + 
-                 currentShufflerDepth);
-      } else {
-        if(currentShufflerDepth+1 == vertexDistanceFromRoot && 
-           currentPartitioner == null
-           ) {
-          currentPartitioner = currentShuffler;
-          currentShuffler = vertex;
-          currentShufflerDepth = vertexDistanceFromRoot;
-          LOG.info("Shuffler " + currentPartitioner.getVertexId() + 
-                   " becomes partitioner as new shuffler " + 
-                   currentShuffler.getVertexId() + " has started at depth " + 
-                   currentShufflerDepth);          
-        } else {
-          String message = vertex.getVertexId()
-              + " has scheduled tasks at depth " + vertexDistanceFromRoot
-              + " greater than depth " + currentShufflerDepth
-              + " of current shuffler " + currentShuffler.getVertexId()
-              + ". Unexpected.";
-          LOG.fatal(message);
-          throw new TezException(message);
-        }
-      }
+    
+    if(currentShuffler == vertex) {
+      // current shuffler vertex. assign special priority
+      reOrderPriority = true;
     }
+    
+    // sanity check
+    if(currentPartitioner != vertex && currentShuffler != vertex) {
+      String message = vertex.getVertexId() + " is neither the "
+          + " current partitioner: " + currentPartitioner.getVertexId()
+          + " nor the current shuffler: " + currentShuffler.getVertexId();
+      LOG.fatal(message);
+      throw new TezException(message);      
+    }    
 
     // natural priority. Handles failures and retries.
     int priority = (vertexDistanceFromRoot + 1) * 3;
     
-    if(currentShuffler == vertex) {
-      if(currentPartitioner != null) {
-        // special priority for current reducers while current partitioners are 
-        // still running. Schedule at priority one higher than natural priority 
-        // of previous vertex.
-        priority -= 4;  // this == (partitionerDepth+1)*3 - 1     
-      }
+    if(reOrderPriority) {
+      // special priority for current reducers while current partitioners are 
+      // still running. Schedule at priority one higher than natural priority 
+      // of previous vertex.
+      priority -= 4;  // this == (partitionerDepth+1)*3 - 1     
     } else {
       if(attempt.getIsRescheduled()) {
         // higher priority for retries of failed attempts. Only makes sense in

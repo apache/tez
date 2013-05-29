@@ -50,7 +50,7 @@ public class DAGSchedulerNaturalOrder implements DAGScheduler {
   @Override
   public void scheduleTask(DAGEventSchedulerUpdate event) {
     TaskAttempt attempt = event.getAttempt();
-    Vertex vertex = dag.getVertex(attempt.getID().getTaskID().getVertexID());
+    Vertex vertex = dag.getVertex(attempt.getVertexID());
     int vertexDistanceFromRoot = vertex.getDistanceFromRoot();
 
     // natural priority. Handles failures and retries.

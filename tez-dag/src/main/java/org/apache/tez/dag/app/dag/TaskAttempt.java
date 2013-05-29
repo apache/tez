@@ -27,13 +27,18 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
 
 /**
  * Read only view of TaskAttempt.
  */
 public interface TaskAttempt {
   TezTaskAttemptID getID();
+  TezVertexID getVertexID();
+  TezDAGID getDAGID();
+  
   TaskAttemptReport getReport();
   List<String> getDiagnostics();
   TezCounters getCounters();

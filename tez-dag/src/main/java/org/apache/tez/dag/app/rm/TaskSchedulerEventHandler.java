@@ -461,7 +461,7 @@ public class TaskSchedulerEventHandler extends AbstractService
 
       sendEvent(new AMContainerEventLaunchRequest(
           containerId,
-          taskAttempt.getID().getTaskID().getVertexID(),
+          taskAttempt.getVertexID(),
           event.getJobToken(),
           // TODO getConf from AMSchedulerEventTALaunchRequest
           event.getCredentials(), false, event.getConf(),

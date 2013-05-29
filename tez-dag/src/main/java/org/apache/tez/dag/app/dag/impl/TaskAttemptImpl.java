@@ -90,8 +90,10 @@ import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 
@@ -288,6 +290,16 @@ public class TaskAttemptImpl implements TaskAttempt,
   @Override
   public TezTaskAttemptID getID() {
     return attemptId;
+  }
+  
+  @Override
+  public TezVertexID getVertexID() {
+    return attemptId.getTaskID().getVertexID();
+  }
+  
+  @Override
+  public TezDAGID getDAGID() {
+    return getVertexID().getDAGId();
   }
   
   TezTaskContext createRemoteTask() {
@@ -601,7 +613,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskAttemptImpl ta) {
     DAGEventCounterUpdate jce = 
         new DAGEventCounterUpdate(
-            ta.getID().getTaskID().getVertexID().getDAGId()
+            ta.getDAGID()
             );
     jce.addCounterUpdate(DAGCounter.TOTAL_LAUNCHED_TASKS, 1);
     return jce;
@@ -611,7 +623,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskAttemptImpl ta) {
     DAGEventCounterUpdate jce = 
         new DAGEventCounterUpdate(            
-            ta.getID().getTaskID().getVertexID().getDAGId()
+            ta.getDAGID()
             );
 
     long slotMillis = computeSlotMillis(ta);
@@ -624,7 +636,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskAttemptStateInternal taState) {
     DAGEventCounterUpdate jce = 
         new DAGEventCounterUpdate(
-            taskAttempt.getID().getTaskID().getVertexID().getDAGId());
+            taskAttempt.getDAGID());
 
     long slotMillisIncrement = computeSlotMillis(taskAttempt);
 

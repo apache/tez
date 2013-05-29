@@ -30,7 +30,7 @@ public class DAGEventSchedulerUpdate extends DAGEvent {
   private final UpdateType updateType;
   
   public DAGEventSchedulerUpdate(UpdateType updateType, TaskAttempt attempt) {
-    super(attempt.getID().getTaskID().getVertexID().getDAGId(), 
+    super(attempt.getDAGID(), 
           DAGEventType.DAG_SCHEDULER_UPDATE);
     this.attempt = attempt;
     this.updateType = updateType;
