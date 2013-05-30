@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.history.events;
 
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.avro.DAGFinished;
@@ -27,14 +28,17 @@ import org.apache.tez.dag.records.TezDAGID;
 public class DAGFinishedEvent implements HistoryEvent {
 
   private DAGFinished datum = new DAGFinished();
+  // FIXME remove this when we have a proper history
+  private final TezCounters tezCounters;
 
   public DAGFinishedEvent(TezDAGID dagId,
       long finishTime, DAGStatus.State state,
-      String diagnostics) {
+      String diagnostics, TezCounters counters) {
     datum.dagId = dagId.toString();
     datum.finishTime = finishTime;
     datum.status = state.name();
     datum.diagnostics = diagnostics;
+    tezCounters = counters;
   }
 
   @Override
@@ -58,6 +62,7 @@ public class DAGFinishedEvent implements HistoryEvent {
     return "dagId=" + datum.dagId
         + ", finishTime=" + datum.finishTime
         + ", status=" + datum.status
-        + ", diagnostics=" + datum.diagnostics;
+        + ", diagnostics=" + datum.diagnostics
+        + ", counters=" + tezCounters.toString();
   }
 }

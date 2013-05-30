@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.history.events;
 
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
@@ -27,14 +28,17 @@ import org.apache.tez.dag.records.TezTaskID;
 public class TaskFinishedEvent implements HistoryEvent {
 
   private TaskFinished datum = new TaskFinished();
+  // FIXME remove this when we have a proper history
+  private final TezCounters tezCounters;
 
   public TaskFinishedEvent(TezTaskID taskId,
       String vertexName, long finishTime,
-      TaskState state) {
+      TaskState state, TezCounters counters) {
     datum.vertexName = vertexName;
     datum.taskId = taskId.toString();
     datum.finishTime = finishTime;
     datum.status = state.name();
+    tezCounters = counters;
   }
 
   @Override
@@ -58,6 +62,7 @@ public class TaskFinishedEvent implements HistoryEvent {
     return "vertexName=" + datum.vertexName
         + ", taskId=" + datum.taskId
         + ", finishTime=" + datum.finishTime
-        + ", status=" + datum.status;
+        + ", status=" + datum.status
+        + ", counters=" + tezCounters.toString();
   }
 }

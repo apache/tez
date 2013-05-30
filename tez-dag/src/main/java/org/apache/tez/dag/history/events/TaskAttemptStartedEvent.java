@@ -28,15 +28,20 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 public class TaskAttemptStartedEvent implements HistoryEvent {
 
   private TaskAttemptStarted datum = new TaskAttemptStarted();
+  private final String inProgressLogsUrl;
+  private final String completedLogsUrl;
 
   public TaskAttemptStartedEvent(TezTaskAttemptID taId,
       String vertexName, long startTime,
-      ContainerId containerId, NodeId nodeId) {
+      ContainerId containerId, NodeId nodeId,
+      String inProgressLogsUrl, String completedLogsUrl) {
     datum.taskAttemptId = taId.toString();
     datum.vertexName = vertexName;
     datum.startTime = startTime;
     datum.containerId = containerId.toString();
     datum.nodeId = nodeId.toString();
+    this.inProgressLogsUrl = inProgressLogsUrl;
+    this.completedLogsUrl = completedLogsUrl;
   }
 
   @Override
@@ -61,6 +66,8 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
         + ", taskAttemptId=" + datum.taskAttemptId
         + ", startTime=" + datum.startTime
         + ", containerId=" + datum.containerId
-        + ", nodeId=" + datum.nodeId;
+        + ", nodeId=" + datum.nodeId
+        + ", inProgressLogs=" + inProgressLogsUrl
+        + ", completedLogs=" + completedLogsUrl;
   }
 }

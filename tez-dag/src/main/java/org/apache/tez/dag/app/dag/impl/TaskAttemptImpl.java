@@ -42,6 +42,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
@@ -794,9 +795,27 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   @SuppressWarnings("unchecked")
   protected void logJobHistoryAttemptStarted() {
+    final String containerIdStr = containerId.toString();
+    String inProgressLogsUrl = nodeHttpAddress
+       + "/" + "node/containerlogs"
+       + "/" + containerIdStr
+       + "/" + this.appContext.getUser();
+    String completedLogsUrl = "";
+    if (conf.getBoolean(YarnConfiguration.LOG_AGGREGATION_ENABLED,
+        YarnConfiguration.DEFAULT_LOG_AGGREGATION_ENABLED)
+        && conf.get(YarnConfiguration.YARN_LOG_SERVER_URL) != null) {
+      String contextStr = "v_" + getTask().getVertex().getName()
+          + "_" + this.attemptId.toString();
+      completedLogsUrl = conf.get(YarnConfiguration.YARN_LOG_SERVER_URL)
+          + "/" + containerNodeId.toString()
+          + "/" + containerIdStr
+          + "/" + contextStr
+          + "/" + this.appContext.getUser();
+    }
     TaskAttemptStartedEvent startEvt = new TaskAttemptStartedEvent(
         attemptId, getTask().getVertex().getName(),
-        launchTime, containerId, containerNodeId);
+        launchTime, containerId, containerNodeId,
+        inProgressLogsUrl, completedLogsUrl);
     eventHandler.handle(new DAGHistoryEvent(
         attemptId.getTaskID().getVertexID().getDAGId(),
         startEvt));
@@ -809,7 +828,8 @@ public class TaskAttemptImpl implements TaskAttempt,
     
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
         attemptId, getTask().getVertex().getName(),
-        getFinishTime(), TaskAttemptState.SUCCEEDED, "");
+        getFinishTime(), TaskAttemptState.SUCCEEDED, "",
+        getCounters());
     // FIXME how do we store information regd completion events
     eventHandler.handle(new DAGHistoryEvent(
         attemptId.getTaskID().getVertexID().getDAGId(),
@@ -823,7 +843,8 @@ public class TaskAttemptImpl implements TaskAttempt,
         attemptId, getTask().getVertex().getName(),
         clock.getTime(), state,
         StringUtils.join(
-            LINE_SEPARATOR, getDiagnostics()));
+            LINE_SEPARATOR, getDiagnostics()),
+        getCounters());
     // FIXME how do we store information regd completion events
     eventHandler.handle(new DAGHistoryEvent(
         attemptId.getTaskID().getVertexID().getDAGId(),

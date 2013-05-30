@@ -839,7 +839,8 @@ public class TestAMContainer {
       resource = BuilderUtils.newResource(1024, 1);
       priority = BuilderUtils.newPriority(1);
       container = BuilderUtils.newContainer(containerID, nodeID,
-          nodeHttpAddress, resource, priority, null, rmIdentifier);
+          nodeHttpAddress, resource, priority, null);
+
       chh = mock(ContainerHeartbeatHandler.class);
       
       InetSocketAddress addr = new InetSocketAddress("localhost", 0);

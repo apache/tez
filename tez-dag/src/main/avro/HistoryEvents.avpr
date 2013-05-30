@@ -21,6 +21,29 @@
 
  "types": [
 
+     {"type": "record", "name": "TezCounter",
+      "fields": [
+          {"name": "name", "type": "string"},
+          {"name": "displayName", "type": "string"},
+          {"name": "value", "type": "long"}
+      ]
+     },
+
+     {"type": "record", "name": "TezCounterGroup",
+      "fields": [
+          {"name": "name", "type": "string"},
+          {"name": "displayName", "type": "string"},
+          {"name": "counts", "type": {"type": "array", "items": "TezCounter"}}
+      ]
+     },
+
+     {"type": "record", "name": "TezCounters",
+      "fields": [
+          {"name": "groups", "type": {"type": "array", "items": "TezCounterGroup"}}
+      ]
+     },
+
+
      {"type": "record", "name": "AMStarted",
       "fields": [
           {"name": "applicationAttemptId", "type": "string"},
@@ -50,7 +73,8 @@
           {"name": "dagId", "type": "string"},
           {"name": "finishTime", "type": "long"},
           {"name": "status", "type": "string"},
-          {"name": "diagnostics", "type": "string"}
+          {"name": "diagnostics", "type": "string"},
+          {"name": "counters", "type": "TezCounters"}
       ]
      },
 
@@ -71,7 +95,8 @@
           {"name": "vertexId", "type": "string"},
           {"name": "finishTime", "type": "long"},
           {"name": "status", "type": "string"},
-          {"name": "diagnostics", "type": "string"}
+          {"name": "diagnostics", "type": "string"},
+          {"name": "counters", "type": "TezCounters"}
       ]
      },
 
@@ -89,7 +114,8 @@
           {"name": "vertexName", "type": "string"},
           {"name": "taskId", "type": "string"},
           {"name": "finishTime", "type": "long"},
-          {"name": "status", "type": "string"}
+          {"name": "status", "type": "string"},
+          {"name": "counters", "type": "TezCounters"}
       ]
      },
 
@@ -109,7 +135,8 @@
           {"name": "taskAttemptId", "type": "string"},
           {"name": "finishTime", "type": "long"},
           {"name": "status", "type": "string"},
-          {"name": "diagnostics", "type": "string"}
+          {"name": "diagnostics", "type": "string"},
+          {"name": "counters", "type": "TezCounters"}
       ]
      },
 
