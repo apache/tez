@@ -66,8 +66,7 @@ public class MapUtils {
     localSysDirs[0] = localDir;
 
     conf.setStrings(TezJobConfig.LOCAL_DIRS, localSysDirs);
-    conf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR,
-        System.getenv(Environment.PWD.name()));
+    conf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, localDir);
 
     LOG.info(TezJobConfig.LOCAL_DIRS + " for child: "
         + conf.get(TezJobConfig.LOCAL_DIRS));
