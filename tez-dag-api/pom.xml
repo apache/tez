@@ -64,7 +64,6 @@
       <plugin>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-maven-plugins</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
         <executions>
           <execution>
             <id>compile-protoc</id>
