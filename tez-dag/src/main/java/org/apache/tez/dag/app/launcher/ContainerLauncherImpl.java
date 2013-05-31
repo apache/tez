@@ -160,7 +160,7 @@ public class ContainerLauncherImpl extends AbstractService implements
         // Now launch the actual container
         StartContainerRequest startRequest = Records
           .newRecord(StartContainerRequest.class);
-        startRequest.setContainer(event.getContainer());
+        startRequest.setContainerToken(event.getContainerToken());
         startRequest.setContainerLaunchContext(containerLaunchContext);
         StartContainerResponse response = proxy.startContainer(startRequest);
 
