@@ -49,7 +49,6 @@ public class BipartiteSlowStartVertexScheduler implements VertexScheduler {
   
   int numSourceTasks = 0;
   int numSourceTasksCompleted = 0;
-  boolean slowStartThresholdReached = false;
   ArrayList<TezTaskID> pendingTasks;
   int totalTasksToSchedule = 0;
   HashMap<TezVertexID, Vertex> bipartiteSources = 
@@ -84,7 +83,6 @@ public class BipartiteSlowStartVertexScheduler implements VertexScheduler {
   
   @Override
   public void onVertexStarted() {
-    //targetVertex.scheduleTasks(targetVertex.getTasks().keySet()); 
     pendingTasks = new ArrayList<TezTaskID>(managedVertex.getTotalTasks());
     // track the tasks in this vertex
     pendingTasks.addAll(managedVertex.getTasks().keySet());
@@ -140,7 +138,7 @@ public class BipartiteSlowStartVertexScheduler implements VertexScheduler {
     }
 
     float completedSourceTaskFraction = 0f;
-    if (numSourceTasks != 0) {//support for 0 source tasks
+    if (numSourceTasks != 0) { // support for 0 source tasks
       completedSourceTaskFraction = (float)numSourceTasksCompleted/numSourceTasks;
     } else {
       completedSourceTaskFraction = 1;
@@ -180,7 +178,9 @@ public class BipartiteSlowStartVertexScheduler implements VertexScheduler {
                managedVertex.getVertexId() + " with totalTasks: " + 
                totalTasksToSchedule + ". " + numSourceTasksCompleted + 
                " source tasks completed out of " + numSourceTasks + 
-               ". SourceTaskCompletedFraction: " + completedSourceTaskFraction);
+               ". SourceTaskCompletedFraction: " + completedSourceTaskFraction + 
+               " min: " + slowStartMinSrcCompletionFraction + 
+               " max: " + slowStartMaxSrcCompletionFraction);
       schedulePendingTasks(numTasksToSchedule);
     }
   }

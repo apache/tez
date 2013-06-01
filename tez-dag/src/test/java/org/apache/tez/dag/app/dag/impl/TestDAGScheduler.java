@@ -45,7 +45,7 @@ public class TestDAGScheduler {
   
   MockEventHandler mockEventHandler = new MockEventHandler();
   
-  //@Test(timeout=10000)
+  @Test(timeout=10000)
   public void testDAGSchedulerNaturalOrder() {
     DAG mockDag = mock(DAG.class);
     Vertex mockVertex = mock(Vertex.class);
@@ -72,7 +72,7 @@ public class TestDAGScheduler {
     Assert.assertTrue(mockEventHandler.event.getPriority().getPriority() == 5);
   }
   
-  @Test//(timeout=10000)
+  @Test(timeout=10000)
   public void testDAGSchedulerMRR() {
     DAG mockDag = mock(DAG.class);
     TezDAGID dagId = new TezDAGID("1", 1, 1);
