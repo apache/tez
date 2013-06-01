@@ -496,8 +496,6 @@ public class TaskSchedulerEventHandler extends AbstractService
     // TODO TEZ-34 change event to reboot and send to app master
     sendEvent(new DAGEvent(appContext.getDAGID(),
                            DAGEventType.INTERNAL_ERROR));
-    throw new YarnException("ResourceManager requests reboot for: "
-                             + appContext.getApplicationID());  
   }
 
   @Override
@@ -552,7 +550,8 @@ public class TaskSchedulerEventHandler extends AbstractService
 
   @Override
   public void onError(Exception e) {
-    // TODO TEZ-35 handle error
+    sendEvent(new DAGEvent(appContext.getDAGID(),
+        DAGEventType.INTERNAL_ERROR));
   }
 
 }
