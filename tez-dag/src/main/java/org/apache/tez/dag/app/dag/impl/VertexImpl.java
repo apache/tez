@@ -613,7 +613,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
          getStateMachine().doTransition(event.getType(), event);
       } catch (InvalidStateTransitonException e) {
         String message = "Invalid event " + event.getType() +
-            " on vertex " + this.vertexId +
+            " on vertex " + this.vertexName +
+            " with vertexId " + this.vertexId +
             " at current state " + oldState;
         LOG.error("Can't handle " + message, e);
         addDiagnostic(message);
@@ -630,6 +631,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     finally {
       writeLock.unlock();
     }
+    LOG.info("DEBUG: Finished processing VertexEvent " + event.getVertexId()
+        + " of type " + event.getType() + " while in state "
+        + getInternalState() + ". Event: " + event);
   }
 
   private VertexState getInternalState() {

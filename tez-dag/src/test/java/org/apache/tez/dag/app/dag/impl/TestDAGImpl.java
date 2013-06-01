@@ -373,19 +373,23 @@ public class TestDAGImpl {
 
   @After
   public void teardown() {
-    dagPlan = null;
-    dag = null;
     dispatcher.await();
     dispatcher.stop();
+    dagPlan = null;
+    dag = null;
   }
 
   private void initDAG(DAGImpl dag) {
-    dag.handle(new DAGEvent(dagId, DAGEventType.DAG_INIT));
+    dag.handle(
+        new DAGEvent(dagId, DAGEventType.DAG_INIT));
     Assert.assertEquals(DAGState.INITED, dag.getState());
   }
 
+  @SuppressWarnings("unchecked")
   private void startDAG(DAGImpl dag) {
-    dag.handle(new DAGEvent(dagId, DAGEventType.DAG_START));
+    dispatcher.getEventHandler().handle(
+        new DAGEvent(dagId, DAGEventType.DAG_START));
+    dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dag.getState());
   }
 
@@ -432,9 +436,9 @@ public class TestDAGImpl {
 
     TezVertexID vId = new TezVertexID(dagId, 1);
     Vertex v = dag.getVertex(vId);
-    ((EventHandler<VertexEvent>) v).handle(new VertexEventTaskCompleted(
+    dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
         new TezTaskID(vId, 0), TaskState.SUCCEEDED));
-    ((EventHandler<VertexEvent>) v).handle(new VertexEventTaskCompleted(
+    dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
         new TezTaskID(vId, 1), TaskState.SUCCEEDED));
     dispatcher.await();
 
@@ -442,12 +446,14 @@ public class TestDAGImpl {
     Assert.assertEquals(1, dag.getSuccessfulVertices());
   }
 
+  @SuppressWarnings("unchecked")
   public void testKillStartedDAG() {
     initDAG(dag);
     startDAG(dag);
     dispatcher.await();
 
-    dag.handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
+    dispatcher.getEventHandler().handle(
+        new DAGEvent(dagId, DAGEventType.DAG_KILL));
     dispatcher.await();
 
     Assert.assertEquals(DAGState.KILLED, dag.getState());
@@ -479,7 +485,7 @@ public class TestDAGImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v0.getState());
     Assert.assertEquals(VertexState.RUNNING, v1.getState());
 
-    dag.handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
+    dispatcher.getEventHandler().handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
     dispatcher.await();
 
     Assert.assertEquals(DAGState.KILL_WAIT, dag.getState());
@@ -493,13 +499,16 @@ public class TestDAGImpl {
     Assert.assertEquals(1, dag.getSuccessfulVertices());
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void testInvalidEvent() {
-    dag.handle(new DAGEvent(dagId, DAGEventType.DAG_START));
+    dispatcher.getEventHandler().handle(
+        new DAGEvent(dagId, DAGEventType.DAG_START));
     dispatcher.await();
     Assert.assertEquals(DAGState.ERROR, dag.getState());
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   @Ignore
   public void testVertexSuccessfulCompletionUpdates() {
@@ -508,28 +517,29 @@ public class TestDAGImpl {
     dispatcher.await();
 
     for (int i = 0; i < 6; ++i) {
-      dag.handle(new DAGEventVertexCompleted(
+      dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
           new TezVertexID(dagId, 0), VertexState.SUCCEEDED));
     }
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dag.getState());
     Assert.assertEquals(1, dag.getSuccessfulVertices());
 
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 1), VertexState.SUCCEEDED));
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 2), VertexState.SUCCEEDED));
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 3), VertexState.SUCCEEDED));
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 4), VertexState.SUCCEEDED));
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 5), VertexState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(DAGState.SUCCEEDED, dag.getState());
     Assert.assertEquals(6, dag.getSuccessfulVertices());
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   @Ignore
   public void testVertexFailureHandling() {
@@ -537,14 +547,14 @@ public class TestDAGImpl {
     startDAG(dag);
     dispatcher.await();
 
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 0), VertexState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dag.getState());
 
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 1), VertexState.SUCCEEDED));
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 2), VertexState.FAILED));
     dispatcher.await();
     Assert.assertEquals(DAGState.FAILED, dag.getState());
@@ -558,6 +568,7 @@ public class TestDAGImpl {
     }
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   @Ignore
   public void testDAGKill() {
@@ -565,17 +576,18 @@ public class TestDAGImpl {
     startDAG(dag);
     dispatcher.await();
 
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 0), VertexState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dag.getState());
 
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 1), VertexState.SUCCEEDED));
-    dag.handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
+    dispatcher.getEventHandler().handle(
+        new DAGEvent(dagId, DAGEventType.DAG_KILL));
 
     for (int i = 2; i < 6; ++i) {
-      dag.handle(new DAGEventVertexCompleted(
+      dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
           new TezVertexID(dagId, i), VertexState.SUCCEEDED));
     }
     dispatcher.await();
@@ -584,29 +596,31 @@ public class TestDAGImpl {
     Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void testDAGKillPending() {
     initDAG(dag);
     startDAG(dag);
     dispatcher.await();
 
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 0), VertexState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dag.getState());
 
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 1), VertexState.SUCCEEDED));
-    dag.handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
+    dispatcher.getEventHandler().handle(
+        new DAGEvent(dagId, DAGEventType.DAG_KILL));
 
     for (int i = 2; i < 5; ++i) {
-      dag.handle(new DAGEventVertexCompleted(
+      dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
           new TezVertexID(dagId, i), VertexState.SUCCEEDED));
     }
     dispatcher.await();
     Assert.assertEquals(DAGState.KILL_WAIT, dag.getState());
 
-    dag.handle(new DAGEventVertexCompleted(
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         new TezVertexID(dagId, 5), VertexState.KILLED));
     dispatcher.await();
     Assert.assertEquals(DAGState.KILLED, dag.getState());
