@@ -24,8 +24,9 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 
 //TODO EVENTUALLY Once everything is on PB, get rid of this.
 //Alternately have the PB interfaces implement Writable.
@@ -58,8 +59,12 @@ public class TezContainerId implements Writable {
     int appId = in.readInt();
     int appAttemptId = in.readInt();
     int id = in.readInt();
-    this.containerId = BuilderUtils.newContainerId(appId, appAttemptId,
-        timestamp, id);
+
+    ApplicationId applicationId = ApplicationId.newInstance(timestamp, appId);
+    ApplicationAttemptId applicationAttemptId = ApplicationAttemptId
+        .newInstance(applicationId, appAttemptId);
+
+    this.containerId = ContainerId.newInstance(applicationAttemptId, id);
   }
 
   @Override

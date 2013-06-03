@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.text.NumberFormat;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 
 
 /**
@@ -71,7 +70,7 @@ public class TezDAGID extends TezID {
    * @param id the dag number
    */
   public TezDAGID(String yarnRMIdentifier, int appId, int id) {
-    this(BuilderUtils.newApplicationId(Long.valueOf(yarnRMIdentifier),
+    this(ApplicationId.newInstance(Long.valueOf(yarnRMIdentifier),
         appId), id);
   }
 
@@ -117,7 +116,7 @@ public class TezDAGID extends TezID {
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    applicationId = BuilderUtils.newApplicationId(in.readLong(), in.readInt());
+    applicationId = ApplicationId.newInstance(in.readLong(), in.readInt());
     super.readFields(in);
   }
 

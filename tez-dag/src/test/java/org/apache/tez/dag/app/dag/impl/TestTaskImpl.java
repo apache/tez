@@ -40,7 +40,6 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.event.InlineDispatcher;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -101,11 +100,11 @@ public class TestTaskImpl {
     clock = new SystemClock();
     locationHint = new TaskLocationHint(new String[1], new String[1]);
 
-    appId = BuilderUtils.newApplicationId(System.currentTimeMillis(), 1);
+    appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     dagId = new TezDAGID(appId, 1);
     vertexId = new TezVertexID(dagId, 1);
     appContext = mock(AppContext.class);
-    taskResource = BuilderUtils.newResource(1024, 1);
+    taskResource = Resource.newInstance(1024, 1);
     localResources = new HashMap<String, LocalResource>();
     environment = new HashMap<String, String>();
     javaOpts = "";

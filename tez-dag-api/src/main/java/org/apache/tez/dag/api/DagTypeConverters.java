@@ -29,7 +29,6 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeConnectionPattern;
@@ -207,7 +206,7 @@ public class DagTypeConverters {
 
   public static Resource CreateResourceRequestFromTaskConfig(
       PlanTaskConfiguration taskConfig) {
-    return BuilderUtils.newResource(taskConfig.getMemoryMb(), taskConfig.getVirtualCores());
+    return Resource.newInstance(taskConfig.getMemoryMb(), taskConfig.getVirtualCores());
   }
 
   public static Map<String, String> createSettingsMapFromDAGPlan(

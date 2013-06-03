@@ -34,9 +34,9 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.Clock;
 import org.apache.hadoop.yarn.SystemClock;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.event.DrainDispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
@@ -463,8 +463,8 @@ public class TestVertexImpl {
 
   @Before
   public void setup() {
-    appAttemptId = BuilderUtils.newApplicationAttemptId(
-        BuilderUtils.newApplicationId(100, 1), 1);
+    appAttemptId = ApplicationAttemptId.newInstance(
+        ApplicationId.newInstance(100, 1), 1);
     dagId = new TezDAGID(appAttemptId.getApplicationId(), 1);
     dagPlan = createTestDAGPlan();
     dispatcher = new DrainDispatcher();

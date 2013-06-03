@@ -23,7 +23,6 @@ import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -55,7 +54,7 @@ public class IDConverter {
   // FIXME hardcoded assumption that one app is one dag
   public static TezDAGID fromMRJobId(
       org.apache.hadoop.mapreduce.JobID jobId) {
-    return new TezDAGID(BuilderUtils.newApplicationId(
+    return new TezDAGID(ApplicationId.newInstance(
         Long.valueOf(jobId.getJtIdentifier()), jobId.getId()), 1);
   }
 

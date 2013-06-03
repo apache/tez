@@ -28,6 +28,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
@@ -40,7 +41,6 @@ import org.apache.hadoop.yarn.client.AMRMClientAsync;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.tez.dag.app.rm.TaskScheduler.CookieContainerRequest;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
@@ -68,8 +68,8 @@ public class TestTaskScheduler {
                                                   mock(AMRMClientAsync.class);
     
     ApplicationAttemptId attemptId = 
-        BuilderUtils.newApplicationAttemptId(
-                                  BuilderUtils.newApplicationId(1234, 0), 0);
+        ApplicationAttemptId.newInstance(
+                                  ApplicationId.newInstance(1234, 0), 0);
     String appHost = "host";
     int appPort = 0;
     String appUrl = "url";

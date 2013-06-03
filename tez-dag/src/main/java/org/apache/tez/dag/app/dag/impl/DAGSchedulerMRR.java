@@ -20,8 +20,8 @@ package org.apache.tez.dag.app.dag.impl;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGScheduler;
@@ -124,9 +124,9 @@ public class DAGSchedulerMRR implements DAGScheduler {
              " with depth " + vertexDistanceFromRoot + 
              " at priority " + priority);
 
-    TaskAttemptEventSchedule attemptEvent = 
-        new TaskAttemptEventSchedule(attempt.getID(), 
-                                      BuilderUtils.newPriority(priority));
+    TaskAttemptEventSchedule attemptEvent = new TaskAttemptEventSchedule(
+        attempt.getID(), Priority.newInstance(priority)); 
+                                      
     sendEvent(attemptEvent);
   }
   

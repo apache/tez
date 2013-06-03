@@ -49,10 +49,10 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -131,7 +131,7 @@ public class TestTaskAttempt {
         mock(TaskAttemptListener.class), 1, new TezConfiguration(),
         mock(Token.class), new Credentials(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
-        MAP_PROCESSOR_NAME, locationHint, BuilderUtils.newResource(1024, 1),
+        MAP_PROCESSOR_NAME, locationHint, Resource.newInstance(1024, 1),
         new HashMap<String, LocalResource>(), new HashMap<String, String>(),
         "", false);
 
@@ -175,7 +175,7 @@ public class TestTaskAttempt {
         mock(TaskAttemptListener.class), 1, new TezConfiguration(),
         mock(Token.class), new Credentials(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
-        MAP_PROCESSOR_NAME, locationHint, BuilderUtils.newResource(1024, 1),
+        MAP_PROCESSOR_NAME, locationHint, Resource.newInstance(1024, 1),
         new HashMap<String, LocalResource>(), new HashMap<String, String>(),
         "", false);
     TaskAttemptImpl spyTa = spy(taImpl);
@@ -222,8 +222,8 @@ public class TestTaskAttempt {
   // Configuration conf = new Configuration();
   // conf.setInt(MRJobConfig.MAP_MEMORY_MB, mapMemMb);
   // conf.setInt(MRJobConfig.REDUCE_MEMORY_MB, reduceMemMb);
-  // app.setClusterInfo(new ClusterInfo(BuilderUtils
-  // .newResource(minContainerSize, 1), BuilderUtils.newResource(10240,1)));
+  // app.setClusterInfo(new ClusterInfo(Resource.newInstance(minContainerSize, 1),
+  // Resource.newInstance(10240,1)));
   //
   // Job job = app.submit(conf);
   // app.waitForState(job, JobState.RUNNING);
@@ -294,8 +294,8 @@ public class TestTaskAttempt {
   // Ensure the dag does not go into an error state if a attempt kill is
   // received while STARTING
   public void testLaunchFailedWhileKilling() throws Exception {
-    ApplicationId appId = BuilderUtils.newApplicationId(1, 2);
-    ApplicationAttemptId appAttemptId = BuilderUtils.newApplicationAttemptId(
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
     TezDAGID dagID = new TezDAGID(appId, 1);
     TezVertexID vertexID = new TezVertexID(dagID, 1);
@@ -313,7 +313,7 @@ public class TestTaskAttempt {
 
     TaskLocationHint locationHint = new TaskLocationHint(
         new String[] { "127.0.0.1" }, null);
-    Resource resource = BuilderUtils.newResource(1024, 1);
+    Resource resource = Resource.newInstance(1024, 1);
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     Map<String, String> environment = new HashMap<String, String>();
     String javaOpts = "";
@@ -327,14 +327,14 @@ public class TestTaskAttempt {
         MAP_PROCESSOR_NAME, locationHint, resource, localResources,
         environment, javaOpts, false);
 
-    NodeId nid = BuilderUtils.newNodeId("127.0.0.1", 0);
-    ContainerId contId = BuilderUtils.newContainerId(appAttemptId, 3);
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
     Container container = mock(Container.class);
     when(container.getId()).thenReturn(contId);
     when(container.getNodeId()).thenReturn(nid);
 
-    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, BuilderUtils
-        .newPriority(3)));
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, Priority
+        .newInstance(3)));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventKillRequest(taskAttemptID, null));
     // At some KILLING state.
@@ -348,8 +348,8 @@ public class TestTaskAttempt {
   // Ensure ContainerTerminating and ContainerTerminated is handled correctly by
   // the TaskAttempt
   public void testContainerTerminationWhileRunning() throws Exception {
-    ApplicationId appId = BuilderUtils.newApplicationId(1, 2);
-    ApplicationAttemptId appAttemptId = BuilderUtils.newApplicationAttemptId(
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
     TezDAGID dagID = new TezDAGID(appId, 1);
     TezVertexID vertexID = new TezVertexID(dagID, 1);
@@ -367,13 +367,13 @@ public class TestTaskAttempt {
 
     TaskLocationHint locationHint = new TaskLocationHint(
         new String[] { "127.0.0.1" }, null);
-    Resource resource = BuilderUtils.newResource(1024, 1);
+    Resource resource = Resource.newInstance(1024, 1);
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     Map<String, String> environment = new HashMap<String, String>();
     String javaOpts = "";
 
-    NodeId nid = BuilderUtils.newNodeId("127.0.0.1", 0);
-    ContainerId contId = BuilderUtils.newContainerId(appAttemptId, 3);
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
     Container container = mock(Container.class);
     when(container.getId()).thenReturn(contId);
     when(container.getNodeId()).thenReturn(nid);
@@ -443,8 +443,8 @@ public class TestTaskAttempt {
   @Test
   // Ensure ContainerTerminated is handled correctly by the TaskAttempt
   public void testContainerTerminatedWhileRunning() throws Exception {
-    ApplicationId appId = BuilderUtils.newApplicationId(1, 2);
-    ApplicationAttemptId appAttemptId = BuilderUtils.newApplicationAttemptId(
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
     TezDAGID dagID = new TezDAGID(appId, 1);
     TezVertexID vertexID = new TezVertexID(dagID, 1);
@@ -462,13 +462,13 @@ public class TestTaskAttempt {
 
     TaskLocationHint locationHint = new TaskLocationHint(
         new String[] { "127.0.0.1" }, null);
-    Resource resource = BuilderUtils.newResource(1024, 1);
+    Resource resource = Resource.newInstance(1024, 1);
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     Map<String, String> environment = new HashMap<String, String>();
     String javaOpts = "";
 
-    NodeId nid = BuilderUtils.newNodeId("127.0.0.1", 0);
-    ContainerId contId = BuilderUtils.newContainerId(appAttemptId, 3);
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
     Container container = mock(Container.class);
     when(container.getId()).thenReturn(contId);
     when(container.getNodeId()).thenReturn(nid);
@@ -508,8 +508,8 @@ public class TestTaskAttempt {
   @Test
   // Ensure ContainerTerminated is handled correctly by the TaskAttempt
   public void testContainerTerminatedWhileCommitting() throws Exception {
-    ApplicationId appId = BuilderUtils.newApplicationId(1, 2);
-    ApplicationAttemptId appAttemptId = BuilderUtils.newApplicationAttemptId(
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
     TezDAGID dagID = new TezDAGID(appId, 1);
     TezVertexID vertexID = new TezVertexID(dagID, 1);
@@ -527,13 +527,13 @@ public class TestTaskAttempt {
 
     TaskLocationHint locationHint = new TaskLocationHint(
         new String[] { "127.0.0.1" }, null);
-    Resource resource = BuilderUtils.newResource(1024, 1);
+    Resource resource = Resource.newInstance(1024, 1);
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     Map<String, String> environment = new HashMap<String, String>();
     String javaOpts = "";
 
-    NodeId nid = BuilderUtils.newNodeId("127.0.0.1", 0);
-    ContainerId contId = BuilderUtils.newContainerId(appAttemptId, 3);
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
     Container container = mock(Container.class);
     when(container.getId()).thenReturn(contId);
     when(container.getNodeId()).thenReturn(nid);
@@ -575,8 +575,8 @@ public class TestTaskAttempt {
   // Ensure ContainerTerminating and ContainerTerminated is handled correctly by
   // the TaskAttempt
   public void testContainerTerminatedAfterSuccess() throws Exception {
-    ApplicationId appId = BuilderUtils.newApplicationId(1, 2);
-    ApplicationAttemptId appAttemptId = BuilderUtils.newApplicationAttemptId(
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
     TezDAGID dagID = new TezDAGID(appId, 1);
     TezVertexID vertexID = new TezVertexID(dagID, 1);
@@ -594,13 +594,13 @@ public class TestTaskAttempt {
 
     TaskLocationHint locationHint = new TaskLocationHint(
         new String[] { "127.0.0.1" }, null);
-    Resource resource = BuilderUtils.newResource(1024, 1);
+    Resource resource = Resource.newInstance(1024, 1);
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     Map<String, String> environment = new HashMap<String, String>();
     String javaOpts = "";
 
-    NodeId nid = BuilderUtils.newNodeId("127.0.0.1", 0);
-    ContainerId contId = BuilderUtils.newContainerId(appAttemptId, 3);
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
     Container container = mock(Container.class);
     when(container.getId()).thenReturn(contId);
     when(container.getNodeId()).thenReturn(nid);
@@ -667,8 +667,8 @@ public class TestTaskAttempt {
   // Verifies that multiple TooManyFetchFailures are handled correctly by the
   // TaskAttempt.
   public void testMultipleTooManyFetchFailures() throws Exception {
-    ApplicationId appId = BuilderUtils.newApplicationId(1, 2);
-    ApplicationAttemptId appAttemptId = BuilderUtils.newApplicationAttemptId(
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
     TezDAGID dagID = new TezDAGID(appId, 1);
     TezVertexID vertexID = new TezVertexID(dagID, 1);
@@ -687,13 +687,13 @@ public class TestTaskAttempt {
 
     TaskLocationHint locationHint = new TaskLocationHint(
         new String[] { "127.0.0.1" }, null);
-    Resource resource = BuilderUtils.newResource(1024, 1);
+    Resource resource = Resource.newInstance(1024, 1);
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     Map<String, String> environment = new HashMap<String, String>();
     String javaOpts = "";
 
-    NodeId nid = BuilderUtils.newNodeId("127.0.0.1", 0);
-    ContainerId contId = BuilderUtils.newContainerId(appAttemptId, 3);
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
     Container container = mock(Container.class);
     when(container.getId()).thenReturn(contId);
     when(container.getNodeId()).thenReturn(nid);

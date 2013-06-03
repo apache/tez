@@ -27,9 +27,9 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.Clock;
 import org.apache.hadoop.yarn.SystemClock;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.event.DrainDispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -343,8 +343,8 @@ public class TestDAGImpl {
   @Before
   public void setup() {
     conf = new TezConfiguration();
-    appAttemptId = BuilderUtils.newApplicationAttemptId(
-        BuilderUtils.newApplicationId(100, 1), 1);
+    appAttemptId = ApplicationAttemptId.newInstance(
+        ApplicationId.newInstance(100, 1), 1);
     dagId = new TezDAGID(appAttemptId.getApplicationId(), 1);
     Assert.assertNotNull(dagId);
     dagPlan = createTestDAGPlan();

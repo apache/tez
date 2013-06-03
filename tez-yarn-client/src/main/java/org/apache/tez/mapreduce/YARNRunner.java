@@ -89,7 +89,6 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.util.Apps;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.dag.api.DAG;
@@ -486,7 +485,7 @@ public class YARNRunner implements ClientProtocol {
     Map<String, String> reduceEnv = new HashMap<String, String>();
     setupMapReduceEnv(conf, reduceEnv, false);
 
-    Resource reduceResource = BuilderUtils.newResource(conf.getInt(
+    Resource reduceResource = Resource.newInstance(conf.getInt(
         MRJobConfig.REDUCE_MEMORY_MB, MRJobConfig.DEFAULT_REDUCE_MEMORY_MB),
         conf.getInt(MRJobConfig.REDUCE_CPU_VCORES,
             MRJobConfig.DEFAULT_REDUCE_CPU_VCORES));
@@ -559,7 +558,7 @@ public class YARNRunner implements ClientProtocol {
     TaskLocationHint[] inputSplitLocations =
         getMapLocationHintsFromInputSplits(jobId, fs, jobConf, jobSubmitDir);
 
-    Resource mapResource = BuilderUtils.newResource(
+    Resource mapResource = Resource.newInstance(
         jobConf.getInt(MRJobConfig.MAP_MEMORY_MB,
             MRJobConfig.DEFAULT_MAP_MEMORY_MB),
         jobConf.getInt(MRJobConfig.MAP_CPU_VCORES,
@@ -602,7 +601,7 @@ public class YARNRunner implements ClientProtocol {
       Map<String, String> reduceEnv = new HashMap<String, String>();
       setupMapReduceEnv(jobConf, reduceEnv, false);
 
-      Resource reduceResource = BuilderUtils.newResource(
+      Resource reduceResource = Resource.newInstance(
           jobConf.getInt(MRJobConfig.REDUCE_MEMORY_MB,
               MRJobConfig.DEFAULT_REDUCE_MEMORY_MB),
           jobConf.getInt(MRJobConfig.REDUCE_CPU_VCORES,

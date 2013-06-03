@@ -51,7 +51,6 @@ import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
@@ -831,14 +830,14 @@ public class TestAMContainer {
     
     @SuppressWarnings("unchecked")
     public WrappedContainer() {
-      applicationID = BuilderUtils.newApplicationId(rmIdentifier, 1);
-      appAttemptID = BuilderUtils.newApplicationAttemptId(applicationID, 1);
-      containerID = BuilderUtils.newContainerId(appAttemptID, 1);
-      nodeID = BuilderUtils.newNodeId("host", 12500);
+      applicationID = ApplicationId.newInstance(rmIdentifier, 1);
+      appAttemptID = ApplicationAttemptId.newInstance(applicationID, 1);
+      containerID = ContainerId.newInstance(appAttemptID, 1);
+      nodeID = NodeId.newInstance("host", 12500);
       nodeHttpAddress = "host:12501";
-      resource = BuilderUtils.newResource(1024, 1);
-      priority = BuilderUtils.newPriority(1);
-      container = BuilderUtils.newContainer(containerID, nodeID,
+      resource = Resource.newInstance(1024, 1);
+      priority = Priority.newInstance(1);
+      container = Container.newInstance(containerID, nodeID,
           nodeHttpAddress, resource, priority, null);
 
       chh = mock(ContainerHeartbeatHandler.class);

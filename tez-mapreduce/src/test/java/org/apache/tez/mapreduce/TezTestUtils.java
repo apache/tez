@@ -17,7 +17,7 @@
  */
 package org.apache.tez.mapreduce;
 
-import org.apache.hadoop.yarn.util.BuilderUtils;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -31,7 +31,7 @@ public class TezTestUtils {
         new TezTaskID(
             new TezVertexID(
                 new TezDAGID(
-                    BuilderUtils.newApplicationId(0, jobId), jobId),
+                    ApplicationId.newInstance(0, jobId), jobId),
                     vertexId),
                     taskId)
         , taskAttemptId);
@@ -41,20 +41,20 @@ public class TezTestUtils {
       int vertexId, int taskId) {
     return new TezTaskID(
         new TezVertexID(new TezDAGID(
-            BuilderUtils.newApplicationId(0, jobId),
+            ApplicationId.newInstance(0, jobId),
             jobId), vertexId),
             taskId);
   }
   
   public static TezDAGID getMockJobId(int jobId) {
     return new TezDAGID(
-        BuilderUtils.newApplicationId(0, jobId), jobId);
+        ApplicationId.newInstance(0, jobId), jobId);
   }
   
   public static TezVertexID getMockVertexId(int jobId, int vId) {
     return new TezVertexID(
         new TezDAGID(
-            BuilderUtils.newApplicationId(0, jobId), jobId),
+            ApplicationId.newInstance(0, jobId), jobId),
             vId);
   }
 }

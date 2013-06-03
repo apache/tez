@@ -16,7 +16,6 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -126,12 +125,13 @@ public class MRRExampleHelper {
    reduce2Rsrcs.put(MRJobConfig.JOB_CONF_FILE, jobRsrcs.get(MRJobConfig.JOB_CONF_FILE));
    reduce2Rsrcs.put(getConfFileName("reduce2"), jobRsrcs.get(getConfFileName("reduce2")));
 
-   Resource mapResource = BuilderUtils.newResource(
+    Resource mapResource = Resource.newInstance(
         MRJobConfig.DEFAULT_MAP_MEMORY_MB,
         MRJobConfig.DEFAULT_MAP_CPU_VCORES);
+   
    mapVertex.setTaskResource(mapResource);
    mapVertex.setTaskLocalResources(mapRsrcs);
-   Resource reduceResource = BuilderUtils.newResource(
+   Resource reduceResource = Resource.newInstance(
        MRJobConfig.DEFAULT_REDUCE_MEMORY_MB,
        MRJobConfig.DEFAULT_REDUCE_CPU_VCORES);
    reduce1Vertex.setTaskResource(reduceResource);
@@ -182,12 +182,12 @@ public class MRRExampleHelper {
    reduceRsrcs.put(MRJobConfig.JOB_CONF_FILE, jobRsrcs.get(MRJobConfig.JOB_CONF_FILE));
    reduceRsrcs.put(getConfFileName("reduce"), jobRsrcs.get(MRJobConfig.JOB_CONF_FILE));
 
-   Resource mapResource = BuilderUtils.newResource(
+   Resource mapResource = Resource.newInstance(
         MRJobConfig.DEFAULT_MAP_MEMORY_MB,
         MRJobConfig.DEFAULT_MAP_CPU_VCORES);
    mapVertex.setTaskResource(mapResource);
    mapVertex.setTaskLocalResources(mapRsrcs);
-   Resource reduceResource = BuilderUtils.newResource(
+   Resource reduceResource = Resource.newInstance(
        MRJobConfig.DEFAULT_REDUCE_MEMORY_MB,
        MRJobConfig.DEFAULT_REDUCE_CPU_VCORES);
    reduceVertex.setTaskResource(reduceResource);

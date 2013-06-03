@@ -19,7 +19,6 @@
 package org.apache.tez.common;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.util.BuilderUtils;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -41,7 +40,7 @@ public class IDUtils {
       String[] parts = str.split("_");
       if(parts.length == 6) {
         if(parts[0].equals(TezTaskID.TASK)) {
-          ApplicationId appId = BuilderUtils.newApplicationId(
+          ApplicationId appId = ApplicationId.newInstance(
               Long.valueOf(parts[1]), Integer.parseInt(parts[2]));
           TezDAGID dagId = new TezDAGID(appId, Integer.parseInt(parts[3]));
           TezVertexID vId = new TezVertexID(dagId, Integer.parseInt(parts[4]));
@@ -71,7 +70,7 @@ public class IDUtils {
       String[] parts = str.split(Character.toString(TezID.SEPARATOR));
       if(parts.length == 7) {
         if(parts[0].equals(TezTaskAttemptID.ATTEMPT)) {
-          ApplicationId appId = BuilderUtils.newApplicationId(
+          ApplicationId appId = ApplicationId.newInstance(
               Long.valueOf(parts[1]), Integer.parseInt(parts[2]));
           TezDAGID dagId = new TezDAGID(appId, Integer.parseInt(parts[3]));
           TezVertexID vId = new TezVertexID(dagId, Integer.parseInt(parts[4]));
