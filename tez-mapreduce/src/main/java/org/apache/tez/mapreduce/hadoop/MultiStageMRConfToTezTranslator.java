@@ -31,7 +31,7 @@ import org.apache.tez.mapreduce.hadoop.DeprecatedKeys.MultiStageKeys;
 public class MultiStageMRConfToTezTranslator {
 
   private static final Log LOG = LogFactory.getLog(MultiStageMRConfToTezTranslator.class);
-  
+
   private enum DeprecationReason {
     DEPRECATED_DIRECT_TRANSLATION, DEPRECATED_MULTI_STAGE
   }
@@ -55,14 +55,14 @@ public class MultiStageMRConfToTezTranslator {
     int numEdges = totalStages - 1;
 
     Configuration[] allConfs = extractStageConfs(newConf, numEdges);
-    
+
     for (int i = 0; i < allConfs.length; i++) {
       setStageKeysFromBaseConf(allConfs[i], srcConf, Integer.toString(i));
       processDirectConversion(allConfs[i]);
     }
     for (int i = 0; i < allConfs.length - 1; i++) {
       processMultiStageDepreaction(allConfs[i], allConfs[i + 1]);
-      
+
     }
     // Unset unnecessary keys in the last stage. Will end up being called for
     // single stage as well which should be harmless.
@@ -163,29 +163,35 @@ public class MultiStageMRConfToTezTranslator {
     JobConf jobConf = new JobConf(baseConf);
     // Don't clobber explicit tez config.
     if (conf.get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_INPUT_KEY_CLASS) == null
-        && conf.get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_KEY_CLASS) == null) {
+        && conf.get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_KEY_CLASS)
+        == null) {
       // If this is set, but the comparator is not set, and their types differ -
       // the job will break.
       if (conf.get(MRJobConfig.MAP_OUTPUT_KEY_CLASS) == null) {
         // Pull tis in from the baseConf
         conf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS, jobConf
             .getMapOutputKeyClass().getName());
-        LOG.info("XXX: Setting " + MRJobConfig.MAP_OUTPUT_KEY_CLASS
-            + " for stage: " + stage
-            + " based on job level configuration. Value: "
-            + conf.get(MRJobConfig.MAP_OUTPUT_KEY_CLASS));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Setting " + MRJobConfig.MAP_OUTPUT_KEY_CLASS
+              + " for stage: " + stage
+              + " based on job level configuration. Value: "
+              + conf.get(MRJobConfig.MAP_OUTPUT_KEY_CLASS));
+        }
       }
     }
-    
+
     if (conf.get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_INPUT_VALUE_CLASS) == null
-        && conf.get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_VALUE_CLASS) == null) {
+        && conf.get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_VALUE_CLASS)
+        == null) {
       if (conf.get(MRJobConfig.MAP_OUTPUT_VALUE_CLASS) == null) {
         conf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS, jobConf
             .getMapOutputValueClass().getName());
-        LOG.info("XXX: Setting " + MRJobConfig.MAP_OUTPUT_VALUE_CLASS
-            + " for stage: " + stage
-            + " based on job level configuration. Value: "
-            + conf.get(MRJobConfig.MAP_OUTPUT_VALUE_CLASS));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Setting " + MRJobConfig.MAP_OUTPUT_VALUE_CLASS
+              + " for stage: " + stage
+              + " based on job level configuration. Value: "
+              + conf.get(MRJobConfig.MAP_OUTPUT_VALUE_CLASS));
+        }
       }
     }
   }

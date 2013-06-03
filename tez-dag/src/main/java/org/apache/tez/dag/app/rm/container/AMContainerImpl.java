@@ -59,7 +59,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 public class AMContainerImpl implements AMContainer {
 
   private static final Log LOG = LogFactory.getLog(AMContainerImpl.class);
-  
+
   private final ReadLock readLock;
   private final WriteLock writeLock;
   private final ContainerId containerId;
@@ -75,10 +75,10 @@ public class AMContainerImpl implements AMContainer {
   // TODO Maybe this should be pulled from the TaskAttempt.s
   private final Map<TezTaskAttemptID, TezTaskContext> remoteTaskMap =
       new HashMap<TezTaskAttemptID, TezTaskContext>();
-  
+
   // TODO ?? Convert to list and hash.
-  
-  private int shufflePort; 
+
+  private int shufflePort;
   private long idleTimeBetweenTasks = 0;
   private long lastTaskFinishTime;
 
@@ -92,16 +92,16 @@ public class AMContainerImpl implements AMContainer {
   private TezTaskAttemptID runningAttempt;
   private List<TezTaskAttemptID> failedAssignments;
   private TezTaskAttemptID pullAttempt;
-  
+
   private AMContainerTask noAllocationContainerTask;
-  
+
   private static final AMContainerTask NO_MORE_TASKS = new AMContainerTask(
       true, null);
   private static final AMContainerTask WAIT_TASK = new AMContainerTask(false,
       null);
-  
+
   private boolean inError = false;
-  
+
   private ContainerLaunchContext clc;
 
   // TODO Consider registering with the TAL, instead of the TAL pulling.
@@ -115,8 +115,8 @@ public class AMContainerImpl implements AMContainer {
 
   private final StateMachine<AMContainerState, AMContainerEventType, AMContainerEvent> stateMachine;
   private static final StateMachineFactory
-      <AMContainerImpl, AMContainerState, AMContainerEventType, AMContainerEvent> 
-      stateMachineFactory = 
+      <AMContainerImpl, AMContainerState, AMContainerEventType, AMContainerEvent>
+      stateMachineFactory =
       new StateMachineFactory<AMContainerImpl, AMContainerState, AMContainerEventType, AMContainerEvent>(
       AMContainerState.ALLOCATED)
 
@@ -144,7 +144,7 @@ public class AMContainerImpl implements AMContainer {
         .addTransition(AMContainerState.IDLE, AMContainerState.STOP_REQUESTED, AMContainerEventType.C_TIMED_OUT, new TimedOutAtIdleTransition())
         .addTransition(AMContainerState.IDLE, AMContainerState.STOPPING, AMContainerEventType.C_NODE_FAILED, new NodeFailedAtIdleTransition())
         .addTransition(AMContainerState.IDLE, AMContainerState.STOP_REQUESTED, EnumSet.of(AMContainerEventType.C_LAUNCH_REQUEST, AMContainerEventType.C_LAUNCHED, AMContainerEventType.C_LAUNCH_FAILED, AMContainerEventType.C_TA_SUCCEEDED, AMContainerEventType.C_NM_STOP_SENT, AMContainerEventType.C_NM_STOP_FAILED), new ErrorAtIdleTransition())
-        
+
         .addTransition(AMContainerState.RUNNING, AMContainerState.STOP_REQUESTED, AMContainerEventType.C_ASSIGN_TA, new AssignTaskAttemptAtRunningTransition())
         .addTransition(AMContainerState.RUNNING, AMContainerState.RUNNING, AMContainerEventType.C_PULL_TA)
         .addTransition(AMContainerState.RUNNING, AMContainerState.IDLE, AMContainerEventType.C_TA_SUCCEEDED, new TASucceededAtRunningTransition())
@@ -162,7 +162,7 @@ public class AMContainerImpl implements AMContainer {
         .addTransition(AMContainerState.STOP_REQUESTED, AMContainerState.STOPPING, AMContainerEventType.C_NODE_FAILED, new NodeFailedAtNMStopRequestedTransition())
         .addTransition(AMContainerState.STOP_REQUESTED, AMContainerState.STOP_REQUESTED, EnumSet.of(AMContainerEventType.C_LAUNCHED, AMContainerEventType.C_LAUNCH_FAILED, AMContainerEventType.C_TA_SUCCEEDED, AMContainerEventType.C_STOP_REQUEST, AMContainerEventType.C_TIMED_OUT))
         .addTransition(AMContainerState.STOP_REQUESTED, AMContainerState.STOP_REQUESTED, AMContainerEventType.C_LAUNCH_REQUEST, new ErrorAtNMStopRequestedTransition())
-        
+
         .addTransition(AMContainerState.STOPPING, AMContainerState.STOPPING, AMContainerEventType.C_ASSIGN_TA, new AssignTAAtWindDownTransition())
         .addTransition(AMContainerState.STOPPING, AMContainerState.STOPPING, AMContainerEventType.C_PULL_TA, new PullTAAfterStopTransition())
         // TODO This transition is wrong. Should be a noop / error.
@@ -196,10 +196,10 @@ public class AMContainerImpl implements AMContainer {
     this.taskAttemptListener = tal;
     this.failedAssignments = new LinkedList<TezTaskAttemptID>();
 
-    this.noAllocationContainerTask = WAIT_TASK; 
+    this.noAllocationContainerTask = WAIT_TASK;
     this.stateMachine = stateMachineFactory.make(this);
   }
-  
+
   @Override
   public AMContainerState getState() {
     readLock.lock();
@@ -214,7 +214,7 @@ public class AMContainerImpl implements AMContainer {
   public ContainerId getContainerId() {
     return this.containerId;
   }
-  
+
   @Override
   public Container getContainer() {
     return this.container;
@@ -262,7 +262,7 @@ public class AMContainerImpl implements AMContainer {
       readLock.unlock();
     }
   }
-  
+
   @Override
   public int getShufflePort() {
     readLock.lock();
@@ -272,17 +272,19 @@ public class AMContainerImpl implements AMContainer {
       readLock.unlock();
     }
   }
-  
+
   public boolean isInErrorState() {
     return inError;
   }
 
   @Override
   public void handle(AMContainerEvent event) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Processing AMContainerEvent " + event.getContainerId()
+          + " of type " + event.getType() + " while in state: " + getState()
+          + ". Event: " + event);
+    }
     this.writeLock.lock();
-    LOG.info("DEBUG: Processing AMContainerEvent " + event.getContainerId()
-        + " of type " + event.getType() + " while in state: " + getState()
-        + ". Event: " + event);
     try {
       final AMContainerState oldState = getState();
       try {
@@ -302,7 +304,7 @@ public class AMContainerImpl implements AMContainer {
       writeLock.unlock();
     }
   }
-  
+
   @SuppressWarnings("unchecked")
   private void sendEvent(Event<?> event) {
     this.eventHandler.handle(event);
@@ -348,14 +350,14 @@ public class AMContainerImpl implements AMContainer {
           container.taskAttemptListener, event.getCredentials(),
           event.shouldProfile(), container.appContext);
 
-      // Registering now, so that in case of delayed NM response, the child 
+      // Registering now, so that in case of delayed NM response, the child
       // task is not told to die since the TAL does not know about the container.
       container.registerWithTAListener();
       container.sendStartRequestToNM();
       LOG.info("Sending Launch Request for Container with id: " +
           container.container.getId());
       // Forget about the clc to save resources. At some point, part of the clc
-      // info may need to be exposed to the scheduler to figure out whether a 
+      // info may need to be exposed to the scheduler to figure out whether a
       // container can be used for a specific TaskAttempt.
       container.clc = null;
     }
@@ -451,7 +453,9 @@ public class AMContainerImpl implements AMContainer {
         return AMContainerState.STOP_REQUESTED;
       }
       container.pendingAttempt = event.getTaskAttemptId();
-      LOG.info("DEBUG: AssignTA: attempt: " + event.getRemoteTaskContext());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("AssignTA: attempt: " + event.getRemoteTaskContext());
+      }
       container.remoteTaskMap
           .put(event.getTaskAttemptId(), event.getRemoteTaskContext());
       return container.getState();
@@ -580,7 +584,7 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
       if (container.pendingAttempt != null) {
-        container.sendTerminatingToTaskAttempt(container.pendingAttempt, 
+        container.sendTerminatingToTaskAttempt(container.pendingAttempt,
             "Container " + container.getContainerId() +
                 " hit an invalid transition - " + cEvent.getType() + " at " +
                 container.getState());
@@ -595,8 +599,10 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public AMContainerState transition(
         AMContainerImpl container, AMContainerEvent cEvent) {
-      LOG.info("DEBUG: AssignTAAtIdle: attempt: " +
-          ((AMContainerEventAssignTA) cEvent).getRemoteTaskContext());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("AssignTAAtIdle: attempt: " +
+            ((AMContainerEventAssignTA) cEvent).getRemoteTaskContext());
+      }
       return super.transition(container, cEvent);
     }
   }
@@ -617,12 +623,13 @@ public class AMContainerImpl implements AMContainer {
         if (container.lastTaskFinishTime != 0) {
           long idleTimeDiff =
               System.currentTimeMillis() - container.lastTaskFinishTime;
-          LOG.info("DEBUG: Computing idle time for container: " +
-              container.getContainerId() + ", lastFinishTime: " +
-              container.lastTaskFinishTime + ", Incremented by: " +
-              idleTimeDiff);
-          container.idleTimeBetweenTasks +=
-              System.currentTimeMillis() - container.lastTaskFinishTime;
+          container.idleTimeBetweenTasks += idleTimeDiff;
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Computing idle time for container: " +
+                container.getContainerId() + ", lastFinishTime: " +
+                container.lastTaskFinishTime + ", Incremented by: " +
+                idleTimeDiff);
+          }
         }
         LOG.info("Assigned taskAttempt + [" + container.runningAttempt +
             "] to container: [" + container.getContainerId() + "]");
@@ -656,7 +663,9 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
-      LOG.info("DEBUG: IdleTimeBetweenTasks: " + container.idleTimeBetweenTasks);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("IdleTimeBetweenTasks: " + container.idleTimeBetweenTasks);
+      }
       container.unregisterFromContainerListener();
     }
   }
@@ -785,7 +794,7 @@ public class AMContainerImpl implements AMContainer {
       container.registerFailedAttempt(event.getTaskAttemptId());
     }
   }
-  
+
   // Hack to some extent. This allocation should be done while entering one of
   // the post-running states, insetad of being a transition on the post stop
   // states.
@@ -907,11 +916,11 @@ public class AMContainerImpl implements AMContainer {
   protected void registerFailedAttempt(TezTaskAttemptID taId) {
     failedAssignments.add(taId);
   }
-  
+
   protected void deAllocate() {
     sendEvent(new AMSchedulerEventDeallocateContainer(containerId));
   }
-  
+
   protected void sendCompletedToScheduler() {
     sendEvent(new AMSchedulerEventContainerCompleted(containerId));
   }
@@ -944,7 +953,7 @@ public class AMContainerImpl implements AMContainer {
     sendEvent(new NMCommunicatorStopRequestEvent(containerId,
         container.getNodeId(), container.getContainerToken()));
   }
-  
+
   protected void unregisterAttemptFromListener(TezTaskAttemptID attemptId) {
     taskAttemptListener.unregisterTaskAttempt(attemptId);
   }
@@ -965,7 +974,7 @@ public class AMContainerImpl implements AMContainer {
   protected void unregisterFromContainerListener() {
     this.containerHeartbeatHandler.unregister(this.containerId);
   }
-  
 
-  
+
+
 }

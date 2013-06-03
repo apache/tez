@@ -83,8 +83,9 @@ public class MRCombiner implements Processor {
   @Override
   public void process(Input[] in, Output[] out) throws IOException,
       InterruptedException {
-    LOG.info("DEBUG: Running MRCombiner"
-        + ", usingNewAPI=" + useNewApi);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Running MRCombiner, usingNewAPI=" + useNewApi);
+    }
 
     CombineInput input = (CombineInput)in[0];
     CombineOutput output = (CombineOutput)out[0];
@@ -334,8 +335,6 @@ public class MRCombiner implements Processor {
           comparator,
           keyClass,
           valueClass);
-    LOG.info("DEBUG: Using combineKeyClass: "
-          + keyClass + ", combineValueClass: " + valueClass);
 
     org.apache.hadoop.mapreduce.Reducer<INKEY,INVALUE,OUTKEY,OUTVALUE>.Context
         reducerContext = new

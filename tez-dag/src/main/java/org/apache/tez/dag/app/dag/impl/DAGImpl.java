@@ -558,7 +558,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   protected void startRootVertices() {
     for (Vertex v : vertices.values()) {
       if (v.getInputVerticesCount() == 0) {
-        LOG.info("DEBUG: Starting root vertex " + v.getName());
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Starting root vertex " + v.getName());
+        }
         eventHandler.handle(new VertexEvent(v.getVertexId(),
             VertexEventType.V_START));
       }
@@ -577,12 +579,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
    * The only entry point to change the DAG.
    */
   public void handle(DAGEvent event) {
-    LOG.info("DEBUG: Processing DAGEvent " + event.getDAGId() + " of type "
-        + event.getType() + " while in state " + getInternalState()
-        + ". Event: " + event);
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing DAGEvent " + event.getDAGId() + " of type "
-          + event.getType() + " while in state " + getInternalState());
+          + event.getType() + " while in state " + getInternalState()
+          + ". Event: " + event);
     }
     try {
       writeLock.lock();
@@ -658,13 +658,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   static DAGState checkJobForCompletion(DAGImpl dag) {
-
-    LOG.info("ZZZZ: Checking dag completion"
-        + ", numCompletedVertices=" + dag.numCompletedVertices
-        + ", numSuccessfulVertices=" + dag.numSuccessfulVertices
-        + ", numFailedVertices=" + dag.numFailedVertices
-        + ", numKilledVertices=" + dag.numKilledVertices
-        + ", numVertices=" + dag.numVertices);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Checking dag completion"
+          + ", numCompletedVertices=" + dag.numCompletedVertices
+          + ", numSuccessfulVertices=" + dag.numSuccessfulVertices
+          + ", numFailedVertices=" + dag.numFailedVertices
+          + ", numKilledVertices=" + dag.numKilledVertices
+          + ", numVertices=" + dag.numVertices);
+    }
 
     if (dag.numFailedVertices > 0) {
       dag.setFinishTime();
@@ -870,7 +871,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         for (Vertex v : dag.vertices.values()) {
           parseVertexEdges(dag, edgePlans, v);
         }
-        
+
         assignDAGScheduler(dag);
 
         // TODO Metrics
@@ -887,7 +888,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         return dag.finished(DAGState.FAILED);
       }
     }
-    
+
     private void assignDAGScheduler(DAGImpl dag) {
       boolean isMRR = true;
       for(Vertex vertex : dag.vertices.values()) {
@@ -895,15 +896,15 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         if(outVertices == null || outVertices.isEmpty()) {
           continue;
         }
-        if(outVertices.size() > 1 || 
-           outVertices.values().iterator().next().getConnectionPattern() != 
+        if(outVertices.size() > 1 ||
+           outVertices.values().iterator().next().getConnectionPattern() !=
            EdgeProperty.ConnectionPattern.BIPARTITE) {
           // more than 1 output OR single output is not bipartite
           isMRR = false;
           break;
-        }          
+        }
       }
-      
+
       if(isMRR) {
         LOG.info("Using MRR dag scheduler");
         dag.dagScheduler = new DAGSchedulerMRR(dag, dag.eventHandler);
@@ -1110,10 +1111,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     public DAGState transition(DAGImpl job, DAGEvent event) {
 
       DAGEventVertexCompleted vertexEvent = (DAGEventVertexCompleted) event;
-      LOG.info("DEBUG: Received a vertex completion event"
-          + ", vertexId=" + vertexEvent.getVertexId()
-          + ", vertexState=" + vertexEvent.getVertexState());
-
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Received a vertex completion event"
+            + ", vertexId=" + vertexEvent.getVertexId()
+            + ", vertexState=" + vertexEvent.getVertexState());
+      }
       Vertex vertex = job.vertices.get(vertexEvent.getVertexId());
       job.numCompletedVertices++;
       if (vertexEvent.getVertexState() == VertexState.SUCCEEDED) {
@@ -1124,12 +1126,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         vertexKilled(job, vertex);
       }
 
-      LOG.info("ZZZZ: Vertex completed."
-          + ", numCompletedVertices=" + job.numCompletedVertices
-          + ", numSuccessfulVertices=" + job.numSuccessfulVertices
-          + ", numFailedVertices=" + job.numFailedVertices
-          + ", numKilledVertices=" + job.numKilledVertices
-          + ", numVertices=" + job.numVertices);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Vertex completed."
+            + ", numCompletedVertices=" + job.numCompletedVertices
+            + ", numSuccessfulVertices=" + job.numSuccessfulVertices
+            + ", numFailedVertices=" + job.numFailedVertices
+            + ", numKilledVertices=" + job.numKilledVertices
+            + ", numVertices=" + job.numVertices);
+      }
 
       job.dagScheduler.vertexCompleted(vertex);
 

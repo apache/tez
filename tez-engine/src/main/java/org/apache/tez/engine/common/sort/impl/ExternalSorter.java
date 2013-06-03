@@ -86,12 +86,12 @@ public abstract class ExternalSorter {
   protected SerializationFactory serializationFactory;
   protected Serializer keySerializer;
   protected Serializer valSerializer;
-  
+
   protected IndexedSorter sorter;
 
   // Compression for map-outputs
   protected CompressionCodec codec;
-  
+
   // Counters
   protected TezCounter mapOutputByteCounter;
   protected TezCounter mapOutputRecordCounter;
@@ -101,41 +101,41 @@ public abstract class ExternalSorter {
 
   public void initialize(Configuration conf, Master master)
       throws IOException, InterruptedException {
-    
+
     this.job = conf;
-    LOG.info("TEZ_ENGINE_TASK_ATTEMPT_ID: " + 
+    LOG.info("TEZ_ENGINE_TASK_ATTEMPT_ID: " +
         job.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
 
     partitions = task.getOutputSpecList().get(0).getNumOutputs();
-//    partitions = 
+//    partitions =
 //        job.getInt(
-//            TezJobConfig.TEZ_ENGINE_TASK_OUTDEGREE, 
+//            TezJobConfig.TEZ_ENGINE_TASK_OUTDEGREE,
 //            TezJobConfig.DEFAULT_TEZ_ENGINE_TASK_OUTDEGREE);
     rfs = ((LocalFileSystem)FileSystem.getLocal(job)).getRaw();
-    
+
     // sorter
     sorter = ReflectionUtils.newInstance(job.getClass(
         TezJobConfig.TEZ_ENGINE_INTERNAL_SORTER_CLASS, QuickSort.class,
         IndexedSorter.class), job);
-    
+
     comparator = ConfigUtils.getIntermediateOutputKeyComparator(job);
-    
+
     // k/v serialization
     keyClass = ConfigUtils.getIntermediateOutputKeyClass(job);
     valClass = ConfigUtils.getIntermediateOutputValueClass(job);
     serializationFactory = new SerializationFactory(job);
     keySerializer = serializationFactory.getSerializer(keyClass);
     valSerializer = serializationFactory.getSerializer(valClass);
-    
+
     //    counters
-    mapOutputByteCounter = 
+    mapOutputByteCounter =
         runningTaskContext.getTaskReporter().getCounter(TaskCounter.MAP_OUTPUT_BYTES);
     mapOutputRecordCounter =
       runningTaskContext.getTaskReporter().getCounter(TaskCounter.MAP_OUTPUT_RECORDS);
-    fileOutputByteCounter = 
+    fileOutputByteCounter =
         runningTaskContext.getTaskReporter().
             getCounter(TaskCounter.MAP_OUTPUT_MATERIALIZED_BYTES);
-    spilledRecordsCounter = 
+    spilledRecordsCounter =
         runningTaskContext.getTaskReporter().getCounter(TaskCounter.SPILLED_RECORDS);
     // compression
     if (ConfigUtils.shouldCompressIntermediateOutput(job)) {
@@ -146,14 +146,13 @@ public abstract class ExternalSorter {
       codec = null;
     }
 
-    // Task outputs 
+    // Task outputs
     mapOutputFile =
         (TezTaskOutput) ReflectionUtils.newInstance(
             conf.getClass(
-                Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER, 
+                Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER,
                 TezTaskOutputFiles.class), conf);
-//    LOG.info("XXX mapOutputFile: " + mapOutputFile.getClass());
-    
+
     // sortPhase
     sortPhase  = runningTaskContext.getProgress().addPhase("sort", 0.333f);
   }
@@ -227,13 +226,8 @@ public abstract class ExternalSorter {
     if (!src.renameTo(dst)) {
       throw new IOException("Unable to rename " + src + " to " + dst);
     }
-//    LOG.info("XXX sameVolRename src=" + src + ", dst=" + dst);
   }
 
-//  public ExternalSorter() {
-//    super();
-//  }
-  
   public ExternalSorter(TezEngineTaskContext tezEngineTask) {
     this.task = tezEngineTask;
   }

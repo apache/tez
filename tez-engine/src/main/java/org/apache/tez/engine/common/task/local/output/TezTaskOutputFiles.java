@@ -55,20 +55,22 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   // assume configured to $localdir/usercache/$user/appcache/$appId
-  private LocalDirAllocator lDirAlloc = 
+  private LocalDirAllocator lDirAlloc =
     new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
 
   private Path getAttemptOutputDir() {
-    LOG.info("DEBUG: getAttemptOutputDir: "
-        + Constants.TASK_OUTPUT_DIR + "/"
-        + conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("getAttemptOutputDir: "
+          + Constants.TASK_OUTPUT_DIR + "/"
+          + conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
+    }
     return new Path(Constants.TASK_OUTPUT_DIR,
         conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
   }
-  
+
   /**
    * Return the path to local map output file created earlier
-   * 
+   *
    * @return path
    * @throws IOException
    */
@@ -80,13 +82,13 @@ public class TezTaskOutputFiles extends TezTaskOutput {
 
   /**
    * Create a local map output file name.
-   * 
+   *
    * @param size the size of the file
    * @return path
    * @throws IOException
    */
   public Path getOutputFileForWrite(long size) throws IOException {
-    Path attemptOutput = 
+    Path attemptOutput =
       new Path(getAttemptOutputDir(), Constants.TEZ_ENGINE_TASK_OUTPUT_FILENAME_STRING);
     return lDirAlloc.getLocalPathForWrite(attemptOutput.toString(), size, conf);
   }
@@ -103,7 +105,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
 
   /**
    * Return the path to a local map output index file created earlier
-   * 
+   *
    * @return path
    * @throws IOException
    */
@@ -116,7 +118,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
 
   /**
    * Create a local map output index file name.
-   * 
+   *
    * @param size the size of the file
    * @return path
    * @throws IOException
@@ -142,7 +144,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
 
   /**
    * Return a local map spill file created earlier.
-   * 
+   *
    * @param spillNumber the number
    * @return path
    * @throws IOException
@@ -155,7 +157,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
 
   /**
    * Create a local map spill file name.
-   * 
+   *
    * @param spillNumber the number
    * @param size the size of the file
    * @return path
@@ -170,7 +172,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
 
   /**
    * Return a local map spill index file created earlier
-   * 
+   *
    * @param spillNumber the number
    * @return path
    * @throws IOException
@@ -183,7 +185,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
 
   /**
    * Create a local map spill index file name.
-   * 
+   *
    * @param spillNumber the number
    * @param size the size of the file
    * @return path
@@ -198,10 +200,10 @@ public class TezTaskOutputFiles extends TezTaskOutput {
 
   /**
    * Return a local reduce input file created earlier
-   * 
+   *
    * @param mapId a map task id
    * @return path
-   * @throws IOException 
+   * @throws IOException
    */
   public Path getInputFile(int mapId) throws IOException {
     throw new UnsupportedOperationException("Incompatible with LocalRunner");
@@ -209,7 +211,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
 
   /**
    * Create a local reduce input file name.
-   * 
+   *
    * @param mapId a map task id
    * @param size the size of the file
    * @return path
@@ -235,5 +237,5 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   public Configuration getConf() {
     return conf;
   }
-  
+
 }

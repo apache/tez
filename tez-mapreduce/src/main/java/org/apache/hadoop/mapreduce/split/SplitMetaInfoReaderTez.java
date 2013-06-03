@@ -61,12 +61,14 @@ public class SplitMetaInfoReaderTez {
         conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR),
         MRJobConfig.JOB_SPLIT_METAINFO);
     String jobSplitFile = MRJobConfig.JOB_SPLIT;
-    
+
     File file = new File(metaSplitFile.toUri().getPath()).getAbsoluteFile();
-    LOG.info("DEBUG: Setting up JobSplitIndex with JobSplitFile at: "
-        + file.getAbsolutePath() + ", defaultFS from conf: "
-        + FileSystem.getDefaultUri(conf));
-    
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Setting up JobSplitIndex with JobSplitFile at: "
+          + file.getAbsolutePath() + ", defaultFS from conf: "
+          + FileSystem.getDefaultUri(conf));
+    }
+
     FileStatus fStatus = fs.getFileStatus(metaSplitFile);
     if (maxMetaInfoSize > 0 && fStatus.getLen() > maxMetaInfoSize) {
       throw new IOException("Split metadata size exceeded " + maxMetaInfoSize

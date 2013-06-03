@@ -35,62 +35,64 @@ import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 @InterfaceStability.Unstable
 public class InMemoryWriter extends Writer {
   private static final Log LOG = LogFactory.getLog(InMemoryWriter.class);
-  
+
   private DataOutputStream out;
-  
+
   public InMemoryWriter(BoundedByteArrayOutputStream arrayStream) {
     super(null);
-    this.out = 
+    this.out =
       new DataOutputStream(new IFileOutputStream(arrayStream));
   }
-  
+
   public void append(Object key, Object value) throws IOException {
     throw new UnsupportedOperationException
     ("InMemoryWriter.append(K key, V value");
   }
-  
+
   public void append(DataInputBuffer key, DataInputBuffer value)
   throws IOException {
     int keyLength = key.getLength() - key.getPosition();
     if (keyLength < 0) {
-      throw new IOException("Negative key-length not allowed: " + keyLength + 
+      throw new IOException("Negative key-length not allowed: " + keyLength +
                             " for " + key);
     }
-    
+
     boolean sameKey = (key == IFile.REPEAT_KEY);
-    
+
     int valueLength = value.getLength() - value.getPosition();
     if (valueLength < 0) {
-      throw new IOException("Negative value-length not allowed: " + 
+      throw new IOException("Negative value-length not allowed: " +
                             valueLength + " for " + value);
     }
-    
+
     if(sameKey) {
       WritableUtils.writeVInt(out, IFile.RLE_MARKER);
       WritableUtils.writeVInt(out, valueLength);
       out.write(value.getData(), value.getPosition(), valueLength);
     } else {
-      LOG.info("XXX InMemWriter.append" + 
-          " key.data=" + key.getData() + 
-          " key.pos=" + key.getPosition() + 
-          " key.len=" +key.getLength() + 
-          " val.data=" + value.getData() + 
-          " val.pos=" + value.getPosition() + 
-          " val.len=" + value.getLength());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("InMemWriter.append" +
+            " key.data=" + key.getData() +
+            " key.pos=" + key.getPosition() +
+            " key.len=" +key.getLength() +
+            " val.data=" + value.getData() +
+            " val.pos=" + value.getPosition() +
+            " val.len=" + value.getLength());
+      }
       WritableUtils.writeVInt(out, keyLength);
       WritableUtils.writeVInt(out, valueLength);
-      out.write(key.getData(), key.getPosition(), keyLength); 
-      out.write(value.getData(), value.getPosition(), valueLength);      
+      out.write(key.getData(), key.getPosition(), keyLength);
+      out.write(value.getData(), value.getPosition(), valueLength);
     }
-     
+
   }
 
   public void close() throws IOException {
     // Write EOF_MARKER for key/value length
     WritableUtils.writeVInt(out, IFile.EOF_MARKER);
     WritableUtils.writeVInt(out, IFile.EOF_MARKER);
-    
-    // Close the stream 
+
+    // Close the stream
     out.close();
     out = null;
   }

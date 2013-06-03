@@ -322,12 +322,10 @@ public class YARNRunner implements ClientProtocol {
   private TaskLocationHint[] getMapLocationHintsFromInputSplits(JobID jobId,
       FileSystem fs, Configuration conf,
       String jobSubmitDir) throws IOException {
-    LOG.info("XXXX Reading splits information");
     TaskSplitMetaInfo[] splitsInfo =
         SplitMetaInfoReader.readSplitMetaInfo(jobId, fs, conf,
             new Path(jobSubmitDir));
     int splitsCount = splitsInfo.length;
-    LOG.info("XXXX Found splits information, splitCount=" + splitsCount);
     TaskLocationHint[] locationHints =
         new TaskLocationHint[splitsCount];
     for (int i = 0; i < splitsCount; ++i) {
@@ -462,11 +460,13 @@ public class YARNRunner implements ClientProtocol {
     Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
         getInitialClasspath(conf));
 
-    LOG.info("XXXX Dumping out env for child, isMap=" + isMap);
-    for (Map.Entry<String, String> entry : environment.entrySet()) {
-      LOG.info("XXXX env entry: "
-          + entry.getKey()
-          + "=" + entry.getValue());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Dumping out env for child, isMap=" + isMap);
+      for (Map.Entry<String, String> entry : environment.entrySet()) {
+        LOG.debug("Child env entry: "
+            + entry.getKey()
+            + "=" + entry.getValue());
+      }
     }
   }
 
@@ -518,11 +518,13 @@ public class YARNRunner implements ClientProtocol {
           jobLocalResources, i);
       dag.addVertex(vertices[i]);
 
-      LOG.info("XXXX Adding intermediate vertex to DAG"
-          + ", vertexName=" + vertices[i].getVertexName()
-          + ", processor=" + vertices[i].getProcessorName()
-          + ", parrellism=" + vertices[i].getParallelism()
-          + ", javaOpts=" + vertices[i].getJavaOpts());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Adding intermediate vertex to DAG"
+            + ", vertexName=" + vertices[i].getVertexName()
+            + ", processor=" + vertices[i].getProcessorName()
+            + ", parrellism=" + vertices[i].getParallelism()
+            + ", javaOpts=" + vertices[i].getJavaOpts());
+      }
     }
     return vertices;
   }
@@ -540,10 +542,12 @@ public class YARNRunner implements ClientProtocol {
 
     boolean isMRR = (intermediateReduces > 0);
 
-    LOG.info("XXXX Parsing job config"
-        + ", numMaps=" + numMaps
-        + ", numReduces=" + numReduces
-        + ", intermediateReduceStages=" + intermediateReduces);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Parsing job config"
+          + ", numMaps=" + numMaps
+          + ", numReduces=" + numReduces
+          + ", intermediateReduceStages=" + intermediateReduces);
+    }
 
     // configure map vertex
     String mapProcessor = "org.apache.tez.mapreduce.processor.map.MapProcessor";
@@ -575,11 +579,13 @@ public class YARNRunner implements ClientProtocol {
 
     mapVertex.setJavaOpts(getMapJavaOpts(jobConf));
 
-    LOG.info("XXXX Adding map vertex to DAG"
-        + ", vertexName=" + mapVertex.getVertexName()
-        + ", processor=" + mapVertex.getProcessorName()
-        + ", parrellism=" + mapVertex.getParallelism()
-        + ", javaOpts=" + mapVertex.getJavaOpts());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Adding map vertex to DAG"
+          + ", vertexName=" + mapVertex.getVertexName()
+          + ", processor=" + mapVertex.getProcessorName()
+          + ", parrellism=" + mapVertex.getParallelism()
+          + ", javaOpts=" + mapVertex.getJavaOpts());
+    }
     dag.addVertex(mapVertex);
 
     Vertex[] intermediateVertices = null;
@@ -618,11 +624,13 @@ public class YARNRunner implements ClientProtocol {
 
       reduceVertex.setJavaOpts(getReduceJavaOpts(jobConf));
 
-      LOG.info("XXXX Adding reduce vertex to DAG"
-          + ", vertexName=" + reduceVertex.getVertexName()
-          + ", processor=" + reduceVertex.getProcessorName()
-          + ", parrellism=" + reduceVertex.getParallelism()
-          + ", javaOpts=" + reduceVertex.getJavaOpts());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Adding reduce vertex to DAG"
+            + ", vertexName=" + reduceVertex.getVertexName()
+            + ", processor=" + reduceVertex.getProcessorName()
+            + ", parrellism=" + reduceVertex.getParallelism()
+            + ", javaOpts=" + reduceVertex.getJavaOpts());
+      }
       dag.addVertex(reduceVertex);
 
       EdgeProperty edgeProperty =
@@ -672,7 +680,9 @@ public class YARNRunner implements ClientProtocol {
     Map<String, String> mrParamToDAGParamMap = DeprecatedKeys.getMRToDAGParamMap();
     for (Entry<String, String> entry : mrParamToDAGParamMap.entrySet()) {
       if (mrConf.get(entry.getKey()) != null) {
-        LOG.info("DEBUG: MR->DAG Setting new key: " + entry.getValue());
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("MR->DAG Setting new key: " + entry.getValue());
+        }
         dag.addConfiguration(entry.getValue(), mrConf.get(entry.getKey()));
       }
     }

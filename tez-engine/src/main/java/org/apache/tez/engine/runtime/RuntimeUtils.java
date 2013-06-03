@@ -62,7 +62,7 @@ public class RuntimeUtils {
 
   public static RuntimeTask createRuntimeTask(
       TezEngineTaskContext taskContext) {
-    LOG.info("TaskContext"
+    LOG.info("Creating a runtime task from TaskContext"
         + ", Processor: " + taskContext.getProcessorName()
         + ", InputCount=" + taskContext.getInputSpecList().size()
         + ", OutputCount=" + taskContext.getOutputSpecList().size());
@@ -78,38 +78,45 @@ public class RuntimeUtils {
       Input[] inputs;
       Output[] outputs;
       if (taskContext.getInputSpecList().isEmpty()) {
-        LOG.info("Initializing task with 0 inputs");
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Initializing task with 0 inputs");
+        }
         inputs = new Input[0];
       } else {
         int iSpecCount = taskContext.getInputSpecList().size();
         inputs = new Input[iSpecCount];
         for (int i = 0; i < iSpecCount; ++i) {
           InputSpec inSpec = taskContext.getInputSpecList().get(i);
-          LOG.info("XXXX Using Input"
-              + ", index=" + i
-              + ", inputClass=" + inSpec.getInputClassName());
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Using Input"
+                + ", index=" + i
+                + ", inputClass=" + inSpec.getInputClassName());
+          }
           Class<?> inputClazz = Class.forName(inSpec.getInputClassName());
           Input input = (Input) getNewInstance(inputClazz, taskContext);
           inputs[i] = input;
         }
       }
       if (taskContext.getOutputSpecList().isEmpty()) {
-        LOG.info("Initializing task with 0 outputs");
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Initializing task with 0 outputs");
+        }
         outputs = new Output[0];
       } else {
         int oSpecCount = taskContext.getOutputSpecList().size();
         outputs = new Output[oSpecCount];
         for (int i = 0; i < oSpecCount; ++i) {
           OutputSpec outSpec = taskContext.getOutputSpecList().get(i);
-          LOG.info("XXXX Using Output"
-              + ", index=" + i
-              + ", output=" + outSpec.getOutputClassName());
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Using Output"
+                + ", index=" + i
+                + ", output=" + outSpec.getOutputClassName());
+          }
           Class<?> outputClazz = Class.forName(outSpec.getOutputClassName());
           Output output = (Output) getNewInstance(outputClazz, taskContext);
           outputs[i] = output;
         }
       }
-      // t = new RuntimeTask(taskContext, processor, inputs, outputs);
       t = createRuntime(taskContext, processor, inputs, outputs);
     } catch (ClassNotFoundException e) {
       throw new YarnException("Unable to initialize RuntimeTask, context="
@@ -117,7 +124,7 @@ public class RuntimeUtils {
     }
     return t;
   }
-  
+
   private static RuntimeTask createRuntime(TezEngineTaskContext taskContext,
       Processor processor, Input[] inputs, Output[] outputs) {
     try {

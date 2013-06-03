@@ -36,11 +36,9 @@ import org.apache.hadoop.util.DataChecksum;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class IFileOutputStream extends FilterOutputStream {
-  
-  private static final Log LOG = LogFactory.getLog(IFileOutputStream.class);
-  
+
   /**
-   * The output stream to be checksummed. 
+   * The output stream to be checksummed.
    */
   private final DataChecksum sum;
   private byte[] barray;
@@ -62,7 +60,7 @@ public class IFileOutputStream extends FilterOutputStream {
     buffer = new byte[4096];
     offset = 0;
   }
-  
+
   @Override
   public void close() throws IOException {
     if (closed) {
@@ -105,8 +103,8 @@ public class IFileOutputStream extends FilterOutputStream {
     // FIXME if needed re-enable this in debug mode
     if (LOG.isDebugEnabled()) {
       LOG.debug("XXX checksum" +
-          " b=" + b + " off=" + off + 
-          " buffer=" + " offset=" + offset + 
+          " b=" + b + " off=" + off +
+          " buffer=" + " offset=" + offset +
           " len=" + len);
     }
     */
@@ -123,7 +121,7 @@ public class IFileOutputStream extends FilterOutputStream {
     checksum(b, off, len);
     out.write(b,off,len);
   }
- 
+
   @Override
   public void write(int b) throws IOException {
     barray[0] = (byte) (b & 0xFF);

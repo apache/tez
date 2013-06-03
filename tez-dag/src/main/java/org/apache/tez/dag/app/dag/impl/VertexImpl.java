@@ -599,12 +599,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
    * The only entry point to change the Vertex.
    */
   public void handle(VertexEvent event) {
-    LOG.info("DEBUG: Processing VertexEvent " + event.getVertexId()
-        + " of type " + event.getType() + " while in state "
-        + getInternalState() + ". Event: " + event);
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing VertexEvent " + event.getVertexId() + " of type "
-          + event.getType() + " while in state " + getInternalState());
+      LOG.debug("Processing VertexEvent " + event.getVertexId()
+          + " of type " + event.getType() + " while in state "
+          + getInternalState() + ". Event: " + event);
     }
     try {
       writeLock.lock();
@@ -631,9 +629,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     finally {
       writeLock.unlock();
     }
-    LOG.info("DEBUG: Finished processing VertexEvent " + event.getVertexId()
-        + " of type " + event.getType() + " while in state "
-        + getInternalState() + ". Event: " + event);
   }
 
   private VertexState getInternalState() {
@@ -699,12 +694,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   static VertexState checkVertexForCompletion(VertexImpl vertex) {
     //check for vertex failure first
-
-    LOG.info("ZZZZ: checking for vertex completion"
-        + ", failedTaskCount=" + vertex.failedTaskCount
-        + ", killedTaskCount=" + vertex.killedTaskCount
-        + ", successfulTaskCount=" + vertex.succeededTaskCount
-        + ", completedTaskCount=" + vertex.completedTaskCount);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Checking for vertex completion"
+          + ", failedTaskCount=" + vertex.failedTaskCount
+          + ", killedTaskCount=" + vertex.killedTaskCount
+          + ", successfulTaskCount=" + vertex.succeededTaskCount
+          + ", completedTaskCount=" + vertex.completedTaskCount);
+    }
 
     if (vertex.failedTaskCount > 0) {
       vertex.setFinishTime();
@@ -1287,8 +1283,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       InputSpec inputSpec = new InputSpec(entry.getKey().getName(),
           entry.getKey().getTotalTasks(),
           entry.getValue().getInputClass());
-      LOG.info("DEBUG: For vertex : " + this.getName()
-          + ", Using InputSpec : " + inputSpec);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("For vertex : " + this.getName()
+            + ", Using InputSpec : " + inputSpec);
+      }
       // TODO DAGAM This should be based on the edge type.
       inputSpecList.add(inputSpec);
     }
@@ -1304,8 +1302,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         OutputSpec outputSpec = new OutputSpec(entry.getKey().getName(),
             entry.getKey().getTotalTasks(),
             entry.getValue().getOutputClass());
-        LOG.info("DEBUG: For vertex : " + this.getName()
-            + ", Using OutputSpec : " + outputSpec);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("For vertex : " + this.getName()
+              + ", Using OutputSpec : " + outputSpec);
+        }
         // TODO DAGAM This should be based on the edge type.
         outputSpecList.add(outputSpec);
       }

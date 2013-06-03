@@ -146,9 +146,10 @@ public class YarnTezDagChild {
         }
         taskContext = (TezEngineTaskContext) containerTask
             .getTezEngineTaskContext();
-        LOG.info("DEBUG: New container task context:"
-                + taskContext.toString());
-
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("New container task context:"
+              + taskContext.toString());
+        }
         taskAttemptId = taskContext.getTaskAttemptId();
 
         final Task t = createAndConfigureTezTask(taskContext, umbilical,
@@ -200,25 +201,25 @@ public class YarnTezDagChild {
   /**
    * Configure mapred-local dirs. This config is used by the task for finding
    * out an output directory.
-   * @throws IOException 
+   * @throws IOException
    */
   /**
    * Configure tez-local-dirs, tez-localized-file-dir, etc. Also create these
    * dirs.
    */
-  
+
   private static void configureLocalDirs(Configuration conf) throws IOException {
     String[] localSysDirs = StringUtils.getTrimmedStrings(
         System.getenv(Environment.LOCAL_DIRS.name()));
     conf.setStrings(TezJobConfig.LOCAL_DIRS, localSysDirs);
     conf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR,
         System.getenv(Environment.PWD.name()));
-    
+
     LOG.info(TezJobConfig.LOCAL_DIRS + " for child: " +
         conf.get(TezJobConfig.LOCAL_DIRS));
     LOG.info(TezJobConfig.TASK_LOCAL_RESOURCE_DIR + " for child: "
         + conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR));
-    
+
     LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
     Path workDir = null;
     // First, try to find the JOB_LOCAL_DIR on this host.
@@ -250,7 +251,7 @@ public class YarnTezDagChild {
     }
     conf.set(TezJobConfig.JOB_LOCAL_DIR, workDir.toString());
   }
-  
+
   private static Task createAndConfigureTezTask(
       TezEngineTaskContext taskContext, TezTaskUmbilicalProtocol master,
       Credentials cxredentials, Token<JobTokenIdentifier> jobToken,
@@ -260,10 +261,10 @@ public class YarnTezDagChild {
     // set tcp nodelay
     conf.setBoolean("ipc.client.tcpnodelay", true);
     conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, appAttemptId);
-    
+
     configureLocalDirs(conf);
-    
-    
+
+
     // FIXME need Input/Output vertices else we have this hack
     if (taskContext.getInputSpecList().isEmpty()) {
       taskContext.getInputSpecList().add(
@@ -281,18 +282,18 @@ public class YarnTezDagChild {
     // and processor then inits inputs and outputs
     return t;
   }
-  
+
   private static void runTezTask(
-      Task t, TezTaskUmbilicalProtocol master, Configuration conf) 
+      Task t, TezTaskUmbilicalProtocol master, Configuration conf)
   throws IOException, InterruptedException {
     // use job-specified working directory
     FileSystem.get(conf).setWorkingDirectory(getWorkingDirectory(conf));
-    
+
     // Run!
     t.run();
     t.close();
   }
-  
+
   private static Path getWorkingDirectory(Configuration conf) {
     String name = conf.get(JobContext.WORKING_DIR);
     if (name != null) {

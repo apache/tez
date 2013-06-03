@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -67,7 +67,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
   private static final ContainerTask TASK_FOR_INVALID_JVM = new ContainerTask(
       null, true);
-  
+
   private static ProceedToCompletionResponse COMPLETION_RESPONSE_NO_WAIT =
       new ProceedToCompletionResponse(true, true);
 
@@ -86,10 +86,10 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   // TODO Use this to figure out whether an incoming ping is valid.
   private ConcurrentMap<TezTaskAttemptID, ContainerId> attemptToContainerIdMap =
       new ConcurrentHashMap<TezTaskAttemptID, ContainerId>();
-  
+
   private Set<ContainerId> registeredContainers = Collections
       .newSetFromMap(new ConcurrentHashMap<ContainerId, Boolean>());
-  
+
   public TaskAttemptListenerImpTezDag(AppContext context,
       TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh,
       JobTokenSecretManager jobTokenSecretManager) {
@@ -118,10 +118,10 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
               conf.getInt(TezConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT,
                   TezConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT))
           .setSecretManager(jobTokenSecretManager).build();
-      
+
       // Enable service authorization?
       if (conf.getBoolean(
-          CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION, 
+          CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION,
           false)) {
         refreshServiceAcls(conf, new MRAMPolicyProvider());
       }
@@ -133,7 +133,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     }
   }
 
-  void refreshServiceAcls(Configuration configuration, 
+  void refreshServiceAcls(Configuration configuration,
       PolicyProvider policyProvider) {
     this.server.refreshServiceAcl(configuration, policyProvider);
   }
@@ -153,7 +153,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   public InetSocketAddress getAddress() {
     return address;
   }
-  
+
   @Override
   public long getProtocolVersion(String protocol, long clientVersion)
       throws IOException {
@@ -171,13 +171,13 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   public TezTaskDependencyCompletionEventsUpdate getDependentTasksCompletionEvents(
       int fromEventIdx, int maxEvents,
       TezTaskAttemptID taskAttemptID) {
-    
+
     LOG.info("Dependency Completion Events request from " + taskAttemptID
         + ". fromEventID " + fromEventIdx + " maxEvents " + maxEvents);
 
     // TODO: shouldReset is never used. See TT. Ask for Removal.
     boolean shouldReset = false;
-    TezDependentTaskCompletionEvent[] events = 
+    TezDependentTaskCompletionEvent[] events =
         context.getDAG().
             getVertex(taskAttemptID.getTaskID().getVertexID()).
                 getTaskAttemptCompletionEvents(fromEventIdx, maxEvents);
@@ -234,22 +234,28 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
         }
       }
     }
-    LOG.info("DEBUG: getTask returning task: " + task);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("getTask returning task: " + task);
+    }
     return task;
   }
 
   @Override
   public boolean statusUpdate(TezTaskAttemptID taskAttemptId,
       TezTaskStatus taskStatus) throws IOException, InterruptedException {
-    LOG.info("DEBUG: " + "Status update from: " + taskAttemptId);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Status update from: " + taskAttemptId);
+    }
     taskHeartbeatHandler.progressing(taskAttemptId);
     pingContainerHeartbeatHandler(taskAttemptId);
     TaskAttemptStatus taskAttemptStatus = new TaskAttemptStatus();
     taskAttemptStatus.id = taskAttemptId;
     // Task sends the updated progress to the TT.
     taskAttemptStatus.progress = taskStatus.getProgress();
-    LOG.info("DEBUG: " + "Progress of TaskAttempt " + taskAttemptId + " is : "
-        + taskStatus.getProgress());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Progress of TaskAttempt " + taskAttemptId + " is : "
+          + taskStatus.getProgress());
+    }
 
     // Task sends the updated state-string to the TT.
     taskAttemptStatus.stateString = taskStatus.getStateString();
@@ -267,7 +273,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     // that is the primary storage format inside the AM to avoid multiple
     // conversions and unnecessary heap usage.
     taskAttemptStatus.counters = taskStatus.getCounters();
-    
+
 
     // Map Finish time set by the task (map only)
     // TODO CLEANMRXAM - maybe differentiate between map / reduce / types
@@ -366,7 +372,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   /**
    * TaskAttempt is reporting that it is in commit_pending and it is waiting for
    * the commit Response
-   * 
+   *
    * <br/>
    * Commit it a two-phased protocol. First the attempt informs the
    * ApplicationMaster that it is
@@ -386,14 +392,14 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     //Ignorable TaskStatus? - since a task will send a LastStatusUpdate
     context.getEventHandler().handle(
         new TaskAttemptEvent(
-            taskAttemptId, 
+            taskAttemptId,
             TaskAttemptEventType.TA_COMMIT_PENDING)
         );
   }
 
   /**
    * Child checking whether it can commit.
-   * 
+   *
    * <br/>
    * Commit is a two-phased protocol. First the attempt informs the
    * ApplicationMaster that it is
@@ -411,7 +417,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     pingContainerHeartbeatHandler(taskAttemptId);
 
     DAG job = context.getDAG();
-    Task task = 
+    Task task =
         job.getVertex(taskAttemptId.getTaskID().getVertexID()).
             getTask(taskAttemptId.getTaskID());
     return task.canCommit(taskAttemptId);
@@ -459,16 +465,16 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   @Override
   public ProceedToCompletionResponse
       proceedToCompletion(TezTaskAttemptID taskAttemptId) throws IOException {
-    
+
     // The async nature of the processing combined with the 1 second interval
     // between polls (MRTask) implies tasks end up wasting upto 1 second doing
     // nothing. Similarly for CA_COMMIT.
-    
+
     DAG job = context.getDAG();
-    Task task = 
+    Task task =
         job.getVertex(taskAttemptId.getTaskID().getVertexID()).
             getTask(taskAttemptId.getTaskID());
-    
+
     // TODO In-Memory Shuffle
     /*
     if (task.needsWaitAfterOutputConsumable()) {
@@ -503,7 +509,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     */
     return COMPLETION_RESPONSE_NO_WAIT;
   }
-  
+
 
   @Override
   public void unregisterTaskAttempt(TezTaskAttemptID attemptId) {
@@ -539,11 +545,11 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     }
     registeredContainers.remove(containerId);
   }
-  
+
   private void pingContainerHeartbeatHandler(ContainerId containerId) {
     containerHeartbeatHandler.pinged(containerId);
   }
-  
+
   private void pingContainerHeartbeatHandler(TezTaskAttemptID taskAttemptId) {
     ContainerId containerId = attemptToContainerIdMap.get(taskAttemptId);
     if (containerId != null) {

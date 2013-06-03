@@ -55,12 +55,12 @@ public class AMNodeImpl implements AMNode {
   private int numSuccessfulTAs = 0;
   private boolean blacklistingEnabled;
   private boolean ignoreBlacklisting = false;
-  
+
   @SuppressWarnings("rawtypes")
   protected EventHandler eventHandler;
 
   private final List<ContainerId> containers = new LinkedList<ContainerId>();
-  
+
   //Book-keeping only. In case of Health status change.
   private final List<ContainerId> pastContainers = new LinkedList<ContainerId>();
 
@@ -69,8 +69,8 @@ public class AMNodeImpl implements AMNode {
   private final StateMachine<AMNodeState, AMNodeEventType, AMNodeEvent> stateMachine;
 
   private static StateMachineFactory
-  <AMNodeImpl, AMNodeState, AMNodeEventType, AMNodeEvent> 
-  stateMachineFactory = 
+  <AMNodeImpl, AMNodeState, AMNodeEventType, AMNodeEvent>
+  stateMachineFactory =
   new StateMachineFactory<AMNodeImpl, AMNodeState, AMNodeEventType, AMNodeEvent>(
   AMNodeState.ACTIVE)
         // Transitions from ACTIVE state.
@@ -97,7 +97,7 @@ public class AMNodeImpl implements AMNode {
     .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.UNHEALTHY, AMNodeEventType.N_TURNED_UNHEALTHY, new NodeTurnedUnhealthyTransition())
     .addTransition(AMNodeState.FORCED_ACTIVE, EnumSet.of(AMNodeState.BLACKLISTED, AMNodeState.ACTIVE), AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED, new IgnoreBlacklistingDisabledTransition())
     .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.FORCED_ACTIVE, EnumSet.of(AMNodeEventType.N_TURNED_HEALTHY, AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED), new GenericErrorTransition())
-            
+
         // Transitions from UNHEALTHY state.
     .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY, AMNodeEventType.N_CONTAINER_ALLOCATED, new ContainerAllocatedWhileUnhealthyTransition())
     .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY, EnumSet.of(AMNodeEventType.N_TA_SUCCEEDED, AMNodeEventType.N_TA_ENDED))
@@ -107,7 +107,7 @@ public class AMNodeImpl implements AMNode {
     .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY, AMNodeEventType.N_TURNED_UNHEALTHY, new GenericErrorTransition())
 
         .installTopology();
-  
+
 
   @SuppressWarnings("rawtypes")
   public AMNodeImpl(NodeId nodeId, int maxTaskFailuresPerNode,
@@ -153,10 +153,12 @@ public class AMNodeImpl implements AMNode {
 
   @Override
   public void handle(AMNodeEvent event) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Processing AMNodeEvent " + event.getNodeId()
+          + " of type " + event.getType() + " while in state: " + getState()
+          + ". Event: " + event);
+    }
     this.writeLock.lock();
-    LOG.info("DEBUG: Processing AMNodeEvent " + event.getNodeId()
-        + " of type " + event.getType() + " while in state: " + getState()
-        + ". Event: " + event);
     try {
       final AMNodeState oldState = getState();
       try {
@@ -174,7 +176,7 @@ public class AMNodeImpl implements AMNode {
       writeLock.unlock();
     }
   }
-  
+
   protected boolean shouldBlacklistNode() {
     return blacklistingEnabled && (numFailedTAs >= maxTaskFailuresPerNode);
   }
@@ -193,7 +195,7 @@ public class AMNodeImpl implements AMNode {
   //////////////////////////////////////////////////////////////////////////////
   //                   Start of Transition Classes                            //
   //////////////////////////////////////////////////////////////////////////////
-  
+
   protected static class ContainerAllocatedTransition implements
       SingleArcTransition<AMNodeImpl, AMNodeEvent> {
     @Override

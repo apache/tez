@@ -76,16 +76,16 @@ import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.hadoop.mapreduce.JobContextImpl;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 
-public abstract class MRTask 
+public abstract class MRTask
 extends RunningTaskContext {
 
   static final Log LOG = LogFactory.getLog(MRTask.class);
-  
+
   protected JobConf jobConf;
   protected JobContext jobContext;
   protected TaskAttemptContext taskAttemptContext;
   protected OutputCommitter committer;
-  
+
   // Current counters
   transient TezCounters counters = new TezCounters();
   protected GcTimeUpdater gcUpdater;
@@ -93,10 +93,10 @@ extends RunningTaskContext {
   private long initCpuCumulativeTime = 0;
   protected TezEngineTaskContext tezEngineTaskContext;
   protected TezTaskAttemptID taskAttemptId;
-  
+
   /* flag to track whether task is done */
   AtomicBoolean taskDone = new AtomicBoolean(false);
-  
+
   /** Construct output file names so that, when an output directory listing is
    * sorted lexicographically, positions correspond to output partitions.*/
   private static final NumberFormat NUMBER_FORMAT = NumberFormat.getInstance();
@@ -104,16 +104,16 @@ extends RunningTaskContext {
     NUMBER_FORMAT.setMinimumIntegerDigits(5);
     NUMBER_FORMAT.setGroupingUsed(false);
   }
-                          
+
   private final static int MAX_RETRIES = 10;
 
   /** The number of milliseconds between progress reports. */
   public static final int PROGRESS_INTERVAL = 3000;
 
   private MRTaskReporter mrReporter;
-  
+
   protected TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
-  
+
   /**
    * A Map where Key-> URIScheme and value->FileSystemStatisticUpdater
    */
@@ -129,7 +129,7 @@ extends RunningTaskContext {
         new MRTaskStatus(
             taskAttemptId,
             counters,
-            (taskAttemptId.getTaskID().getVertexID().getId() == 0 ? 
+            (taskAttemptId.getTaskID().getVertexID().getId() == 0 ?
                 Phase.MAP : Phase.SHUFFLE)
         );
     gcUpdater = new GcTimeUpdater(counters);
@@ -143,15 +143,15 @@ extends RunningTaskContext {
     } else {
       this.jobConf = new JobConf(conf);
     }
-    reporter = 
+    reporter =
         new TezTaskReporterImpl(this, (TezTaskUmbilicalProtocol)master);
     ((TezTaskReporterImpl)reporter).startCommunicationThread();
-    
-    jobConf.set(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID, 
+
+    jobConf.set(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID,
         taskAttemptId.toString());
 
     initResourceCalculatorPlugin();
-    
+
     LOG.info("MRTask.inited: taskAttemptId = " + taskAttemptId.toString());
   }
 
@@ -171,7 +171,7 @@ extends RunningTaskContext {
   public TezTaskUmbilicalProtocol getUmbilical() {
     return ((TezTaskReporterImpl)reporter).getUmbilical();
   }
-  
+
   public void initTask(JobConf job, TezDAGID dagId,
       MRTaskReporter mrReporter,
       boolean useNewApi) throws IOException,
@@ -203,18 +203,18 @@ extends RunningTaskContext {
     } else {
       setCommitter(job.getOutputCommitter());
     }
-    
+
     Path outputPath = FileOutputFormat.getOutputPath(job);
     if (outputPath != null) {
       if ((getCommitter() instanceof FileOutputCommitter)) {
-        FileOutputFormat.setWorkOutputPath(job, 
+        FileOutputFormat.setWorkOutputPath(job,
             ((FileOutputCommitter)getCommitter()).getTaskAttemptPath(taskAttemptContext));
       } else {
         FileOutputFormat.setWorkOutputPath(job, outputPath);
       }
     }
     getCommitter().setupTask(taskAttemptContext);
-    
+
     partitioner = new MRPartitioner(this);
     ((MRPartitioner)partitioner).initialize(job, getTaskReporter());
 
@@ -244,7 +244,7 @@ extends RunningTaskContext {
 
   public void setState(State state) {
     // TODO Auto-generated method stub
-    
+
   }
 
   public State getState() {
@@ -261,22 +261,22 @@ extends RunningTaskContext {
   }
 
   public TezCounters getCounters() { return counters; }
-  
+
   /**
-   * Return current phase of the task. 
+   * Return current phase of the task.
    * needs to be synchronized as communication thread sends the phase every second
    * @return the curent phase of the task
    */
   public synchronized TezTaskStatus.Phase getPhase(){
-    return status.getPhase(); 
+    return status.getPhase();
   }
-  
+
   /**
-   * Set current phase of the task. 
-   * @param phase task phase 
+   * Set current phase of the task.
+   * @param phase task phase
    */
   protected synchronized void setPhase(TezTaskStatus.Phase phase){
-    status.setPhase(phase); 
+    status.setPhase(phase);
   }
 
   public void setConf(JobConf jobConf) {
@@ -290,9 +290,9 @@ extends RunningTaskContext {
   /**
    * Gets a handle to the Statistics instance based on the scheme associated
    * with path.
-   * 
+   *
    * @param path the path.
-   * @param conf the configuration to extract the scheme from if not part of 
+   * @param conf the configuration to extract the scheme from if not part of
    *   the path.
    * @return a Statistics instance, or null if none is found for the scheme.
    */
@@ -313,7 +313,7 @@ extends RunningTaskContext {
   public synchronized String getOutputName() {
     return "part-" + NUMBER_FORMAT.format(taskAttemptId.getTaskID().getId());
   }
- 
+
   public void waitBeforeCompletion(MRTaskReporter reporter) throws IOException,
       InterruptedException {
     TezTaskUmbilicalProtocol umbilical = getUmbilical();
@@ -400,7 +400,7 @@ extends RunningTaskContext {
         } catch (InterruptedException ie) {
           // ignore
         } catch (IOException ie) {
-          LOG.warn("Failure sending commit pending: " + 
+          LOG.warn("Failure sending commit pending: " +
               StringUtils.stringifyException(ie));
           if (--retries == 0) {
             System.exit(67);
@@ -421,7 +421,7 @@ extends RunningTaskContext {
     sendDone(umbilical);
   }
 
-  
+
   private boolean isCommitRequired() throws IOException {
     return committer.needsTaskCommit(taskAttemptContext);
   }
@@ -444,7 +444,7 @@ extends RunningTaskContext {
       } catch (InterruptedException ie) {
         Thread.currentThread().interrupt(); // interrupt ourself
       } catch (IOException ie) {
-        LOG.warn("Failure sending status update: " + 
+        LOG.warn("Failure sending status update: " +
             StringUtils.stringifyException(ie));
         if (--retries == 0) {
           throw ie;
@@ -454,9 +454,9 @@ extends RunningTaskContext {
   }
 
   /**
-   * Sends last status update before sending umbilical.done(); 
+   * Sends last status update before sending umbilical.done();
    */
-  private void sendLastUpdate() 
+  private void sendLastUpdate()
       throws IOException, InterruptedException {
     status.setOutputSize(-1l);
     // send a final status report
@@ -485,7 +485,7 @@ extends RunningTaskContext {
         }
         break;
       } catch (IOException ie) {
-        LOG.warn("Failure asking whether task can commit: " + 
+        LOG.warn("Failure asking whether task can commit: " +
             StringUtils.stringifyException(ie));
         if (--retries == 0) {
           //if it couldn't query successfully then delete the output
@@ -495,13 +495,13 @@ extends RunningTaskContext {
       }
     }
 
-    // task can Commit now  
+    // task can Commit now
     try {
       LOG.info("Task " + taskAttemptId + " is allowed to commit now");
       committer.commitTask(taskAttemptContext);
       return;
     } catch (IOException iee) {
-      LOG.warn("Failure committing: " + 
+      LOG.warn("Failure committing: " +
           StringUtils.stringifyException(iee));
       //if it couldn't commit a successfully then delete the output
       discardOutput(taskAttemptContext);
@@ -509,12 +509,12 @@ extends RunningTaskContext {
     }
   }
 
-  private 
+  private
   void discardOutput(TaskAttemptContext taskContext) {
     try {
       committer.abortTask(taskContext);
     } catch (IOException ioe)  {
-      LOG.warn("Failure cleaning up: " + 
+      LOG.warn("Failure cleaning up: " +
                StringUtils.stringifyException(ioe));
     }
   }
@@ -528,7 +528,7 @@ extends RunningTaskContext {
         LOG.info("Task '" + taskAttemptId + "' done.");
         return;
       } catch (IOException ie) {
-        LOG.warn("Failure signalling completion: " + 
+        LOG.warn("Failure signalling completion: " +
                  StringUtils.stringifyException(ie));
         if (--retries == 0) {
           throw ie;
@@ -540,7 +540,7 @@ extends RunningTaskContext {
   public void updateCounters() {
     // TODO Auto-generated method stub
     // TODO TEZAM Implement.
-    Map<String, List<FileSystem.Statistics>> map = new 
+    Map<String, List<FileSystem.Statistics>> map = new
         HashMap<String, List<FileSystem.Statistics>>();
     for(Statistics stat: FileSystem.getAllStatistics()) {
       String uriScheme = stat.getScheme();
@@ -563,7 +563,7 @@ extends RunningTaskContext {
       }
       updater.updateCounters();
     }
-    
+
     gcUpdater.incrementGcCounter();
     updateResourceCounters();
   }
@@ -599,7 +599,7 @@ extends RunningTaskContext {
     counters.findCounter(TaskCounter.PHYSICAL_MEMORY_BYTES).setValue(pMem);
     counters.findCounter(TaskCounter.VIRTUAL_MEMORY_BYTES).setValue(vMem);
   }
-  
+
 
   public static String normalizeStatus(String status, Configuration conf) {
     // Check to see if the status string is too long
@@ -614,75 +614,78 @@ extends RunningTaskContext {
     }
     return status;
   }
-  
-  protected static <INKEY,INVALUE,OUTKEY,OUTVALUE> 
+
+  protected static <INKEY,INVALUE,OUTKEY,OUTVALUE>
   org.apache.hadoop.mapreduce.Reducer<INKEY,INVALUE,OUTKEY,OUTVALUE>.Context
   createReduceContext(org.apache.hadoop.mapreduce.Reducer
                         <INKEY,INVALUE,OUTKEY,OUTVALUE> reducer,
                       Configuration job,
-                      TezTaskAttemptID taskId, 
+                      TezTaskAttemptID taskId,
                       final TezRawKeyValueIterator rIter,
                       org.apache.hadoop.mapreduce.Counter inputKeyCounter,
                       org.apache.hadoop.mapreduce.Counter inputValueCounter,
-                      org.apache.hadoop.mapreduce.RecordWriter<OUTKEY,OUTVALUE> output, 
+                      org.apache.hadoop.mapreduce.RecordWriter<OUTKEY,OUTVALUE> output,
                       org.apache.hadoop.mapreduce.OutputCommitter committer,
                       org.apache.hadoop.mapreduce.StatusReporter reporter,
                       RawComparator<INKEY> comparator,
                       Class<INKEY> keyClass, Class<INVALUE> valueClass
   ) throws IOException, InterruptedException {
-    RawKeyValueIterator r = 
+    RawKeyValueIterator r =
         new RawKeyValueIterator() {
-          
+
           @Override
           public boolean next() throws IOException {
             return rIter.next();
           }
-          
+
           @Override
           public DataInputBuffer getValue() throws IOException {
             return rIter.getValue();
           }
-          
+
           @Override
           public Progress getProgress() {
             return rIter.getProgress();
           }
-          
+
           @Override
           public DataInputBuffer getKey() throws IOException {
             return rIter.getKey();
           }
-          
+
           @Override
           public void close() throws IOException {
             rIter.close();
           }
         };
-    org.apache.hadoop.mapreduce.ReduceContext<INKEY, INVALUE, OUTKEY, OUTVALUE> 
-    reduceContext = 
+    org.apache.hadoop.mapreduce.ReduceContext<INKEY, INVALUE, OUTKEY, OUTVALUE>
+    reduceContext =
       new ReduceContextImpl<INKEY, INVALUE, OUTKEY, OUTVALUE>(
-          job, 
-          IDConverter.toMRTaskAttemptId(taskId), 
-          r, 
-          inputKeyCounter, 
-          inputValueCounter, 
-          output, 
-          committer, 
-          reporter, 
-          comparator, 
-          keyClass, 
+          job,
+          IDConverter.toMRTaskAttemptId(taskId),
+          r,
+          inputKeyCounter,
+          inputValueCounter,
+          output,
+          committer,
+          reporter,
+          comparator,
+          keyClass,
           valueClass);
-    LOG.info("DEBUG: Using key class: " + keyClass + ", valueClass: " + valueClass);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Using key class: " + keyClass
+          + ", valueClass: " + valueClass);
+    }
 
-    org.apache.hadoop.mapreduce.Reducer<INKEY,INVALUE,OUTKEY,OUTVALUE>.Context 
-        reducerContext = 
+    org.apache.hadoop.mapreduce.Reducer<INKEY,INVALUE,OUTKEY,OUTVALUE>.Context
+        reducerContext =
           new WrappedReducer<INKEY, INVALUE, OUTKEY, OUTVALUE>().getReducerContext(
               reduceContext);
 
     return reducerContext;
   }
 
-  public void taskCleanup(TezTaskUmbilicalProtocol umbilical) 
+  public void taskCleanup(TezTaskUmbilicalProtocol umbilical)
       throws IOException, InterruptedException {
     // set phase for this task
     setPhase(TezTaskStatus.Phase.CLEANUP);
@@ -693,13 +696,13 @@ extends RunningTaskContext {
     committer.abortTask(taskAttemptContext);
   }
 
-  public void localizeConfiguration(JobConf jobConf) 
+  public void localizeConfiguration(JobConf jobConf)
       throws IOException, InterruptedException {
     jobConf.set(JobContext.TASK_ID, IDConverter
         .toMRTaskAttemptId(taskAttemptId).toString());
     jobConf.set(JobContext.TASK_ATTEMPT_ID,
         IDConverter.toMRTaskAttemptId(taskAttemptId).toString());
-    jobConf.setInt(JobContext.TASK_PARTITION, 
+    jobConf.setInt(JobContext.TASK_PARTITION,
         taskAttemptId.getTaskID().getId());
     jobConf.set(JobContext.ID, taskAttemptId.getTaskID().getVertexID().getDAGId().toString());
   }
@@ -727,11 +730,11 @@ extends RunningTaskContext {
   public JobContext getJobContext() {
     return jobContext;
   }
-  
+
   public TezTaskAttemptID getTaskAttemptId() {
     return taskAttemptId;
   }
-  
+
   public TezEngineTaskContext getTezEngineTaskContext() {
     return tezEngineTaskContext;
   }

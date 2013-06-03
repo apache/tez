@@ -30,28 +30,28 @@ import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 public class LocalOnFileSorterOutput extends OnFileSortedOutput {
 
   private static final Log LOG = LogFactory.getLog(LocalOnFileSorterOutput.class);
-  
+
   public LocalOnFileSorterOutput(TezEngineTaskContext task) throws IOException {
     super(task);
   }
 
   @Override
   public void close() throws IOException, InterruptedException {
-    LOG.info("XXX close");
-
+    LOG.debug("Closing LocalOnFileSorterOutput");
     super.close();
-
 
     TezTaskOutput mapOutputFile = sorter.getMapOutput();
     FileSystem localFs = FileSystem.getLocal(mapOutputFile.getConf());
 
     Path src = mapOutputFile.getOutputFile();
-    Path dst = 
+    Path dst =
         mapOutputFile.getInputFileForWrite(
             sorter.getTaskAttemptId().getTaskID(),
             localFs.getFileStatus(src).getLen());
 
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Renaming src = " + src + ", dst = " + dst);
+    }
     localFs.rename(src, dst);
-    LOG.info("XXX renaming src = " + src + ", dst = " + dst);
   }
 }
