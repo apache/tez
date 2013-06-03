@@ -19,18 +19,18 @@
 package org.apache.tez.dag.app.rm;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.ContainerToken;
 import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.hadoop.yarn.api.records.Token;
 import org.apache.hadoop.yarn.event.AbstractEvent;
 
 public class NMCommunicatorEvent extends AbstractEvent<NMCommunicatorEventType> {
 
   private final ContainerId containerId;
   private final NodeId nodeId;
-  private final ContainerToken containerToken;
+  private final Token containerToken;
 
   public NMCommunicatorEvent(ContainerId containerId, NodeId nodeId,
-      ContainerToken containerToken, NMCommunicatorEventType type) {
+      Token containerToken, NMCommunicatorEventType type) {
     super(type);
     this.containerId = containerId;
     this.nodeId = nodeId;
@@ -45,7 +45,7 @@ public class NMCommunicatorEvent extends AbstractEvent<NMCommunicatorEventType> 
     return this.nodeId;
   }
 
-  public ContainerToken getContainerToken() {
+  public Token getContainerToken() {
     return this.containerToken;
   }
   

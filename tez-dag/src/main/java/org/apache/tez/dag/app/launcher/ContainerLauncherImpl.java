@@ -36,7 +36,6 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.mapred.ShuffleHandler;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.Clock;
 import org.apache.hadoop.yarn.YarnException;
@@ -46,7 +45,7 @@ import org.apache.hadoop.yarn.api.protocolrecords.StartContainerResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.StopContainerRequest;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
-import org.apache.hadoop.yarn.api.records.ContainerToken;
+import org.apache.hadoop.yarn.api.records.Token;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.security.ContainerTokenIdentifier;
 import org.apache.hadoop.yarn.service.AbstractService;
@@ -123,10 +122,10 @@ public class ContainerLauncherImpl extends AbstractService implements
     // store enough information to be able to cleanup the container
     private ContainerId containerID;
     final private String containerMgrAddress;
-    private ContainerToken containerToken;
+    private Token containerToken;
     
     public Container(ContainerId containerID,
-        String containerMgrAddress, ContainerToken containerToken) {
+        String containerMgrAddress, Token containerToken) {
       this.state = ContainerState.PREP;
       this.containerMgrAddress = containerMgrAddress;
       this.containerID = containerID;
@@ -355,7 +354,7 @@ public class ContainerLauncherImpl extends AbstractService implements
   }
 
   protected ContainerManager getCMProxy(ContainerId containerID,
-      final String containerManagerBindAddr, ContainerToken containerToken)
+      final String containerManagerBindAddr, Token containerToken)
       throws IOException {
 
     final InetSocketAddress cmAddr =
@@ -364,8 +363,8 @@ public class ContainerLauncherImpl extends AbstractService implements
     // the user in createRemoteUser in this context has to be ContainerID
     UserGroupInformation user = UserGroupInformation
         .createRemoteUser(containerID.toString());
-    Token<ContainerTokenIdentifier> token = ProtoUtils.convertFromProtoFormat(
-        containerToken, cmAddr);
+    org.apache.hadoop.security.token.Token<ContainerTokenIdentifier> token = ProtoUtils
+        .convertFromProtoFormat(containerToken, cmAddr);
     user.addToken(token);
 
     ContainerManager proxy = user

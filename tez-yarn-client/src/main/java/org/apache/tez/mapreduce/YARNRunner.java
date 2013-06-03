@@ -70,7 +70,6 @@ import org.apache.hadoop.mapreduce.v2.LogParams;
 import org.apache.hadoop.mapreduce.v2.jobhistory.JobHistoryUtils;
 import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.YarnException;
@@ -1141,13 +1140,11 @@ public class YARNRunner implements ClientProtocol {
   private static void addLog4jSystemProperties(String logLevel,
       List<String> vargs) {
     vargs.add("-Dlog4j.configuration=container-log4j.properties");
-    // TODO Fix the remaining properties after YARN-720 is fixed.
-    // May need to introduce a log4j properties file for tez tasks.
-    vargs.add("-D" + MRJobConfig.TASK_LOG_DIR + "="
+    vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
         + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     // Setting this to 0 to avoid log size restrictions.
     // Should be enforced by YARN.
-    vargs.add("-D" + MRJobConfig.TASK_LOG_SIZE + "=" + 0);
+    vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_SIZE + "=" + 0);
     vargs.add("-Dhadoop.root.logger=" + logLevel + ",CLA");
   }
 
