@@ -30,7 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.YarnException;
+import org.apache.hadoop.yarn.YarnRuntimeException;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -44,7 +44,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.client.AMRMClient.StoredContainerRequest;
 import org.apache.hadoop.yarn.client.AMRMClientAsync;
-import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.tez.dag.api.TezException;
@@ -196,12 +196,12 @@ public class TaskScheduler extends AbstractService
                                       response.getMinimumResourceCapability(),
                                       response.getMaximumResourceCapability(),
                                       response.getApplicationACLs());
-    } catch (YarnRemoteException e) {
+    } catch (YarnException e) {
       LOG.error("Yarn Exception while registering", e);
-      throw new YarnException(e);
+      throw new YarnRuntimeException(e);
     } catch (IOException e) {
       LOG.error("IO Exception while registering", e);
-      throw new YarnException(e);
+      throw new YarnRuntimeException(e);
     }
   }
   
@@ -223,7 +223,7 @@ public class TaskScheduler extends AbstractService
       // to get our lock.
       amRmClient.stop();
       super.stop();
-    } catch (YarnRemoteException e) {
+    } catch (YarnException e) {
       LOG.error("Yarn Exception while unregistering ", e);
       throw new TezException(e);
     } catch (IOException e) {

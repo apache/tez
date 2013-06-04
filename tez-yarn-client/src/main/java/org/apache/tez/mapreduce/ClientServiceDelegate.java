@@ -29,7 +29,7 @@ import org.apache.hadoop.mapreduce.TaskCompletionEvent;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
-import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezRemoteException;
@@ -155,7 +155,7 @@ public class ClientServiceDelegate {
 
   public LogParams getLogFilePath(JobID oldJobID,
       TaskAttemptID oldTaskAttemptID)
-      throws YarnRemoteException, IOException {
+      throws YarnException, IOException {
     // FIXME logs for an attempt?
     throw new UnsupportedOperationException();
   }
@@ -165,7 +165,7 @@ public class ClientServiceDelegate {
       TypeConverter.toYarn(oldJobID);
     try {
       return rm.getApplicationReport(jobId.getAppId());
-    } catch (YarnRemoteException e) {
+    } catch (YarnException e) {
       throw new IOException(e);
     }
   }

@@ -36,7 +36,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.Clock;
-import org.apache.hadoop.yarn.YarnException;
+import org.apache.hadoop.yarn.YarnRuntimeException;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -583,7 +583,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     case SUCCEEDED:
       return TaskAttemptState.SUCCEEDED;
     default:
-      throw new YarnException("Attempt to convert invalid "
+      throw new YarnRuntimeException("Attempt to convert invalid "
           + "stateMachineTaskAttemptState to externalTaskAttemptState: "
           + smState);
     }

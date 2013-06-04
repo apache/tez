@@ -48,7 +48,7 @@ import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.hadoop.yarn.Clock;
 import org.apache.hadoop.yarn.ClusterInfo;
 import org.apache.hadoop.yarn.SystemClock;
-import org.apache.hadoop.yarn.YarnException;
+import org.apache.hadoop.yarn.YarnRuntimeException;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
@@ -579,7 +579,7 @@ public class DAGAppMaster extends CompositeService {
         }
       }
     } catch (IOException e) {
-      throw new YarnException(e);
+      throw new YarnRuntimeException(e);
     }
   }
 
@@ -827,7 +827,7 @@ public class DAGAppMaster extends CompositeService {
     @Override
     public Map<ApplicationAccessType, String> getApplicationACLs() {
       if (getServiceState() != STATE.STARTED) {
-        throw new YarnException(
+        throw new YarnRuntimeException(
             "Cannot get ApplicationACLs before all services have started");
       }
       return taskSchedulerEventHandler.getApplicationAcls();

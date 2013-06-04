@@ -72,7 +72,7 @@ import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.yarn.YarnException;
+import org.apache.hadoop.yarn.YarnRuntimeException;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
@@ -87,7 +87,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
@@ -888,7 +888,7 @@ public class YARNRunner implements ClientProtocol {
     try {
       ts.writeTokenStorageFile(applicationTokensFile, conf);
     } catch (IOException e) {
-      throw new YarnException(e);
+      throw new YarnRuntimeException(e);
     }
 
     FileSystem fs = FileSystem.get(conf);
@@ -924,7 +924,7 @@ public class YARNRunner implements ClientProtocol {
           || appMasterReport.getYarnApplicationState() == YarnApplicationState.KILLED) {
         throw new IOException("Failed to run job : " + diagnostics);
       }
-    } catch (YarnRemoteException e) {
+    } catch (YarnException e) {
       throw new IOException(e);
     }
 
@@ -1007,7 +1007,7 @@ public class YARNRunner implements ClientProtocol {
     if (status.getState() != JobStatus.State.RUNNING) {
       try {
         resMgrDelegate.killApplication(TypeConverter.toYarn(arg0).getAppId());
-      } catch (YarnRemoteException e) {
+      } catch (YarnException e) {
         throw new IOException(e);
       }
       return;
@@ -1035,7 +1035,7 @@ public class YARNRunner implements ClientProtocol {
     if (status.getState() != JobStatus.State.KILLED) {
       try {
         resMgrDelegate.killApplication(TypeConverter.toYarn(arg0).getAppId());
-      } catch (YarnRemoteException e) {
+      } catch (YarnException e) {
         throw new IOException(e);
       }
     }
@@ -1070,7 +1070,7 @@ public class YARNRunner implements ClientProtocol {
       throws IOException {
     try {
       return clientCache.getClient(jobID).getLogFilePath(jobID, taskAttemptID);
-    } catch (YarnRemoteException e) {
+    } catch (YarnException e) {
       throw new IOException(e);
     }
   }

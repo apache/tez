@@ -26,7 +26,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.client.YarnClient;
 import org.apache.hadoop.yarn.client.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -52,7 +52,7 @@ public class TezClient {
       String host = appReport.getHost();
       int port = appReport.getRpcPort();
       return getDAGClient(host, port);
-    } catch (YarnRemoteException e) {
+    } catch (YarnException e) {
       throw new TezException(e);
     }
   }

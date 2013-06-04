@@ -32,7 +32,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TypeConverter;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.hadoop.yarn.YarnException;
+import org.apache.hadoop.yarn.YarnRuntimeException;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.committer.VertexContext;
@@ -80,7 +80,7 @@ public class MRVertexOutputCommitter extends VertexOutputCommitter {
             .getOutputFormatClass(), conf);
         committer = outputFormat.getOutputCommitter(taskContext);
       } catch (Exception e) {
-        throw new YarnException(e);
+        throw new YarnRuntimeException(e);
       }
     } else {
       committer = ReflectionUtils.newInstance(conf.getClass(
