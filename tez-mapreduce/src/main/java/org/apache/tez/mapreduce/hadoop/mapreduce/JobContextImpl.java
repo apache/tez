@@ -352,7 +352,25 @@ public class JobContextImpl implements JobContext {
   public Path[] getFileClassPaths() {
     return DistributedCache.getFileClassPaths(conf);
   }
-  
+
+  /**
+   * Parse a list of longs into strings.
+   * 
+   * @param timestamps
+   *          the list of longs to parse
+   * @return a list of string that were parsed. same length as timestamps.
+   */
+  private static String[] toTimestampStrs(long[] timestamps) {
+    if (timestamps == null) {
+      return null;
+    }
+    String[] result = new String[timestamps.length];
+    for (int i = 0; i < timestamps.length; ++i) {
+      result[i] = Long.toString(timestamps[i]);
+    }
+    return result;
+  }
+
   /**
    * Get the timestamps of the archives.  Used by internal
    * DistributedCache and MapReduce code.
@@ -360,7 +378,7 @@ public class JobContextImpl implements JobContext {
    * @throws IOException
    */
   public String[] getArchiveTimestamps() {
-    return DistributedCache.getArchiveTimestamps(conf);
+    return toTimestampStrs(DistributedCache.getArchiveTimestamps(conf));
   }
 
   /**
@@ -370,7 +388,7 @@ public class JobContextImpl implements JobContext {
    * @throws IOException
    */
   public String[] getFileTimestamps() {
-    return DistributedCache.getFileTimestamps(conf);
+    return toTimestampStrs(DistributedCache.getFileTimestamps(conf));
   }
 
   /** 
