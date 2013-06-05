@@ -50,15 +50,16 @@ public class DAG { // FIXME rename to Topology
     this.edges = new ArrayList<Edge>();
   }
 
-  public synchronized void addVertex(Vertex vertex) {
+  public synchronized DAG addVertex(Vertex vertex) {
     if (vertices.contains(vertex)) {
       throw new IllegalArgumentException(
           "Vertex " + vertex + " already defined!");
     }
     vertices.add(vertex);
+    return this;
   }
   
-  public synchronized void addEdge(Edge edge) {
+  public synchronized DAG addEdge(Edge edge) {
     // Sanity checks
     if (!vertices.contains(edge.getInputVertex())) {
       throw new IllegalArgumentException(
@@ -78,14 +79,17 @@ public class DAG { // FIXME rename to Topology
     edge.getOutputVertex().addInputVertex(edge.getInputVertex(), edge.getId());
     
     edges.add(edge);
+    return this;
   }
   
-  public void addConfiguration(String key, String value) {
+  public DAG addConfiguration(String key, String value) {
     config.put(key, value);
+    return this;
   }
   
-  public void setName(String name) {
+  public DAG setName(String name) {
     this.name = name;
+    return this;
   }
   
   // AnnotatedVertex is used by verify() 

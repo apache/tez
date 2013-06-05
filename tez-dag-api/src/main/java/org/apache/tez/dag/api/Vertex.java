@@ -62,20 +62,22 @@ public class Vertex { // FIXME rename to Task
     return parallelism;
   }
 
-  public void setTaskResource(Resource resource) {
+  public Vertex setTaskResource(Resource resource) {
     this.taskResource = resource;
+    return this;
   }
 
   public Resource getTaskResource() {
     return taskResource;
   }
 
-  public void setTaskLocationsHint(TaskLocationHint[] locations) {
+  public Vertex setTaskLocationsHint(TaskLocationHint[] locations) {
     if (locations == null) {
-      return;
+      return this;
     }
     assert locations.length == parallelism;
     taskLocationsHint = new VertexLocationHint(parallelism, locations);
+    return this;
   }
 
   // used internally to create parallelism location resource file
@@ -83,24 +85,27 @@ public class Vertex { // FIXME rename to Task
     return taskLocationsHint;
   }
 
-  public void setTaskLocalResources(Map<String, LocalResource> localResources) {
+  public Vertex setTaskLocalResources(Map<String, LocalResource> localResources) {
     this.taskLocalResources = localResources;
+    return this;
   }
 
   public Map<String, LocalResource> getTaskLocalResources() {
     return taskLocalResources;
   }
 
-  public void setTaskEnvironment(Map<String, String> environment) {
+  public Vertex setTaskEnvironment(Map<String, String> environment) {
     this.taskEnvironment = environment;
+    return this;
   }
 
   public Map<String, String> getTaskEnvironment() {
     return taskEnvironment;
   }
 
-  public void setJavaOpts(String javaOpts){
+  public Vertex setJavaOpts(String javaOpts){
      this. javaOpts = javaOpts;
+     return this;
   }
 
   public String getJavaOpts(){

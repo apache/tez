@@ -494,12 +494,11 @@ public class YARNRunner implements ClientProtocol {
     reduceLocalResources.putAll(jobLocalResources);
     // TODO MRR Don't bother localizing the input splits for the reduce vertices.
 
-    vertex.setTaskEnvironment(reduceEnv);
-    vertex.setTaskLocalResources(reduceLocalResources);
-    vertex.setTaskLocationsHint(null);
-    vertex.setTaskResource(reduceResource);
-
-    vertex.setJavaOpts(getReduceJavaOpts(conf));
+    vertex.setTaskEnvironment(reduceEnv)
+        .setTaskLocalResources(reduceLocalResources)
+        .setTaskLocationsHint(null)
+        .setTaskResource(reduceResource)
+        .setJavaOpts(getReduceJavaOpts(conf));
 
     return vertex;
   }
@@ -572,12 +571,11 @@ public class YARNRunner implements ClientProtocol {
         new TreeMap<String, LocalResource>();
     mapLocalResources.putAll(jobLocalResources);
 
-    mapVertex.setTaskEnvironment(mapEnv);
-    mapVertex.setTaskLocalResources(mapLocalResources);
-    mapVertex.setTaskLocationsHint(inputSplitLocations);
-    mapVertex.setTaskResource(mapResource);
-
-    mapVertex.setJavaOpts(getMapJavaOpts(jobConf));
+    mapVertex.setTaskEnvironment(mapEnv)
+        .setTaskLocalResources(mapLocalResources)
+        .setTaskLocationsHint(inputSplitLocations)
+        .setTaskResource(mapResource)
+        .setJavaOpts(getMapJavaOpts(jobConf));
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Adding map vertex to DAG"
