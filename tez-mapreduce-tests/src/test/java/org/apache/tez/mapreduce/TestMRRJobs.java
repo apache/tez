@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobCounter;
@@ -216,7 +217,7 @@ public class TestMRRJobs {
   public void testFailingJob() throws IOException, InterruptedException,
       ClassNotFoundException {
 
-    LOG.info("\n\n\nStarting testFailingMapper().");
+    LOG.info("\n\n\nStarting testFailingJob().");
 
     if (!(new File(MiniMRRTezCluster.APPJAR)).exists()) {
       LOG.info("MRAppJar " + MiniMRRTezCluster.APPJAR
@@ -252,7 +253,7 @@ public class TestMRRJobs {
   public void testFailingAttempt() throws IOException, InterruptedException,
       ClassNotFoundException {
 
-    LOG.info("\n\n\nStarting testFailingMapper().");
+    LOG.info("\n\n\nStarting testFailingAttempt().");
 
     if (!(new File(MiniMRRTezCluster.APPJAR)).exists()) {
       LOG.info("MRAppJar " + MiniMRRTezCluster.APPJAR
@@ -282,6 +283,51 @@ public class TestMRRJobs {
 
     // FIXME once counters and task progress can be obtained properly
     // TODO verify failed task diagnostics
+  }
+
+  @Test (timeout = 300000)
+  public void testMRRSleepJobWithCompression() throws IOException,
+      InterruptedException, ClassNotFoundException {
+    LOG.info("\n\n\nStarting testMRRSleepJobWithCompression().");
+
+    if (!(new File(MiniMRRTezCluster.APPJAR)).exists()) {
+      LOG.info("MRAppJar " + MiniMRRTezCluster.APPJAR
+               + " not found. Not running test.");
+      return;
+    }
+
+    Configuration sleepConf = new Configuration(mrrTezCluster.getConfig());
+
+    MRRSleepJob sleepJob = new MRRSleepJob();
+    sleepJob.setConf(sleepConf);
+
+    Job job = sleepJob.createJob(1, 1, 2, 1, 1,
+        1, 1, 1, 1, 1);
+
+    job.addFileToClassPath(APP_JAR); // The AppMaster jar itself.
+    job.addFileToClassPath(YARN_SITE_XML);
+    job.setJarByClass(MRRSleepJob.class);
+    job.setMaxMapAttempts(1); // speed up failures
+
+    // enable compression
+    job.getConfiguration().setBoolean(MRJobConfig.MAP_OUTPUT_COMPRESS, true);
+    job.getConfiguration().set(MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC,
+        DefaultCodec.class.getName());
+
+    job.submit();
+    String trackingUrl = job.getTrackingURL();
+    String jobId = job.getJobID().toString();
+    boolean succeeded = job.waitForCompletion(true);
+    Assert.assertTrue(succeeded);
+    Assert.assertEquals(JobStatus.State.SUCCEEDED, job.getJobState());
+    Assert.assertTrue("Tracking URL was " + trackingUrl +
+                      " but didn't Match Job ID " + jobId ,
+          trackingUrl.endsWith(jobId.substring(jobId.lastIndexOf("_")) + "/"));
+
+    // FIXME once counters and task progress can be obtained properly
+    // TODO use dag client to test counters and task progress?
+    // what about completed jobs?
+
   }
 
 

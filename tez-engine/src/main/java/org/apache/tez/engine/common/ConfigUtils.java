@@ -74,7 +74,7 @@ public class ConfigUtils {
 
   public static boolean isIntermediateInputCompressed(Configuration conf) {
     return conf.getBoolean(
-        TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS, false);
+        TezJobConfig.TEZ_ENGINE_INTERMEDIATE_INPUT_IS_COMPRESSED, false);
   }
 
   public static <V> Class<V> getIntermediateOutputValueClass(Configuration conf) {
