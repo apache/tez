@@ -195,7 +195,8 @@ public class MRCombiner implements Processor {
     }
 
     public void informReduceProgress() {
-      combinePhase.set(super.in.getProgress().getProgress()); // update progress
+      // FIXME implement correct progress updates for combiner TEZ-184
+      // combinePhase.set(super.in.getProgress().getProgress()); // update progress
       reporter.progress();
     }
   }
