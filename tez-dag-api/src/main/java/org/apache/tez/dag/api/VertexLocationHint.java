@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.api;
 
+import java.util.Arrays;
+
 public class VertexLocationHint  {
 
   private int numTasks;
@@ -49,6 +51,36 @@ public class VertexLocationHint  {
     this.taskLocationHints = taskLocationHints;
   }
 
+  @Override
+  public int hashCode() {
+    final int prime = 7883;
+    int result = 1;
+    result = prime * result + numTasks;
+    result = prime * result + Arrays.hashCode(taskLocationHints);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    VertexLocationHint other = (VertexLocationHint) obj;
+    if (numTasks != other.numTasks) {
+      return false;
+    }
+    if (!Arrays.equals(taskLocationHints, other.taskLocationHints)) {
+      return false;
+    }
+    return true;
+  }
+
   public static class TaskLocationHint {
 
     // Host names if any to be used
@@ -76,6 +108,36 @@ public class VertexLocationHint  {
     }
     public void setRacks(String[] racks) {
       this.racks = racks;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 9397;
+      int result = 1;
+      result = prime * result + Arrays.hashCode(hosts);
+      result = prime * result + Arrays.hashCode(racks);
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      TaskLocationHint other = (TaskLocationHint) obj;
+      if (!Arrays.equals(hosts, other.hosts)) {
+        return false;
+      }
+      if (!Arrays.equals(racks, other.racks)) {
+        return false;
+      }
+      return true;
     }
   }
 }

@@ -399,6 +399,13 @@
                   <goal>clover</goal>
                 </goals>
               </execution>
+              <execution>
+                <id>site</id>
+                <phase>pre-site</phase>
+                <goals>
+                  <goal>aggregate</goal>
+                </goals>
+              </execution>
             </executions>
           </plugin>
         </plugins>
