@@ -490,7 +490,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
   @Override
-  public synchronized void appRebootRequested() {
+  public synchronized void appShutdownRequested() {
     // This can happen if the RM has been restarted. If it is in that state,
     // this application must clean itself up.
     // TODO TEZ-34 change event to reboot and send to app master

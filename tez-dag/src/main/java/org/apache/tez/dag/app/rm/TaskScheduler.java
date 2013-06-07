@@ -88,7 +88,7 @@ public class TaskScheduler extends AbstractService
     public void containerCompleted(Object taskLastAllocated, 
                                     ContainerStatus containerStatus);
     public void nodesUpdated(List<NodeReport> updatedNodes);
-    public void appRebootRequested();
+    public void appShutdownRequested();
     public void setApplicationRegistrationData(
                                 Resource minContainerCapability,
                                 Resource maxContainerCapability,
@@ -329,12 +329,12 @@ public class TaskScheduler extends AbstractService
   }
 
   @Override
-  public void onRebootRequest() {
+  public void onShutdownRequest() {
     if(isStopped) {
       return;
     }
     // upcall to app must be outside locks
-    appClient.appRebootRequested();
+    appClient.appShutdownRequested();
   }
 
   @Override

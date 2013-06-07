@@ -315,8 +315,8 @@ public class TestTaskScheduler {
     scheduler.onError(mockException);
     verify(mockApp).onError(mockException);
     
-    scheduler.onRebootRequest();
-    verify(mockApp).appRebootRequested();
+    scheduler.onShutdownRequest();
+    verify(mockApp).appShutdownRequested();
     
     String appMsg = "success";
     AppFinalStatus finalStatus = 
