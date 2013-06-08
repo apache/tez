@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Vector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,6 +35,8 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobSubmissionFiles;
 import org.apache.hadoop.mapreduce.split.JobSplitWriter;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 
 public class MRHelpers {
@@ -209,6 +212,83 @@ public class MRHelpers {
           + ", splitsDir=" + inputSplitsDir.toString());
       return writeOldSplits(jobConf, inputSplitsDir);
     }
+  }
+
+  private static String getChildLogLevel(Configuration conf, boolean isMap) {
+    if (isMap) {
+      return conf.get(
+          MRJobConfig.MAP_LOG_LEVEL,
+          JobConf.DEFAULT_LOG_LEVEL.toString()
+          );
+    } else {
+      return conf.get(
+          MRJobConfig.REDUCE_LOG_LEVEL,
+          JobConf.DEFAULT_LOG_LEVEL.toString()
+          );
+    }
+  }
+
+  private static String getLog4jCmdLineProperties(Configuration conf,
+      boolean isMap) {
+    Vector<String> logProps = new Vector<String>(4);
+    addLog4jSystemProperties(getChildLogLevel(conf, isMap), logProps);
+    StringBuilder sb = new StringBuilder();
+    for (String str : logProps) {
+      sb.append(str).append(" ");
+    }
+    return sb.toString();
+  }
+
+  /**
+   * Add the JVM system properties necessary to configure
+   * {@link ContainerLogAppender}.
+   *
+   * @param logLevel
+   *          the desired log level (eg INFO/WARN/DEBUG)
+   * @param vargs
+   *          the argument list to append to
+   */
+  private static void addLog4jSystemProperties(String logLevel,
+      List<String> vargs) {
+    vargs.add("-Dlog4j.configuration=container-log4j.properties");
+    vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
+        + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+    // Setting this to 0 to avoid log size restrictions.
+    // Should be enforced by YARN.
+    vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_SIZE + "=" + 0);
+    vargs.add("-Dhadoop.root.logger=" + logLevel + ",CLA");
+  }
+
+  @SuppressWarnings("deprecation")
+  public static String getMapJavaOpts(Configuration conf) {
+    String adminOpts = conf.get(
+        MRJobConfig.MAPRED_MAP_ADMIN_JAVA_OPTS,
+        MRJobConfig.DEFAULT_MAPRED_ADMIN_JAVA_OPTS);
+
+    String userOpts = conf.get(
+        MRJobConfig.MAP_JAVA_OPTS,
+        conf.get(
+            JobConf.MAPRED_TASK_JAVA_OPTS,
+            JobConf.DEFAULT_MAPRED_TASK_JAVA_OPTS));
+
+    return adminOpts.trim() + " " + userOpts.trim() + " "
+        + getLog4jCmdLineProperties(conf, true);
+  }
+
+  @SuppressWarnings("deprecation")
+  public static String getReduceJavaOpts(Configuration conf) {
+    String adminOpts = conf.get(
+        MRJobConfig.MAPRED_REDUCE_ADMIN_JAVA_OPTS,
+        MRJobConfig.DEFAULT_MAPRED_ADMIN_JAVA_OPTS);
+
+    String userOpts = conf.get(
+        MRJobConfig.REDUCE_JAVA_OPTS,
+        conf.get(
+            JobConf.MAPRED_TASK_JAVA_OPTS,
+            JobConf.DEFAULT_MAPRED_TASK_JAVA_OPTS));
+
+    return adminOpts.trim() + " " + userOpts.trim() + " "
+        + getLog4jCmdLineProperties(conf, false);
   }
 
 }

@@ -99,6 +99,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
+import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
@@ -498,7 +499,7 @@ public class YARNRunner implements ClientProtocol {
         .setTaskLocalResources(reduceLocalResources)
         .setTaskLocationsHint(null)
         .setTaskResource(reduceResource)
-        .setJavaOpts(getReduceJavaOpts(conf));
+        .setJavaOpts(MRHelpers.getReduceJavaOpts(conf));
 
     return vertex;
   }
@@ -575,7 +576,7 @@ public class YARNRunner implements ClientProtocol {
         .setTaskLocalResources(mapLocalResources)
         .setTaskLocationsHint(inputSplitLocations)
         .setTaskResource(mapResource)
-        .setJavaOpts(getMapJavaOpts(jobConf));
+        .setJavaOpts(MRHelpers.getMapJavaOpts(jobConf));
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Adding map vertex to DAG"
@@ -620,7 +621,7 @@ public class YARNRunner implements ClientProtocol {
       reduceVertex.setTaskLocationsHint(null);
       reduceVertex.setTaskResource(reduceResource);
 
-      reduceVertex.setJavaOpts(getReduceJavaOpts(jobConf));
+      reduceVertex.setJavaOpts(MRHelpers.getReduceJavaOpts(jobConf));
 
       if (LOG.isDebugEnabled()) {
         LOG.debug("Adding reduce vertex to DAG"
@@ -1084,46 +1085,6 @@ public class YARNRunner implements ClientProtocol {
     }
   }
 
-  @SuppressWarnings("deprecation")
-  private String getMapJavaOpts(Configuration jobConf) {
-    // follows pattern from YARN MapReduceChildJVM.java
-    String adminOpts = "";
-    adminOpts = jobConf.get(
-        MRJobConfig.MAPRED_MAP_ADMIN_JAVA_OPTS,
-        MRJobConfig.DEFAULT_MAPRED_ADMIN_JAVA_OPTS);
-
-    String userOpts = "";
-    userOpts =
-        jobConf.get(
-            MRJobConfig.MAP_JAVA_OPTS, // same as JobConf.MAPRED_REDUCE_TASK_JAVA_OPTS
-                jobConf.get(
-                    JobConf.MAPRED_TASK_JAVA_OPTS,
-                    JobConf.DEFAULT_MAPRED_TASK_JAVA_OPTS));
-
-    return adminOpts.trim() + " " + userOpts.trim() + " "
-    + getLog4jCmdLineProperties(jobConf, true);
-  }
-
-  @SuppressWarnings("deprecation")
-  private String getReduceJavaOpts(Configuration jobConf) {
-    // follows pattern from YARN MapReduceChildJVM.java
-    String adminOpts = "";
-    adminOpts = jobConf.get(
-        MRJobConfig.MAPRED_REDUCE_ADMIN_JAVA_OPTS,
-        MRJobConfig.DEFAULT_MAPRED_ADMIN_JAVA_OPTS);
-
-    String userOpts = "";
-    userOpts =
-        jobConf.get(
-            MRJobConfig.REDUCE_JAVA_OPTS, // same as JobConf.MAPRED_REDUCE_TASK_JAVA_OPTS
-                jobConf.get(
-                    JobConf.MAPRED_TASK_JAVA_OPTS,
-                    JobConf.DEFAULT_MAPRED_TASK_JAVA_OPTS));
-
-    return adminOpts.trim() + " " + userOpts.trim() + " "
-        + getLog4jCmdLineProperties(jobConf, false);
-  }
-
   private static String getLog4jCmdLineProperties(Configuration jobConf,
       boolean isMap) {
     Vector<String> logProps = new Vector<String>(4);
@@ -1151,7 +1112,7 @@ public class YARNRunner implements ClientProtocol {
         + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     // Setting this to 0 to avoid log size restrictions.
     // Should be enforced by YARN.
-    vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_SIZE + "=" + 0);
+    vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_SIZE + "=0");
     vargs.add("-Dhadoop.root.logger=" + logLevel + ",CLA");
   }
 

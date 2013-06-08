@@ -208,4 +208,45 @@ public class TestMRHelpers {
     verifyLocationHints(oldSplitsDir, info.getTaskLocationHints());
   }
 
+  private Configuration createConfForJavaOptsTest() {
+    Configuration conf = new Configuration(false);
+    conf.set(MRJobConfig.MAPRED_MAP_ADMIN_JAVA_OPTS, "fooMapAdminOpts");
+    conf.set(MRJobConfig.MAP_JAVA_OPTS, "fooMapJavaOpts");
+    conf.set(MRJobConfig.MAP_LOG_LEVEL, "FATAL");
+    conf.set(MRJobConfig.MAPRED_REDUCE_ADMIN_JAVA_OPTS, "fooReduceAdminOpts");
+    conf.set(MRJobConfig.REDUCE_JAVA_OPTS, "fooReduceJavaOpts");
+    conf.set(MRJobConfig.REDUCE_LOG_LEVEL, "TRACE");
+    return conf;
+  }
+
+  @Test
+  public void testMapJavaOptions() {
+    Configuration conf = createConfForJavaOptsTest();
+    String opts = MRHelpers.getMapJavaOpts(conf);
+
+    Assert.assertTrue(opts.contains("fooMapAdminOpts"));
+    Assert.assertTrue(opts.contains(" fooMapJavaOpts "));
+    Assert.assertFalse(opts.contains("fooReduceAdminOpts "));
+    Assert.assertFalse(opts.contains(" fooReduceJavaOpts "));
+    Assert.assertTrue(opts.indexOf("fooMapAdminOpts")
+        < opts.indexOf("fooMapJavaOpts"));
+    Assert.assertTrue(opts.contains(" -Dhadoop.root.logger=FATAL"));
+    Assert.assertFalse(opts.contains(" -Dhadoop.root.logger=TRACE"));
+  }
+
+  @Test
+  public void testReduceJavaOptions() {
+    Configuration conf = createConfForJavaOptsTest();
+    String opts = MRHelpers.getReduceJavaOpts(conf);
+
+    Assert.assertFalse(opts.contains("fooMapAdminOpts"));
+    Assert.assertFalse(opts.contains(" fooMapJavaOpts "));
+    Assert.assertTrue(opts.contains("fooReduceAdminOpts"));
+    Assert.assertTrue(opts.contains(" fooReduceJavaOpts "));
+    Assert.assertTrue(opts.indexOf("fooReduceAdminOpts")
+        < opts.indexOf("fooReduceJavaOpts"));
+    Assert.assertFalse(opts.contains(" -Dhadoop.root.logger=FATAL"));
+    Assert.assertTrue(opts.contains(" -Dhadoop.root.logger=TRACE"));
+  }
+
 }
