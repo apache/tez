@@ -92,10 +92,15 @@ message PlanTaskConfiguration {
   repeated PlanKeyValuePair environmentSetting = 8;  
 }
 
+message TezEntityDescriptorProto {
+  optional string class_name = 1;
+  optional bytes user_payload = 2;
+}
+
 message VertexPlan {
   required string name = 1;
   required PlanVertexType type = 2;
-  optional string processorName = 3;
+  optional TezEntityDescriptorProto processor_descriptor = 3;
   required PlanTaskConfiguration taskConfig = 4;
   repeated PlanTaskLocationHint taskLocationHint = 7;
   repeated string inEdgeId = 8;
@@ -108,8 +113,8 @@ message EdgePlan {
   required string outputVertexName = 3;
   required PlanEdgeConnectionPattern connectionPattern = 4;
   required PlanEdgeSourceType sourceType = 5;
-  required string inputClass = 6;
-  required string outputClass = 7;
+  optional TezEntityDescriptorProto input_descriptor = 6;
+  optional TezEntityDescriptorProto output_descriptor = 7;
 }
 
 message DAGPlan {

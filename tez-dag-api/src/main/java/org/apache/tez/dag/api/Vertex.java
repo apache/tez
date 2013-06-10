@@ -29,7 +29,7 @@ import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 public class Vertex { // FIXME rename to Task
 
   private final String vertexName;
-  private final String processorName;
+  private final ProcessorDescriptor processorDescriptor;
 
   private final int parallelism;
   private VertexLocationHint taskLocationsHint;
@@ -44,9 +44,9 @@ public class Vertex { // FIXME rename to Task
   private String javaOpts = "";
 
 
-  public Vertex(String vertexName, String processorName, int parallelism) {
+  public Vertex(String vertexName, ProcessorDescriptor processorDescriptor, int parallelism) {
     this.vertexName = vertexName;
-    this.processorName = processorName;
+    this.processorDescriptor = processorDescriptor;
     this.parallelism = parallelism;
   }
 
@@ -54,8 +54,8 @@ public class Vertex { // FIXME rename to Task
     return vertexName;
   }
 
-  public String getProcessorName() {
-    return processorName;
+  public ProcessorDescriptor getProcessorDescriptor() {
+    return this.processorDescriptor;
   }
 
   public int getParallelism() {
@@ -114,7 +114,7 @@ public class Vertex { // FIXME rename to Task
 
   @Override
   public String toString() {
-    return "[" + vertexName + " : " + processorName + "]";
+    return "[" + vertexName + " : " + processorDescriptor.getClassName() + "]";
   }
 
   void addInputVertex(Vertex inputVertex, String edgeId) {

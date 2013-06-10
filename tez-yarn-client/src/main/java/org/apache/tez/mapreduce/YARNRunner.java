@@ -95,6 +95,9 @@ import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -481,7 +484,9 @@ public class YARNRunner implements ClientProtocol {
     // Intermediate vertices start at 1.
     Vertex vertex = new Vertex(
         MultiStageMRConfigUtil.getIntermediateStageVertexName(stageNum),
-        "org.apache.tez.mapreduce.processor.reduce.ReduceProcessor", numTasks);
+        new ProcessorDescriptor(
+            "org.apache.tez.mapreduce.processor.reduce.ReduceProcessor", null),
+        numTasks);
 
     Map<String, String> reduceEnv = new HashMap<String, String>();
     setupMapReduceEnv(conf, reduceEnv, false);
@@ -521,7 +526,7 @@ public class YARNRunner implements ClientProtocol {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Adding intermediate vertex to DAG"
             + ", vertexName=" + vertices[i].getVertexName()
-            + ", processor=" + vertices[i].getProcessorName()
+            + ", processor=" + vertices[i].getProcessorDescriptor().getClassName()
             + ", parrellism=" + vertices[i].getParallelism()
             + ", javaOpts=" + vertices[i].getJavaOpts());
       }
@@ -553,7 +558,7 @@ public class YARNRunner implements ClientProtocol {
     String mapProcessor = "org.apache.tez.mapreduce.processor.map.MapProcessor";
     Vertex mapVertex = new Vertex(
         MultiStageMRConfigUtil.getInitialMapVertexName(),
-        mapProcessor, numMaps);
+        new ProcessorDescriptor(mapProcessor, null), numMaps);
 
     // FIXME set up map environment
     Map<String, String> mapEnv = new HashMap<String, String>();
@@ -581,7 +586,7 @@ public class YARNRunner implements ClientProtocol {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Adding map vertex to DAG"
           + ", vertexName=" + mapVertex.getVertexName()
-          + ", processor=" + mapVertex.getProcessorName()
+          + ", processor=" + mapVertex.getProcessorDescriptor().getClassName()
           + ", parrellism=" + mapVertex.getParallelism()
           + ", javaOpts=" + mapVertex.getJavaOpts());
     }
@@ -600,7 +605,7 @@ public class YARNRunner implements ClientProtocol {
           "org.apache.tez.mapreduce.processor.reduce.ReduceProcessor";
       Vertex reduceVertex = new Vertex(
           MultiStageMRConfigUtil.getFinalReduceVertexName(),
-          reduceProcessor, numReduces);
+          new ProcessorDescriptor(reduceProcessor, null), numReduces);
 
       // FIXME set up reduce environment
       Map<String, String> reduceEnv = new HashMap<String, String>();
@@ -626,7 +631,7 @@ public class YARNRunner implements ClientProtocol {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Adding reduce vertex to DAG"
             + ", vertexName=" + reduceVertex.getVertexName()
-            + ", processor=" + reduceVertex.getProcessorName()
+            + ", processor=" + reduceVertex.getProcessorDescriptor().getClassName()
             + ", parrellism=" + reduceVertex.getParallelism()
             + ", javaOpts=" + reduceVertex.getJavaOpts());
       }
@@ -635,8 +640,8 @@ public class YARNRunner implements ClientProtocol {
       EdgeProperty edgeProperty =
           new EdgeProperty(ConnectionPattern.BIPARTITE,
               SourceType.STABLE,
-              ShuffledMergedInput.class.getName(),
-              OnFileSortedOutput.class.getName());
+              new InputDescriptor(ShuffledMergedInput.class.getName(), null),
+              new OutputDescriptor(OnFileSortedOutput.class.getName(), null));
       Edge edge = null;
       if (!isMRR) {
         edge = new Edge(mapVertex, reduceVertex, edgeProperty);

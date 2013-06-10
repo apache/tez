@@ -45,6 +45,7 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSourceType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
+import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -244,7 +245,7 @@ public class TestVertexImpl {
             VertexPlan.newBuilder()
             .setName("vertex3")
             .setType(PlanVertexType.NORMAL)
-            .setProcessorName("x3.y3")
+            .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("x3.y3"))
             .addTaskLocationHint(
                 PlanTaskLocationHint.newBuilder()
                 .addHost("host3")
@@ -337,9 +338,9 @@ public class TestVertexImpl {
             )
         .addEdge(
             EdgePlan.newBuilder()
-            .setInputClass("i3_v1")
+            .setInputDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("i3_v1"))
             .setInputVertexName("vertex1")
-            .setOutputClass("o1")
+            .setOutputDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
             .setOutputVertexName("vertex3")
             .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
             .setId("e1")
@@ -348,9 +349,9 @@ public class TestVertexImpl {
             )
         .addEdge(
             EdgePlan.newBuilder()
-            .setInputClass("i3_v2")
+            .setInputDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("i3_v2"))
             .setInputVertexName("vertex2")
-            .setOutputClass("o2")
+            .setOutputDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
             .setOutputVertexName("vertex3")
             .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
             .setId("e2")
@@ -359,9 +360,9 @@ public class TestVertexImpl {
             )
         .addEdge(
             EdgePlan.newBuilder()
-            .setInputClass("i4_v3")
+            .setInputDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("i4_v3"))
             .setInputVertexName("vertex3")
-            .setOutputClass("o3_v4")
+            .setOutputDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("o3_v4"))
             .setOutputVertexName("vertex4")
             .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
             .setId("e3")
@@ -370,9 +371,9 @@ public class TestVertexImpl {
             )
         .addEdge(
             EdgePlan.newBuilder()
-            .setInputClass("i5_v3")
+            .setInputDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("i5_v3"))
             .setInputVertexName("vertex3")
-            .setOutputClass("o3_v5")
+            .setOutputDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("o3_v5"))
             .setOutputVertexName("vertex5")
             .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
             .setId("e4")
@@ -381,9 +382,9 @@ public class TestVertexImpl {
             )
         .addEdge(
             EdgePlan.newBuilder()
-            .setInputClass("i6_v4")
+            .setInputDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("i6_v4"))
             .setInputVertexName("vertex4")
-            .setOutputClass("o4")
+            .setOutputDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("o4"))
             .setOutputVertexName("vertex6")
             .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
             .setId("e5")
@@ -392,9 +393,9 @@ public class TestVertexImpl {
             )
         .addEdge(
             EdgePlan.newBuilder()
-            .setInputClass("i6_v5")
+            .setInputDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("i6_v5"))
             .setInputVertexName("vertex5")
-            .setOutputClass("o5")
+            .setOutputDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("o5"))
             .setOutputVertexName("vertex6")
             .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
             .setId("e6")

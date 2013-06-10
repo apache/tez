@@ -28,6 +28,7 @@ import java.util.Stack;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
@@ -36,7 +37,7 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+
 
 public class DAG { // FIXME rename to Topology
   List<Vertex> vertices;
@@ -237,7 +238,7 @@ public class DAG { // FIXME rename to Topology
  
   
   // create protobuf message describing DAG
-  public DAGPlan createDag(){
+  public DAGPlan createDag() {
     
     verify(true);
     
@@ -249,8 +250,9 @@ public class DAG { // FIXME rename to Topology
       VertexPlan.Builder vertexBuilder = VertexPlan.newBuilder();
       vertexBuilder.setName(vertex.getVertexName());
       vertexBuilder.setType(PlanVertexType.NORMAL); // vertex type is implicitly NORMAL until  TEZ-46.
-      vertexBuilder.setProcessorName(vertex.getProcessorName());
-
+      vertexBuilder.setProcessorDescriptor(DagTypeConverters
+          .convertToDAGPlan(vertex.getProcessorDescriptor()));      
+      
       //task config
       PlanTaskConfiguration.Builder taskConfigBuilder = PlanTaskConfiguration.newBuilder();
       Resource resource = vertex.getTaskResource();
@@ -322,9 +324,8 @@ public class DAG { // FIXME rename to Topology
       edgeBuilder.setOutputVertexName(edge.getOutputVertex().getVertexName());
       edgeBuilder.setConnectionPattern(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().connectionPattern));
       edgeBuilder.setSourceType(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getSourceType()));
-      edgeBuilder.setInputClass(edge.getEdgeProperty().inputClass);
-      edgeBuilder.setOutputClass(edge.getEdgeProperty().outputClass);
-
+      edgeBuilder.setInputDescriptor(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getInputDescriptor()));
+      edgeBuilder.setOutputDescriptor(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getOutputDescriptor()));
       jobBuilder.addEdge(edgeBuilder);
     }
     

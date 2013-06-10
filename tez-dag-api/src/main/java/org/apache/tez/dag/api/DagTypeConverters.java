@@ -17,6 +17,7 @@
  */
 package org.apache.tez.dag.api;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,18 +31,21 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
+import org.apache.tez.dag.api.EdgeProperty.SourceType;
+import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeConnectionPattern;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSourceType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResource;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceType;
+import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceVisibility;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
-import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceVisibility;
-import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
-import org.apache.tez.dag.api.EdgeProperty.SourceType;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
+
+import com.google.protobuf.ByteString;
 
 
 public class DagTypeConverters {
@@ -195,8 +199,8 @@ public class DagTypeConverters {
            new EdgeProperty(
                convertFromDAGPlan(edge.getConnectionPattern()),
                convertFromDAGPlan(edge.getSourceType()),
-               edge.getInputClass(),
-               edge.getOutputClass()
+               convertInputDescriptorFromDAGPlan(edge.getInputDescriptor()),
+               convertOutputDescriptorFromDAGPlan(edge.getOutputDescriptor())
                )
            );
     }
@@ -216,5 +220,47 @@ public class DagTypeConverters {
       map.put(setting.getKey(), setting.getValue());
     }
     return map;
-  }   
+  }
+
+  public static TezEntityDescriptorProto convertToDAGPlan(
+      TezEntityDescriptor descriptor) {
+    TezEntityDescriptorProto.Builder builder = TezEntityDescriptorProto
+        .newBuilder();
+    builder.setClassName(descriptor.getClassName());
+    if (descriptor.getUserPayload() != null) {
+      builder
+          .setUserPayload(ByteString.copyFrom(descriptor.getUserPayload()));
+    }
+    return builder.build();
+  }
+
+  public static InputDescriptor convertInputDescriptorFromDAGPlan(
+      TezEntityDescriptorProto proto) {
+    String className = proto.getClassName();
+    ByteBuffer bb = null;
+    if (proto.hasUserPayload()) {
+      bb = proto.getUserPayload().asReadOnlyByteBuffer();
+    }
+    return new InputDescriptor(className, bb);
+  }
+
+  public static OutputDescriptor convertOutputDescriptorFromDAGPlan(
+      TezEntityDescriptorProto proto) {
+    String className = proto.getClassName();
+    ByteBuffer bb = null;
+    if (proto.hasUserPayload()) {
+      bb = proto.getUserPayload().asReadOnlyByteBuffer();
+    }
+    return new OutputDescriptor(className, bb);
+  }
+
+  public static ProcessorDescriptor convertProcessorDescriptorFromDAGPlan(
+      TezEntityDescriptorProto proto) {
+    String className = proto.getClassName();
+    ByteBuffer bb = null;
+    if (proto.hasUserPayload()) {
+      bb = proto.getUserPayload().asReadOnlyByteBuffer();
+    }
+    return new ProcessorDescriptor(className, bb);
+  }
 }

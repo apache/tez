@@ -21,6 +21,9 @@ import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty.SourceType;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.app.rm.container.AMContainerHelpers;
 import org.apache.tez.engine.lib.input.ShuffledMergedInput;
@@ -88,22 +91,22 @@ public class MRRExampleHelper {
  
  static DAGPlan createDAGConfigurationForMRR() throws IOException {
    org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG();
-   Vertex mapVertex = new Vertex("map",
-       "org.apache.tez.mapreduce.task.InitialTask", 6);
-   Vertex reduce1Vertex = new Vertex("reduce1",
-       "org.apache.tez.mapreduce.task.IntermediateTask", 3);
-   Vertex reduce2Vertex = new Vertex("reduce2",
-       "org.apache.tez.mapreduce.task.FinalTask", 3);
+    Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
+        "org.apache.tez.mapreduce.task.InitialTask", null), 6);
+    Vertex reduce1Vertex = new Vertex("reduce1", new ProcessorDescriptor(
+        "org.apache.tez.mapreduce.task.IntermediateTask", null), 3);
+    Vertex reduce2Vertex = new Vertex("reduce2", new ProcessorDescriptor(
+        "org.apache.tez.mapreduce.task.FinalTask", null), 3);
    Edge edge1 = new Edge(mapVertex, reduce1Vertex,
        new EdgeProperty(ConnectionPattern.BIPARTITE,
            SourceType.STABLE,
-           ShuffledMergedInput.class.getName(),
-           OnFileSortedOutput.class.getName()));
+           new InputDescriptor(ShuffledMergedInput.class.getName(), null),
+           new OutputDescriptor(OnFileSortedOutput.class.getName(), null)));
    Edge edge2 = new Edge(reduce1Vertex, reduce2Vertex,
        new EdgeProperty(ConnectionPattern.BIPARTITE,
            SourceType.STABLE,
-           ShuffledMergedInput.class.getName(),
-           OnFileSortedOutput.class.getName()));
+           new InputDescriptor(ShuffledMergedInput.class.getName(), null),
+           new OutputDescriptor(OnFileSortedOutput.class.getName(), null)));
    Map<String, LocalResource> jobRsrcs = createLocalResources(getMRRBaseDir(),
        getMRRLocalRsrcList());
 
@@ -156,15 +159,15 @@ public class MRRExampleHelper {
  // TODO remove once client is in place
  static DAGPlan createDAGConfigurationForMR() throws IOException {
    org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG();
-   Vertex mapVertex = new Vertex("map",
-       "org.apache.tez.mapreduce.task.InitialTask", 6);
-   Vertex reduceVertex = new Vertex("reduce",
-       "org.apache.tez.mapreduce.task.FinalTask", 1);
+    Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
+        "org.apache.tez.mapreduce.task.InitialTask", null), 6);
+    Vertex reduceVertex = new Vertex("reduce", new ProcessorDescriptor(
+        "org.apache.tez.mapreduce.task.FinalTask", null), 1);
    Edge edge = new Edge(mapVertex, reduceVertex,
        new EdgeProperty(ConnectionPattern.BIPARTITE,
            SourceType.STABLE,
-           ShuffledMergedInput.class.getName(),
-           OnFileSortedOutput.class.getName()));
+           new InputDescriptor(ShuffledMergedInput.class.getName(), null),
+           new OutputDescriptor(OnFileSortedOutput.class.getName(), null)));
 
    Map<String, LocalResource> jobRsrcs = createLocalResources(getMRBaseDir(),
        getMRLocalRsrcList());

@@ -386,7 +386,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.vertexLocationHint = vertexLocationHint;
 
     this.taskResource = DagTypeConverters.CreateResourceRequestFromTaskConfig(vertexPlan.getTaskConfig());
-    this.processorName = vertexPlan.hasProcessorName() ? vertexPlan.getProcessorName() : null;
+    this.processorName = vertexPlan.hasProcessorDescriptor() ? vertexPlan.getProcessorDescriptor().getClassName() : null; // TODO Error if this is not set.
     this.localResources = DagTypeConverters.createLocalResourceMapFromDAGPlan(vertexPlan.getTaskConfig().getLocalResourceList());
     this.environment = DagTypeConverters.createEnvironmentMapFromDAGPlan(vertexPlan.getTaskConfig().getEnvironmentSettingList());
     this.javaOpts = vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan.getTaskConfig().getJavaOpts() : null;
@@ -1282,7 +1282,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     for (Entry<Vertex, EdgeProperty> entry : this.getInputVertices().entrySet()) {
       InputSpec inputSpec = new InputSpec(entry.getKey().getName(),
           entry.getKey().getTotalTasks(),
-          entry.getValue().getInputClass());
+          entry.getValue().getInputDescriptor().getClassName());
       if (LOG.isDebugEnabled()) {
         LOG.debug("For vertex : " + this.getName()
             + ", Using InputSpec : " + inputSpec);
@@ -1301,7 +1301,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       for (Entry<Vertex, EdgeProperty> entry : this.getOutputVertices().entrySet()) {
         OutputSpec outputSpec = new OutputSpec(entry.getKey().getName(),
             entry.getKey().getTotalTasks(),
-            entry.getValue().getOutputClass());
+            entry.getValue().getOutputDescriptor().getClassName());
         if (LOG.isDebugEnabled()) {
           LOG.debug("For vertex : " + this.getName()
               + ", Using OutputSpec : " + outputSpec);

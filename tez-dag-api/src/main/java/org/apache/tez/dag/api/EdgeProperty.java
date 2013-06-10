@@ -33,17 +33,17 @@ public class EdgeProperty { // FIXME rename to ChannelProperty
   
   ConnectionPattern connectionPattern;
   SourceType sourceType;
-  String inputClass;
-  String outputClass;
+  InputDescriptor inputDescriptor;
+  OutputDescriptor outputDescriptor;
   
   public EdgeProperty(ConnectionPattern connectionPattern, 
                        SourceType sourceType,
-                       String inputClass,
-                       String outputClass) {
+                       InputDescriptor inputDescriptor,
+                       OutputDescriptor outputDescriptor) {
     this.connectionPattern = connectionPattern;
     this.sourceType = sourceType;
-    this.inputClass = inputClass;
-    this.outputClass = outputClass;
+    this.inputDescriptor = inputDescriptor;
+    this.outputDescriptor = outputDescriptor;
   }
   
   public ConnectionPattern getConnectionPattern() {
@@ -54,18 +54,18 @@ public class EdgeProperty { // FIXME rename to ChannelProperty
     return sourceType;
   }
   
-  public String getInputClass() {
-    return inputClass;
+  public InputDescriptor getInputDescriptor() {
+    return inputDescriptor;
   }
   
-  public String getOutputClass() {
-    return outputClass;
+  public OutputDescriptor getOutputDescriptor() {
+    return outputDescriptor;
   }
   
   @Override
   public String toString() {
-    return "{ " + connectionPattern + " : " 
-            + inputClass + " >> " + sourceType + " >> " + outputClass + " }";
+    return "{ " + connectionPattern + " : " + inputDescriptor.getClassName()
+        + " >> " + sourceType + " >> " + outputDescriptor.getClassName() + " }";
   }
   
 }
