@@ -878,40 +878,14 @@ public class YARNRunner implements ClientProtocol {
   public void killJob(JobID arg0) throws IOException, InterruptedException {
     /* check if the status is not running, if not send kill to RM */
     JobStatus status = clientCache.getClient(arg0).getJobStatus(arg0);
-    if (status.getState() != JobStatus.State.RUNNING) {
+    if (status.getState() == JobStatus.State.RUNNING || 
+        status.getState() == JobStatus.State.PREP) {
       try {
         resMgrDelegate.killApplication(TypeConverter.toYarn(arg0).getAppId());
       } catch (YarnException e) {
         throw new IOException(e);
       }
       return;
-    }
-
-    try {
-      /* send a kill to the AM */
-      clientCache.getClient(arg0).killJob(arg0);
-      long currentTimeMillis = System.currentTimeMillis();
-      long timeKillIssued = currentTimeMillis;
-      while ((currentTimeMillis < timeKillIssued + 10000L) && (status.getState()
-          != JobStatus.State.KILLED)) {
-          try {
-            Thread.sleep(1000L);
-          } catch(InterruptedException ie) {
-            /** interrupted, just break */
-            break;
-          }
-          currentTimeMillis = System.currentTimeMillis();
-          status = clientCache.getClient(arg0).getJobStatus(arg0);
-      }
-    } catch(IOException io) {
-      LOG.debug("Error when checking for application status", io);
-    }
-    if (status.getState() != JobStatus.State.KILLED) {
-      try {
-        resMgrDelegate.killApplication(TypeConverter.toYarn(arg0).getAppId());
-      } catch (YarnException e) {
-        throw new IOException(e);
-      }
     }
   }
 
