@@ -61,7 +61,7 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.ProgressBuilder;
@@ -764,7 +764,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         logJobHistoryVertexFinishedEvent();
         break;
       default:
-        throw new TezException("Unexpected VertexState: " + finalState);
+        throw new TezUncheckedException("Unexpected VertexState: " + finalState);
     }
     return finalState;
   }

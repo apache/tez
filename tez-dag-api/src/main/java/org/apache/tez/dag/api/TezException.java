@@ -19,12 +19,10 @@
 package org.apache.tez.dag.api;
 
 /**
- * Base Tez Exception
+ *  Base TezException
  */
-public class TezException extends RuntimeException {
-
-  private static final long serialVersionUID = -4956339297375386184L;
-  
+public class TezException extends Exception {
+  private static final long serialVersionUID = 6337442733802964447L;
   public TezException(Throwable cause) { super(cause); }
   public TezException(String message) { super(message); }
   public TezException(String message, Throwable cause) {

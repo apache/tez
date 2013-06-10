@@ -32,7 +32,7 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezRemoteException;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 
@@ -110,7 +110,7 @@ public class ClientServiceDelegate {
       // return status from client. use saved appReport for queue etc
       DAGStatus dagStatus = dagClient.getDAGStatus(currentDAGId);
       return new DAGJobStatus(appReport, dagStatus, jobFile);
-    } catch (TezRemoteException e) {
+    } catch (TezException e) {
       // AM not responding
       dagClient = null;
       currentDAGId = null;

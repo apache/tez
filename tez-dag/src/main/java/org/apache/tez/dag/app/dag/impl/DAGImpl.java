@@ -57,7 +57,7 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
@@ -1207,7 +1207,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         dag.dagScheduler.scheduleTask(sEvent);
         break;
       default:
-        throw new TezException("Unknown DAGEventSchedulerUpdate:"
+        throw new TezUncheckedException("Unknown DAGEventSchedulerUpdate:"
                                 + sEvent.getUpdateType());
     }
   }

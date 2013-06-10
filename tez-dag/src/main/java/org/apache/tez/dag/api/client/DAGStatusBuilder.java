@@ -22,7 +22,7 @@ import java.util.List;
 
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
 import org.apache.tez.dag.api.records.DAGProtos.StringProgressPairProto;
-import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto.Builder;
 import org.apache.tez.dag.api.client.DAGStatus;
@@ -76,7 +76,7 @@ public class DAGStatusBuilder extends DAGStatus {
     case ERROR:
       return DAGStatusStateProto.DAG_ERROR;
     default:
-      throw new TezException("Unsupported value for DAGState : " + state);
+      throw new TezUncheckedException("Unsupported value for DAGState : " + state);
     }
   }
   

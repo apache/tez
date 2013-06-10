@@ -29,7 +29,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.VertexStatus;
@@ -42,7 +42,7 @@ public class TezClient {
     this.conf = conf;
   }
 
-  public DAGClient getDAGClient(String appIdStr) throws IOException, TezException {
+  public DAGClient getDAGClient(String appIdStr) throws IOException, TezUncheckedException {
     try {
       ApplicationId appId = ConverterUtils.toApplicationId(appIdStr);
       YarnClient yarnClient = new YarnClientImpl();
@@ -53,7 +53,7 @@ public class TezClient {
       int port = appReport.getRpcPort();
       return getDAGClient(host, port);
     } catch (YarnException e) {
-      throw new TezException(e);
+      throw new TezUncheckedException(e);
     }
   }
   

@@ -33,7 +33,7 @@ import org.apache.hadoop.mapreduce.TypeConverter;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.yarn.YarnRuntimeException;
-import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.committer.VertexContext;
 import org.apache.tez.dag.api.committer.VertexOutputCommitter;
@@ -116,7 +116,7 @@ public class MRVertexOutputCommitter extends VertexOutputCommitter {
     case ERROR:
       return JobStatus.State.FAILED;
     default:
-      throw new TezException("Unknown VertexStatus.State: " + state);
+      throw new TezUncheckedException("Unknown VertexStatus.State: " + state);
     }
   }
 

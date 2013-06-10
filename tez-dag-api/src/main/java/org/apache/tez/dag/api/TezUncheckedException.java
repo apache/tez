@@ -19,13 +19,15 @@
 package org.apache.tez.dag.api;
 
 /**
- *  Base TezRemoteException
+ * Base Tez Unchecked Exception
  */
-public class TezRemoteException extends Exception {
-  private static final long serialVersionUID = 6337442733802964447L;
-  public TezRemoteException(Throwable cause) { super(cause); }
-  public TezRemoteException(String message) { super(message); }
-  public TezRemoteException(String message, Throwable cause) {
+public class TezUncheckedException extends RuntimeException {
+
+  private static final long serialVersionUID = -4956339297375386184L;
+  
+  public TezUncheckedException(Throwable cause) { super(cause); }
+  public TezUncheckedException(String message) { super(message); }
+  public TezUncheckedException(String message, Throwable cause) {
     super(message, cause);
   }
 }

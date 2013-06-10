@@ -26,6 +26,7 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.records.TezDAGID;
@@ -80,7 +81,7 @@ public class TestVertexScheduler {
     try {
      scheduler = new BipartiteSlowStartVertexScheduler(mockManagedVertex, 0, 0);
      Assert.assertFalse(true);
-    } catch (TezException e) {
+    } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains(
           "Atleast 1 bipartite source should exist"));
     }

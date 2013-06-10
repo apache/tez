@@ -21,7 +21,7 @@ package org.apache.tez.dag.api.client;
 import java.util.List;
 
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProtoOrBuilder;
-import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 
 public class VertexStatus {
   
@@ -56,7 +56,7 @@ public class VertexStatus {
     case VERTEX_ERROR:
       return VertexStatus.State.ERROR;
     default:
-      throw new TezException("Unsupported value for VertexStatus.State : " + 
+      throw new TezUncheckedException("Unsupported value for VertexStatus.State : " + 
                               proxy.getState());
     }    
   }

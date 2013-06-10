@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGScheduler;
 import org.apache.tez.dag.app.dag.TaskAttempt;
@@ -53,7 +53,7 @@ public class DAGSchedulerMRR implements DAGScheduler {
         String message = vertex.getVertexId() + " finished. Expecting "
             + currentPartitioner + " to finish.";
         LOG.fatal(message);
-        throw new TezException(message);
+        throw new TezUncheckedException(message);
       }
       LOG.info("Current partitioner " + currentPartitioner.getVertexId()
           + " is completed. " 
@@ -99,7 +99,7 @@ public class DAGSchedulerMRR implements DAGScheduler {
           + " current partitioner: " + currentPartitioner.getVertexId()
           + " nor the current shuffler: " + currentShuffler.getVertexId();
       LOG.fatal(message);
-      throw new TezException(message);      
+      throw new TezUncheckedException(message);      
     }    
 
     // natural priority. Handles failures and retries.

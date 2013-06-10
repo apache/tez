@@ -21,7 +21,7 @@ package org.apache.tez.dag.api.client.rpc;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.tez.dag.api.TezRemoteException;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
@@ -53,7 +53,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
     try{
       List<String> dagIds = real.getAllDAGs();
       return GetAllDAGsResponseProto.newBuilder().addAllDagId(dagIds).build();
-    } catch(TezRemoteException e) {
+    } catch(TezException e) {
       throw wrapException(e);
     } catch(IOException e) {
       throw wrapException(e);
@@ -71,7 +71,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
       DAGStatusBuilder builder = (DAGStatusBuilder) status;
       return GetDAGStatusResponseProto.newBuilder().
                                 setDagStatus(builder.getProto()).build();
-    } catch (TezRemoteException e) {
+    } catch (TezException e) {
       throw wrapException(e);
     } catch(IOException e) {
       throw wrapException(e);
@@ -89,7 +89,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
       VertexStatusBuilder builder = (VertexStatusBuilder) status;
       return GetVertexStatusResponseProto.newBuilder().
                             setVertexStatus(builder.getProto()).build();
-    } catch (TezRemoteException e) {
+    } catch (TezException e) {
       throw wrapException(e);
     } catch(IOException e) {
       throw wrapException(e);

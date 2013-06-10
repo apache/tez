@@ -25,7 +25,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexScheduler;
@@ -77,7 +77,7 @@ public class BipartiteSlowStartVertexScheduler implements VertexScheduler {
       }
     }
     if(bipartiteSources.isEmpty()) {
-      throw new TezException("Atleast 1 bipartite source should exist");
+      throw new TezUncheckedException("Atleast 1 bipartite source should exist");
     }
   }
   

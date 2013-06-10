@@ -30,7 +30,7 @@ import org.apache.hadoop.ipc.RPC.Server;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPBServerImpl;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.DAGClientAMProtocol;
@@ -75,7 +75,7 @@ public class DAGClientServer extends AbstractService {
       super.start();
     } catch (Exception e) {
       LOG.error("Failed to start DAGClientServer: ", e);
-      throw new TezException(e);
+      throw new TezUncheckedException(e);
     }
   }
   

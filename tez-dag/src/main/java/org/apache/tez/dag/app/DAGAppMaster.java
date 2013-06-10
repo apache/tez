@@ -72,7 +72,7 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezRemoteException;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
@@ -713,34 +713,34 @@ public class DAGAppMaster extends CompositeService {
   class DAGClientHandler implements DAGClient {
 
     @Override
-    public List<String> getAllDAGs() throws TezRemoteException {
+    public List<String> getAllDAGs() throws TezException {
       return Collections.singletonList(dag.getID().toString());
     }
 
     @Override
     public DAGStatus getDAGStatus(String dagIdStr)
-                                      throws IOException, TezRemoteException {
+                                      throws IOException, TezException {
       return getDAG(dagIdStr).getDAGStatus();
     }
 
     @Override
     public VertexStatus getVertexStatus(String dagIdStr, String vertexName)
-        throws IOException, TezRemoteException{
+        throws IOException, TezException{
       VertexStatus status = getDAG(dagIdStr).getVertexStatus(vertexName);
       if(status == null) {
-        throw new TezRemoteException("Unknown vertexName: " + vertexName);
+        throw new TezException("Unknown vertexName: " + vertexName);
       }
 
       return status;
     }
 
-    DAG getDAG(String dagIdStr) throws IOException, TezRemoteException {
+    DAG getDAG(String dagIdStr) throws IOException, TezException {
       TezDAGID dagId = TezDAGID.fromString(dagIdStr);
       if(dagId == null) {
-        throw new TezRemoteException("Bad dagId: " + dagIdStr);
+        throw new TezException("Bad dagId: " + dagIdStr);
       }
       if(!dagId.equals(dag.getID())) {
-        throw new TezRemoteException("Unknown dagId: " + dagIdStr);
+        throw new TezException("Unknown dagId: " + dagIdStr);
       }
       return dag;
     }
