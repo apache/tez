@@ -37,7 +37,7 @@ public class TezConfiguration extends Configuration {
   }
 
   public static final String TEZ_PREFIX = "tez.";
-  public static final String DAG_AM_PREFIX = TEZ_PREFIX + "dag.am.";
+  public static final String TEZ_AM_PREFIX = TEZ_PREFIX + "dag.am.";
   
   public static final String DAG_AM_STAGING_DIR = TEZ_PREFIX + "staging-dir";
   public static final String DAG_AM_STAGING_DIR_DEFAULT = "/tmp/hadoop-yarn/staging";
@@ -48,6 +48,14 @@ public class TezConfiguration extends Configuration {
   public static final String DAG_APPLICATION_MASTER_CLASS = 
       "org.apache.tez.dag.app.DAGAppMaster";
 
+  /** Root Logging level passed to the Tez app master.*/
+  public static final String TEZ_AM_LOG_LEVEL = TEZ_AM_PREFIX+"log.level";
+  public static final String DEFAULT_TEZ_AM_LOG_LEVEL = "INFO";
+  
+  public static final String TEZ_AM_CANCEL_DELEGATION_TOKEN = TEZ_AM_PREFIX + 
+      "am.complete.cancel.delegation.tokens";
+  public static final boolean DEFAULT_TEZ_AM_CANCEL_DELEGATION_TOKEN = true;
+  
   public static final String DAG_AM_TASK_LISTENER_THREAD_COUNT = 
                                 TEZ_PREFIX + "task.listener.thread-count";
   public static final int DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
@@ -63,7 +71,7 @@ public class TezConfiguration extends Configuration {
   public static final int DAG_MAX_TASK_FAILURES_PER_NODE_DEFAULT = 3;
   
   public static final String DAG_MAX_TASK_ATTEMPTS = 
-      DAG_AM_PREFIX + "max.task.attempts";
+      TEZ_AM_PREFIX + "max.task.attempts";
   public static final int DAG_MAX_TASK_ATTEMPTS_DEFAULT = 4;
   
   public static final String DAG_NODE_BLACKLISTING_ENABLED = TEZ_PREFIX
@@ -85,11 +93,11 @@ public class TezConfiguration extends Configuration {
                                     TEZ_PREFIX + "client.am.port-range";
 
 
-  public static final String DAG_AM_RESOURCE_MEMORY_MB = DAG_AM_PREFIX
+  public static final String DAG_AM_RESOURCE_MEMORY_MB = TEZ_AM_PREFIX
       + "resource.memory.mb";
   public static final int DEFAULT_DAG_AM_RESOURCE_MEMORY_MB = 1024;
 
-  public static final String DAG_AM_RESOURCE_CPU_VCORES = DAG_AM_PREFIX
+  public static final String DAG_AM_RESOURCE_CPU_VCORES = TEZ_AM_PREFIX
       + "resource.cpu.vcores";
   public static final int DEFAULT_DAG_AM_RESOURCE_CPU_VCORES = 1;
   

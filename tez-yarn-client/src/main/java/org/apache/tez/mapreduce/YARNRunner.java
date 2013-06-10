@@ -19,9 +19,8 @@
 package org.apache.tez.mapreduce;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,7 +39,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.UnsupportedFileSystemException;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.mapred.JobConf;
@@ -50,6 +48,7 @@ import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.JobStatus;
+import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty.SourceType;
 import org.apache.tez.engine.lib.input.ShuffledMergedInput;
@@ -75,11 +74,8 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.YarnRuntimeException;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
-import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
-import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -92,7 +88,6 @@ import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.dag.api.DAG;
-import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -129,6 +124,9 @@ public class YARNRunner implements ClientProtocol {
   final public static FsPermission DAG_FILE_PERMISSION =
       FsPermission.createImmutable((short) 0644);
   final public static int UTF8_CHUNK_SIZE = 16 * 1024;
+  
+  private final TezConfiguration tezConf;
+  private final TezClient tezClient;
 
   /**
    * Yarn runner incapsulates the client interface of
@@ -159,10 +157,13 @@ public class YARNRunner implements ClientProtocol {
   public YARNRunner(Configuration conf, ResourceMgrDelegate resMgrDelegate,
       ClientCache clientCache) {
     this.conf = conf;
+    this.tezConf = new TezConfiguration(conf);
     try {
       this.resMgrDelegate = resMgrDelegate;
+      this.tezClient = new TezClient(tezConf);
       this.clientCache = clientCache;
       this.defaultFileContext = FileContext.getFileContext(this.conf);
+      
     } catch (UnsupportedFileSystemException ufe) {
       throw new RuntimeException("Error in instantiating YarnClient", ufe);
     }
@@ -459,7 +460,7 @@ public class YARNRunner implements ClientProtocol {
 
     // FIXME for this to work, we need YARN-561 and the task runtime changed
     // to use YARN-561
-
+    // TODO TEZ-194 - addTezClasspathToEnv() probably does not work. 
     addTezClasspathToEnv(conf, environment);
     Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
         getInitialClasspath(conf));
@@ -697,178 +698,6 @@ public class YARNRunner implements ClientProtocol {
     }
   }
 
-  private ApplicationSubmissionContext createApplicationSubmissionContext(
-      FileSystem fs, DAG dag,
-      Configuration jobConf, String jobSubmitDir, Credentials ts,
-      Map<String, LocalResource> jobLocalResources) throws IOException {
-
-    ApplicationId applicationId = resMgrDelegate.getApplicationId();
-
-    // Setup resource requirements
-    Resource capability = Records.newRecord(Resource.class);
-    capability.setMemory(
-        conf.getInt(TezConfiguration.DAG_AM_RESOURCE_MEMORY_MB,
-            TezConfiguration.DEFAULT_DAG_AM_RESOURCE_MEMORY_MB));
-    capability.setVirtualCores(
-        conf.getInt(TezConfiguration.DAG_AM_RESOURCE_CPU_VCORES,
-            TezConfiguration.DEFAULT_DAG_AM_RESOURCE_CPU_VCORES));
-    LOG.debug("AppMaster capability = " + capability);
-
-    // Setup security tokens
-    DataOutputBuffer dob = new DataOutputBuffer();
-    ts.writeTokenStorageToStream(dob);
-    ByteBuffer securityTokens  = ByteBuffer.wrap(dob.getData(),
-        0, dob.getLength());
-
-    // Setup the command to run the AM
-    List<String> vargs = new ArrayList<String>(8);
-    vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
-
-//[Debug AppMaster] Current simplest way to attach debugger to AppMaster
-// Uncomment the following, then launch a regular job, eg
-// >hadoop jar {path}\hadoop-mapreduce-examples-3.0.0-SNAPSHOT.jar pi 2 2
-//     LOG.error(" !!!!!!!!!");
-//     LOG.error(" !!!!!!!!! Launching AppMaster in debug/suspend mode.  Attach to port 8002");
-//     LOG.error(" !!!!!!!!!");
-//     vargs.add("-Xdebug -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=8002,server=y,suspend=y");
-
-    // TODO -Dtez.root.logger??
-    String amLogLevel = jobConf.get(MRJobConfig.MR_AM_LOG_LEVEL,
-        MRJobConfig.DEFAULT_MR_AM_LOG_LEVEL);
-    addLog4jSystemProperties(amLogLevel, vargs);
-
-    // FIXME admin command opts and user command opts for tez?
-    String mrAppMasterAdminOptions = conf.get(MRJobConfig.MR_AM_ADMIN_COMMAND_OPTS,
-        MRJobConfig.DEFAULT_MR_AM_ADMIN_COMMAND_OPTS);
-    warnForJavaLibPath(mrAppMasterAdminOptions, "app master",
-        MRJobConfig.MR_AM_ADMIN_COMMAND_OPTS, MRJobConfig.MR_AM_ADMIN_USER_ENV);
-    vargs.add(mrAppMasterAdminOptions);
-
-    // Add AM user command opts
-    String mrAppMasterUserOptions = conf.get(MRJobConfig.MR_AM_COMMAND_OPTS,
-        MRJobConfig.DEFAULT_MR_AM_COMMAND_OPTS);
-    warnForJavaLibPath(mrAppMasterUserOptions, "app master",
-        MRJobConfig.MR_AM_COMMAND_OPTS, MRJobConfig.MR_AM_ENV);
-    vargs.add(mrAppMasterUserOptions);
-
-    vargs.add(TezConfiguration.DAG_APPLICATION_MASTER_CLASS);
-    vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
-        Path.SEPARATOR + ApplicationConstants.STDOUT);
-    vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
-        Path.SEPARATOR + ApplicationConstants.STDERR);
-
-
-    Vector<String> vargsFinal = new Vector<String>(8);
-    // Final command
-    StringBuilder mergedCommand = new StringBuilder();
-    for (CharSequence str : vargs) {
-      mergedCommand.append(str).append(" ");
-    }
-    vargsFinal.add(mergedCommand.toString());
-
-    LOG.debug("Command to launch container for ApplicationMaster is : "
-        + mergedCommand);
-
-    // Setup the CLASSPATH in environment
-    // i.e. add { Hadoop jars, job jar, CWD } to classpath.
-    Map<String, String> environment = new HashMap<String, String>();
-    addTezClasspathToEnv(conf, environment);
-    Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-        getInitialClasspath(conf));
-
-    // Setup the environment variables for Admin first
-    MRApps.setEnvFromInputString(environment,
-        conf.get(MRJobConfig.MR_AM_ADMIN_USER_ENV));
-    // Setup the environment variables (LD_LIBRARY_PATH, etc)
-    MRApps.setEnvFromInputString(environment,
-        conf.get(MRJobConfig.MR_AM_ENV));
-
-    // FIXME remove this
-    Map<String, LocalResource> localResources =
-        new TreeMap<String, LocalResource>();
-
-    localResources.putAll(jobLocalResources);
-
-    setDAGParamsFromMRConf(dag);
-
-    // emit protobuf DAG file style
-    DAGPlan dagPB = dag.createDag();
-    FSDataOutputStream dagPBOutBinaryStream = null;
-    FSDataOutputStream dagPBOutTextStream = null;
-    Path binaryPath =  new Path(jobSubmitDir,
-        TezConfiguration.DAG_AM_PLAN_PB_BINARY);
-    Path textPath =  new Path(jobSubmitDir,
-        TezConfiguration.DAG_AM_PLAN_PB_TEXT);
-    try {
-      //binary output
-      dagPBOutBinaryStream = FileSystem.create(fs, binaryPath,
-          new FsPermission(DAG_FILE_PERMISSION));
-      dagPB.writeTo(dagPBOutBinaryStream);
-
-      // text / human-readable output
-      dagPBOutTextStream = FileSystem.create(fs, textPath,
-          new FsPermission(DAG_FILE_PERMISSION));
-      String dagPBStr = dagPB.toString();
-      int dagPBStrLen = dagPBStr.length();
-      if (dagPBStrLen <= UTF8_CHUNK_SIZE) {
-        dagPBOutTextStream.writeUTF(dagPBStr);
-      } else {
-        int startIndex = 0;
-        while (startIndex < dagPBStrLen) {
-          int endIndex = startIndex + UTF8_CHUNK_SIZE;
-          if (endIndex > dagPBStrLen) {
-            endIndex = dagPBStrLen;
-          }
-          dagPBOutTextStream.writeUTF(
-              dagPBStr.substring(startIndex, endIndex));
-          startIndex += UTF8_CHUNK_SIZE;
-        }
-      }
-    } finally {
-      if(dagPBOutBinaryStream != null){
-        dagPBOutBinaryStream.close();
-      }
-      if(dagPBOutTextStream != null){
-        dagPBOutTextStream.close();
-      }
-    }
-
-    localResources.put(TezConfiguration.DAG_AM_PLAN_PB_BINARY,
-        createApplicationResource(defaultFileContext,
-            binaryPath, LocalResourceType.FILE));
-
-    localResources.put(TezConfiguration.DAG_AM_PLAN_PB_TEXT,
-        createApplicationResource(defaultFileContext,
-            textPath, LocalResourceType.FILE));
-
-    // FIXME are we using MR acls for tez?
-    Map<ApplicationAccessType, String> acls
-        = new HashMap<ApplicationAccessType, String>();
-
-    // Setup ContainerLaunchContext for AM container
-    ContainerLaunchContext amContainer =
-        ContainerLaunchContext.newInstance(localResources, environment,
-            vargsFinal, null, securityTokens, acls);
-
-    // Set up the ApplicationSubmissionContext
-    ApplicationSubmissionContext appContext = Records
-        .newRecord(ApplicationSubmissionContext.class);
-
-    appContext.setApplicationId(applicationId);                // ApplicationId
-    appContext.setResource(capability);                        // resource
-    appContext.setQueue(                                       // Queue name
-        jobConf.get(JobContext.QUEUE_NAME,
-        YarnConfiguration.DEFAULT_QUEUE_NAME));
-    appContext.setApplicationName(                             // Job name
-        jobConf.get(JobContext.JOB_NAME,
-        YarnConfiguration.DEFAULT_APPLICATION_NAME));
-    appContext.setCancelTokensWhenComplete(
-        conf.getBoolean(MRJobConfig.JOB_CANCEL_DELEGATION_TOKEN, true));
-    appContext.setAMContainerSpec(amContainer);         // AM Container
-
-    return appContext;
-  }
-
   private void writeTezConf(String jobSubmitDir, FileSystem fs,
       Configuration tezConf) throws IOException {
     Path dagConfFilePath = new Path(jobSubmitDir, MRJobConfig.JOB_CONF_FILE);
@@ -886,6 +715,7 @@ public class YARNRunner implements ClientProtocol {
   public JobStatus submitJob(JobID jobId, String jobSubmitDir, Credentials ts)
   throws IOException, InterruptedException {
 
+    // TEZ-192 - stop using token file 
     // Upload only in security mode: TODO
     Path applicationTokensFile =
         new Path(jobSubmitDir, MRJobConfig.APPLICATION_TOKENS_FILE);
@@ -895,6 +725,8 @@ public class YARNRunner implements ClientProtocol {
       throw new YarnRuntimeException(e);
     }
 
+    ApplicationId appId = resMgrDelegate.getApplicationId();
+    
     FileSystem fs = FileSystem.get(conf);
     JobConf jobConf = new JobConf(new TezConfiguration(conf));
     Configuration tezJobConf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
@@ -902,6 +734,8 @@ public class YARNRunner implements ClientProtocol {
     // This will replace job.xml in the staging dir.
     writeTezConf(jobSubmitDir, fs, tezJobConf);
 
+    // create inputs to tezClient.submit()
+    
     // FIXME set up job resources
     Map<String, LocalResource> jobLocalResources =
         createJobLocalResources(tezJobConf, jobSubmitDir);
@@ -910,17 +744,53 @@ public class YARNRunner implements ClientProtocol {
     // MR keys.
     DAG dag = createDAG(fs, jobId, jobConf, jobSubmitDir, ts,
         jobLocalResources);
-    ApplicationSubmissionContext appContext =
-        createApplicationSubmissionContext(fs, dag, tezJobConf, jobSubmitDir, ts,
-            jobLocalResources);
+
+    List<String> vargs = new LinkedList<String>();
+    // FIXME admin command opts and user command opts for tez?
+    String mrAppMasterAdminOptions = conf.get(MRJobConfig.MR_AM_ADMIN_COMMAND_OPTS,
+        MRJobConfig.DEFAULT_MR_AM_ADMIN_COMMAND_OPTS);
+    warnForJavaLibPath(mrAppMasterAdminOptions, "app master",
+        MRJobConfig.MR_AM_ADMIN_COMMAND_OPTS, MRJobConfig.MR_AM_ADMIN_USER_ENV);
+    vargs.add(mrAppMasterAdminOptions);
+
+    // Add AM user command opts
+    String mrAppMasterUserOptions = conf.get(MRJobConfig.MR_AM_COMMAND_OPTS,
+        MRJobConfig.DEFAULT_MR_AM_COMMAND_OPTS);
+    warnForJavaLibPath(mrAppMasterUserOptions, "app master",
+        MRJobConfig.MR_AM_COMMAND_OPTS, MRJobConfig.MR_AM_ENV);
+    vargs.add(mrAppMasterUserOptions);
+
+    // Setup the CLASSPATH in environment
+    // i.e. add { Hadoop jars, job jar, CWD } to classpath.
+    Map<String, String> environment = new HashMap<String, String>();
+    Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
+        getInitialClasspath(conf));
+
+    // Setup the environment variables for Admin first
+    MRApps.setEnvFromInputString(environment,
+        conf.get(MRJobConfig.MR_AM_ADMIN_USER_ENV));
+    // Setup the environment variables (LD_LIBRARY_PATH, etc)
+    MRApps.setEnvFromInputString(environment,
+        conf.get(MRJobConfig.MR_AM_ENV));
+
+    setDAGParamsFromMRConf(dag);
 
     // Submit to ResourceManager
     try {
-      ApplicationId applicationId = resMgrDelegate
-          .submitApplication(appContext);
+      Path appStagingDir = fs.resolvePath(new Path(jobSubmitDir));
+      tezClient.submitDAGApplication(
+          appId,
+          dag, 
+          appStagingDir, 
+          ts,
+          jobConf.get(JobContext.QUEUE_NAME, YarnConfiguration.DEFAULT_QUEUE_NAME), 
+          jobConf.get(JobContext.JOB_NAME, YarnConfiguration.DEFAULT_APPLICATION_NAME), 
+          vargs, 
+          environment, 
+          jobLocalResources);
 
       ApplicationReport appMasterReport = resMgrDelegate
-          .getApplicationReport(applicationId);
+          .getApplicationReport(appId);
       String diagnostics = (appMasterReport == null ? "application report is null"
           : appMasterReport.getDiagnostics());
       if (appMasterReport == null
