@@ -855,6 +855,7 @@ public class DAGAppMaster extends CompositeService {
 
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public void start() {
 

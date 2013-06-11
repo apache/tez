@@ -69,7 +69,6 @@ public class MapProcessor extends MRTask implements Processor {
   public void initialize(Configuration conf, Master master) throws IOException,
   InterruptedException {
     super.initialize(conf, master);
-    
   }
 
   @Override

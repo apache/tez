@@ -261,7 +261,7 @@ public class LocalJobRunner implements ClientProtocol {
             map_tasks.getAndIncrement();
             myMetrics.launchMap(mapId);
             Task t = RuntimeUtils.createRuntimeTask(taskContext);
-            t.initialize(localConf, Job.this);
+            t.initialize(localConf, null, Job.this);
             t.run();
             myMetrics.completeMap(mapId);
           } finally {
@@ -488,7 +488,7 @@ public class LocalJobRunner implements ClientProtocol {
               reduce_tasks += 1;
               myMetrics.launchReduce(reduceId);
               Task t = RuntimeUtils.createRuntimeTask(taskContext);
-              t.initialize(localConf, Job.this);
+              t.initialize(localConf, null, Job.this);
               t.run();
               myMetrics.completeReduce(reduceId);
               reduce_tasks -= 1;

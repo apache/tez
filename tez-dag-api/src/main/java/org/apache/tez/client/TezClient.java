@@ -270,11 +270,14 @@ public class TezClient {
             TezConfiguration.DEFAULT_DAG_AM_RESOURCE_CPU_VCORES));
     LOG.debug("AppMaster capability = " + capability);
 
+    ByteBuffer securityTokens = null;
     // Setup security tokens
-    DataOutputBuffer dob = new DataOutputBuffer();
-    ts.writeTokenStorageToStream(dob);
-    ByteBuffer securityTokens  = ByteBuffer.wrap(dob.getData(),
-        0, dob.getLength());
+    if (ts != null) {
+      DataOutputBuffer dob = new DataOutputBuffer();
+      ts.writeTokenStorageToStream(dob);
+      securityTokens = ByteBuffer.wrap(dob.getData(), 0,
+          dob.getLength());
+    }
 
     // Setup the command to run the AM
     List<String> vargs = new ArrayList<String>(8);
@@ -309,7 +312,7 @@ public class TezClient {
     Map<String, String> environment = new HashMap<String, String>();
     addTezClasspathToEnv(conf, environment);
     
-    for(Map.Entry<String, String> entry : amEnv.entrySet()) {
+    for (Map.Entry<String, String> entry : amEnv.entrySet()) {
       Apps.addToEnvironment(environment, entry.getKey(), entry.getValue());
     }
 
@@ -319,10 +322,13 @@ public class TezClient {
     localResources.putAll(amLocalResources);
     
     // emit protobuf DAG file style
-    DAGPlan dagPB = dag.createDag();
-    FSDataOutputStream dagPBOutBinaryStream = null;
     Path binaryPath =  new Path(appStagingDir,
         TezConfiguration.DAG_AM_PLAN_PB_BINARY + "." + appId.toString());
+    dag.addConfiguration(TezConfiguration.DAG_AM_PLAN_REMOTE_PATH,
+        binaryPath.toUri().toString());
+    DAGPlan dagPB = dag.createDag();
+    FSDataOutputStream dagPBOutBinaryStream = null;
+    
     try {
       //binary output
       dagPBOutBinaryStream = FileSystem.create(fs, binaryPath,

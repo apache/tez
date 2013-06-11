@@ -44,7 +44,6 @@ import org.apache.hadoop.mapreduce.split.JobSplit;
 import org.apache.hadoop.mapreduce.split.JobSplit.SplitMetaInfo;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
-import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
@@ -110,6 +109,7 @@ public class MapUtils {
     FileInputFormat.setInputPaths(job, workDir);
 
     // create a file with length entries
+    @SuppressWarnings("deprecation")
     SequenceFile.Writer writer = 
         SequenceFile.createWriter(fs, job, file, 
             LongWritable.class, Text.class);
@@ -188,7 +188,7 @@ public class MapUtils {
         inputSpecs, outputSpecs);
 
     Task t = RuntimeUtils.createRuntimeTask(taskContext);
-    t.initialize(jobConf, umbilical);
+    t.initialize(jobConf, null, umbilical);
     t.getProcessor().process(t.getInputs(), t.getOutputs());
     return t;
   }

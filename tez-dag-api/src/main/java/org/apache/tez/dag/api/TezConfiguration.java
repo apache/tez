@@ -113,7 +113,7 @@ public class TezConfiguration extends Configuration {
   public static final float 
           SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT = 0.8f;
 
-private static final String TEZ_CONF_DIR_ENV = "TEZ_CONF_DIR";
+  private static final String TEZ_CONF_DIR_ENV = "TEZ_CONF_DIR";
   private static final String TEZ_HOME_ENV = "TEZ_HOME";
 
   public static final String TEZ_APPLICATION_CLASSPATH = TEZ_PREFIX
@@ -123,6 +123,15 @@ private static final String TEZ_CONF_DIR_ENV = "TEZ_CONF_DIR";
     TEZ_HOME_ENV + "/*",
     TEZ_HOME_ENV + "/lib/*"
   };
+
+  /**
+   * The complete path to the serialized dag plan file
+   * <code>DAG_AM_PLAN_PB_BINARY</code>. Used to make the plan available to
+   * individual tasks. This will typically be a path in the job submit
+   * directory.
+   */
+  public static final String DAG_AM_PLAN_REMOTE_PATH = TEZ_PREFIX
+      + "dag-am-plan.remote.path";
 
   public static final String DAG_AM_PLAN_PB_BINARY = "tez-dag.pb";
   public static final String DAG_AM_PLAN_PB_TEXT = "tez-dag.pb.txt";

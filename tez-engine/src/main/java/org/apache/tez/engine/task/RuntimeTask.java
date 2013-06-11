@@ -18,6 +18,7 @@
 package org.apache.tez.engine.task;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezEngineTaskContext;
@@ -34,6 +35,7 @@ public class RuntimeTask implements Task {
   protected final Processor processor;
   
   protected TezEngineTaskContext taskContext;
+  protected ByteBuffer userPayload;
   protected Configuration conf;
   protected Master master;
   
@@ -47,9 +49,11 @@ public class RuntimeTask implements Task {
     this.outputs = outputs;
   }
 
-  public void initialize(Configuration conf, Master master) throws IOException,
-      InterruptedException {
+  @Override
+  public void initialize(Configuration conf, ByteBuffer userPayload,
+      Master master) throws IOException, InterruptedException {
     this.conf = conf;
+    this.userPayload = userPayload;
     this.master = master;
 
     // NOTE: Allow processor to initialize input/output

@@ -143,7 +143,7 @@ public class TestReduceProcessor {
                 SimpleOutput.class.getName())));
     
     Task t = RuntimeUtils.createRuntimeTask(taskContext);
-    t.initialize(reduceConf, new TestUmbilicalProtocol());
+    t.initialize(reduceConf, null, new TestUmbilicalProtocol());
     t.run();
     t.close();
     

@@ -76,8 +76,7 @@ import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.hadoop.mapreduce.JobContextImpl;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 
-public abstract class MRTask
-extends RunningTaskContext {
+public abstract class MRTask extends RunningTaskContext {
 
   static final Log LOG = LogFactory.getLog(MRTask.class);
 

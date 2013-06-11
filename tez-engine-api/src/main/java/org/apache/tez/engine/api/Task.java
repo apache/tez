@@ -18,6 +18,7 @@
 package org.apache.tez.engine.api;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import org.apache.hadoop.conf.Configuration;
 
@@ -32,13 +33,13 @@ public interface Task {
   /**
    * Initialize the {@link Task}.
    * 
-   * @param conf task configuration
+   * @param conf Tez configuration. TODO: Replace with a context object.
    * @param master master controlling the task
    * @throws IOException
    * @throws InterruptedException
    */
-  public void initialize(Configuration conf, Master master) 
-      throws IOException, InterruptedException;
+  public void initialize(Configuration conf, ByteBuffer userPayload,
+      Master master) throws IOException, InterruptedException;
   
   /**
    * Get {@link Input} of the task.

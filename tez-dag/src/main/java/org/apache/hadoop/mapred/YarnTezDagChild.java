@@ -20,8 +20,10 @@ package org.apache.hadoop.mapred;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 
 import org.apache.commons.logging.Log;
@@ -54,6 +56,9 @@ import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
@@ -62,6 +67,8 @@ import org.apache.tez.engine.runtime.RuntimeUtils;
 import org.apache.tez.engine.task.RuntimeTask;
 import org.apache.tez.mapreduce.input.SimpleInput;
 import org.apache.tez.mapreduce.output.SimpleOutput;
+
+import com.google.protobuf.ByteString;
 
 /**
  * The main() for TEZ Task processes.
@@ -257,7 +264,7 @@ public class YarnTezDagChild {
       Credentials cxredentials, Token<JobTokenIdentifier> jobToken,
       int appAttemptId) throws IOException, InterruptedException {
 
-    Configuration conf = new Configuration();
+    Configuration conf = new Configuration(false);
     // set tcp nodelay
     conf.setBoolean("ipc.client.tcpnodelay", true);
     conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, appAttemptId);
@@ -275,12 +282,46 @@ public class YarnTezDagChild {
           new OutputSpec("null", 0, SimpleOutput.class.getName()));
     }
     Task t = RuntimeUtils.createRuntimeTask(taskContext);
-    t.initialize(conf, master);
+    
+    ByteBuffer userPayload = getUserPayloadForVertex(taskContext.getVertexName());
+    t.initialize(conf, userPayload, master);
 
     // FIXME wrapper should initialize all of processor, inputs and outputs
     // Currently, processor is inited via task init
     // and processor then inits inputs and outputs
     return t;
+  }
+
+  private static ByteBuffer getUserPayloadForVertex(String vertexName)
+      throws IOException {
+    DAGPlan.Builder dagPlanBuilder = DAGPlan.newBuilder();
+    FileInputStream dagPBBinaryStream = null;
+    try {
+      dagPBBinaryStream = new FileInputStream(
+          TezConfiguration.DAG_AM_PLAN_PB_BINARY);
+      dagPlanBuilder.mergeFrom(dagPBBinaryStream);
+    } finally {
+      if (dagPBBinaryStream != null) {
+        dagPBBinaryStream.close();
+      }
+    }
+    DAGPlan dagPlan = dagPlanBuilder.build();
+    VertexPlan vertexPlan = null;
+    for (VertexPlan v : dagPlan.getVertexList()) {
+      if (v.getName().equals(vertexName)) {
+        vertexPlan = v;
+        break;
+      }
+    }
+    if (vertexPlan.getProcessorDescriptor().hasUserPayload()) {
+      ByteString byteString = vertexPlan.getProcessorDescriptor()
+          .getUserPayload();
+      int capacity = byteString.asReadOnlyByteBuffer().rewind().remaining();
+      byte[] b = new byte[capacity];
+      byteString.asReadOnlyByteBuffer().get(b, 0, capacity);
+      return ByteBuffer.wrap(b);
+    }
+    return null;
   }
 
   private static void runTezTask(

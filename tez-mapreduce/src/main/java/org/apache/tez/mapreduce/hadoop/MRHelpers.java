@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce.hadoop;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -26,8 +27,12 @@ import java.util.Vector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -35,9 +40,12 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobSubmissionFiles;
 import org.apache.hadoop.mapreduce.split.JobSplitWriter;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.hadoop.yarn.ContainerLogAppender;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+
+import com.google.common.base.Preconditions;
 
 public class MRHelpers {
 
@@ -291,4 +299,26 @@ public class MRHelpers {
         + getLog4jCmdLineProperties(conf, false);
   }
 
+  @LimitedPrivate("Hive, Pig")
+  @Unstable
+  public static ByteBuffer createByteBufferFromConf(Configuration conf)
+      throws IOException {
+    Preconditions.checkNotNull(conf, "Configuration must be specified");
+    DataOutputBuffer dob = new DataOutputBuffer();
+    conf.write(dob);
+    return ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+  }
+
+  @LimitedPrivate("Hive, Pig")
+  @Unstable
+  public static Configuration createConfFromByteBuffer(ByteBuffer bb)
+      throws IOException {
+    // TODO Avoid copy ?
+    Preconditions.checkNotNull(bb, "ByteBuffer must be specified");
+    DataInputBuffer dib = new DataInputBuffer();
+    dib.reset(bb.array(), 0, bb.capacity());
+    Configuration conf = new Configuration(false);
+    conf.readFields(dib);
+    return conf;
+  }
 }

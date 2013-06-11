@@ -23,8 +23,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 
 import javax.crypto.SecretKey;
 
@@ -56,6 +59,7 @@ import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.TokenCache;
 import org.apache.tez.engine.task.RuntimeTask;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
+import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.processor.MRTask;
@@ -74,15 +78,23 @@ public class MRRuntimeTask extends RuntimeTask {
   }
 
   @Override
-  public void initialize(Configuration conf, Master master) throws IOException,
-      InterruptedException {
+  public void initialize(Configuration conf, ByteBuffer userPayload,
+      Master master) throws IOException, InterruptedException {
 
     DeprecatedKeys.init();
 
-    Configuration mrConf = new Configuration(conf);
-    mrConf.addResource(MRJobConfig.JOB_CONF_FILE);
-    Configuration taskConf = MultiStageMRConfigUtil.getConfForVertex(mrConf,
-        taskContext.getVertexName());
+    Configuration taskConf = null;
+    
+    if (userPayload == null) {
+      // Fall back to using job.xml
+      Configuration mrConf = new Configuration(conf);
+      mrConf.addResource(MRJobConfig.JOB_CONF_FILE);
+      taskConf = MultiStageMRConfigUtil.getConfForVertex(mrConf,
+          taskContext.getVertexName());
+    } else {
+      taskConf = MRHelpers.createConfFromByteBuffer(userPayload);
+      copyTezConfigParameters(taskConf, conf);
+    }
 
     // TODO Avoid all this extra config manipulation.
     // FIXME we need I/O/p level configs to be used in init below
@@ -108,6 +120,21 @@ public class MRRuntimeTask extends RuntimeTask {
 
     // NOTE: Allow processor to initialize input/output
     processor.initialize(this.conf, this.master);
+  }
+  
+  /*
+   * Used when creating a conf from the userPayload. Need to copy all the tez
+   * config parameters whcih are set by YarnTezDagChild
+   */
+  public static void copyTezConfigParameters(Configuration conf,
+      Configuration tezTaskConf) {
+    Iterator<Entry<String, String>> iter = tezTaskConf.iterator();
+    while (iter.hasNext()) {
+      Entry<String, String> entry = iter.next();
+      if (conf.get(entry.getKey()) == null) {
+        conf.set(entry.getKey(), tezTaskConf.get(entry.getKey()));
+      }
+    }
   }
 
   @Override

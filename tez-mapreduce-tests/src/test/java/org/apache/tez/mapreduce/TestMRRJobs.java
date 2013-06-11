@@ -28,24 +28,17 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.io.compress.DefaultCodec;
-import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobCounter;
 import org.apache.hadoop.mapreduce.JobStatus;
-import org.apache.hadoop.mapreduce.TaskReport;
-import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.util.JarFinder;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.mapreduce.examples.MRRSleepJob;
-import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -77,6 +70,8 @@ public class TestMRRJobs {
       localFs.makeQualified(new Path(TEST_ROOT_DIR));
   static Path APP_JAR = new Path(TEST_ROOT_DIR_PATH, "MRAppJar.jar");
   static Path YARN_SITE_XML = new Path(TEST_ROOT_DIR_PATH, "yarn-site.xml");
+  static Path APP_JAR_HDFS = new Path("/tmp/localResources/MRAppJar.jar");
+  static Path YARN_SITE_XML_HDFS = new Path("/tmp/localResources/yarn-site.xml");
   private static final String OUTPUT_ROOT_DIR = "/tmp" + Path.SEPARATOR +
       TestMRRJobs.class.getSimpleName();
 
@@ -87,6 +82,8 @@ public class TestMRRJobs {
       dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(2)
         .format(true).racks(null).build();
       remoteFs = dfsCluster.getFileSystem();
+      APP_JAR_HDFS = remoteFs.makeQualified(APP_JAR_HDFS);
+      YARN_SITE_XML_HDFS = remoteFs.makeQualified(YARN_SITE_XML_HDFS);
     } catch (IOException io) {
       throw new RuntimeException("problem starting mini dfs cluster", io);
     }
@@ -103,13 +100,22 @@ public class TestMRRJobs {
       Configuration conf = new Configuration();
       conf.set("fs.defaultFS", remoteFs.getUri().toString());   // use HDFS
       conf.set(MRJobConfig.MR_AM_STAGING_DIR, "/apps_staging_dir");
+      conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
       mrrTezCluster.init(conf);
       mrrTezCluster.start();
     }
 
+    LOG.info("APP_JAR: " + APP_JAR);
+    LOG.info("APP_JAR_HDFS: " + APP_JAR_HDFS);
+    LOG.info("YARN_SITE_XML: " + YARN_SITE_XML);
+    LOG.info("YARN_SITE_XML_HDFS: " + YARN_SITE_XML_HDFS);
+    
     localFs.copyFromLocalFile(new Path(MiniMRRTezCluster.APPJAR), APP_JAR);
     localFs.setPermission(APP_JAR, new FsPermission("700"));
     localFs.copyFromLocalFile(mrrTezCluster.getConfigFilePath(), YARN_SITE_XML);
+    
+    remoteFs.copyFromLocalFile(new Path(MiniMRRTezCluster.APPJAR), APP_JAR_HDFS);
+    remoteFs.copyFromLocalFile(mrrTezCluster.getConfigFilePath(), YARN_SITE_XML_HDFS);
   }
 
   @AfterClass
@@ -160,7 +166,6 @@ public class TestMRRJobs {
     // FIXME once counters and task progress can be obtained properly
     // TODO use dag client to test counters and task progress?
     // what about completed jobs?
-
   }
 
   @Test (timeout = 60000)
