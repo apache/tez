@@ -199,8 +199,8 @@ public class DagTypeConverters {
            new EdgeProperty(
                convertFromDAGPlan(edge.getConnectionPattern()),
                convertFromDAGPlan(edge.getSourceType()),
-               convertInputDescriptorFromDAGPlan(edge.getInputDescriptor()),
-               convertOutputDescriptorFromDAGPlan(edge.getOutputDescriptor())
+               convertOutputDescriptorFromDAGPlan(edge.getEdgeSource()),
+               convertInputDescriptorFromDAGPlan(edge.getEdgeDestination())
                )
            );
     }

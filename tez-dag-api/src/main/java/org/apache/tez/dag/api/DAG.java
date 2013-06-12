@@ -324,8 +324,8 @@ public class DAG { // FIXME rename to Topology
       edgeBuilder.setOutputVertexName(edge.getOutputVertex().getVertexName());
       edgeBuilder.setConnectionPattern(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().connectionPattern));
       edgeBuilder.setSourceType(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getSourceType()));
-      edgeBuilder.setInputDescriptor(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getInputDescriptor()));
-      edgeBuilder.setOutputDescriptor(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getOutputDescriptor()));
+      edgeBuilder.setEdgeSource(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getEdgeSource()));
+      edgeBuilder.setEdgeDestination(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getEdgeDestination()));
       jobBuilder.addEdge(edgeBuilder);
     }
     

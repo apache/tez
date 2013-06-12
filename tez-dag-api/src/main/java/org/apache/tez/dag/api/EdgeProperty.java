@@ -36,14 +36,22 @@ public class EdgeProperty { // FIXME rename to ChannelProperty
   InputDescriptor inputDescriptor;
   OutputDescriptor outputDescriptor;
   
+  /**
+   * @param connectionPattern
+   * @param sourceType
+   * @param edgeSource
+   *          The {@link OutputDescriptor} that generates data on the edge.
+   * @param edgeDestination
+   *          The {@link InputDescriptor} which will consume data from the edge.
+   */
   public EdgeProperty(ConnectionPattern connectionPattern, 
                        SourceType sourceType,
-                       InputDescriptor inputDescriptor,
-                       OutputDescriptor outputDescriptor) {
+                       OutputDescriptor edgeSource,
+                       InputDescriptor edgeDestination) {
     this.connectionPattern = connectionPattern;
     this.sourceType = sourceType;
-    this.inputDescriptor = inputDescriptor;
-    this.outputDescriptor = outputDescriptor;
+    this.inputDescriptor = edgeDestination;
+    this.outputDescriptor = edgeSource;
   }
   
   public ConnectionPattern getConnectionPattern() {
@@ -54,11 +62,21 @@ public class EdgeProperty { // FIXME rename to ChannelProperty
     return sourceType;
   }
   
-  public InputDescriptor getInputDescriptor() {
+  /**
+   * Returns the {@link InputDescriptor} which will consume data from the edge.
+   * 
+   * @return
+   */
+  public InputDescriptor getEdgeDestination() {
     return inputDescriptor;
   }
   
-  public OutputDescriptor getOutputDescriptor() {
+  /**
+   * Returns the {@link OutputDescriptor} which produces data on the edge.
+   * 
+   * @return
+   */
+  public OutputDescriptor getEdgeSource() {
     return outputDescriptor;
   }
   

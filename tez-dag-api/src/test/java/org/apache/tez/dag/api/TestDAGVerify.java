@@ -37,7 +37,7 @@ public class TestDAGVerify {
   public void testVerify1() {
     Vertex v1 = new Vertex("v1", new ProcessorDescriptor(dummyProcessorClassName, null), dummyTaskCount);
     Vertex v2 = new Vertex("v2", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
-    Edge e1 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor(dummyInputClassName, null), new OutputDescriptor(dummyOutputClassName, null)));
+    Edge e1 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(dummyOutputClassName, null), new InputDescriptor(dummyInputClassName, null)));
     DAG dag = new DAG();
     dag.addVertex(v1);
     dag.addVertex(v2);
@@ -57,10 +57,10 @@ public class TestDAGVerify {
     Vertex v2 = new Vertex("v2", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
     Vertex v3 = new Vertex("v3", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
     Vertex v4 = new Vertex("v4", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
-    Edge e1 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor("dummy input class", null), new OutputDescriptor("dummy output class", null)));
-    Edge e2 = new Edge(v2, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor("dummy input class", null), new OutputDescriptor("dummy output class", null)));
-    Edge e3 = new Edge(v2, v4, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor("dummy input class", null), new OutputDescriptor("dummy output class", null)));
-    Edge e4 = new Edge(v4, v1, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor("dummy input class", null), new OutputDescriptor("dummy output class", null)));
+    Edge e1 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
+    Edge e2 = new Edge(v2, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
+    Edge e3 = new Edge(v2, v4, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
+    Edge e4 = new Edge(v4, v1, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
     DAG dag = new DAG();
     dag.addVertex(v1);
     dag.addVertex(v2);
@@ -93,10 +93,10 @@ public class TestDAGVerify {
     Vertex v2 = new Vertex("v2", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
     Vertex v3 = new Vertex("v3", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
     Vertex v4 = new Vertex("v4", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
-    Edge e1 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor("dummy input class", null), new OutputDescriptor("dummy output class", null)));
-    Edge e2 = new Edge(v2, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor("dummy input class", null), new OutputDescriptor("dummy output class", null)));
-    Edge e3 = new Edge(v2, v4, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor("dummy input class", null), new OutputDescriptor("dummy output class", null)));
-    Edge e4 = new Edge(v3, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor("dummy input class", null), new OutputDescriptor("dummy output class", null)));
+    Edge e1 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
+    Edge e2 = new Edge(v2, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
+    Edge e3 = new Edge(v2, v4, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
+    Edge e4 = new Edge(v3, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
     DAG dag = new DAG();
     dag.addVertex(v1);
     dag.addVertex(v2);
@@ -146,8 +146,8 @@ public class TestDAGVerify {
       Vertex v1 = new Vertex("v1", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
       Vertex v2 = new Vertex("v2", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
       Vertex v3 = new Vertex("v3", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
-      Edge e1 = new Edge(v1, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor("dummy input class", null), new OutputDescriptor("dummy output class", null)));
-      Edge e2 = new Edge(v2, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor("dummy input class", null), new OutputDescriptor("dummy output class", null)));
+      Edge e1 = new Edge(v1, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
+      Edge e2 = new Edge(v2, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
       DAG dag = new DAG();
       dag.addVertex(v1);
       dag.addVertex(v2);
@@ -174,8 +174,8 @@ public class TestDAGVerify {
       Vertex v1 = new Vertex("v1", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
       Vertex v2 = new Vertex("v2", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
       Vertex v3 = new Vertex("v3", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
-      Edge e1 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor("dummy input class", null), new OutputDescriptor("dummy output class", null)));
-      Edge e2 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor("dummy input class", null), new OutputDescriptor("dummy output class", null)));
+      Edge e1 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
+      Edge e2 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
       DAG dag = new DAG();
       dag.addVertex(v1);
       dag.addVertex(v2);

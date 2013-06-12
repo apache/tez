@@ -100,13 +100,13 @@ public class MRRExampleHelper {
    Edge edge1 = new Edge(mapVertex, reduce1Vertex,
        new EdgeProperty(ConnectionPattern.BIPARTITE,
            SourceType.STABLE,
-           new InputDescriptor(ShuffledMergedInput.class.getName(), null),
-           new OutputDescriptor(OnFileSortedOutput.class.getName(), null)));
+           new OutputDescriptor(OnFileSortedOutput.class.getName(), null),
+           new InputDescriptor(ShuffledMergedInput.class.getName(), null)));
    Edge edge2 = new Edge(reduce1Vertex, reduce2Vertex,
        new EdgeProperty(ConnectionPattern.BIPARTITE,
            SourceType.STABLE,
-           new InputDescriptor(ShuffledMergedInput.class.getName(), null),
-           new OutputDescriptor(OnFileSortedOutput.class.getName(), null)));
+           new OutputDescriptor(OnFileSortedOutput.class.getName(), null),
+           new InputDescriptor(ShuffledMergedInput.class.getName(), null)));
    Map<String, LocalResource> jobRsrcs = createLocalResources(getMRRBaseDir(),
        getMRRLocalRsrcList());
 
@@ -166,8 +166,8 @@ public class MRRExampleHelper {
    Edge edge = new Edge(mapVertex, reduceVertex,
        new EdgeProperty(ConnectionPattern.BIPARTITE,
            SourceType.STABLE,
-           new InputDescriptor(ShuffledMergedInput.class.getName(), null),
-           new OutputDescriptor(OnFileSortedOutput.class.getName(), null)));
+           new OutputDescriptor(OnFileSortedOutput.class.getName(), null),
+           new InputDescriptor(ShuffledMergedInput.class.getName(), null)));
 
    Map<String, LocalResource> jobRsrcs = createLocalResources(getMRBaseDir(),
        getMRLocalRsrcList());

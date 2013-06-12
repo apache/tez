@@ -302,13 +302,13 @@ public class TestMRRJobsDAGApi {
     dag.addVertex(stage3Vertex);
 
     Edge edge1 = new Edge(stage1Vertex, stage2Vertex, new EdgeProperty(
-        ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor(
-            ShuffledMergedInput.class.getName(), null), new OutputDescriptor(
-            OnFileSortedOutput.class.getName(), null)));
+        ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
+        OnFileSortedOutput.class.getName(), null), new InputDescriptor(
+                ShuffledMergedInput.class.getName(), null)));
     Edge edge2 = new Edge(stage2Vertex, stage3Vertex, new EdgeProperty(
-        ConnectionPattern.BIPARTITE, SourceType.STABLE, new InputDescriptor(
-            ShuffledMergedInput.class.getName(), null), new OutputDescriptor(
-            OnFileSortedOutput.class.getName(), null)));
+        ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
+        OnFileSortedOutput.class.getName(), null), new InputDescriptor(
+                ShuffledMergedInput.class.getName(), null)));
 
     dag.addEdge(edge1);
     dag.addEdge(edge2);

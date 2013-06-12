@@ -1282,7 +1282,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     for (Entry<Vertex, EdgeProperty> entry : this.getInputVertices().entrySet()) {
       InputSpec inputSpec = new InputSpec(entry.getKey().getName(),
           entry.getKey().getTotalTasks(),
-          entry.getValue().getInputDescriptor().getClassName());
+          entry.getValue().getEdgeDestination().getClassName());
       if (LOG.isDebugEnabled()) {
         LOG.debug("For vertex : " + this.getName()
             + ", Using InputSpec : " + inputSpec);
@@ -1301,7 +1301,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       for (Entry<Vertex, EdgeProperty> entry : this.getOutputVertices().entrySet()) {
         OutputSpec outputSpec = new OutputSpec(entry.getKey().getName(),
             entry.getKey().getTotalTasks(),
-            entry.getValue().getOutputDescriptor().getClassName());
+            entry.getValue().getEdgeSource().getClassName());
         if (LOG.isDebugEnabled()) {
           LOG.debug("For vertex : " + this.getName()
               + ", Using OutputSpec : " + outputSpec);

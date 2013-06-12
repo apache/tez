@@ -113,8 +113,8 @@ message EdgePlan {
   required string outputVertexName = 3;
   required PlanEdgeConnectionPattern connectionPattern = 4;
   required PlanEdgeSourceType sourceType = 5;
-  optional TezEntityDescriptorProto input_descriptor = 6;
-  optional TezEntityDescriptorProto output_descriptor = 7;
+  optional TezEntityDescriptorProto edge_source = 6;
+  optional TezEntityDescriptorProto edge_destination = 7;
 }
 
 message DAGPlan {

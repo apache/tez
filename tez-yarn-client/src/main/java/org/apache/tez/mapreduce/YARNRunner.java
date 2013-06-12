@@ -641,8 +641,8 @@ public class YARNRunner implements ClientProtocol {
       EdgeProperty edgeProperty =
           new EdgeProperty(ConnectionPattern.BIPARTITE,
               SourceType.STABLE,
-              new InputDescriptor(ShuffledMergedInput.class.getName(), null),
-              new OutputDescriptor(OnFileSortedOutput.class.getName(), null));
+              new OutputDescriptor(OnFileSortedOutput.class.getName(), null),
+              new InputDescriptor(ShuffledMergedInput.class.getName(), null));
       Edge edge = null;
       if (!isMRR) {
         edge = new Edge(mapVertex, reduceVertex, edgeProperty);
