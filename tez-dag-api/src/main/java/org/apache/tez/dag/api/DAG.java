@@ -40,15 +40,16 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 
 
 public class DAG { // FIXME rename to Topology
-  List<Vertex> vertices;
-  List<Edge> edges;
-  String name;
+  final List<Vertex> vertices;
+  final List<Edge> edges;
+  final String name;
   
   HashMap<String, String> config = new HashMap<String, String>();
   
-  public DAG() {
+  public DAG(String name) {
     this.vertices = new ArrayList<Vertex>();
     this.edges = new ArrayList<Edge>();
+    this.name = name;
   }
 
   public synchronized DAG addVertex(Vertex vertex) {
@@ -87,10 +88,9 @@ public class DAG { // FIXME rename to Topology
     config.put(key, value);
     return this;
   }
-  
-  public DAG setName(String name) {
-    this.name = name;
-    return this;
+
+  public String getName() {
+    return this.name;
   }
   
   // AnnotatedVertex is used by verify() 

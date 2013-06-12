@@ -237,8 +237,7 @@ public class TestMRRJobsDAGApi {
     InputSplitInfo inputSplitInfo = MRHelpers.generateInputSplits(stage1Conf,
         remoteStagingDir);
 
-    DAG dag = new DAG();
-    dag.setName("testMRRSleepJobDagSubmit");
+    DAG dag = new DAG("testMRRSleepJobDagSubmit");
     Vertex stage1Vertex = new Vertex("map", new ProcessorDescriptor(
         MapProcessor.class.getName(),
         MRHelpers.createByteBufferFromConf(stage1Conf)),
@@ -319,8 +318,7 @@ public class TestMRRJobsDAGApi {
         mrrTezCluster.getConfig()));
     // TODO Use utility method post TEZ-205 to figure out AM arguments etc.
     ApplicationId appId = tezClient.submitDAGApplication(dag, remoteStagingDir,
-        null, "default", "testMRRSleepJobDagSubmit",
-        Collections.singletonList(""), commonEnv, amLocalResources);
+        null, "default", Collections.singletonList(""), commonEnv, amLocalResources);
     DAGClient dagClient = tezClient.getDAGClient(appId.toString());
 
     while (dagClient == null) {

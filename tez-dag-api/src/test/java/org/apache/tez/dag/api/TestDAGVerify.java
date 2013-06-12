@@ -38,7 +38,7 @@ public class TestDAGVerify {
     Vertex v1 = new Vertex("v1", new ProcessorDescriptor(dummyProcessorClassName, null), dummyTaskCount);
     Vertex v2 = new Vertex("v2", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
     Edge e1 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(dummyOutputClassName, null), new InputDescriptor(dummyInputClassName, null)));
-    DAG dag = new DAG();
+    DAG dag = new DAG("testDag");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
@@ -61,7 +61,7 @@ public class TestDAGVerify {
     Edge e2 = new Edge(v2, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
     Edge e3 = new Edge(v2, v4, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
     Edge e4 = new Edge(v4, v1, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
-    DAG dag = new DAG();
+    DAG dag = new DAG("testDag");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addVertex(v3);
@@ -97,7 +97,7 @@ public class TestDAGVerify {
     Edge e2 = new Edge(v2, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
     Edge e3 = new Edge(v2, v4, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
     Edge e4 = new Edge(v3, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
-    DAG dag = new DAG();
+    DAG dag = new DAG("testDag");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addVertex(v3);
@@ -122,7 +122,7 @@ public class TestDAGVerify {
     IllegalStateException ex=null;
     Vertex v1 = new Vertex("v1", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
     Vertex v1repeat = new Vertex("v1", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
-    DAG dag = new DAG();
+    DAG dag = new DAG("testDag");
     dag.addVertex(v1);
     dag.addVertex(v1repeat);
     try {
@@ -148,7 +148,7 @@ public class TestDAGVerify {
       Vertex v3 = new Vertex("v3", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
       Edge e1 = new Edge(v1, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
       Edge e2 = new Edge(v2, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
-      DAG dag = new DAG();
+      DAG dag = new DAG("testDag");
       dag.addVertex(v1);
       dag.addVertex(v2);
       dag.addVertex(v3);
@@ -176,7 +176,7 @@ public class TestDAGVerify {
       Vertex v3 = new Vertex("v3", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
       Edge e1 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
       Edge e2 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
-      DAG dag = new DAG();
+      DAG dag = new DAG("testDag");
       dag.addVertex(v1);
       dag.addVertex(v2);
       dag.addVertex(v3);

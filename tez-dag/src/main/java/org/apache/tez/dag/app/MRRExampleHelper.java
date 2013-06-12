@@ -90,7 +90,7 @@ public class MRRExampleHelper {
  //       -> not tested with new DagPB system.
  
  static DAGPlan createDAGConfigurationForMRR() throws IOException {
-   org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG();
+   org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG("examplemrrjob");
     Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
         "org.apache.tez.mapreduce.task.InitialTask", null), 6);
     Vertex reduce1Vertex = new Vertex("reduce1", new ProcessorDescriptor(
@@ -158,7 +158,7 @@ public class MRRExampleHelper {
 
  // TODO remove once client is in place
  static DAGPlan createDAGConfigurationForMR() throws IOException {
-   org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG();
+   org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG("examplemrjob");
     Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
         "org.apache.tez.mapreduce.task.InitialTask", null), 6);
     Vertex reduceVertex = new Vertex("reduce", new ProcessorDescriptor(

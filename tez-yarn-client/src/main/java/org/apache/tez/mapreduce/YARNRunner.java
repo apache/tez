@@ -538,8 +538,10 @@ public class YARNRunner implements ClientProtocol {
   private DAG createDAG(FileSystem fs, JobID jobId, JobConf jobConf,
       String jobSubmitDir, Credentials ts,
       Map<String, LocalResource> jobLocalResources) throws IOException {
-
-    DAG dag = new DAG();
+    
+    String jobName = jobConf.get(MRJobConfig.JOB_NAME,
+        YarnConfiguration.DEFAULT_APPLICATION_NAME);
+    DAG dag = new DAG(jobName);
 
     int numMaps = jobConf.getInt(MRJobConfig.NUM_MAPS, 0);
     int numReduces = jobConf.getInt(MRJobConfig.NUM_REDUCES, 0);
@@ -691,11 +693,6 @@ public class YARNRunner implements ClientProtocol {
         dag.addConfiguration(entry.getValue(), mrConf.get(entry.getKey()));
       }
     }
-
-    String jobName = mrConf.get(MRJobConfig.JOB_NAME);
-    if(jobName != null) {
-      dag.setName(jobName);
-    }
   }
 
   private void writeTezConf(String jobSubmitDir, FileSystem fs,
@@ -783,8 +780,7 @@ public class YARNRunner implements ClientProtocol {
           dag, 
           appStagingDir, 
           ts,
-          jobConf.get(JobContext.QUEUE_NAME, YarnConfiguration.DEFAULT_QUEUE_NAME), 
-          jobConf.get(JobContext.JOB_NAME, YarnConfiguration.DEFAULT_APPLICATION_NAME), 
+          jobConf.get(JobContext.QUEUE_NAME, YarnConfiguration.DEFAULT_QUEUE_NAME),
           vargs, 
           environment, 
           jobLocalResources);

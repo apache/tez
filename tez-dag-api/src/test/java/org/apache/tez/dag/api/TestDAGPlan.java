@@ -95,7 +95,7 @@ public class TestDAGPlan {
   
   @Test
   public void testUserPayloadSerde() {
-    DAG dag = new DAG().setName("testDag");
+    DAG dag = new DAG("testDag");
     ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1",
         ByteBuffer.wrap("processor1Bytes".getBytes()));
     ProcessorDescriptor pd2 = new ProcessorDescriptor("processor2",

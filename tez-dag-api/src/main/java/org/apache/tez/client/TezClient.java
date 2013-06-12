@@ -130,7 +130,6 @@ public class TezClient {
    * @param appStagingDir FileSystem path in which resources will be copied
    * @param ts Application credentials
    * @param amQueueName Queue to which the application will be submitted
-   * @param amName Application name
    * @param amArgs Command line Java arguments for the ApplicationMaster
    * @param amEnv Environment to be added to the ApplicationMaster
    * @param amLocalResources YARN local resource for the ApplicationMaster
@@ -139,11 +138,11 @@ public class TezClient {
    * @throws YarnException
    */
   public ApplicationId submitDAGApplication(DAG dag, Path appStagingDir,
-      Credentials ts, String amQueueName, String amName, List<String> amArgs,
+      Credentials ts, String amQueueName, List<String> amArgs,
       Map<String, String> amEnv, Map<String, LocalResource> amLocalResources)
       throws IOException, YarnException {
     ApplicationId appId = createApplication();
-    submitDAGApplication(appId, dag, appStagingDir, ts, amQueueName, amName,
+    submitDAGApplication(appId, dag, appStagingDir, ts, amQueueName,
         amArgs, amEnv, amLocalResources);
     return appId;
   }
@@ -156,7 +155,6 @@ public class TezClient {
    * @param appStagingDir FileSystem path in which resources will be copied
    * @param ts Application credentials
    * @param amQueueName Queue to which the application will be submitted
-   * @param amName Application name
    * @param amArgs Command line Java arguments for the ApplicationMaster
    * @param amEnv Environment to be added to the ApplicationMaster
    * @param amLocalResources YARN local resource for the ApplicationMaster
@@ -165,12 +163,12 @@ public class TezClient {
    * @throws YarnException
    */
   public void submitDAGApplication(ApplicationId appId, DAG dag,
-      Path appStagingDir, Credentials ts, String amQueueName, String amName,
+      Path appStagingDir, Credentials ts, String amQueueName,
       List<String> amArgs, Map<String, String> amEnv,
       Map<String, LocalResource> amLocalResources) throws IOException,
       YarnException {
     ApplicationSubmissionContext appContext = createApplicationSubmissionContext(
-        appId, dag, appStagingDir, ts, amQueueName, amName, amArgs, amEnv,
+        appId, dag, appStagingDir, ts, amQueueName, dag.getName(), amArgs, amEnv,
         amLocalResources);
 
     yarnClient.submitApplication(appContext);
