@@ -18,16 +18,17 @@
 
 package org.apache.tez.mapreduce.hadoop;
 
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
@@ -39,6 +40,10 @@ import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReader;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.junit.Assert;
@@ -129,9 +134,11 @@ public class TestMRHelpers {
   public void testNewSplitsGen() throws Exception {
     InputSplitInfo info = generateNewSplits(newSplitsDir);
 
-    Assert.assertEquals(new Path(newSplitsDir, "job.split"),
+    Assert.assertEquals(new Path(newSplitsDir,
+        MRHelpers.JOB_SPLIT_RESOURCE_NAME),
         info.getSplitsFile());
-    Assert.assertEquals(new Path(newSplitsDir, "job.splitmetainfo"),
+    Assert.assertEquals(new Path(newSplitsDir,
+        MRHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME),
         info.getSplitsMetaInfoFile());
 
     RemoteIterator<LocatedFileStatus> files =
@@ -145,9 +152,9 @@ public class TestMRHelpers {
       LocatedFileStatus status = files.next();
       String fName = status.getPath().getName();
       totalFilesFound++;
-      if (fName.equals("job.split")) {
+      if (fName.equals(MRHelpers.JOB_SPLIT_RESOURCE_NAME)) {
         foundSplitsFile = true;
-      } else if (fName.equals("job.splitmetainfo")) {
+      } else if (fName.equals(MRHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME)) {
         foundMetaFile = true;
       } else {
         Assert.fail("Found invalid file in splits dir, filename=" + fName);
@@ -175,9 +182,11 @@ public class TestMRHelpers {
   @Test
   public void testOldSplitsGen() throws Exception {
     InputSplitInfo info = generateOldSplits(oldSplitsDir);
-    Assert.assertEquals(new Path(oldSplitsDir, "job.split"),
+    Assert.assertEquals(new Path(oldSplitsDir,
+        MRHelpers.JOB_SPLIT_RESOURCE_NAME),
         info.getSplitsFile());
-    Assert.assertEquals(new Path(oldSplitsDir, "job.splitmetainfo"),
+    Assert.assertEquals(new Path(oldSplitsDir,
+        MRHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME),
         info.getSplitsMetaInfoFile());
 
     RemoteIterator<LocatedFileStatus> files =
@@ -191,9 +200,9 @@ public class TestMRHelpers {
       LocatedFileStatus status = files.next();
       String fName = status.getPath().getName();
       totalFilesFound++;
-      if (fName.equals("job.split")) {
+      if (fName.equals(MRHelpers.JOB_SPLIT_RESOURCE_NAME)) {
         foundSplitsFile = true;
-      } else if (fName.equals("job.splitmetainfo")) {
+      } else if (fName.equals(MRHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME)) {
         foundMetaFile = true;
       } else {
         Assert.fail("Found invalid file in splits dir, filename=" + fName);
@@ -206,6 +215,32 @@ public class TestMRHelpers {
     Assert.assertTrue(foundMetaFile);
 
     verifyLocationHints(oldSplitsDir, info.getTaskLocationHints());
+  }
+
+  @Test
+  public void testInputSplitLocalResourceCreation() throws Exception {
+    InputSplitInfo inputSplitInfo = generateOldSplits(oldSplitsDir);
+    Map<String, LocalResource> localResources =
+        new HashMap<String, LocalResource>();
+    localResources.put("job.split", null);
+
+    try {
+      MRHelpers.updateLocalResourcesForInputSplits(remoteFs,
+          inputSplitInfo, localResources);
+      fail("Expected failure for job.split override in local resources map");
+    } catch (RuntimeException e) {
+      // Expected
+    }
+
+    localResources.clear();
+    MRHelpers.updateLocalResourcesForInputSplits(remoteFs,
+        inputSplitInfo, localResources);
+
+    Assert.assertEquals(2, localResources.size());
+    Assert.assertTrue(localResources.containsKey(
+        MRHelpers.JOB_SPLIT_RESOURCE_NAME));
+    Assert.assertTrue(localResources.containsKey(
+        MRHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
   }
 
   private Configuration createConfForJavaOptsTest() {
@@ -249,4 +284,32 @@ public class TestMRHelpers {
     Assert.assertTrue(opts.contains(" -Dhadoop.root.logger=TRACE"));
   }
 
+  @Test
+  public void testContainerResourceConstruction() {
+    Configuration conf = new Configuration();
+    Resource mapResource = MRHelpers.getMapResource(conf);
+    Resource reduceResource = MRHelpers.getReduceResource(conf);
+
+    Assert.assertEquals(MRJobConfig.DEFAULT_MAP_CPU_VCORES,
+        mapResource.getVirtualCores());
+    Assert.assertEquals(MRJobConfig.DEFAULT_MAP_MEMORY_MB,
+        mapResource.getMemory());
+    Assert.assertEquals(MRJobConfig.DEFAULT_REDUCE_CPU_VCORES,
+        reduceResource.getVirtualCores());
+    Assert.assertEquals(MRJobConfig.DEFAULT_REDUCE_MEMORY_MB,
+        reduceResource.getMemory());
+
+    conf.setInt(MRJobConfig.MAP_CPU_VCORES, 2);
+    conf.setInt(MRJobConfig.MAP_MEMORY_MB, 123);
+    conf.setInt(MRJobConfig.REDUCE_CPU_VCORES, 20);
+    conf.setInt(MRJobConfig.REDUCE_MEMORY_MB, 1234);
+
+    mapResource = MRHelpers.getMapResource(conf);
+    reduceResource = MRHelpers.getReduceResource(conf);
+
+    Assert.assertEquals(2, mapResource.getVirtualCores());
+    Assert.assertEquals(123, mapResource.getMemory());
+    Assert.assertEquals(20, reduceResource.getVirtualCores());
+    Assert.assertEquals(1234, reduceResource.getMemory());
+  }
 }

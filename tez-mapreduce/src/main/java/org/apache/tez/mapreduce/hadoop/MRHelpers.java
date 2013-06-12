@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.logging.Log;
@@ -31,6 +32,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -44,7 +46,12 @@ import org.apache.hadoop.mapreduce.split.JobSplitWriter;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.yarn.ContainerLogAppender;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 
 import com.google.common.base.Preconditions;
@@ -52,6 +59,10 @@ import com.google.common.base.Preconditions;
 public class MRHelpers {
 
   private static final Log LOG = LogFactory.getLog(MRHelpers.class);
+
+  static final String JOB_SPLIT_RESOURCE_NAME = "job.split";
+  static final String JOB_SPLIT_METAINFO_RESOURCE_NAME =
+      "job.splitmetainfo";
 
   /**
    * Comparator for org.apache.hadoop.mapreduce.InputSplit
@@ -198,7 +209,7 @@ public class MRHelpers {
    *
    * @param inputSplitsDir Directory in which the splits file and meta info file
    * will be generated. job.split and job.splitmetainfo files in this directory
-   * will be overwritten.
+   * will be overwritten. Should be a fully-qualified path.
    *
    * @return InputSplitInfo containing the split files' information and the
    * number of splits generated to be used to determining parallelism of
@@ -269,6 +280,15 @@ public class MRHelpers {
     vargs.add("-Dhadoop.root.logger=" + logLevel + ",CLA");
   }
 
+  /**
+   * Generate JVM options to be used to launch map tasks
+   *
+   * Uses mapreduce.admin.map.child.java.opts, mapreduce.map.java.opts and
+   * mapreduce.map.log.level from config to generate the opts.
+   *
+   * @param conf Configuration to be used to extract JVM opts specific info
+   * @return JAVA_OPTS string to be used in launching the JVM
+   */
   @SuppressWarnings("deprecation")
   public static String getMapJavaOpts(Configuration conf) {
     String adminOpts = conf.get(
@@ -285,6 +305,15 @@ public class MRHelpers {
         + getLog4jCmdLineProperties(conf, true);
   }
 
+  /**
+   * Generate JVM options to be used to launch reduce tasks
+   *
+   * Uses mapreduce.admin.reduce.child.java.opts, mapreduce.reduce.java.opts
+   * and mapreduce.reduce.log.level from config to generate the opts.
+   *
+   * @param conf Configuration to be used to extract JVM opts specific info
+   * @return JAVA_OPTS string to be used in launching the JVM
+   */
   @SuppressWarnings("deprecation")
   public static String getReduceJavaOpts(Configuration conf) {
     String adminOpts = conf.get(
@@ -419,4 +448,87 @@ public class MRHelpers {
     conf.readFields(dib);
     return conf;
   }
+
+  /**
+   * Update provided localResources collection with the required local
+   * resources needed by MapReduce tasks with respect to Input splits.
+   *
+   * @param fs Filesystem instance to access status of splits related files
+   * @param inputSplitInfo Information on location of split files
+   * @param localResources LocalResources collection to be updated
+   * @throws IOException
+   */
+  public static void updateLocalResourcesForInputSplits(
+      FileSystem fs,
+      InputSplitInfo inputSplitInfo,
+      Map<String, LocalResource> localResources) throws IOException {
+    if (localResources.containsKey(JOB_SPLIT_RESOURCE_NAME)) {
+      throw new RuntimeException("LocalResources already contains a"
+          + " resource named " + JOB_SPLIT_RESOURCE_NAME);
+    }
+    if (localResources.containsKey(JOB_SPLIT_METAINFO_RESOURCE_NAME)) {
+      throw new RuntimeException("LocalResources already contains a"
+          + " resource named " + JOB_SPLIT_METAINFO_RESOURCE_NAME);
+    }
+
+    FileStatus splitFileStatus =
+        fs.getFileStatus(inputSplitInfo.getSplitsFile());
+    FileStatus metaInfoFileStatus =
+        fs.getFileStatus(inputSplitInfo.getSplitsMetaInfoFile());
+    localResources.put(JOB_SPLIT_RESOURCE_NAME,
+        LocalResource.newInstance(
+            ConverterUtils.getYarnUrlFromPath(inputSplitInfo.getSplitsFile()),
+            LocalResourceType.FILE,
+            LocalResourceVisibility.APPLICATION,
+            splitFileStatus.getLen(), splitFileStatus.getModificationTime()));
+    localResources.put(JOB_SPLIT_METAINFO_RESOURCE_NAME,
+        LocalResource.newInstance(
+            ConverterUtils.getYarnUrlFromPath(
+                inputSplitInfo.getSplitsMetaInfoFile()),
+            LocalResourceType.FILE,
+            LocalResourceVisibility.APPLICATION,
+            metaInfoFileStatus.getLen(),
+            metaInfoFileStatus.getModificationTime()));
+  }
+
+  /**
+   * Extract the map task's container resource requirements from the
+   * provided configuration.
+   *
+   * Uses mapreduce.map.memory.mb and mapreduce.map.cpu.vcores from the
+   * provided configuration.
+   *
+   * @param conf Configuration with MR specific settings used to extract
+   * information from
+   *
+   * @return Resource object used to define requirements for containers
+   * running Map tasks
+   */
+  public static Resource getMapResource(Configuration conf) {
+    return Resource.newInstance(conf.getInt(
+        MRJobConfig.MAP_MEMORY_MB, MRJobConfig.DEFAULT_MAP_MEMORY_MB),
+        conf.getInt(MRJobConfig.MAP_CPU_VCORES,
+            MRJobConfig.DEFAULT_MAP_CPU_VCORES));
+  }
+
+  /**
+   * Extract the reduce task's container resource requirements from the
+   * provided configuration.
+   *
+   * Uses mapreduce.reduce.memory.mb and mapreduce.reduce.cpu.vcores from the
+   * provided configuration.
+   *
+   * @param conf Configuration with MR specific settings used to extract
+   * information from
+   *
+   * @return Resource object used to define requirements for containers
+   * running Reduce tasks
+   */
+  public static Resource getReduceResource(Configuration conf) {
+    return Resource.newInstance(conf.getInt(
+        MRJobConfig.REDUCE_MEMORY_MB, MRJobConfig.DEFAULT_REDUCE_MEMORY_MB),
+        conf.getInt(MRJobConfig.REDUCE_CPU_VCORES,
+            MRJobConfig.DEFAULT_REDUCE_CPU_VCORES));
+  }
+
 }
