@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce.hadoop;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -30,6 +31,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -297,6 +299,102 @@ public class MRHelpers {
 
     return adminOpts.trim() + " " + userOpts.trim() + " "
         + getLog4jCmdLineProperties(conf, false);
+  }
+
+  /**
+   * Sets up parameters which used to be set by the MR JobClient. Includes
+   * setting whether to use the new api or the old api. Note: Must be called
+   * before generating InputSplits
+   * 
+   * @param conf
+   *          configuration for the vertex.
+   */
+  public static void doJobClientMagic(Configuration conf) throws IOException {
+    setUseNewAPI(conf);
+    // TODO Maybe add functionality to check output specifications - e.g. fail
+    // early if the output directory exists.
+    InetAddress ip = InetAddress.getLocalHost();
+    if (ip != null) {
+      String submitHostAddress = ip.getHostAddress();
+      String submitHostName = ip.getHostName();
+      conf.set(MRJobConfig.JOB_SUBMITHOST, submitHostName);
+      conf.set(MRJobConfig.JOB_SUBMITHOSTADDR, submitHostAddress);
+    }
+    // conf.set("hadoop.http.filter.initializers",
+    // "org.apache.hadoop.yarn.server.webproxy.amfilter.AmFilterInitializer");
+    // Skipping setting JOB_DIR - not used by AM.
+
+    // Maybe generate SHUFFLE secret. The AM uses the job token generated in
+    // the AM anyway.
+
+    // TODO eventually ACLs
+    setWorkingDirectory(conf);
+  }
+
+  private static void setWorkingDirectory(Configuration conf) {
+    String name = conf.get(JobContext.WORKING_DIR);
+    if (name == null) {
+      try {
+        Path dir = FileSystem.get(conf).getWorkingDirectory();
+        conf.set(JobContext.WORKING_DIR, dir.toString());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+  
+  /**
+   * Default to the new APIs unless they are explicitly set or the old mapper or
+   * reduce attributes are used.
+   * 
+   * @throws IOException
+   *           if the configuration is inconsistant
+   */
+  private static void setUseNewAPI(Configuration conf) throws IOException {
+    int numReduces = conf.getInt(MRJobConfig.NUM_REDUCES, 1);
+    String oldMapperClass = "mapred.mapper.class";
+    String oldReduceClass = "mapred.reducer.class";
+    conf.setBooleanIfUnset("mapred.mapper.new-api",
+        conf.get(oldMapperClass) == null);
+    if (conf.getBoolean("mapred.mapper.new-api", false)) {
+      String mode = "new map API";
+      ensureNotSet(conf, "mapred.input.format.class", mode);
+      ensureNotSet(conf, oldMapperClass, mode);
+      if (numReduces != 0) {
+        ensureNotSet(conf, "mapred.partitioner.class", mode);
+      } else {
+        ensureNotSet(conf, "mapred.output.format.class", mode);
+      }
+    } else {
+      String mode = "map compatability";
+      ensureNotSet(conf, MRJobConfig.INPUT_FORMAT_CLASS_ATTR, mode);
+      ensureNotSet(conf, MRJobConfig.MAP_CLASS_ATTR, mode);
+      if (numReduces != 0) {
+        ensureNotSet(conf, MRJobConfig.PARTITIONER_CLASS_ATTR, mode);
+      } else {
+        ensureNotSet(conf, MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, mode);
+      }
+    }
+    if (numReduces != 0) {
+      conf.setBooleanIfUnset("mapred.reducer.new-api",
+          conf.get(oldReduceClass) == null);
+      if (conf.getBoolean("mapred.reducer.new-api", false)) {
+        String mode = "new reduce API";
+        ensureNotSet(conf, "mapred.output.format.class", mode);
+        ensureNotSet(conf, oldReduceClass, mode);
+      } else {
+        String mode = "reduce compatability";
+        ensureNotSet(conf, MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, mode);
+        ensureNotSet(conf, MRJobConfig.REDUCE_CLASS_ATTR, mode);
+      }
+    }
+  }
+
+  private static void ensureNotSet(Configuration conf, String attr, String msg)
+      throws IOException {
+    if (conf.get(attr) != null) {
+      throw new IOException(attr + " is incompatible with " + msg + " mode.");
+    }
   }
 
   @LimitedPrivate("Hive, Pig")

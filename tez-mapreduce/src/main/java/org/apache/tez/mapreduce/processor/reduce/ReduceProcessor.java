@@ -34,7 +34,6 @@ import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezEngineTaskContext;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.counters.TaskCounter;
@@ -92,7 +91,7 @@ implements Processor {
   public void process(Input[] ins, Output[] outs)
       throws IOException, InterruptedException {
     MRTaskReporter reporter = new MRTaskReporter(getTaskReporter());
-    boolean useNewApi = jobConf.getUseNewMapper();
+    boolean useNewApi = jobConf.getUseNewReducer();
     initTask(jobConf, taskAttemptId.getTaskID().getVertexID().getDAGId(),
         reporter, useNewApi);
 

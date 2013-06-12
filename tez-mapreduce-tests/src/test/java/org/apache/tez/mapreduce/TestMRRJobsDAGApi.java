@@ -186,8 +186,6 @@ public class TestMRRJobsDAGApi {
     JobConf stage2Conf = new JobConf(mrrTezCluster.getConfig());
     JobConf stage3Conf = new JobConf(mrrTezCluster.getConfig());
 
-    stage1Conf.setUseNewMapper(true);
-    stage1Conf.setUseNewReducer(true);
     stage1Conf.setLong(MRRSleepJob.MAP_SLEEP_TIME, 1);
     stage1Conf.setInt(MRRSleepJob.MAP_SLEEP_COUNT, 1);
     stage1Conf.setInt(MRJobConfig.NUM_MAPS, 1);
@@ -201,8 +199,6 @@ public class TestMRRJobsDAGApi {
     stage1Conf.set(MRJobConfig.PARTITIONER_CLASS_ATTR,
         MRRSleepJobPartitioner.class.getName());
 
-    stage2Conf.setUseNewMapper(true);
-    stage2Conf.setUseNewReducer(true);
     stage2Conf.setLong(MRRSleepJob.REDUCE_SLEEP_TIME, 1);
     stage2Conf.setInt(MRRSleepJob.REDUCE_SLEEP_COUNT, 1);
     stage2Conf.setInt(MRJobConfig.NUM_REDUCES, 1);
@@ -215,8 +211,6 @@ public class TestMRRJobsDAGApi {
     stage2Conf.set(MRJobConfig.PARTITIONER_CLASS_ATTR,
         MRRSleepJobPartitioner.class.getName());
 
-    stage3Conf.setUseNewMapper(true);
-    stage3Conf.setUseNewReducer(true);
     stage3Conf.setLong(MRRSleepJob.REDUCE_SLEEP_TIME, 1);
     stage3Conf.setInt(MRRSleepJob.REDUCE_SLEEP_COUNT, 1);
     stage3Conf.setInt(MRJobConfig.NUM_REDUCES, 1);
@@ -227,12 +221,16 @@ public class TestMRRJobsDAGApi {
         IntWritable.class.getName());
     stage3Conf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
         NullOutputFormat.class.getName());
-
+    
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage1Conf, null);
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage2Conf,
         stage1Conf);
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage3Conf,
         stage2Conf);
+    
+    MRHelpers.doJobClientMagic(stage1Conf);
+    MRHelpers.doJobClientMagic(stage2Conf);
+    MRHelpers.doJobClientMagic(stage3Conf);
 
     Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String
         .valueOf(new Random().nextInt(100000))));
