@@ -50,8 +50,9 @@ public class DAGSchedulerMRR implements DAGScheduler {
   public void vertexCompleted(Vertex vertex) {
     if(currentPartitioner != null) {
       if(vertex != currentPartitioner) {
-        String message = vertex.getVertexId() + " finished. Expecting "
-            + currentPartitioner + " to finish.";
+        String message = vertex.getVertexId() + " finished. Expecting"
+            + " current partitioner " + currentPartitioner.getVertexId()
+            + " to finish.";
         LOG.fatal(message);
         throw new TezUncheckedException(message);
       }
