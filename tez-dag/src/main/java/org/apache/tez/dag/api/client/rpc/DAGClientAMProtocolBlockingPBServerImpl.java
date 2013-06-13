@@ -18,11 +18,9 @@
 
 package org.apache.tez.dag.api.client.rpc;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.VertexStatus;
@@ -34,6 +32,7 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequ
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusResponseProto;
+import org.apache.tez.dag.app.DAGAppMaster.DAGClientHandler;
 
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
@@ -41,9 +40,9 @@ import com.google.protobuf.ServiceException;
 public class DAGClientAMProtocolBlockingPBServerImpl implements
     DAGClientAMProtocolBlockingPB {
   
-  DAGClient real;
+  DAGClientHandler real;
   
-  public DAGClientAMProtocolBlockingPBServerImpl(DAGClient real) {
+  public DAGClientAMProtocolBlockingPBServerImpl(DAGClientHandler real) {
     this.real = real;
   }
 
@@ -54,8 +53,6 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
       List<String> dagIds = real.getAllDAGs();
       return GetAllDAGsResponseProto.newBuilder().addAllDagId(dagIds).build();
     } catch(TezException e) {
-      throw wrapException(e);
-    } catch(IOException e) {
       throw wrapException(e);
     }
   }
@@ -73,8 +70,6 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
                                 setDagStatus(builder.getProto()).build();
     } catch (TezException e) {
       throw wrapException(e);
-    } catch(IOException e) {
-      throw wrapException(e);
     }
   }
 
@@ -90,8 +85,6 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
       return GetVertexStatusResponseProto.newBuilder().
                             setVertexStatus(builder.getProto()).build();
     } catch (TezException e) {
-      throw wrapException(e);
-    } catch(IOException e) {
       throw wrapException(e);
     }
   }

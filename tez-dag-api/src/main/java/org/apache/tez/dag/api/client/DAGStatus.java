@@ -72,6 +72,15 @@ public class DAGStatus {
     return proxy.getDiagnosticsList();
   }
 
+  /**
+   * Gets overall progress value of the DAG.
+   * 
+   * @return Progress of the DAG. Maybe null when the DAG is not running. Maybe
+   *         null when the DAG is running and the application master cannot be
+   *         reached - e.g. when the execution platform has restarted the
+   *         application master.
+   * @see Progress
+   */
   public Progress getDAGProgress() {
     if(progress == null && proxy.hasDAGProgress()) {
       progress = new Progress(proxy.getDAGProgress());
@@ -79,6 +88,15 @@ public class DAGStatus {
     return progress;
   }
 
+  /**
+   * Get the progress of a vertex in the DAG
+   * 
+   * @return Progress of the vertex. May be null when the DAG is not running.
+   *         Maybe null when the DAG is running and the application master
+   *         cannot be reached - e.g. when the execution platform has restarted
+   *         the application master.
+   * @see Progress
+   */
   public Map<String, Progress> getVertexProgress() {
     if(vertexProgress == null) {
       if(proxy.getVertexProgressList() != null) {

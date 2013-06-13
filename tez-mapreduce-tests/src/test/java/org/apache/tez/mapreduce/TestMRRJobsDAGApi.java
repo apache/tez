@@ -37,7 +37,6 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -317,25 +316,17 @@ public class TestMRRJobsDAGApi {
     TezClient tezClient = new TezClient(new TezConfiguration(
         mrrTezCluster.getConfig()));
     // TODO Use utility method post TEZ-205 to figure out AM arguments etc.
-    ApplicationId appId = tezClient.submitDAGApplication(dag, remoteStagingDir,
+    DAGClient dagClient = tezClient.submitDAGApplication(dag, remoteStagingDir,
         null, "default", Collections.singletonList(""), commonEnv, amLocalResources);
-    DAGClient dagClient = tezClient.getDAGClient(appId.toString());
 
-    while (dagClient == null) {
-      LOG.info("Waiting to get DAG Client. Sleeping for 200ms");
-      // TODO Fix the looping after TEZ-206 is fixed.
-      Thread.sleep(200l);
-      dagClient = tezClient.getDAGClient(appId.toString());
-    }
-    String dagId = dagClient.getAllDAGs().get(0);
-    DAGStatus dagStatus = dagClient.getDAGStatus(dagId);
+    DAGStatus dagStatus = dagClient.getDAGStatus();
     while (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
       LOG.info("Waiting for job to complete. Sleeping for 500ms. Current state: "
           + dagStatus);
       // TODO The test will fail if the AM sleep is removed. TEZ-207 to fix
       // this.
       Thread.sleep(500l);
-      dagStatus = dagClient.getDAGStatus(dagId);
+      dagStatus = dagClient.getDAGStatus();
     }
 
     // TODO Add additional checks for tracking URL etc. - once it's exposed by

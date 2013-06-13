@@ -30,24 +30,22 @@ import org.apache.hadoop.mapreduce.JobStatus;
 import org.apache.hadoop.mapreduce.TypeConverter;
 import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
-import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
-import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.Progress;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
-import org.mortbay.log.Log;
 
 public class DAGJobStatus extends JobStatus {
 
-  String jobFile;
-  private final ApplicationReport report;
+  private final String jobFile;
   private final DAGStatus dagStatus;
+  private final ApplicationReport report;
   
-  public DAGJobStatus(ApplicationReport appReport, DAGStatus dagStatus, String jobFile) {
+  public DAGJobStatus(ApplicationReport report, DAGStatus dagStatus, String jobFile) {
     super();
-    this.report = appReport;
     this.dagStatus = dagStatus;
     this.jobFile = jobFile;
+    this.report = report;
   }
   
   @Override
@@ -137,13 +135,10 @@ public class DAGJobStatus extends JobStatus {
 
   @Override
   public synchronized float getMapProgress() {
-    if(dagStatus != null) {
+    if(dagStatus.getVertexProgress() != null) {
       return getProgress(MultiStageMRConfigUtil.getInitialMapVertexName());
     }
-    if (report.getYarnApplicationState().equals(
-        YarnApplicationState.FINISHED)
-        && report.getFinalApplicationStatus().equals(
-            FinalApplicationStatus.SUCCEEDED)) {
+    if (dagStatus.getState() == DAGStatus.State.SUCCEEDED) {
       return 1.0f;
     }
     return 0.0f;
@@ -151,8 +146,10 @@ public class DAGJobStatus extends JobStatus {
 
   @Override
   public synchronized float getCleanupProgress() {
-    if (report.getYarnApplicationState().equals(
-        YarnApplicationState.FINISHED)) {
+    if (dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
+        dagStatus.getState() == DAGStatus.State.FAILED || 
+        dagStatus.getState() == DAGStatus.State.KILLED ||
+        dagStatus.getState() == DAGStatus.State.ERROR) {
       return 1.0f;
     }
     return 0.0f;
@@ -160,10 +157,7 @@ public class DAGJobStatus extends JobStatus {
 
   @Override
   public synchronized float getSetupProgress() {
-    if (report.getYarnApplicationState().equals(
-        YarnApplicationState.RUNNING)
-        && report.getFinalApplicationStatus().equals(
-            FinalApplicationStatus.UNDEFINED)) {
+    if (dagStatus.getState() == DAGStatus.State.RUNNING) {
       return 1.0f;
     }
     return 0.0f;
@@ -174,10 +168,7 @@ public class DAGJobStatus extends JobStatus {
     if(dagStatus != null) {
       return getProgress(MultiStageMRConfigUtil.getFinalReduceVertexName());
     }
-    if (report.getYarnApplicationState().equals(
-        YarnApplicationState.FINISHED)
-        && report.getFinalApplicationStatus().equals(
-            FinalApplicationStatus.SUCCEEDED)) {
+    if (dagStatus.getState() == DAGStatus.State.SUCCEEDED) {
       return 1.0f;
     }
     return 0.0f;
@@ -185,8 +176,23 @@ public class DAGJobStatus extends JobStatus {
 
   @Override
   public synchronized State getState() {
-    return TypeConverter.fromYarn(report.getYarnApplicationState(),
-        report.getFinalApplicationStatus());
+    switch (dagStatus.getState()) {
+    case SUBMITTED:
+    case INITING:
+      return State.PREP;
+    case RUNNING:
+      return State.RUNNING;
+    case SUCCEEDED:
+      return State.SUCCEEDED;
+    case KILLED:
+      return State.KILLED;
+    case FAILED:
+    case ERROR:
+      return State.FAILED;
+    default:
+      throw new TezUncheckedException("Unknown value of DAGState.State:"
+          + dagStatus.getState());
+    }
   }
 
   @Override
@@ -228,12 +234,10 @@ public class DAGJobStatus extends JobStatus {
 
   @Override
   public synchronized boolean isJobComplete() {
-    return (report.getYarnApplicationState().equals(
-        YarnApplicationState.FINISHED)
-        || report.getYarnApplicationState().equals(
-            YarnApplicationState.FAILED)
-        || report.getYarnApplicationState().equals(
-            YarnApplicationState.KILLED));
+    return (dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
+        dagStatus.getState() == DAGStatus.State.FAILED || 
+        dagStatus.getState() == DAGStatus.State.KILLED ||
+        dagStatus.getState() == DAGStatus.State.ERROR);
   }
 
   @Override

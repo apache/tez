@@ -25,7 +25,6 @@ import java.util.HashSet;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
-import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
@@ -162,6 +161,56 @@ public class TestVertexScheduler {
     Assert.assertTrue(scheduledTasks.size() == 3); // all tasks scheduled
     Assert.assertTrue(scheduler.numSourceTasksCompleted == 1);
     
+    // min, max > 0 and min == max
+    scheduler = 
+        new BipartiteSlowStartVertexScheduler(mockManagedVertex, 1.0f, 1.0f);
+    scheduler.onVertexStarted();
+    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(scheduler.numSourceTasks == 4);
+    // task completion from non-bipartite stage does nothing
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId31);
+    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(scheduler.numSourceTasks == 4);
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 0);
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
+    Assert.assertTrue(scheduler.pendingTasks.size() == 3);
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 1);
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId12);
+    Assert.assertTrue(scheduler.pendingTasks.size() == 3);
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 2);
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId21);
+    Assert.assertTrue(scheduler.pendingTasks.size() == 3);
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 3);
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId22);
+    Assert.assertTrue(scheduler.pendingTasks.isEmpty());
+    Assert.assertTrue(scheduledTasks.size() == 3); // all tasks scheduled
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 4);
+    
+    // min, max > 0 and min == max
+    scheduler = 
+        new BipartiteSlowStartVertexScheduler(mockManagedVertex, 1.0f, 1.0f);
+    scheduler.onVertexStarted();
+    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(scheduler.numSourceTasks == 4);
+    // task completion from non-bipartite stage does nothing
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId31);
+    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(scheduler.numSourceTasks == 4);
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 0);
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
+    Assert.assertTrue(scheduler.pendingTasks.size() == 3);
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 1);
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId12);
+    Assert.assertTrue(scheduler.pendingTasks.size() == 3);
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 2);
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId21);
+    Assert.assertTrue(scheduler.pendingTasks.size() == 3);
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 3);
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId22);
+    Assert.assertTrue(scheduler.pendingTasks.isEmpty());
+    Assert.assertTrue(scheduledTasks.size() == 3); // all tasks scheduled
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 4);
+    
     // min, max > and min < max
     scheduler = 
         new BipartiteSlowStartVertexScheduler(mockManagedVertex, 0.25f, 0.75f);
@@ -181,6 +230,26 @@ public class TestVertexScheduler {
     scheduler.onSourceTaskCompleted(mockSrcAttemptId22); // we are done. no action
     Assert.assertTrue(scheduler.pendingTasks.size() == 0);
     Assert.assertTrue(scheduledTasks.size() == 0); // no task scheduled
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 4);
+
+    // min, max > and min < max
+    scheduler = 
+        new BipartiteSlowStartVertexScheduler(mockManagedVertex, 0.25f, 1.0f);
+    scheduler.onVertexStarted();
+    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(scheduler.numSourceTasks == 4);
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId12);
+    Assert.assertTrue(scheduler.pendingTasks.size() == 2);
+    Assert.assertTrue(scheduledTasks.size() == 1); // 1 task scheduled
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 2);
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId21);
+    Assert.assertTrue(scheduler.pendingTasks.size() == 1);
+    Assert.assertTrue(scheduledTasks.size() == 1); // 1 task scheduled
+    Assert.assertTrue(scheduler.numSourceTasksCompleted == 3);
+    scheduler.onSourceTaskCompleted(mockSrcAttemptId22);
+    Assert.assertTrue(scheduler.pendingTasks.size() == 0);
+    Assert.assertTrue(scheduledTasks.size() == 1); // no task scheduled
     Assert.assertTrue(scheduler.numSourceTasksCompleted == 4);
 
   }

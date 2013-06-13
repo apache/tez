@@ -69,6 +69,7 @@ import org.apache.hadoop.mapreduce.v2.LogParams;
 import org.apache.hadoop.mapreduce.v2.jobhistory.JobHistoryUtils;
 import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.YarnRuntimeException;
@@ -81,7 +82,6 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
-import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.Apps;
@@ -94,8 +94,11 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.client.DAGClient;
+import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -127,6 +130,7 @@ public class YARNRunner implements ClientProtocol {
   
   private final TezConfiguration tezConf;
   private final TezClient tezClient;
+  private DAGClient dagClient;
 
   /**
    * Yarn runner incapsulates the client interface of
@@ -775,7 +779,7 @@ public class YARNRunner implements ClientProtocol {
     // Submit to ResourceManager
     try {
       Path appStagingDir = fs.resolvePath(new Path(jobSubmitDir));
-      tezClient.submitDAGApplication(
+      dagClient = tezClient.submitDAGApplication(
           appId,
           dag, 
           appStagingDir, 
@@ -785,21 +789,11 @@ public class YARNRunner implements ClientProtocol {
           environment, 
           jobLocalResources);
 
-      ApplicationReport appMasterReport = resMgrDelegate
-          .getApplicationReport(appId);
-      String diagnostics = (appMasterReport == null ? "application report is null"
-          : appMasterReport.getDiagnostics());
-      if (appMasterReport == null
-          || appMasterReport.getYarnApplicationState() == YarnApplicationState.FAILED
-          || appMasterReport.getYarnApplicationState() == YarnApplicationState.KILLED) {
-        throw new IOException("Failed to run job : " + diagnostics);
-      }
-    } catch (YarnException e) {
+    } catch (TezException e) {
       throw new IOException(e);
     }
 
-    // FIXME
-    return clientCache.getClient(jobId).getJobStatus(jobId);
+    return getJobStatus(jobId);
   }
 
   private LocalResource createApplicationResource(FileContext fs, Path p, LocalResourceType type)
@@ -847,8 +841,21 @@ public class YARNRunner implements ClientProtocol {
   @Override
   public JobStatus getJobStatus(JobID jobID) throws IOException,
       InterruptedException {
-    JobStatus status = clientCache.getClient(jobID).getJobStatus(jobID);
-    return status;
+    String user = UserGroupInformation.getCurrentUser().getShortUserName();
+    String jobFile = MRApps.getJobFile(conf, user, jobID);
+    DAGStatus dagStatus;
+    try {
+      dagStatus = dagClient.getDAGStatus();
+    } catch (TezException e) {
+      throw new IOException(e);
+    }
+    try {
+      ApplicationReport report = resMgrDelegate
+          .getApplicationReport(resMgrDelegate.getApplicationId());
+      return new DAGJobStatus(report, dagStatus, jobFile);
+    } catch (YarnException e) {
+      throw new IOException(e);
+    }
   }
 
   @Override

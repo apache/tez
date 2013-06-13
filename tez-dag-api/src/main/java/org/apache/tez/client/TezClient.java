@@ -19,8 +19,8 @@
 package org.apache.tez.client;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +30,7 @@ import java.util.Vector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -43,14 +44,12 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.YarnClient;
 import org.apache.hadoop.yarn.client.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -60,10 +59,8 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
-import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.rpc.DAGClientRPCImpl;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 
@@ -74,7 +71,7 @@ public class TezClient {
       FsPermission.createImmutable((short) 0700); // rwx--------
   final public static FsPermission TEZ_AM_FILE_PERMISSION = 
       FsPermission.createImmutable((short) 0644); // rw-r--r--
-  
+    
   private final TezConfiguration conf;
   private YarnClient yarnClient;
   
@@ -83,44 +80,6 @@ public class TezClient {
     yarnClient = new YarnClientImpl();
     yarnClient.init(conf);
     yarnClient.start();
-  }
-
-  /**
-   * Returns a <code>DAGClient</code> for the currently running attempt of a
-   * Tez DAG application
-   * @param appIdStr The application id of the app.
-   * @return DAGClient if the app is running. null otherwise. 
-   * @throws IOException
-   * @throws TezException
-   */
-  public DAGClient getDAGClient(String appIdStr) throws IOException, TezUncheckedException {
-    try {
-      ApplicationId appId = ConverterUtils.toApplicationId(appIdStr);
-      ApplicationReport appReport = yarnClient.getApplicationReport(appId);
-      if(appReport.getYarnApplicationState() != YarnApplicationState.RUNNING) {
-        return null;
-      }
-      String host = appReport.getHost();
-      int port = appReport.getRpcPort();
-      return getDAGClient(host, port);
-    } catch (YarnException e) {
-      throw new TezUncheckedException(e);
-    }
-  }
-  
-  /**
-   * Returns a <code>DAGClient</code> for a Tez application listening at the 
-   * given host and port  
-   * @param host
-   * @param port
-   * @return
-   * @throws IOException
-   */
-  public DAGClient getDAGClient(String host, int port) throws IOException {
-    InetSocketAddress addr = new InetSocketAddress(host, port);
-    DAGClient dagClient;
-    dagClient = new DAGClientRPCImpl(1, addr, conf);
-    return dagClient;    
   }
   
   /**
@@ -137,14 +96,13 @@ public class TezClient {
    * @throws IOException
    * @throws YarnException
    */
-  public ApplicationId submitDAGApplication(DAG dag, Path appStagingDir,
+  public DAGClient submitDAGApplication(DAG dag, Path appStagingDir,
       Credentials ts, String amQueueName, List<String> amArgs,
       Map<String, String> amEnv, Map<String, LocalResource> amLocalResources)
-      throws IOException, YarnException {
+      throws IOException, TezException {
     ApplicationId appId = createApplication();
-    submitDAGApplication(appId, dag, appStagingDir, ts, amQueueName,
+    return submitDAGApplication(appId, dag, appStagingDir, ts, amQueueName,
         amArgs, amEnv, amLocalResources);
-    return appId;
   }
 
   /**
@@ -162,16 +120,21 @@ public class TezClient {
    * @throws IOException
    * @throws YarnException
    */
-  public void submitDAGApplication(ApplicationId appId, DAG dag,
+  public DAGClient submitDAGApplication(ApplicationId appId, DAG dag,
       Path appStagingDir, Credentials ts, String amQueueName,
       List<String> amArgs, Map<String, String> amEnv,
       Map<String, LocalResource> amLocalResources) throws IOException,
-      YarnException {
-    ApplicationSubmissionContext appContext = createApplicationSubmissionContext(
-        appId, dag, appStagingDir, ts, amQueueName, dag.getName(), amArgs, amEnv,
-        amLocalResources);
+      TezException {
+    try {
+      ApplicationSubmissionContext appContext = createApplicationSubmissionContext(
+          appId, dag, appStagingDir, ts, amQueueName, dag.getName(), amArgs,
+          amEnv, amLocalResources);
+      yarnClient.submitApplication(appContext);
+    } catch (YarnException e) {
+      throw new TezException(e);
+    }
 
-    yarnClient.submitApplication(appContext);
+    return getDAGClient(appId);
   }
   
   /**
@@ -180,10 +143,20 @@ public class TezClient {
    * @throws YarnException
    * @throws IOException
    */
-  public ApplicationId createApplication() throws YarnException, IOException {
-    return yarnClient.getNewApplication().getApplicationId();
+  public ApplicationId createApplication() throws TezException, IOException {
+    try {
+      return yarnClient.getNewApplication().getApplicationId();
+    } catch (YarnException e) {
+      throw new TezException(e);
+    }
   }
-  
+
+  @Private
+  public DAGClient getDAGClient(ApplicationId appId) 
+      throws IOException, TezException {
+      return new DAGClientRPCImpl(appId, getDefaultTezDAGID(appId), conf);
+  }
+
   private void addLog4jSystemProperties(String logLevel,
       List<String> vargs) {
     vargs.add("-Dlog4j.configuration=container-log4j.properties");
@@ -365,31 +338,22 @@ public class TezClient {
 
     return appContext;
   }
-
   
-  public static void main(String[] args) {
-    try {
-      TezClient tezClient = new TezClient(
-          new TezConfiguration(new YarnConfiguration()));
-      DAGClient dagClient = tezClient.getDAGClient(args[1]);
-      String dagId = dagClient.getAllDAGs().get(0);
-      DAGStatus dagStatus = dagClient.getDAGStatus(dagId);
-      System.out.println("DAG: " + dagId + 
-                         " State: " + dagStatus.getState() +
-                         " Progress: " + dagStatus.getDAGProgress());
-      for(String vertexName : dagStatus.getVertexProgress().keySet()) {
-        System.out.println("VertexStatus from DagStatus:" +
-                           " Vertex: " + vertexName +
-                           " Progress: " + dagStatus.getVertexProgress().get(vertexName));
-        VertexStatus vertexStatus = dagClient.getVertexStatus(dagId, vertexName);
-        System.out.println("VertexStatus:" + 
-                           " Vertex: " + vertexName + 
-                           " State: " + vertexStatus.getState() + 
-                           " Progress: " + vertexStatus.getProgress());
-      }
-    } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+  // DO NOT CHANGE THIS. This code is replicated from TezDAGID.java
+  private static final char SEPARATOR = '_';
+  private static final String DAG = "dag";
+  private static final NumberFormat idFormat = NumberFormat.getInstance();
+  static {
+    idFormat.setGroupingUsed(false);
+    idFormat.setMinimumIntegerDigits(6);
+  }
+  
+  String getDefaultTezDAGID(ApplicationId appId) {
+     return (new StringBuilder(DAG)).append(SEPARATOR).
+                   append(appId.getClusterTimestamp()).
+                   append(SEPARATOR).
+                   append(appId.getId()).
+                   append(SEPARATOR).
+                   append(idFormat.format(1)).toString();
   }
 }

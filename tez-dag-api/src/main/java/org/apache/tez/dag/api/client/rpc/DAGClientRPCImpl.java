@@ -18,72 +18,178 @@
 
 package org.apache.tez.dag.api.client.rpc;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.List;
+import java.util.Collections;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.hadoop.yarn.client.YarnClient;
+import org.apache.hadoop.yarn.client.YarnClientImpl;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.VertexStatus;
-import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAllDAGsRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
+import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto;
+import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
 
 import com.google.protobuf.ServiceException;
 
-public class DAGClientRPCImpl implements DAGClient, Closeable {
+public class DAGClientRPCImpl implements DAGClient {
+  private static final Log LOG = LogFactory.getLog(DAGClientRPCImpl.class);
 
+  private ApplicationId appId;
+  private String dagId;
+  private TezConfiguration conf;
+  private YarnApplicationState appState;
+  private YarnClient yarnClient;
   private DAGClientAMProtocolBlockingPB proxy = null;
   
-  public DAGClientRPCImpl(long clientVersion, 
-                          InetSocketAddress addr,
-                          TezConfiguration conf) throws IOException {
-    RPC.setProtocolEngine(conf, 
-                          DAGClientAMProtocolBlockingPB.class, 
-                          ProtobufRpcEngine.class);
-    proxy =
-        (DAGClientAMProtocolBlockingPB) 
-        RPC.getProxy(DAGClientAMProtocolBlockingPB.class, 
-                     clientVersion,
-                     addr, 
-                     conf);
+  public DAGClientRPCImpl(ApplicationId appId, String dagId,
+      TezConfiguration conf) {
+    this.appId = appId;
+    this.dagId = dagId;
+    this.conf = conf;
+    yarnClient = new YarnClientImpl();
+    yarnClient.init(conf);
+    yarnClient.start();
+    appState = null;
   }
   
   @Override
-  public List<String> getAllDAGs() throws IOException, TezException {
-    GetAllDAGsRequestProto requestProto = 
-        GetAllDAGsRequestProto.newBuilder().build();
-    try {
-      return proxy.getAllDAGs(null, requestProto).getDagIdList();
-    } catch (ServiceException e) {
-      // TEZ-151 retrieve wrapped TezRemoteException
-      throw new TezException(e);
+  public ApplicationId getApplicationId() {
+    return appId;
+  }
+  
+  @Override
+  public DAGStatus getDAGStatus() throws IOException, TezException {
+    if(createAMProxyIfNeeded()) {
+      try {
+        return getDAGStatusViaAM();
+      } catch (TezException e) {
+        resetProxy(e); // create proxy again
+      }
     }
+    
+    // Later maybe from History
+    return getDAGStatusViaRM();
   }
 
   @Override
-  public DAGStatus getDAGStatus(String dagId) 
+  public VertexStatus getVertexStatus(String vertexName)
                                     throws IOException, TezException {
-    GetDAGStatusRequestProto requestProto = 
-        GetDAGStatusRequestProto.newBuilder().setDagId(dagId).build();
+    if(createAMProxyIfNeeded()) {
+      try {
+        return getVertexStatusViaAM(vertexName);
+      } catch (TezException e) {
+        resetProxy(e); // create proxy again
+      }
+    }
     
+    // need AM for this. Later maybe from History
+    return null;
+  }
+
+  @Override
+  public void close() throws IOException {
+    if (this.proxy != null) {
+      RPC.stopProxy(this.proxy);
+    }
+    if(yarnClient != null) {
+      yarnClient.stop();
+    }
+  }
+  
+  void resetProxy(Exception e) {
+    if(LOG.isDebugEnabled()) {
+      LOG.debug("Resetting AM proxy for app: " + appId + " dag:" + dagId + 
+          " due to exception :", e);
+    }
+    proxy = null;
+  }
+  
+  DAGStatus getDAGStatusViaAM() throws IOException, TezException {
+    if(LOG.isDebugEnabled()) {
+      LOG.debug("GetDAGStatus via AM for app: " + appId + " dag:" + dagId);
+    }
+    GetDAGStatusRequestProto requestProto = 
+        GetDAGStatusRequestProto.newBuilder().setDagId(dagId).build();    
     try {
       return new DAGStatus(
                  proxy.getDAGStatus(null, requestProto).getDagStatus());
     } catch (ServiceException e) {
-      // TEZ-151 retrieve wrapped TezRemoteException
+      // TEZ-151 retrieve wrapped TezException
       throw new TezException(e);
     }
   }
-
-  @Override
-  public VertexStatus getVertexStatus(String dagId, String vertexName)
-                                    throws IOException, TezException {
+  
+  DAGStatus getDAGStatusViaRM() throws TezException, IOException {
+    if(LOG.isDebugEnabled()) {
+      LOG.debug("GetDAGStatus via AM for app: " + appId + " dag:" + dagId);
+    }
+    ApplicationReport appReport;
+    try {
+      appReport = yarnClient.getApplicationReport(appId);
+    } catch (YarnException e) {
+      throw new TezException(e);
+    }
+    DAGStatusProto.Builder builder = DAGStatusProto.newBuilder();
+    DAGStatus dagStatus = new DAGStatus(builder);
+    DAGStatusStateProto dagState = null;
+    switch (appReport.getYarnApplicationState()) {
+    case NEW:
+    case NEW_SAVING:
+    case SUBMITTED:
+    case ACCEPTED:
+      dagState = DAGStatusStateProto.DAG_SUBMITTED;
+      break;
+    case RUNNING:
+      dagState = DAGStatusStateProto.DAG_RUNNING;
+      break;
+    case FAILED:
+      dagState = DAGStatusStateProto.DAG_FAILED;
+      break;
+    case KILLED:
+      dagState = DAGStatusStateProto.DAG_KILLED;
+      break;      
+    case FINISHED:
+      switch(appReport.getFinalApplicationStatus()) {
+      case UNDEFINED:
+      case FAILED:
+        dagState = DAGStatusStateProto.DAG_FAILED;
+        break;
+      case KILLED:
+        dagState = DAGStatusStateProto.DAG_KILLED;
+        break;        
+      case SUCCEEDED:
+        dagState = DAGStatusStateProto.DAG_SUCCEEDED;
+        break;
+      }
+      break;
+    }
+    
+    builder.setState(dagState);
+    if(appReport.getDiagnostics() != null) {
+      builder.addAllDiagnostics(Collections.singleton(appReport.getDiagnostics()));
+    }
+    
+    return dagStatus;
+  }
+  
+  VertexStatus getVertexStatusViaAM(String vertexName) throws TezException {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("GetVertexStatus via AM for app: " + appId + " dag: " + dagId
+          + " vertex: " + vertexName);
+    }
     GetVertexStatusRequestProto requestProto = 
         GetVertexStatusRequestProto.newBuilder().
                         setDagId(dagId).setVertexName(vertexName).build();
@@ -92,16 +198,50 @@ public class DAGClientRPCImpl implements DAGClient, Closeable {
       return new VertexStatus(
                  proxy.getVertexStatus(null, requestProto).getVertexStatus());
     } catch (ServiceException e) {
-      // TEZ-151 retrieve wrapped TezRemoteException
+      // TEZ-151 retrieve wrapped TezException
       throw new TezException(e);
     }
   }
 
-  @Override
-  public void close() throws IOException {
-    if (this.proxy != null) {
-      RPC.stopProxy(this.proxy);
+  ApplicationReport getAMState() throws IOException, TezException {
+    try {
+      ApplicationReport appReport = yarnClient.getApplicationReport(appId);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("App: " + appId + " in state: "
+            + appReport.getYarnApplicationState());
+      }
+      return appReport;
+    } catch (YarnException e) {
+      throw new TezException(e);
     }
   }
 
+  boolean createAMProxyIfNeeded() throws IOException, TezException {
+    if(proxy != null) {
+      // if proxy exist optimistically use it assuming there is no retry
+      return true;
+    }
+    ApplicationReport appReport = getAMState();
+    appState = appReport.getYarnApplicationState();
+    if(appState != YarnApplicationState.RUNNING) {
+      return false;
+    }
+    
+    // YARN-808. Cannot ascertain if AM is ready until we connect to it.
+    // workaround check the default string set by YARN
+    if(appReport.getHost() == null || appReport.getHost().equals("N/A") ||
+        appReport.getRpcPort() == 0){
+      // attempt not running
+      return false;
+    }
+
+    InetSocketAddress addr = new InetSocketAddress(appReport.getHost(),
+        appReport.getRpcPort());
+
+    RPC.setProtocolEngine(conf, DAGClientAMProtocolBlockingPB.class,
+        ProtobufRpcEngine.class);
+    proxy = (DAGClientAMProtocolBlockingPB) RPC.getProxy(
+        DAGClientAMProtocolBlockingPB.class, 0, addr, conf);
+    return true;
+  }
 }

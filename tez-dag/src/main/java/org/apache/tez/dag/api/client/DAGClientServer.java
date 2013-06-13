@@ -34,17 +34,18 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPBServerImpl;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.DAGClientAMProtocol;
+import org.apache.tez.dag.app.DAGAppMaster.DAGClientHandler;
 
 import com.google.protobuf.BlockingService;
 
 public class DAGClientServer extends AbstractService {
   static final Log LOG = LogFactory.getLog(DAGClientServer.class);
       
-  DAGClient realInstance;
+  DAGClientHandler realInstance;
   Server server;
   InetSocketAddress bindAddress;
 
-  public DAGClientServer(DAGClient realInstance) {
+  public DAGClientServer(DAGClientHandler realInstance) {
     super("DAGClientRPCServer");
     this.realInstance = realInstance;
   }

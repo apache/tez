@@ -66,7 +66,6 @@ import org.apache.hadoop.yarn.service.Service;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
-import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.VertexStatus;
@@ -710,22 +709,19 @@ public class DAGAppMaster extends CompositeService {
     LOG.info("On DAG completion. Old state: " + oldState + " new state: " + state);
   }
 
-  class DAGClientHandler implements DAGClient {
+  public class DAGClientHandler {
 
-    @Override
     public List<String> getAllDAGs() throws TezException {
       return Collections.singletonList(dag.getID().toString());
     }
 
-    @Override
     public DAGStatus getDAGStatus(String dagIdStr)
-                                      throws IOException, TezException {
+                                      throws TezException {
       return getDAG(dagIdStr).getDAGStatus();
     }
 
-    @Override
     public VertexStatus getVertexStatus(String dagIdStr, String vertexName)
-        throws IOException, TezException{
+        throws TezException{
       VertexStatus status = getDAG(dagIdStr).getVertexStatus(vertexName);
       if(status == null) {
         throw new TezException("Unknown vertexName: " + vertexName);
@@ -734,7 +730,7 @@ public class DAGAppMaster extends CompositeService {
       return status;
     }
 
-    DAG getDAG(String dagIdStr) throws IOException, TezException {
+    DAG getDAG(String dagIdStr) throws TezException {
       TezDAGID dagId = TezDAGID.fromString(dagIdStr);
       if(dagId == null) {
         throw new TezException("Bad dagId: " + dagIdStr);

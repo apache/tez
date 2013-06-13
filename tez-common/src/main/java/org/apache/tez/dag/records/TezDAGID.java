@@ -37,14 +37,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
  * @see ApplicationId
  */
 public class TezDAGID extends TezID {
-
-  public static final String DAG = "dag";
-  protected static final NumberFormat idFormat = NumberFormat.getInstance();
-  static {
-    idFormat.setGroupingUsed(false);
-    idFormat.setMinimumIntegerDigits(6);
-  }
-
+  
   private ApplicationId applicationId;
 
   public TezDAGID() {
@@ -95,6 +88,28 @@ public class TezDAGID extends TezID {
     return this.applicationId.compareTo(that.applicationId);
   }
 
+
+  @Override
+  public void readFields(DataInput in) throws IOException {
+    applicationId = ApplicationId.newInstance(in.readLong(), in.readInt());
+    super.readFields(in);
+  }
+
+  @Override
+  public void write(DataOutput out) throws IOException {
+    out.writeLong(applicationId.getClusterTimestamp());
+    out.writeInt(applicationId.getId());
+    super.write(out);
+  }
+
+  // DO NOT CHANGE THIS. DAGClient replicates this code to create DAG id string
+  public static final String DAG = "dag";
+  protected static final NumberFormat idFormat = NumberFormat.getInstance();
+  static {
+    idFormat.setGroupingUsed(false);
+    idFormat.setMinimumIntegerDigits(6);
+  }
+
   @Override
   public String toString() {
     return appendTo(new StringBuilder(DAG)).toString();
@@ -112,19 +127,6 @@ public class TezDAGID extends TezID {
       e.printStackTrace();
     }
     return null;
-  }
-
-  @Override
-  public void readFields(DataInput in) throws IOException {
-    applicationId = ApplicationId.newInstance(in.readLong(), in.readInt());
-    super.readFields(in);
-  }
-
-  @Override
-  public void write(DataOutput out) throws IOException {
-    out.writeLong(applicationId.getClusterTimestamp());
-    out.writeInt(applicationId.getId());
-    super.write(out);
   }
 
   /**

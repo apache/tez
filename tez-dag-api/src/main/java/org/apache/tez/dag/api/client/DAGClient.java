@@ -18,31 +18,28 @@
 
 package org.apache.tez.dag.api.client;
 
+import java.io.Closeable;
 import java.io.IOException;
-import java.util.List;
 
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.api.TezException;
 
 /*
- * Inteface class for monitoring the <code>DAG</code> running in a Tez DAG
+ * Interface class for monitoring the <code>DAG</code> running in a Tez DAG
  * Application Master.
  */
-public interface DAGClient {
+public interface DAGClient extends Closeable {
+  
+  public ApplicationId getApplicationId();
   
   /**
-   * Return the identifiers for all DAG's
+   * Get the status of the specified DAG
    */
-  List<String> getAllDAGs() throws IOException, TezException;
-  
-  /**
-   * Get the status of a DAG
-   */
-  DAGStatus getDAGStatus(String dagId) throws IOException, TezException;
+  public DAGStatus getDAGStatus() throws IOException, TezException;
   
   /**
    * Get the status of a Vertex of a DAG 
    */
-  VertexStatus getVertexStatus(String dagId, 
-                               String vertexName) 
-                                   throws IOException, TezException;
+  public VertexStatus getVertexStatus(String vertexName)
+      throws IOException, TezException;
 }
