@@ -18,7 +18,11 @@
 
 package org.apache.tez.mapreduce.examples;
 
+import java.text.DecimalFormat;
+
 import org.apache.hadoop.util.ProgramDriver;
+import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.Progress;
 import org.apache.tez.mapreduce.examples.terasort.TeraGen;
 import org.apache.tez.mapreduce.examples.terasort.TeraSort;
 import org.apache.tez.mapreduce.examples.terasort.TeraValidate;
@@ -28,6 +32,8 @@ import org.apache.tez.mapreduce.examples.terasort.TeraValidate;
  * human-readable description.
  */
 public class ExampleDriver {
+
+  private static final DecimalFormat formatter = new DecimalFormat("###.##%");
 
   public static void main(String argv[]){
     int exitCode = -1;
@@ -63,6 +69,8 @@ public class ExampleDriver {
           + " sorted on employee count");
       pgd.addClass("mrrsleep", MRRSleepJob.class,
           "MRR Sleep Job");
+      pgd.addClass("orderedwordcount", OrderedWordCount.class,
+          "Word Count with words sorted on frequency");
       exitCode = pgd.run(argv);
     }
     catch(Throwable e){
@@ -71,5 +79,31 @@ public class ExampleDriver {
 
     System.exit(exitCode);
   }
+
+  public static void printMRRDAGStatus(DAGStatus dagStatus) {
+    Progress progress = dagStatus.getDAGProgress();
+    if (progress != null) {
+      System.out.println("");
+      System.out.println("DAG: State: "
+          + dagStatus.getState()
+          + " Progress: "
+          + formatter.format((double)(progress.getSucceededTaskCount())
+              /progress.getTotalTaskCount()));
+      final String[] vNames = { "initialmap", "ivertex1", "finalreduce" };
+      for (String vertexName : vNames) {
+        Progress vProgress = dagStatus.getVertexProgress().get(vertexName);
+        if (vProgress != null) {
+          System.out.println("VertexStatus:"
+              + " VertexName: "
+              + (vertexName.equals("ivertex1") ? "intermediate-reducer"
+                  : vertexName)
+              + " Progress: "
+              + formatter.format((double)vProgress.getSucceededTaskCount()
+                      /vProgress.getTotalTaskCount()));
+        }
+      }
+    }
+  }
+
 }
 	

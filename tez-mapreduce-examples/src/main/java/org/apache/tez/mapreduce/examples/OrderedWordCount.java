@@ -36,6 +36,8 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.client.YarnClient;
+import org.apache.hadoop.yarn.client.YarnClientImpl;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -45,81 +47,36 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 
 /**
- * Simple example that does a GROUP BY ORDER BY in an MRR job
- * Consider a query such as
- * Select DeptName, COUNT(*) as cnt FROM EmployeeTable
- * GROUP BY DeptName ORDER BY cnt;
- *
- * i.e. List all departments with count of employees in each department
- * and ordered based on department's employee count.
- *
- *  Requires an Input file containing 2 strings per line in format of
- *  <EmployeeName> <DeptName>
- *
- *  For example, use the following:
- *
- *  #/bin/bash
- *
- *  i=1000000
- *  j=1000
- *
- *  id=0
- *  while [[ "$id" -ne "$i" ]]
- *  do
- *    id=`expr $id + 1`
- *    deptId=`expr $RANDOM % $j + 1`
- *    deptName=`echo "ibase=10;obase=16;$deptId" | bc`
- *    echo "$id O$deptName"
- *  done
- *
+ * An MRR job built on top of word count to return words sorted by
+ * their frequency of occurrence.
  */
-public class GroupByOrderByMRRTest {
+public class OrderedWordCount {
 
-  private static final Log LOG = LogFactory.getLog(GroupByOrderByMRRTest.class);
+  private static Log LOG = LogFactory.getLog(OrderedWordCount.class);
 
-  /**
-   * Mapper takes in a single line as input containing
-   * employee name and department name and then
-   * emits department name with count of 1
-   */
-  public static class MyMapper
-      extends Mapper<Object, Text, Text, IntWritable> {
+  public static class TokenizerMapper
+       extends Mapper<Object, Text, Text, IntWritable>{
 
     private final static IntWritable one = new IntWritable(1);
-    private final static Text word = new Text();
+    private Text word = new Text();
 
     public void map(Object key, Text value, Context context
-        ) throws IOException, InterruptedException {
+                    ) throws IOException, InterruptedException {
       StringTokenizer itr = new StringTokenizer(value.toString());
-      String empName = "";
-      String deptName = "";
-      if (itr.hasMoreTokens()) {
-        empName = itr.nextToken();
-        if (itr.hasMoreTokens()) {
-          deptName = itr.nextToken();
-        }
-        if (!empName.isEmpty()
-            && !deptName.isEmpty()) {
-          word.set(deptName);
-          context.write(word, one);
-        }
+      while (itr.hasMoreTokens()) {
+        word.set(itr.nextToken());
+        context.write(word, one);
       }
     }
   }
 
-  /**
-   * Intermediate reducer aggregates the total count per department.
-   * It takes department name and count as input and emits the final
-   * count per department name.
-   */
-  public static class MyGroupByReducer
-      extends Reducer<Text, IntWritable, IntWritable, Text> {
+  public static class IntSumReducer
+       extends Reducer<Text,IntWritable,IntWritable, Text> {
     private IntWritable result = new IntWritable();
 
     public void reduce(Text key, Iterable<IntWritable> values,
-        Context context
-        ) throws IOException, InterruptedException {
-
+                       Context context
+                       ) throws IOException, InterruptedException {
       int sum = 0;
       for (IntWritable val : values) {
         sum += val.get();
@@ -148,13 +105,18 @@ public class GroupByOrderByMRRTest {
 
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
+    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+    if (otherArgs.length != 2) {
+      System.err.println("Usage: wordcount <in> <out>");
+      System.exit(2);
+    }
 
     // Configure intermediate reduces
     conf.setInt(MRJobConfig.MRR_INTERMEDIATE_STAGES, 1);
 
     // Set reducer class for intermediate reduce
     conf.setClass(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
-        "mapreduce.job.reduce.class"), MyGroupByReducer.class, Reducer.class);
+        "mapreduce.job.reduce.class"), IntSumReducer.class, Reducer.class);
     // Set reducer output key class
     conf.setClass(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
         "mapreduce.map.output.key.class"), IntWritable.class, Object.class);
@@ -164,20 +126,12 @@ public class GroupByOrderByMRRTest {
     conf.setInt(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
         "mapreduce.job.reduces"), 2);
 
-    String[] otherArgs = new GenericOptionsParser(conf, args).
-        getRemainingArgs();
-    if (otherArgs.length != 2) {
-      System.err.println("Usage: groupbyorderbymrrtest <in> <out>");
-      System.exit(2);
-    }
-
     @SuppressWarnings("deprecation")
-    Job job = new Job(conf, "groupbyorderbymrrtest");
-
-    job.setJarByClass(GroupByOrderByMRRTest.class);
+    Job job = new Job(conf, "orderedwordcount");
+    job.setJarByClass(OrderedWordCount.class);
 
     // Configure map
-    job.setMapperClass(MyMapper.class);
+    job.setMapperClass(TokenizerMapper.class);
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(IntWritable.class);
 
@@ -185,10 +139,13 @@ public class GroupByOrderByMRRTest {
     job.setReducerClass(MyOrderByNoOpReducer.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(IntWritable.class);
-    job.setNumReduceTasks(1);
 
     FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
     FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
+
+    YarnClient yarnClient = new YarnClientImpl();
+    yarnClient.init(conf);
+    yarnClient.start();
 
     TezClient tezClient = new TezClient(new TezConfiguration(conf));
 
