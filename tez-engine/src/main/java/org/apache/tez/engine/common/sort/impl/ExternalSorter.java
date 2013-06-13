@@ -154,7 +154,7 @@ public abstract class ExternalSorter {
                 TezTaskOutputFiles.class), conf);
 
     // sortPhase
-    sortPhase  = runningTaskContext.getProgress().addPhase("sort", 0.333f);
+    sortPhase  = runningTaskContext.getProgress().addPhase("sort");
   }
 
   /**

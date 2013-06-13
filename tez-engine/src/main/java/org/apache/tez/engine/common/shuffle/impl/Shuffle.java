@@ -82,8 +82,8 @@ public class Shuffle implements ExceptionReporter {
     LocalDirAllocator localDirAllocator = 
         new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
     
-    copyPhase = this.runningTaskContext.getProgress().addPhase("copy", 0.33f);
-    mergePhase = this.runningTaskContext.getProgress().addPhase("merge", 0.66f);
+    copyPhase = this.runningTaskContext.getProgress().addPhase("copy");
+    mergePhase = this.runningTaskContext.getProgress().addPhase("merge");
 
     // TODO TEZ Get rid of Map / Reduce references.
     TezCounter shuffledMapsCounter = 

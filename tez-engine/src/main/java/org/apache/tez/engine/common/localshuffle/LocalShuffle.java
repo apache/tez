@@ -101,7 +101,7 @@ public class LocalShuffle {
   
   public TezRawKeyValueIterator run() throws IOException {
     // Copy is complete, obviously! 
-    this.runningTaskContext.getProgress().addPhase("copy", 0.33f).complete();
+    this.runningTaskContext.getProgress().addPhase("copy").complete();
 
     // Merge
     return TezMerger.merge(conf, rfs, 

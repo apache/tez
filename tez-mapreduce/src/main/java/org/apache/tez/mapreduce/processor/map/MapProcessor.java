@@ -115,11 +115,11 @@ public class MapProcessor extends MRTask implements Processor {
     // If there are no reducers then there won't be any sort. Hence the map 
     // phase will govern the entire attempt's progress.
     if (tezEngineTaskContext.getOutputSpecList().get(0).getNumOutputs() == 0) {
-      mapPhase = getProgress().addPhase("map", 1.0f);
+      mapPhase = getProgress().addPhase("map");
     } else {
       // If there are reducers then the entire attempt's progress will be 
       // split between the map phase (67%) and the sort phase (33%).
-      mapPhase = getProgress().addPhase("map", 0.667f);
+      mapPhase = getProgress().addPhase("map");
     }
 
     // Sanity check
