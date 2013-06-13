@@ -45,9 +45,12 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAGState;
+import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
+import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
+import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate.UpdateType;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.DAGFinishEvent;
@@ -86,11 +89,22 @@ public class TestDAGImpl {
   private Clock clock = new SystemClock();
   private JobTokenSecretManager jobTokenSecretManager;
   private DAGFinishEventHandler dagFinishEventHandler;
+  private AppContext mrrAppContext;
+  private DAGPlan mrrDagPlan;
+  private DAGImpl mrrDag;
+  private TezDAGID mrrDagId;
 
   private class DagEventDispatcher implements EventHandler<DAGEvent> {
     @Override
     public void handle(DAGEvent event) {
-      dag.handle(event);
+      if (event.getDAGId().equals(dagId)) {
+        dag.handle(event);
+      }  else if (event.getDAGId().equals(mrrDagId)) {
+        mrrDag.handle(event);
+      } else {
+        throw new RuntimeException("Invalid event, unknown dag"
+            + ", dagId=" + event.getDAGId());
+      }
     }
   }
 
@@ -112,7 +126,9 @@ public class TestDAGImpl {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(VertexEvent event) {
-      Vertex vertex = dag.getVertex(event.getVertexId());
+      DAGImpl handler = event.getVertexId().getDAGId().equals(dagId) ?
+          dag : mrrDag;
+      Vertex vertex = handler.getVertex(event.getVertexId());
       ((EventHandler<VertexEvent>) vertex).handle(event);
     }
   }
@@ -125,6 +141,105 @@ public class TestDAGImpl {
     public void handle(DAGFinishEvent event) {
       ++dagFinishEvents;
     }
+  }
+
+  private DAGPlan createTestMRRDAGPlan() {
+    LOG.info("Setting up MRR dag plan");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("testverteximpl")
+        .addVertex(
+            VertexPlan.newBuilder()
+            .setName("vertex1")
+            .setType(PlanVertexType.NORMAL)
+            .addTaskLocationHint(
+                PlanTaskLocationHint.newBuilder()
+                .addHost("host1")
+                .addRack("rack1")
+                .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                    .setNumTasks(1)
+                    .setVirtualCores(4)
+                    .setMemoryMb(1024)
+                    .setJavaOpts("")
+                    .setTaskModule("x1.y1")
+                    .build()
+                    )
+                    .addOutEdgeId("e1")
+                    .build()
+            )
+        .addVertex(
+            VertexPlan.newBuilder()
+            .setName("vertex2")
+            .setType(PlanVertexType.NORMAL)
+            .addTaskLocationHint(
+                PlanTaskLocationHint.newBuilder()
+                .addHost("host2")
+                .addRack("rack2")
+                .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                    .setNumTasks(2)
+                    .setVirtualCores(4)
+                    .setMemoryMb(1024)
+                    .setJavaOpts("")
+                    .setTaskModule("x2.y2")
+                    .build()
+                    )
+                    .addInEdgeId("e1")
+                    .addOutEdgeId("e2")
+                    .build()
+            )
+        .addVertex(
+            VertexPlan.newBuilder()
+            .setName("vertex3")
+            .setType(PlanVertexType.NORMAL)
+            .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("x3.y3"))
+            .addTaskLocationHint(
+                PlanTaskLocationHint.newBuilder()
+                .addHost("host3")
+                .addRack("rack3")
+                .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                    .setNumTasks(2)
+                    .setVirtualCores(4)
+                    .setMemoryMb(1024)
+                    .setJavaOpts("foo")
+                    .setTaskModule("x3.y3")
+                    .build()
+                    )
+                    .addInEdgeId("e2")
+                    .build()
+            )
+        .addEdge(
+            EdgePlan.newBuilder()
+            .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i2"))
+            .setInputVertexName("vertex1")
+            .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
+            .setOutputVertexName("vertex2")
+            .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
+            .setId("e1")
+            .setSourceType(PlanEdgeSourceType.STABLE)
+            .build()
+            )
+       .addEdge(
+           EdgePlan.newBuilder()
+           .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3"))
+           .setInputVertexName("vertex2")
+           .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
+           .setOutputVertexName("vertex3")
+           .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
+           .setId("e2")
+           .setSourceType(PlanEdgeSourceType.STABLE)
+           .build()
+           )
+      .build();
+
+    return dag;
   }
 
   private DAGPlan createTestDAGPlan() {
@@ -359,6 +474,15 @@ public class TestDAGImpl {
         dispatcher.getEventHandler(),  taskAttemptListener,
         jobTokenSecretManager, fsTokens, clock, "user", 10000, thh, appContext);
     doReturn(dag).when(appContext).getDAG();
+    mrrAppContext = mock(AppContext.class);
+    mrrDagId = new TezDAGID(appAttemptId.getApplicationId(), 2);
+    mrrDagPlan = createTestMRRDAGPlan();
+    mrrDag = new DAGImpl(mrrDagId, appAttemptId, conf, mrrDagPlan,
+        dispatcher.getEventHandler(),  taskAttemptListener,
+        jobTokenSecretManager, fsTokens, clock, "user", 10000, thh,
+        mrrAppContext);
+    doReturn(mrrDag).when(mrrAppContext).getDAG();
+    doReturn(appAttemptId).when(mrrAppContext).getApplicationAttemptId();
     vertexEventDispatcher = new VertexEventDispatcher();
     dispatcher.register(VertexEventType.class, vertexEventDispatcher);
     dagEventDispatcher = new DagEventDispatcher();
@@ -380,18 +504,18 @@ public class TestDAGImpl {
     dag = null;
   }
 
-  private void initDAG(DAGImpl dag) {
-    dag.handle(
-        new DAGEvent(dagId, DAGEventType.DAG_INIT));
-    Assert.assertEquals(DAGState.INITED, dag.getState());
+  private void initDAG(DAGImpl impl) {
+    impl.handle(
+        new DAGEvent(impl.getID(), DAGEventType.DAG_INIT));
+    Assert.assertEquals(DAGState.INITED, impl.getState());
   }
 
   @SuppressWarnings("unchecked")
-  private void startDAG(DAGImpl dag) {
+  private void startDAG(DAGImpl impl) {
     dispatcher.getEventHandler().handle(
-        new DAGEvent(dagId, DAGEventType.DAG_START));
+        new DAGEvent(impl.getID(), DAGEventType.DAG_START));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    Assert.assertEquals(DAGState.RUNNING, impl.getState());
   }
 
   @Test
@@ -637,5 +761,30 @@ public class TestDAGImpl {
   @Test
   public void testCounterUpdates() {
     // FIXME need to implement
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void testOutofBandFailureForMRRScheduler() {
+    initDAG(mrrDag);
+    dispatcher.await();
+    Assert.assertTrue(mrrDag.dagScheduler instanceof DAGSchedulerMRR);
+    startDAG(mrrDag);
+    dispatcher.await();
+
+    TaskAttempt attempt = mock(TaskAttempt.class);
+    doReturn(
+        mrrDag.getVertex("vertex1").getVertexId()).when(attempt).getVertexID();
+
+    DAGEventSchedulerUpdate scheduleEvent =
+        new DAGEventSchedulerUpdate(UpdateType.TA_SCHEDULE, attempt);
+    dispatcher.getEventHandler().handle(scheduleEvent);
+    dispatcher.await();
+
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
+        mrrDag.getVertex("vertex2").getVertexId(), VertexState.FAILED));
+    dispatcher.await();
+
+    Assert.assertEquals(DAGState.FAILED, mrrDag.getState());
   }
 }

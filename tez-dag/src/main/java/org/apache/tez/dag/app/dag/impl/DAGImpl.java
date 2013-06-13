@@ -93,6 +93,8 @@ import org.apache.tez.engine.common.security.JobTokenSecretManager;
 import org.apache.tez.engine.common.security.TokenCache;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /** Implementation of Job interface. Maintains the state machines of Job.
  * The read and write calls use ReadWriteLock for concurrency.
  */
@@ -119,7 +121,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final TaskHeartbeatHandler taskHeartbeatHandler;
   private final Object tasksSyncHandle = new Object();
 
-  private DAGScheduler dagScheduler;
+  @VisibleForTesting
+  DAGScheduler dagScheduler;
 
   private final EventHandler eventHandler;
   // TODO Metrics
@@ -1120,6 +1123,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       job.numCompletedVertices++;
       if (vertexEvent.getVertexState() == VertexState.SUCCEEDED) {
         vertexSucceeded(job, vertex);
+        job.dagScheduler.vertexCompleted(vertex);
       } else if (vertexEvent.getVertexState() == VertexState.FAILED) {
         vertexFailed(job, vertex);
       } else if (vertexEvent.getVertexState() == VertexState.KILLED) {
@@ -1134,8 +1138,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
             + ", numKilledVertices=" + job.numKilledVertices
             + ", numVertices=" + job.numVertices);
       }
-
-      job.dagScheduler.vertexCompleted(vertex);
 
       return checkJobForCompletion(job);
     }
