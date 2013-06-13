@@ -40,6 +40,7 @@ import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReader;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
+import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -286,7 +287,7 @@ public class TestMRHelpers {
 
   @Test
   public void testContainerResourceConstruction() {
-    Configuration conf = new Configuration();
+    JobConf conf = new JobConf(new Configuration());
     Resource mapResource = MRHelpers.getMapResource(conf);
     Resource reduceResource = MRHelpers.getReduceResource(conf);
 
@@ -311,5 +312,49 @@ public class TestMRHelpers {
     Assert.assertEquals(123, mapResource.getMemory());
     Assert.assertEquals(20, reduceResource.getVirtualCores());
     Assert.assertEquals(1234, reduceResource.getMemory());
+  }
+
+  private Configuration setupConfigForMREnvTest() {
+    JobConf conf = new JobConf(new Configuration());
+    conf.set(MRJobConfig.MAP_ENV, "foo=map1,bar=map2");
+    conf.set(MRJobConfig.REDUCE_ENV, "foo=red1,bar=red2");
+    conf.set(MRJobConfig.MAP_LOG_LEVEL, "TRACE");
+    conf.set(MRJobConfig.REDUCE_LOG_LEVEL, "FATAL");
+    return conf;
+  }
+
+  private void testCommonEnvSettingsForMRTasks(Map<String, String> env) {
+    Assert.assertTrue(env.containsKey("foo"));
+    Assert.assertTrue(env.containsKey("bar"));
+    Assert.assertTrue(env.containsKey(Environment.CLASSPATH.$()));
+    Assert.assertTrue(env.containsKey(Environment.LD_LIBRARY_PATH.$()));
+    Assert.assertTrue(env.containsKey(Environment.SHELL.$()));
+    Assert.assertTrue(env.containsKey("HADOOP_ROOT_LOGGER"));
+    for (String val : YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH) {
+      Assert.assertTrue(env.get(Environment.CLASSPATH.$()).contains(val));
+    }
+
+    Assert.assertTrue(0 ==
+        env.get(Environment.CLASSPATH.$()).indexOf(Environment.PWD.$()));
+
+  }
+  @Test
+  public void testMREnvSetupForMap() {
+    Configuration conf = setupConfigForMREnvTest();
+    Map<String, String> env = new HashMap<String, String>();
+    MRHelpers.updateEnvironmentForMRTasks(conf, env, true);
+    testCommonEnvSettingsForMRTasks(env);
+    Assert.assertEquals("map1", env.get("foo"));
+    Assert.assertEquals("map2", env.get("bar"));
+  }
+
+  @Test
+  public void testMREnvSetupForReduce() {
+    Configuration conf = setupConfigForMREnvTest();
+    Map<String, String> env = new HashMap<String, String>();
+    MRHelpers.updateEnvironmentForMRTasks(conf, env, false);
+    testCommonEnvSettingsForMRTasks(env);
+    Assert.assertEquals("red1", env.get("foo"));
+    Assert.assertEquals("red2", env.get("bar"));
   }
 }

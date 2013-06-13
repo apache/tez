@@ -46,11 +46,13 @@ import org.apache.hadoop.mapreduce.split.JobSplitWriter;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.yarn.ContainerLogAppender;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 
@@ -334,7 +336,7 @@ public class MRHelpers {
    * Sets up parameters which used to be set by the MR JobClient. Includes
    * setting whether to use the new api or the old api. Note: Must be called
    * before generating InputSplits
-   * 
+   *
    * @param conf
    *          configuration for the vertex.
    */
@@ -371,11 +373,11 @@ public class MRHelpers {
       }
     }
   }
-  
+
   /**
    * Default to the new APIs unless they are explicitly set or the old mapper or
    * reduce attributes are used.
-   * 
+   *
    * @throws IOException
    *           if the configuration is inconsistant
    */
@@ -529,6 +531,59 @@ public class MRHelpers {
         MRJobConfig.REDUCE_MEMORY_MB, MRJobConfig.DEFAULT_REDUCE_MEMORY_MB),
         conf.getInt(MRJobConfig.REDUCE_CPU_VCORES,
             MRJobConfig.DEFAULT_REDUCE_CPU_VCORES));
+  }
+
+  /**
+   * Setup classpath and other environment variables
+   * @param conf Configuration to retrieve settings from
+   * @param environment Environment to update
+   * @param isMap Whether task is a map or reduce task
+   */
+  public static void updateEnvironmentForMRTasks(Configuration conf,
+      Map<String, String> environment, boolean isMap) {
+
+    if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
+      Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
+          System.getProperty("java.class.path"));
+    }
+
+    // TEZ jars and deps will be localized by the TezClient submission layer
+    // Assumption is that MR is also in TEZ dependencies
+    Apps.addToEnvironment(environment,
+        Environment.CLASSPATH.name(),
+        Environment.PWD.$());
+
+    // Add YARN/COMMON/HDFS jars to path
+    for (String c : conf.getStrings(
+        YarnConfiguration.YARN_APPLICATION_CLASSPATH,
+        YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
+      Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
+          c.trim());
+    }
+
+    // Shell
+    environment.put(Environment.SHELL.name(), conf.get(
+        MRJobConfig.MAPRED_ADMIN_USER_SHELL, MRJobConfig.DEFAULT_SHELL));
+
+    // Add pwd to LD_LIBRARY_PATH, add this before adding anything else
+    Apps.addToEnvironment(environment, Environment.LD_LIBRARY_PATH.name(),
+        Environment.PWD.$());
+
+    // Add the env variables passed by the admin
+    Apps.setEnvFromInputString(environment, conf.get(
+        MRJobConfig.MAPRED_ADMIN_USER_ENV,
+        MRJobConfig.DEFAULT_MAPRED_ADMIN_USER_ENV));
+
+    // Add the env variables passed by the user
+    String mapredChildEnv = (isMap ?
+        conf.get(MRJobConfig.MAP_ENV, "")
+        : conf.get(MRJobConfig.REDUCE_ENV, ""));
+    Apps.setEnvFromInputString(environment, mapredChildEnv);
+
+    // Set logging level in the environment.
+    environment.put(
+        "HADOOP_ROOT_LOGGER",
+        getChildLogLevel(conf, isMap) + ",CLA");
   }
 
 }
