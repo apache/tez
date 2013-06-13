@@ -19,18 +19,35 @@
 package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.StringTokenizer;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.TypeConverter;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.hadoop.yarn.client.YarnClient;
+import org.apache.hadoop.yarn.client.YarnClientImpl;
+import org.apache.tez.client.TezClient;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.client.DAGClient;
+import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.Progress;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 
@@ -64,6 +81,8 @@ import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
  *
  */
 public class GroupByOrderByMRRTest {
+
+  private static final Log LOG = LogFactory.getLog(GroupByOrderByMRRTest.class);
 
   /**
    * Mapper takes in a single line as input containing
@@ -176,7 +195,92 @@ public class GroupByOrderByMRRTest {
 
     FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
     FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
+
+    YarnClient yarnClient = new YarnClientImpl();
+    yarnClient.init(conf);
+    yarnClient.start();
+
+    TezClient tezClient = new TezClient(new TezConfiguration(conf));
+
+    job.submit();
+    JobID jobId = job.getJobID();
+    ApplicationId appId = TypeConverter.toYarn(jobId).getAppId();
+
+    DAGClient dagClient = null;
+    ApplicationReport  appReport;
+    while (true) {
+      appReport = yarnClient.getApplicationReport(appId);
+      if(appReport.getYarnApplicationState() == YarnApplicationState.RUNNING) {
+        dagClient = tezClient.getDAGClient(appId.toString());
+        break;
+      }
+      if (appReport.getYarnApplicationState() == YarnApplicationState.FINISHED
+        || appReport.getYarnApplicationState() == YarnApplicationState.FAILED
+        || appReport.getYarnApplicationState() == YarnApplicationState.KILLED) {
+        break;
+      }
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        // continue;
+      }
+    }
+
+    DecimalFormat formatter = new DecimalFormat("###.##%");
+    while (dagClient != null) {
+      try {
+        String dagId = dagClient.getAllDAGs().get(0);
+        DAGStatus dagStatus = dagClient.getDAGStatus(dagId);
+        System.out.println("");
+        System.out.println("DAG: " + dagId +
+            " State: " + dagStatus.getState() +
+            " Progress: " +
+            formatter.format(
+                ((double)dagStatus.getDAGProgress().getSucceededTaskCount()
+                    + (double)dagStatus.getDAGProgress().getKilledTaskCount()
+                    + (double)dagStatus.getDAGProgress().getFailedTaskCount())/
+                    (double)dagStatus.getDAGProgress().getTotalTaskCount()));
+        final String[] vNames = {"initialmap", "ivertex1", "finalreduce"};
+        for(String vertexName : vNames) {
+          Progress vProgress = dagStatus.getVertexProgress().get(vertexName);
+          System.out.println("VertexStatus:" +
+              " VertexName: " + (vertexName.equals("ivertex1") ?
+                  "intermediate-reducer" : vertexName) +
+              " Progress: " +
+                formatter.format(((double)vProgress.getSucceededTaskCount()
+                  + (double)vProgress.getKilledTaskCount()
+                  + (double)vProgress.getFailedTaskCount())/
+                  (double)vProgress.getTotalTaskCount()));
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e) {
+            // continue;
+          }
+        }
+      } catch (TezException e) {
+        // AM not responding
+        dagClient = null;
+        appReport = yarnClient.getApplicationReport(appId);
+        if(appReport.getYarnApplicationState() != YarnApplicationState.RUNNING){
+          LOG.info("App not running. Falling back to RM for report.");
+        } else {
+          LOG.warn("App running but failed to get report from AM.", e);
+        }
+      }
+    }
+
+    if (appReport.getYarnApplicationState() == YarnApplicationState.FINISHED
+        || appReport.getYarnApplicationState() == YarnApplicationState.FAILED
+        || appReport.getYarnApplicationState() == YarnApplicationState.KILLED) {
+      LOG.info("Application completed. "
+          + "FinalState=" + appReport.getFinalApplicationStatus());
+      System.exit(
+          appReport.getYarnApplicationState() == YarnApplicationState.FINISHED?
+              0 : 1);
+    }
+
+    LOG.fatal("Failed to get application progress. Exiting");
+    System.exit(-1);
   }
 
 }

@@ -50,7 +50,7 @@ public class Progress {
   
   @Override
   public String toString() {
-    return new String("Total: " + getTotalTaskCount() +
+    return new String("TotalTasks: " + getTotalTaskCount() +
                        " Succeeded: " + getSucceededTaskCount() +
                        " Running: " + getRunningTaskCount() + 
                        " Failed: " + getFailedTaskCount() + 
