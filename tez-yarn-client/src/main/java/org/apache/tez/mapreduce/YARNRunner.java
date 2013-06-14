@@ -522,7 +522,7 @@ public class YARNRunner implements ClientProtocol {
         jobLocalResources);
 
     List<String> vargs = new LinkedList<String>();
-    // FIXME admin command opts and user command opts for tez?
+    // admin command opts and user command opts
     String mrAppMasterAdminOptions = conf.get(MRJobConfig.MR_AM_ADMIN_COMMAND_OPTS,
         MRJobConfig.DEFAULT_MR_AM_ADMIN_COMMAND_OPTS);
     warnForJavaLibPath(mrAppMasterAdminOptions, "app master",
@@ -540,12 +540,8 @@ public class YARNRunner implements ClientProtocol {
     // i.e. add { Hadoop jars, job jar, CWD } to classpath.
     Map<String, String> environment = new HashMap<String, String>();
 
-    // Setup the environment variables for Admin first
-    MRApps.setEnvFromInputString(environment,
-        conf.get(MRJobConfig.MR_AM_ADMIN_USER_ENV));
-    // Setup the environment variables (LD_LIBRARY_PATH, etc)
-    MRApps.setEnvFromInputString(environment,
-        conf.get(MRJobConfig.MR_AM_ENV));
+    // Setup the environment variables for AM
+    MRHelpers.updateEnvironmentForMRAM(conf, environment);
 
     setDAGParamsFromMRConf(dag);
 
