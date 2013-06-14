@@ -18,6 +18,7 @@
 
 package org.apache.tez.mapreduce.hadoop;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -542,7 +543,9 @@ public class MRHelpers {
   public static void updateEnvironmentForMRTasks(Configuration conf,
       Map<String, String> environment, boolean isMap) {
 
-    if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
+    boolean isMiniCluster =
+        conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false);
+    if (isMiniCluster) {
       Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
           System.getProperty("java.class.path"));
     }
@@ -554,12 +557,18 @@ public class MRHelpers {
         Environment.PWD.$());
 
     // Add YARN/COMMON/HDFS jars to path
-    for (String c : conf.getStrings(
-        YarnConfiguration.YARN_APPLICATION_CLASSPATH,
-        YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
-      Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-          c.trim());
+    if (!isMiniCluster) {
+      for (String c : conf.getStrings(
+          YarnConfiguration.YARN_APPLICATION_CLASSPATH,
+          YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
+        Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
+            c.trim());
+      }
     }
+
+    Apps.addToEnvironment(environment,
+        Environment.CLASSPATH.name(),
+        Environment.PWD.$() + File.separator + "*");
 
     // Shell
     environment.put(Environment.SHELL.name(), conf.get(

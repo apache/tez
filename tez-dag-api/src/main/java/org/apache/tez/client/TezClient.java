@@ -18,7 +18,10 @@
 
 package org.apache.tez.client;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -31,11 +34,12 @@ import java.util.Vector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.security.Credentials;
@@ -60,9 +64,13 @@ import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientRPCImpl;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResource;
+import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 
 public class TezClient {
   private static final Log LOG = LogFactory.getLog(TezClient.class);
@@ -167,18 +175,6 @@ public class TezClient {
     vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_SIZE + "=" + 0);
     vargs.add("-Dhadoop.root.logger=" + logLevel + ",CLA");
   }
-
-  private void addTezClasspathToEnv(Configuration conf,
-      Map<String, String> environment) {
-    for (String c : conf.getStrings(
-        TezConfiguration.TEZ_APPLICATION_CLASSPATH,
-        TezConfiguration.DEFAULT_TEZ_APPLICATION_CLASSPATH)) {
-      // TEZ-194 - TezConfiguration.DEFAULT_TEZ_APPLICATION_CLASSPATH references
-      // TEZ_HOME_ENV etc which is not really expanded nor defined as ENV_VARS
-      Apps.addToEnvironment(environment,
-          ApplicationConstants.Environment.CLASSPATH.name(), c.trim());
-    }
-  }
   
   public FileSystem ensureExists(Path stagingArea)
       throws IOException {
@@ -223,6 +219,73 @@ public class TezClient {
     return rsrc;
   }
 
+  private Map<String, LocalResource> setupTezJarsLocalResources()
+      throws IOException {
+    Map<String, LocalResource> tezJarResources =
+        new TreeMap<String, LocalResource>();
+    if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
+      return tezJarResources;
+    }
+
+    // Add tez jars to local resource
+    String[] tezJarUris = conf.getStrings(
+        TezConfiguration.TEZ_LIB_URIS);
+    if (tezJarUris == null
+        || tezJarUris.length == 0) {
+      throw new TezUncheckedException("Invalid configuration of tez jars"
+          + ", " + TezConfiguration.TEZ_LIB_URIS
+          + " is not defined in the configurartion");
+    }
+
+    for (String tezJarUri : tezJarUris) {
+      URI uri;
+      try {
+        uri = new URI(tezJarUri.trim());
+      } catch (URISyntaxException e) {
+        String message = "Invalid URI defined in configuration for"
+            + " location of TEZ jars. providedURI=" + tezJarUri;
+        LOG.error(message);
+        throw new TezUncheckedException(message, e);
+      }
+      if (!uri.isAbsolute()) {
+        String message = "Non-absolute URI defined in configuration for"
+            + " location of TEZ jars. providedURI=" + tezJarUri;
+        LOG.error(message);
+        throw new TezUncheckedException(message);
+      }
+      Path p = new Path(uri);
+      FileSystem pathfs = p.getFileSystem(conf);
+      RemoteIterator<LocatedFileStatus> iter = pathfs.listFiles(p, false);
+      while (iter.hasNext()) {
+        LocatedFileStatus fStatus = iter.next();
+        String rsrcName = fStatus.getPath().getName();
+        // FIXME currently not checking for duplicates due to quirks
+        // in assembly generation
+        if (tezJarResources.containsKey(rsrcName)) {
+          String message = "Duplicate resource found"
+              + ", resourceName=" + rsrcName
+              + ", existingPath=" +
+              tezJarResources.get(rsrcName).getResource().toString()
+              + ", newPath=" + fStatus.getPath();
+          LOG.warn(message);
+          // throw new TezUncheckedException(message);
+        }
+        tezJarResources.put(rsrcName,
+            LocalResource.newInstance(
+                ConverterUtils.getYarnUrlFromPath(fStatus.getPath()),
+                LocalResourceType.FILE,
+                LocalResourceVisibility.PUBLIC,
+                fStatus.getLen(),
+                fStatus.getModificationTime()));
+      }
+    }
+    if (tezJarResources.isEmpty()) {
+      LOG.warn("No tez jars found in configured locations"
+          + ". Ignoring for now. Errors may occur");
+    }
+    return tezJarResources;
+  }
+
   private ApplicationSubmissionContext createApplicationSubmissionContext(
       ApplicationId appId, DAG dag, Path appStagingDir, Credentials ts,
       String amQueueName, String amName, List<String> amArgs,
@@ -262,9 +325,9 @@ public class TezClient {
 
     vargs.add(TezConfiguration.DAG_APPLICATION_MASTER_CLASS);
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
-        Path.SEPARATOR + ApplicationConstants.STDOUT);
+        File.separator + ApplicationConstants.STDOUT);
     vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
-        Path.SEPARATOR + ApplicationConstants.STDERR);
+        File.separator + ApplicationConstants.STDERR);
 
 
     Vector<String> vargsFinal = new Vector<String>(8);
@@ -281,8 +344,32 @@ public class TezClient {
     // Setup the CLASSPATH in environment
     // i.e. add { Hadoop jars, job jar, CWD } to classpath.
     Map<String, String> environment = new HashMap<String, String>();
-    addTezClasspathToEnv(conf, environment);
-    
+
+    boolean isMiniCluster =
+        conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false);
+    if (isMiniCluster) {
+      Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
+          System.getProperty("java.class.path"));
+    }
+
+    Apps.addToEnvironment(environment,
+        Environment.CLASSPATH.name(),
+        Environment.PWD.$());
+
+    // Add YARN/COMMON/HDFS jars to path
+    if (!isMiniCluster) {
+      for (String c : conf.getStrings(
+          YarnConfiguration.YARN_APPLICATION_CLASSPATH,
+          YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
+        Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
+            c.trim());
+      }
+    }
+
+    Apps.addToEnvironment(environment,
+        Environment.CLASSPATH.name(),
+        Environment.PWD.$() + File.separator + "*");
+
     for (Map.Entry<String, String> entry : amEnv.entrySet()) {
       Apps.addToEnvironment(environment, entry.getKey(), entry.getValue());
     }
@@ -291,6 +378,14 @@ public class TezClient {
         new TreeMap<String, LocalResource>();
 
     localResources.putAll(amLocalResources);
+    Map<String, LocalResource> tezJarResources =
+        setupTezJarsLocalResources();
+    localResources.putAll(tezJarResources);
+
+    // Add tez jars to vertices too
+    for (Vertex v : dag.getVertices()) {
+      v.getTaskLocalResources().putAll(tezJarResources);
+    }
     
     // emit protobuf DAG file style
     Path binaryPath =  new Path(appStagingDir,
@@ -298,6 +393,7 @@ public class TezClient {
     dag.addConfiguration(TezConfiguration.DAG_AM_PLAN_REMOTE_PATH,
         binaryPath.toUri().toString());
     DAGPlan dagPB = dag.createDag();
+
     FSDataOutputStream dagPBOutBinaryStream = null;
     
     try {

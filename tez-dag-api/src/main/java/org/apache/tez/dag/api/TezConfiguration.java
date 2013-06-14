@@ -113,17 +113,6 @@ public class TezConfiguration extends Configuration {
   public static final float 
           SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT = 0.8f;
 
-  private static final String TEZ_CONF_DIR_ENV = "TEZ_CONF_DIR";
-  private static final String TEZ_HOME_ENV = "TEZ_HOME";
-
-  public static final String TEZ_APPLICATION_CLASSPATH = TEZ_PREFIX
-      + "application.classpath";
-  public static final String[] DEFAULT_TEZ_APPLICATION_CLASSPATH = {
-    TEZ_CONF_DIR_ENV,
-    TEZ_HOME_ENV + "/*",
-    TEZ_HOME_ENV + "/lib/*"
-  };
-
   /**
    * The complete path to the serialized dag plan file
    * <code>DAG_AM_PLAN_PB_BINARY</code>. Used to make the plan available to
@@ -135,4 +124,8 @@ public class TezConfiguration extends Configuration {
 
   public static final String DAG_AM_PLAN_PB_BINARY = "tez-dag.pb";
   public static final String DAG_AM_PLAN_PB_TEXT = "tez-dag.pb.txt";
+
+  public static final String TEZ_LIB_URIS =
+      TEZ_PREFIX + "lib.uris";
+
 }

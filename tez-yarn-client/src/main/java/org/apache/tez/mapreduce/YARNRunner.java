@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.Vector;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -74,7 +73,6 @@ import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.security.token.Token;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -84,7 +82,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.dag.api.DAG;
@@ -119,10 +116,6 @@ public class YARNRunner implements ClientProtocol {
   private ClientCache clientCache;
   private Configuration conf;
   private final FileContext defaultFileContext;
-
-  private static final Object classpathLock = new Object();
-  private static AtomicBoolean initialClasspathFlag = new AtomicBoolean();
-  private static String initialClasspath = null;
 
   final public static FsPermission DAG_FILE_PERMISSION =
       FsPermission.createImmutable((short) 0644);
@@ -345,48 +338,6 @@ public class YARNRunner implements ClientProtocol {
     return locationHints;
   }
 
-  private static String getInitialClasspath(Configuration conf)
-      throws IOException {
-    synchronized (classpathLock) {
-      if (initialClasspathFlag.get()) {
-        return initialClasspath;
-      }
-      Map<String, String> env = new HashMap<String, String>();
-      MRApps.setClasspath(env, conf);
-      initialClasspath = env.get(Environment.CLASSPATH.name());
-      initialClasspathFlag.set(true);
-      return initialClasspath;
-    }
-  }
-
-  private void setupCommonChildEnv(Configuration conf,
-      Map<String, String> environment) throws IOException {
-
-      Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-          getInitialClasspath(conf));
-
-    // Shell
-    environment.put(Environment.SHELL.name(), conf.get(
-        MRJobConfig.MAPRED_ADMIN_USER_SHELL, MRJobConfig.DEFAULT_SHELL));
-
-    // Add pwd to LD_LIBRARY_PATH, add this before adding anything else
-    Apps.addToEnvironment(environment, Environment.LD_LIBRARY_PATH.name(),
-        Environment.PWD.$());
-
-    // Add the env variables passed by the admin
-    Apps.setEnvFromInputString(environment, conf.get(
-        MRJobConfig.MAPRED_ADMIN_USER_ENV,
-        MRJobConfig.DEFAULT_MAPRED_ADMIN_USER_ENV));
-
-  }
-
-  private static String getChildEnv(Configuration jobConf, boolean isMap) {
-    if (isMap) {
-      return jobConf.get(MRJobConfig.MAP_ENV, "");
-    }
-    return jobConf.get(MRJobConfig.REDUCE_ENV, "");
-  }
-
   private static String getChildLogLevel(Configuration conf, boolean isMap) {
     if (isMap) {
       return conf.get(
@@ -407,76 +358,29 @@ public class YARNRunner implements ClientProtocol {
 
     if (isMap) {
       warnForJavaLibPath(
-          conf.get(MRJobConfig.MAP_JAVA_OPTS,""),
+          jobConf.get(MRJobConfig.MAP_JAVA_OPTS,""),
           "map",
           MRJobConfig.MAP_JAVA_OPTS,
           MRJobConfig.MAP_ENV);
       warnForJavaLibPath(
-          conf.get(MRJobConfig.MAPRED_MAP_ADMIN_JAVA_OPTS,""),
+          jobConf.get(MRJobConfig.MAPRED_MAP_ADMIN_JAVA_OPTS,""),
           "map",
           MRJobConfig.MAPRED_MAP_ADMIN_JAVA_OPTS,
           MRJobConfig.MAPRED_ADMIN_USER_ENV);
     } else {
       warnForJavaLibPath(
-          conf.get(MRJobConfig.REDUCE_JAVA_OPTS,""),
+          jobConf.get(MRJobConfig.REDUCE_JAVA_OPTS,""),
           "reduce",
           MRJobConfig.REDUCE_JAVA_OPTS,
           MRJobConfig.REDUCE_ENV);
       warnForJavaLibPath(
-          conf.get(MRJobConfig.MAPRED_REDUCE_ADMIN_JAVA_OPTS,""),
+          jobConf.get(MRJobConfig.MAPRED_REDUCE_ADMIN_JAVA_OPTS,""),
           "reduce",
           MRJobConfig.MAPRED_REDUCE_ADMIN_JAVA_OPTS,
           MRJobConfig.MAPRED_ADMIN_USER_ENV);
     }
 
-    setupCommonChildEnv(jobConf, environment);
-
-    // Add the env variables passed by the user
-    String mapredChildEnv = getChildEnv(jobConf, isMap);
-    Apps.setEnvFromInputString(environment, mapredChildEnv);
-
-    // Set logging level in the environment.
-    // This is so that, if the child forks another "bin/hadoop" (common in
-    // streaming) it will have the correct loglevel.
-    environment.put(
-        "HADOOP_ROOT_LOGGER",
-        getChildLogLevel(jobConf, isMap) + ",CLA");
-
-    // FIXME: don't think this is also needed given we already set java
-    // properties.
-    // TODO Change this not to use JobConf.
-    String log4jCmdLineProperties = getLog4jCmdLineProperties(jobConf, isMap);
-    StringBuffer buffer = new StringBuffer();
-    if (log4jCmdLineProperties != null && log4jCmdLineProperties != "") {
-      buffer.append(" " + log4jCmdLineProperties);
-    }
-
-    // FIXME supposedly required for streaming, should we remove it and let
-    // YARN set it for all containers?
-    String hadoopClientOpts = System.getenv("HADOOP_CLIENT_OPTS");
-    if (hadoopClientOpts == null) {
-      hadoopClientOpts = "";
-    } else {
-      hadoopClientOpts = hadoopClientOpts + " ";
-    }
-    hadoopClientOpts = hadoopClientOpts + buffer.toString();
-    //environment.put("HADOOP_CLIENT_OPTS", hadoopClientOpts);
-
-    // FIXME for this to work, we need YARN-561 and the task runtime changed
-    // to use YARN-561
-    // TODO TEZ-194 - addTezClasspathToEnv() probably does not work. 
-    addTezClasspathToEnv(conf, environment);
-    Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-        getInitialClasspath(conf));
-
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Dumping out env for child, isMap=" + isMap);
-      for (Map.Entry<String, String> entry : environment.entrySet()) {
-        LOG.debug("Child env entry: "
-            + entry.getKey()
-            + "=" + entry.getValue());
-      }
-    }
+    MRHelpers.updateEnvironmentForMRTasks(jobConf, environment, isMap);
   }
 
   private Vertex configureIntermediateReduceStage(FileSystem fs, JobID jobId,
@@ -496,10 +400,7 @@ public class YARNRunner implements ClientProtocol {
     Map<String, String> reduceEnv = new HashMap<String, String>();
     setupMapReduceEnv(conf, reduceEnv, false);
 
-    Resource reduceResource = Resource.newInstance(conf.getInt(
-        MRJobConfig.REDUCE_MEMORY_MB, MRJobConfig.DEFAULT_REDUCE_MEMORY_MB),
-        conf.getInt(MRJobConfig.REDUCE_CPU_VCORES,
-            MRJobConfig.DEFAULT_REDUCE_CPU_VCORES));
+    Resource reduceResource = MRHelpers.getReduceResource(conf);
 
     Map<String, LocalResource> reduceLocalResources = new TreeMap<String, LocalResource>();
     reduceLocalResources.putAll(jobLocalResources);
@@ -574,11 +475,7 @@ public class YARNRunner implements ClientProtocol {
     TaskLocationHint[] inputSplitLocations =
         getMapLocationHintsFromInputSplits(jobId, fs, jobConf, jobSubmitDir);
 
-    Resource mapResource = Resource.newInstance(
-        jobConf.getInt(MRJobConfig.MAP_MEMORY_MB,
-            MRJobConfig.DEFAULT_MAP_MEMORY_MB),
-        jobConf.getInt(MRJobConfig.MAP_CPU_VCORES,
-            MRJobConfig.DEFAULT_MAP_CPU_VCORES));
+    Resource mapResource = MRHelpers.getMapResource(jobConf);
 
     Map<String, LocalResource> mapLocalResources =
         new TreeMap<String, LocalResource>();
@@ -618,11 +515,7 @@ public class YARNRunner implements ClientProtocol {
       Map<String, String> reduceEnv = new HashMap<String, String>();
       setupMapReduceEnv(jobConf, reduceEnv, false);
 
-      Resource reduceResource = Resource.newInstance(
-          jobConf.getInt(MRJobConfig.REDUCE_MEMORY_MB,
-              MRJobConfig.DEFAULT_REDUCE_MEMORY_MB),
-          jobConf.getInt(MRJobConfig.REDUCE_CPU_VCORES,
-              MRJobConfig.DEFAULT_REDUCE_CPU_VCORES));
+      Resource reduceResource = MRHelpers.getReduceResource(jobConf);
 
       Map<String, LocalResource> reduceLocalResources =
           new TreeMap<String, LocalResource>();
@@ -674,16 +567,6 @@ public class YARNRunner implements ClientProtocol {
     }
 
     return dag;
-  }
-
-  private void addTezClasspathToEnv(Configuration conf,
-      Map<String, String> environment) {
-    for (String c : conf.getStrings(
-        TezConfiguration.TEZ_APPLICATION_CLASSPATH,
-        TezConfiguration.DEFAULT_TEZ_APPLICATION_CLASSPATH)) {
-      Apps.addToEnvironment(environment,
-          ApplicationConstants.Environment.CLASSPATH.name(), c.trim());
-    }
   }
 
   private void setDAGParamsFromMRConf(DAG dag) {
@@ -764,8 +647,6 @@ public class YARNRunner implements ClientProtocol {
     // Setup the CLASSPATH in environment
     // i.e. add { Hadoop jars, job jar, CWD } to classpath.
     Map<String, String> environment = new HashMap<String, String>();
-    Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-        getInitialClasspath(conf));
 
     // Setup the environment variables for Admin first
     MRApps.setEnvFromInputString(environment,
@@ -784,7 +665,8 @@ public class YARNRunner implements ClientProtocol {
           dag, 
           appStagingDir, 
           ts,
-          jobConf.get(JobContext.QUEUE_NAME, YarnConfiguration.DEFAULT_QUEUE_NAME),
+          jobConf.get(JobContext.QUEUE_NAME,
+              YarnConfiguration.DEFAULT_QUEUE_NAME),
           vargs, 
           environment, 
           jobLocalResources);
@@ -796,8 +678,8 @@ public class YARNRunner implements ClientProtocol {
     return getJobStatus(jobId);
   }
 
-  private LocalResource createApplicationResource(FileContext fs, Path p, LocalResourceType type)
-      throws IOException {
+  private LocalResource createApplicationResource(FileContext fs, Path p,
+      LocalResourceType type) throws IOException {
     LocalResource rsrc = Records.newRecord(LocalResource.class);
     FileStatus rsrcStat = fs.getFileStatus(p);
     rsrc.setResource(ConverterUtils.getYarnUrlFromPath(fs

@@ -19,12 +19,14 @@ package org.apache.tez.dag.api;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Stack;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -59,6 +61,11 @@ public class DAG { // FIXME rename to Topology
     }
     vertices.add(vertex);
     return this;
+  }
+
+  @Private
+  public synchronized List<Vertex> getVertices() {
+    return Collections.unmodifiableList(this.vertices);
   }
   
   public synchronized DAG addEdge(Edge edge) {
