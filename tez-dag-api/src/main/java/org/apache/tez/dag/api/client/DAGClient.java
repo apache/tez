@@ -21,7 +21,9 @@ package org.apache.tez.dag.api.client;
 import java.io.Closeable;
 import java.io.IOException;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.tez.dag.api.TezException;
 
 /*
@@ -30,7 +32,20 @@ import org.apache.tez.dag.api.TezException;
  */
 public interface DAGClient extends Closeable {
   
+  /**
+   * Get the YARN ApplicationId for the app running the DAG
+   * @return <code>ApplicationId</code>
+   */
   public ApplicationId getApplicationId();
+  
+  @Private
+  /**
+   * Get the YARN ApplicationReport for the app running the DAG. For performance
+   * reasons this may be stale copy and should be used to access static info. It 
+   * may be null.
+   * @return <code>ApplicationReport</code> or null
+   */
+  public ApplicationReport getApplicationReport();
   
   /**
    * Get the status of the specified DAG

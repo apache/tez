@@ -65,7 +65,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -621,14 +620,8 @@ public class YARNRunner implements ClientProtocol {
     DAGStatus dagStatus;
     try {
       dagStatus = dagClient.getDAGStatus();
+      return new DAGJobStatus(dagClient.getApplicationReport(), dagStatus, jobFile);
     } catch (TezException e) {
-      throw new IOException(e);
-    }
-    try {
-      ApplicationReport report = resMgrDelegate
-          .getApplicationReport(resMgrDelegate.getApplicationId());
-      return new DAGJobStatus(report, dagStatus, jobFile);
-    } catch (YarnException e) {
       throw new IOException(e);
     }
   }

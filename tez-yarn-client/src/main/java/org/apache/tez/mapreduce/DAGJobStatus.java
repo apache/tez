@@ -35,6 +35,8 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.Progress;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 
+import com.google.common.base.Joiner;
+
 public class DAGJobStatus extends JobStatus {
 
   private final String jobFile;
@@ -229,7 +231,7 @@ public class DAGJobStatus extends JobStatus {
 
   @Override
   public synchronized String getFailureInfo() {
-    return report.getDiagnostics();
+    return Joiner.on(". ").join(dagStatus.getDiagnostics());
   }
 
   @Override

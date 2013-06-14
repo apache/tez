@@ -50,7 +50,7 @@ public class DAGClientRPCImpl implements DAGClient {
   private ApplicationId appId;
   private String dagId;
   private TezConfiguration conf;
-  private YarnApplicationState appState;
+  private ApplicationReport appReport;
   private YarnClient yarnClient;
   private DAGClientAMProtocolBlockingPB proxy = null;
   
@@ -62,7 +62,7 @@ public class DAGClientRPCImpl implements DAGClient {
     yarnClient = new YarnClientImpl();
     yarnClient.init(conf);
     yarnClient.start();
-    appState = null;
+    appReport = null;
   }
   
   @Override
@@ -107,6 +107,11 @@ public class DAGClientRPCImpl implements DAGClient {
     if(yarnClient != null) {
       yarnClient.stop();
     }
+  }
+  
+  @Override
+  public ApplicationReport getApplicationReport() {
+    return appReport;
   }
   
   void resetProxy(Exception e) {
@@ -203,7 +208,7 @@ public class DAGClientRPCImpl implements DAGClient {
     }
   }
 
-  ApplicationReport getAMState() throws IOException, TezException {
+  ApplicationReport getAppReport() throws IOException, TezException {
     try {
       ApplicationReport appReport = yarnClient.getApplicationReport(appId);
       if (LOG.isDebugEnabled()) {
@@ -221,8 +226,8 @@ public class DAGClientRPCImpl implements DAGClient {
       // if proxy exist optimistically use it assuming there is no retry
       return true;
     }
-    ApplicationReport appReport = getAMState();
-    appState = appReport.getYarnApplicationState();
+    appReport = getAppReport();
+    YarnApplicationState appState = appReport.getYarnApplicationState();
     if(appState != YarnApplicationState.RUNNING) {
       return false;
     }
