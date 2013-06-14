@@ -105,13 +105,13 @@ public class TezConfiguration extends Configuration {
           SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION = TEZ_PREFIX
           + "slowstart-vertex-scheduler.min-src-fraction";
   public static final float 
-          SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION_DEFAULT = 0.5f;
+          SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION_DEFAULT = 1f;
 
   public static final String 
           SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION = TEZ_PREFIX
           + "slowstart-vertex-scheduler.max-src-fraction";
   public static final float 
-          SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT = 0.8f;
+          SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT = 1f;
 
   /**
    * The complete path to the serialized dag plan file
