@@ -40,6 +40,7 @@ import org.apache.tez.dag.api.committer.VertexOutputCommitter;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
+import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 public class MRVertexOutputCommitter extends VertexOutputCommitter {
@@ -92,14 +93,25 @@ public class MRVertexOutputCommitter extends VertexOutputCommitter {
   }
 
   // FIXME we are using ApplicationId as DAG id
-  private JobContext getJobContextFromVertexContext(VertexContext context) {
+  private JobContext getJobContextFromVertexContext(VertexContext context)
+      throws IOException {
     // FIXME when we have the vertex level user-land configuration
     // jobConf should be initialized using the user-land level configuration
     // for the vertex in question
-    JobConf jobConf = new JobConf(context.getConf());
+
+    Configuration conf = null;
+
+    if (context.getUserPayload() != null) {
+      conf = MRHelpers.createConfFromByteBuffer(context.getUserPayload());
+    } else {
+      conf = context.getConf();
+    }
+
+    JobConf jobConf = new JobConf(conf);
     JobID jobId = TypeConverter.fromYarn(context.getDAGId().getApplicationId());
     jobConf.addResource(new Path(MRJobConfig.JOB_CONF_FILE));
     return new MRJobContextImpl(jobConf, jobId);
+
   }
 
   private State getJobStateFromVertexStatusState(VertexStatus.State state) {

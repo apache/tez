@@ -475,6 +475,7 @@ public class TestVertexImpl {
     DAG dag = mock(DAG.class);
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
     doReturn(dag).when(appContext).getDAG();
+    doReturn(DAGPlan.getDefaultInstance()).when(dag).getJobPlan();
     doReturn(dagId).when(appContext).getDAGID();
     doReturn(dagId).when(dag).getID();
     setupVertices();

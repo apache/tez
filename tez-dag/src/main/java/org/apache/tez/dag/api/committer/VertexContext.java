@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.api.committer;
 
+import java.nio.ByteBuffer;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.tez.dag.records.TezDAGID;
@@ -28,6 +30,8 @@ public interface VertexContext {
   public Configuration getConf();
 
   public TezDAGID getDAGId();
+  
+  public ByteBuffer getUserPayload();
   
   // TODO Get rid of this as part of VertexContext cleanup.
   public ApplicationAttemptId getApplicationAttemptId();

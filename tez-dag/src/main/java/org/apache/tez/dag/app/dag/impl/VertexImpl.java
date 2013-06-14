@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -104,6 +105,7 @@ import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.protobuf.ByteString;
 
 
 /** Implementation of Vertex interface. Maintains the state machines of Vertex.
@@ -1327,5 +1329,26 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @VisibleForTesting
   VertexScheduler getVertexScheduler() {
     return this.vertexScheduler;
+  }
+
+  @Override
+  public ByteBuffer getUserPayload() {
+    for (VertexPlan vertexPlan : getDAG().getJobPlan().getVertexList()) {
+      if (vertexPlan.getName().equals(vertexName)) {
+        if (!vertexPlan.getProcessorDescriptor().hasUserPayload()) {
+          return null;
+        } else {
+          // Needs to be a ByteBuffer which allows toArray. PB returns a
+          // readOnlyBuffer
+          ByteString byteString = vertexPlan.getProcessorDescriptor()
+              .getUserPayload();
+          int capacity = byteString.asReadOnlyByteBuffer().rewind().remaining();
+          byte[] b = new byte[capacity];
+          byteString.asReadOnlyByteBuffer().get(b, 0, capacity);
+          return ByteBuffer.wrap(b);
+        }
+      }
+    }
+    return null;
   }
 }
