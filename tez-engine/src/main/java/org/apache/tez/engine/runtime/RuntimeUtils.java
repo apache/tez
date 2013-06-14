@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.yarn.YarnRuntimeException;
 import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
@@ -119,7 +118,7 @@ public class RuntimeUtils {
       }
       t = createRuntime(taskContext, processor, inputs, outputs);
     } catch (ClassNotFoundException e) {
-      throw new YarnRuntimeException("Unable to initialize RuntimeTask, context="
+      throw new RuntimeException("Unable to initialize RuntimeTask, context="
           + taskContext, e);
     }
     return t;

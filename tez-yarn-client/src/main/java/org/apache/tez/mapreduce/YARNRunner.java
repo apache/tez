@@ -72,7 +72,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.yarn.YarnRuntimeException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -723,7 +723,7 @@ public class YARNRunner implements ClientProtocol {
     try {
       ts.writeTokenStorageFile(applicationTokensFile, conf);
     } catch (IOException e) {
-      throw new YarnRuntimeException(e);
+      throw new TezUncheckedException(e);
     }
 
     ApplicationId appId = resMgrDelegate.getApplicationId();

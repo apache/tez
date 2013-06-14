@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.yarn.YarnRuntimeException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.tez.dag.app.AppContext;
 
@@ -112,7 +112,7 @@ public class TaskCleanerImpl extends AbstractService implements TaskCleaner {
     try {
       eventQueue.put(event);
     } catch (InterruptedException e) {
-      throw new YarnRuntimeException(e);
+      throw new TezUncheckedException(e);
     }
   }
 

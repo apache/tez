@@ -34,7 +34,7 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.authorize.PolicyProvider;
-import org.apache.hadoop.yarn.YarnRuntimeException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.tez.common.ContainerContext;
@@ -128,7 +128,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       server.start();
       this.address = NetUtils.getConnectAddress(server);
     } catch (IOException e) {
-      throw new YarnRuntimeException(e);
+      throw new TezUncheckedException(e);
     }
   }
 

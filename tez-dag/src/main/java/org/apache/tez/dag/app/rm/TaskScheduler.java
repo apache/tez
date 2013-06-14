@@ -30,7 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.YarnRuntimeException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -196,10 +196,10 @@ public class TaskScheduler extends AbstractService
                                       response.getApplicationACLs());
     } catch (YarnException e) {
       LOG.error("Yarn Exception while registering", e);
-      throw new YarnRuntimeException(e);
+      throw new TezUncheckedException(e);
     } catch (IOException e) {
       LOG.error("IO Exception while registering", e);
-      throw new YarnRuntimeException(e);
+      throw new TezUncheckedException(e);
     }
   }
   

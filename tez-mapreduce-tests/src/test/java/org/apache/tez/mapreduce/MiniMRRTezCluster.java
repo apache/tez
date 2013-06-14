@@ -31,7 +31,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.ShuffleHandler;
 import org.apache.hadoop.mapreduce.v2.jobhistory.JobHistoryUtils;
 import org.apache.hadoop.util.JarFinder;
-import org.apache.hadoop.yarn.YarnRuntimeException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.MiniYARNCluster;
 import org.apache.hadoop.yarn.server.nodemanager.ContainerExecutor;
@@ -100,7 +100,7 @@ public class MiniMRRTezCluster extends MiniYARNCluster {
       Path doneDirPath = fc.makeQualified(new Path(doneDir));
       fc.mkdir(doneDirPath, null, true);
     } catch (IOException e) {
-      throw new YarnRuntimeException("Could not create staging directory. ", e);
+      throw new TezUncheckedException("Could not create staging directory. ", e);
     }
     conf.set(MRConfig.MASTER_ADDRESS, "test");
 

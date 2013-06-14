@@ -26,7 +26,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.YarnRuntimeException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -81,7 +81,7 @@ public class AMNodeMap extends AbstractService implements
         ", maxTaskFailuresPerNode: " + maxTaskFailuresPerNode);
 
     if (blacklistDisablePercent < -1 || blacklistDisablePercent > 100) {
-      throw new YarnRuntimeException("Invalid blacklistDisablePercent: "
+      throw new TezUncheckedException("Invalid blacklistDisablePercent: "
           + blacklistDisablePercent
           + ". Should be an integer between 0 and 100 or -1 to disabled");
     }

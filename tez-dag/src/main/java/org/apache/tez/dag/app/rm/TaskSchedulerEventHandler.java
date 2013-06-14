@@ -26,7 +26,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.yarn.YarnRuntimeException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -118,7 +118,7 @@ public class TaskSchedulerEventHandler extends AbstractService
         handleTASucceeded(event);
         break;
       default:
-        throw new YarnRuntimeException("Unexecpted TA_ENDED state: " + event.getState()); 
+        throw new TezUncheckedException("Unexecpted TA_ENDED state: " + event.getState()); 
       }
       break;
     case S_CONTAINER_DEALLOCATE:
@@ -151,7 +151,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     try {
       eventQueue.put(event);
     } catch (InterruptedException e) {
-      throw new YarnRuntimeException(e);
+      throw new TezUncheckedException(e);
     }
   }
 

@@ -35,7 +35,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.Clock;
-import org.apache.hadoop.yarn.YarnRuntimeException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -127,16 +127,16 @@ public class DefaultSpeculator extends AbstractService implements
       estimator.contextualize(conf, context);
     } catch (InstantiationException ex) {
       LOG.error("Can't make a speculation runtime extimator", ex);
-      throw new YarnRuntimeException(ex);
+      throw new TezUncheckedException(ex);
     } catch (IllegalAccessException ex) {
       LOG.error("Can't make a speculation runtime extimator", ex);
-      throw new YarnRuntimeException(ex);
+      throw new TezUncheckedException(ex);
     } catch (InvocationTargetException ex) {
       LOG.error("Can't make a speculation runtime extimator", ex);
-      throw new YarnRuntimeException(ex);
+      throw new TezUncheckedException(ex);
     } catch (NoSuchMethodException ex) {
       LOG.error("Can't make a speculation runtime extimator", ex);
-      throw new YarnRuntimeException(ex);
+      throw new TezUncheckedException(ex);
     }
     
   return estimator;
