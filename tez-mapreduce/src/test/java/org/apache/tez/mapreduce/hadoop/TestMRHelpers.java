@@ -47,6 +47,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.zookeeper.Environment.Entry;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -326,18 +327,17 @@ public class TestMRHelpers {
   private void testCommonEnvSettingsForMRTasks(Map<String, String> env) {
     Assert.assertTrue(env.containsKey("foo"));
     Assert.assertTrue(env.containsKey("bar"));
-    Assert.assertTrue(env.containsKey(Environment.CLASSPATH.$()));
-    Assert.assertTrue(env.containsKey(Environment.LD_LIBRARY_PATH.$()));
-    Assert.assertTrue(env.containsKey(Environment.SHELL.$()));
+    Assert.assertTrue(env.containsKey(Environment.CLASSPATH.name()));
+    Assert.assertTrue(env.containsKey(Environment.LD_LIBRARY_PATH.name()));
+    Assert.assertTrue(env.containsKey(Environment.SHELL.name()));
     Assert.assertTrue(env.containsKey("HADOOP_ROOT_LOGGER"));
     for (String val : YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH) {
-      Assert.assertTrue(env.get(Environment.CLASSPATH.$()).contains(val));
+      Assert.assertTrue(env.get(Environment.CLASSPATH.name()).contains(val));
     }
-
     Assert.assertTrue(0 ==
-        env.get(Environment.CLASSPATH.$()).indexOf(Environment.PWD.$()));
-
+        env.get(Environment.CLASSPATH.name()).indexOf(Environment.PWD.$()));
   }
+
   @Test
   public void testMREnvSetupForMap() {
     Configuration conf = setupConfigForMREnvTest();
