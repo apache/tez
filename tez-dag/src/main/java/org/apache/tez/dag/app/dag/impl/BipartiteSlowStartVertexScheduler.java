@@ -61,11 +61,11 @@ public class BipartiteSlowStartVertexScheduler implements VertexScheduler {
     this.slowStartMinSrcCompletionFraction = slowStartMinSrcCompletionFraction;
     this.slowStartMaxSrcCompletionFraction = slowStartMaxSrcCompletionFraction;
     
-    if(slowStartMinSrcCompletionFraction < 0 || 
+    if(slowStartMinSrcCompletionFraction <= 0 || 
        slowStartMaxSrcCompletionFraction < slowStartMinSrcCompletionFraction) {
       throw new IllegalArgumentException(
           "Invalid values for slowStartMinSrcCompletionFraction" + 
-          "/slowStartMaxSrcCompletionFraction. Min cannot be < 0 and " + 
+          "/slowStartMaxSrcCompletionFraction. Min cannot be <= 0 and " + 
           "max cannot be < min.");
     }
     

@@ -78,7 +78,8 @@ public class TestVertexScheduler {
     // fail if there is no bipartite src vertex
     mockInputVertices.put(mockSrcVertex3, eProp3);
     try {
-     scheduler = new BipartiteSlowStartVertexScheduler(mockManagedVertex, 0, 0);
+      scheduler = new BipartiteSlowStartVertexScheduler(mockManagedVertex,
+          0.1f, 0.1f);
      Assert.assertFalse(true);
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains(
@@ -124,15 +125,15 @@ public class TestVertexScheduler {
     
     when(mockSrcVertex1.getTotalTasks()).thenReturn(2);
     when(mockSrcVertex2.getTotalTasks()).thenReturn(2);
-    
-    // source vertex have some tasks. min, max == 0
-    scheduler = new BipartiteSlowStartVertexScheduler(mockManagedVertex, 0, 0);
-    scheduler.onVertexStarted();
-    Assert.assertTrue(scheduler.numSourceTasks == 4);
-    Assert.assertTrue(scheduler.totalTasksToSchedule == 3);
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 0);
-    Assert.assertTrue(scheduler.pendingTasks.isEmpty());
-    Assert.assertTrue(scheduledTasks.size() == 3); // all tasks scheduled
+
+    try {
+      // source vertex have some tasks. min, max == 0
+      scheduler = new BipartiteSlowStartVertexScheduler(mockManagedVertex, 0, 0);
+      Assert.assertTrue(false); // should not come here
+    } catch (IllegalArgumentException e) {
+      Assert.assertTrue(e.getMessage().contains(
+          "Invalid values for slowStartMinSrcCompletionFraction"));
+    }
     
     TezTaskAttemptID mockSrcAttemptId11 = 
         new TezTaskAttemptID(new TezTaskID(mockSrcVertexId1, 0), 0);
