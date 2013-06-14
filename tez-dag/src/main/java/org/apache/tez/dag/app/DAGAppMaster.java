@@ -210,7 +210,7 @@ public class DAGAppMaster extends CompositeService {
   }
 
   @Override
-  public void init(final Configuration tezConf) {
+  public void serviceInit(final Configuration tezConf) throws Exception {
 
     this.state = DAGAppMasterState.INITED;
 
@@ -293,7 +293,7 @@ public class DAGAppMaster extends CompositeService {
     addIfService(historyEventHandler);
     dispatcher.register(HistoryEventType.class, historyEventHandler);
 
-    super.init(conf);
+    super.serviceInit(conf);
   } // end of init()
 
   protected Dispatcher createDispatcher() {
@@ -853,7 +853,7 @@ public class DAGAppMaster extends CompositeService {
 
   @SuppressWarnings("unchecked")
   @Override
-  public void start() {
+  public void serviceStart() throws Exception {
 
     this.state = DAGAppMasterState.RUNNING;
 
@@ -883,7 +883,7 @@ public class DAGAppMaster extends CompositeService {
     dagEventDispatcher.handle(initDagEvent);
 
     //start all the components
-    super.start();
+    super.serviceStart();
 
     this.dagsStartTime = clock.getTime();
     AMStartedEvent startEvent = new AMStartedEvent(appAttemptID,

@@ -242,12 +242,12 @@ public class ShuffleHandler extends AbstractService
   }
 
   public synchronized void init(Configuration conf, RunningTaskContext task) {
-    this.init(conf);
+    this.init(new Configuration(conf));
     tokenSecret = task.getJobTokenSecret();
   }
 
   @Override
-  public synchronized void init(Configuration conf) {
+  public synchronized void serviceInit(Configuration conf) {
     ThreadFactory bossFactory = new ThreadFactoryBuilder()
       .setNameFormat("ShuffleHandler Netty Boss #%d")
       .build();
@@ -258,12 +258,11 @@ public class ShuffleHandler extends AbstractService
     selector = new NioServerSocketChannelFactory(
         Executors.newCachedThreadPool(bossFactory),
         Executors.newCachedThreadPool(workerFactory));    
-    super.init(new Configuration(conf));
   }
 
   // TODO change AbstractService to throw InterruptedException
   @Override
-  public synchronized void start() {
+  public synchronized void serviceStart() {
     Configuration conf = getConfig();
     ServerBootstrap bootstrap = new ServerBootstrap(selector);
     try {
@@ -279,19 +278,17 @@ public class ShuffleHandler extends AbstractService
     conf.set(SHUFFLE_PORT_CONFIG_KEY, Integer.toString(port));
     pipelineFact.SHUFFLE.setPort(port);
     LOG.info(getName() + " listening on port " + port);
-    super.start();
 
     sslFileBufferSize = conf.getInt(SUFFLE_SSL_FILE_BUFFER_SIZE_KEY,
                                     DEFAULT_SUFFLE_SSL_FILE_BUFFER_SIZE);
   }
 
   @Override
-  public synchronized void stop() {
+  public synchronized void serviceStop() {
     accepted.close().awaitUninterruptibly(10, TimeUnit.SECONDS);
     ServerBootstrap bootstrap = new ServerBootstrap(selector);
     bootstrap.releaseExternalResources();
     pipelineFact.destroy();
-    super.stop();
   }
 
   @Override

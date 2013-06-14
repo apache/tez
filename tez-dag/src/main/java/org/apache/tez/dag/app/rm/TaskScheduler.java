@@ -175,18 +175,16 @@ public class TaskScheduler extends AbstractService
   
   // AbstractService methods
   @Override
-  public synchronized void init(Configuration conf) {
-    super.init(conf);
+  public synchronized void serviceInit(Configuration conf) {
     amRmClient.init(conf);
   }
   
   @Override
-  public void start() {
+  public void serviceStart() {
     try {
       RegisterApplicationMasterResponse response = null;
       synchronized (this) {
         amRmClient.start();
-        super.start();
         response = amRmClient.registerApplicationMaster(appHostName, 
                                                         appHostPort, 
                                                         appTrackingUrl);
@@ -206,7 +204,7 @@ public class TaskScheduler extends AbstractService
   }
   
   @Override
-  public void stop() {
+  public void serviceStop() {
     // upcall to app outside of locks
     AppFinalStatus status = appClient.getFinalAppStatus();
     try {
@@ -222,7 +220,6 @@ public class TaskScheduler extends AbstractService
       // operation and at the same time the callback operation might be trying 
       // to get our lock.
       amRmClient.stop();
-      super.stop();
     } catch (YarnException e) {
       LOG.error("Yarn Exception while unregistering ", e);
       throw new TezUncheckedException(e);

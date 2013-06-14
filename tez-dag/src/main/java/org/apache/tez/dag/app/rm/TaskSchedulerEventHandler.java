@@ -26,7 +26,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.YarnRuntimeException;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -334,15 +333,9 @@ public class TaskSchedulerEventHandler extends AbstractService
                                event.getPriority(),
                                event);
   }
-
-  // AbstractService methods
-  @Override
-  public synchronized void init(Configuration conf) {
-    super.init(conf);
-  }
   
   @Override
-  public synchronized void start() {
+  public synchronized void serviceStart() {
     // FIXME hack alert how is this supposed to support multiple DAGs?
     // Answer: this is shared across dags. need job==app-dag-master
     // TODO set heartbeat value from conf here
@@ -384,16 +377,14 @@ public class TaskSchedulerEventHandler extends AbstractService
       }
     };
     this.eventHandlingThread.start();
-    super.start();
   }
   
   @Override
-  public synchronized void stop() {
+  public synchronized void serviceStop() {
     this.stopEventHandling = true;
     if (eventHandlingThread != null)
       eventHandlingThread.interrupt();
     taskScheduler.stop();
-    super.stop();
   }
   
   // TaskSchedulerAppCallback methods

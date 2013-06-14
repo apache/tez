@@ -101,9 +101,8 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   }
 
   @Override
-  public void start() {
+  public void serviceStart() {
     startRpcServer();
-    super.start();
   }
 
   protected void startRpcServer() {
@@ -139,9 +138,8 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   }
 
   @Override
-  public void stop() {
+  public void serviceStop() {
     stopRpcServer();
-    super.stop();
   }
 
   protected void stopRpcServer() {

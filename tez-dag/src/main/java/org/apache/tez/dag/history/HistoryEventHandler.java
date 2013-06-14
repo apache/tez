@@ -20,7 +20,6 @@ package org.apache.tez.dag.history;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.tez.dag.app.AppContext;
@@ -38,21 +37,13 @@ implements EventHandler<DAGHistoryEvent> {
   }
 
   @Override
-  public void init(Configuration conf) {
-    // TODO
-    super.init(conf);
-  }
-
-  @Override
-  public void start() {
+  public void serviceStart() {
     LOG.info("Starting HistoryEventHandler");
-    super.start();
   }
 
   @Override
-  public void stop() {
+  public void serviceStop() {
     LOG.info("Stopping HistoryEventHandler");
-    super.stop();
   }
 
   @Override

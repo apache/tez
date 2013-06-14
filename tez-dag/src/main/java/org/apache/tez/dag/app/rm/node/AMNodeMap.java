@@ -43,6 +43,7 @@ public class AMNodeMap extends AbstractService implements
   
   private final ConcurrentHashMap<NodeId, AMNode> nodeMap;
   private final ConcurrentHashMap<String, Set<NodeId>> blacklistMap;
+  @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
   private final AppContext appContext;
   private int numClusterNodes;
@@ -54,6 +55,7 @@ public class AMNodeMap extends AbstractService implements
   
   // TODO XXX Ensure there's a test for IgnoreBlacklisting in
   // TestRMContainerAllocator. Otherwise add one.
+  @SuppressWarnings("rawtypes")
   public AMNodeMap(EventHandler eventHandler, AppContext appContext) {
     super("AMNodeMap");
     this.nodeMap = new ConcurrentHashMap<NodeId, AMNode>();
@@ -63,7 +65,7 @@ public class AMNodeMap extends AbstractService implements
   }
   
   @Override
-  public synchronized void init(Configuration conf) {
+  public synchronized void serviceInit(Configuration conf) {
     this.maxTaskFailuresPerNode = conf.getInt(
         TezConfiguration.DAG_MAX_TASK_FAILURES_PER_NODE, 
         TezConfiguration.DAG_MAX_TASK_FAILURES_PER_NODE_DEFAULT);
@@ -82,8 +84,7 @@ public class AMNodeMap extends AbstractService implements
       throw new YarnRuntimeException("Invalid blacklistDisablePercent: "
           + blacklistDisablePercent
           + ". Should be an integer between 0 and 100 or -1 to disabled");
-    }    
-    super.init(conf);
+    }
   }
   
   public void nodeSeen(NodeId nodeId) {

@@ -48,7 +48,7 @@ public class TaskCleanerImpl extends AbstractService implements TaskCleaner {
     this.context = context;
   }
 
-  public void start() {
+  public void serviceStart() {
     ThreadFactory tf = new ThreadFactoryBuilder()
       .setNameFormat("TaskCleaner #%d")
       .build();
@@ -72,10 +72,9 @@ public class TaskCleanerImpl extends AbstractService implements TaskCleaner {
     });
     eventHandlingThread.setName("TaskCleaner Event Handler");
     eventHandlingThread.start();
-    super.start();
   }
 
-  public void stop() {
+  public void serviceStop() {
     if (eventHandlingThread != null) {
       eventHandlingThread.interrupt();
     }
@@ -88,7 +87,6 @@ public class TaskCleanerImpl extends AbstractService implements TaskCleaner {
       LOG.info("TaskCleaner.stop: Cleanup for: " + ev.getAttemptID());
       new EventProcessor(ev).run();
     }
-    super.stop();
   }
 
   private class EventProcessor implements Runnable {

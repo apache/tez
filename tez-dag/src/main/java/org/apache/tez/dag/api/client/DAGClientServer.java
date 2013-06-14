@@ -51,7 +51,7 @@ public class DAGClientServer extends AbstractService {
   }
   
   @Override
-  public void start() {
+  public void serviceStart() {
     try {
       assert getConfig() instanceof TezConfiguration;
       TezConfiguration conf = (TezConfiguration) getConfig();
@@ -73,7 +73,6 @@ public class DAGClientServer extends AbstractService {
       server.start();
       bindAddress = NetUtils.getConnectAddress(server);
       LOG.info("Instantiated DAGClientRPCServer at " + bindAddress);
-      super.start();
     } catch (Exception e) {
       LOG.error("Failed to start DAGClientServer: ", e);
       throw new TezUncheckedException(e);
@@ -81,11 +80,10 @@ public class DAGClientServer extends AbstractService {
   }
   
   @Override
-  public void stop() {
+  public void serviceStop() {
     if(server != null) {
       server.stop();
     }
-    super.stop();
   }
   
   public InetSocketAddress getBindAddress() {

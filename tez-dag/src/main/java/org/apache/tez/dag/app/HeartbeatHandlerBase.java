@@ -56,27 +56,24 @@ public abstract class HeartbeatHandlerBase<T> extends AbstractService {
   }
 
   @Override
-  public void init(Configuration conf) {
-    super.init(conf);
+  public void serviceInit(Configuration conf) {
     timeOut = getConfiguredTimeout(conf);
     timeOutCheckInterval = getConfiguredTimeoutCheckInterval(conf);
   }
 
   @Override
-  public void start() {
+  public void serviceStart() {
     timeOutCheckerThread = new Thread(createPingChecker());
     timeOutCheckerThread.setName(name + " PingChecker");
     timeOutCheckerThread.start();
-    super.start();
   }
 
   @Override
-  public void stop() {
+  public void serviceStop() {
     stopped = true;
     if (timeOutCheckerThread != null) {
       timeOutCheckerThread.interrupt();
     }
-    super.stop();
   }
   
   protected Runnable createPingChecker() {

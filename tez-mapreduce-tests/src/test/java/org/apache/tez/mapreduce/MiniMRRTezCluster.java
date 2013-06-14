@@ -70,7 +70,7 @@ public class MiniMRRTezCluster extends MiniYARNCluster {
   }
 
   @Override
-  public void init(Configuration conf) {
+  public void serviceInit(Configuration conf) throws Exception {
     conf.set(MRConfig.FRAMEWORK_NAME, MRConfig.YARN_TEZ_FRAMEWORK_NAME);
     if (conf.get(MRJobConfig.MR_AM_STAGING_DIR) == null) {
       conf.set(MRJobConfig.MR_AM_STAGING_DIR, new File(getTestWorkDir(),
@@ -120,13 +120,12 @@ public class MiniMRRTezCluster extends MiniYARNCluster {
     // TestMRJobs is for testing non-uberized operation only; see TestUberAM
     // for corresponding uberized tests.
     conf.setBoolean(MRJobConfig.JOB_UBERTASK_ENABLE, false);
-
-    super.init(conf);
+    super.serviceInit(conf);
   }
 
   @Override
-  public void start() {
-    super.start();
+  public void serviceStart() throws Exception {
+    super.serviceStart();
     File workDir = super.getTestWorkDir();
     Configuration conf = super.getConfig();
 
