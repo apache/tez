@@ -430,6 +430,7 @@ public class TezClient {
     ApplicationSubmissionContext appContext = Records
         .newRecord(ApplicationSubmissionContext.class);
 
+    appContext.setApplicationType(TezConfiguration.TEZ_APPLICATION_TYPE);
     appContext.setApplicationId(appId);
     appContext.setResource(capability);
     appContext.setQueue(amQueueName);

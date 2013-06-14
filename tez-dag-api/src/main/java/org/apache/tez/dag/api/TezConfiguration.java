@@ -127,5 +127,6 @@ public class TezConfiguration extends Configuration {
 
   public static final String TEZ_LIB_URIS =
       TEZ_PREFIX + "lib.uris";
-
+  
+  public static final String TEZ_APPLICATION_TYPE = "TEZ-MR*";
 }
