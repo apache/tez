@@ -61,6 +61,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.log4j.Level;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -69,8 +70,6 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientRPCImpl;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
-import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResource;
-import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 
 public class TezClient {
   private static final Log LOG = LogFactory.getLog(TezClient.class);
@@ -79,6 +78,8 @@ public class TezClient {
       FsPermission.createImmutable((short) 0700); // rwx--------
   final public static FsPermission TEZ_AM_FILE_PERMISSION = 
       FsPermission.createImmutable((short) 0644); // rw-r--r--
+  
+  public static final int UTF8_CHUNK_SIZE = 16 * 1024;
     
   private final TezConfiguration conf;
   private YarnClient yarnClient;
@@ -411,6 +412,12 @@ public class TezClient {
         createApplicationResource(fs,
             binaryPath, LocalResourceType.FILE));
 
+    if (Level.DEBUG.isGreaterOrEqual(Level.toLevel(amLogLevel))) {
+      Path textPath = localizeDagPlanAsText(dagPB, fs, appStagingDir, appId);
+      localResources.put(TezConfiguration.DAG_AM_PLAN_PB_TEXT,
+          createApplicationResource(fs, textPath, LocalResourceType.FILE));
+    }
+    
     Map<ApplicationAccessType, String> acls
         = new HashMap<ApplicationAccessType, String>();
 
@@ -434,7 +441,38 @@ public class TezClient {
 
     return appContext;
   }
-  
+
+  private Path localizeDagPlanAsText(DAGPlan dagPB, FileSystem fs,
+      Path appStagingDir, ApplicationId appId) throws IOException {
+    Path textPath = new Path(appStagingDir,
+        TezConfiguration.DAG_AM_PLAN_PB_TEXT + "." + appId.toString());
+    FSDataOutputStream dagPBOutTextStream = null;
+    try {
+      dagPBOutTextStream = FileSystem.create(fs, textPath, new FsPermission(
+          TEZ_AM_FILE_PERMISSION));
+      String dagPBStr = dagPB.toString();
+      int dagPBStrLen = dagPBStr.length();
+      if (dagPBStrLen <= UTF8_CHUNK_SIZE) {
+        dagPBOutTextStream.writeUTF(dagPBStr);
+      } else {
+        int startIndex = 0;
+        while (startIndex < dagPBStrLen) {
+          int endIndex = startIndex + UTF8_CHUNK_SIZE;
+          if (endIndex > dagPBStrLen) {
+            endIndex = dagPBStrLen;
+          }
+          dagPBOutTextStream.writeUTF(dagPBStr.substring(startIndex, endIndex));
+          startIndex += UTF8_CHUNK_SIZE;
+        }
+      }
+    } finally {
+      if (dagPBOutTextStream != null) {
+        dagPBOutTextStream.close();
+      }
+    }
+    return textPath;
+  }
+
   // DO NOT CHANGE THIS. This code is replicated from TezDAGID.java
   private static final char SEPARATOR = '_';
   private static final String DAG = "dag";
