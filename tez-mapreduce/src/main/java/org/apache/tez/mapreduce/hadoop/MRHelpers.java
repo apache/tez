@@ -24,6 +24,7 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -44,6 +45,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobSubmissionFiles;
 import org.apache.hadoop.mapreduce.split.JobSplitWriter;
+import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.yarn.ContainerLogAppender;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -595,4 +597,59 @@ public class MRHelpers {
         getChildLogLevel(conf, isMap) + ",CLA");
   }
 
+  private static Configuration getBaseJobConf(Configuration conf) {
+    if (conf != null) {
+      return new JobConf(conf);
+    } else {
+      return new JobConf();
+    }
+  }
+
+  /**
+   * Get default initialize JobConf-based configuration
+   * @param conf Conf to initialize JobConf with.
+   * @return Base configuration for MR-based jobs
+   */
+  public static Configuration getBaseMRConfiguration(Configuration conf) {
+    return getBaseJobConf(conf);
+  }
+
+  /**
+   * Get default initialize JobConf-based configuration
+   * @return Base configuration for MR-based jobs
+   */
+  public static Configuration getBaseMRConfiguration() {
+    return getBaseJobConf(null);
+  }
+
+  /**
+   * Setup environment for the AM based on MR-based configuration
+   * @param conf Configuration from which to extract information
+   * @param environment Environment map to update
+   */
+  public static void updateEnvironmentForMRAM(Configuration conf,
+      Map<String, String> environment) {
+    MRApps.setEnvFromInputString(environment,
+        conf.get(MRJobConfig.MR_AM_ADMIN_USER_ENV));
+    MRApps.setEnvFromInputString(environment,
+        conf.get(MRJobConfig.MR_AM_ENV));
+  }
+
+  /**
+   * Extract Java Opts for the AM based on MR-based configuration
+   * @param conf Configuration from which to extract information
+   * @return Java opts for the AM
+   */
+  public static String getMRAMJavaOpts(Configuration conf) {
+    // Admin opts
+    String mrAppMasterAdminOptions = conf.get(
+        MRJobConfig.MR_AM_ADMIN_COMMAND_OPTS,
+        MRJobConfig.DEFAULT_MR_AM_ADMIN_COMMAND_OPTS);
+    // Add AM user command opts
+    String mrAppMasterUserOptions = conf.get(MRJobConfig.MR_AM_COMMAND_OPTS,
+        MRJobConfig.DEFAULT_MR_AM_COMMAND_OPTS);
+
+    return mrAppMasterAdminOptions.trim()
+        + " " + mrAppMasterUserOptions.trim();
+  }
 }

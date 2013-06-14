@@ -357,4 +357,33 @@ public class TestMRHelpers {
     Assert.assertEquals("red1", env.get("foo"));
     Assert.assertEquals("red2", env.get("bar"));
   }
+
+  @Test
+  public void testGetBaseMRConf() {
+    Configuration conf = MRHelpers.getBaseMRConfiguration();
+    Assert.assertNotNull(conf);
+    conf = MRHelpers.getBaseMRConfiguration(new YarnConfiguration());
+    Assert.assertNotNull(conf);
+  }
+
+  @Test
+  public void testMRAMJavaOpts() {
+    Configuration conf = new Configuration();
+    conf.set(MRJobConfig.MR_AM_ADMIN_COMMAND_OPTS, " -Dadminfoobar   ");
+    conf.set(MRJobConfig.MR_AM_COMMAND_OPTS, "  -Duserfoo  ");
+    String opts = MRHelpers.getMRAMJavaOpts(conf);
+    Assert.assertEquals("-Dadminfoobar -Duserfoo", opts);
+  }
+
+  public void testMRAMEnvironmentSetup() {
+    Configuration conf = new Configuration();
+    conf.set(MRJobConfig.MR_AM_ADMIN_USER_ENV, "foo=bar,admin1=foo1");
+    conf.set(MRJobConfig.MR_AM_ENV, "foo=bar2,user=foo2");
+    Map<String, String> env =
+        new HashMap<String, String>();
+    MRHelpers.updateEnvironmentForMRAM(conf, env);
+    Assert.assertEquals("foo1", env.get("admin1"));
+    Assert.assertEquals("foo2", env.get("user"));
+    Assert.assertEquals("bar2", env.get("foo"));
+  }
 }
