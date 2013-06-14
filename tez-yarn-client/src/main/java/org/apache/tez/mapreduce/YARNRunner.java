@@ -25,13 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
-import java.util.Vector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -47,11 +45,6 @@ import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.JobStatus;
-import org.apache.tez.client.TezClient;
-import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
-import org.apache.tez.dag.api.EdgeProperty.SourceType;
-import org.apache.tez.engine.lib.input.ShuffledMergedInput;
-import org.apache.tez.engine.lib.output.OnFileSortedOutput;
 import org.apache.hadoop.mapreduce.QueueAclsInfo;
 import org.apache.hadoop.mapreduce.QueueInfo;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
@@ -71,8 +64,6 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.security.token.Token;
-import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -84,23 +75,31 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
+import org.apache.tez.dag.api.EdgeProperty.SourceType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.engine.lib.input.ShuffledMergedInput;
+import org.apache.tez.engine.lib.output.OnFileSortedOutput;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
+import org.apache.tez.mapreduce.processor.map.MapProcessor;
+import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -338,21 +337,6 @@ public class YARNRunner implements ClientProtocol {
     return locationHints;
   }
 
-  private static String getChildLogLevel(Configuration conf, boolean isMap) {
-    if (isMap) {
-      return conf.get(
-          MRJobConfig.MAP_LOG_LEVEL,
-          JobConf.DEFAULT_LOG_LEVEL.toString()
-          );
-    } else {
-      return conf.get(
-          MRJobConfig.REDUCE_LOG_LEVEL,
-          JobConf.DEFAULT_LOG_LEVEL.toString()
-          );
-    }
-  }
-
-
   private void setupMapReduceEnv(Configuration jobConf,
       Map<String, String> environment, boolean isMap) throws IOException {
 
@@ -383,189 +367,101 @@ public class YARNRunner implements ClientProtocol {
     MRHelpers.updateEnvironmentForMRTasks(jobConf, environment, isMap);
   }
 
-  private Vertex configureIntermediateReduceStage(FileSystem fs, JobID jobId,
-      Configuration jobConf, String jobSubmitDir, Credentials ts,
-      Map<String, LocalResource> jobLocalResources, int iReduceIndex)
+  private Vertex createVertexForStage(Configuration stageConf,
+      Map<String, LocalResource> jobLocalResources,
+      TaskLocationHint[] locations, int stageNum, int totalStages)
       throws IOException {
-    int stageNum = iReduceIndex + 1;
-    Configuration conf = MultiStageMRConfigUtil.getIntermediateStageConf(jobConf, stageNum);
-    int numTasks = conf.getInt(MRJobConfig.NUM_REDUCES, 0);
-    // Intermediate vertices start at 1.
-    Vertex vertex = new Vertex(
-        MultiStageMRConfigUtil.getIntermediateStageVertexName(stageNum),
-        new ProcessorDescriptor(
-            "org.apache.tez.mapreduce.processor.reduce.ReduceProcessor", null),
-        numTasks);
+    // stageNum starts from 0, goes till numStages - 1
+    boolean isMap = false;
+    if (stageNum == 0) {
+      isMap = true;
+    }
 
-    Map<String, String> reduceEnv = new HashMap<String, String>();
-    setupMapReduceEnv(conf, reduceEnv, false);
+    int numTasks = isMap ? stageConf.getInt(MRJobConfig.NUM_MAPS, 0)
+        : stageConf.getInt(MRJobConfig.NUM_REDUCES, 0);
+    String processorName = isMap ? MapProcessor.class.getName()
+        : ReduceProcessor.class.getName();
+    String vertexName = null;
+    if (isMap) {
+      vertexName = MultiStageMRConfigUtil.getInitialMapVertexName();
+    } else {
+      if (stageNum == totalStages - 1) {
+        vertexName = MultiStageMRConfigUtil.getFinalReduceVertexName();
+      } else {
+        vertexName = MultiStageMRConfigUtil
+            .getIntermediateStageVertexName(stageNum + 1);
+      }
+    }
 
-    Resource reduceResource = MRHelpers.getReduceResource(conf);
+    Vertex vertex = new Vertex(vertexName, new ProcessorDescriptor(
+        processorName, MRHelpers.createByteBufferFromConf(stageConf)), numTasks);
 
-    Map<String, LocalResource> reduceLocalResources = new TreeMap<String, LocalResource>();
-    reduceLocalResources.putAll(jobLocalResources);
-    // TODO MRR Don't bother localizing the input splits for the reduce vertices.
+    Map<String, String> taskEnv = new HashMap<String, String>();
+    setupMapReduceEnv(stageConf, taskEnv, isMap);
+    Resource taskResource = isMap ? MRHelpers.getMapResource(stageConf)
+        : MRHelpers.getReduceResource(stageConf);
 
-    vertex.setTaskEnvironment(reduceEnv)
-        .setTaskLocalResources(reduceLocalResources)
-        .setTaskLocationsHint(null)
-        .setTaskResource(reduceResource)
-        .setJavaOpts(MRHelpers.getReduceJavaOpts(conf));
+    Map<String, LocalResource> taskLocalResources = new TreeMap<String, LocalResource>();
+    // PRECOMMIT Remove split localization for reduce tasks if it's being set
+    // here
+    taskLocalResources.putAll(jobLocalResources);
+
+    String taskJavaOpts = isMap ? MRHelpers.getMapJavaOpts(stageConf)
+        : MRHelpers.getReduceJavaOpts(stageConf);
+
+    vertex.setTaskEnvironment(taskEnv)
+        .setTaskLocalResources(taskLocalResources)
+        .setTaskLocationsHint(locations).setTaskResource(taskResource)
+        .setJavaOpts(taskJavaOpts);
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Adding vertex to DAG" + ", vertexName="
+          + vertex.getVertexName() + ", processor="
+          + vertex.getProcessorDescriptor().getClassName() + ", parallelism="
+          + vertex.getParallelism() + ", javaOpts=" + vertex.getJavaOpts()
+          + ", resources=" + vertex.getTaskResource()
+      // TODO Add localResources and Environment
+      );
+    }
 
     return vertex;
   }
 
-  private Vertex[] configureMultStageMRR(FileSystem fs, JobID jobId,
-      JobConf jobConf, String jobSubmitDir, Credentials ts,
-      Map<String, LocalResource> jobLocalResources, DAG dag) throws IOException {
-
-    int numIntermediateStages = MultiStageMRConfigUtil
-        .getNumIntermediateStages(jobConf);
-
-    Vertex[] vertices = new Vertex[numIntermediateStages];
-
-    for (int i = 0; i < numIntermediateStages; i++) {
-      vertices[i] = configureIntermediateReduceStage(fs, jobId, jobConf, jobSubmitDir, ts,
-          jobLocalResources, i);
-      dag.addVertex(vertices[i]);
-
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Adding intermediate vertex to DAG"
-            + ", vertexName=" + vertices[i].getVertexName()
-            + ", processor=" + vertices[i].getProcessorDescriptor().getClassName()
-            + ", parrellism=" + vertices[i].getParallelism()
-            + ", javaOpts=" + vertices[i].getJavaOpts());
-      }
-    }
-    return vertices;
-  }
-
-  private DAG createDAG(FileSystem fs, JobID jobId, JobConf jobConf,
+  private DAG createDAG(FileSystem fs, JobID jobId, Configuration[] stageConfs,
       String jobSubmitDir, Credentials ts,
       Map<String, LocalResource> jobLocalResources) throws IOException {
-    
-    String jobName = jobConf.get(MRJobConfig.JOB_NAME,
+
+    String jobName = stageConfs[0].get(MRJobConfig.JOB_NAME,
         YarnConfiguration.DEFAULT_APPLICATION_NAME);
     DAG dag = new DAG(jobName);
 
-    int numMaps = jobConf.getInt(MRJobConfig.NUM_MAPS, 0);
-    int numReduces = jobConf.getInt(MRJobConfig.NUM_REDUCES, 0);
-    int intermediateReduces = jobConf.getInt(
-        MRJobConfig.MRR_INTERMEDIATE_STAGES, 0);
+    LOG.info("Number of stages: " + stageConfs.length);
 
-    boolean isMRR = (intermediateReduces > 0);
+    TaskLocationHint[] mapInputLocations = getMapLocationHintsFromInputSplits(
+        jobId, fs, stageConfs[0], jobSubmitDir);
+    TaskLocationHint[] reduceInputLocations = null;
 
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Parsing job config"
-          + ", numMaps=" + numMaps
-          + ", numReduces=" + numReduces
-          + ", intermediateReduceStages=" + intermediateReduces);
+    Vertex[] vertices = new Vertex[stageConfs.length];
+    for (int i = 0; i < stageConfs.length; i++) {
+      vertices[i] = createVertexForStage(stageConfs[i], jobLocalResources,
+          i == 0 ? mapInputLocations : reduceInputLocations, i,
+          stageConfs.length);
     }
 
-    // configure map vertex
-    String mapProcessor = "org.apache.tez.mapreduce.processor.map.MapProcessor";
-    Vertex mapVertex = new Vertex(
-        MultiStageMRConfigUtil.getInitialMapVertexName(),
-        new ProcessorDescriptor(mapProcessor, null), numMaps);
+    for (int i = 0; i < vertices.length; i++) {
+      dag.addVertex(vertices[i]);
+      if (i > 0) {
+        EdgeProperty edgeProperty = new EdgeProperty(
+            ConnectionPattern.BIPARTITE, SourceType.STABLE,
+            new OutputDescriptor(OnFileSortedOutput.class.getName(), null),
+            new InputDescriptor(ShuffledMergedInput.class.getName(), null));
 
-    // FIXME set up map environment
-    Map<String, String> mapEnv = new HashMap<String, String>();
-    setupMapReduceEnv(jobConf, mapEnv, true);
-
-    TaskLocationHint[] inputSplitLocations =
-        getMapLocationHintsFromInputSplits(jobId, fs, jobConf, jobSubmitDir);
-
-    Resource mapResource = MRHelpers.getMapResource(jobConf);
-
-    Map<String, LocalResource> mapLocalResources =
-        new TreeMap<String, LocalResource>();
-    mapLocalResources.putAll(jobLocalResources);
-
-    mapVertex.setTaskEnvironment(mapEnv)
-        .setTaskLocalResources(mapLocalResources)
-        .setTaskLocationsHint(inputSplitLocations)
-        .setTaskResource(mapResource)
-        .setJavaOpts(MRHelpers.getMapJavaOpts(jobConf));
-
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Adding map vertex to DAG"
-          + ", vertexName=" + mapVertex.getVertexName()
-          + ", processor=" + mapVertex.getProcessorDescriptor().getClassName()
-          + ", parrellism=" + mapVertex.getParallelism()
-          + ", javaOpts=" + mapVertex.getJavaOpts());
-    }
-    dag.addVertex(mapVertex);
-
-    Vertex[] intermediateVertices = null;
-    // configure intermediate reduces
-    if (isMRR) {
-      intermediateVertices = configureMultStageMRR(fs, jobId, jobConf,
-          jobSubmitDir, ts, jobLocalResources, dag);
-    }
-
-    // configure final reduce vertex
-    if (numReduces > 0) {
-      String reduceProcessor =
-          "org.apache.tez.mapreduce.processor.reduce.ReduceProcessor";
-      Vertex reduceVertex = new Vertex(
-          MultiStageMRConfigUtil.getFinalReduceVertexName(),
-          new ProcessorDescriptor(reduceProcessor, null), numReduces);
-
-      // FIXME set up reduce environment
-      Map<String, String> reduceEnv = new HashMap<String, String>();
-      setupMapReduceEnv(jobConf, reduceEnv, false);
-
-      Resource reduceResource = MRHelpers.getReduceResource(jobConf);
-
-      Map<String, LocalResource> reduceLocalResources =
-          new TreeMap<String, LocalResource>();
-      reduceLocalResources.putAll(jobLocalResources);
-
-      reduceVertex.setTaskEnvironment(reduceEnv);
-      reduceVertex.setTaskLocalResources(reduceLocalResources);
-      reduceVertex.setTaskLocationsHint(null);
-      reduceVertex.setTaskResource(reduceResource);
-
-      reduceVertex.setJavaOpts(MRHelpers.getReduceJavaOpts(jobConf));
-
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Adding reduce vertex to DAG"
-            + ", vertexName=" + reduceVertex.getVertexName()
-            + ", processor=" + reduceVertex.getProcessorDescriptor().getClassName()
-            + ", parrellism=" + reduceVertex.getParallelism()
-            + ", javaOpts=" + reduceVertex.getJavaOpts());
-      }
-      dag.addVertex(reduceVertex);
-
-      EdgeProperty edgeProperty =
-          new EdgeProperty(ConnectionPattern.BIPARTITE,
-              SourceType.STABLE,
-              new OutputDescriptor(OnFileSortedOutput.class.getName(), null),
-              new InputDescriptor(ShuffledMergedInput.class.getName(), null));
-      Edge edge = null;
-      if (!isMRR) {
-        edge = new Edge(mapVertex, reduceVertex, edgeProperty);
+        Edge edge = null;
+        edge = new Edge(vertices[i - 1], vertices[i], edgeProperty);
         dag.addEdge(edge);
-      } else {
-
-        Edge initialEdge = new Edge(mapVertex, intermediateVertices[0],
-            edgeProperty);
-        dag.addEdge(initialEdge);
-
-        int numIntermediateEdges = intermediateVertices.length - 1;
-        for (int i = 0; i < numIntermediateEdges; i++) {
-          Edge iEdge = new Edge(intermediateVertices[i],
-              intermediateVertices[i + 1], edgeProperty);
-          dag.addEdge(iEdge);
-        }
-
-        Edge finalEdge = new Edge(
-            intermediateVertices[intermediateVertices.length - 1],
-            reduceVertex, edgeProperty);
-        dag.addEdge(finalEdge);
       }
-    }
 
+    }
     return dag;
   }
 
@@ -579,19 +475,6 @@ public class YARNRunner implements ClientProtocol {
         }
         dag.addConfiguration(entry.getValue(), mrConf.get(entry.getKey()));
       }
-    }
-  }
-
-  private void writeTezConf(String jobSubmitDir, FileSystem fs,
-      Configuration tezConf) throws IOException {
-    Path dagConfFilePath = new Path(jobSubmitDir, MRJobConfig.JOB_CONF_FILE);
-
-    FSDataOutputStream tezConfOut = FileSystem.create(fs, dagConfFilePath,
-        new FsPermission(DAG_FILE_PERMISSION));
-    try {
-      tezConf.writeXml(tezConfOut);
-    } finally {
-      tezConfOut.close();
     }
   }
 
@@ -612,21 +495,31 @@ public class YARNRunner implements ClientProtocol {
     ApplicationId appId = resMgrDelegate.getApplicationId();
     
     FileSystem fs = FileSystem.get(conf);
+    // Loads the job.xml written by the user.
     JobConf jobConf = new JobConf(new TezConfiguration(conf));
-    Configuration tezJobConf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
+    MultiStageMRConfigUtil.printConf(jobConf);
+    
+    // Extract individual raw MR configs.
+    Configuration[] stageConfs = MultiStageMRConfToTezTranslator
+        .getStageConfs(jobConf);
 
-    // This will replace job.xml in the staging dir.
-    writeTezConf(jobSubmitDir, fs, tezJobConf);
+    // Transform all confs to use Tez keys
+    MultiStageMRConfToTezTranslator.translateVertexConfToTez(stageConfs[0],
+        null);
+    for (int i = 1; i < stageConfs.length; i++) {
+      MultiStageMRConfToTezTranslator.translateVertexConfToTez(stageConfs[i],
+          stageConfs[i - 1]);
+    }
 
     // create inputs to tezClient.submit()
     
     // FIXME set up job resources
     Map<String, LocalResource> jobLocalResources =
-        createJobLocalResources(tezJobConf, jobSubmitDir);
+        createJobLocalResources(stageConfs[0], jobSubmitDir);
 
     // FIXME createDAG should take the tezConf as a parameter, instead of using
     // MR keys.
-    DAG dag = createDAG(fs, jobId, jobConf, jobSubmitDir, ts,
+    DAG dag = createDAG(fs, jobId, stageConfs, jobSubmitDir, ts,
         jobLocalResources);
 
     List<String> vargs = new LinkedList<String>();
@@ -817,37 +710,6 @@ public class YARNRunner implements ClientProtocol {
                "LD_LIBRARY_PATH in the " + component + " JVM env using " +
                envConf + " config settings.");
     }
-  }
-
-  private static String getLog4jCmdLineProperties(Configuration jobConf,
-      boolean isMap) {
-    Vector<String> logProps = new Vector<String>(4);
-    addLog4jSystemProperties(getChildLogLevel(jobConf, isMap), logProps);
-    StringBuilder sb = new StringBuilder();
-    for (String str : logProps) {
-      sb.append(str).append(" ");
-    }
-    return sb.toString();
-  }
-
-  /**
-   * Add the JVM system properties necessary to configure
-   * {@link ContainerLogAppender}.
-   *
-   * @param logLevel
-   *          the desired log level (eg INFO/WARN/DEBUG)
-   * @param vargs
-   *          the argument list to append to
-   */
-  private static void addLog4jSystemProperties(String logLevel,
-      List<String> vargs) {
-    vargs.add("-Dlog4j.configuration=container-log4j.properties");
-    vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
-        + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
-    // Setting this to 0 to avoid log size restrictions.
-    // Should be enforced by YARN.
-    vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_SIZE + "=0");
-    vargs.add("-Dhadoop.root.logger=" + logLevel + ",CLA");
   }
 
 }

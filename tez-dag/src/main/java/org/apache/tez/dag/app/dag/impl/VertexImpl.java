@@ -103,6 +103,7 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
+import org.apache.tez.mapreduce.hadoop.MRHelpers;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
@@ -150,7 +151,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private TezCounters fullCounters = null;
   private Resource taskResource;
 
-  public TezConfiguration conf;
+  private TezConfiguration conf;
+  private final Configuration userConf;
 
   //fields initialized in init
 
@@ -393,11 +395,25 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.environment = DagTypeConverters.createEnvironmentMapFromDAGPlan(vertexPlan.getTaskConfig().getEnvironmentSettingList());
     this.javaOpts = vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan.getTaskConfig().getJavaOpts() : null;
 
+    ByteBuffer bb = getUserPayload();
+    if (bb == null) {
+      LOG.info("No user payload - falling back to default AM tez conf");
+      userConf = conf;
+    } else {
+      try {
+        userConf = MRHelpers.createConfFromByteBuffer(bb);
+      } catch (IOException e) {
+        LOG.info("Failed to create user conf from ByteBuffer");
+        throw new TezUncheckedException(
+            "Failed to create user conf from ByteBuffer", e);
+      }
+    }
+    
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
   }
-
+  
   protected StateMachine<VertexState, VertexEventType, VertexEvent> getStateMachine() {
     return stateMachine;
   }
@@ -418,8 +434,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   @Override
-  public TezConfiguration getConf() {
-    return conf;
+  public Configuration getConf() {
+    return userConf;
   }
 
   @Override
@@ -861,7 +877,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     private void createTasks(VertexImpl vertex) {
       // TODO Fixme
-      TezConfiguration conf = vertex.getConf();
+      TezConfiguration conf = vertex.conf;
       boolean useNullLocationHint = true;
       if (vertex.vertexLocationHint != null
           && vertex.vertexLocationHint.getTaskLocationHints() != null

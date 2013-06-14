@@ -21,6 +21,7 @@ package org.apache.tez.mapreduce.hadoop;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 
 public class MultiStageMRConfigUtil {
@@ -170,6 +171,44 @@ public class MultiStageMRConfigUtil {
       String value = entry.getValue();
       System.err.println("Key: " + key + ", Value: " + value);
     }
+  }
+
+  @Private
+  static Configuration extractStageConf(Configuration baseConf,
+      String prefix) {
+    Configuration strippedConf = new Configuration(false);
+    Configuration conf = new Configuration(false);
+    Iterator<Entry<String, String>> confEntries = baseConf.iterator();
+    while (confEntries.hasNext()) {
+      Entry<String, String> entry = confEntries.next();
+      String key = entry.getKey();
+      if (key.startsWith(prefix)) {
+        // Ignore keys for other intermediate stages in case of an initial or
+        // final stage.
+        if (prefix.equals("")) {
+          if (key.startsWith(MRJobConfig.MRR_INTERMEDIATE_STAGE_PREFIX)) {
+            continue;
+          }
+        }
+        String newKey = key.replace(prefix, "");
+        strippedConf.set(newKey, entry.getValue());
+      } else {
+        // Ignore keys for other intermediate stages.
+        if (key.startsWith(MRJobConfig.MRR_INTERMEDIATE_STAGE_PREFIX)) {
+          continue;
+        }
+        // Set all base keys in the new conf
+        conf.set(key, entry.getValue());
+      }
+    }
+    // Replace values from strippedConf into the finalConf. Override values
+    // which may have been copied over from the baseConf root level.
+    Iterator<Entry<String, String>> entries = strippedConf.iterator();
+    while (entries.hasNext()) {
+      Entry<String, String> entry = entries.next();
+      conf.set(entry.getKey(), entry.getValue());
+    }
+    return conf;
   }
   
   // TODO MRR FIXME based on conf format.

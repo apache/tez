@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
@@ -47,7 +46,6 @@ public interface Vertex extends Comparable<Vertex> {
   int getDistanceFromRoot();
   String getName();
   VertexState getState();
-  Configuration getConf();
 
   /**
    * Get all the counters of this vertex. 

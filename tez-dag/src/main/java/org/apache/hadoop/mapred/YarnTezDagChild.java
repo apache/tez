@@ -264,7 +264,7 @@ public class YarnTezDagChild {
       Credentials cxredentials, Token<JobTokenIdentifier> jobToken,
       int appAttemptId) throws IOException, InterruptedException {
 
-    Configuration conf = new Configuration();
+    Configuration conf = new Configuration(false);
     // set tcp nodelay
     conf.setBoolean("ipc.client.tcpnodelay", true);
     conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, appAttemptId);

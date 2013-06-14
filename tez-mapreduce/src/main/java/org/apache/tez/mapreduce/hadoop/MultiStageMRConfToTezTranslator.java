@@ -18,12 +18,14 @@
 
 package org.apache.tez.mapreduce.hadoop;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
@@ -174,6 +176,9 @@ public class MultiStageMRConfToTezTranslator {
   /**
    * Constructs a list containing individual configuration for each stage of the
    * linear MR job, including the first map and last reduce if applicable.
+   * 
+   * Generates basic configurations - i.e. without inheriting any keys from the
+   * top level conf. // TODO Validate this comment.
    */
   private static Configuration[] extractStageConfs(Configuration conf,
       int totalEdges) {
@@ -193,10 +198,44 @@ public class MultiStageMRConfToTezTranslator {
         confs[i] = MultiStageMRConfigUtil
             .getAndRemoveBasicIntermediateStageConf(conf, i);
       }
-    } else {
-
     }
+    return confs;
+  }
+  
+  
+  
+  /**
+   * Given a single base MRR config, returns a list of complete stage
+   * configurations.
+   * 
+   * @param conf
+   * @return
+   */
+  @Private
+  public static Configuration[] getStageConfs(Configuration conf) {
+    int numIntermediateStages = MultiStageMRConfigUtil
+        .getNumIntermediateStages(conf);
+    boolean hasFinalReduceStage = (conf.getInt(MRJobConfig.NUM_REDUCES, 0) > 0);
+    // Assuming no 0 map jobs, and the first stage is always a map.
+    int totalStages = numIntermediateStages + (hasFinalReduceStage ? 2 : 1);
+    int numEdges = totalStages - 1;
+    int numStages = numEdges + 1;
 
+    Configuration confs[] = new Configuration[numStages];
+    Configuration nonItermediateConf = MultiStageMRConfigUtil.extractStageConf(
+        conf, "");
+    if (numStages == 1) {
+      confs[0] = nonItermediateConf;
+    } else {
+      confs[0] = nonItermediateConf;
+      confs[numStages - 1] = new Configuration(nonItermediateConf);
+    }
+    if (numStages > 2) {
+      for (int i = 1; i < numStages - 1; i++) {
+        confs[i] = MultiStageMRConfigUtil.extractStageConf(conf,
+            MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(i, ""));
+      }
+    }
     return confs;
   }
 

@@ -451,6 +451,7 @@ public class MRHelpers {
     dib.reset(bb.array(), 0, bb.capacity());
     Configuration conf = new Configuration(false);
     conf.readFields(dib);
+    bb.rewind();
     return conf;
   }
 

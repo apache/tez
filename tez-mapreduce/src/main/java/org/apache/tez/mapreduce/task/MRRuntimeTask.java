@@ -291,4 +291,5 @@ public class MRRuntimeTask extends RuntimeTask {
       IOUtils.cleanup(LOG, out);
     }
   }
+
 }

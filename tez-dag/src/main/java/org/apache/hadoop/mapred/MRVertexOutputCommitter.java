@@ -33,14 +33,12 @@ import org.apache.hadoop.mapreduce.TypeConverter;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.committer.VertexContext;
 import org.apache.tez.dag.api.committer.VertexOutputCommitter;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 public class MRVertexOutputCommitter extends VertexOutputCommitter {
@@ -58,6 +56,7 @@ public class MRVertexOutputCommitter extends VertexOutputCommitter {
   @SuppressWarnings("rawtypes")
   private OutputCommitter getOutputCommitter(VertexContext context) {
     Configuration conf = context.getConf();
+
     OutputCommitter committer = null;
     boolean newApiCommitter = false;
     if (conf.getBoolean("mapred.reducer.new-api", false)
@@ -65,8 +64,9 @@ public class MRVertexOutputCommitter extends VertexOutputCommitter {
       newApiCommitter = true;
       LOG.info("Using mapred newApiCommitter.");
     }
-
-    LOG.info("OutputCommitter set in config "
+    
+    LOG.info("OutputCommitter set in config for vertex: "
+        + context.getVertexId() + " : "
         + conf.get("mapred.output.committer.class"));
 
     if (newApiCommitter) {
@@ -99,19 +99,12 @@ public class MRVertexOutputCommitter extends VertexOutputCommitter {
     // jobConf should be initialized using the user-land level configuration
     // for the vertex in question
 
-    Configuration conf = null;
-
-    if (context.getUserPayload() != null) {
-      conf = MRHelpers.createConfFromByteBuffer(context.getUserPayload());
-    } else {
-      conf = context.getConf();
-    }
+    Configuration conf = context.getConf();
 
     JobConf jobConf = new JobConf(conf);
     JobID jobId = TypeConverter.fromYarn(context.getDAGId().getApplicationId());
     jobConf.addResource(new Path(MRJobConfig.JOB_CONF_FILE));
     return new MRJobContextImpl(jobConf, jobId);
-
   }
 
   private State getJobStateFromVertexStatusState(VertexStatus.State state) {

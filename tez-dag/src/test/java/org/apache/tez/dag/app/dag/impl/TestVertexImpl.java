@@ -135,7 +135,7 @@ public class TestVertexImpl {
     }
 
     @Override
-    public void setupVertex() throws IOException {
+    public void setupVertex() {
       ++setupCounter;
     }
 
