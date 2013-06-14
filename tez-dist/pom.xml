@@ -46,6 +46,12 @@
       <artifactId>tez-mapreduce-examples</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.tez</groupId>
+      <artifactId>tez-mapreduce-tests</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+    </dependency>
   </dependencies>
 
   <properties>
