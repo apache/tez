@@ -388,7 +388,7 @@ public class YARNRunner implements ClientProtocol {
         vertexName = MultiStageMRConfigUtil.getFinalReduceVertexName();
       } else {
         vertexName = MultiStageMRConfigUtil
-            .getIntermediateStageVertexName(stageNum + 1);
+            .getIntermediateStageVertexName(stageNum);
       }
     }
 
