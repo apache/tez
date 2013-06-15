@@ -496,7 +496,6 @@ public class YARNRunner implements ClientProtocol {
     FileSystem fs = FileSystem.get(conf);
     // Loads the job.xml written by the user.
     JobConf jobConf = new JobConf(new TezConfiguration(conf));
-    MultiStageMRConfigUtil.printConf(jobConf);
     
     // Extract individual raw MR configs.
     Configuration[] stageConfs = MultiStageMRConfToTezTranslator
