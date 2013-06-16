@@ -47,7 +47,6 @@ import org.apache.hadoop.yarn.client.AMRMClientAsync;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.hadoop.yarn.util.RackResolver;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback.AppFinalStatus;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -90,7 +89,6 @@ public class TaskScheduler extends AbstractService
     public void nodesUpdated(List<NodeReport> updatedNodes);
     public void appShutdownRequested();
     public void setApplicationRegistrationData(
-                                Resource minContainerCapability,
                                 Resource maxContainerCapability,
                                 Map<ApplicationAccessType, String> appAcls
                                 );
@@ -191,7 +189,6 @@ public class TaskScheduler extends AbstractService
       }
       // upcall to app outside locks
       appClient.setApplicationRegistrationData(
-                                      response.getMinimumResourceCapability(),
                                       response.getMaximumResourceCapability(),
                                       response.getApplicationACLs());
     } catch (YarnException e) {

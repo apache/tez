@@ -625,8 +625,8 @@ public class TaskAttemptImpl implements TaskAttempt,
             ta.getDAGID()
             );
 
-    long slotMillis = computeSlotMillis(ta);
-    jce.addCounterUpdate(DAGCounter.SLOTS_MILLIS_TASKS, slotMillis);
+//    long slotMillis = computeSlotMillis(ta);
+//    jce.addCounterUpdate(DAGCounter.SLOTS_MILLIS_TASKS, slotMillis);
     return jce;
   }
 
@@ -637,38 +637,38 @@ public class TaskAttemptImpl implements TaskAttempt,
         new DAGEventCounterUpdate(
             taskAttempt.getDAGID());
 
-    long slotMillisIncrement = computeSlotMillis(taskAttempt);
-
     if (taState == TaskAttemptStateInternal.FAILED) {
       jce.addCounterUpdate(DAGCounter.NUM_FAILED_TASKS, 1);
     } else if (taState == TaskAttemptStateInternal.KILLED) {
       jce.addCounterUpdate(DAGCounter.NUM_KILLED_TASKS, 1);
     }
-    if (!taskAlreadyCompleted) {
-      // dont double count the elapsed time
-      jce.addCounterUpdate(DAGCounter.SLOTS_MILLIS_TASKS, slotMillisIncrement);
-    }
+    
+//    long slotMillisIncrement = computeSlotMillis(taskAttempt);
+//    if (!taskAlreadyCompleted) {
+//      // dont double count the elapsed time
+//      jce.addCounterUpdate(DAGCounter.SLOTS_MILLIS_TASKS, slotMillisIncrement);
+//    }
 
     return jce;
   }
 
-  private static long computeSlotMillis(TaskAttemptImpl taskAttempt) {
-    int slotMemoryReq =
-        taskAttempt.taskResource.getMemory();
-
-    int minSlotMemSize =
-        taskAttempt.appContext.getClusterInfo().getMinContainerCapability()
-            .getMemory();
-
-    int simSlotsRequired =
-        minSlotMemSize == 0 ? 0 : (int) Math.ceil((float) slotMemoryReq
-            / minSlotMemSize);
-
-    long slotMillisIncrement =
-        simSlotsRequired
-            * (taskAttempt.getFinishTime() - taskAttempt.getLaunchTime());
-    return slotMillisIncrement;
-  }
+//  private static long computeSlotMillis(TaskAttemptImpl taskAttempt) {
+//    int slotMemoryReq =
+//        taskAttempt.taskResource.getMemory();
+//
+//    int minSlotMemSize =
+//        taskAttempt.appContext.getClusterInfo().getMinContainerCapability()
+//            .getMemory();
+//
+//    int simSlotsRequired =
+//        minSlotMemSize == 0 ? 0 : (int) Math.ceil((float) slotMemoryReq
+//            / minSlotMemSize);
+//
+//    long slotMillisIncrement =
+//        simSlotsRequired
+//            * (taskAttempt.getFinishTime() - taskAttempt.getLaunchTime());
+//    return slotMillisIncrement;
+//  }
 
   // TODO: JobHistory
   // TODO Change to return a JobHistoryEvent.

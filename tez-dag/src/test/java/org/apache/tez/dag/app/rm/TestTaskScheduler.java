@@ -82,11 +82,8 @@ public class TestTaskScheduler {
     
     RegisterApplicationMasterResponse mockRegResponse = 
                                 mock(RegisterApplicationMasterResponse.class);
-    Resource mockMinResource = mock(Resource.class);
     Resource mockMaxResource = mock(Resource.class);
     Map<ApplicationAccessType, String> mockAcls = mock(Map.class);
-    when(mockRegResponse.getMinimumResourceCapability()).
-                                                   thenReturn(mockMinResource);
     when(mockRegResponse.getMaximumResourceCapability()).
                                                    thenReturn(mockMaxResource);
     when(mockRegResponse.getApplicationACLs()).thenReturn(mockAcls);    
@@ -96,8 +93,7 @@ public class TestTaskScheduler {
     scheduler.start();
     verify(mockRMClient).start();
     verify(mockRMClient).registerApplicationMaster(appHost, appPort, appUrl);
-    verify(mockApp).setApplicationRegistrationData(mockMinResource, 
-                                                   mockMaxResource, 
+    verify(mockApp).setApplicationRegistrationData(mockMaxResource, 
                                                    mockAcls);
     
     when(mockRMClient.getClusterNodeCount()).thenReturn(5);

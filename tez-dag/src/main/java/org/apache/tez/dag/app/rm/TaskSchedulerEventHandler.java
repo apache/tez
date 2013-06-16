@@ -269,33 +269,6 @@ public class TaskSchedulerEventHandler extends AbstractService
     }
   }
 
-  /*
-  @SuppressWarnings("unchecked")
-  private int maybeComputeNormalizedRequestForType(
-      AMSchedulerTALaunchRequestEvent event, int prevComputedSize) {
-    if (prevComputedSize == 0) {
-      int supportedMaxContainerCapability = appContext.getClusterInfo()
-          .getMaxContainerCapability().getMemory();
-      prevComputedSize = event.getCapability().getMemory();
-      int minSlotMemSize = appContext.getClusterInfo()
-          .getMinContainerCapability().getMemory();
-      prevComputedSize = (int) Math.ceil((float) prevComputedSize
-          / minSlotMemSize)
-          * minSlotMemSize;
-      if (prevComputedSize > supportedMaxContainerCapability) {
-        String diagMsg = " capability required is more than the supported "
-            + "max container capability in the cluster. Killing the Job. "
-            + "ResourceReqt: " + prevComputedSize
-            + " maxContainerCapability:" + supportedMaxContainerCapability;
-        LOG.info(diagMsg);
-        eventHandler.handle(new DAGDiagnosticsUpdateEvent(job.getID(), diagMsg));
-        eventHandler.handle(new DAGEvent(job.getID(), DAGEventType.JOB_KILL));
-      }
-    }
-    return prevComputedSize;
-  }
-  */
-
   private void handleTaLaunchRequest(AMSchedulerEventTALaunchRequest event) {
     /**
          // Add to queue of pending tasks.
@@ -490,11 +463,9 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
   @Override
-  public synchronized void setApplicationRegistrationData(Resource minContainerCapability,
+  public synchronized void setApplicationRegistrationData(
       Resource maxContainerCapability,
       Map<ApplicationAccessType, String> appAcls) {
-    this.appContext.getClusterInfo().setMinContainerCapability(
-        minContainerCapability);
     this.appContext.getClusterInfo().setMaxContainerCapability(
         maxContainerCapability);
     this.appAcls = appAcls;
