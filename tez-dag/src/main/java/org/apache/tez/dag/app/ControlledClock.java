@@ -17,7 +17,7 @@
 */
 package org.apache.tez.dag.app;
 
-import org.apache.hadoop.yarn.Clock;
+import org.apache.hadoop.yarn.util.Clock;
 
 public class ControlledClock implements Clock {
   private long time = -1;
