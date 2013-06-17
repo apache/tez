@@ -20,8 +20,8 @@ package org.apache.tez.dag.history;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.tez.dag.app.AppContext;
 
 public class HistoryEventHandler extends AbstractService

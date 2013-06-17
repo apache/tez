@@ -27,8 +27,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.service.AbstractService;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.hadoop.yarn.service.AbstractService;
 import org.apache.tez.dag.app.AppContext;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
