@@ -930,6 +930,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
               .getID(), "Alternate attempt succeeded"));
         }
       }
+      // send notification to DAG scheduler
+      task.eventHandler.handle(new DAGEventSchedulerUpdate(
+          DAGEventSchedulerUpdate.UpdateType.TA_SUCCEEDED, task.attempts
+              .get(task.successfulAttempt)));
       task.finished(TaskStateInternal.SUCCEEDED);
     }
   }

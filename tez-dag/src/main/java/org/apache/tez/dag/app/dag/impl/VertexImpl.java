@@ -471,6 +471,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       readLock.unlock();
     }
   }
+  
+  @Override
+  public int getSucceededTasks() {
+    readLock.lock();
+    try {
+      return succeededTaskCount;
+    } finally {
+      readLock.unlock();
+    }
+  }
 
   @Override
   public TezCounters getAllCounters() {

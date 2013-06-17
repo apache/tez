@@ -101,6 +101,10 @@ public class TaskSchedulerEventHandler extends AbstractService
     return taskScheduler.getClusterAvailableResources();
   }
   
+  public Resource getTotalResources() {
+    return taskScheduler.getTotalResources();
+  }
+  
   public synchronized void handleEvent(AMSchedulerEvent sEvent) {
     LOG.info("Processing the event " + sEvent.toString());
     switch (sEvent.getType()) {

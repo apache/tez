@@ -109,6 +109,8 @@ public class TaskScheduler extends AbstractService
   HashMap<ContainerId, Object> releasedContainers = 
                   new HashMap<ContainerId, Object>();
   
+  Resource totalResources = Resource.newInstance(0, 0);
+  
   final String appHostName;
   final int appHostPort;
   final String appTrackingUrl;
@@ -346,6 +348,16 @@ public class TaskScheduler extends AbstractService
     if(isStopped) {
       return 1;
     }
+    if(totalResources.getMemory() == 0) {
+      // TODO this will not handle dynamic changes
+      // assume this is the first allocate callback. nothing is allocated.
+      // available resource = totalResource
+      Resource freeResource = getClusterAvailableResources();
+      totalResources.setMemory(freeResource.getMemory());
+      totalResources.setVirtualCores(freeResource.getVirtualCores());
+      LOG.info("App total resource: " + totalResources.getMemory() + 
+               " taskAllocations: " + taskAllocations.size());
+    }
     return appClient.getProgress();
   }
 
@@ -355,6 +367,10 @@ public class TaskScheduler extends AbstractService
       return;
     }
     appClient.onError(e);
+  }
+  
+  public synchronized Resource getTotalResources() {
+    return totalResources;
   }
   
   public synchronized void allocateTask(Object task, 
@@ -455,7 +471,6 @@ public class TaskScheduler extends AbstractService
     Container result = taskAllocations.put(task, container);
     assert result == null;
     containerAssigments.put(container.getId(), task);
-    
   }
   
   private CookieContainerRequest removeTaskRequest(Object task) {

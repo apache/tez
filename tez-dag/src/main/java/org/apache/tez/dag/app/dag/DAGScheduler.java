@@ -26,4 +26,5 @@ public interface DAGScheduler {
   
   public void scheduleTask(DAGEventSchedulerUpdate event);
 
+  public void taskSucceeded(DAGEventSchedulerUpdate event);
 }

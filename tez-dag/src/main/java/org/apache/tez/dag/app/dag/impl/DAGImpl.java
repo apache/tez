@@ -910,7 +910,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
       if(isMRR) {
         LOG.info("Using MRR dag scheduler");
-        dag.dagScheduler = new DAGSchedulerMRR(dag, dag.eventHandler);
+        dag.dagScheduler = new DAGSchedulerMRR(dag, dag.eventHandler,
+            dag.appContext.getTaskScheduler());
       } else {
         LOG.info("Using Natural order dag scheduler");
         dag.dagScheduler = new DAGSchedulerNaturalOrder(dag, dag.eventHandler);
@@ -1207,6 +1208,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     switch(sEvent.getUpdateType()) {
       case TA_SCHEDULE:
         dag.dagScheduler.scheduleTask(sEvent);
+      case TA_SUCCEEDED:
+        dag.dagScheduler.taskSucceeded(sEvent);
         break;
       default:
         throw new TezUncheckedException("Unknown DAGEventSchedulerUpdate:"

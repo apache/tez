@@ -23,7 +23,8 @@ import org.apache.tez.dag.app.dag.TaskAttempt;
 public class DAGEventSchedulerUpdate extends DAGEvent {
   
   public enum UpdateType {
-    TA_SCHEDULE
+    TA_SCHEDULE,
+    TA_SUCCEEDED
   }
   
   private final TaskAttempt attempt;

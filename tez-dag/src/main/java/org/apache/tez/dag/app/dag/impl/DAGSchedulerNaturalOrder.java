@@ -72,6 +72,10 @@ public class DAGSchedulerNaturalOrder implements DAGScheduler {
     sendEvent(attemptEvent);
   }
   
+  @Override
+  public void taskSucceeded(DAGEventSchedulerUpdate event) {
+  }
+  
   @SuppressWarnings("unchecked")
   void sendEvent(TaskAttemptEventSchedule event) {
     handler.handle(event);

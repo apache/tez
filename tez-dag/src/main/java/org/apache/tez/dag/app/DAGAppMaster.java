@@ -818,6 +818,11 @@ public class DAGAppMaster extends CompositeService {
     public AMNodeMap getAllNodes() {
       return nodes;
     }
+    
+    @Override
+    public TaskSchedulerEventHandler getTaskScheduler() {
+      return taskSchedulerEventHandler;
+    }
 
     @Override
     public Map<ApplicationAccessType, String> getApplicationACLs() {
