@@ -164,8 +164,8 @@ public class TaskScheduler extends AbstractService
     this.appTrackingUrl = appTrackingUrl;
   }
   
-  public Resource getClusterAvailableResources() {
-    return amRmClient.getClusterAvailableResources();
+  public Resource getAvailableResources() {
+    return amRmClient.getAvailableResources();
   }
   
   public int getClusterNodeCount() {
@@ -351,7 +351,7 @@ public class TaskScheduler extends AbstractService
       // TODO this will not handle dynamic changes
       // assume this is the first allocate callback. nothing is allocated.
       // available resource = totalResource
-      Resource freeResource = getClusterAvailableResources();
+      Resource freeResource = getAvailableResources();
       totalResources.setMemory(freeResource.getMemory());
       totalResources.setVirtualCores(freeResource.getVirtualCores());
       LOG.info("App total resource: " + totalResources.getMemory() + 

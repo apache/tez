@@ -98,7 +98,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
   
   public Resource getAvailableResources() {
-    return taskScheduler.getClusterAvailableResources();
+    return taskScheduler.getAvailableResources();
   }
   
   public Resource getTotalResources() {

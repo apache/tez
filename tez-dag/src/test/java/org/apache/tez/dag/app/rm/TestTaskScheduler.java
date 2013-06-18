@@ -108,10 +108,10 @@ public class TestTaskScheduler {
     Assert.assertEquals(5, scheduler.getClusterNodeCount());
     
     Resource mockClusterResource = mock(Resource.class);
-    when(mockRMClient.getClusterAvailableResources()).
+    when(mockRMClient.getAvailableResources()).
                                               thenReturn(mockClusterResource);
     Assert.assertEquals(mockClusterResource, 
-                        mockRMClient.getClusterAvailableResources());
+                        mockRMClient.getAvailableResources());
     
     Object mockTask1 = mock(Object.class);
     Object mockCookie1 = mock(Object.class);
