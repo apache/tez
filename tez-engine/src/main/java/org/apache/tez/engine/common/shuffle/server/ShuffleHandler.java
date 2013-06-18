@@ -59,9 +59,10 @@ import org.apache.hadoop.metrics2.lib.MutableCounterLong;
 import org.apache.hadoop.metrics2.lib.MutableGaugeInt;
 import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.AuxServices;
+import org.apache.hadoop.yarn.server.api.ApplicationInitializationContext;
+import org.apache.hadoop.yarn.server.api.ApplicationTerminationContext;
+import org.apache.hadoop.yarn.server.api.AuxiliaryService;
 import org.apache.tez.common.RunningTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
@@ -101,8 +102,7 @@ import org.jboss.netty.util.CharsetUtil;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-public class ShuffleHandler extends AbstractService 
-    implements AuxServices.AuxiliaryService {
+public class ShuffleHandler extends AuxiliaryService {
 
   private static final Log LOG = LogFactory.getLog(ShuffleHandler.class);
   
@@ -219,13 +219,16 @@ public class ShuffleHandler extends AbstractService
   }
 
   
-  
   @Override
-  public void initApp(String user, ApplicationId appId, ByteBuffer secret) {
+  public void initializeApplication(
+      ApplicationInitializationContext initAppContext) {
     // TODO these bytes should be versioned
     try {
+      String user = initAppContext.getUser();
+      ApplicationId appId = initAppContext.getApplicationId();
+      ByteBuffer secret = initAppContext.getApplicationDataForService();
       Token<JobTokenIdentifier> jt = deserializeServiceData(secret);
-       // TODO: Once SHuffle is out of NM, this can use MR APIs
+      // TODO: Once SHuffle is out of NM, this can use MR APIs
       userRsrc.put(appId.toString(), user);
       LOG.info("Added token for " + appId.toString());
       secretManager.addTokenForJob(appId.toString(), jt);
@@ -236,7 +239,8 @@ public class ShuffleHandler extends AbstractService
   }
 
   @Override
-  public void stopApp(ApplicationId appId) {
+  public void stopApplication(ApplicationTerminationContext context) {
+    ApplicationId appId = context.getApplicationId();
     secretManager.removeTokenForJob(appId.toString());
     userRsrc.remove(appId.toString());
   }
@@ -292,7 +296,7 @@ public class ShuffleHandler extends AbstractService
   }
 
   @Override
-  public synchronized ByteBuffer getMeta() {
+  public synchronized ByteBuffer getMetaData() {
     try {
       return serializeMetaData(port); 
     } catch (IOException e) {

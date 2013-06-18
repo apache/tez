@@ -42,8 +42,8 @@ import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceRequest;
-import org.apache.hadoop.yarn.client.AMRMClient.StoredContainerRequest;
-import org.apache.hadoop.yarn.client.AMRMClientAsync;
+import org.apache.hadoop.yarn.client.api.AMRMClient.StoredContainerRequest;
+import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -142,8 +142,7 @@ public class TaskScheduler extends AbstractService
                         String appTrackingUrl) {
     super(TaskScheduler.class.getName());
     this.appClient = appClient;
-    this.amRmClient = 
-        new AMRMClientAsync<CookieContainerRequest>(id, 1000, this);
+    this.amRmClient = AMRMClientAsync.createAMRMClientAsync(id, 1000, this);
     this.appHostName = appHostName;
     this.appHostPort = appHostPort;
     this.appTrackingUrl = appTrackingUrl;

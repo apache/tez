@@ -48,7 +48,7 @@ import org.apache.hadoop.yarn.api.records.Token;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.security.ContainerTokenIdentifier;
 import org.apache.hadoop.yarn.util.Clock;
-import org.apache.hadoop.yarn.util.ProtoUtils;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
@@ -163,7 +163,7 @@ public class ContainerLauncherImpl extends AbstractService implements
         startRequest.setContainerLaunchContext(containerLaunchContext);
         StartContainerResponse response = proxy.startContainer(startRequest);
 
-        ByteBuffer portInfo = response.getAllServiceResponse().get(
+        ByteBuffer portInfo = response.getAllServicesMetaData().get(
             ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID);
         int port = -1;
         if(portInfo != null) {
@@ -362,8 +362,8 @@ public class ContainerLauncherImpl extends AbstractService implements
     // the user in createRemoteUser in this context has to be ContainerID
     UserGroupInformation user = UserGroupInformation
         .createRemoteUser(containerID.toString());
-    org.apache.hadoop.security.token.Token<ContainerTokenIdentifier> token = ProtoUtils
-        .convertFromProtoFormat(containerToken, cmAddr);
+    org.apache.hadoop.security.token.Token<ContainerTokenIdentifier> token = ConverterUtils
+        .convertFromYarn(containerToken, cmAddr);
     user.addToken(token);
 
     ContainerManagementProtocol proxy = user
