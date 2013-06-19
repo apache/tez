@@ -154,7 +154,8 @@ public class TezClient {
    */
   public ApplicationId createApplication() throws TezException, IOException {
     try {
-      return yarnClient.getNewApplication().getApplicationId();
+      return yarnClient.createApplication().
+          getNewApplicationResponse().getApplicationId();
     } catch (YarnException e) {
       throw new TezException(e);
     }

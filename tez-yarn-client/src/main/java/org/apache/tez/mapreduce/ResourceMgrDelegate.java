@@ -118,7 +118,8 @@ public class ResourceMgrDelegate extends YarnClientImpl {
 
   public JobID getNewJobID() throws IOException, InterruptedException {
     try {
-      this.application = super.getNewApplication();
+      this.application = 
+          super.createApplication().getNewApplicationResponse();
     } catch (YarnException e) {
       throw new IOException(e);
     }
