@@ -22,6 +22,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.logging.Log;
@@ -34,6 +35,7 @@ import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.Token;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -76,7 +78,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   // Has a signal (SIGTERM etc) been issued?
   protected volatile boolean isSignalled = false;
   final DAGClientServer clientService;
-
+  
   BlockingQueue<AMSchedulerEvent> eventQueue
                               = new LinkedBlockingQueue<AMSchedulerEvent>();
 
@@ -96,7 +98,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     this.isSignalled = isSignalled;
     LOG.info("RMCommunicator notified that iSignalled was : " + isSignalled);
   }
-  
+    
   public Resource getAvailableResources() {
     return taskScheduler.getAvailableResources();
   }
@@ -327,6 +329,7 @@ public class TaskSchedulerEventHandler extends AbstractService
 
     dagAppMaster = appContext.getAppMaster();
     taskScheduler.start();
+    appContext.setNMTokens(taskScheduler.getNMTokens());
     this.eventHandlingThread = new Thread() {
       @Override
       public void run() {

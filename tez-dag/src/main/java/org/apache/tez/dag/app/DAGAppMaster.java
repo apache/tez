@@ -27,6 +27,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -275,18 +277,19 @@ public class DAGAppMaster extends CompositeService {
         new TaskAttemptEventDispatcher());
     dispatcher.register(TaskCleaner.EventType.class, taskCleaner);
 
-    //    TODO XXX: Rename to NMComm
-    //    corresponding service to launch allocated containers via NodeManager
-    //    containerLauncher = createNMCommunicator(context);
-    containerLauncher = createContainerLauncher(context);
-    addIfService(containerLauncher);
-    dispatcher.register(NMCommunicatorEventType.class, containerLauncher);
-
     taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
         clientRpcServer);
     addIfService(taskSchedulerEventHandler);
     dispatcher.register(AMSchedulerEventType.class,
         taskSchedulerEventHandler);
+
+    //    TODO XXX: Rename to NMComm
+    //    corresponding service to launch allocated containers via NodeManager
+    //    containerLauncher = createNMCommunicator(context);
+    // needs to start after TaskScheduler for nmtokens to be available
+    containerLauncher = createContainerLauncher(context);
+    addIfService(containerLauncher);
+    dispatcher.register(NMCommunicatorEventType.class, containerLauncher);
 
     historyEventHandler = new HistoryEventHandler(context);
     addIfService(historyEventHandler);
@@ -749,11 +752,11 @@ public class DAGAppMaster extends CompositeService {
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock rLock = rwLock.readLock();
     private final Lock wLock = rwLock.writeLock();
-
+    private ConcurrentMap<String, org.apache.hadoop.yarn.api.records.Token> nmTokens;
     public RunningAppContext(TezConfiguration config) {
       this.conf = config;
     }
-
+    
     @Override
     public DAGAppMaster getAppMaster() {
       return DAGAppMaster.this;
@@ -851,6 +854,16 @@ public class DAGAppMaster extends CompositeService {
       } finally {
         wLock.unlock();
       }
+    }
+    
+    @Override
+    public void setNMTokens(ConcurrentMap<String, org.apache.hadoop.yarn.api.records.Token> tokens) {
+      nmTokens = tokens;
+    }
+
+    @Override
+    public ConcurrentMap<String, org.apache.hadoop.yarn.api.records.Token> getNMTokens() {
+      return nmTokens;
     }
 
   }

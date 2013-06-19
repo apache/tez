@@ -19,9 +19,7 @@
 package org.apache.tez.dag.app.launcher;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.security.PrivilegedAction;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -34,21 +32,17 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.mapred.ShuffleHandler;
-import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.yarn.api.ContainerManagementProtocol;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainerResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.StopContainerRequest;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.Token;
-import org.apache.hadoop.yarn.ipc.YarnRPC;
-import org.apache.hadoop.yarn.security.ContainerTokenIdentifier;
+import org.apache.hadoop.yarn.client.api.impl.ContainerManagementProtocolProxy;
+import org.apache.hadoop.yarn.client.api.impl.ContainerManagementProtocolProxy.ContainerManagementProtocolProxyData;
 import org.apache.hadoop.yarn.util.Clock;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
@@ -89,8 +83,9 @@ public class ContainerLauncherImpl extends AbstractService implements
   private Thread eventHandlingThread;
   protected BlockingQueue<NMCommunicatorEvent> eventQueue =
       new LinkedBlockingQueue<NMCommunicatorEvent>();
-  YarnRPC rpc;
   private Clock clock;
+  private ContainerManagementProtocolProxy cmProxy;
+
 
   private Container getContainer(NMCommunicatorEvent event) {
     ContainerId id = event.getContainerId();
@@ -146,7 +141,7 @@ public class ContainerLauncherImpl extends AbstractService implements
         return;
       }
       
-      ContainerManagementProtocol proxy = null;
+      ContainerManagementProtocolProxyData proxy = null;
       try {
 
         proxy = getCMProxy(containerID, containerMgrAddress,
@@ -161,7 +156,8 @@ public class ContainerLauncherImpl extends AbstractService implements
           .newRecord(StartContainerRequest.class);
         startRequest.setContainerToken(event.getContainerToken());
         startRequest.setContainerLaunchContext(containerLaunchContext);
-        StartContainerResponse response = proxy.startContainer(startRequest);
+        StartContainerResponse response = 
+            proxy.getContainerManagementProtocol().startContainer(startRequest);
 
         ByteBuffer portInfo = response.getAllServicesMetaData().get(
             ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID);
@@ -195,7 +191,7 @@ public class ContainerLauncherImpl extends AbstractService implements
         sendContainerLaunchFailedMsg(containerID, message);
       } finally {
         if (proxy != null) {
-          ContainerLauncherImpl.this.rpc.stopProxy(proxy, getConfig());
+          cmProxy.mayBeCloseProxy(proxy);
         }
       }
     }
@@ -212,7 +208,7 @@ public class ContainerLauncherImpl extends AbstractService implements
         LOG.info("Sending a stop request to the NM for ContainerId: "
             + containerID);
 
-        ContainerManagementProtocol proxy = null;
+        ContainerManagementProtocolProxyData proxy = null;
         try {
           proxy = getCMProxy(this.containerID, this.containerMgrAddress,
               this.containerToken);
@@ -221,7 +217,7 @@ public class ContainerLauncherImpl extends AbstractService implements
             StopContainerRequest stopRequest = Records
               .newRecord(StopContainerRequest.class);
             stopRequest.setContainerId(this.containerID);
-            proxy.stopContainer(stopRequest);
+            proxy.getContainerManagementProtocol().stopContainer(stopRequest);
             // If stopContainer returns without an error, assuming the stop made
             // it over to the NodeManager.
           context.getEventHandler().handle(
@@ -239,7 +235,7 @@ public class ContainerLauncherImpl extends AbstractService implements
           return;
         } finally {
           if (proxy != null) {
-            ContainerLauncherImpl.this.rpc.stopProxy(proxy, getConfig());
+            cmProxy.mayBeCloseProxy(proxy);
           }
         }
         this.state = ContainerState.DONE;
@@ -263,15 +259,12 @@ public class ContainerLauncherImpl extends AbstractService implements
         MRJobConfig.MR_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT,
         MRJobConfig.DEFAULT_MR_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT);
     LOG.info("Upper limit on the thread pool size is " + this.limitOnPoolSize);
-    this.rpc = createYarnRPC(conf);
   }
   
-  protected YarnRPC createYarnRPC(Configuration conf) {
-    return YarnRPC.create(conf);
-  }
-
   @Override
   public void serviceStart() {
+    cmProxy =
+        new ContainerManagementProtocolProxy(getConfig(), context.getNMTokens());
 
     ThreadFactory tf = new ThreadFactoryBuilder().setNameFormat(
         "ContainerLauncher #%d").setDaemon(true).build();
@@ -352,31 +345,11 @@ public class ContainerLauncherImpl extends AbstractService implements
     return new EventProcessor(event);
   }
 
-  protected ContainerManagementProtocol getCMProxy(ContainerId containerID,
-      final String containerManagerBindAddr, Token containerToken)
-      throws IOException {
-
-    final InetSocketAddress cmAddr =
-        NetUtils.createSocketAddr(containerManagerBindAddr);
-
-    // the user in createRemoteUser in this context has to be ContainerID
-    UserGroupInformation user = UserGroupInformation
-        .createRemoteUser(containerID.toString());
-    org.apache.hadoop.security.token.Token<ContainerTokenIdentifier> token = ConverterUtils
-        .convertFromYarn(containerToken, cmAddr);
-    user.addToken(token);
-
-    ContainerManagementProtocol proxy = user
-        .doAs(new PrivilegedAction<ContainerManagementProtocol>() {
-          @Override
-          public ContainerManagementProtocol run() {
-            return (ContainerManagementProtocol) rpc.getProxy(ContainerManagementProtocol.class,
-                cmAddr, getConfig());
-          }
-        });
-    return proxy;
+  protected ContainerManagementProtocolProxy.ContainerManagementProtocolProxyData getCMProxy(
+      ContainerId containerID, final String containerManagerBindAddr,
+      Token containerToken) throws IOException {
+    return cmProxy.getProxy(containerManagerBindAddr, containerID);
   }
-
 
   /**
    * Setup and start the container on remote nodemanager.
