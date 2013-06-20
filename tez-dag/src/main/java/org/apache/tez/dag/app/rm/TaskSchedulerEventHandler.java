@@ -22,7 +22,6 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.logging.Log;
@@ -35,7 +34,6 @@ import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.Token;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -48,6 +46,7 @@ import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
+import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.container.AMContainerEvent;
@@ -371,49 +370,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   @Override
   public synchronized void taskAllocated(Object task, 
                                            Object appCookie, 
-                                           Container container) {
-    /*
-    availableContainerIds.addAll(event.getContainerIds());
-
-    completedMaps = getJob().getCompletedMaps();
-    completedReduces = getJob().getCompletedReduces();
-    int completedTasks = completedMaps + completedReduces;
-
-    if (lastCompletedTasks != completedTasks) {
-      recalculateReduceSchedule = true;
-      lastCompletedTasks = completedTasks;
-    }
-
-    if (event.didHeadroomChange() || event.getContainerIds().size() > 0) {
-      recalculateReduceSchedule = true;
-    }
-    schedule();
-    .....
-          // Update resource requests
-      requestor.decContainerReq(assigned.getContainerRequest());
-  
-      // TODO Maybe: ApplicationACLs should be populated into the appContext from the RMCommunicator.
-      ContainerId containerId = allocated.getId();
-      if (appContext.getAllContainers().get(containerId).getState() == AMContainerState.ALLOCATED) {
-        AMSchedulerTALaunchRequestEvent tlrEvent = attemptToLaunchRequestMap
-            .get(assigned.getAttemptId());
-        JobConf jobConf = new JobConf(getJob().getConf());
-  
-        AMContainerEventLaunchRequest launchRequest = new AMContainerEventLaunchRequest(
-            containerId, jobId, assigned.getAttemptId().getTaskId()
-                .getTaskType(), tlrEvent.getJobToken(),
-            tlrEvent.getCredentials(), shouldProfileTaskAttempt(
-                jobConf, tlrEvent.getRemoteTaskContext()), jobConf);
-  
-        eventHandler.handle(launchRequest);
-      }
-      eventHandler.handle(new AMContainerEventAssignTA(containerId,
-          assigned.getAttemptId(), attemptToLaunchRequestMap.get(
-              assigned.getAttemptId()).getRemoteTaskContext()));
-  
-      assignedRequests.add(allocated, assigned.getAttemptId());
-    */
-    
+                                           Container container) {    
     ContainerId containerId = container.getId();
     appContext.getAllContainers().addContainerIfNew(container);
     appContext.getAllNodes().nodeSeen(container.getNodeId());   
@@ -440,6 +397,7 @@ public class TaskSchedulerEventHandler extends AbstractService
           taskAttempt.getEnvironment(),
           taskAttempt.getJavaOpts()));
     }
+    sendEvent(new DAGEventSchedulerUpdateTAAssigned(taskAttempt, container));
     sendEvent(new AMContainerEventAssignTA(containerId,
         taskAttempt.getID(), event.getRemoteTaskContext()));
   }

@@ -349,6 +349,9 @@ public class TaskScheduler extends AbstractService
     if(isStopped) {
       return 1;
     }
+    LOG.info("TEMP dagschedulermrr: sync with RM finished. Headroom: "
+        + getAvailableResources().getMemory() + " Allocations: "
+        + taskAllocations.size());
     if(totalResources.getMemory() == 0) {
       // TODO this will not handle dynamic changes
       // assume this is the first allocate callback. nothing is allocated.

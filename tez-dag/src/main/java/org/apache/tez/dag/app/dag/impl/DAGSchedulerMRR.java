@@ -18,8 +18,10 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -32,8 +34,10 @@ import org.apache.tez.dag.app.dag.DAGScheduler;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
+import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
+import org.apache.tez.dag.records.TezTaskID;
 
 @SuppressWarnings("rawtypes")
 public class DAGSchedulerMRR implements DAGScheduler {
@@ -43,18 +47,27 @@ public class DAGSchedulerMRR implements DAGScheduler {
   private final DAG dag;
   private final TaskSchedulerEventHandler taskScheduler;
   private final EventHandler handler;
+  
+  private final float minReservedShuffleResource;
+  
   private Vertex currentPartitioner = null;
   private Vertex currentShuffler = null;
   private int currentShufflerDepth = 0;
   
   int numShuffleTasksScheduled = 0;
   List<TaskAttempt> pendingShuffleTasks = new LinkedList<TaskAttempt>();
-  
+  Set<TezTaskID> unassignedShuffleTasks = new HashSet<TezTaskID>();
+  Resource realShufflerResource = null;
+
+  Set<TezTaskID> unassignedPartitionTasks = new HashSet<TezTaskID>();
+  Resource realPartitionerResource = null;
+
   public DAGSchedulerMRR(DAG dag, EventHandler dispatcher,
-      TaskSchedulerEventHandler taskScheduler) {
+      TaskSchedulerEventHandler taskScheduler, float minReservedShuffleResource) {
     this.dag = dag;
     this.handler = dispatcher;
     this.taskScheduler = taskScheduler;
+    this.minReservedShuffleResource = minReservedShuffleResource;
   }
   
   @Override
@@ -73,6 +86,11 @@ public class DAGSchedulerMRR implements DAGScheduler {
              currentShuffler.getVertexId() + " is new partitioner":
              "No current shuffler to replace the partitioner"));
       currentPartitioner = currentShuffler;
+      assert unassignedPartitionTasks.isEmpty();
+      unassignedPartitionTasks.addAll(unassignedShuffleTasks);
+      unassignedShuffleTasks.clear();
+      realPartitionerResource = realShufflerResource;
+      realShufflerResource = null;
       currentShuffler = null;
       // schedule all pending shuffle tasks
       schedulePendingShuffles(pendingShuffleTasks.size());
@@ -88,10 +106,17 @@ public class DAGSchedulerMRR implements DAGScheduler {
     Vertex vertex = dag.getVertex(attempt.getVertexID());
     int vertexDistanceFromRoot = vertex.getDistanceFromRoot();
     
+    LOG.info("Schedule task: " + attempt.getID());
+    
     if(currentPartitioner == null) {
       // no partitioner. so set it.
       currentPartitioner = vertex;
       currentShufflerDepth = vertexDistanceFromRoot;
+      assert realPartitionerResource == null;
+      Resource partitionerResource = currentPartitioner.getTaskResource();
+      realPartitionerResource = Resource.newInstance(
+          partitionerResource.getMemory(),
+          partitionerResource.getVirtualCores());
       LOG.info(vertex.getVertexId() + " is new partitioner at depth "
           + vertexDistanceFromRoot);
     } else if (currentShuffler == null && 
@@ -100,14 +125,24 @@ public class DAGSchedulerMRR implements DAGScheduler {
       // shuffler. this must be the new shuffler.
       currentShuffler = vertex;
       currentShufflerDepth = vertexDistanceFromRoot;
+      assert realShufflerResource == null;
+      Resource shufflerResource = currentShuffler.getTaskResource();
+      realShufflerResource = Resource.newInstance(
+          shufflerResource.getMemory(),
+          shufflerResource.getVirtualCores());
       LOG.info(vertex.getVertexId() + " is new shuffler at depth "
           + currentShufflerDepth);
     }
     
     if(currentShuffler == vertex) {
       pendingShuffleTasks.add(attempt);
+      unassignedShuffleTasks.add(attempt.getTaskID());
       schedulePendingShuffles(getNumShufflesToSchedule());
       return;
+    }
+    
+    if(currentPartitioner == vertex) {
+      unassignedPartitionTasks.add(attempt.getTaskID());
     }
     
     // sanity check
@@ -125,9 +160,35 @@ public class DAGSchedulerMRR implements DAGScheduler {
   }
   
   @Override
+  public void taskScheduled(DAGEventSchedulerUpdateTAAssigned event) {
+    TaskAttempt attempt = event.getAttempt();
+    Vertex vertex = dag.getVertex(attempt.getVertexID());
+    LOG.info("Task assigned: " + attempt.getID() + " Vertex: Total:"
+        + vertex.getTotalTasks() + " succeeded: " + vertex.getSucceededTasks()
+        + " Resource: " + event.getContainer().getResource().getMemory());
+
+    if (currentPartitioner == vertex) {
+      unassignedPartitionTasks.remove(attempt.getTaskID());
+      Resource resource = event.getContainer().getResource();
+      if(resource.getMemory() > realPartitionerResource.getMemory()) {
+        realPartitionerResource.setMemory(resource.getMemory());
+      }
+    } else if (currentShuffler == vertex) {
+      unassignedShuffleTasks.remove(attempt.getTaskID());
+      Resource resource = event.getContainer().getResource();
+      if(resource.getMemory() > realShufflerResource.getMemory()) {
+        realShufflerResource.setMemory(resource.getMemory());
+      }
+    }
+  }
+  
+  @Override
   public void taskSucceeded(DAGEventSchedulerUpdate event) {
     TaskAttempt attempt = event.getAttempt();
     Vertex vertex = dag.getVertex(attempt.getVertexID());
+    LOG.info("Task succeeded: " + attempt.getID() + " Vertex: Total:" + vertex.getTotalTasks() + 
+        " succeeded: " + vertex.getSucceededTasks());
+
     if (currentPartitioner == vertex) {
       // resources now available. try to schedule pending shuffles
       schedulePendingShuffles(getNumShufflesToSchedule());
@@ -141,29 +202,39 @@ public class DAGSchedulerMRR implements DAGScheduler {
       return 0;
     }
     
+    if(unassignedPartitionTasks.isEmpty()) {
+      return pendingShuffleTasks.size();
+    }
+    
     assert currentShuffler != null;
     
     // get total resource limit
     Resource totalResources = taskScheduler.getTotalResources();
+    Resource freeResources = taskScheduler.getAvailableResources();
     int totalMem = totalResources.getMemory();
+    int freeMem = freeResources.getMemory();
+    int partitionerTaskMem = realPartitionerResource.getMemory();
+    int shufflerTaskMem = realShufflerResource.getMemory();
+    int shufflerMemAssigned = shufflerTaskMem * numShuffleTasksScheduled;
     
     // get resources needed by partitioner
-    Resource partitionerResource = currentPartitioner.getTaskResource();
-    int partitionerTaskMem = partitionerResource.getMemory();
     int numPartionersLeft = currentPartitioner.getTotalTasks()
         - currentPartitioner.getSucceededTasks();
     int partitionerMemNeeded = numPartionersLeft * partitionerTaskMem;
     
     // find leftover resources for shuffler
     int shufflerMemLeft = totalMem - partitionerMemNeeded;
+
+    int defaultShufflerMem = (int)(minReservedShuffleResource * totalMem);
     
-    Resource shufflerResource = currentShuffler.getTaskResource();
-    int shufflerTaskMem = shufflerResource.getMemory();
-    int shufflerMemAssigned = shufflerTaskMem * numShuffleTasksScheduled;
+    if(shufflerMemLeft < defaultShufflerMem) {
+      shufflerMemLeft = defaultShufflerMem;
+    }
+    
     shufflerMemLeft -= shufflerMemAssigned;
 
     LOG.info("TotalMem: " + totalMem + 
-             " Headroom: " + taskScheduler.getAvailableResources().getMemory() +
+             " Headroom: " + freeMem +
              " PartitionerTaskMem: " + partitionerTaskMem +
              " ShufflerTaskMem: " + shufflerTaskMem + 
              " PartitionerMemNeeded:" + partitionerMemNeeded +
@@ -204,8 +275,18 @@ public class DAGSchedulerMRR implements DAGScheduler {
     int priority = (vertexDistanceFromRoot + 1) * 3;
     
     if(currentShuffler == vertex) {
-      // current shuffler vertex. assign special priority
-      reOrderPriority = true;
+      assert currentPartitioner != null;
+      // assign higher priority only if its needed. If all partitioners are done
+      // then no need to do so.
+      // TODO fix with assigned instead of succeeded
+      if (!unassignedPartitionTasks.isEmpty()) {
+        // current shuffler vertex to be scheduled while current partitioner is
+        // still running. This needs to be higher priority or else it wont get 
+        // allocated. This higher priority will be lower than the priority of a 
+        // partitioner task that is a retry. so retries are safe.
+        // assign special priority
+        reOrderPriority = true;
+      }
     }
     
     if(reOrderPriority) {

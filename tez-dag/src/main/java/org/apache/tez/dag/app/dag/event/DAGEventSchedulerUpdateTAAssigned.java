@@ -16,18 +16,21 @@
 * limitations under the License.
 */
 
-package org.apache.tez.dag.app.dag;
+package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
-import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
+import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.tez.dag.app.dag.TaskAttempt;
 
-public interface DAGScheduler {
+public class DAGEventSchedulerUpdateTAAssigned extends DAGEventSchedulerUpdate {
   
-  public void vertexCompleted(Vertex vertex);
-  
-  public void scheduleTask(DAGEventSchedulerUpdate event);
-  
-  public void taskScheduled(DAGEventSchedulerUpdateTAAssigned event);
+  final Container container;
 
-  public void taskSucceeded(DAGEventSchedulerUpdate event);
+  public DAGEventSchedulerUpdateTAAssigned(TaskAttempt attempt, Container container) {
+    super(DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULED, attempt);
+    this.container = container;
+  }
+
+  public Container getContainer() {
+    return container;
+  }
 }

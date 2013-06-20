@@ -122,7 +122,7 @@ public class TestDAGScheduler {
     DAGEventSchedulerUpdate mockEvent3 = mock(DAGEventSchedulerUpdate.class);
     when(mockEvent3.getAttempt()).thenReturn(mockAttempt3);
     DAGScheduler scheduler = new DAGSchedulerMRR(mockDag, mockEventHandler,
-        mockTaskScheduler);
+        mockTaskScheduler, 0.5f);
     
     // M starts. M completes. R1 starts. R1 completes. R2 starts. R2 completes
     scheduler.scheduleTask(mockEvent1); // M starts

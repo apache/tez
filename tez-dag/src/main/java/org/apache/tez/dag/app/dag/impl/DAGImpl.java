@@ -76,6 +76,7 @@ import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
+import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.DAGFinishEvent;
@@ -910,8 +911,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
       if(isMRR) {
         LOG.info("Using MRR dag scheduler");
-        dag.dagScheduler = new DAGSchedulerMRR(dag, dag.eventHandler,
-            dag.appContext.getTaskScheduler());
+        dag.dagScheduler = new DAGSchedulerMRR(
+            dag,
+            dag.eventHandler,
+            dag.appContext.getTaskScheduler(),
+            dag.conf
+                .getFloat(
+        TezConfiguration.SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION,
+        TezConfiguration.SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION_DEFAULT));
       } else {
         LOG.info("Using Natural order dag scheduler");
         dag.dagScheduler = new DAGSchedulerNaturalOrder(dag, dag.eventHandler);
@@ -1208,6 +1215,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     switch(sEvent.getUpdateType()) {
       case TA_SCHEDULE:
         dag.dagScheduler.scheduleTask(sEvent);
+        break;
+      case TA_SCHEDULED:
+        DAGEventSchedulerUpdateTAAssigned taEvent = 
+                              (DAGEventSchedulerUpdateTAAssigned) sEvent;
+        dag.dagScheduler.taskScheduled(taEvent);
+        break;
       case TA_SUCCEEDED:
         dag.dagScheduler.taskSucceeded(sEvent);
         break;

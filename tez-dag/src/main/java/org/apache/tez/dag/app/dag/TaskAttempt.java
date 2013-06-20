@@ -29,6 +29,7 @@ import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 
 /**
@@ -36,6 +37,7 @@ import org.apache.tez.dag.records.TezVertexID;
  */
 public interface TaskAttempt {
   TezTaskAttemptID getID();
+  TezTaskID getTaskID();
   TezVertexID getVertexID();
   TezDAGID getDAGID();
   

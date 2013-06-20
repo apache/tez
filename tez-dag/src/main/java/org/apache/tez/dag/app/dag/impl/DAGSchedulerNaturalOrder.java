@@ -27,6 +27,7 @@ import org.apache.tez.dag.app.dag.DAGScheduler;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
+import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 
 @SuppressWarnings("rawtypes")
@@ -72,6 +73,10 @@ public class DAGSchedulerNaturalOrder implements DAGScheduler {
     sendEvent(attemptEvent);
   }
   
+  @Override
+  public void taskScheduled(DAGEventSchedulerUpdateTAAssigned event) {
+  }
+
   @Override
   public void taskSucceeded(DAGEventSchedulerUpdate event) {
   }
