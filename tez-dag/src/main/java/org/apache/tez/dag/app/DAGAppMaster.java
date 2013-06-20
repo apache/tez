@@ -31,9 +31,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.Options;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -1004,42 +1001,24 @@ public class DAGAppMaster extends CompositeService {
           containerId.getApplicationAttemptId();
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
 
-      Options opts = getCliOptions();
-      CommandLine cliParser = new GnuParser().parse(opts, args);
-
-      // Default to running mr if nothing specified.
-      // TODO change this once the client is ready.
-      String type;
       TezConfiguration conf = new TezConfiguration(new YarnConfiguration());
 
       DAGPlan dagPlan = null;
-      if (cliParser.hasOption(OPT_PREDEFINED)) {
-        LOG.info("Running with PreDefined configuration");
-        type = cliParser.getOptionValue(OPT_PREDEFINED, "mr");
-        LOG.info("Running job type: " + type);
 
-        if (type.equals("mr")) {
-          dagPlan = MRRExampleHelper.createDAGConfigurationForMR();
-        } else if (type.equals("mrr")) {
-          dagPlan = MRRExampleHelper.createDAGConfigurationForMRR();
+      // Read the protobuf DAG
+      DAGPlan.Builder dagPlanBuilder = DAGPlan.newBuilder();
+      FileInputStream dagPBBinaryStream = null;
+      try {
+        dagPBBinaryStream = new FileInputStream(
+            TezConfiguration.DAG_AM_PLAN_PB_BINARY);
+        dagPlanBuilder.mergeFrom(dagPBBinaryStream);
+      } finally {
+        if (dagPBBinaryStream != null) {
+          dagPBBinaryStream.close();
         }
       }
-      else {
-        // Read the protobuf DAG
-        DAGPlan.Builder dagPlanBuilder = DAGPlan.newBuilder();
-        FileInputStream dagPBBinaryStream = null;
-        try {
-          dagPBBinaryStream = new FileInputStream(TezConfiguration.DAG_AM_PLAN_PB_BINARY);
-          dagPlanBuilder.mergeFrom(dagPBBinaryStream);
-        }
-        finally {
-          if(dagPBBinaryStream != null){
-            dagPBBinaryStream.close();
-          }
-        }
 
-        dagPlan = dagPlanBuilder.build();
-      }
+      dagPlan = dagPlanBuilder.build();
 
       if (LOG.isDebugEnabled()) {
         LOG.debug("Running a DAG with "
@@ -1077,17 +1056,6 @@ public class DAGAppMaster extends CompositeService {
       System.exit(1);
     }
   }
-
-  private static String OPT_PREDEFINED = "predefined";
-
-  private static Options getCliOptions() {
-    Options opts = new Options();
-    opts.addOption(OPT_PREDEFINED, true,
-        "Whether to run the predefined MR/MRR jobs");
-    return opts;
-  }
-
-
 
   // The shutdown hook that runs when a signal is received AND during normal
   // close of the JVM.
