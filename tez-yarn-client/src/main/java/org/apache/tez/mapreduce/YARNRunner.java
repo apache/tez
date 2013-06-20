@@ -614,6 +614,9 @@ public class YARNRunner implements ClientProtocol {
     String jobFile = MRApps.getJobFile(conf, user, jobID);
     DAGStatus dagStatus;
     try {
+      if(dagClient == null) {
+        dagClient = tezClient.getDAGClient(resMgrDelegate.getApplicationId());
+      }
       dagStatus = dagClient.getDAGStatus();
       return new DAGJobStatus(dagClient.getApplicationReport(), dagStatus, jobFile);
     } catch (TezException e) {
