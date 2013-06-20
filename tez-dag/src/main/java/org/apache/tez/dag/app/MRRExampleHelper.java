@@ -24,6 +24,7 @@ import org.apache.tez.dag.api.EdgeProperty.SourceType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.app.rm.container.AMContainerHelpers;
 import org.apache.tez.engine.lib.input.ShuffledMergedInput;
@@ -149,10 +150,10 @@ public class MRRExampleHelper {
    dag.addEdge(edge1);
    dag.addEdge(edge2);
    dag.verify();
-   dag.addConfiguration(MRJobConfig.MAP_SPECULATIVE, new Boolean(false).toString());
-   dag.addConfiguration(MRJobConfig.REDUCE_SPECULATIVE, new Boolean(false).toString());
+//   dag.addConfiguration(MRJobConfig.MAP_SPECULATIVE, new Boolean(false).toString());
+//   dag.addConfiguration(MRJobConfig.REDUCE_SPECULATIVE, new Boolean(false).toString());
    
-   DAGPlan dagPB = dag.createDag();
+   DAGPlan dagPB = dag.createDag(new TezConfiguration());
    return dagPB;
  }
 
@@ -200,10 +201,10 @@ public class MRRExampleHelper {
    dag.addEdge(edge);
    dag.verify();
    
-   dag.addConfiguration(MRJobConfig.MAP_SPECULATIVE, new Boolean(false).toString());
-   dag.addConfiguration(MRJobConfig.REDUCE_SPECULATIVE, new Boolean(false).toString());
+//   dag.addConfiguration(MRJobConfig.MAP_SPECULATIVE, new Boolean(false).toString());
+//   dag.addConfiguration(MRJobConfig.REDUCE_SPECULATIVE, new Boolean(false).toString());
    
-   DAGPlan dagPB = dag.createDag();
+   DAGPlan dagPB = dag.createDag(new TezConfiguration());
    
    return dagPB;
  }

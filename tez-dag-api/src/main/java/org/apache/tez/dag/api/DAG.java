@@ -21,12 +21,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Stack;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -45,9 +47,7 @@ public class DAG { // FIXME rename to Topology
   final List<Vertex> vertices;
   final List<Edge> edges;
   final String name;
-  
-  HashMap<String, String> config = new HashMap<String, String>();
-  
+
   public DAG(String name) {
     this.vertices = new ArrayList<Vertex>();
     this.edges = new ArrayList<Edge>();
@@ -88,11 +88,6 @@ public class DAG { // FIXME rename to Topology
     edge.getOutputVertex().addInputVertex(edge.getInputVertex(), edge.getId());
     
     edges.add(edge);
-    return this;
-  }
-  
-  public DAG addConfiguration(String key, String value) {
-    config.put(key, value);
     return this;
   }
 
@@ -245,7 +240,8 @@ public class DAG { // FIXME rename to Topology
  
   
   // create protobuf message describing DAG
-  public DAGPlan createDag() {
+  @Private
+  public DAGPlan createDag(Configuration amConf) {
     
     verify(true);
     
@@ -335,8 +331,10 @@ public class DAG { // FIXME rename to Topology
       edgeBuilder.setEdgeDestination(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getEdgeDestination()));
       jobBuilder.addEdge(edgeBuilder);
     }
-    
-    for(Entry<String, String> entry : this.config.entrySet()){
+
+    Iterator<Entry<String, String>> iter = amConf.iterator();
+    while (iter.hasNext()) {
+      Entry<String, String> entry = iter.next();
       PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
       kvp.setKey(entry.getKey());
       kvp.setValue(entry.getValue());

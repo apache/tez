@@ -118,7 +118,7 @@ public class TestDAGPlan {
 
     dag.addVertex(v1).addVertex(v2).addEdge(edge);
 
-    DAGPlan dagProto = dag.createDag();
+    DAGPlan dagProto = dag.createDag(new TezConfiguration());
 
     assertEquals(2, dagProto.getVertexCount());
     assertEquals(1, dagProto.getEdgeCount());

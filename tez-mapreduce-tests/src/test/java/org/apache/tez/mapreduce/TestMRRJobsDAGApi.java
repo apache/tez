@@ -317,7 +317,8 @@ public class TestMRRJobsDAGApi {
         mrrTezCluster.getConfig()));
     // TODO Use utility method post TEZ-205 to figure out AM arguments etc.
     DAGClient dagClient = tezClient.submitDAGApplication(dag, remoteStagingDir,
-        null, "default", Collections.singletonList(""), commonEnv, amLocalResources);
+        null, "default", Collections.singletonList(""), commonEnv,
+        amLocalResources, new TezConfiguration());
 
     DAGStatus dagStatus = dagClient.getDAGStatus();
     while (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {

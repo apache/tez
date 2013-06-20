@@ -26,14 +26,17 @@ import java.nio.ByteBuffer;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.Vector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -84,60 +87,104 @@ public class TezClient {
   private final TezConfiguration conf;
   private YarnClient yarnClient;
   
+  /**
+   * <p>
+   * Create an instance of the TezClient which will be used to communicate with
+   * a specific instance of YARN, or TezService when that exists.
+   * </p>
+   * <p>
+   * Separate instances of TezClient should be created to communicate with
+   * different instances of YARN
+   * </p>
+   * 
+   * @param conf
+   *          the configuration which will be used to establish which YARN or
+   *          Tez service instance this client is associated with.
+   */
   public TezClient(TezConfiguration conf) {
     this.conf = conf;
     yarnClient = new YarnClientImpl();
-    yarnClient.init(conf);
+    yarnClient.init(new YarnConfiguration(conf));
     yarnClient.start();
   }
   
   /**
-   * Submit a Tez DAG to YARN as an application
+   * Submit a Tez DAG to YARN as an application. The job will be submitted to
+   * the yarn cluster or tez service which was specified when creating this
+   * {@link TezClient} instance.
    * 
-   * @param dag <code>DAG</code> to be submitted
-   * @param appStagingDir FileSystem path in which resources will be copied
-   * @param ts Application credentials
-   * @param amQueueName Queue to which the application will be submitted
-   * @param amArgs Command line Java arguments for the ApplicationMaster
-   * @param amEnv Environment to be added to the ApplicationMaster
-   * @param amLocalResources YARN local resource for the ApplicationMaster
+   * @param dag
+   *          <code>DAG</code> to be submitted
+   * @param appStagingDir
+   *          FileSystem path in which resources will be copied
+   * @param ts
+   *          Application credentials
+   * @param amQueueName
+   *          Queue to which the application will be submitted
+   * @param amArgs
+   *          Command line Java arguments for the ApplicationMaster
+   * @param amEnv
+   *          Environment to be added to the ApplicationMaster
+   * @param amLocalResources
+   *          YARN local resource for the ApplicationMaster
+   * @param conf
+   *          Configuration for the Tez DAG AM. tez configuration keys from this
+   *          config will be used when running the AM. Look at
+   *          {@link TezConfiguration} for keys. This can be null if no DAG AM
+   *          parameters need to be changed.
    * @return <code>ApplicationId</code> of the submitted Tez application
    * @throws IOException
-   * @throws YarnException
+   * @throws TezException
    */
   public DAGClient submitDAGApplication(DAG dag, Path appStagingDir,
       Credentials ts, String amQueueName, List<String> amArgs,
-      Map<String, String> amEnv, Map<String, LocalResource> amLocalResources)
-      throws IOException, TezException {
+      Map<String, String> amEnv, Map<String, LocalResource> amLocalResources,
+      TezConfiguration amConf) throws IOException, TezException {
     ApplicationId appId = createApplication();
     return submitDAGApplication(appId, dag, appStagingDir, ts, amQueueName,
-        amArgs, amEnv, amLocalResources);
+        amArgs, amEnv, amLocalResources, amConf);
   }
 
   /**
-   * Submit a Tez DAG to YARN with known <code>ApplicationId</code>
+   * Submit a Tez DAG to YARN with known <code>ApplicationId</code>. This is a
+   * private method and is only meant to be used within Tez for MR client
+   * backward compatibility.
    * 
-   * @param appId - <code>ApplicationId</code> to be used
-   * @param dag <code>DAG</code> to be submitted
-   * @param appStagingDir FileSystem path in which resources will be copied
-   * @param ts Application credentials
-   * @param amQueueName Queue to which the application will be submitted
-   * @param amArgs Command line Java arguments for the ApplicationMaster
-   * @param amEnv Environment to be added to the ApplicationMaster
-   * @param amLocalResources YARN local resource for the ApplicationMaster
+   * @param appId
+   *          - <code>ApplicationId</code> to be used
+   * @param dag
+   *          <code>DAG</code> to be submitted
+   * @param appStagingDir
+   *          FileSystem path in which resources will be copied
+   * @param ts
+   *          Application credentials
+   * @param amQueueName
+   *          Queue to which the application will be submitted
+   * @param amArgs
+   *          Command line Java arguments for the ApplicationMaster
+   * @param amEnv
+   *          Environment to be added to the ApplicationMaster
+   * @param amLocalResources
+   *          YARN local resource for the ApplicationMaster
+   * @param conf
+   *          Configuration for the Tez DAG AM. tez configuration keys from this
+   *          config will be used when running the AM. Look at
+   *          {@link TezConfiguration} for keys. This can be null if no DAG AM
+   *          parameters need to be changed.
    * @return <code>ApplicationId</code> of the submitted Tez application
    * @throws IOException
-   * @throws YarnException
+   * @throws TezException
    */
+  @Private
   public DAGClient submitDAGApplication(ApplicationId appId, DAG dag,
       Path appStagingDir, Credentials ts, String amQueueName,
       List<String> amArgs, Map<String, String> amEnv,
-      Map<String, LocalResource> amLocalResources) throws IOException,
-      TezException {
+      Map<String, LocalResource> amLocalResources, TezConfiguration amConf)
+      throws IOException, TezException {
     try {
       ApplicationSubmissionContext appContext = createApplicationSubmissionContext(
           appId, dag, appStagingDir, ts, amQueueName, dag.getName(), amArgs,
-          amEnv, amLocalResources);
+          amEnv, amLocalResources, amConf);
       yarnClient.submitApplication(appContext);
     } catch (YarnException e) {
       throw new TezException(e);
@@ -288,11 +335,45 @@ public class TezClient {
     return tezJarResources;
   }
 
+  private Configuration createFinalAMConf(TezConfiguration amConf) {
+    if (amConf == null) {
+      return new TezConfiguration();
+    } else {
+
+      Configuration conf = new Configuration(false);
+      conf.setQuietMode(true);
+
+      Iterator<Entry<String, String>> tezConfIter = this.conf.iterator();
+      while (tezConfIter.hasNext()) {
+        Entry<String, String> entry = tezConfIter.next();
+        conf.set(entry.getKey(), entry.getValue());
+      }
+
+      Iterator<Entry<String, String>> iter = amConf.iterator();
+      while (iter.hasNext()) {
+        Entry<String, String> entry = iter.next();
+        // Copy all tez config parameters.
+        if (entry.getKey().startsWith(TezConfiguration.TEZ_PREFIX)) {
+          conf.set(entry.getKey(), entry.getValue());
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Adding tez dag am parameter: " + entry.getKey()
+                + ", with value: " + entry.getValue());
+          }
+        }
+      }
+      return conf;
+    }
+  }
+  
   private ApplicationSubmissionContext createApplicationSubmissionContext(
       ApplicationId appId, DAG dag, Path appStagingDir, Credentials ts,
       String amQueueName, String amName, List<String> amArgs,
-      Map<String, String> amEnv, Map<String, LocalResource> amLocalResources)
-      throws IOException, YarnException {
+      Map<String, String> amEnv, Map<String, LocalResource> amLocalResources,
+      TezConfiguration amConf) throws IOException, YarnException {    
+
+    if (amConf == null) {
+      amConf = new TezConfiguration();
+    }
 
     FileSystem fs = ensureExists(appStagingDir);
 
@@ -392,9 +473,12 @@ public class TezClient {
     // emit protobuf DAG file style
     Path binaryPath =  new Path(appStagingDir,
         TezConfiguration.DAG_AM_PLAN_PB_BINARY + "." + appId.toString());
-    dag.addConfiguration(TezConfiguration.DAG_AM_PLAN_REMOTE_PATH,
-        binaryPath.toUri().toString());
-    DAGPlan dagPB = dag.createDag();
+    amConf.set(TezConfiguration.DAG_AM_PLAN_REMOTE_PATH, binaryPath.toUri()
+        .toString());
+
+    Configuration finalAMConf = createFinalAMConf(amConf);
+
+    DAGPlan dagPB = dag.createDag(finalAMConf);
 
     FSDataOutputStream dagPBOutBinaryStream = null;
     

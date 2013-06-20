@@ -464,17 +464,23 @@ public class YARNRunner implements ClientProtocol {
     return dag;
   }
 
-  private void setDAGParamsFromMRConf(DAG dag) {
-    Configuration mrConf = this.conf;
-    Map<String, String> mrParamToDAGParamMap = DeprecatedKeys.getMRToDAGParamMap();
+  private TezConfiguration getDAGAMConfFromMRConf() {
+    TezConfiguration finalConf = new TezConfiguration(this.tezConf);
+    Map<String, String> mrParamToDAGParamMap = DeprecatedKeys
+        .getMRToDAGParamMap();
+
     for (Entry<String, String> entry : mrParamToDAGParamMap.entrySet()) {
-      if (mrConf.get(entry.getKey()) != null) {
+      if (finalConf.get(entry.getKey()) != null) {
+        finalConf.set(entry.getValue(), finalConf.get(entry.getKey()));
+        finalConf.unset(entry.getKey());
         if (LOG.isDebugEnabled()) {
-          LOG.debug("MR->DAG Setting new key: " + entry.getValue());
+          LOG.debug("MR->DAG Translating MR key: " + entry.getKey()
+              + " to Tez key: " + entry.getValue() + " with value "
+              + finalConf.get(entry.getValue()));
         }
-        dag.addConfiguration(entry.getValue(), mrConf.get(entry.getKey()));
       }
     }
+    return finalConf;
   }
 
   @Override
@@ -542,7 +548,7 @@ public class YARNRunner implements ClientProtocol {
     // Setup the environment variables for AM
     MRHelpers.updateEnvironmentForMRAM(conf, environment);
 
-    setDAGParamsFromMRConf(dag);
+    TezConfiguration dagAMConf = getDAGAMConfFromMRConf();
 
     // Submit to ResourceManager
     try {
@@ -556,7 +562,7 @@ public class YARNRunner implements ClientProtocol {
               YarnConfiguration.DEFAULT_QUEUE_NAME),
           vargs, 
           environment, 
-          jobLocalResources);
+          jobLocalResources, dagAMConf);
 
     } catch (TezException e) {
       throw new IOException(e);
