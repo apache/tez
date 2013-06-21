@@ -29,33 +29,34 @@ import org.apache.tez.dag.records.TezVertexID;
 
 
 /**
- * TaskID represents the immutable and unique identifier for 
+ * TaskID represents the immutable and unique identifier for
  * a Tez Task. Each TaskID encompasses multiple attempts made to
  * execute the Tez Task, each of which are uniquely identified by
  * their TezTaskAttemptID.
- * 
+ *
  * @see TezTaskAttemptID
  */
 @InterfaceAudience.Public
 @InterfaceStability.Stable
 public class TezTaskID extends TezID {
   public static final String TASK = "task";
-  protected static final NumberFormat idFormat = NumberFormat.getInstance();
+  protected static final NumberFormat idFormat =
+      NumberFormat.getInstance();
   static {
     idFormat.setGroupingUsed(false);
     idFormat.setMinimumIntegerDigits(6);
   }
-  
+
   private TezVertexID vertexId;
-  
+
   public TezTaskID() {
     vertexId = new TezVertexID();
   }
-  
+
   /**
-   * Constructs a TaskID object from given {@link MRxApplicationID}.  
-   * @param jobId JobID that this tip belongs to 
-   * @param type the {@link TezTaskType} of the task 
+   * Constructs a TaskID object from given {@link MRxApplicationID}.
+   * @param jobId JobID that this tip belongs to
+   * @param type the {@link TezTaskType} of the task
    * @param id the tip number
    */
   public TezTaskID(TezVertexID vertexId, int id) {
@@ -65,7 +66,7 @@ public class TezTaskID extends TezID {
     }
     this.vertexId = vertexId;
   }
-  
+
   /** Returns the {@link TezVertexID} object that this task belongs to */
   public TezVertexID getVertexID() {
     return vertexId;
@@ -91,7 +92,7 @@ public class TezTaskID extends TezID {
     else return vertexComp;
   }
   @Override
-  public String toString() { 
+  public String toString() {
     return appendTo(new StringBuilder(TASK)).toString();
   }
 
@@ -105,12 +106,12 @@ public class TezTaskID extends TezID {
                  append(SEPARATOR).
                  append(idFormat.format(id));
   }
-  
+
   @Override
   public int hashCode() {
     return vertexId.hashCode() * 535013 + id;
   }
-  
+
   @Override
   public void readFields(DataInput in) throws IOException {
     vertexId.readFields(in);
@@ -122,5 +123,5 @@ public class TezTaskID extends TezID {
     vertexId.write(out);
     super.write(out);
   }
-  
+
 }

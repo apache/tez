@@ -25,7 +25,6 @@ import java.text.NumberFormat;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
-
 /**
  * TezDAGID represents the immutable and unique identifier for
  * a Tez DAG.
@@ -37,7 +36,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
  * @see ApplicationId
  */
 public class TezDAGID extends TezID {
-  
+
   private ApplicationId applicationId;
 
   public TezDAGID() {
@@ -104,24 +103,30 @@ public class TezDAGID extends TezID {
 
   // DO NOT CHANGE THIS. DAGClient replicates this code to create DAG id string
   public static final String DAG = "dag";
-  protected static final NumberFormat idFormat = NumberFormat.getInstance();
+  protected static final NumberFormat tezAppIdFormat =
+      NumberFormat.getInstance();
+  protected static final NumberFormat tezDagIdFormat =
+      NumberFormat.getInstance();
+
   static {
-    idFormat.setGroupingUsed(false);
-    idFormat.setMinimumIntegerDigits(6);
+    tezAppIdFormat.setGroupingUsed(false);
+    tezAppIdFormat.setMinimumIntegerDigits(4);
+    tezDagIdFormat.setGroupingUsed(false);
+    tezDagIdFormat.setMinimumIntegerDigits(1);
   }
 
   @Override
   public String toString() {
     return appendTo(new StringBuilder(DAG)).toString();
   }
-  
+
   public static TezDAGID fromString(String dagId) {
     try {
       String[] split = dagId.split("_");
       String rmId = split[1];
-      int appId = Integer.parseInt(split[2]);
+      int appId = tezAppIdFormat.parse(split[2]).intValue();
       int id;
-      id = idFormat.parse(split[3]).intValue();
+      id = tezDagIdFormat.parse(split[3]).intValue();
       return new TezDAGID(rmId, appId, id);
     } catch (Exception e) {
       e.printStackTrace();
@@ -138,9 +143,9 @@ public class TezDAGID extends TezID {
     return builder.append(SEPARATOR).
                  append(applicationId.getClusterTimestamp()).
                  append(SEPARATOR).
-                 append(applicationId.getId()).
+                 append(tezAppIdFormat.format(applicationId.getId())).
                  append(SEPARATOR).
-                 append(idFormat.format(id));
+                 append(tezDagIdFormat.format(id));
   }
 
   @Override

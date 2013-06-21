@@ -41,17 +41,18 @@ import org.apache.hadoop.classification.InterfaceStability;
 @InterfaceStability.Stable
 public class TezVertexID extends TezID {
   public static final String VERTEX = "vertex";
-  protected static final NumberFormat idFormat = NumberFormat.getInstance();
+  protected static final NumberFormat idFormat =
+      NumberFormat.getInstance();
   static {
     idFormat.setGroupingUsed(false);
-    idFormat.setMinimumIntegerDigits(6);
+    idFormat.setMinimumIntegerDigits(2);
   }
-  
+
   private TezDAGID dagId;
-  
+
   public TezVertexID() {
   }
-  
+
   /**
    * Constructs a TaskID object from given {@link TezDAGID}.
    * @param applicationId JobID that this tip belongs to
@@ -65,7 +66,7 @@ public class TezVertexID extends TezID {
     }
     this.dagId = dagId;
   }
-  
+
   /** Returns the {@link TezDAGID} object that this tip belongs to */
   public TezDAGID getDAGId() {
     return dagId;
@@ -86,12 +87,12 @@ public class TezVertexID extends TezID {
     TezVertexID that = (TezVertexID)o;
     return this.dagId.compareTo(that.dagId);
   }
-  
+
   @Override
-  public String toString() { 
+  public String toString() {
     return appendTo(new StringBuilder(VERTEX)).toString();
   }
-  
+
   @Override
   public void readFields(DataInput in) throws IOException {
     dagId = new TezDAGID();
@@ -111,19 +112,14 @@ public class TezVertexID extends TezID {
    * @return the builder that was passed in
    */
   protected StringBuilder appendTo(StringBuilder builder) {
-    return builder.append(SEPARATOR).
-        append(dagId.getApplicationId().getClusterTimestamp()).
-        append(SEPARATOR).
-        append(dagId.getApplicationId().getId()).
-        append(SEPARATOR).
-        append(dagId.getId()).
+    return dagId.appendTo(builder).
         append(SEPARATOR).
         append(idFormat.format(id));
   }
-  
+
   @Override
   public int hashCode() {
     return dagId.hashCode() * 530017 + id;
   }
-  
+
 }
