@@ -697,14 +697,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   void logJobHistoryVertexFinishedEvent() {
     this.setFinishTime();
     VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
-        vertexName, finishTime, VertexStatus.State.SUCCEEDED, "",
+        vertexName, startTime, finishTime, VertexStatus.State.SUCCEEDED, "",
         getAllCounters());
     this.eventHandler.handle(new DAGHistoryEvent(getDAGId(), finishEvt));
   }
 
   void logJobHistoryVertexFailedEvent(VertexStatus.State state) {
     VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
-        vertexName, clock.getTime(), state,
+        vertexName, startTime, clock.getTime(), state,
         StringUtils.join(LINE_SEPARATOR, getDiagnostics()),
         getAllCounters());
     this.eventHandler.handle(new DAGHistoryEvent(getDAGId(), finishEvt));

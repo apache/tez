@@ -830,7 +830,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     if (getLaunchTime() == 0) return;
 
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
-        attemptId, getTask().getVertex().getName(),
+        attemptId, getTask().getVertex().getName(), getLaunchTime(),
         getFinishTime(), TaskAttemptState.SUCCEEDED, "",
         getCounters());
     // FIXME how do we store information regd completion events
@@ -843,7 +843,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   protected void logJobHistoryAttemptUnsuccesfulCompletion(
       TaskAttemptState state) {
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
-        attemptId, getTask().getVertex().getName(),
+        attemptId, getTask().getVertex().getName(), getLaunchTime(),
         clock.getTime(), state,
         StringUtils.join(
             LINE_SEPARATOR, getDiagnostics()),

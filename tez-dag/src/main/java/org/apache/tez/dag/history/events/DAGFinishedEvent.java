@@ -31,10 +31,11 @@ public class DAGFinishedEvent implements HistoryEvent {
   // FIXME remove this when we have a proper history
   private final TezCounters tezCounters;
 
-  public DAGFinishedEvent(TezDAGID dagId,
+  public DAGFinishedEvent(TezDAGID dagId, long startTime,
       long finishTime, DAGStatus.State state,
       String diagnostics, TezCounters counters) {
     datum.dagId = dagId.toString();
+    datum.startTime = startTime;
     datum.finishTime = finishTime;
     datum.status = state.name();
     datum.diagnostics = diagnostics;
@@ -60,9 +61,13 @@ public class DAGFinishedEvent implements HistoryEvent {
   @Override
   public String toString() {
     return "dagId=" + datum.dagId
+        + ", startTime=" + datum.startTime
         + ", finishTime=" + datum.finishTime
+        + ", timeTaken=" + (datum.finishTime - datum.startTime)
         + ", status=" + datum.status
         + ", diagnostics=" + datum.diagnostics
-        + ", counters=" + tezCounters.toString();
+        + ", counters="
+        + tezCounters.toString()
+            .replaceAll("\\n", ", ").replaceAll("\\s+", " ");
   }
 }

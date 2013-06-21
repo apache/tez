@@ -32,11 +32,12 @@ public class VertexFinishedEvent implements HistoryEvent {
   private final TezCounters tezCounters;
 
   public VertexFinishedEvent(TezVertexID vertexId,
-      String vertexName, long finishTime,
+      String vertexName, long startTime, long finishTime,
       VertexStatus.State state, String diagnostics,
       TezCounters counters) {
     datum.vertexName = vertexName;
     datum.vertexId = vertexId.toString();
+    datum.startTime = startTime;
     datum.finishTime = finishTime;
     datum.status = state.name();
     datum.diagnostics = diagnostics;
@@ -63,9 +64,13 @@ public class VertexFinishedEvent implements HistoryEvent {
   public String toString() {
     return "vertexName=" + datum.vertexName
         + ", vertexId=" + datum.vertexId
+        + ", startTime=" + datum.startTime
         + ", finishTime=" + datum.finishTime
+        + ", timeTaken=" + (datum.finishTime - datum.startTime)
         + ", status=" + datum.status
         + ", diagnostics=" + datum.diagnostics
-        + ", counters=" + tezCounters.toString();
+        + ", counters="
+        + tezCounters.toString()
+            .replaceAll("\\n", ", ").replaceAll("\\s+", " ");
   }
 }

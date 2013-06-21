@@ -804,15 +804,16 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     // FIXME need to handle getting finish time as this function
     // is called from within a transition
     TaskFinishedEvent finishEvt = new TaskFinishedEvent(taskId,
-        getVertex().getName(), clock.getTime(), TaskState.SUCCEEDED,
-        getCounters());
+        getVertex().getName(), getLaunchTime(), clock.getTime(),
+        TaskState.SUCCEEDED, getCounters());
     this.eventHandler.handle(new DAGHistoryEvent(
         taskId.getVertexID().getDAGId(), finishEvt));
   }
 
   protected void logJobHistoryTaskFailedEvent(TaskState finalState) {
     TaskFinishedEvent finishEvt = new TaskFinishedEvent(taskId,
-        getVertex().getName(), clock.getTime(), finalState, getCounters());
+        getVertex().getName(), getLaunchTime(), clock.getTime(),
+        finalState, getCounters());
     this.eventHandler.handle(new DAGHistoryEvent(
         taskId.getVertexID().getDAGId(), finishEvt));
   }

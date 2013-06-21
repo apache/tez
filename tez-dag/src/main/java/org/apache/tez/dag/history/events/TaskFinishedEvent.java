@@ -32,10 +32,11 @@ public class TaskFinishedEvent implements HistoryEvent {
   private final TezCounters tezCounters;
 
   public TaskFinishedEvent(TezTaskID taskId,
-      String vertexName, long finishTime,
+      String vertexName, long startTime, long finishTime,
       TaskState state, TezCounters counters) {
     datum.vertexName = vertexName;
     datum.taskId = taskId.toString();
+    datum.startTime = startTime;
     datum.finishTime = finishTime;
     datum.status = state.name();
     tezCounters = counters;
@@ -61,8 +62,12 @@ public class TaskFinishedEvent implements HistoryEvent {
   public String toString() {
     return "vertexName=" + datum.vertexName
         + ", taskId=" + datum.taskId
+        + ", startTime=" + datum.startTime
         + ", finishTime=" + datum.finishTime
+        + ", timeTaken=" + (datum.finishTime - datum.startTime)
         + ", status=" + datum.status
-        + ", counters=" + tezCounters.toString();
+        + ", counters="
+        + tezCounters.toString()
+            .replaceAll("\\n", ", ").replaceAll("\\s+", " ");
   }
 }

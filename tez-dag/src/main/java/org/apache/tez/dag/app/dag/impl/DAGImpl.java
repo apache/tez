@@ -628,8 +628,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   void logJobHistoryFinishedEvent() {
     this.setFinishTime();
-    DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, finishTime,
-        DAGStatus.State.SUCCEEDED, "", getAllCounters());
+    DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
+        finishTime, DAGStatus.State.SUCCEEDED, "", getAllCounters());
     this.eventHandler.handle(
         new DAGHistoryEvent(dagId, finishEvt));
   }
@@ -644,8 +644,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   void logJobHistoryUnsuccesfulEvent(DAGStatus.State state) {
-    DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, clock.getTime(),
-        state, StringUtils.join(LINE_SEPARATOR, getDiagnostics()),
+    DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
+        clock.getTime(), state,
+        StringUtils.join(LINE_SEPARATOR, getDiagnostics()),
         getAllCounters());
     this.eventHandler.handle(
         new DAGHistoryEvent(dagId, finishEvt));
