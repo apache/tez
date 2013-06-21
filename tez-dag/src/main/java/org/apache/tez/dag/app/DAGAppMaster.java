@@ -27,7 +27,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -282,7 +281,6 @@ public class DAGAppMaster extends CompositeService {
     //    TODO XXX: Rename to NMComm
     //    corresponding service to launch allocated containers via NodeManager
     //    containerLauncher = createNMCommunicator(context);
-    // needs to start after TaskScheduler for nmtokens to be available
     containerLauncher = createContainerLauncher(context);
     addIfService(containerLauncher);
     dispatcher.register(NMCommunicatorEventType.class, containerLauncher);
@@ -748,7 +746,6 @@ public class DAGAppMaster extends CompositeService {
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock rLock = rwLock.readLock();
     private final Lock wLock = rwLock.writeLock();
-    private ConcurrentMap<String, org.apache.hadoop.yarn.api.records.Token> nmTokens;
     public RunningAppContext(TezConfiguration config) {
       this.conf = config;
     }
@@ -852,16 +849,6 @@ public class DAGAppMaster extends CompositeService {
       }
     }
     
-    @Override
-    public void setNMTokens(ConcurrentMap<String, org.apache.hadoop.yarn.api.records.Token> tokens) {
-      nmTokens = tokens;
-    }
-
-    @Override
-    public ConcurrentMap<String, org.apache.hadoop.yarn.api.records.Token> getNMTokens() {
-      return nmTokens;
-    }
-
   }
 
   @SuppressWarnings("unchecked")

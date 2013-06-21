@@ -19,13 +19,11 @@
 package org.apache.tez.dag.app;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.Token;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.dag.app.dag.DAG;
@@ -40,9 +38,6 @@ import org.apache.tez.dag.records.TezDAGID;
  */
 @InterfaceAudience.Private
 public interface AppContext {
-
-  ConcurrentMap<String, Token> getNMTokens();
-  void setNMTokens(ConcurrentMap<String, org.apache.hadoop.yarn.api.records.Token> tokens);
   
   DAGAppMaster getAppMaster();
   

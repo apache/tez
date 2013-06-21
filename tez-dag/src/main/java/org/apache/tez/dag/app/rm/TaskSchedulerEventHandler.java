@@ -328,7 +328,6 @@ public class TaskSchedulerEventHandler extends AbstractService
 
     dagAppMaster = appContext.getAppMaster();
     taskScheduler.start();
-    appContext.setNMTokens(taskScheduler.getNMTokens());
     this.eventHandlingThread = new Thread() {
       @Override
       public void run() {

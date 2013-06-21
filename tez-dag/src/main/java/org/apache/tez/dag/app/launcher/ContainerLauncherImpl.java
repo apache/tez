@@ -264,7 +264,7 @@ public class ContainerLauncherImpl extends AbstractService implements
   @Override
   public void serviceStart() {
     cmProxy =
-        new ContainerManagementProtocolProxy(getConfig(), context.getNMTokens());
+        new ContainerManagementProtocolProxy(getConfig());
 
     ThreadFactory tf = new ThreadFactoryBuilder().setNameFormat(
         "ContainerLauncher #%d").setDaemon(true).build();
