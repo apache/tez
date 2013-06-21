@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,18 +40,20 @@ import org.apache.hadoop.yarn.api.ApplicationClientProtocol;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.YarnClusterMetrics;
-import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl;
+import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
-public class ResourceMgrDelegate extends YarnClientImpl {
+public class ResourceMgrDelegate {
   private static final Log LOG = LogFactory.getLog(ResourceMgrDelegate.class);
       
   private YarnConfiguration conf;
   private GetNewApplicationResponse application;
   private ApplicationId applicationId;
+  private YarnClient client;
+  private InetSocketAddress rmAddress;
 
   /**
    * Delegate responsible for communicating with the Resource Manager's {@link ApplicationClientProtocol}.
@@ -59,14 +62,18 @@ public class ResourceMgrDelegate extends YarnClientImpl {
   public ResourceMgrDelegate(YarnConfiguration conf) {
     super();
     this.conf = conf;
-    init(conf);
-    start();
+    client = YarnClient.createYarnClient();
+    client.init(conf);
+    this.rmAddress = conf.getSocketAddr(YarnConfiguration.RM_ADDRESS,
+        YarnConfiguration.DEFAULT_RM_ADDRESS,
+        YarnConfiguration.DEFAULT_RM_PORT);
+    client.start();
   }
 
   public TaskTrackerInfo[] getActiveTrackers() throws IOException,
       InterruptedException {
     try {
-      return TypeConverter.fromYarnNodes(super.getNodeReports());
+      return TypeConverter.fromYarnNodes(client.getNodeReports());
     } catch (YarnException e) {
       throw new IOException(e);
     }
@@ -74,7 +81,7 @@ public class ResourceMgrDelegate extends YarnClientImpl {
 
   public JobStatus[] getAllJobs() throws IOException, InterruptedException {
     try {
-      return TypeConverter.fromYarnApps(super.getApplicationList(), this.conf);
+      return TypeConverter.fromYarnApps(client.getApplicationList(), this.conf);
     } catch (YarnException e) {
       throw new IOException(e);
     }
@@ -91,7 +98,7 @@ public class ResourceMgrDelegate extends YarnClientImpl {
       InterruptedException {
     YarnClusterMetrics metrics;
     try {
-      metrics = super.getYarnClusterMetrics();
+      metrics = client.getYarnClusterMetrics();
     } catch (YarnException e) {
       throw new IOException(e);
     }
@@ -105,8 +112,9 @@ public class ResourceMgrDelegate extends YarnClientImpl {
   public Token getDelegationToken(Text renewer) throws IOException,
       InterruptedException {
     try {
+      // Remove rmAddress after YARN-868 is addressed
       return ConverterUtils.convertFromYarn(
-        super.getRMDelegationToken(renewer), rmAddress);
+        client.getRMDelegationToken(renewer), rmAddress);
     } catch (YarnException e) {
       throw new IOException(e);
     }
@@ -119,7 +127,7 @@ public class ResourceMgrDelegate extends YarnClientImpl {
   public JobID getNewJobID() throws IOException, InterruptedException {
     try {
       this.application = 
-          super.createApplication().getNewApplicationResponse();
+          client.createApplication().getNewApplicationResponse();
     } catch (YarnException e) {
       throw new IOException(e);
     }
@@ -131,7 +139,7 @@ public class ResourceMgrDelegate extends YarnClientImpl {
   InterruptedException {
     try {
       return TypeConverter.fromYarn(
-          super.getQueueInfo(queueName), this.conf);
+          client.getQueueInfo(queueName), this.conf);
     } catch (YarnException e) {
       throw new IOException(e);
     }
@@ -140,8 +148,8 @@ public class ResourceMgrDelegate extends YarnClientImpl {
   public QueueAclsInfo[] getQueueAclsForCurrentUser() throws IOException,
       InterruptedException {
     try {
-      return TypeConverter.fromYarnQueueUserAclsInfo(super
-        .getQueueAclsInfo());
+      return TypeConverter.fromYarnQueueUserAclsInfo(
+          client.getQueueAclsInfo());
     } catch (YarnException e) {
       throw new IOException(e);
     }
@@ -149,7 +157,7 @@ public class ResourceMgrDelegate extends YarnClientImpl {
 
   public QueueInfo[] getQueues() throws IOException, InterruptedException {
     try {
-      return TypeConverter.fromYarnQueueInfo(super.getAllQueues(), this.conf);
+      return TypeConverter.fromYarnQueueInfo(client.getAllQueues(), this.conf);
     } catch (YarnException e) {
       throw new IOException(e);
     }
@@ -157,7 +165,8 @@ public class ResourceMgrDelegate extends YarnClientImpl {
 
   public QueueInfo[] getRootQueues() throws IOException, InterruptedException {
     try {
-      return TypeConverter.fromYarnQueueInfo(super.getRootQueueInfos(), this.conf);
+      return TypeConverter.fromYarnQueueInfo(client.getRootQueueInfos(),
+          this.conf);
     } catch (YarnException e) {
       throw new IOException(e);
     }
@@ -166,7 +175,7 @@ public class ResourceMgrDelegate extends YarnClientImpl {
   public QueueInfo[] getChildQueues(String parent) throws IOException,
       InterruptedException {
     try {
-      return TypeConverter.fromYarnQueueInfo(super.getChildQueueInfos(parent),
+      return TypeConverter.fromYarnQueueInfo(client.getChildQueueInfos(parent),
         this.conf);
     } catch (YarnException e) {
       throw new IOException(e);
@@ -208,4 +217,10 @@ public class ResourceMgrDelegate extends YarnClientImpl {
   public ApplicationId getApplicationId() {
     return applicationId;
   }
+
+  public void killApplication(ApplicationId appId)
+      throws YarnException, IOException {
+    client.killApplication(appId);
+  }
+
 }
