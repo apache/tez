@@ -654,7 +654,7 @@ public class YARNRunner implements ClientProtocol {
   @Override
   public void killJob(JobID arg0) throws IOException, InterruptedException {
     /* check if the status is not running, if not send kill to RM */
-    JobStatus status = clientCache.getClient(arg0).getJobStatus(arg0);
+    JobStatus status = getJobStatus(arg0);
     if (status.getState() == JobStatus.State.RUNNING ||
         status.getState() == JobStatus.State.PREP) {
       try {

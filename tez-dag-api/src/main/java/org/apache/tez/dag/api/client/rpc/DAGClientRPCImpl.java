@@ -147,6 +147,11 @@ public class DAGClientRPCImpl implements DAGClient {
     } catch (YarnException e) {
       throw new TezException(e);
     }
+    
+    if(appReport == null) {
+      throw new TezException("Unknown/Invalid appId: " + appId);
+    }
+    
     DAGStatusProto.Builder builder = DAGStatusProto.newBuilder();
     DAGStatus dagStatus = new DAGStatus(builder);
     DAGStatusStateProto dagState = null;
@@ -227,6 +232,10 @@ public class DAGClientRPCImpl implements DAGClient {
       return true;
     }
     appReport = getAppReport();
+    
+    if(appReport == null) {
+      return false;
+    }
     YarnApplicationState appState = appReport.getYarnApplicationState();
     if(appState != YarnApplicationState.RUNNING) {
       return false;
