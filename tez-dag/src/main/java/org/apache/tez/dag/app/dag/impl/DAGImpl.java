@@ -60,6 +60,7 @@ import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.ProgressBuilder;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
@@ -204,11 +205,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               EnumSet.of(DAGState.RUNNING, DAGState.SUCCEEDED, DAGState.FAILED),
               DAGEventType.DAG_VERTEX_COMPLETED,
               new VertexCompletedTransition())
-          .addTransition
-              (DAGState.RUNNING,
-              EnumSet.of(DAGState.RUNNING, DAGState.SUCCEEDED, DAGState.FAILED),
-              DAGEventType.DAG_COMPLETED,
-              new JobNoTasksCompletedTransition())
           .addTransition(DAGState.RUNNING, DAGState.KILL_WAIT,
               DAGEventType.DAG_KILL, new KillVerticesTransition())
           .addTransition(DAGState.RUNNING, DAGState.RUNNING,
@@ -786,45 +782,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
   */
 
-//  /**
-//   * ChainMapper and ChainReducer must execute in parallel, so they're not
-//   * compatible with uberization/LocalContainerLauncher (100% sequential).
-//   */
-//  private boolean isChainJob(Configuration conf) {
-//    boolean isChainJob = false;
-//    try {
-//      String mapClassName = conf.get(MRJobConfig.MAP_CLASS_ATTR);
-//      if (mapClassName != null) {
-//        Class<?> mapClass = Class.forName(mapClassName);
-//        if (ChainMapper.class.isAssignableFrom(mapClass))
-//          isChainJob = true;
-//      }
-//    } catch (ClassNotFoundException cnfe) {
-//      // don't care; assume it's not derived from ChainMapper
-//    }
-//    try {
-//      String reduceClassName = conf.get(MRJobConfig.REDUCE_CLASS_ATTR);
-//      if (reduceClassName != null) {
-//        Class<?> reduceClass = Class.forName(reduceClassName);
-//        if (ChainReducer.class.isAssignableFrom(reduceClass))
-//          isChainJob = true;
-//      }
-//    } catch (ClassNotFoundException cnfe) {
-//      // don't care; assume it's not derived from ChainReducer
-//    }
-//    return isChainJob;
-//  }
-
-  /*
-  private int getBlockSize() {
-    String inputClassName = conf.get(MRJobConfig.INPUT_FORMAT_CLASS_ATTR);
-    if (inputClassName != null) {
-      Class<?> inputClass - Class.forName(inputClassName);
-      if (FileInputFormat<K, V>)
-    }
-  }
-  */
-
   public static class InitTransition
       implements MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
 
@@ -844,25 +801,17 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         setup(dag);
         dag.fs = dag.getFileSystem(dag.conf);
 
-        checkTaskLimits();
-
-        // TODO: Committer
-        /*
-        if (dag.newApiCommitter) {
-          dag.dagContext = new JobContextImpl(dag.conf,
-              dag.oldJobId);
-        } else {
-          dag.dagContext = new org.apache.hadoop.mapred.JobContextImpl(
-              dag.conf, dag.oldJobId);
+        // If we have no vertices, fail the dag
+        dag.numVertices = dag.getJobPlan().getVertexCount();
+        if (dag.numVertices == 0) {
+          dag.addDiagnostic("No vertices for dag");
+          dag.abortJob(DAGStatus.State.FAILED);
+          return dag.finished(DAGState.FAILED);
         }
 
-        // do the setup
-        dag.committer.setupJob(dag.dagContext);
-        dag.setupProgress = 1.0f;
-        */
+        checkTaskLimits();
 
         // create the vertices
-        dag.numVertices = dag.getJobPlan().getVertexCount();
         for (int i=0; i < dag.numVertices; ++i) {
           String vertexName = dag.getJobPlan().getVertex(i).getName();
           VertexImpl v = createVertex(dag, vertexName, i);
@@ -1033,12 +982,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       // TODO Metrics
       //job.metrics.runningJob(job);
 
-			// If we have no tasks, just transition to job completed
-      if (job.numVertices == 0) {
-        job.eventHandler.handle(
-            new DAGEvent(job.dagId, DAGEventType.DAG_COMPLETED));
-      }
-
       // Start all vertices with no incoming edges when job starts
       job.startRootVertices();
     }
@@ -1169,16 +1112,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       job.addDiagnostic("Vertex killed " + vertex.getVertexId());
       // TODO: Metrics
       //job.metrics.killedTask(task);
-    }
-  }
-
-  // Transition class for handling jobs with no vertices
-  static class JobNoTasksCompletedTransition implements
-  MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
-
-    @Override
-    public DAGState transition(DAGImpl dag, DAGEvent event) {
-      return checkJobForCompletion(dag);
     }
   }
 

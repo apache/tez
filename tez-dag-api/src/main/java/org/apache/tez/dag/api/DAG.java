@@ -138,7 +138,11 @@ public class DAG { // FIXME rename to Topology
     verify(true);
   }
   
-  public void verify(boolean restricted) throws IllegalStateException  { 
+  public void verify(boolean restricted) throws IllegalStateException  {
+    if (vertices.isEmpty()) {
+      throw new IllegalStateException("Invalid dag containing 0 vertices");
+    }
+
     Map<Vertex, List<Edge>> edgeMap = new HashMap<Vertex, List<Edge>>();
     for(Edge e : edges){
       Vertex inputVertex = e.getInputVertex();
@@ -154,7 +158,12 @@ public class DAG { // FIXME rename to Topology
     Map<String, AnnotatedVertex> vertexMap = new HashMap<String, AnnotatedVertex>();
     for(Vertex v : vertices){
       if(vertexMap.containsKey(v.getVertexName())){
-         throw new IllegalStateException("DAG contains multiple vertices with name: " + v.getVertexName());
+         throw new IllegalStateException("DAG contains multiple vertices"
+             + " with name: " + v.getVertexName());
+      }
+      if (v.getParallelism() == 0) {
+        throw new IllegalStateException("Vertex configured with 0 tasks"
+            + ", vertexName=" + v.getVertexName());
       }
       vertexMap.put(v.getVertexName(), new AnnotatedVertex(v));
     }

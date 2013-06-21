@@ -192,6 +192,35 @@ public class TestVertexImpl {
     }
   }
 
+  private DAGPlan createInvalidDAGPlan() {
+    LOG.info("Setting up invalid dag plan");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("testverteximplinvalid")
+        .addVertex(
+            VertexPlan.newBuilder()
+            .setName("vertex1")
+            .setType(PlanVertexType.NORMAL)
+            .addTaskLocationHint(
+                PlanTaskLocationHint.newBuilder()
+                .addHost("host1")
+                .addRack("rack1")
+                .build()
+            )
+        .setTaskConfig(
+            PlanTaskConfiguration.newBuilder()
+            .setNumTasks(0)
+            .setVirtualCores(4)
+            .setMemoryMb(1024)
+            .setJavaOpts("")
+            .setTaskModule("x1.y1")
+            .build()
+            )
+        .addOutEdgeId("e1")
+        .build()
+        )
+        .build();
+    return dag;
+  }
 
   private DAGPlan createTestDAGPlan() {
     LOG.info("Setting up dag plan");
@@ -209,7 +238,7 @@ public class TestVertexImpl {
                 )
             .setTaskConfig(
                 PlanTaskConfiguration.newBuilder()
-                .setNumTasks(0)
+                .setNumTasks(1)
                 .setVirtualCores(4)
                 .setMemoryMb(1024)
                 .setJavaOpts("")
@@ -491,6 +520,7 @@ public class TestVertexImpl {
     dispatcher.register(TaskEventType.class, new TaskEventHandler());
     dispatcher.init(conf);
     dispatcher.start();
+
   }
 
   @After
@@ -680,17 +710,6 @@ public class TestVertexImpl {
     String diagnostics =
         StringUtils.join(",", v.getDiagnostics()).toLowerCase();
     Assert.assertTrue(diagnostics.contains("task failed " + t1.toString()));
-  }
-
-  @Test(timeout = 5000)
-  public void testVertexWithNoTasks() {
-    // FIXME a vertex with no tasks should not be allowed
-    initAllVertices();
-
-    VertexImpl v = vertices.get("vertex1");
-    startVertex(v, false);
-    dispatcher.await();
-    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
   }
 
   @Test(timeout = 5000)
@@ -1104,4 +1123,19 @@ public class TestVertexImpl {
         dagEventDispatcher.eventCount.get(
             DAGEventType.INTERNAL_ERROR).intValue());
   }
+
+  @Test
+  public void testVertexWithNoTasks() {
+    TezDAGID invalidDagId = new TezDAGID(
+        dagId.getApplicationId(), 1000);
+    DAGPlan dPlan = createInvalidDAGPlan();
+    TezVertexID vId = new TezVertexID(invalidDagId, 1);
+    VertexPlan vPlan = dPlan.getVertex(0);
+    VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
+        dispatcher.getEventHandler(), taskAttemptListener, jobToken, fsTokens,
+        clock, thh, appContext, vertexLocationHint);
+    v.handle(new VertexEvent(vId, VertexEventType.V_INIT));
+    Assert.assertEquals(VertexState.FAILED, v.getState());
+  }
+
 }

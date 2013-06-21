@@ -191,4 +191,47 @@ public class TestDAGVerify {
     System.out.println(ex.getMessage());
     Assert.assertTrue(ex.getMessage().startsWith("Vertex has outDegree>1"));
   }
+
+  @Test
+  public void testDagWithNoVertices() {
+    IllegalStateException ex=null;
+    try {
+      DAG dag = new DAG("testDag");
+      dag.verify();
+    }
+    catch (IllegalStateException e){
+      ex = e;
+    }
+    Assert.assertNotNull(ex);
+    System.out.println(ex.getMessage());
+    Assert.assertTrue(ex.getMessage()
+        .startsWith("Invalid dag containing 0 vertices"));
+  }
+
+  @Test
+  public void testVertexWithNoTasks() {
+    IllegalStateException ex=null;
+    try {
+      Vertex v1 = new Vertex("v1", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
+      Vertex v2 = new Vertex("v2", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), 0);
+      Vertex v3 = new Vertex("v3", new ProcessorDescriptor("org.apache.tez.mapreduce.processor.reduce.MapProcessor", null), dummyTaskCount);
+      Edge e1 = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
+      Edge e2 = new Edge(v2, v3, new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor("dummy output class", null), new InputDescriptor("dummy input class", null)));
+      DAG dag = new DAG("testDag");
+      dag.addVertex(v1);
+      dag.addVertex(v2);
+      dag.addVertex(v3);
+      dag.addEdge(e1);
+      dag.addEdge(e2);
+      dag.verify();
+    }
+    catch (IllegalStateException e){
+      ex = e;
+    }
+    Assert.assertNotNull(ex);
+    System.out.println(ex.getMessage());
+    Assert.assertTrue(ex.getMessage()
+        .startsWith("Vertex configured with 0 tasks"));
+  }
+
 }

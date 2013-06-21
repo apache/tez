@@ -228,12 +228,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexState.SUCCEEDED, VertexState.FAILED),
               VertexEventType.V_TASK_COMPLETED,
               new TaskCompletedTransition())
-          .addTransition
-              (VertexState.RUNNING,
-              EnumSet.of(VertexState.RUNNING, VertexState.SUCCEEDED,
-                  VertexState.FAILED),
-              VertexEventType.V_COMPLETED,
-              new VertexNoTasksCompletedTransition())
           .addTransition(VertexState.RUNNING, VertexState.KILL_WAIT,
               VertexEventType.V_KILL, new KillTasksTransition())
           .addTransition(VertexState.RUNNING, VertexState.RUNNING,
@@ -815,7 +809,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         */
 
         if (vertex.numTasks == 0) {
-          vertex.addDiagnostic("No of tasks for vertex " + vertex.getVertexId());
+          vertex.addDiagnostic("No tasks for vertex " + vertex.getVertexId());
+          vertex.abortVertex(VertexStatus.State.FAILED);
+          return vertex.finished(VertexState.FAILED);
         }
 
         checkTaskLimits();
@@ -826,8 +822,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
         // create the Tasks but don't start them yet
         createTasks(vertex);
-
-
 
         boolean hasBipartite = false;
         if (vertex.sourceVertices != null) {
@@ -982,11 +976,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                                                vertex.distanceFromRoot));
       }
 
-      // If we have no tasks, just transition to vertex completed
-      if (vertex.numTasks == 0) {
-        vertex.eventHandler.handle(
-            new VertexEvent(vertex.vertexId, VertexEventType.V_COMPLETED));
-      }
     }
   }
 
@@ -1196,17 +1185,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       vertex.killedTaskCount++;
       // TODO Metrics
       //job.metrics.killedTask(task);
-    }
-  }
-
-  // Transition class for handling jobs with no tasks
-  // TODODAGAM - is this allowed for a vertex?
-  static class VertexNoTasksCompletedTransition implements
-  MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
-
-    @Override
-    public VertexState transition(VertexImpl vertex, VertexEvent event) {
-      return VertexImpl.checkVertexForCompletion(vertex);
     }
   }
 

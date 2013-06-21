@@ -66,7 +66,6 @@ implements Processor {
 
   private Counter reduceInputKeyCounter;
   private Counter reduceInputValueCounter;
-  private int numMapTasks;
 
   public ReduceProcessor(TezEngineTaskContext context) {
     super(context);
@@ -77,8 +76,6 @@ implements Processor {
         tezEngineContext.getInputSpecList().size() == 1,
         "Expected exactly one input, found : "
             + tezEngineContext.getInputSpecList().size());
-    this.numMapTasks = tezEngineContext.getInputSpecList().get(0)
-        .getNumInputs();
   }
   
   @Override
