@@ -33,7 +33,7 @@ public class Vertex { // FIXME rename to Task
 
   private final int parallelism;
   private VertexLocationHint taskLocationsHint;
-  private Resource taskResource;
+  private final Resource taskResource;
   private Map<String, LocalResource> taskLocalResources;
   private Map<String, String> taskEnvironment;
 
@@ -44,10 +44,20 @@ public class Vertex { // FIXME rename to Task
   private String javaOpts = "";
 
 
-  public Vertex(String vertexName, ProcessorDescriptor processorDescriptor, int parallelism) {
+  public Vertex(String vertexName,
+      ProcessorDescriptor processorDescriptor,
+      int parallelism,
+      Resource taskResource) {
     this.vertexName = vertexName;
     this.processorDescriptor = processorDescriptor;
     this.parallelism = parallelism;
+    this.taskResource = taskResource;
+    if (parallelism == 0) {
+      throw new IllegalArgumentException("Parallelism cannot be 0");
+    }
+    if (taskResource == null) {
+      throw new IllegalArgumentException("Resource cannot be null");
+    }
   }
 
   public String getVertexName() { // FIXME rename to getName()
@@ -60,11 +70,6 @@ public class Vertex { // FIXME rename to Task
 
   public int getParallelism() {
     return parallelism;
-  }
-
-  public Vertex setTaskResource(Resource resource) {
-    this.taskResource = resource;
-    return this;
   }
 
   public Resource getTaskResource() {

@@ -67,7 +67,7 @@ public class DAG { // FIXME rename to Topology
   public synchronized List<Vertex> getVertices() {
     return Collections.unmodifiableList(this.vertices);
   }
-  
+
   public synchronized DAG addEdge(Edge edge) {
     // Sanity checks
     if (!vertices.contains(edge.getInputVertex())) {
@@ -76,17 +76,17 @@ public class DAG { // FIXME rename to Topology
     }
     if (!vertices.contains(edge.getOutputVertex())) {
       throw new IllegalArgumentException(
-          "Output vertex " + edge.getOutputVertex() + " doesn't exist!");    
+          "Output vertex " + edge.getOutputVertex() + " doesn't exist!");
     }
     if (edges.contains(edge)) {
       throw new IllegalArgumentException(
           "Edge " + edge + " already defined!");
     }
-    
+
     // Inform the vertices
     edge.getInputVertex().addOutputVertex(edge.getOutputVertex(), edge.getId());
     edge.getOutputVertex().addInputVertex(edge.getInputVertex(), edge.getId());
-    
+
     edges.add(edge);
     return this;
   }
@@ -94,18 +94,18 @@ public class DAG { // FIXME rename to Topology
   public String getName() {
     return this.name;
   }
-  
-  // AnnotatedVertex is used by verify() 
+
+  // AnnotatedVertex is used by verify()
   private class AnnotatedVertex {
     Vertex v;
-  
-    int index; //for Tarjan's algorithm    
+
+    int index; //for Tarjan's algorithm
     int lowlink; //for Tarjan's algorithm
-    boolean onstack; //for Tarjan's algorithm 
+    boolean onstack; //for Tarjan's algorithm
 
     int inDegree;
     int outDegree;
-    
+
     private AnnotatedVertex(Vertex v){
        this.v = v;
        index = -1;
@@ -114,9 +114,9 @@ public class DAG { // FIXME rename to Topology
        outDegree = 0;
     }
   }
-  
+
   // verify()
-  // 
+  //
   // Default rules
   //   Illegal:
   //     - duplicate vertex id
@@ -130,14 +130,14 @@ public class DAG { // FIXME rename to Topology
   //     - orphaned vertex in DAG of >1 vertex.  Could be unrelated map-only job.
   //     - v1->v2 via two edges.  perhaps some self-join job would use this?
   //
-  // "restricted" mode: 
-  //   In short term, the supported DAGs are limited. Call with restricted=true for these verifications.  
-  //   Illegal: 
-  //     - any vertex with more than one input or output edge. (n-ary input, n-ary merge) 
+  // "restricted" mode:
+  //   In short term, the supported DAGs are limited. Call with restricted=true for these verifications.
+  //   Illegal:
+  //     - any vertex with more than one input or output edge. (n-ary input, n-ary merge)
   public void verify() throws IllegalStateException {
     verify(true);
   }
-  
+
   public void verify(boolean restricted) throws IllegalStateException  {
     if (vertices.isEmpty()) {
       throw new IllegalStateException("Invalid dag containing 0 vertices");
@@ -153,23 +153,20 @@ public class DAG { // FIXME rename to Topology
       }
       edgeList.add(e);
     }
-    
-    // check for duplicate vertex names, and prepare for cycle detection
+
+    // check for valid vertices, duplicate vertex names,
+    // and prepare for cycle detection
     Map<String, AnnotatedVertex> vertexMap = new HashMap<String, AnnotatedVertex>();
     for(Vertex v : vertices){
       if(vertexMap.containsKey(v.getVertexName())){
          throw new IllegalStateException("DAG contains multiple vertices"
              + " with name: " + v.getVertexName());
       }
-      if (v.getParallelism() == 0) {
-        throw new IllegalStateException("Vertex configured with 0 tasks"
-            + ", vertexName=" + v.getVertexName());
-      }
       vertexMap.put(v.getVertexName(), new AnnotatedVertex(v));
     }
-    
+
     detectCycles(edgeMap, vertexMap);
-    
+
     if(restricted){
       for(Edge e : edges){
         vertexMap.get(e.getInputVertex().getVertexName()).outDegree++;
@@ -177,18 +174,20 @@ public class DAG { // FIXME rename to Topology
       }
       for(AnnotatedVertex av: vertexMap.values()){
         if(av.inDegree > 1){
-          throw new IllegalStateException("Vertex has inDegree>1: " + av.v.getVertexName());
+          throw new IllegalStateException("Vertex has inDegree>1: "
+              + av.v.getVertexName());
         }
         if(av.outDegree > 1){
-          throw new IllegalStateException("Vertex has outDegree>1: " + av.v.getVertexName());
+          throw new IllegalStateException("Vertex has outDegree>1: "
+              + av.v.getVertexName());
         }
       }
     }
   }
-  
+
   // Adaptation of Tarjan's algorithm for connected components.
   // http://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
-  private void detectCycles(Map<Vertex, List<Edge>> edgeMap, Map<String, AnnotatedVertex> vertexMap) 
+  private void detectCycles(Map<Vertex, List<Edge>> edgeMap, Map<String, AnnotatedVertex> vertexMap)
       throws IllegalStateException{
     Integer nextIndex = 0; // boxed integer so it is passed by reference.
     Stack<AnnotatedVertex> stack = new Stack<DAG.AnnotatedVertex>();
@@ -203,16 +202,16 @@ public class DAG { // FIXME rename to Topology
   // part of Tarjan's algorithm for connected components.
   // http://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
   private void strongConnect(
-          AnnotatedVertex av, 
-          Map<String, AnnotatedVertex> vertexMap, 
-          Map<Vertex, List<Edge>> edgeMap, 
+          AnnotatedVertex av,
+          Map<String, AnnotatedVertex> vertexMap,
+          Map<Vertex, List<Edge>> edgeMap,
           Stack<AnnotatedVertex> stack, Integer nextIndex) throws IllegalStateException{
     av.index = nextIndex;
     av.lowlink = nextIndex;
     nextIndex++;
     stack.push(av);
     av.onstack = true;
-    
+
     List<Edge> edges = edgeMap.get(av.v);
     if(edges != null){
       for(Edge e : edgeMap.get(av.v)){
@@ -237,7 +236,7 @@ public class DAG { // FIXME rename to Topology
          // this indicates there is a scc/cycle. It comprises all nodes from top of stack to "av"
          StringBuilder message = new StringBuilder();
          message.append(av.v.getVertexName() + " <- ");
-         for( ; pop != av; pop = stack.pop()){ 
+         for( ; pop != av; pop = stack.pop()){
            message.append(pop.v.getVertexName() + " <- ");
            pop.onstack = false;
          }
@@ -246,15 +245,15 @@ public class DAG { // FIXME rename to Topology
        }
     }
   }
- 
-  
+
+
   // create protobuf message describing DAG
   @Private
   public DAGPlan createDag(Configuration amConf) {
-    
+
     verify(true);
-    
-    DAGPlan.Builder jobBuilder = DAGPlan.newBuilder();  
+
+    DAGPlan.Builder jobBuilder = DAGPlan.newBuilder();
 
     jobBuilder.setName(this.name);
 
@@ -263,8 +262,8 @@ public class DAG { // FIXME rename to Topology
       vertexBuilder.setName(vertex.getVertexName());
       vertexBuilder.setType(PlanVertexType.NORMAL); // vertex type is implicitly NORMAL until  TEZ-46.
       vertexBuilder.setProcessorDescriptor(DagTypeConverters
-          .convertToDAGPlan(vertex.getProcessorDescriptor()));      
-      
+          .convertToDAGPlan(vertex.getProcessorDescriptor()));
+
       //task config
       PlanTaskConfiguration.Builder taskConfigBuilder = PlanTaskConfiguration.newBuilder();
       Resource resource = vertex.getTaskResource();
@@ -320,11 +319,11 @@ public class DAG { // FIXME rename to Topology
       for(String inEdgeId : vertex.getInputEdgeIds()){
         vertexBuilder.addInEdgeId(inEdgeId);
       }
-      
+
       for(String outEdgeId : vertex.getOutputEdgeIds()){
         vertexBuilder.addOutEdgeId(outEdgeId);
       }
-      
+
       vertexBuilder.setTaskConfig(taskConfigBuilder);
       jobBuilder.addVertex(vertexBuilder);
     }

@@ -118,7 +118,7 @@ public class YARNRunner implements ClientProtocol {
   final public static FsPermission DAG_FILE_PERMISSION =
       FsPermission.createImmutable((short) 0644);
   final public static int UTF8_CHUNK_SIZE = 16 * 1024;
-  
+
   private final TezConfiguration tezConf;
   private final TezClient tezClient;
   private DAGClient dagClient;
@@ -158,7 +158,7 @@ public class YARNRunner implements ClientProtocol {
       this.tezClient = new TezClient(tezConf);
       this.clientCache = clientCache;
       this.defaultFileContext = FileContext.getFileContext(this.conf);
-      
+
     } catch (UnsupportedFileSystemException ufe) {
       throw new RuntimeException("Error in instantiating YarnClient", ufe);
     }
@@ -392,15 +392,17 @@ public class YARNRunner implements ClientProtocol {
       }
     }
 
+    Resource taskResource = isMap ? MRHelpers.getMapResource(stageConf)
+        : MRHelpers.getReduceResource(stageConf);
     Vertex vertex = new Vertex(vertexName, new ProcessorDescriptor(
-        processorName, MRHelpers.createByteBufferFromConf(stageConf)), numTasks);
+        processorName, MRHelpers.createByteBufferFromConf(stageConf)),
+        numTasks, taskResource);
 
     Map<String, String> taskEnv = new HashMap<String, String>();
     setupMapReduceEnv(stageConf, taskEnv, isMap);
-    Resource taskResource = isMap ? MRHelpers.getMapResource(stageConf)
-        : MRHelpers.getReduceResource(stageConf);
 
-    Map<String, LocalResource> taskLocalResources = new TreeMap<String, LocalResource>();
+    Map<String, LocalResource> taskLocalResources =
+        new TreeMap<String, LocalResource>();
     // PRECOMMIT Remove split localization for reduce tasks if it's being set
     // here
     taskLocalResources.putAll(jobLocalResources);
@@ -410,7 +412,7 @@ public class YARNRunner implements ClientProtocol {
 
     vertex.setTaskEnvironment(taskEnv)
         .setTaskLocalResources(taskLocalResources)
-        .setTaskLocationsHint(locations).setTaskResource(taskResource)
+        .setTaskLocationsHint(locations)
         .setJavaOpts(taskJavaOpts);
 
     if (LOG.isDebugEnabled()) {
@@ -487,7 +489,7 @@ public class YARNRunner implements ClientProtocol {
   public JobStatus submitJob(JobID jobId, String jobSubmitDir, Credentials ts)
   throws IOException, InterruptedException {
 
-    // TEZ-192 - stop using token file 
+    // TEZ-192 - stop using token file
     // Upload only in security mode: TODO
     Path applicationTokensFile =
         new Path(jobSubmitDir, MRJobConfig.APPLICATION_TOKENS_FILE);
@@ -498,11 +500,11 @@ public class YARNRunner implements ClientProtocol {
     }
 
     ApplicationId appId = resMgrDelegate.getApplicationId();
-    
+
     FileSystem fs = FileSystem.get(conf);
     // Loads the job.xml written by the user.
     JobConf jobConf = new JobConf(new TezConfiguration(conf));
-    
+
     // Extract individual raw MR configs.
     Configuration[] stageConfs = MultiStageMRConfToTezTranslator
         .getStageConfs(jobConf);
@@ -516,7 +518,7 @@ public class YARNRunner implements ClientProtocol {
     }
 
     // create inputs to tezClient.submit()
-    
+
     // FIXME set up job resources
     Map<String, LocalResource> jobLocalResources =
         createJobLocalResources(stageConfs[0], jobSubmitDir);
@@ -555,13 +557,13 @@ public class YARNRunner implements ClientProtocol {
       Path appStagingDir = fs.resolvePath(new Path(jobSubmitDir));
       dagClient = tezClient.submitDAGApplication(
           appId,
-          dag, 
-          appStagingDir, 
+          dag,
+          appStagingDir,
           ts,
           jobConf.get(JobContext.QUEUE_NAME,
               YarnConfiguration.DEFAULT_QUEUE_NAME),
-          vargs, 
-          environment, 
+          vargs,
+          environment,
           jobLocalResources, dagAMConf);
 
     } catch (TezException e) {
@@ -653,7 +655,7 @@ public class YARNRunner implements ClientProtocol {
   public void killJob(JobID arg0) throws IOException, InterruptedException {
     /* check if the status is not running, if not send kill to RM */
     JobStatus status = clientCache.getClient(arg0).getJobStatus(arg0);
-    if (status.getState() == JobStatus.State.RUNNING || 
+    if (status.getState() == JobStatus.State.RUNNING ||
         status.getState() == JobStatus.State.PREP) {
       try {
         resMgrDelegate.killApplication(TypeConverter.toYarn(arg0).getAppId());

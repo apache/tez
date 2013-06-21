@@ -72,11 +72,11 @@ public class TestDAGPlan {
    FileOutputStream outStream = null;
    try {
      outStream = new FileOutputStream(file);
-     job.writeTo(outStream); 
+     job.writeTo(outStream);
    }
    finally {
      if(outStream != null){
-       outStream.close();  
+       outStream.close();
      }
    }
 
@@ -87,12 +87,12 @@ public class TestDAGPlan {
      inJob = DAGPlan.newBuilder().mergeFrom(inputStream).build();
    }
    finally {
-     outStream.close();  
+     outStream.close();
    }
 
    Assert.assertEquals(job, inJob);
   }
-  
+
   @Test
   public void testUserPayloadSerde() {
     DAG dag = new DAG("testDag");
@@ -100,14 +100,12 @@ public class TestDAGPlan {
         ByteBuffer.wrap("processor1Bytes".getBytes()));
     ProcessorDescriptor pd2 = new ProcessorDescriptor("processor2",
         ByteBuffer.wrap("processor2Bytes".getBytes()));
-    Vertex v1 = new Vertex("v1", pd1, 10);
-    Vertex v2 = new Vertex("v2", pd2, 1);
+    Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
+    Vertex v2 = new Vertex("v2", pd2, 1, Resource.newInstance(1024, 1));
     v1.setJavaOpts("").setTaskEnvironment(new HashMap<String, String>())
-        .setTaskLocalResources(new HashMap<String, LocalResource>())
-        .setTaskResource(Resource.newInstance(1024, 1));
+        .setTaskLocalResources(new HashMap<String, LocalResource>());
     v2.setJavaOpts("").setTaskEnvironment(new HashMap<String, String>())
-        .setTaskLocalResources(new HashMap<String, LocalResource>())
-        .setTaskResource(Resource.newInstance(1024, 1));
+        .setTaskLocalResources(new HashMap<String, LocalResource>());
 
     InputDescriptor inputDescriptor = new InputDescriptor("input",
         ByteBuffer.wrap("inputBytes".getBytes()));

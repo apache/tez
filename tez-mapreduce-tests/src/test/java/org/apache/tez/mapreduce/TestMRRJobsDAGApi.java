@@ -220,13 +220,13 @@ public class TestMRRJobsDAGApi {
         IntWritable.class.getName());
     stage3Conf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
         NullOutputFormat.class.getName());
-    
+
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage1Conf, null);
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage2Conf,
         stage1Conf);
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage3Conf,
         stage2Conf);
-    
+
     MRHelpers.doJobClientMagic(stage1Conf);
     MRHelpers.doJobClientMagic(stage2Conf);
     MRHelpers.doJobClientMagic(stage3Conf);
@@ -240,13 +240,15 @@ public class TestMRRJobsDAGApi {
     Vertex stage1Vertex = new Vertex("map", new ProcessorDescriptor(
         MapProcessor.class.getName(),
         MRHelpers.createByteBufferFromConf(stage1Conf)),
-        inputSplitInfo.getNumTasks());
+        inputSplitInfo.getNumTasks(), Resource.newInstance(256, 1));
     Vertex stage2Vertex = new Vertex("ireduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName(),
-        MRHelpers.createByteBufferFromConf(stage2Conf)), 1);
+        MRHelpers.createByteBufferFromConf(stage2Conf)),
+        1, Resource.newInstance(256, 1));
     Vertex stage3Vertex = new Vertex("reduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName(),
-        MRHelpers.createByteBufferFromConf(stage3Conf)), 1);
+        MRHelpers.createByteBufferFromConf(stage3Conf)),
+        1, Resource.newInstance(256, 1));
 
     LocalResource appJarLr = createLocalResource(remoteFs,
         remoteFs.makeQualified(APP_JAR_HDFS), LocalResourceType.FILE,
@@ -277,19 +279,16 @@ public class TestMRRJobsDAGApi {
     stage1LocalResources.putAll(commonLocalResources);
 
     stage1Vertex.setJavaOpts(MRHelpers.getMapJavaOpts(stage1Conf));
-    stage1Vertex.setTaskResource(Resource.newInstance(256, 1));
     stage1Vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
     stage1Vertex.setTaskLocalResources(stage1LocalResources);
     stage1Vertex.setTaskEnvironment(commonEnv);
     // TODO env, resources
 
     stage2Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage2Conf));
-    stage2Vertex.setTaskResource(Resource.newInstance(256, 1));
     stage2Vertex.setTaskLocalResources(commonLocalResources);
     stage2Vertex.setTaskEnvironment(commonEnv);
 
     stage3Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage3Conf));
-    stage3Vertex.setTaskResource(Resource.newInstance(256, 1));
     stage3Vertex.setTaskLocalResources(commonLocalResources);
     stage3Vertex.setTaskEnvironment(commonEnv);
 
