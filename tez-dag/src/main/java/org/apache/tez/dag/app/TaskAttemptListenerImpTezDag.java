@@ -114,8 +114,8 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
           .setPort(0)
           .setInstance(this)
           .setNumHandlers(
-              conf.getInt(TezConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT,
-                  TezConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT))
+              conf.getInt(TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT,
+                  TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT))
           .setSecretManager(jobTokenSecretManager).build();
 
       // Enable service authorization?

@@ -67,14 +67,14 @@ public class AMNodeMap extends AbstractService implements
   @Override
   public synchronized void serviceInit(Configuration conf) {
     this.maxTaskFailuresPerNode = conf.getInt(
-        TezConfiguration.DAG_MAX_TASK_FAILURES_PER_NODE, 
-        TezConfiguration.DAG_MAX_TASK_FAILURES_PER_NODE_DEFAULT);
+        TezConfiguration.TEZ_MAX_TASK_FAILURES_PER_NODE, 
+        TezConfiguration.TEZ_MAX_TASK_FAILURES_PER_NODE_DEFAULT);
     this.nodeBlacklistingEnabled = conf.getBoolean(
-        TezConfiguration.DAG_NODE_BLACKLISTING_ENABLED,
-        TezConfiguration.DAG_NODE_BLACKLISTING_ENABLED_DEFAULT);
+        TezConfiguration.TEZ_NODE_BLACKLISTING_ENABLED,
+        TezConfiguration.TEZ_NODE_BLACKLISTING_ENABLED_DEFAULT);
     this.blacklistDisablePercent = conf.getInt(
-          TezConfiguration.DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD,
-          TezConfiguration.DAG_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT);
+          TezConfiguration.TEZ_NODE_BLACKLISTING_IGNORE_THRESHOLD,
+          TezConfiguration.TEZ_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT);
 
     LOG.info("blacklistDisablePercent is " + blacklistDisablePercent +
         ", blacklistingEnabled: " + nodeBlacklistingEnabled + 

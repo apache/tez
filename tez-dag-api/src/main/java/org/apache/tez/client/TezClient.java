@@ -380,11 +380,11 @@ public class TezClient {
     // Setup resource requirements
     Resource capability = Records.newRecord(Resource.class);
     capability.setMemory(
-        conf.getInt(TezConfiguration.DAG_AM_RESOURCE_MEMORY_MB,
-            TezConfiguration.DEFAULT_DAG_AM_RESOURCE_MEMORY_MB));
+        conf.getInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB,
+            TezConfiguration.DEFAULT_TEZ_AM_RESOURCE_MEMORY_MB));
     capability.setVirtualCores(
-        conf.getInt(TezConfiguration.DAG_AM_RESOURCE_CPU_VCORES,
-            TezConfiguration.DEFAULT_DAG_AM_RESOURCE_CPU_VCORES));
+        conf.getInt(TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES,
+            TezConfiguration.DEFAULT_TEZ_AM_RESOURCE_CPU_VCORES));
     LOG.debug("AppMaster capability = " + capability);
 
     ByteBuffer securityTokens = null;
@@ -406,7 +406,7 @@ public class TezClient {
     
     vargs.addAll(amArgs);
 
-    vargs.add(TezConfiguration.DAG_APPLICATION_MASTER_CLASS);
+    vargs.add(TezConfiguration.TEZ_APPLICATION_MASTER_CLASS);
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
         File.separator + ApplicationConstants.STDOUT);
     vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
@@ -472,8 +472,8 @@ public class TezClient {
     
     // emit protobuf DAG file style
     Path binaryPath =  new Path(appStagingDir,
-        TezConfiguration.DAG_AM_PLAN_PB_BINARY + "." + appId.toString());
-    amConf.set(TezConfiguration.DAG_AM_PLAN_REMOTE_PATH, binaryPath.toUri()
+        TezConfiguration.TEZ_AM_PLAN_PB_BINARY + "." + appId.toString());
+    amConf.set(TezConfiguration.TEZ_AM_PLAN_REMOTE_PATH, binaryPath.toUri()
         .toString());
 
     Configuration finalAMConf = createFinalAMConf(amConf);
@@ -493,13 +493,13 @@ public class TezClient {
       }
     }
 
-    localResources.put(TezConfiguration.DAG_AM_PLAN_PB_BINARY,
+    localResources.put(TezConfiguration.TEZ_AM_PLAN_PB_BINARY,
         createApplicationResource(fs,
             binaryPath, LocalResourceType.FILE));
 
     if (Level.DEBUG.isGreaterOrEqual(Level.toLevel(amLogLevel))) {
       Path textPath = localizeDagPlanAsText(dagPB, fs, appStagingDir, appId);
-      localResources.put(TezConfiguration.DAG_AM_PLAN_PB_TEXT,
+      localResources.put(TezConfiguration.TEZ_AM_PLAN_PB_TEXT,
           createApplicationResource(fs, textPath, LocalResourceType.FILE));
     }
     
@@ -531,7 +531,7 @@ public class TezClient {
   private Path localizeDagPlanAsText(DAGPlan dagPB, FileSystem fs,
       Path appStagingDir, ApplicationId appId) throws IOException {
     Path textPath = new Path(appStagingDir,
-        TezConfiguration.DAG_AM_PLAN_PB_TEXT + "." + appId.toString());
+        TezConfiguration.TEZ_AM_PLAN_PB_TEXT + "." + appId.toString());
     FSDataOutputStream dagPBOutTextStream = null;
     try {
       dagPBOutTextStream = FileSystem.create(fs, textPath, new FsPermission(

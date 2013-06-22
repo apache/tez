@@ -25,8 +25,8 @@ public class DAGApps {
 
   private static final String STAGING_CONSTANT = ".staging";
   public static Path getStagingAreaDir(TezConfiguration conf, String user) {
-    return new Path(conf.get(TezConfiguration.DAG_AM_STAGING_DIR,
-        TezConfiguration.DAG_AM_STAGING_DIR_DEFAULT)
+    return new Path(conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
+        TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT)
         + Path.SEPARATOR + user + Path.SEPARATOR + STAGING_CONSTANT);
   }
   

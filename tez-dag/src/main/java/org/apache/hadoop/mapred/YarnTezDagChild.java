@@ -298,7 +298,7 @@ public class YarnTezDagChild {
     FileInputStream dagPBBinaryStream = null;
     try {
       dagPBBinaryStream = new FileInputStream(
-          TezConfiguration.DAG_AM_PLAN_PB_BINARY);
+          TezConfiguration.TEZ_AM_PLAN_PB_BINARY);
       dagPlanBuilder.mergeFrom(dagPBBinaryStream);
     } finally {
       if (dagPBBinaryStream != null) {

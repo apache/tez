@@ -594,16 +594,16 @@ public class DAGAppMaster extends CompositeService {
   protected TaskHeartbeatHandler createTaskHeartbeatHandler(AppContext context,
       TezConfiguration conf) {
     TaskHeartbeatHandler thh = new TaskHeartbeatHandler(context, conf.getInt(
-        TezConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT,
-        TezConfiguration.DAG_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT));
+        TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT,
+        TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT));
     return thh;
   }
 
   protected ContainerHeartbeatHandler createContainerHeartbeatHandler(AppContext context,
       TezConfiguration conf) {
     ContainerHeartbeatHandler chh = new ContainerHeartbeatHandler(context, conf.getInt(
-        TezConfiguration.DAG_AM_CONTAINER_LISTENER_THREAD_COUNT,
-        TezConfiguration.DAG_AM_CONTAINER_LISTENER_THREAD_COUNT_DEFAULT));
+        TezConfiguration.TEZ_AM_CONTAINER_LISTENER_THREAD_COUNT,
+        TezConfiguration.TEZ_AM_CONTAINER_LISTENER_THREAD_COUNT_DEFAULT));
     return chh;
   }
 
@@ -997,7 +997,7 @@ public class DAGAppMaster extends CompositeService {
       FileInputStream dagPBBinaryStream = null;
       try {
         dagPBBinaryStream = new FileInputStream(
-            TezConfiguration.DAG_AM_PLAN_PB_BINARY);
+            TezConfiguration.TEZ_AM_PLAN_PB_BINARY);
         dagPlanBuilder.mergeFrom(dagPBBinaryStream);
       } finally {
         if (dagPBBinaryStream != null) {
