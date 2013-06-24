@@ -26,28 +26,19 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.mapreduce.protocol.ClientProtocol;
 import org.apache.hadoop.mapreduce.protocol.ClientProtocolProvider;
-import org.apache.hadoop.mapreduce.server.jobtracker.JTConfig;
+import org.apache.tez.dag.api.TezConfiguration;
 
 @InterfaceAudience.Private
-public class LocalClientProtocolProvider extends ClientProtocolProvider {
+public class LocalClientProtocolProviderTez extends ClientProtocolProvider {
 
   @Override
   public ClientProtocol create(Configuration conf) throws IOException {
     String framework =
-        conf.get(MRConfig.FRAMEWORK_NAME, MRConfig.LOCAL_FRAMEWORK_NAME);
-    if (!MRConfig.LOCAL_FRAMEWORK_NAME.equals(framework)) {
+        conf.get(MRConfig.FRAMEWORK_NAME);
+    if (!TezConfiguration.LOCAL_FRAMEWORK_NAME.equals(framework)) {
       return null;
     }
-    String tracker = conf.get(JTConfig.JT_IPC_ADDRESS, "local");
-    if ("local".equals(tracker)) {
-      conf.setInt("mapreduce.job.maps", 1);
-      return new LocalJobRunner(conf);
-    } else {
-
-      throw new IOException("Invalid \"" + JTConfig.JT_IPC_ADDRESS
-          + "\" configuration value for LocalJobRunner : \""
-          + tracker + "\"");
-    }
+    return new LocalJobRunnerTez(conf);
   }
 
   @Override

@@ -135,4 +135,6 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "lib.uris";
 
   public static final String TEZ_APPLICATION_TYPE = "TEZ-MR*";
+  
+  public static final String LOCAL_FRAMEWORK_NAME = "local-tez";
 }

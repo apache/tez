@@ -24,7 +24,7 @@ import org.apache.hadoop.metrics.Updater;
 import org.apache.hadoop.metrics.jvm.JvmMetrics;
 
 @SuppressWarnings("deprecation")
-class LocalJobRunnerMetrics implements Updater {
+class LocalJobRunnerMetricsTez implements Updater {
   private final MetricsRecord metricsRecord;
 
   private int numMapTasksLaunched = 0;
@@ -34,7 +34,7 @@ class LocalJobRunnerMetrics implements Updater {
   private int numWaitingMaps = 0;
   private int numWaitingReduces = 0;
   
-  public LocalJobRunnerMetrics(JobConf conf) {
+  public LocalJobRunnerMetricsTez(JobConf conf) {
     String sessionId = conf.getSessionId();
     // Initiate JVM Metrics
     JvmMetrics.init("JobTracker", sessionId);

@@ -92,9 +92,9 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 /** Implements MapReduce locally, in-process, for debugging. */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public class LocalJobRunner implements ClientProtocol {
+public class LocalJobRunnerTez implements ClientProtocol {
   public static final Log LOG =
-    LogFactory.getLog(LocalJobRunner.class);
+    LogFactory.getLog(LocalJobRunnerTez.class);
 
   /** The maximum number of map tasks to run in parallel in LocalJobRunner */
   public static final String LOCAL_MAX_MAPS =
@@ -107,7 +107,7 @@ public class LocalJobRunner implements ClientProtocol {
   private int reduce_tasks = 0;
   final Random rand = new Random();
 
-  private LocalJobRunnerMetrics myMetrics = null;
+  private LocalJobRunnerMetricsTez myMetrics = null;
 
   private static final String jobDir =  "localRunner/";
 
@@ -669,15 +669,15 @@ public class LocalJobRunner implements ClientProtocol {
     }
   }
 
-  public LocalJobRunner(Configuration conf) throws IOException {
+  public LocalJobRunnerTez(Configuration conf) throws IOException {
     this(new JobConf(conf));
   }
 
   @Deprecated
-  public LocalJobRunner(JobConf conf) throws IOException {
+  public LocalJobRunnerTez(JobConf conf) throws IOException {
     this.fs = FileSystem.getLocal(conf);
     this.conf = conf;
-    myMetrics = new LocalJobRunnerMetrics(new JobConf(conf));
+    myMetrics = new LocalJobRunnerMetricsTez(new JobConf(conf));
   }
 
   // JobSubmissionProtocol methods
