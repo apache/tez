@@ -41,15 +41,24 @@ public class ShuffledMergedInput implements Input {
   TezRawKeyValueIterator rIter = null;
 
   protected TezEngineTaskContext task;
+  protected int index;
   protected RunningTaskContext runningTaskContext;
   
   private Configuration conf;
   private CombineInput raw;
+  private int taskIndegree = 0;
 
-  public ShuffledMergedInput(TezEngineTaskContext task) {
+  public ShuffledMergedInput(TezEngineTaskContext task, int index) {
     this.task = task;
+    this.index = index;
+    this.taskIndegree = this.task.getInputSpecList().get(this.index)
+        .getNumInputs();
   }
 
+  public void mergeWith(ShuffledMergedInput other) {
+    this.taskIndegree += other.taskIndegree;
+  }
+  
   public void setTask(RunningTaskContext runningTaskContext) {
     this.runningTaskContext = runningTaskContext;
   }
@@ -57,11 +66,11 @@ public class ShuffledMergedInput implements Input {
   public void initialize(Configuration conf, Master master) throws IOException,
       InterruptedException {
     this.conf = conf;
-    
+        
     Shuffle shuffle = 
       new Shuffle(
           task, runningTaskContext, this.conf, 
-          task.getInputSpecList().get(0).getNumInputs(),
+          taskIndegree,
           (TezTaskReporter)master, 
           runningTaskContext.getCombineProcessor());
     rIter = shuffle.run();

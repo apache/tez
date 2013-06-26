@@ -75,6 +75,7 @@ import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -170,7 +171,7 @@ public class TestMRRJobsDAGApi {
 
   // Submits a simple 3 stage sleep job using the DAG submit API instead of job
   // client.
-  @Test(timeout = 300000)
+  @Test(timeout = 60000)
   public void testMRRSleepJobDagSubmit() throws IOException,
       InterruptedException, TezException, ClassNotFoundException, YarnException {
     LOG.info("\n\n\nStarting testMRRSleepJobDagSubmit().");
@@ -209,7 +210,10 @@ public class TestMRRJobsDAGApi {
         IntWritable.class.getName());
     stage2Conf.set(MRJobConfig.PARTITIONER_CLASS_ATTR,
         MRRSleepJobPartitioner.class.getName());
-
+    
+    JobConf stage22Conf = new JobConf(stage2Conf);
+    stage22Conf.setInt(MRJobConfig.NUM_REDUCES, 2);
+    
     stage3Conf.setLong(MRRSleepJob.REDUCE_SLEEP_TIME, 1);
     stage3Conf.setInt(MRRSleepJob.REDUCE_SLEEP_COUNT, 1);
     stage3Conf.setInt(MRJobConfig.NUM_REDUCES, 1);
@@ -224,18 +228,23 @@ public class TestMRRJobsDAGApi {
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage1Conf, null);
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage2Conf,
         stage1Conf);
+    MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage22Conf,
+        stage1Conf);
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage3Conf,
-        stage2Conf);
+        stage2Conf); // this also works stage22 as it sets up keys etc
 
     MRHelpers.doJobClientMagic(stage1Conf);
     MRHelpers.doJobClientMagic(stage2Conf);
+    MRHelpers.doJobClientMagic(stage22Conf);
     MRHelpers.doJobClientMagic(stage3Conf);
 
     Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String
         .valueOf(new Random().nextInt(100000))));
     InputSplitInfo inputSplitInfo = MRHelpers.generateInputSplits(stage1Conf,
         remoteStagingDir);
-
+    InputSplitInfo inputSplitInfo1 = MRHelpers.generateInputSplits(stage1Conf,
+        remoteStagingDir);
+    
     DAG dag = new DAG("testMRRSleepJobDagSubmit");
     Vertex stage1Vertex = new Vertex("map", new ProcessorDescriptor(
         MapProcessor.class.getName(),
@@ -245,6 +254,14 @@ public class TestMRRJobsDAGApi {
         ReduceProcessor.class.getName(),
         MRHelpers.createByteBufferFromConf(stage2Conf)),
         1, Resource.newInstance(256, 1));
+    Vertex stage11Vertex = new Vertex("map1", new ProcessorDescriptor(
+        MapProcessor.class.getName(),
+        MRHelpers.createByteBufferFromConf(stage1Conf)),
+        inputSplitInfo1.getNumTasks(),  Resource.newInstance(256, 1));
+    Vertex stage22Vertex = new Vertex("ireduce1", new ProcessorDescriptor(
+        ReduceProcessor.class.getName(),
+        MRHelpers.createByteBufferFromConf(stage22Conf)),  
+        2, Resource.newInstance(256, 1));
     Vertex stage3Vertex = new Vertex("reduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName(),
         MRHelpers.createByteBufferFromConf(stage3Conf)),
@@ -277,26 +294,52 @@ public class TestMRRJobsDAGApi {
         createLocalResource(remoteFs, inputSplitInfo.getSplitsMetaInfoFile(),
             LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
     stage1LocalResources.putAll(commonLocalResources);
+    
+    Map<String, LocalResource> stage11LocalResources = new HashMap<String, LocalResource>();
+    stage11LocalResources.put(
+        inputSplitInfo1.getSplitsFile().getName(),
+        createLocalResource(remoteFs, inputSplitInfo1.getSplitsFile(),
+            LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
+    stage11LocalResources.put(
+        inputSplitInfo1.getSplitsMetaInfoFile().getName(),
+        createLocalResource(remoteFs, inputSplitInfo1.getSplitsMetaInfoFile(),
+            LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
+    stage11LocalResources.putAll(commonLocalResources);
 
     stage1Vertex.setJavaOpts(MRHelpers.getMapJavaOpts(stage1Conf));
     stage1Vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
     stage1Vertex.setTaskLocalResources(stage1LocalResources);
     stage1Vertex.setTaskEnvironment(commonEnv);
+    
+    stage11Vertex.setJavaOpts(MRHelpers.getMapJavaOpts(stage1Conf));
+    stage11Vertex.setTaskLocationsHint(inputSplitInfo1.getTaskLocationHints());
+    stage11Vertex.setTaskLocalResources(stage11LocalResources);
+    stage11Vertex.setTaskEnvironment(commonEnv);
     // TODO env, resources
 
     stage2Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage2Conf));
     stage2Vertex.setTaskLocalResources(commonLocalResources);
     stage2Vertex.setTaskEnvironment(commonEnv);
+    
+    stage22Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage22Conf));
+    stage22Vertex.setTaskLocalResources(commonLocalResources);
+    stage22Vertex.setTaskEnvironment(commonEnv);
 
     stage3Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage3Conf));
     stage3Vertex.setTaskLocalResources(commonLocalResources);
     stage3Vertex.setTaskEnvironment(commonEnv);
 
     dag.addVertex(stage1Vertex);
+    dag.addVertex(stage11Vertex);
     dag.addVertex(stage2Vertex);
+    dag.addVertex(stage22Vertex);
     dag.addVertex(stage3Vertex);
 
     Edge edge1 = new Edge(stage1Vertex, stage2Vertex, new EdgeProperty(
+        ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
+        OnFileSortedOutput.class.getName(), null), new InputDescriptor(
+                ShuffledMergedInput.class.getName(), null)));
+    Edge edge11 = new Edge(stage11Vertex, stage22Vertex, new EdgeProperty(
         ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
         OnFileSortedOutput.class.getName(), null), new InputDescriptor(
                 ShuffledMergedInput.class.getName(), null)));
@@ -304,9 +347,15 @@ public class TestMRRJobsDAGApi {
         ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
         OnFileSortedOutput.class.getName(), null), new InputDescriptor(
                 ShuffledMergedInput.class.getName(), null)));
+    Edge edge3 = new Edge(stage22Vertex, stage3Vertex, new EdgeProperty(
+        ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
+        OnFileSortedOutput.class.getName(), null), new InputDescriptor(
+                ShuffledMergedInput.class.getName(), null)));
 
     dag.addEdge(edge1);
+    dag.addEdge(edge11);
     dag.addEdge(edge2);
+    dag.addEdge(edge3);
 
     Map<String, LocalResource> amLocalResources = new HashMap<String, LocalResource>();
     amLocalResources.put("yarn-site.xml", yarnSiteLr);
@@ -320,15 +369,16 @@ public class TestMRRJobsDAGApi {
         amLocalResources, new TezConfiguration());
 
     DAGStatus dagStatus = dagClient.getDAGStatus();
-    while (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
+    while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for job to complete. Sleeping for 500ms. Current state: "
-          + dagStatus);
+          + dagStatus.getState());
       // TODO The test will fail if the AM sleep is removed. TEZ-207 to fix
       // this.
       Thread.sleep(500l);
       dagStatus = dagClient.getDAGStatus();
     }
 
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
     // TODO Add additional checks for tracking URL etc. - once it's exposed by
     // the DAG API.
   }

@@ -67,6 +67,14 @@ public class DAGStatus {
                               proxy.getState());
     }
   }
+  
+  public boolean isCompleted() {
+    State state = getState();
+    return (state == State.SUCCEEDED ||
+             state == State.FAILED ||
+             state == State.KILLED ||
+             state == State.ERROR);
+  }
 
   public List<String> getDiagnostics() {
     return proxy.getDiagnosticsList();

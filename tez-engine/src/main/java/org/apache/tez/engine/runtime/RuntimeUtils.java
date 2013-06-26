@@ -38,6 +38,8 @@ public class RuntimeUtils {
 
   private static final Class<?>[] CONTEXT_ARRAY =
       new Class[] { TezEngineTaskContext.class };
+  private static final Class<?>[] CONTEXT_INT_ARRAY =
+      new Class[] { TezEngineTaskContext.class, Integer.TYPE };
   private static final Map<Class<?>, Constructor<?>> CONSTRUCTOR_CACHE =
     new ConcurrentHashMap<Class<?>, Constructor<?>>();
 
@@ -53,6 +55,24 @@ public class RuntimeUtils {
         CONSTRUCTOR_CACHE.put(theClass, meth);
       }
       result = meth.newInstance(context);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    return result;
+  }
+  
+  @SuppressWarnings("unchecked")
+  public static <T> T getNewInputInstance(Class<T> theClass,
+      TezEngineTaskContext context, int index) {
+    T result;
+    try {
+      Constructor<T> meth = (Constructor<T>) CONSTRUCTOR_CACHE.get(theClass);
+      if (meth == null) {
+        meth = theClass.getDeclaredConstructor(CONTEXT_INT_ARRAY);
+        meth.setAccessible(true);
+        CONSTRUCTOR_CACHE.put(theClass, meth);
+      }
+      result = meth.newInstance(context, index);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -92,7 +112,7 @@ public class RuntimeUtils {
                 + ", inputClass=" + inSpec.getInputClassName());
           }
           Class<?> inputClazz = Class.forName(inSpec.getInputClassName());
-          Input input = (Input) getNewInstance(inputClazz, taskContext);
+          Input input = (Input) getNewInputInstance(inputClazz, taskContext, i);
           inputs[i] = input;
         }
       }

@@ -60,7 +60,6 @@ import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.ProgressBuilder;
-import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
@@ -845,21 +844,30 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     private void assignDAGScheduler(DAGImpl dag) {
       boolean isMRR = true;
-      for(Vertex vertex : dag.vertices.values()) {
+      for (Vertex vertex : dag.vertices.values()) {
         Map<Vertex, EdgeProperty> outVertices = vertex.getOutputVertices();
-        if(outVertices == null || outVertices.isEmpty()) {
-          continue;
-        }
-        if(outVertices.size() > 1 ||
-           outVertices.values().iterator().next().getConnectionPattern() !=
-           EdgeProperty.ConnectionPattern.BIPARTITE) {
+        Map<Vertex, EdgeProperty> inVertices = vertex.getInputVertices();
+        if(!(outVertices == null || 
+            outVertices.isEmpty() || 
+            (outVertices.size() == 1 && 
+              outVertices.values().iterator().next().getConnectionPattern() 
+              != EdgeProperty.ConnectionPattern.BIPARTITE))) {
           // more than 1 output OR single output is not bipartite
           isMRR = false;
-          break;
+          break;          
+        }
+        if(!(inVertices == null || 
+            inVertices.isEmpty() || 
+            (inVertices.size() == 1 && 
+              inVertices.values().iterator().next().getConnectionPattern() 
+              != EdgeProperty.ConnectionPattern.BIPARTITE))) {
+          // more than 1 output OR single output is not bipartite
+          isMRR = false;
+          break;          
         }
       }
 
-      if(isMRR) {
+      if (isMRR) {
         LOG.info("Using MRR dag scheduler");
         dag.dagScheduler = new DAGSchedulerMRR(
             dag,
@@ -867,8 +875,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
             dag.appContext.getTaskScheduler(),
             dag.conf
                 .getFloat(
-        TezConfiguration.SLOWSTART_TEZ_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION,
-        TezConfiguration.SLOWSTART_TEZ_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION_DEFAULT));
+                    TezConfiguration.SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION,
+                    TezConfiguration.SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION_DEFAULT));
       } else {
         LOG.info("Using Natural order dag scheduler");
         dag.dagScheduler = new DAGSchedulerNaturalOrder(dag, dag.eventHandler);
@@ -879,7 +887,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       TezVertexID vertexId = TezBuilderUtils.newVertexID(dag.getID(), vId);
 
       VertexPlan vertexPlan = dag.getJobPlan().getVertex(vId);
-      VertexLocationHint vertexLocationHint = DagTypeConverters.convertFromDAGPlan(vertexPlan.getTaskLocationHintList());
+      VertexLocationHint vertexLocationHint = DagTypeConverters
+          .convertFromDAGPlan(vertexPlan.getTaskLocationHintList());
 
       return new VertexImpl(
           vertexId, vertexPlan, vertexName, dag.conf,

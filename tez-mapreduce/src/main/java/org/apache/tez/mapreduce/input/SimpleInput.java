@@ -82,7 +82,7 @@ public class SimpleInput implements Input {
   private List<Statistics> fsStats;
   private MRTaskReporter reporter;
 
-  public SimpleInput(TezEngineTaskContext task)
+  public SimpleInput(TezEngineTaskContext task, int index)
   {}
   
   public void setTask(MRTask task) {

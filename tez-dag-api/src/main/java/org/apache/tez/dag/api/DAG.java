@@ -32,6 +32,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
@@ -101,17 +102,12 @@ public class DAG { // FIXME rename to Topology
 
     int index; //for Tarjan's algorithm
     int lowlink; //for Tarjan's algorithm
-    boolean onstack; //for Tarjan's algorithm
-
-    int inDegree;
-    int outDegree;
-
+    boolean onstack; //for Tarjan's algorithm 
+    
     private AnnotatedVertex(Vertex v){
        this.v = v;
        index = -1;
        lowlink = -1;
-       inDegree = 0;
-       outDegree = 0;
     }
   }
 
@@ -169,17 +165,10 @@ public class DAG { // FIXME rename to Topology
 
     if(restricted){
       for(Edge e : edges){
-        vertexMap.get(e.getInputVertex().getVertexName()).outDegree++;
-        vertexMap.get(e.getOutputVertex().getVertexName()).inDegree++;
-      }
-      for(AnnotatedVertex av: vertexMap.values()){
-        if(av.inDegree > 1){
-          throw new IllegalStateException("Vertex has inDegree>1: "
-              + av.v.getVertexName());
-        }
-        if(av.outDegree > 1){
-          throw new IllegalStateException("Vertex has outDegree>1: "
-              + av.v.getVertexName());
+        if (e.getEdgeProperty().getConnectionPattern() != 
+            ConnectionPattern.BIPARTITE) {
+          throw new IllegalStateException(
+              "Unsupported connection pattern on edge. " + e);
         }
       }
     }
@@ -250,7 +239,6 @@ public class DAG { // FIXME rename to Topology
   // create protobuf message describing DAG
   @Private
   public DAGPlan createDag(Configuration amConf) {
-
     verify(true);
 
     DAGPlan.Builder jobBuilder = DAGPlan.newBuilder();

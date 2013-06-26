@@ -1057,6 +1057,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     public void transition(VertexImpl vertex, VertexEvent event) {
       TezDependentTaskCompletionEvent tce =
           ((VertexEventSourceTaskAttemptCompleted) event).getCompletionEvent();
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Adding completion event to vertex: " + vertex.getName()
+            + " attempt: " + tce.getTaskAttemptID() + " url: "
+            + tce.getTaskTrackerHttp());
+      }
       // Add the TaskAttemptCompletionEvent
       //eventId is equal to index in the arraylist
       tce.setEventId(vertex.sourceTaskAttemptCompletionEvents.size());

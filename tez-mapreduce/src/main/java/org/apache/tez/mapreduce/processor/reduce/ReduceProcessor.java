@@ -18,6 +18,7 @@
 package org.apache.tez.mapreduce.processor.reduce;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -33,6 +34,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
@@ -72,10 +74,6 @@ implements Processor {
     TezEngineTaskContext tezEngineContext = (TezEngineTaskContext) context;
     Preconditions.checkNotNull(tezEngineContext.getInputSpecList(),
         "InputSpecList should not be null");
-    Preconditions.checkArgument(
-        tezEngineContext.getInputSpecList().size() == 1,
-        "Expected exactly one input, found : "
-            + tezEngineContext.getInputSpecList().size());
   }
   
   @Override
@@ -92,19 +90,50 @@ implements Processor {
     initTask(jobConf, taskAttemptId.getTaskID().getVertexID().getDAGId(),
         reporter, useNewApi);
 
-    if (ins.length != 1
-        || outs.length != 1) {
-      throw new IOException("Cannot handle multiple inputs or outputs"
-          + ", inputCount=" + ins.length
+    if (outs.length <= 0 || outs.length > 1) {
+      throw new IOException("Invalid number of outputs"
           + ", outputCount=" + outs.length);
     }
+    
+    if (ins.length <= 0) {
+      throw new IOException("Invalid number of inputs"
+          + ", inputCount=" + ins.length);
+    }
+
     Input in = ins[0];
     Output out = outs[0];
+
+    List<InputSpec> inputs = getTezEngineTaskContext().getInputSpecList();
 
     if (in instanceof SimpleInput) {
       ((SimpleInput)in).setTask(this);
     } else if (in instanceof ShuffledMergedInput) {
       ((ShuffledMergedInput)in).setTask(this);
+    }
+    
+    if(ins.length > 1) {
+      if (!(in instanceof ShuffledMergedInput)) {
+        throw new IOException(
+            "Only ShuffledMergedInput can support multiple inputs"
+                + ". inputCount=" + ins.length);
+      }      
+      if(ins.length != inputs.size()) {
+        throw new IOException(
+            "Mismatch in input size passed and context inputspec size. Passed: "
+                + ins.length + " From contex:" + inputs.size());
+      }
+      // initialize and merge the remaining
+      ShuffledMergedInput s0 = ((ShuffledMergedInput)in);
+      for(int i=1; i<ins.length; ++i) {
+        Input inputi = ins[i];
+        if (!(inputi instanceof ShuffledMergedInput)) {
+          throw new IOException(
+              "Only ShuffledMergedInput can support multiple inputs"
+                  + ". inputCount=" + ins.length);
+        }      
+        ShuffledMergedInput si = ((ShuffledMergedInput)inputi);
+        s0.mergeWith(si);
+      }
     }
     
     if (out instanceof SimpleOutput) {

@@ -39,8 +39,8 @@ public class LocalMergedInput extends ShuffledMergedInput {
   private Configuration conf;
   private CombineInput raw;
 
-  public LocalMergedInput(TezEngineTaskContext task) {
-    super(task);
+  public LocalMergedInput(TezEngineTaskContext task, int index) {
+    super(task, index);
   }
 
   public void initialize(Configuration conf, Master master) throws IOException,

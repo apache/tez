@@ -54,7 +54,7 @@ class ShuffleScheduler {
   private static final long INITIAL_PENALTY = 10000;
   private static final float PENALTY_GROWTH_RATE = 1.3f;
   
-  private final boolean[] finishedMaps;
+  private final Map<TezTaskID, Boolean> finishedMaps;
   private final int tasksInDegree;
   private int remainingMaps;
   private Map<String, MapHost> mapLocations = new HashMap<String, MapHost>();
@@ -99,7 +99,7 @@ class ShuffleScheduler {
     this.tasksInDegree = tasksInDegree;
     abortFailureLimit = Math.max(30, tasksInDegree / 10);
     remainingMaps = tasksInDegree;
-    finishedMaps = new boolean[remainingMaps];
+    finishedMaps = new HashMap<TezTaskID, Boolean>(remainingMaps);
     this.reporter = reporter;
     this.status = status;
     this.progress = progress;
@@ -129,11 +129,11 @@ class ShuffleScheduler {
                                          ) throws IOException {
     failureCounts.remove(mapId);
     hostFailures.remove(host.getHostName());
-    int mapIndex = mapId.getTaskID().getId();
+    TezTaskID taskId = mapId.getTaskID();
     
-    if (!finishedMaps[mapIndex]) {
+    if (!isFinishedTaskTrue(taskId)) {
       output.commit();
-      finishedMaps[mapIndex] = true;
+      setFinishedTaskTrue(taskId);
       shuffledMapsCounter.increment(1);
       if (--remainingMaps == 0) {
         notifyAll();
@@ -262,8 +262,8 @@ class ShuffleScheduler {
   }
   
   public synchronized void tipFailed(TezTaskID taskId) {
-    if (!finishedMaps[taskId.getId()]) {
-      finishedMaps[taskId.getId()] = true;
+    if (!isFinishedTaskTrue(taskId)) {
+      setFinishedTaskTrue(taskId);
       if (--remainingMaps == 0) {
         notifyAll();
       }
@@ -312,7 +312,7 @@ class ShuffleScheduler {
       pendingHosts.remove(host);     
       host.markBusy();
       
-      LOG.info("Assiging " + host + " with " + host.getNumKnownMapOutputs() + 
+      LOG.info("Assigning " + host + " with " + host.getNumKnownMapOutputs() + 
                " to " + Thread.currentThread().getName());
       shuffleStart.set(System.currentTimeMillis());
       
@@ -328,7 +328,7 @@ class ShuffleScheduler {
     // find the maps that we still need, up to the limit
     while (itr.hasNext()) {
       TezTaskAttemptID id = itr.next();
-      if (!obsoleteMaps.contains(id) && !finishedMaps[id.getTaskID().getId()]) {
+      if (!obsoleteMaps.contains(id) && !isFinishedTaskTrue(id.getTaskID())) {
         result.add(id);
         if (++includedMaps >= MAX_MAPS_AT_ONCE) {
           break;
@@ -338,7 +338,7 @@ class ShuffleScheduler {
     // put back the maps left after the limit
     while (itr.hasNext()) {
       TezTaskAttemptID id = itr.next();
-      if (!obsoleteMaps.contains(id) && !finishedMaps[id.getTaskID().getId()]) {
+      if (!obsoleteMaps.contains(id) && !isFinishedTaskTrue(id.getTaskID())) {
         host.addKnownMap(id);
       }
     }
@@ -441,5 +441,18 @@ class ShuffleScheduler {
     if (duration > maxMapRuntime) {
       maxMapRuntime = duration;
     }
+  }
+  
+  void setFinishedTaskTrue(TezTaskID taskId) {
+    finishedMaps.put(taskId, true);
+  }
+  
+  boolean isFinishedTaskTrue(TezTaskID taskId) {
+    Boolean result = finishedMaps.get(taskId);
+    if(result == null) {
+      return false;
+    }
+    
+    return result.booleanValue();
   }
 }

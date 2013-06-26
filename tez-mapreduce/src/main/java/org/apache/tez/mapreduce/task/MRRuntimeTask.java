@@ -99,7 +99,7 @@ public class MRRuntimeTask extends RuntimeTask {
     // TODO Avoid all this extra config manipulation.
     // FIXME we need I/O/p level configs to be used in init below
 
-    // TOOD Post MRR
+    // TODO Post MRR
     // A single file per vertex will likely be a better solution. Does not
     // require translation - client can take care of this. Will work independent
     // of whether the configuration is for intermediate tasks or not. Has the
@@ -124,7 +124,7 @@ public class MRRuntimeTask extends RuntimeTask {
   
   /*
    * Used when creating a conf from the userPayload. Need to copy all the tez
-   * config parameters whcih are set by YarnTezDagChild
+   * config parameters which are set by YarnTezDagChild
    */
   public static void copyTezConfigParameters(Configuration conf,
       Configuration tezTaskConf) {
