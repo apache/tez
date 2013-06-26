@@ -331,6 +331,181 @@ public class TestTaskScheduler {
                   unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED, 
                                               appMsg, appUrl);
     verify(mockRMClient).stop();
+    scheduler.close();
   }
   
+  @SuppressWarnings("unchecked")
+  @Test
+  public void testTaskSchedulerPreemption() throws Exception {
+    RackResolver.init(new YarnConfiguration());
+    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
+    
+    AMRMClientAsync<CookieContainerRequest> mockRMClient = 
+                                                  mock(AMRMClientAsync.class);
+    
+    ApplicationAttemptId attemptId = 
+        ApplicationAttemptId.newInstance(
+                                  ApplicationId.newInstance(1234, 0), 0);
+    String appHost = "host";
+    int appPort = 0;
+    String appUrl = "url";
+    TaskScheduler scheduler = new TaskScheduler(attemptId, mockApp, appHost, 
+                                                appPort, appUrl, mockRMClient);
+    
+    Configuration conf = new Configuration(); 
+    scheduler.init(conf);
+    
+    RegisterApplicationMasterResponse mockRegResponse = 
+                       mock(RegisterApplicationMasterResponse.class);
+    when(
+        mockRMClient.registerApplicationMaster(anyString(), anyInt(),
+            anyString())).thenReturn(mockRegResponse);
+
+    scheduler.start();
+    Resource totalResource = Resource.newInstance(4000, 4);
+    when(mockRMClient.getAvailableResources()).thenReturn(totalResource);
+    
+    // no preemption
+    scheduler.getProgress();
+    Assert.assertEquals(totalResource, scheduler.getTotalResources());
+    verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
+    
+    // allocate task
+    Object mockTaskPri1 = mock(Object.class);
+    Object mockTaskPri2 = mock(Object.class);
+    Object mockTaskPri3 = mock(Object.class);
+    Object mockTaskPri3Wait = mock(Object.class);
+    Object mockTaskPri3Kill = mock(Object.class);
+    Priority pri1 = Priority.newInstance(1);
+    Priority pri2 = Priority.newInstance(2);
+    Priority pri3 = Priority.newInstance(3);
+    
+    ArgumentCaptor<CookieContainerRequest> requestCaptor = 
+        ArgumentCaptor.forClass(CookieContainerRequest.class);
+    final ArrayList<CookieContainerRequest> anyContainers = 
+        new ArrayList<CookieContainerRequest>();
+    
+    Resource taskAsk = Resource.newInstance(1024, 1);
+    scheduler.allocateTask(mockTaskPri1, taskAsk, null, 
+                           null, pri1, null);
+    verify(mockRMClient, times(1)).
+        addContainerRequest(requestCaptor.capture());
+    anyContainers.add(requestCaptor.getValue());
+    scheduler.allocateTask(mockTaskPri3, taskAsk, null, 
+                           null, pri3, null);
+    verify(mockRMClient, times(2)).
+    addContainerRequest(requestCaptor.capture());
+    anyContainers.add(requestCaptor.getValue());
+    scheduler.allocateTask(mockTaskPri3Kill, taskAsk, null, 
+                           null, pri3, null);
+    verify(mockRMClient, times(3)).
+    addContainerRequest(requestCaptor.capture());
+    anyContainers.add(requestCaptor.getValue());
+    
+    Resource freeResource = Resource.newInstance(500, 0);
+    when(mockRMClient.getAvailableResources()).thenReturn(freeResource);
+    scheduler.getProgress();
+    Assert.assertEquals(totalResource, scheduler.getTotalResources());
+    verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
+    
+    final List<ArrayList<CookieContainerRequest>> anyList = 
+        new LinkedList<ArrayList<CookieContainerRequest>>();
+    final List<ArrayList<CookieContainerRequest>> emptyList = 
+        new LinkedList<ArrayList<CookieContainerRequest>>();
+
+    anyList.add(anyContainers);
+    List<Container> containers = new ArrayList<Container>();
+    Container mockContainer1 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(mockContainer1.getNodeId().getHost()).thenReturn("host1");
+    when(mockContainer1.getResource()).thenReturn(taskAsk);
+    when(mockContainer1.getPriority()).thenReturn(pri1);
+    ContainerId mockCId1 = mock(ContainerId.class);
+    when(mockContainer1.getId()).thenReturn(mockCId1);
+    containers.add(mockContainer1);
+    Container mockContainer2 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(mockContainer2.getNodeId().getHost()).thenReturn("host1");
+    when(mockContainer2.getResource()).thenReturn(taskAsk);
+    when(mockContainer2.getPriority()).thenReturn(pri3);
+    ContainerId mockCId2 = mock(ContainerId.class);
+    when(mockContainer2.getId()).thenReturn(mockCId2);
+    containers.add(mockContainer2);
+    Container mockContainer3 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(mockContainer3.getNodeId().getHost()).thenReturn("host1");
+    when(mockContainer3.getResource()).thenReturn(taskAsk);
+    when(mockContainer3.getPriority()).thenReturn(pri3);
+    ContainerId mockCId3 = mock(ContainerId.class);
+    when(mockContainer3.getId()).thenReturn(mockCId3);
+    containers.add(mockContainer3);
+    when(
+        mockRMClient.getMatchingRequests((Priority) any(), eq("host1"),
+            (Resource) any())).thenAnswer(
+        new Answer<List<? extends Collection<CookieContainerRequest>>>() {
+          @Override
+          public List<? extends Collection<CookieContainerRequest>> answer(
+              InvocationOnMock invocation) throws Throwable {
+            return emptyList;
+          }
+
+        });
+    // RackResolver by default puts hosts in default-rack
+    when(
+        mockRMClient.getMatchingRequests((Priority) any(), eq("/default-rack"),
+            (Resource) any())).thenAnswer(
+        new Answer<List<? extends Collection<CookieContainerRequest>>>() {
+          @Override
+          public List<? extends Collection<CookieContainerRequest>> answer(
+              InvocationOnMock invocation) throws Throwable {
+            return emptyList;
+          }
+
+        });
+    when(
+        mockRMClient.getMatchingRequests((Priority) any(),
+            eq(ResourceRequest.ANY), (Resource) any())).thenAnswer(
+        new Answer<List<? extends Collection<CookieContainerRequest>>>() {
+          int calls = 0;
+          @Override
+          public List<? extends Collection<CookieContainerRequest>> answer(
+              InvocationOnMock invocation) throws Throwable {
+            if(calls > 0) {
+              anyContainers.remove(0);
+            }
+            calls++;
+            return anyList;
+          }
+
+        });
+    scheduler.onContainersAllocated(containers);
+    Assert.assertEquals(3072, scheduler.allocatedResources.getMemory());
+    Assert.assertEquals(mockCId1, 
+        scheduler.taskAllocations.get(mockTaskPri1).getId());
+    Assert.assertEquals(mockCId2, 
+        scheduler.taskAllocations.get(mockTaskPri3).getId());
+    Assert.assertEquals(mockCId3, 
+        scheduler.taskAllocations.get(mockTaskPri3Kill).getId());
+
+    // no preemption
+    scheduler.getProgress();
+    verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
+
+    scheduler.allocateTask(mockTaskPri3Wait, taskAsk, null, 
+                           null, pri3, null);
+    // no preemption
+    scheduler.getProgress();
+    verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
+    
+    scheduler.allocateTask(mockTaskPri2, taskAsk, null, 
+                           null, pri2, null);
+
+    // mockTaskPri3Kill gets preempted
+    scheduler.getProgress();
+    verify(mockRMClient, times(1)).releaseAssignedContainer((ContainerId)any());
+    verify(mockRMClient, times(1)).releaseAssignedContainer(mockCId3);    
+    
+    AppFinalStatus finalStatus = 
+        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, "", appUrl);
+    when(mockApp.getFinalAppStatus()).thenReturn(finalStatus);
+    scheduler.stop();
+    scheduler.close();
+  }
 }

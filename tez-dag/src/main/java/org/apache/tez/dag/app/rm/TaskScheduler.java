@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -46,6 +47,7 @@ import org.apache.hadoop.yarn.client.api.AMRMClient.StoredContainerRequest;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.RackResolver;
+import org.apache.hadoop.yarn.util.resource.Resources;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback.AppFinalStatus;
 
@@ -102,14 +104,16 @@ public class TaskScheduler extends AbstractService
   
   Map<Object, CookieContainerRequest> taskRequests =  
                   new HashMap<Object, CookieContainerRequest>();
-  Map<Object, Container> taskAllocations = 
-                  new HashMap<Object, Container>();
+  // LinkedHashMap is need in getProgress()
+  LinkedHashMap<Object, Container> taskAllocations = 
+                  new LinkedHashMap<Object, Container>();
   Map<ContainerId, Object> containerAssigments = 
                   new HashMap<ContainerId, Object>();
   HashMap<ContainerId, Object> releasedContainers = 
                   new HashMap<ContainerId, Object>();
   
   Resource totalResources = Resource.newInstance(0, 0);
+  Resource allocatedResources = Resource.newInstance(0, 0);
   
   final String appHostName;
   final int appHostPort;
@@ -350,16 +354,18 @@ public class TaskScheduler extends AbstractService
     LOG.info("TEMP dagschedulermrr: sync with RM finished. Headroom: "
         + getAvailableResources().getMemory() + " Allocations: "
         + taskAllocations.size());
+    
     if(totalResources.getMemory() == 0) {
-      // TODO this will not handle dynamic changes
       // assume this is the first allocate callback. nothing is allocated.
       // available resource = totalResource
-      Resource freeResource = getAvailableResources();
-      totalResources.setMemory(freeResource.getMemory());
-      totalResources.setVirtualCores(freeResource.getVirtualCores());
+      // TODO this will not handle dynamic changes in resources
+      totalResources = Resources.clone(getAvailableResources());
       LOG.info("App total resource: " + totalResources.getMemory() + 
                " taskAllocations: " + taskAllocations.size());
     }
+    
+    preemptIfNeeded();
+      
     return appClient.getProgress();
   }
 
@@ -431,6 +437,55 @@ public class TaskScheduler extends AbstractService
     return null;
   }
   
+  synchronized void preemptIfNeeded(/*Resource totalResources, 
+      Resource allocatedResources,
+      Map<Object, CookieContainerRequest> taskRequests,
+      LinkedHashMap<Object, Container> taskAllocations*/      
+      ) {
+    Resource freeResources = Resources.subtract(totalResources,
+        allocatedResources);
+    assert freeResources.getMemory() >= 0;
+    
+    CookieContainerRequest highestPriRequest = null;
+    for(CookieContainerRequest request : taskRequests.values()) {
+      if(highestPriRequest == null) {
+        highestPriRequest = request;
+      } else if(isHigherPriority(request.getPriority(), 
+                                   highestPriRequest.getPriority())){
+        highestPriRequest = request;
+      }
+    }
+    if(highestPriRequest != null && 
+       !Resources.fitsIn(highestPriRequest.getCapability(), freeResources)) {
+      // highest priority request will not fit in existing free resources
+      // free up some more
+      // TODO this is subject to error wrt RM resource normalization
+      Map.Entry<Object, Container> preemptedEntry = null;
+      for(Map.Entry<Object, Container> entry : taskAllocations.entrySet()) {
+        if(!isHigherPriority(highestPriRequest.getPriority(), 
+                             entry.getValue().getPriority())) {
+          // higher or same priority
+          continue;
+        }
+        if(preemptedEntry == null ||
+           !isHigherPriority(entry.getValue().getPriority(), 
+                             preemptedEntry.getValue().getPriority())) {
+          // keep the lower priority or the one added later
+          preemptedEntry = entry;
+        }
+      }
+      if(preemptedEntry != null) {
+        // found something to preempt
+        LOG.info("Preempting task: " + preemptedEntry.getKey() + 
+            " to free resource for request: " + highestPriRequest +
+            " . Current free resources: " + freeResources);
+        deallocateContainer(preemptedEntry.getValue().getId());
+        // app client will be notified when after container is killed
+        // and we get its completed container status
+      }
+    }
+  }
+  
   private CookieContainerRequest getMatchingRequest(
                                       Container container, String location) {
     Priority priority = container.getPriority();
@@ -473,6 +528,8 @@ public class TaskScheduler extends AbstractService
     Container result = taskAllocations.put(task, container);
     assert result == null;
     containerAssigments.put(container.getId(), task);
+    
+    Resources.addTo(allocatedResources, container.getResource());
   }
   
   private CookieContainerRequest removeTaskRequest(Object task) {
@@ -496,6 +553,8 @@ public class TaskScheduler extends AbstractService
     if(container == null) {
       return null;
     }
+    Resources.subtractFrom(allocatedResources, container.getResource());
+    assert allocatedResources.getMemory() >= 0;
     containerAssigments.remove(container.getId());
     if(releaseIfFound) {
       releaseContainer(container.getId(), task);
@@ -509,12 +568,18 @@ public class TaskScheduler extends AbstractService
     if(task == null) {
       return null;
     }
-    taskAllocations.remove(task);
+    Container container = taskAllocations.remove(task);
+    assert container != null;
+    Resources.subtractFrom(allocatedResources, container.getResource());
+    assert allocatedResources.getMemory() >= 0;
     if(releaseIfFound) {
       releaseContainer(containerId, task);
     }
     return task;
   }
 
+  private boolean isHigherPriority(Priority lhs, Priority rhs) {
+    return lhs.getPriority() < rhs.getPriority();
+  }
   
 }
