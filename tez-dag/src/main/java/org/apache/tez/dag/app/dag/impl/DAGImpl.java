@@ -851,7 +851,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
             outVertices.isEmpty() || 
             (outVertices.size() == 1 && 
               outVertices.values().iterator().next().getConnectionPattern() 
-              != EdgeProperty.ConnectionPattern.BIPARTITE))) {
+              == EdgeProperty.ConnectionPattern.BIPARTITE))) {
           // more than 1 output OR single output is not bipartite
           isMRR = false;
           break;          
@@ -860,7 +860,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
             inVertices.isEmpty() || 
             (inVertices.size() == 1 && 
               inVertices.values().iterator().next().getConnectionPattern() 
-              != EdgeProperty.ConnectionPattern.BIPARTITE))) {
+              == EdgeProperty.ConnectionPattern.BIPARTITE))) {
           // more than 1 output OR single output is not bipartite
           isMRR = false;
           break;          
