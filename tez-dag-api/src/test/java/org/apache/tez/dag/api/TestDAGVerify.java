@@ -193,7 +193,7 @@ public class TestDAGVerify {
   //   |  |
   //    v3
   @Test
-  public void BinaryInput() {
+  public void BinaryInputDisallowed() {
     IllegalStateException ex=null;
     try {
       Vertex v1 = new Vertex("v1",
@@ -203,10 +203,10 @@ public class TestDAGVerify {
           new ProcessorDescriptor("MapProcessor", null),
           dummyTaskCount, dummyTaskResource);
       Vertex v3 = new Vertex("v3",
-          new ProcessorDescriptor("MapProcessor", null),
+          new ProcessorDescriptor("ReduceProcessor", null),
           dummyTaskCount, dummyTaskResource);
       Edge e1 = new Edge(v1, v3,
-          new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+          new EdgeProperty(ConnectionPattern.ONE_TO_ONE, SourceType.STABLE,
               new OutputDescriptor("dummy output class", null),
               new InputDescriptor("dummy input class", null)));
       Edge e2 = new Edge(v2, v3,
@@ -226,7 +226,39 @@ public class TestDAGVerify {
     }
     Assert.assertNotNull(ex);
     System.out.println(ex.getMessage());
-    Assert.assertTrue(ex.getMessage().startsWith("Vertex has inDegree>1"));
+    Assert.assertTrue(ex.getMessage().startsWith(
+        "Unsupported connection pattern on edge"));
+  }
+
+  //  v1  v2
+  //   |  |
+  //    v3
+  @Test
+  public void BinaryInputAllowed() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor("MapProcessor", null),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor", null),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v3 = new Vertex("v3",
+        new ProcessorDescriptor("ReduceProcessor", null),
+        dummyTaskCount, dummyTaskResource);
+    Edge e1 = new Edge(v1, v3,
+        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+            new OutputDescriptor("dummy output class", null),
+            new InputDescriptor("dummy input class", null)));
+    Edge e2 = new Edge(v2, v3,
+        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+            new OutputDescriptor("dummy output class", null),
+            new InputDescriptor("dummy input class", null)));
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addVertex(v3);
+    dag.addEdge(e1);
+    dag.addEdge(e2);
+    dag.verify();
   }
 
   //   v1

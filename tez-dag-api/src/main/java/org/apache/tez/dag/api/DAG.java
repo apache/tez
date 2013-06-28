@@ -104,10 +104,13 @@ public class DAG { // FIXME rename to Topology
     int lowlink; //for Tarjan's algorithm
     boolean onstack; //for Tarjan's algorithm 
     
+    int outDegree;
+    
     private AnnotatedVertex(Vertex v){
        this.v = v;
        index = -1;
        lowlink = -1;
+       outDegree = 0;
     }
   }
 
@@ -165,10 +168,17 @@ public class DAG { // FIXME rename to Topology
 
     if(restricted){
       for(Edge e : edges){
+        vertexMap.get(e.getInputVertex().getVertexName()).outDegree++;
         if (e.getEdgeProperty().getConnectionPattern() != 
             ConnectionPattern.BIPARTITE) {
           throw new IllegalStateException(
               "Unsupported connection pattern on edge. " + e);
+        }
+      }
+      for(AnnotatedVertex av: vertexMap.values()){
+        if (av.outDegree > 1) {
+          throw new IllegalStateException("Vertex has outDegree>1: "
+              + av.v.getVertexName());
         }
       }
     }
