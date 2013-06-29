@@ -378,6 +378,13 @@ public class ShuffleHandler extends AuxiliaryService {
           sendError(ctx, METHOD_NOT_ALLOWED);
           return;
       }
+      // Check whether the shuffle version is compatible
+      if (!ShuffleHeader.DEFAULT_HTTP_HEADER_NAME.equals(
+          request.getHeader(ShuffleHeader.HTTP_HEADER_NAME))
+          || !ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION.equals(
+              request.getHeader(ShuffleHeader.HTTP_HEADER_VERSION))) {
+        sendError(ctx, "Incompatible shuffle request version", BAD_REQUEST);
+      }
       final Map<String,List<String>> q =
         new QueryStringDecoder(request.getUri()).getParameters();
       final List<String> mapIds = splitMaps(q.get("map"));
@@ -486,6 +493,7 @@ public class ShuffleHandler extends AuxiliaryService {
       String reply =
         SecureShuffleUtils.generateHash(urlHashStr.getBytes(), tokenSecret);
       response.setHeader(SecureShuffleUtils.HTTP_HEADER_REPLY_URL_HASH, reply);
+      addVersionToHeader(response);
       if (LOG.isDebugEnabled()) {
         int len = reply.length();
         LOG.debug("Fetcher request verfied. enc_str=" + enc_str + ";reply=" +
@@ -521,11 +529,19 @@ public class ShuffleHandler extends AuxiliaryService {
         HttpResponseStatus status) {
       HttpResponse response = new DefaultHttpResponse(HTTP_1_1, status);
       response.setHeader(CONTENT_TYPE, "text/plain; charset=UTF-8");
+      addVersionToHeader(response);
       response.setContent(
         ChannelBuffers.copiedBuffer(message, CharsetUtil.UTF_8));
-
       // Close the connection as soon as the error message is sent.
       ctx.getChannel().write(response).addListener(ChannelFutureListener.CLOSE);
+    }
+    
+    private void addVersionToHeader(HttpResponse response) {
+      // Put shuffle version into http header
+      response.setHeader(ShuffleHeader.HTTP_HEADER_NAME,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      response.setHeader(ShuffleHeader.HTTP_HEADER_VERSION,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);      
     }
 
     @Override

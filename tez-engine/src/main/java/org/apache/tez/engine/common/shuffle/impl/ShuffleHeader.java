@@ -35,6 +35,12 @@ import org.apache.hadoop.io.WritableUtils;
 @InterfaceAudience.Private
 @InterfaceStability.Stable
 public class ShuffleHeader implements Writable {
+  
+  /** Header info of the shuffle http request/response */
+  public static final String HTTP_HEADER_NAME = "name";
+  public static final String DEFAULT_HTTP_HEADER_NAME = "mapreduce";
+  public static final String HTTP_HEADER_VERSION = "version";
+  public static final String DEFAULT_HTTP_HEADER_VERSION = "1.0.0";
 
   /**
    * The longest possible length of task attempt id that we will accept.
