@@ -180,6 +180,7 @@ public class DAGSchedulerMRR implements DAGScheduler {
         realShufflerResource.setMemory(resource.getMemory());
       }
     }
+    schedulePendingShuffles(getNumShufflesToSchedule());
   }
   
   @Override
@@ -189,10 +190,8 @@ public class DAGSchedulerMRR implements DAGScheduler {
     LOG.info("Task succeeded: " + attempt.getID() + " Vertex: Total:" + vertex.getTotalTasks() + 
         " succeeded: " + vertex.getSucceededTasks());
 
-    if (currentPartitioner == vertex) {
-      // resources now available. try to schedule pending shuffles
-      schedulePendingShuffles(getNumShufflesToSchedule());
-    }
+    // resources now available. try to schedule pending shuffles
+    schedulePendingShuffles(getNumShufflesToSchedule());
   }
   
   int getNumShufflesToSchedule() {
@@ -203,6 +202,7 @@ public class DAGSchedulerMRR implements DAGScheduler {
     }
     
     if(unassignedPartitionTasks.isEmpty()) {
+      LOG.info("All partitioners assigned. Scheduling all shufflers.");
       return pendingShuffleTasks.size();
     }
     
@@ -218,17 +218,20 @@ public class DAGSchedulerMRR implements DAGScheduler {
     int shufflerMemAssigned = shufflerTaskMem * numShuffleTasksScheduled;
     
     // get resources needed by partitioner
-    int numPartionersLeft = currentPartitioner.getTotalTasks()
-        - currentPartitioner.getSucceededTasks();
+    int numPartitioners = currentPartitioner.getTotalTasks();
+    int numPartionersSucceeded = currentPartitioner.getSucceededTasks();
+    int numPartionersLeft = numPartitioners - numPartionersSucceeded;
     int partitionerMemNeeded = numPartionersLeft * partitionerTaskMem;
     
     // find leftover resources for shuffler
     int shufflerMemLeft = totalMem - partitionerMemNeeded;
 
-    int defaultShufflerMem = (int)(minReservedShuffleResource * totalMem);
+    int maxShufflerMem = (int) (totalMem *
+        (Math.min(minReservedShuffleResource, 
+                  numPartionersSucceeded/(float)numPartitioners)));
     
-    if(shufflerMemLeft < defaultShufflerMem) {
-      shufflerMemLeft = defaultShufflerMem;
+    if(shufflerMemLeft < maxShufflerMem) {
+      shufflerMemLeft = maxShufflerMem;
     }
     
     shufflerMemLeft -= shufflerMemAssigned;
@@ -237,6 +240,7 @@ public class DAGSchedulerMRR implements DAGScheduler {
              " Headroom: " + freeMem +
              " PartitionerTaskMem: " + partitionerTaskMem +
              " ShufflerTaskMem: " + shufflerTaskMem + 
+             " MaxShuffleMem: " + maxShufflerMem +
              " PartitionerMemNeeded:" + partitionerMemNeeded +
              " ShufflerMemAssigned: " + shufflerMemAssigned + 
              " ShufflerMemLeft: " + shufflerMemLeft +
@@ -251,7 +255,16 @@ public class DAGSchedulerMRR implements DAGScheduler {
       return pendingShuffleTasks.size();
     }
     
-    return shufflerMemLeft / shufflerTaskMem;
+    int shufflersToSchedule = shufflerMemLeft / shufflerTaskMem;
+    shufflerMemAssigned += shufflerTaskMem * shufflersToSchedule;
+    
+    if(totalMem - shufflerMemAssigned < partitionerTaskMem) {
+      // safety check when reduce ramp up limit is aggressively high
+      LOG.info("Not scheduling more shufflers as it starves partitioners");
+      return 0;
+    }
+    
+    return shufflersToSchedule;
   }
   
   void schedulePendingShuffles(int scheduleCount) {

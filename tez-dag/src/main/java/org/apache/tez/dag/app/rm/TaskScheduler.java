@@ -313,7 +313,9 @@ public class TaskScheduler extends AbstractService
               
         LOG.info("Assigning container: " + container + 
             " for task: " + task + 
-            " at locality: " + location);
+            " at locality: " + location + 
+            " resource memory: " + container.getResource().getMemory() +
+            " cpu: " + container.getResource().getVirtualCores());
         
       }
     }
@@ -351,16 +353,14 @@ public class TaskScheduler extends AbstractService
     if(isStopped) {
       return 1;
     }
-    LOG.info("TEMP dagschedulermrr: sync with RM finished. Headroom: "
-        + getAvailableResources().getMemory() + " Allocations: "
-        + taskAllocations.size());
     
     if(totalResources.getMemory() == 0) {
       // assume this is the first allocate callback. nothing is allocated.
       // available resource = totalResource
       // TODO this will not handle dynamic changes in resources
       totalResources = Resources.clone(getAvailableResources());
-      LOG.info("App total resource: " + totalResources.getMemory() + 
+      LOG.info("App total resource memory: " + totalResources.getMemory() + 
+               " cpu: " + totalResources.getVirtualCores() +
                " taskAllocations: " + taskAllocations.size());
     }
     
@@ -437,13 +437,11 @@ public class TaskScheduler extends AbstractService
     return null;
   }
   
-  synchronized void preemptIfNeeded(/*Resource totalResources, 
-      Resource allocatedResources,
-      Map<Object, CookieContainerRequest> taskRequests,
-      LinkedHashMap<Object, Container> taskAllocations*/      
-      ) {
+  synchronized void preemptIfNeeded() {
     Resource freeResources = Resources.subtract(totalResources,
         allocatedResources);
+    LOG.info("Allocated resource memory: " + allocatedResources.getMemory() + 
+             " cpu:" + allocatedResources.getVirtualCores());
     assert freeResources.getMemory() >= 0;
     
     CookieContainerRequest highestPriRequest = null;
@@ -456,7 +454,7 @@ public class TaskScheduler extends AbstractService
       }
     }
     if(highestPriRequest != null && 
-       !Resources.fitsIn(highestPriRequest.getCapability(), freeResources)) {
+       !fitsIn(highestPriRequest.getCapability(), freeResources)) {
       // highest priority request will not fit in existing free resources
       // free up some more
       // TODO this is subject to error wrt RM resource normalization
@@ -484,6 +482,12 @@ public class TaskScheduler extends AbstractService
         // and we get its completed container status
       }
     }
+  }
+  
+  private boolean fitsIn(Resource toFit, Resource resource) {
+    // YARN-893 prevents using correct library code
+    //return Resources.fitsIn(toFit, resource);
+    return resource.getMemory() >= toFit.getMemory();
   }
   
   private CookieContainerRequest getMatchingRequest(
