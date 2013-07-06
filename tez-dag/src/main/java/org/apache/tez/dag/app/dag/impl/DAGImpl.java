@@ -33,8 +33,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
@@ -141,11 +139,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   public final TezConfiguration conf;
   private final DAGPlan jobPlan;
-
-  //fields initialized in init
-  private FileSystem fs;
-  private Path remoteJobSubmitDir;
-  public Path remoteJobConfFile;
 
   private final List<String> diagnostics = new ArrayList<String>();
 
@@ -647,16 +640,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         new DAGHistoryEvent(dagId, finishEvt));
   }
 
-  /**
-   * Create the default file System for this job.
-   * @param conf the conf object
-   * @return the default filesystem for this job
-   * @throws IOException
-   */
-  protected FileSystem getFileSystem(Configuration conf) throws IOException {
-    return FileSystem.get(conf);
-  }
-
   static DAGState checkJobForCompletion(DAGImpl dag) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Checking dag completion"
@@ -798,7 +781,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       //dag.metrics.preparingJob(dag);
       try {
         setup(dag);
-        dag.fs = dag.getFileSystem(dag.conf);
 
         // If we have no vertices, fail the dag
         dag.numVertices = dag.getJobPlan().getVertexCount();
@@ -939,10 +921,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       if(LOG.isDebugEnabled()) {
         LOG.debug("startJobs: parent=" + path + " child=" + dagIdString);
       }
-
-      job.remoteJobSubmitDir =
-          FileSystem.get(job.conf).makeQualified(
-              new Path(path, dagIdString));
 
       // Prepare the TaskAttemptListener server for authentication of Containers
       // TaskAttemptListener gets the information via jobTokenSecretManager.
