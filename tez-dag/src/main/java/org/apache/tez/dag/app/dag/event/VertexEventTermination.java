@@ -18,43 +18,26 @@
 
 package org.apache.tez.dag.app.dag.event;
 
+import org.apache.tez.dag.app.dag.VertexTerminationCause;
+import org.apache.tez.dag.records.TezVertexID;
+
 /**
- * Event types handled by Task.
+ * Specialized VertexEvent for termination conditions.
+ *  
+ * The VertexEventType is always V_TERMINATE.  
+ * The terminationCause denotes the specific reason why the vertex is being terminated.
  */
-public enum VertexEventType {
+public class VertexEventTermination extends VertexEvent {
 
-  //Producer:Client, Job
-  V_TERMINATE,
+  private VertexTerminationCause terminationCause;
 
-  //Producer:Job
-  V_INIT,
-  
-  //Producer:Vertex
-  V_COMPLETED,
-  V_START,
-  V_SOURCE_TASK_ATTEMPT_COMPLETED,
-  V_SOURCE_VERTEX_STARTED,
-  
-  //Producer:Speculator
-  V_ADD_SPEC_ATTEMPT,
+  public VertexEventTermination(TezVertexID vertexId, VertexTerminationCause terminationCause) {
+    super(vertexId, VertexEventType.V_TERMINATE);
+    this.terminationCause = terminationCause;
+  }
 
-  //Producer:Task
-  V_TASK_COMPLETED,
-  V_TASK_RESCHEDULED,
-  V_TASK_ATTEMPT_COMPLETED,
+  public VertexTerminationCause getTerminationCause() {
+    return terminationCause;
+  }
 
-  V_TASK_LAUNCHED,
-  V_TASK_OUTPUT_CONSUMABLE,
-  V_TASK_FAILED,
-  V_TASK_SUCCEEDED,
-  V_ATTEMPT_KILLED,
-  
-  //Producer:TaskAttemptListener
-  V_TASK_ATTEMPT_FETCH_FAILURE,
-
-  //Producer:Any component
-  V_DIAGNOSTIC_UPDATE,
-  INTERNAL_ERROR,
-  V_COUNTER_UPDATE,
-  
 }

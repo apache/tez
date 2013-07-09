@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.mapreduce.TaskCompletionEvent;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -131,14 +132,16 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(TaskStateInternal.NEW, TaskStateInternal.SCHEDULED,
         TaskEventType.T_SCHEDULE, new InitialScheduleTransition())
     .addTransition(TaskStateInternal.NEW, TaskStateInternal.KILLED,
-        TaskEventType.T_KILL, new KillNewTransition())
+            TaskEventType.T_TERMINATE, 
+            new KillNewTransition())
 
     // Transitions from SCHEDULED state
       //when the first attempt is launched, the task state is set to RUNNING
      .addTransition(TaskStateInternal.SCHEDULED, TaskStateInternal.RUNNING,
          TaskEventType.T_ATTEMPT_LAUNCHED, new LaunchTransition())
      .addTransition(TaskStateInternal.SCHEDULED, TaskStateInternal.KILL_WAIT,
-         TaskEventType.T_KILL, KILL_TRANSITION)
+         TaskEventType.T_TERMINATE,
+             KILL_TRANSITION)
      .addTransition(TaskStateInternal.SCHEDULED, TaskStateInternal.SCHEDULED,
          TaskEventType.T_ATTEMPT_KILLED, ATTEMPT_KILLED_TRANSITION)
      .addTransition(TaskStateInternal.SCHEDULED,
@@ -169,7 +172,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         TaskEventType.T_ATTEMPT_FAILED,
         new AttemptFailedTransition())
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.KILL_WAIT,
-        TaskEventType.T_KILL, KILL_TRANSITION)
+        TaskEventType.T_TERMINATE, 
+        KILL_TRANSITION)
 
     // Transitions from KILL_WAIT state
     .addTransition(TaskStateInternal.KILL_WAIT,
@@ -180,7 +184,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(
         TaskStateInternal.KILL_WAIT,
         TaskStateInternal.KILL_WAIT,
-        EnumSet.of(TaskEventType.T_KILL,
+        EnumSet.of(
+            TaskEventType.T_TERMINATE,
             TaskEventType.T_ATTEMPT_LAUNCHED,
             TaskEventType.T_ATTEMPT_OUTPUT_CONSUMABLE,
             TaskEventType.T_ATTEMPT_COMMIT_PENDING,
@@ -205,13 +210,15 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
     // Transitions from FAILED state
     .addTransition(TaskStateInternal.FAILED, TaskStateInternal.FAILED,
-        EnumSet.of(TaskEventType.T_KILL,
-                   TaskEventType.T_ADD_SPEC_ATTEMPT))
+        EnumSet.of(
+            TaskEventType.T_TERMINATE,
+            TaskEventType.T_ADD_SPEC_ATTEMPT))
 
     // Transitions from KILLED state
     .addTransition(TaskStateInternal.KILLED, TaskStateInternal.KILLED,
-        EnumSet.of(TaskEventType.T_KILL,
-                   TaskEventType.T_ADD_SPEC_ATTEMPT))
+        EnumSet.of(
+            TaskEventType.T_TERMINATE,
+            TaskEventType.T_ADD_SPEC_ATTEMPT))
 
     // create the topology tables
     .installTopology();
@@ -687,7 +694,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         LOG.info(taskId + " Task Transitioned from " + oldState + " to "
             + getInternalState());
       }
-
     } finally {
       writeLock.unlock();
     }

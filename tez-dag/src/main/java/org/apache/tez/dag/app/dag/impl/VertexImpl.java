@@ -1,5 +1,4 @@
-/**
-* Licensed to the Apache Software Foundation (ASF) under one
+/* Licensed to the Apache Software Foundation (ASF) under one
 * or more contributor license agreements.  See the NOTICE file
 * distributed with this work for additional information
 * regarding copyright ownership.  The ASF licenses this file
@@ -76,7 +75,9 @@ import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.VertexScheduler;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
@@ -86,6 +87,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
+import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventSourceTaskAttemptCompleted;
@@ -93,6 +95,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventSourceVertexStarted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptFetchFailure;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
+import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
@@ -194,8 +197,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexEventType.V_INIT,
               new InitTransition())
           .addTransition(VertexState.NEW, VertexState.KILLED,
-              VertexEventType.V_KILL,
-              new KillNewVertexTransition())
+              VertexEventType.V_TERMINATE,
+              new TerminateNewVertexTransition())
           .addTransition(VertexState.NEW, VertexState.ERROR,
               VertexEventType.INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
@@ -209,8 +212,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               new StartTransition())
 
           .addTransition(VertexState.INITED, VertexState.KILLED,
-              VertexEventType.V_KILL,
-              new KillInitedVertexTransition())
+              VertexEventType.V_TERMINATE,
+              new TerminateInitedVertexTransition())
           .addTransition(VertexState.INITED, VertexState.ERROR,
               VertexEventType.INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
@@ -225,11 +228,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition
               (VertexState.RUNNING,
               EnumSet.of(VertexState.RUNNING,
-                  VertexState.SUCCEEDED, VertexState.FAILED),
+                  VertexState.SUCCEEDED, VertexState.TERMINATING, VertexState.FAILED),
               VertexEventType.V_TASK_COMPLETED,
               new TaskCompletedTransition())
-          .addTransition(VertexState.RUNNING, VertexState.KILL_WAIT,
-              VertexEventType.V_KILL, new KillTasksTransition())
+          .addTransition(VertexState.RUNNING, VertexState.TERMINATING,
+              VertexEventType.V_TERMINATE,
+              new VertexKilledTransition())
           .addTransition(VertexState.RUNNING, VertexState.RUNNING,
               VertexEventType.V_TASK_RESCHEDULED,
               new TaskRescheduledTransition())
@@ -241,25 +245,25 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexState.ERROR, VertexEventType.INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
 
-          // Transitions from KILL_WAIT state.
+          // Transitions from TERMINATING state.
           .addTransition
-              (VertexState.KILL_WAIT,
-              EnumSet.of(VertexState.KILL_WAIT, VertexState.KILLED),
+              (VertexState.TERMINATING,
+              EnumSet.of(VertexState.TERMINATING, VertexState.KILLED, VertexState.FAILED),
               VertexEventType.V_TASK_COMPLETED,
               new TaskCompletedTransition())
-          .addTransition(VertexState.KILL_WAIT, VertexState.KILL_WAIT,
+          .addTransition(VertexState.TERMINATING, VertexState.TERMINATING,
               VertexEventType.V_TASK_ATTEMPT_COMPLETED,
               TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION) // TODO shouldnt be done for KILL_WAIT vertex
-          .addTransition(VertexState.KILL_WAIT, VertexState.KILL_WAIT,
+          .addTransition(VertexState.TERMINATING, VertexState.TERMINATING,
               VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
               SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
           .addTransition(
-              VertexState.KILL_WAIT,
+              VertexState.TERMINATING,
               VertexState.ERROR, VertexEventType.INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
           // Ignore-able events
-          .addTransition(VertexState.KILL_WAIT, VertexState.KILL_WAIT,
-              EnumSet.of(VertexEventType.V_KILL,
+          .addTransition(VertexState.TERMINATING, VertexState.TERMINATING,
+              EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_TASK_RESCHEDULED,
                   VertexEventType.V_TASK_ATTEMPT_FETCH_FAILURE))
 
@@ -270,7 +274,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               INTERNAL_ERROR_TRANSITION)
           // Ignore-able events
           .addTransition(VertexState.SUCCEEDED, VertexState.SUCCEEDED,
-              EnumSet.of(VertexEventType.V_KILL,
+              EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_TASK_ATTEMPT_FETCH_FAILURE,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED))
@@ -282,7 +286,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               INTERNAL_ERROR_TRANSITION)
           // Ignore-able events
           .addTransition(VertexState.FAILED, VertexState.FAILED,
-              EnumSet.of(VertexEventType.V_KILL,
+              EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_TASK_ATTEMPT_FETCH_FAILURE,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED))
@@ -294,7 +298,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               INTERNAL_ERROR_TRANSITION)
           // Ignore-able events
           .addTransition(VertexState.KILLED, VertexState.KILLED,
-              EnumSet.of(VertexEventType.V_KILL,
+              EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_TASK_ATTEMPT_FETCH_FAILURE,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED))
@@ -304,7 +308,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexState.ERROR,
               VertexState.ERROR,
               EnumSet.of(VertexEventType.V_INIT,
-                  VertexEventType.V_KILL,
+                  VertexEventType.V_TERMINATE,
                   VertexEventType.V_TASK_COMPLETED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_RESCHEDULED,
@@ -349,6 +353,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private Map<String, LocalResource> localResources;
   private Map<String, String> environment;
   private final String javaOpts;
+  private VertexTerminationCause terminationCause; 
 
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
       String vertexName, TezConfiguration conf, EventHandler eventHandler,
@@ -607,6 +612,29 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       readLock.unlock();
     }
   }
+  
+  /**
+   * Set the terminationCause if it had not yet been set.
+   * 
+   * @param trigger The trigger
+   * @return true if setting the value succeeded.
+   */
+  boolean trySetTerminationCause(VertexTerminationCause trigger) {
+    if(terminationCause == null){
+      terminationCause = trigger;
+      return true;
+    }
+    return false;
+  }
+  
+  public VertexTerminationCause getTerminationCause(){
+    readLock.lock();
+    try {
+      return terminationCause;
+    } finally {
+      readLock.unlock();
+    }
+  }
 
   @Override
   public void scheduleTasks(Collection<TezTaskID> taskIDs) {
@@ -641,7 +669,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         eventHandler.handle(new VertexEvent(this.vertexId,
             VertexEventType.INTERNAL_ERROR));
       }
-      //notify the eventhandler of state change
+
       if (oldState != getInternalState()) {
         LOG.info(vertexId + " transitioned from " + oldState + " to "
                  + getInternalState());
@@ -715,57 +743,109 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   static VertexState checkVertexForCompletion(VertexImpl vertex) {
-    //check for vertex failure first
+
     if (LOG.isDebugEnabled()) {
       LOG.debug("Checking for vertex completion"
           + ", failedTaskCount=" + vertex.failedTaskCount
           + ", killedTaskCount=" + vertex.killedTaskCount
           + ", successfulTaskCount=" + vertex.succeededTaskCount
-          + ", completedTaskCount=" + vertex.completedTaskCount);
+          + ", completedTaskCount=" + vertex.completedTaskCount
+          + ", terminationCause=" + vertex.terminationCause);
     }
 
-    if (vertex.failedTaskCount > 0) {
-      vertex.setFinishTime();
-      String diagnosticMsg = "Vertex failed as tasks failed. "
-          + "failedTasks:"
-          + vertex.failedTaskCount;
-      LOG.info(diagnosticMsg);
-      vertex.addDiagnostic(diagnosticMsg);
-      vertex.abortVertex(VertexStatus.State.FAILED);
-      return vertex.finished(VertexState.FAILED);
+    //check for vertex failure first
+    if (vertex.completedTaskCount > vertex.tasks.size()) {
+      LOG.error("task completion accounting issue: completedTaskCount > nTasks:"
+          + ", failedTaskCount=" + vertex.failedTaskCount
+          + ", killedTaskCount=" + vertex.killedTaskCount
+          + ", successfulTaskCount=" + vertex.succeededTaskCount
+          + ", completedTaskCount=" + vertex.completedTaskCount
+          + ", terminationCause=" + vertex.terminationCause);
     }
-
-    if(vertex.succeededTaskCount == vertex.tasks.size()) {
-      try {
-        if (!vertex.committed.getAndSet(true)) {
-          // commit only once
-          vertex.committer.commitVertex();
+    
+    if (vertex.completedTaskCount == vertex.tasks.size()) {
+      //Only succeed if tasks complete successfully and no terminationCause is registered.
+      if(vertex.succeededTaskCount == vertex.tasks.size() && vertex.terminationCause == null) {
+        try {
+          if (!vertex.committed.getAndSet(true)) {
+            // commit only once
+            vertex.committer.commitVertex();
+          }
+        } catch (IOException e) {
+          LOG.error("Failed to do commit on vertex, name=" + vertex.getName(), e);
+          vertex.trySetTerminationCause(VertexTerminationCause.COMMIT_FAILURE);
+          return vertex.finished(VertexState.FAILED);
         }
-      } catch (IOException e) {
-        LOG.error("Failed to do commit on vertex, name=" + vertex.getName(), e);
+        return vertex.finished(VertexState.SUCCEEDED);
+      }
+      else if(vertex.terminationCause == VertexTerminationCause.DAG_KILL ){
+        vertex.setFinishTime();
+        String diagnosticMsg = "Vertex killed due to user-initiated job kill. "
+            + "failedTasks:"
+            + vertex.failedTaskCount;
+        LOG.info(diagnosticMsg);
+        vertex.addDiagnostic(diagnosticMsg);
+        vertex.abortVertex(VertexStatus.State.KILLED);
+        return vertex.finished(VertexState.KILLED);
+      }
+      else if(vertex.terminationCause == VertexTerminationCause.OTHER_VERTEX_FAILURE ){
+        vertex.setFinishTime();
+        String diagnosticMsg = "Vertex killed as other vertex failed. "
+            + "failedTasks:"
+            + vertex.failedTaskCount;
+        LOG.info(diagnosticMsg);
+        vertex.addDiagnostic(diagnosticMsg);
+        vertex.abortVertex(VertexStatus.State.KILLED);
+        return vertex.finished(VertexState.KILLED);
+      }
+      else if(vertex.terminationCause == VertexTerminationCause.OWN_TASK_FAILURE ){
+        if(vertex.failedTaskCount == 0){
+          LOG.error("task failure accounting error.  terminationCause=TASK_FAILURE but vertex.failedTaskCount == 0");
+        }
+        vertex.setFinishTime();
+        String diagnosticMsg = "Vertex killed as one or more tasks failed. "
+            + "failedTasks:"
+            + vertex.failedTaskCount;
+        LOG.info(diagnosticMsg);
+        vertex.addDiagnostic(diagnosticMsg);
+        vertex.abortVertex(VertexStatus.State.FAILED);
         return vertex.finished(VertexState.FAILED);
       }
-      return vertex.finished(VertexState.SUCCEEDED);
-    }
-
-    if (vertex.completedTaskCount == vertex.tasks.size()) {
-      // this means the vertex has some killed tasks
-      assert vertex.killedTaskCount > 0;
-      vertex.setFinishTime();
-      vertex.abortVertex(VertexStatus.State.KILLED);
-      return vertex.finished(VertexState.KILLED);
+      else {
+        //should never occur
+        throw new TezUncheckedException("All tasks complete, but cannot determine final state of vertex"
+            + ", failedTaskCount=" + vertex.failedTaskCount
+            + ", killedTaskCount=" + vertex.killedTaskCount
+            + ", successfulTaskCount=" + vertex.succeededTaskCount
+            + ", completedTaskCount=" + vertex.completedTaskCount
+            + ", terminationCause=" + vertex.terminationCause);
+      }
     }
 
     //return the current state, Vertex not finished yet
     return vertex.getInternalState();
   }
 
+  /**
+   * Set the terminationCause and send a kill-message to all tasks.
+   * The task-kill messages are only sent once. 
+   * @param the trigger that is causing the Vertex to transition to KILLED/FAILED
+   * @param event The type of kill event to send to the vertices.
+   */
+  void enactKill(VertexTerminationCause trigger, TaskTerminationCause taskterminationCause) {
+    if(trySetTerminationCause(trigger)){
+      for (Task task : tasks.values()) {
+        eventHandler.handle(
+            new TaskEventTermination(task.getTaskId(), taskterminationCause));
+      }
+    }
+  }
+  
   VertexState finished(VertexState finalState) {
     if (finishTime == 0) setFinishTime();
 
     switch (finalState) {
       case KILLED:
-      case KILL_WAIT:
         eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
             finalState));
         logJobHistoryVertexFailedEvent(VertexStatus.State.KILLED);
@@ -810,6 +890,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
         if (vertex.numTasks == 0) {
           vertex.addDiagnostic("No tasks for vertex " + vertex.getVertexId());
+          vertex.trySetTerminationCause(VertexTerminationCause.ZERO_TASKS);
           vertex.abortVertex(VertexStatus.State.FAILED);
           return vertex.finished(VertexState.FAILED);
         }
@@ -871,6 +952,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.warn("Vertex init failed", e);
         vertex.addDiagnostic("Job init failed : "
             + StringUtils.stringifyException(e));
+        vertex.trySetTerminationCause(VertexTerminationCause.INIT_FAILURE);
         vertex.abortVertex(VertexStatus.State.FAILED);
         // TODO: Metrics
         //job.metrics.endPreparingJob(vertex);
@@ -1013,35 +1095,45 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   // Task-start has been moved out of InitTransition, so this arc simply
   // hardcodes 0 for both map and reduce finished tasks.
-  private static class KillNewVertexTransition
+  private static class TerminateNewVertexTransition
   implements SingleArcTransition<VertexImpl, VertexEvent> {
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
+      VertexEventTermination vet = (VertexEventTermination) event;
+      vertex.trySetTerminationCause(vet.getTerminationCause());
       vertex.setFinishTime();
       vertex.addDiagnostic("Vertex received Kill in NEW state.");
       vertex.finished(VertexState.KILLED);
     }
   }
 
-  private static class KillInitedVertexTransition
+  private static class TerminateInitedVertexTransition
   implements SingleArcTransition<VertexImpl, VertexEvent> {
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
+      VertexEventTermination vet = (VertexEventTermination) event;
+      vertex.trySetTerminationCause(vet.getTerminationCause());
       vertex.abortVertex(VertexStatus.State.KILLED);
       vertex.addDiagnostic("Vertex received Kill in INITED state.");
       vertex.finished(VertexState.KILLED);
     }
   }
 
-  private static class KillTasksTransition
+  private static class VertexKilledTransition
       implements SingleArcTransition<VertexImpl, VertexEvent> {
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
       vertex.addDiagnostic("Vertex received Kill while in RUNNING state.");
-      for (Task task : vertex.tasks.values()) {
-        vertex.eventHandler.handle(
-            new TaskEvent(task.getTaskId(), TaskEventType.T_KILL));
+      VertexEventTermination vet = (VertexEventTermination) event;
+      VertexTerminationCause trigger = vet.getTerminationCause();
+      switch(trigger){
+        case DAG_KILL : vertex.enactKill(trigger, TaskTerminationCause.DAG_KILL); break;
+        case OTHER_VERTEX_FAILURE: vertex.enactKill(trigger, TaskTerminationCause.OTHER_VERTEX_FAILURE); break;
+        case OWN_TASK_FAILURE: vertex.enactKill(trigger, TaskTerminationCause.OTHER_TASK_FAILURE); break;
+        default://should not occur
+          throw new TezUncheckedException("VertexKilledTransition: event.terminationCause is unexpected: " + trigger);
       }
+
       // TODO: Metrics
       //job.metrics.endRunningJob(job);
     }
@@ -1153,6 +1245,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     @Override
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
+      boolean forceTransitionToKillWait = false;
       vertex.completedTaskCount++;
       LOG.info("Num completed Tasks: " + vertex.completedTaskCount);
       VertexEventTaskCompleted taskEvent = (VertexEventTaskCompleted) event;
@@ -1160,6 +1253,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       if (taskEvent.getState() == TaskState.SUCCEEDED) {
         taskSucceeded(vertex, task);
       } else if (taskEvent.getState() == TaskState.FAILED) {
+        vertex.enactKill(VertexTerminationCause.OWN_TASK_FAILURE, TaskTerminationCause.OTHER_TASK_FAILURE);
+        forceTransitionToKillWait = true;
         taskFailed(vertex, task);
       } else if (taskEvent.getState() == TaskState.KILLED) {
         taskKilled(vertex, task);
@@ -1167,6 +1262,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
       vertex.vertexScheduler.onVertexCompleted();
       VertexState state = VertexImpl.checkVertexForCompletion(vertex);
+      if(state == VertexState.RUNNING && forceTransitionToKillWait){
+        return VertexState.TERMINATING;
+      }
+      
       if(state == VertexState.SUCCEEDED) {
         vertex.vertexScheduler.onVertexCompleted();
       }

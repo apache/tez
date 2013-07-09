@@ -16,45 +16,21 @@
 * limitations under the License.
 */
 
-package org.apache.tez.dag.app.dag.event;
+package org.apache.tez.dag.app.dag;
+
+import org.apache.tez.dag.app.dag.event.TaskEventType;
 
 /**
- * Event types handled by Task.
+ * Represents proximate cause of a Task transition to FAILED or KILLED.
  */
-public enum VertexEventType {
+public enum TaskTerminationCause {
 
-  //Producer:Client, Job
-  V_TERMINATE,
-
-  //Producer:Job
-  V_INIT,
+  /** DAG was killed  */
+  DAG_KILL, 
   
-  //Producer:Vertex
-  V_COMPLETED,
-  V_START,
-  V_SOURCE_TASK_ATTEMPT_COMPLETED,
-  V_SOURCE_VERTEX_STARTED,
+  /** Other vertex failed causing DAG to fail thus killing the parent vertex  */
+  OTHER_VERTEX_FAILURE,
   
-  //Producer:Speculator
-  V_ADD_SPEC_ATTEMPT,
-
-  //Producer:Task
-  V_TASK_COMPLETED,
-  V_TASK_RESCHEDULED,
-  V_TASK_ATTEMPT_COMPLETED,
-
-  V_TASK_LAUNCHED,
-  V_TASK_OUTPUT_CONSUMABLE,
-  V_TASK_FAILED,
-  V_TASK_SUCCEEDED,
-  V_ATTEMPT_KILLED,
-  
-  //Producer:TaskAttemptListener
-  V_TASK_ATTEMPT_FETCH_FAILURE,
-
-  //Producer:Any component
-  V_DIAGNOSTIC_UPDATE,
-  INTERNAL_ERROR,
-  V_COUNTER_UPDATE,
-  
+  /** One of the tasks for the parent vertex failed.  */
+  OTHER_TASK_FAILURE, 
 }

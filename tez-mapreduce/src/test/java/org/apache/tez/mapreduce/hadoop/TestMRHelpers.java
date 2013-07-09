@@ -331,11 +331,13 @@ public class TestMRHelpers {
     Assert.assertTrue(env.containsKey(Environment.LD_LIBRARY_PATH.name()));
     Assert.assertTrue(env.containsKey(Environment.SHELL.name()));
     Assert.assertTrue(env.containsKey("HADOOP_ROOT_LOGGER"));
-    for (String val : YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH) {
-      Assert.assertTrue(env.get(Environment.CLASSPATH.name()).contains(val));
-    }
-    Assert.assertTrue(0 ==
-        env.get(Environment.CLASSPATH.name()).indexOf(Environment.PWD.$()));
+
+//    TEZ-273 will reinstate this or similar. 
+//    for (String val : YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH) {
+//      Assert.assertTrue(env.get(Environment.CLASSPATH.name()).contains(val));
+//    }
+//    Assert.assertTrue(0 ==
+//        env.get(Environment.CLASSPATH.name()).indexOf(Environment.PWD.$()));
   }
 
   @Test

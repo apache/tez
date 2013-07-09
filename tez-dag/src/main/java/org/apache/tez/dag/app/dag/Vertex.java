@@ -81,4 +81,5 @@ public interface Vertex extends Comparable<Vertex> {
   Resource getTaskResource();
 
   public DAG getDAG();
+  VertexTerminationCause getTerminationCause();
 }

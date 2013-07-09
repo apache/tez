@@ -35,7 +35,7 @@ public class DAGStatus {
     SUCCEEDED,
     KILLED,
     FAILED,
-    ERROR
+    ERROR,
   };
   
   DAGStatusProtoOrBuilder proxy = null;
@@ -52,6 +52,7 @@ public class DAGStatus {
       return DAGStatus.State.SUBMITTED;
     case DAG_INITING:
       return DAGStatus.State.INITING;
+    case DAG_TERMINATING: // For simplicity, DAG_TERMINATING is presented to user as 'still running'
     case DAG_RUNNING:
       return DAGStatus.State.RUNNING;
     case DAG_SUCCEEDED:

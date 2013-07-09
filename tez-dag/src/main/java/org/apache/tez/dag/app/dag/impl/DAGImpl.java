@@ -65,10 +65,12 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
+import org.apache.tez.dag.app.dag.DAGTerminationCause;
 import org.apache.tez.dag.app.dag.DAGReport;
 import org.apache.tez.dag.app.dag.DAGScheduler;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
@@ -78,8 +80,11 @@ import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.DAGFinishEvent;
+import org.apache.tez.dag.app.dag.event.TaskEvent;
+import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGStartedEvent;
@@ -194,11 +199,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           // Transitions from RUNNING state
           .addTransition
               (DAGState.RUNNING,
-              EnumSet.of(DAGState.RUNNING, DAGState.SUCCEEDED, DAGState.FAILED),
+              EnumSet.of(DAGState.RUNNING, DAGState.SUCCEEDED, DAGState.TERMINATING,DAGState.FAILED),
               DAGEventType.DAG_VERTEX_COMPLETED,
               new VertexCompletedTransition())
-          .addTransition(DAGState.RUNNING, DAGState.KILL_WAIT,
-              DAGEventType.DAG_KILL, new KillVerticesTransition())
+          .addTransition(DAGState.RUNNING, DAGState.TERMINATING,
+              DAGEventType.DAG_KILL, new DAGKilledTransition())
           .addTransition(DAGState.RUNNING, DAGState.RUNNING,
               DAGEventType.DAG_DIAGNOSTIC_UPDATE,
               DIAGNOSTIC_UPDATE_TRANSITION)
@@ -212,21 +217,25 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               DAGState.ERROR, DAGEventType.INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
 
-          // Transitions from KILL_WAIT state.
+          // Transitions from TERMINATING state.
           .addTransition
-              (DAGState.KILL_WAIT,
-              EnumSet.of(DAGState.KILL_WAIT, DAGState.KILLED),
+              (DAGState.TERMINATING,
+              EnumSet.of(DAGState.TERMINATING, DAGState.KILLED, DAGState.FAILED),
               DAGEventType.DAG_VERTEX_COMPLETED,
               new VertexCompletedTransition())
-          .addTransition(DAGState.KILL_WAIT, DAGState.KILL_WAIT,
+          .addTransition(DAGState.TERMINATING, DAGState.TERMINATING,
               DAGEventType.DAG_DIAGNOSTIC_UPDATE,
               DIAGNOSTIC_UPDATE_TRANSITION)
-          .addTransition(DAGState.KILL_WAIT, DAGState.KILL_WAIT,
+          .addTransition(DAGState.TERMINATING, DAGState.TERMINATING,
               DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
           .addTransition(
-              DAGState.KILL_WAIT,
+              DAGState.TERMINATING,
               DAGState.ERROR, DAGEventType.INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
+          
+              // Ignore-able events
+          .addTransition(DAGState.TERMINATING, DAGState.TERMINATING,
+              EnumSet.of(DAGEventType.DAG_KILL))
 
           // Transitions from SUCCEEDED state
           .addTransition(DAGState.SUCCEEDED, DAGState.SUCCEEDED,
@@ -296,7 +305,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private int numFailedVertices = 0;
   private int numKilledVertices = 0;
   private boolean isUber = false;
-
+  private DAGTerminationCause terminationCause;
   private Credentials fsTokens;
   private Token<JobTokenIdentifier> jobToken;
   private JobTokenSecretManager jobTokenSecretManager;
@@ -484,6 +493,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       this.readLock.unlock();
     }
   }
+  
+  @Override
+  public void tryKill() {
+    //send a DAG_KILL message
+    eventHandler.handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
+  }
 
   @Override
   public Map<TezVertexID, Vertex> getVertices() {
@@ -647,37 +662,55 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           + ", numSuccessfulVertices=" + dag.numSuccessfulVertices
           + ", numFailedVertices=" + dag.numFailedVertices
           + ", numKilledVertices=" + dag.numKilledVertices
-          + ", numVertices=" + dag.numVertices);
+          + ", numVertices=" + dag.numVertices
+          + ", terminationCause=" + dag.terminationCause);
     }
 
-    if (dag.numFailedVertices > 0) {
-      dag.setFinishTime();
-      String diagnosticMsg = "DAG failed as vertices failed. " +
-          " failedVertices:" + dag.numFailedVertices +
-          " killedVertices:" + dag.numKilledVertices;
-      LOG.info(diagnosticMsg);
-      dag.addDiagnostic(diagnosticMsg);
-      dag.abortJob(DAGStatus.State.FAILED);
-      return dag.finished(DAGState.FAILED);
+    // log in case of accounting error.
+    if (dag.numCompletedVertices > dag.numVertices) {
+      LOG.error("vertex completion accounting issue: numCompletedVertices > numVertices"
+          + ", numCompletedVertices=" + dag.numCompletedVertices
+          + ", numVertices=" + dag.numVertices
+          );
     }
-
-    if(dag.numSuccessfulVertices == dag.numVertices) {
-      dag.setFinishTime();
-      dag.logJobHistoryFinishedEvent();
-      return dag.finished(DAGState.SUCCEEDED);
-    }
-
+    
     if (dag.numCompletedVertices == dag.numVertices) {
-      // this means the dag has some killed vertices
-      String diagnosticMsg = "DAG killed. " +
-          " failedVertices:" + dag.numFailedVertices +
-          " killedVertices:" + dag.numKilledVertices;
-      LOG.info(diagnosticMsg);
-      dag.addDiagnostic(diagnosticMsg);
-      assert dag.numKilledVertices > 0;
-      dag.setFinishTime();
-      dag.abortJob(DAGStatus.State.KILLED);
-      return dag.finished(DAGState.KILLED);
+      //Only succeed if vertices complete successfully and no terminationCause is registered.
+      if(dag.numSuccessfulVertices == dag.numVertices && dag.terminationCause == null) {
+        dag.setFinishTime();
+        dag.logJobHistoryFinishedEvent();
+        return dag.finished(DAGState.SUCCEEDED);
+      }
+      else if(dag.terminationCause == DAGTerminationCause.DAG_KILL ){
+        dag.setFinishTime();
+        String diagnosticMsg = "DAG killed due to user-initiated kill." +
+            " failedVertices:" + dag.numFailedVertices +
+            " killedVertices:" + dag.numKilledVertices;
+        LOG.info(diagnosticMsg);
+        dag.addDiagnostic(diagnosticMsg);
+        dag.abortJob(DAGStatus.State.KILLED);
+        return dag.finished(DAGState.KILLED);
+      }
+      if(dag.terminationCause == DAGTerminationCause.VERTEX_FAILURE ){
+        dag.setFinishTime();
+        String diagnosticMsg = "DAG failed due to vertex failure." +
+            " failedVertices:" + dag.numFailedVertices +
+            " killedVertices:" + dag.numKilledVertices;
+        LOG.info(diagnosticMsg);
+        dag.addDiagnostic(diagnosticMsg);
+        dag.abortJob(DAGStatus.State.FAILED);
+        return dag.finished(DAGState.FAILED);
+      }
+      else {
+        // should never get here.
+        throw new TezUncheckedException("All vertices complete, but cannot determine final state of DAG"
+            + ", numCompletedVertices=" + dag.numCompletedVertices
+            + ", numSuccessfulVertices=" + dag.numSuccessfulVertices
+            + ", numFailedVertices=" + dag.numFailedVertices
+            + ", numKilledVertices=" + dag.numKilledVertices
+            + ", numVertices=" + dag.numVertices
+            + ", terminationCause=" + dag.terminationCause);
+      }
     }
 
     //return the current state, Job not finished yet
@@ -745,6 +778,29 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       readLock.unlock();
     }
   }
+  
+  /**
+   * Set the terminationCause if it had not yet been set.
+   * 
+   * @param trigger The trigger
+   * @return true if setting the value succeeded.
+   */
+  boolean trySetTerminationCause(DAGTerminationCause trigger) {
+    if(terminationCause == null){
+      terminationCause = trigger;
+      return true;
+    }
+    return false;
+  }
+  
+  DAGTerminationCause getTerminationCause() {
+    readLock.lock();
+    try {
+      return terminationCause;
+    } finally {
+      readLock.unlock();
+    }
+  }
 
   /*
    * (non-Javadoc)
@@ -755,7 +811,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     // TODO ApplicationACLs
     return null;
   }
-
+  
   // TODO Recovery
   /*
   @Override
@@ -786,6 +842,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         dag.numVertices = dag.getJobPlan().getVertexCount();
         if (dag.numVertices == 0) {
           dag.addDiagnostic("No vertices for dag");
+          dag.trySetTerminationCause(DAGTerminationCause.ZERO_VERTICES);
           dag.abortJob(DAGStatus.State.FAILED);
           return dag.finished(DAGState.FAILED);
         }
@@ -817,6 +874,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         LOG.warn("Job init failed", e);
         dag.addDiagnostic("Job init failed : "
             + StringUtils.stringifyException(e));
+        dag.trySetTerminationCause(DAGTerminationCause.INIT_FAILURE);
         dag.abortJob(DAGStatus.State.FAILED);
         // TODO Metrics
         //dag.metrics.endPreparingJob(dag);
@@ -1008,6 +1066,23 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       this.fullCounters.incrAllCounters(v.getAllCounters());
     }
   }
+  
+  /**
+   * Set the terminationCause and send a kill-message to all vertices.
+   * The vertex-kill messages are only sent once. 
+   * @param the trigger that is causing the DAG to transition to KILLED/FAILED
+   * @param event The type of kill event to send to the vertices.
+   */
+  void enactKill(DAGTerminationCause dagTerminationCause, VertexTerminationCause vertexTerminationCause) {
+    
+    if(trySetTerminationCause(dagTerminationCause)){
+      for (Vertex v : vertices.values()) {
+        eventHandler.handle(
+            new VertexEventTermination(v.getVertexId(), vertexTerminationCause)
+            );
+      }
+    }
+  }
 
   // Task-start has been moved out of InitTransition, so this arc simply
   // hardcodes 0 for both map and reduce finished tasks.
@@ -1017,6 +1092,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     public void transition(DAGImpl job, DAGEvent event) {
       job.setFinishTime();
       job.logJobHistoryUnsuccesfulEvent(DAGStatus.State.KILLED);
+      job.trySetTerminationCause(DAGTerminationCause.DAG_KILL);
       job.finished(DAGState.KILLED);
     }
   }
@@ -1025,25 +1101,24 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   implements SingleArcTransition<DAGImpl, DAGEvent> {
     @Override
     public void transition(DAGImpl job, DAGEvent event) {
+      job.trySetTerminationCause(DAGTerminationCause.DAG_KILL);
       job.abortJob(DAGStatus.State.KILLED);
       job.addDiagnostic("Job received Kill in INITED state.");
       job.finished(DAGState.KILLED);
     }
   }
 
-  private static class KillVerticesTransition
+  private static class DAGKilledTransition
       implements SingleArcTransition<DAGImpl, DAGEvent> {
     @Override
     public void transition(DAGImpl job, DAGEvent event) {
       job.addDiagnostic("Job received Kill while in RUNNING state.");
-      for (Vertex v : job.vertices.values()) {
-        job.eventHandler.handle(
-            new VertexEvent(v.getVertexId(), VertexEventType.V_KILL)
-            );
-      }
+      job.enactKill(DAGTerminationCause.DAG_KILL, VertexTerminationCause.DAG_KILL);
       // TODO Metrics
       //job.metrics.endRunningJob(job);
     }
+
+   
   }
 
   private static class VertexCompletedTransition implements
@@ -1051,7 +1126,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     @Override
     public DAGState transition(DAGImpl job, DAGEvent event) {
-
+      boolean forceTransitionToKillWait = false;
+      
       DAGEventVertexCompleted vertexEvent = (DAGEventVertexCompleted) event;
       if (LOG.isDebugEnabled()) {
         LOG.debug("Received a vertex completion event"
@@ -1063,10 +1139,15 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       if (vertexEvent.getVertexState() == VertexState.SUCCEEDED) {
         vertexSucceeded(job, vertex);
         job.dagScheduler.vertexCompleted(vertex);
-      } else if (vertexEvent.getVertexState() == VertexState.FAILED) {
+      } 
+      else if (vertexEvent.getVertexState() == VertexState.FAILED) {
+        job.enactKill(DAGTerminationCause.VERTEX_FAILURE, VertexTerminationCause.OTHER_VERTEX_FAILURE);
         vertexFailed(job, vertex);
-      } else if (vertexEvent.getVertexState() == VertexState.KILLED) {
+        forceTransitionToKillWait = true;
+      } 
+      else if (vertexEvent.getVertexState() == VertexState.KILLED) {
         vertexKilled(job, vertex);
+        forceTransitionToKillWait = true;
       }
 
       if (LOG.isDebugEnabled()) {
@@ -1078,7 +1159,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
             + ", numVertices=" + job.numVertices);
       }
 
-      return checkJobForCompletion(job);
+      // if the job has not finished but a failure/kill occurred, then force the transition to KILL_WAIT.
+      DAGState state = checkJobForCompletion(job);
+      if(state == DAGState.RUNNING && forceTransitionToKillWait){
+        return DAGState.TERMINATING;
+      }
+      else {
+        return state;
+      }
     }
 
     private void vertexSucceeded(DAGImpl job, Vertex vertex) {
@@ -1105,6 +1193,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private void addDiagnostic(String diag) {
     diagnostics.add(diag);
   }
+
+  
+ 
 
   private static class DiagnosticsUpdateTransition implements
       SingleArcTransition<DAGImpl, DAGEvent> {

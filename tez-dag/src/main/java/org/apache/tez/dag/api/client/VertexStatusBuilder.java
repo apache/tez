@@ -63,8 +63,9 @@ public class VertexStatusBuilder extends VertexStatus {
     case FAILED:
       return VertexStatusStateProto.VERTEX_FAILED;
     case KILLED:
-    case KILL_WAIT:
       return VertexStatusStateProto.VERTEX_KILLED;
+    case TERMINATING:
+      return VertexStatusStateProto.VERTEX_TERMINATING;
     case ERROR:
       return VertexStatusStateProto.VERTEX_ERROR;
     default:

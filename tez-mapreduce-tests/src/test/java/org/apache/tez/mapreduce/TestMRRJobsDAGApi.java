@@ -60,6 +60,7 @@ import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty.SourceType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.DAGStatus.State;
 import org.apache.tez.engine.lib.input.ShuffledMergedInput;
 import org.apache.tez.engine.lib.output.OnFileSortedOutput;
 import org.apache.tez.mapreduce.examples.MRRSleepJob;
@@ -173,13 +174,34 @@ public class TestMRRJobsDAGApi {
   // client.
   @Test(timeout = 60000)
   public void testMRRSleepJobDagSubmit() throws IOException,
+  InterruptedException, TezException, ClassNotFoundException, YarnException {
+    State finalState = testMRRSleepJobDagSubmitCore(false);
+    
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
+    // TODO Add additional checks for tracking URL etc. - once it's exposed by
+    // the DAG API.
+  }
+  
+  // Submits a simple 3 stage sleep job using the DAG submit API instead of job
+  // client.
+  @Test(timeout = 60000)
+  public void testMRRSleepJobDagSubmitAndKill() throws IOException,
+  InterruptedException, TezException, ClassNotFoundException, YarnException {
+    State finalState = testMRRSleepJobDagSubmitCore(true);
+    
+    Assert.assertEquals(DAGStatus.State.KILLED, finalState);
+    // TODO Add additional checks for tracking URL etc. - once it's exposed by
+    // the DAG API.
+  }
+  
+  public State testMRRSleepJobDagSubmitCore(boolean killDagWhileRunning) throws IOException,
       InterruptedException, TezException, ClassNotFoundException, YarnException {
     LOG.info("\n\n\nStarting testMRRSleepJobDagSubmit().");
 
     if (!(new File(MiniMRRTezCluster.APPJAR)).exists()) {
       LOG.info("MRAppJar " + MiniMRRTezCluster.APPJAR
           + " not found. Not running test.");
-      return;
+      return State.ERROR;
     }
 
     JobConf stage1Conf = new JobConf(mrrTezCluster.getConfig());
@@ -368,6 +390,7 @@ public class TestMRRJobsDAGApi {
         null, "default", Collections.singletonList(""), commonEnv,
         amLocalResources, new TezConfiguration());
 
+    
     DAGStatus dagStatus = dagClient.getDAGStatus();
     while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for job to complete. Sleeping for 500ms. Current state: "
@@ -375,12 +398,13 @@ public class TestMRRJobsDAGApi {
       // TODO The test will fail if the AM sleep is removed. TEZ-207 to fix
       // this.
       Thread.sleep(500l);
+      if(killDagWhileRunning && dagStatus.getState() == DAGStatus.State.RUNNING){
+        dagClient.tryKillDAG();
+        dagStatus = dagClient.getDAGStatus();
+      }
       dagStatus = dagClient.getDAGStatus();
     }
-
-    Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
-    // TODO Add additional checks for tracking URL etc. - once it's exposed by
-    // the DAG API.
+    return dagStatus.getState();
   }
 
   private static LocalResource createLocalResource(FileSystem fc, Path file,

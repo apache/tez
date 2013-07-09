@@ -25,5 +25,5 @@ public enum VertexState {
   FAILED,
   KILLED,
   ERROR,
-  KILL_WAIT,
+  TERMINATING,
 }

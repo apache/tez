@@ -32,7 +32,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 
 /**
- * Main interface to interact with the job. Provides only getters. 
+ * Main interface to interact with the job.  
  */
 public interface DAG {
 
@@ -77,5 +77,5 @@ public interface DAG {
   //List<AMInfo> getAMInfos();
   
   boolean checkAccess(UserGroupInformation callerUGI, ApplicationAccessType jobOperation);
-
+  void tryKill();
 }

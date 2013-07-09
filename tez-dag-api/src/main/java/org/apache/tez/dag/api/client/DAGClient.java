@@ -57,4 +57,11 @@ public interface DAGClient extends Closeable {
    */
   public VertexStatus getVertexStatus(String vertexName)
       throws IOException, TezException;
+  
+  /**
+   * Kill a running DAG
+   * 
+   */
+  public void tryKillDAG()
+      throws TezException, IOException;
 }

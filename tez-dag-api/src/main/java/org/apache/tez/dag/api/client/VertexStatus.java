@@ -31,7 +31,8 @@ public class VertexStatus {
     SUCCEEDED,
     KILLED,
     FAILED,
-    ERROR
+    ERROR,
+    TERMINATING,
   };
   
   VertexStatusProtoOrBuilder proxy = null;
@@ -55,6 +56,8 @@ public class VertexStatus {
       return VertexStatus.State.KILLED;
     case VERTEX_ERROR:
       return VertexStatus.State.ERROR;
+    case VERTEX_TERMINATING:
+      return VertexStatus.State.TERMINATING;
     default:
       throw new TezUncheckedException("Unsupported value for VertexStatus.State : " + 
                               proxy.getState());

@@ -18,43 +18,20 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-/**
- * Event types handled by Task.
- */
-public enum VertexEventType {
+import org.apache.tez.dag.app.dag.TaskTerminationCause;
+import org.apache.tez.dag.records.TezTaskID;
 
-  //Producer:Client, Job
-  V_TERMINATE,
+public class TaskEventTermination extends TaskEvent {
 
-  //Producer:Job
-  V_INIT,
-  
-  //Producer:Vertex
-  V_COMPLETED,
-  V_START,
-  V_SOURCE_TASK_ATTEMPT_COMPLETED,
-  V_SOURCE_VERTEX_STARTED,
-  
-  //Producer:Speculator
-  V_ADD_SPEC_ATTEMPT,
+  private TaskTerminationCause terminationCause;
 
-  //Producer:Task
-  V_TASK_COMPLETED,
-  V_TASK_RESCHEDULED,
-  V_TASK_ATTEMPT_COMPLETED,
+  public TaskEventTermination(TezTaskID taskID, TaskTerminationCause terminationCause) {
+    super(taskID, TaskEventType.T_TERMINATE);
+    this.terminationCause = terminationCause;
+  }
 
-  V_TASK_LAUNCHED,
-  V_TASK_OUTPUT_CONSUMABLE,
-  V_TASK_FAILED,
-  V_TASK_SUCCEEDED,
-  V_ATTEMPT_KILLED,
-  
-  //Producer:TaskAttemptListener
-  V_TASK_ATTEMPT_FETCH_FAILURE,
+  public TaskTerminationCause getTerminationCause() {
+    return terminationCause;
+  }
 
-  //Producer:Any component
-  V_DIAGNOSTIC_UPDATE,
-  INTERNAL_ERROR,
-  V_COUNTER_UPDATE,
-  
 }

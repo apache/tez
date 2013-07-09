@@ -49,8 +49,18 @@ message GetVertexStatusResponseProto {
   optional VertexStatusProto vertexStatus = 1;
 }
 
+message TryKillDAGRequestProto {
+  optional string dagId = 1;
+}
+
+message TryKillDAGResponseProto {
+  //nothing yet
+}
+
+
 service DAGClientAMProtocol {
   rpc getAllDAGs (GetAllDAGsRequestProto) returns (GetAllDAGsResponseProto);
   rpc getDAGStatus (GetDAGStatusRequestProto) returns (GetDAGStatusResponseProto);
   rpc getVertexStatus (GetVertexStatusRequestProto) returns (GetVertexStatusResponseProto);
+  rpc tryKillDAG (TryKillDAGRequestProto) returns (TryKillDAGResponseProto);
 }

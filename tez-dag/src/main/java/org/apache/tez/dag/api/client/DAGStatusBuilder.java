@@ -71,8 +71,9 @@ public class DAGStatusBuilder extends DAGStatus {
     case FAILED:
       return DAGStatusStateProto.DAG_FAILED;
     case KILLED:
-    case KILL_WAIT:
       return DAGStatusStateProto.DAG_KILLED;
+    case TERMINATING:
+      return DAGStatusStateProto.DAG_TERMINATING;
     case ERROR:
       return DAGStatusStateProto.DAG_ERROR;
     default:

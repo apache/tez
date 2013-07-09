@@ -39,6 +39,7 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGRequestProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
 
@@ -98,6 +99,21 @@ public class DAGClientRPCImpl implements DAGClient {
     // need AM for this. Later maybe from History
     return null;
   }
+  
+  public void tryKillDAG() throws TezException, IOException {
+    if(LOG.isDebugEnabled()) {
+      LOG.debug("TryKill for app: " + appId + " dag:" + dagId);
+    }
+    if(createAMProxyIfNeeded()) {
+      TryKillDAGRequestProto requestProto = 
+          TryKillDAGRequestProto.newBuilder().setDagId(dagId).build();    
+      try {
+        proxy.tryKillDAG(null, requestProto);
+      } catch (ServiceException e) {
+        resetProxy(e);
+      }
+    }
+  }
 
   @Override
   public void close() throws IOException {
@@ -136,6 +152,8 @@ public class DAGClientRPCImpl implements DAGClient {
       throw new TezException(e);
     }
   }
+  
+  
   
   DAGStatus getDAGStatusViaRM() throws TezException, IOException {
     if(LOG.isDebugEnabled()) {

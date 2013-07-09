@@ -25,5 +25,5 @@ public enum DAGState {
   FAILED,
   KILLED,
   ERROR, 
-  KILL_WAIT
+  TERMINATING
 }

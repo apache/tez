@@ -24,8 +24,8 @@ package org.apache.tez.dag.app.dag.event;
 public enum TaskEventType {
 
   //Producer:Client, Job
-  T_KILL,
-
+  T_TERMINATE,
+  
   //Producer:Job
   T_SCHEDULE,
 

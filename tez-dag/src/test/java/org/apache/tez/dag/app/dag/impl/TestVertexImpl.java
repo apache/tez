@@ -59,7 +59,9 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
@@ -70,6 +72,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.records.TezDAGID;
@@ -105,6 +108,7 @@ public class TestVertexImpl {
   private TezConfiguration conf = new TezConfiguration();
   private Map<String, EdgeProperty> edges;
 
+  private TaskEventDispatcher taskEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
 
   private DagEventDispatcher dagEventDispatcher;
@@ -156,12 +160,16 @@ public class TestVertexImpl {
     }
   }
 
-  private class TaskEventHandler implements EventHandler<TaskEvent> {
+  private class TaskEventDispatcher implements EventHandler<TaskEvent> {
+    @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskEvent event) {
+      VertexImpl vertex = vertexIdMap.get(event.getTaskID().getVertexID());
+      Task task = vertex.getTask(event.getTaskID());
+      ((EventHandler<TaskEvent>)task).handle(event);
     }
   }
-
+  
   private class DagEventDispatcher implements EventHandler<DAGEvent> {
     public Map<DAGEventType, Integer> eventCount =
         new HashMap<DAGEventType, Integer>();
@@ -221,6 +229,7 @@ public class TestVertexImpl {
         .build();
     return dag;
   }
+ 
 
   private DAGPlan createTestDAGPlan() {
     LOG.info("Setting up dag plan");
@@ -511,13 +520,13 @@ public class TestVertexImpl {
     edges = DagTypeConverters.createEdgePropertyMapFromDAGPlan(
         dagPlan.getEdgeList());
     parseVertexEdges();
+    taskEventDispatcher = new TaskEventDispatcher();
+    dispatcher.register(TaskEventType.class, taskEventDispatcher);
     vertexEventDispatcher = new VertexEventDispatcher();
     dispatcher.register(VertexEventType.class, vertexEventDispatcher);
     dagEventDispatcher = new DagEventDispatcher();
     dispatcher.register(DAGEventType.class, dagEventDispatcher);
-    dispatcher.register(HistoryEventType.class,
-        new HistoryHandler());
-    dispatcher.register(TaskEventType.class, new TaskEventHandler());
+    dispatcher.register(HistoryEventType.class, new HistoryHandler());
     dispatcher.init(conf);
     dispatcher.start();
 
@@ -558,15 +567,12 @@ public class TestVertexImpl {
   }
 
   @SuppressWarnings("unchecked")
-  private void killVertex(VertexImpl v, boolean checkKillWait) {
+  private void killVertex(VertexImpl v) {
     dispatcher.getEventHandler().handle(
-        new VertexEvent(v.getVertexId(), VertexEventType.V_KILL));
+        new VertexEventTermination(v.getVertexId(), VertexTerminationCause.DAG_KILL));
     dispatcher.await();
-    if (checkKillWait) {
-      Assert.assertEquals(VertexState.KILL_WAIT, v.getState());
-    } else {
-      Assert.assertEquals(VertexState.KILLED, v.getState());
-    }
+    Assert.assertEquals(VertexState.KILLED, v.getState());
+    Assert.assertEquals(v.getTerminationCause(), VertexTerminationCause.DAG_KILL);
   }
 
   @SuppressWarnings("unchecked")
@@ -707,6 +713,7 @@ public class TestVertexImpl {
         new VertexEventTaskCompleted(t1, TaskState.FAILED));
     dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v.getState());
+    Assert.assertEquals(VertexTerminationCause.OWN_TASK_FAILURE, v.getTerminationCause());
     String diagnostics =
         StringUtils.join(",", v.getDiagnostics()).toLowerCase();
     Assert.assertTrue(diagnostics.contains("task failed " + t1.toString()));
@@ -715,7 +722,7 @@ public class TestVertexImpl {
   @Test(timeout = 5000)
   public void testVertexKillDiagnostics() {
     VertexImpl v1 = vertices.get("vertex1");
-    killVertex(v1, false);
+    killVertex(v1);
     String diagnostics =
         StringUtils.join(",", v1.getDiagnostics()).toLowerCase();
     Assert.assertTrue(diagnostics.contains(
@@ -723,7 +730,7 @@ public class TestVertexImpl {
 
     VertexImpl v2 = vertices.get("vertex2");
     initVertex(v2);
-    killVertex(v2, false);
+    killVertex(v2);
     diagnostics =
         StringUtils.join(",", v2.getDiagnostics()).toLowerCase();
     LOG.info("diagnostics v2: " + diagnostics);
@@ -740,7 +747,7 @@ public class TestVertexImpl {
     initVertex(v6);
 
     startVertex(v3);
-    killVertex(v3, true);
+    killVertex(v3);
     diagnostics =
         StringUtils.join(",", v3.getDiagnostics()).toLowerCase();
     Assert.assertTrue(diagnostics.contains(
@@ -756,15 +763,15 @@ public class TestVertexImpl {
     startVertex(v);
 
     dispatcher.getEventHandler().handle(
-        new VertexEvent(v.getVertexId(), VertexEventType.V_KILL));
+        new VertexEventTermination(v.getVertexId(), VertexTerminationCause.DAG_KILL));
     dispatcher.await();
-    Assert.assertEquals(VertexState.KILL_WAIT, v.getState());
+    Assert.assertEquals(VertexState.KILLED, v.getState());
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(
             new TezTaskID(v.getVertexId(), 0), TaskState.SUCCEEDED));
     dispatcher.await();
-    Assert.assertEquals(VertexState.KILL_WAIT, v.getState());
+    Assert.assertEquals(VertexState.KILLED, v.getState());
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(
@@ -774,8 +781,7 @@ public class TestVertexImpl {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
-  @Ignore
+  @Test
   public void testVertexKill() {
     initAllVertices();
 
@@ -783,13 +789,15 @@ public class TestVertexImpl {
     startVertex(v);
 
     dispatcher.getEventHandler().handle(
-        new VertexEvent(v.getVertexId(), VertexEventType.V_KILL));
-    Assert.assertEquals(VertexState.KILL_WAIT, v.getState());
+        new VertexEventTermination(v.getVertexId(), VertexTerminationCause.DAG_KILL));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.KILLED, v.getState());
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(
             new TezTaskID(v.getVertexId(), 0), TaskState.SUCCEEDED));
-    Assert.assertEquals(VertexState.KILL_WAIT, v.getState());
+    dispatcher.await();
+    Assert.assertEquals(VertexState.KILLED, v.getState());
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(
@@ -800,7 +808,6 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  @Ignore
   public void testKilledTasksHandling() {
     initAllVertices();
 
@@ -814,6 +821,7 @@ public class TestVertexImpl {
         new VertexEventTaskCompleted(t1, TaskState.FAILED));
     dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v.getState());
+    Assert.assertEquals(VertexTerminationCause.OWN_TASK_FAILURE, v.getTerminationCause());
     Assert.assertEquals(TaskState.KILLED, v.getTask(t2).getState());
   }
 
@@ -869,6 +877,7 @@ public class TestVertexImpl {
         new VertexEventTaskCompleted(t2, TaskState.FAILED));
     dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v.getState());
+    Assert.assertEquals(VertexTerminationCause.OWN_TASK_FAILURE, v.getTerminationCause());
     Assert.assertEquals(0, committer.commitCounter);
     Assert.assertEquals(1, committer.abortCounter);
   }
@@ -970,6 +979,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, v6.getState());
     Assert.assertEquals(4, v6.successSourceAttemptCompletionEventNoMap.size());
     Assert.assertEquals(6, v6.getTaskAttemptCompletionEvents(0, 100).length);
+    
   }
 
   @SuppressWarnings("unchecked")
@@ -1099,6 +1109,7 @@ public class TestVertexImpl {
         new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v.getState());
+    Assert.assertEquals(VertexTerminationCause.COMMIT_FAILURE, v.getTerminationCause());
     Assert.assertEquals(1, committer.commitCounter);
 
     // FIXME need to verify whether abort needs to be called if commit fails

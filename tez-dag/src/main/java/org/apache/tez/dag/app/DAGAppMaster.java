@@ -695,7 +695,7 @@ public class DAGAppMaster extends CompositeService {
         state = DAGAppMasterState.FAILED;
         break;
       case KILLED:
-        state = DAGAppMasterState.FAILED;
+        state = DAGAppMasterState.KILLED;
       case ERROR:
         state = DAGAppMasterState.ERROR;
       default:
@@ -735,6 +735,12 @@ public class DAGAppMaster extends CompositeService {
         throw new TezException("Unknown dagId: " + dagIdStr);
       }
       return dag;
+    }
+    
+    public void tryKillDAG(String dagIdStr)
+        throws TezException {
+      DAG dag = getDAG(dagIdStr);
+      dag.tryKill();
     }
   }
 

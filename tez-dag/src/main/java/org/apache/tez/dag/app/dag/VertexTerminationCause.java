@@ -16,45 +16,28 @@
 * limitations under the License.
 */
 
-package org.apache.tez.dag.app.dag.event;
+package org.apache.tez.dag.app.dag;
 
 /**
- * Event types handled by Task.
+ * Represents proximate cause of transition to FAILED or KILLED.
  */
-public enum VertexEventType {
+public enum VertexTerminationCause {
 
-  //Producer:Client, Job
-  V_TERMINATE,
+  /** DAG was killed  */
+  DAG_KILL, 
 
-  //Producer:Job
-  V_INIT,
-  
-  //Producer:Vertex
-  V_COMPLETED,
-  V_START,
-  V_SOURCE_TASK_ATTEMPT_COMPLETED,
-  V_SOURCE_VERTEX_STARTED,
-  
-  //Producer:Speculator
-  V_ADD_SPEC_ATTEMPT,
+  /** Other vertex failed causing DAG to fail thus killing this vertex  */
+  OTHER_VERTEX_FAILURE,
 
-  //Producer:Task
-  V_TASK_COMPLETED,
-  V_TASK_RESCHEDULED,
-  V_TASK_ATTEMPT_COMPLETED,
+  /** One of the tasks for this vertex failed.  */
+  OWN_TASK_FAILURE, 
 
-  V_TASK_LAUNCHED,
-  V_TASK_OUTPUT_CONSUMABLE,
-  V_TASK_FAILED,
-  V_TASK_SUCCEEDED,
-  V_ATTEMPT_KILLED,
-  
-  //Producer:TaskAttemptListener
-  V_TASK_ATTEMPT_FETCH_FAILURE,
+  /** This vertex failed during commit. */
+  COMMIT_FAILURE,
 
-  //Producer:Any component
-  V_DIAGNOSTIC_UPDATE,
-  INTERNAL_ERROR,
-  V_COUNTER_UPDATE,
-  
+  /** This vertex failed as it had zero tasks. */
+  ZERO_TASKS, 
+
+  /** This vertex failed during init. */
+  INIT_FAILURE
 }

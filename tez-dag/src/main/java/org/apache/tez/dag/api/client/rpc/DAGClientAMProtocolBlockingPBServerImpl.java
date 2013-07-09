@@ -32,6 +32,8 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequ
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusResponseProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGResponseProto;
 import org.apache.tez.dag.app.DAGAppMaster.DAGClientHandler;
 
 import com.google.protobuf.RpcController;
@@ -88,6 +90,19 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
       throw wrapException(e);
     }
   }
+  
+  @Override
+  public TryKillDAGResponseProto tryKillDAG(RpcController controller,
+      TryKillDAGRequestProto request) throws ServiceException {
+    try {
+      String dagId = request.getDagId();
+      real.tryKillDAG(dagId);
+      return TryKillDAGResponseProto.newBuilder().build();
+    } catch (TezException e) {
+      throw wrapException(e);
+    }
+  }
+  
   
   ServiceException wrapException(Exception e){
     return new ServiceException(e);
