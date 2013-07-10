@@ -20,6 +20,8 @@ package org.apache.tez.mapreduce;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -44,6 +46,7 @@ import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 public class ResourceMgrDelegate {
@@ -81,7 +84,10 @@ public class ResourceMgrDelegate {
 
   public JobStatus[] getAllJobs() throws IOException, InterruptedException {
     try {
-      return TypeConverter.fromYarnApps(client.getApplicationList(), this.conf);
+      Set<String> appTypes = new HashSet<String>(1);
+      appTypes.add(TezConfiguration.TEZ_APPLICATION_TYPE);
+      return TypeConverter.fromYarnApps(client.getApplications(appTypes),
+          this.conf);
     } catch (YarnException e) {
       throw new IOException(e);
     }

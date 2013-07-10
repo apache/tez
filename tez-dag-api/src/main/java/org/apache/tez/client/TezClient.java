@@ -79,14 +79,14 @@ public class TezClient {
 
   final public static FsPermission TEZ_AM_DIR_PERMISSION =
       FsPermission.createImmutable((short) 0700); // rwx--------
-  final public static FsPermission TEZ_AM_FILE_PERMISSION = 
+  final public static FsPermission TEZ_AM_FILE_PERMISSION =
       FsPermission.createImmutable((short) 0644); // rw-r--r--
-  
+
   public static final int UTF8_CHUNK_SIZE = 16 * 1024;
-    
+
   private final TezConfiguration conf;
   private YarnClient yarnClient;
-  
+
   /**
    * <p>
    * Create an instance of the TezClient which will be used to communicate with
@@ -96,7 +96,7 @@ public class TezClient {
    * Separate instances of TezClient should be created to communicate with
    * different instances of YARN
    * </p>
-   * 
+   *
    * @param conf
    *          the configuration which will be used to establish which YARN or
    *          Tez service instance this client is associated with.
@@ -107,12 +107,12 @@ public class TezClient {
     yarnClient.init(new YarnConfiguration(conf));
     yarnClient.start();
   }
-  
+
   /**
    * Submit a Tez DAG to YARN as an application. The job will be submitted to
    * the yarn cluster or tez service which was specified when creating this
    * {@link TezClient} instance.
-   * 
+   *
    * @param dag
    *          <code>DAG</code> to be submitted
    * @param appStagingDir
@@ -149,7 +149,7 @@ public class TezClient {
    * Submit a Tez DAG to YARN with known <code>ApplicationId</code>. This is a
    * private method and is only meant to be used within Tez for MR client
    * backward compatibility.
-   * 
+   *
    * @param appId
    *          - <code>ApplicationId</code> to be used
    * @param dag
@@ -192,7 +192,7 @@ public class TezClient {
 
     return getDAGClient(appId);
   }
-  
+
   /**
    * Create a new YARN application
    * @return <code>ApplicationId</code> for the new YARN application
@@ -209,7 +209,7 @@ public class TezClient {
   }
 
   @Private
-  public DAGClient getDAGClient(ApplicationId appId) 
+  public DAGClient getDAGClient(ApplicationId appId)
       throws IOException, TezException {
       return new DAGClientRPCImpl(appId, getDefaultTezDAGID(appId), conf);
   }
@@ -224,7 +224,7 @@ public class TezClient {
     vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_SIZE + "=" + 0);
     vargs.add("-Dhadoop.root.logger=" + logLevel + ",CLA");
   }
-  
+
   public FileSystem ensureExists(Path stagingArea)
       throws IOException {
     FileSystem fs = stagingArea.getFileSystem(conf);
@@ -254,7 +254,7 @@ public class TezClient {
     }
     return fs;
   }
-  
+
   private LocalResource createApplicationResource(FileSystem fs, Path p,
       LocalResourceType type) throws IOException {
     LocalResource rsrc = Records.newRecord(LocalResource.class);
@@ -364,12 +364,12 @@ public class TezClient {
       return conf;
     }
   }
-  
+
   private ApplicationSubmissionContext createApplicationSubmissionContext(
       ApplicationId appId, DAG dag, Path appStagingDir, Credentials ts,
       String amQueueName, String amName, List<String> amArgs,
       Map<String, String> amEnv, Map<String, LocalResource> amLocalResources,
-      TezConfiguration amConf) throws IOException, YarnException {    
+      TezConfiguration amConf) throws IOException, YarnException {
 
     if (amConf == null) {
       amConf = new TezConfiguration();
@@ -403,8 +403,10 @@ public class TezClient {
     String amLogLevel = conf.get(TezConfiguration.TEZ_AM_LOG_LEVEL,
                                  TezConfiguration.DEFAULT_TEZ_AM_LOG_LEVEL);
     addLog4jSystemProperties(amLogLevel, vargs);
-    
-    vargs.addAll(amArgs);
+
+    if (amArgs != null) {
+      vargs.addAll(amArgs);
+    }
 
     vargs.add(TezConfiguration.TEZ_APPLICATION_MASTER_CLASS);
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
@@ -453,14 +455,19 @@ public class TezClient {
         Environment.CLASSPATH.name(),
         Environment.PWD.$() + File.separator + "*");
 
-    for (Map.Entry<String, String> entry : amEnv.entrySet()) {
-      Apps.addToEnvironment(environment, entry.getKey(), entry.getValue());
+    if (amEnv != null) {
+      for (Map.Entry<String, String> entry : amEnv.entrySet()) {
+        Apps.addToEnvironment(environment, entry.getKey(), entry.getValue());
+      }
     }
 
     Map<String, LocalResource> localResources =
         new TreeMap<String, LocalResource>();
 
-    localResources.putAll(amLocalResources);
+    if (amLocalResources != null) {
+      localResources.putAll(amLocalResources);
+    }
+
     Map<String, LocalResource> tezJarResources =
         setupTezJarsLocalResources();
     localResources.putAll(tezJarResources);
@@ -469,7 +476,7 @@ public class TezClient {
     for (Vertex v : dag.getVertices()) {
       v.getTaskLocalResources().putAll(tezJarResources);
     }
-    
+
     // emit protobuf DAG file style
     Path binaryPath =  new Path(appStagingDir,
         TezConfiguration.TEZ_AM_PLAN_PB_BINARY + "." + appId.toString());
@@ -481,7 +488,7 @@ public class TezClient {
     DAGPlan dagPB = dag.createDag(finalAMConf);
 
     FSDataOutputStream dagPBOutBinaryStream = null;
-    
+
     try {
       //binary output
       dagPBOutBinaryStream = FileSystem.create(fs, binaryPath,
@@ -502,7 +509,7 @@ public class TezClient {
       localResources.put(TezConfiguration.TEZ_AM_PLAN_PB_TEXT,
           createApplicationResource(fs, textPath, LocalResourceType.FILE));
     }
-    
+
     Map<ApplicationAccessType, String> acls
         = new HashMap<ApplicationAccessType, String>();
 
@@ -567,7 +574,7 @@ public class TezClient {
     idFormat.setGroupingUsed(false);
     idFormat.setMinimumIntegerDigits(6);
   }
-  
+
   String getDefaultTezDAGID(ApplicationId appId) {
      return (new StringBuilder(DAG)).append(SEPARATOR).
                    append(appId.getClusterTimestamp()).

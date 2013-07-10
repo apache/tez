@@ -22,16 +22,21 @@ import java.io.IOException;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -43,11 +48,42 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.util.ClassUtil;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.client.TezClient;
+import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.Edge;
+import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
+import org.apache.tez.dag.api.EdgeProperty.SourceType;
+import org.apache.tez.dag.api.client.DAGClient;
+import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.engine.lib.input.ShuffledMergedInput;
+import org.apache.tez.engine.lib.output.OnFileSortedOutput;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
+import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
+import org.apache.tez.mapreduce.processor.map.MapProcessor;
+import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Dummy class for testing MR framefork. Sleeps for a defined period
@@ -359,11 +395,207 @@ public class MRRSleepJob extends Configured implements Tool {
     System.exit(res);
   }
 
+  public DAG createDAG(FileSystem remoteFs, Configuration conf,
+      ApplicationId appId, Path remoteStagingDir,
+      int numMapper, int numReducer, int iReduceStagesCount,
+      int numIReducer, long mapSleepTime, int mapSleepCount,
+      long reduceSleepTime, int reduceSleepCount,
+      long iReduceSleepTime, int iReduceSleepCount)
+      throws IOException, YarnException {
+
+
+    Configuration mapStageConf = new JobConf(conf);
+    mapStageConf.setInt(MRJobConfig.NUM_MAPS, numMapper);
+    mapStageConf.setLong(MAP_SLEEP_TIME, mapSleepTime);
+    mapStageConf.setLong(REDUCE_SLEEP_TIME, reduceSleepTime);
+    mapStageConf.setLong(IREDUCE_SLEEP_TIME, iReduceSleepTime);
+    mapStageConf.setInt(MAP_SLEEP_COUNT, mapSleepCount);
+    mapStageConf.setInt(REDUCE_SLEEP_COUNT, reduceSleepCount);
+    mapStageConf.setInt(IREDUCE_SLEEP_COUNT, iReduceSleepCount);
+    mapStageConf.setInt(IREDUCE_STAGES_COUNT, iReduceStagesCount);
+    mapStageConf.setInt(IREDUCE_TASKS_COUNT, numIReducer);
+    mapStageConf.set(MRJobConfig.MAP_CLASS_ATTR, SleepMapper.class.getName());
+    mapStageConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
+        IntWritable.class.getName());
+    mapStageConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
+        IntWritable.class.getName());
+    mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
+        SleepInputFormat.class.getName());
+    mapStageConf.set(MRJobConfig.PARTITIONER_CLASS_ATTR,
+        MRRSleepJobPartitioner.class.getName());
+
+    MultiStageMRConfToTezTranslator.translateVertexConfToTez(mapStageConf,
+        null);
+
+    Configuration[] intermediateReduceStageConfs = null;
+    if (iReduceStagesCount > 0
+        && numIReducer > 0) {
+      intermediateReduceStageConfs = new JobConf[iReduceStagesCount];
+      for (int i = 1; i <= iReduceStagesCount; ++i) {
+        JobConf iReduceStageConf = new JobConf(conf);
+        iReduceStageConf.setLong(MRRSleepJob.REDUCE_SLEEP_TIME, iReduceSleepTime);
+        iReduceStageConf.setInt(MRRSleepJob.REDUCE_SLEEP_COUNT, iReduceSleepCount);
+        iReduceStageConf.setInt(MRJobConfig.NUM_REDUCES, numIReducer);
+        iReduceStageConf
+            .set(MRJobConfig.REDUCE_CLASS_ATTR, ISleepReducer.class.getName());
+        iReduceStageConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
+            IntWritable.class.getName());
+        iReduceStageConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
+            IntWritable.class.getName());
+        iReduceStageConf.set(MRJobConfig.PARTITIONER_CLASS_ATTR,
+            MRRSleepJobPartitioner.class.getName());
+
+        if (i == 1) {
+          MultiStageMRConfToTezTranslator.translateVertexConfToTez(
+              iReduceStageConf, mapStageConf);
+        }
+        else {
+          MultiStageMRConfToTezTranslator.translateVertexConfToTez(
+              iReduceStageConf, intermediateReduceStageConfs[i-2]);
+        }
+        intermediateReduceStageConfs[i-1] = iReduceStageConf;
+      }
+    }
+
+    Configuration finalReduceConf = null;
+    if (numReducer > 0) {
+      finalReduceConf = new JobConf(conf);
+      finalReduceConf.setLong(MRRSleepJob.REDUCE_SLEEP_TIME, reduceSleepTime);
+      finalReduceConf.setInt(MRRSleepJob.REDUCE_SLEEP_COUNT, reduceSleepCount);
+      finalReduceConf.setInt(MRJobConfig.NUM_REDUCES, numReducer);
+      finalReduceConf.set(MRJobConfig.REDUCE_CLASS_ATTR, SleepReducer.class.getName());
+      finalReduceConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
+          IntWritable.class.getName());
+      finalReduceConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
+          IntWritable.class.getName());
+      finalReduceConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
+          NullOutputFormat.class.getName());
+
+      if (iReduceStagesCount != 0) {
+        MultiStageMRConfToTezTranslator.translateVertexConfToTez(finalReduceConf,
+            intermediateReduceStageConfs[iReduceStagesCount-1]);
+      } else {
+        MultiStageMRConfToTezTranslator.translateVertexConfToTez(finalReduceConf,
+            mapStageConf);
+      }
+    }
+
+    MRHelpers.doJobClientMagic(mapStageConf);
+    if (iReduceStagesCount > 0
+        && numIReducer > 0) {
+      for (int i = 0; i < iReduceStagesCount; ++i) {
+        MRHelpers.doJobClientMagic(intermediateReduceStageConfs[i]);
+      }
+    }
+    if (numReducer > 0) {
+      MRHelpers.doJobClientMagic(finalReduceConf);
+    }
+
+    InputSplitInfo inputSplitInfo;
+    try {
+      inputSplitInfo = MRHelpers.generateInputSplits(mapStageConf,
+          remoteStagingDir);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      throw new TezUncheckedException("Could not generate input splits", e);
+    } catch (ClassNotFoundException e) {
+      throw new TezUncheckedException("Failed to generate input splits", e);
+    }
+
+    DAG dag = new DAG("MRRSleepJob");
+    String jarPath = ClassUtil.findContainingJar(getClass());
+    Path remoteJarPath = remoteFs.makeQualified(
+        new Path(remoteStagingDir, "dag_job.jar"));
+    remoteFs.copyFromLocalFile(new Path(jarPath), remoteJarPath);
+    FileStatus jarFileStatus = remoteFs.getFileStatus(remoteJarPath);
+
+    Map<String, LocalResource> commonLocalResources =
+        new HashMap<String, LocalResource>();
+    LocalResource dagJarLocalRsrc = LocalResource.newInstance(
+        ConverterUtils.getYarnUrlFromPath(remoteJarPath),
+        LocalResourceType.FILE,
+        LocalResourceVisibility.APPLICATION,
+        jarFileStatus.getLen(),
+        jarFileStatus.getModificationTime());
+    commonLocalResources.put("dag_job.jar", dagJarLocalRsrc);
+
+    List<Vertex> vertices = new ArrayList<Vertex>();
+
+    Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
+        MapProcessor.class.getName(),
+        MRHelpers.createByteBufferFromConf(mapStageConf)),
+        numMapper,
+        MRHelpers.getMapResource(mapStageConf));
+    mapVertex.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
+    mapVertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
+    Map<String, LocalResource> mapLocalResources =
+        new HashMap<String, LocalResource>();
+    mapLocalResources.putAll(commonLocalResources);
+    MRHelpers.updateLocalResourcesForInputSplits(remoteFs, inputSplitInfo,
+        mapLocalResources);
+    mapVertex.setTaskLocalResources(mapLocalResources);
+    Map<String, String> mapEnv = new HashMap<String, String>();
+    MRHelpers.updateEnvironmentForMRTasks(mapStageConf, mapEnv, true);
+    mapVertex.setTaskEnvironment(mapEnv);
+    vertices.add(mapVertex);
+
+    if (iReduceStagesCount > 0
+        && numIReducer > 0) {
+      for (int i = 0; i < iReduceStagesCount; ++i) {
+        Configuration iconf =
+            intermediateReduceStageConfs[i];
+        Vertex ivertex = new Vertex("ireduce" + (i+1),
+            new ProcessorDescriptor(ReduceProcessor.class.getName(),
+                MRHelpers.createByteBufferFromConf(iconf)),
+                numIReducer,
+                MRHelpers.getReduceResource(iconf));
+        ivertex.setJavaOpts(MRHelpers.getReduceJavaOpts(iconf));
+        ivertex.setTaskLocalResources(commonLocalResources);
+        Map<String, String> reduceEnv = new HashMap<String, String>();
+        MRHelpers.updateEnvironmentForMRTasks(iconf, reduceEnv, false);
+        ivertex.setTaskEnvironment(reduceEnv);
+        vertices.add(ivertex);
+      }
+    }
+
+    Vertex finalReduceVertex = null;
+    if (numReducer > 0) {
+      finalReduceVertex = new Vertex("reduce", new ProcessorDescriptor(
+          ReduceProcessor.class.getName(),
+          MRHelpers.createByteBufferFromConf(finalReduceConf)),
+          numReducer,
+          MRHelpers.getReduceResource(finalReduceConf));
+      finalReduceVertex.setJavaOpts(
+          MRHelpers.getReduceJavaOpts(finalReduceConf));
+      finalReduceVertex.setTaskLocalResources(commonLocalResources);
+      Map<String, String> reduceEnv = new HashMap<String, String>();
+      MRHelpers.updateEnvironmentForMRTasks(finalReduceConf, reduceEnv, false);
+      finalReduceVertex.setTaskEnvironment(reduceEnv);
+      vertices.add(finalReduceVertex);
+    }
+
+    for (int i = 0; i < vertices.size(); ++i) {
+      dag.addVertex(vertices.get(i));
+      if (i != 0) {
+        dag.addEdge(new Edge(vertices.get(i-1),
+            vertices.get(i), new EdgeProperty(
+                ConnectionPattern.BIPARTITE, SourceType.STABLE,
+                new OutputDescriptor(
+                    OnFileSortedOutput.class.getName(), null),
+                new InputDescriptor(
+                    ShuffledMergedInput.class.getName(), null))));
+      }
+    }
+
+    return dag;
+  }
+
+  @VisibleForTesting
   public Job createJob(int numMapper, int numReducer, int iReduceStagesCount,
       int numIReducer, long mapSleepTime, int mapSleepCount,
       long reduceSleepTime, int reduceSleepCount,
       long iReduceSleepTime, int iReduceSleepCount)
-      throws IOException {
+          throws IOException {
     Configuration conf = getConf();
     conf.setLong(MAP_SLEEP_TIME, mapSleepTime);
     conf.setLong(REDUCE_SLEEP_TIME, reduceSleepTime);
@@ -385,20 +617,19 @@ public class MRRSleepJob extends Configured implements Tool {
       // Set reducer class for intermediate reduce
       conf.setClass(
           MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(i,
-          "mapreduce.job.reduce.class"), ISleepReducer.class, Reducer.class);
+              "mapreduce.job.reduce.class"), ISleepReducer.class, Reducer.class);
       // Set reducer output key class
       conf.setClass(
           MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(i,
-          "mapreduce.map.output.key.class"), IntWritable.class, Object.class);
+              "mapreduce.map.output.key.class"), IntWritable.class, Object.class);
       // Set reducer output value class
       conf.setClass(
           MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(i,
-          "mapreduce.map.output.value.class"), IntWritable.class, Object.class);
+              "mapreduce.map.output.value.class"), IntWritable.class, Object.class);
       conf.setInt(
           MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(i,
-          "mapreduce.job.reduces"), numIReducer);
+              "mapreduce.job.reduces"), numIReducer);
     }
-
     Job job = Job.getInstance(conf, "sleep");
     job.setNumReduceTasks(numReducer);
     job.setJarByClass(MRRSleepJob.class);
@@ -412,7 +643,6 @@ public class MRRSleepJob extends Configured implements Tool {
     job.setPartitionerClass(MRRSleepJobPartitioner.class);
     job.setSpeculativeExecution(false);
     job.setJobName("Sleep job");
-
 
     FileInputFormat.addInputPath(job, new Path("ignored"));
     return job;
@@ -468,10 +698,45 @@ public class MRRSleepJob extends Configured implements Tool {
     mapSleepCount = (int)Math.ceil(mapSleepTime / ((double)recSleepTime));
     reduceSleepCount = (int)Math.ceil(reduceSleepTime / ((double)recSleepTime));
     iReduceSleepCount = (int)Math.ceil(iReduceSleepTime / ((double)recSleepTime));
-    Job job = createJob(numMapper, numReducer, iReduceStagesCount, numIReducer,
+
+    TezConfiguration conf = new TezConfiguration();
+    FileSystem remoteFs = FileSystem.get(conf);
+
+    TezClient tezClient = new TezClient(conf);
+    ApplicationId appId =
+        tezClient.createApplication();
+
+    Path remoteStagingDir =
+        remoteFs.makeQualified(new Path(conf.get(
+            TezConfiguration.TEZ_AM_STAGING_DIR,
+            TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT),
+            appId.toString()));
+    tezClient.ensureExists(remoteStagingDir);
+
+    DAG dag = createDAG(remoteFs, conf, appId, remoteStagingDir,
+        numMapper, numReducer, iReduceStagesCount, numIReducer,
         mapSleepTime, mapSleepCount, reduceSleepTime, reduceSleepCount,
         iReduceSleepTime, iReduceSleepCount);
-    return job.waitForCompletion(true) ? 0 : 1;
+
+    DAGClient dagClient =
+        tezClient.submitDAGApplication(appId, dag, remoteStagingDir,
+            null, null, null, null, null, conf);
+
+    while (true) {
+      DAGStatus status = dagClient.getDAGStatus();
+      LOG.info("DAG Status: " + status);
+      if (status.isCompleted()) {
+        break;
+      }
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        // do nothing
+      }
+    }
+
+    return dagClient.getApplicationReport().getFinalApplicationStatus() ==
+        FinalApplicationStatus.SUCCEEDED ? 0 : 1;
   }
 
 }

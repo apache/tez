@@ -37,15 +37,15 @@ public class DAGStatus {
     FAILED,
     ERROR,
   };
-  
+
   DAGStatusProtoOrBuilder proxy = null;
   Progress progress = null;
   Map<String, Progress> vertexProgress = null;
-  
+
   public DAGStatus(DAGStatusProtoOrBuilder proxy) {
     this.proxy = proxy;
   }
-  
+
   public State getState() {
     switch(proxy.getState()) {
     case DAG_SUBMITTED:
@@ -64,11 +64,11 @@ public class DAGStatus {
     case DAG_ERROR:
       return DAGStatus.State.ERROR;
     default:
-      throw new TezUncheckedException("Unsupported value for DAGStatus.State : " + 
+      throw new TezUncheckedException("Unsupported value for DAGStatus.State : " +
                               proxy.getState());
     }
   }
-  
+
   public boolean isCompleted() {
     State state = getState();
     return (state == State.SUCCEEDED ||
@@ -83,7 +83,7 @@ public class DAGStatus {
 
   /**
    * Gets overall progress value of the DAG.
-   * 
+   *
    * @return Progress of the DAG. Maybe null when the DAG is not running. Maybe
    *         null when the DAG is running and the application master cannot be
    *         reached - e.g. when the execution platform has restarted the
@@ -99,7 +99,7 @@ public class DAGStatus {
 
   /**
    * Get the progress of a vertex in the DAG
-   * 
+   *
    * @return Progress of the vertex. May be null when the DAG is not running.
    *         Maybe null when the DAG is running and the application master
    *         cannot be reached - e.g. when the execution platform has restarted
@@ -110,13 +110,21 @@ public class DAGStatus {
     if(vertexProgress == null) {
       if(proxy.getVertexProgressList() != null) {
         List<StringProgressPairProto> kvList = proxy.getVertexProgressList();
-        vertexProgress = new HashMap<String, Progress>(kvList.size());        
+        vertexProgress = new HashMap<String, Progress>(kvList.size());
         for(StringProgressPairProto kv : kvList){
           vertexProgress.put(kv.getKey(), new Progress(kv.getProgress()));
         }
       }
     }
     return vertexProgress;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("status=" + getState()
+        + ", progress=" + getDAGProgress());
+    return sb.toString();
   }
 
 }
