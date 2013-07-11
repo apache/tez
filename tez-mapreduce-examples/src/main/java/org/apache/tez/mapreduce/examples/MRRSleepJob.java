@@ -423,6 +423,10 @@ public class MRRSleepJob extends Configured implements Tool {
         SleepInputFormat.class.getName());
     mapStageConf.set(MRJobConfig.PARTITIONER_CLASS_ATTR,
         MRRSleepJobPartitioner.class.getName());
+    if (numIReducer == 0 && numReducer == 0) {
+      mapStageConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
+          NullOutputFormat.class.getName());
+    }
 
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(mapStageConf,
         null);
@@ -692,6 +696,11 @@ public class MRRSleepJob extends Configured implements Tool {
       else if (args[i].equals("-recordt")) {
         recSleepTime = Long.parseLong(args[++i]);
       }
+    }
+
+    if (numIReducer > 0 && numReducer <= 0) {
+      throw new RuntimeException("Cannot have intermediate reduces without"
+          + " a final reduce");
     }
 
     // sleep for *SleepTime duration in Task by recSleepTime per record
