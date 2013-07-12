@@ -307,6 +307,11 @@
               </goals>
             </execution>
           </executions>
+          <configuration>
+            <archive>
+              <index>true</index>
+            </archive>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.hadoop</groupId>
