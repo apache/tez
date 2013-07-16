@@ -25,19 +25,34 @@ import org.apache.tez.common.TezJobConfig;
 @InterfaceAudience.Private
 public class Limits {
 
-  static final Configuration conf = new Configuration();
-  public static final int GROUP_NAME_MAX =
-      conf.getInt(TezJobConfig.COUNTER_GROUP_NAME_MAX_KEY, 
-          TezJobConfig.COUNTER_GROUP_NAME_MAX_DEFAULT);
-  public static final int COUNTER_NAME_MAX =
-      conf.getInt(TezJobConfig.COUNTER_NAME_MAX_KEY, 
-          TezJobConfig.COUNTER_NAME_MAX_DEFAULT);
-  public static final int GROUPS_MAX =
-      conf.getInt(TezJobConfig.COUNTER_GROUPS_MAX_KEY, 
-          TezJobConfig.COUNTER_GROUPS_MAX_DEFAULT);
-  public static final int COUNTERS_MAX =
-      conf.getInt(TezJobConfig.COUNTERS_MAX_KEY, TezJobConfig.
-          COUNTERS_MAX_DEFAULT);
+  private static Configuration conf = null;
+  private static int GROUP_NAME_MAX;
+  private static int COUNTER_NAME_MAX;
+  private static int GROUPS_MAX;
+  private static int COUNTERS_MAX;
+  private static boolean initialized = false;
+
+  private static synchronized void ensureInitialized() {
+    if (initialized) {
+      return;
+    }
+    if (conf == null) {
+      conf = new Configuration();
+    }
+    GROUP_NAME_MAX =
+        conf.getInt(TezJobConfig.COUNTER_GROUP_NAME_MAX_KEY,
+            TezJobConfig.COUNTER_GROUP_NAME_MAX_DEFAULT);
+    COUNTER_NAME_MAX =
+        conf.getInt(TezJobConfig.COUNTER_NAME_MAX_KEY,
+            TezJobConfig.COUNTER_NAME_MAX_DEFAULT);
+    GROUPS_MAX =
+        conf.getInt(TezJobConfig.COUNTER_GROUPS_MAX_KEY,
+            TezJobConfig.COUNTER_GROUPS_MAX_DEFAULT);
+    COUNTERS_MAX =
+        conf.getInt(TezJobConfig.COUNTERS_MAX_KEY, TezJobConfig.
+            COUNTERS_MAX_DEFAULT);
+    initialized = true;
+  }
 
   private int totalCounters;
   private LimitExceededException firstViolation;
@@ -47,14 +62,17 @@ public class Limits {
   }
 
   public static String filterCounterName(String name) {
+    ensureInitialized();
     return filterName(name, COUNTER_NAME_MAX);
   }
 
   public static String filterGroupName(String name) {
+    ensureInitialized();
     return filterName(name, GROUP_NAME_MAX);
   }
 
   public synchronized void checkCounters(int size) {
+    ensureInitialized();
     if (firstViolation != null) {
       throw new LimitExceededException(firstViolation);
     }
@@ -71,6 +89,7 @@ public class Limits {
   }
 
   public synchronized void checkGroups(int size) {
+    ensureInitialized();
     if (firstViolation != null) {
       throw new LimitExceededException(firstViolation);
     }
@@ -83,4 +102,11 @@ public class Limits {
   public synchronized LimitExceededException violation() {
     return firstViolation;
   }
+
+  public synchronized static void setConfiguration(Configuration conf) {
+    if (Limits.conf == null && conf != null) {
+      Limits.conf = conf;
+    }
+  }
+
 }

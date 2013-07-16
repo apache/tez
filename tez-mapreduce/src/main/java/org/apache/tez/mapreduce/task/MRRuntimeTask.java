@@ -209,13 +209,6 @@ public class MRRuntimeTask extends RuntimeTask {
     // Set up the DistributedCache related configs
     setupDistributedCacheConfig(job);
 
-    // Overwrite the localized task jobconf which is linked to in the current
-    // work-dir.
-    Path localTaskFile = new Path(
-        job.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR),
-        MRJobConfig.JOB_CONF_FILE);
-    writeLocalJobFile(localTaskFile, job);
-
     task.setConf(job);
   }
 

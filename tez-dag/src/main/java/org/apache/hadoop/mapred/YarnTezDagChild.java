@@ -56,6 +56,7 @@ import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
+import org.apache.tez.common.counters.Limits;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
@@ -79,12 +80,15 @@ public class YarnTezDagChild {
 
   public static void main(String[] args) throws Throwable {
     Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
-    LOG.debug("Child starting");
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Child starting");
+    }
 
     final Configuration defaultConf = new Configuration();
     // Security settings will be loaded based on core-site and core-default. Don't
     // depend on the jobConf for this.
     UserGroupInformation.setConfiguration(defaultConf);
+    Limits.setConfiguration(defaultConf);
 
     String host = args[0];
     int port = Integer.parseInt(args[1]);
@@ -101,9 +105,12 @@ public class YarnTezDagChild {
     // Security framework already loaded the tokens into current ugi
     Credentials credentials =
         UserGroupInformation.getCurrentUser().getCredentials();
-    LOG.info("Executing with tokens:");
-    for (Token<?> token: credentials.getAllTokens()) {
-      LOG.info(token);
+
+    if (LOG.isDebugEnabled()) {
+      LOG.info("Executing with tokens:");
+      for (Token<?> token: credentials.getAllTokens()) {
+        LOG.info(token);
+      }
     }
 
     // Create TaskUmbilicalProtocol as actual task owner.
