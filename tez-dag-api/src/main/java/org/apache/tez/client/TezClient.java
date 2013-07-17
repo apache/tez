@@ -441,6 +441,10 @@ public class TezClient {
         Environment.CLASSPATH.name(),
         Environment.PWD.$());
 
+    Apps.addToEnvironment(environment,
+        Environment.CLASSPATH.name(),
+        Environment.PWD.$() + File.separator + "*");
+
     // Add YARN/COMMON/HDFS jars to path
     if (!isMiniCluster) {
       for (String c : conf.getStrings(
@@ -450,10 +454,6 @@ public class TezClient {
             c.trim());
       }
     }
-
-    Apps.addToEnvironment(environment,
-        Environment.CLASSPATH.name(),
-        Environment.PWD.$() + File.separator + "*");
 
     if (amEnv != null) {
       for (Map.Entry<String, String> entry : amEnv.entrySet()) {

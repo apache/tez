@@ -43,7 +43,7 @@ import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceRequest;
-import org.apache.hadoop.yarn.client.api.AMRMClient.StoredContainerRequest;
+import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.RackResolver;
@@ -126,7 +126,7 @@ public class TaskScheduler extends AbstractService
     Object appCookie;
   }
   
-  class CookieContainerRequest extends StoredContainerRequest {
+  class CookieContainerRequest extends ContainerRequest {
     CRCookie cookie;
     public CookieContainerRequest(Resource capability, String[] hosts,
         String[] racks, Priority priority, CRCookie cookie) {
