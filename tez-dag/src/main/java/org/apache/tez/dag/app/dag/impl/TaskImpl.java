@@ -28,7 +28,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.mapreduce.TaskCompletionEvent;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -42,6 +41,7 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -103,7 +103,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   protected boolean encryptedShuffle;
   protected Credentials credentials;
   protected Token<JobTokenIdentifier> jobToken;
-  protected String processorName;
+  protected ProcessorDescriptor processorDescriptor;
   protected TaskLocationHint locationHint;
   protected Resource taskResource;
   protected Map<String, LocalResource> localResources;
@@ -284,7 +284,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // TODO Metrics
       //MRAppMetrics metrics,
       TaskHeartbeatHandler thh, AppContext appContext,
-      String processorName,
+      ProcessorDescriptor processorDescriptor,
       boolean leafVertex, TaskLocationHint locationHint, Resource resource,
       Map<String, LocalResource> localResources,
       Map<String, String> environment,
@@ -312,7 +312,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.encryptedShuffle = false;
     //conf.getBoolean(MRConfig.SHUFFLE_SSL_ENABLED_KEY,
      //                                       MRConfig.SHUFFLE_SSL_ENABLED_DEFAULT);
-    this.processorName = processorName;
+    this.processorDescriptor = processorDescriptor;
 
     this.leafVertex = leafVertex;
     this.locationHint = locationHint;
@@ -588,9 +588,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     return canCommit;
   }
 
+  // TODO remove hacky name lookup
   @Override
   public boolean needsWaitAfterOutputConsumable() {
-    if (processorName.contains("InitialTaskWithInMemSort")) {
+    if (processorDescriptor.getClassName().contains("InitialTaskWithInMemSort")) {
       return true;
     } else {
       return false;
@@ -612,7 +613,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
         taskAttemptListener, 0, conf,
         jobToken, credentials, clock, taskHeartbeatHandler,
-        appContext, processorName, locationHint, taskResource,
+        appContext, processorDescriptor, locationHint, taskResource,
         localResources, environment, javaOpts, (failedAttempts>0));
   }
 
@@ -707,7 +708,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     eventHandler.handle(new DAGEvent(this.taskId.getVertexID().getDAGId(),
         DAGEventType.INTERNAL_ERROR));
   }
-
+  
   private void sendTaskAttemptCompletionEvent(TezTaskAttemptID attemptId,
       TezDependentTaskCompletionEvent.Status status) {
     TaskAttempt attempt = attempts.get(attemptId);

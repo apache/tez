@@ -58,6 +58,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -340,7 +341,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private final VertexPlan vertexPlan;
 
   private final String vertexName;
-  private final String processorName;
+  private final ProcessorDescriptor processorDescriptor;
 
   private Map<Vertex, EdgeProperty> sourceVertices;
   private Map<Vertex, EdgeProperty> targetVertices;
@@ -388,11 +389,19 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.committer = new NullVertexOutputCommitter();
     this.vertexLocationHint = vertexLocationHint;
 
-    this.taskResource = DagTypeConverters.CreateResourceRequestFromTaskConfig(vertexPlan.getTaskConfig());
-    this.processorName = vertexPlan.hasProcessorDescriptor() ? vertexPlan.getProcessorDescriptor().getClassName() : null; // TODO Error if this is not set.
-    this.localResources = DagTypeConverters.createLocalResourceMapFromDAGPlan(vertexPlan.getTaskConfig().getLocalResourceList());
-    this.environment = DagTypeConverters.createEnvironmentMapFromDAGPlan(vertexPlan.getTaskConfig().getEnvironmentSettingList());
-    this.javaOpts = vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan.getTaskConfig().getJavaOpts() : null;
+    this.taskResource = DagTypeConverters
+        .createResourceRequestFromTaskConfig(vertexPlan.getTaskConfig());
+    this.processorDescriptor = DagTypeConverters
+        .convertProcessorDescriptorFromDAGPlan(vertexPlan
+            .getProcessorDescriptor());
+    this.localResources = DagTypeConverters
+        .createLocalResourceMapFromDAGPlan(vertexPlan.getTaskConfig()
+            .getLocalResourceList());
+    this.environment = DagTypeConverters
+        .createEnvironmentMapFromDAGPlan(vertexPlan.getTaskConfig()
+            .getEnvironmentSettingList());
+    this.javaOpts = vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan
+        .getTaskConfig().getJavaOpts() : null;
 
     ByteBuffer bb = getUserPayload();
     if (bb == null) {
@@ -712,7 +721,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   void logJobHistoryVertexStartedEvent() {
     VertexStartedEvent startEvt = new VertexStartedEvent(vertexId,
-        vertexName, initTime, startTime, numTasks, processorName);
+        vertexName, initTime, startTime, numTasks, getProcessorName());
     this.eventHandler.handle(new DAGHistoryEvent(getDAGId(), startEvt));
   }
 
@@ -986,7 +995,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                 vertex.clock,
                 vertex.taskHeartbeatHandler,
                 vertex.appContext,
-                vertex.processorName,
+                vertex.processorDescriptor,
                 vertex.targetVertices.isEmpty(),
                 locHint, vertex.taskResource,
                 vertex.localResources,
@@ -1376,7 +1385,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @VisibleForTesting
   String getProcessorName() {
-    return this.processorName;
+    return this.processorDescriptor.getClassName();
   }
 
   @VisibleForTesting

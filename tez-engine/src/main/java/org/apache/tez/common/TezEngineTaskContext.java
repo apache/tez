@@ -21,10 +21,13 @@ package org.apache.tez.common;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.io.Text;
+import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class TezEngineTaskContext extends TezTaskContext {
@@ -32,14 +35,14 @@ public class TezEngineTaskContext extends TezTaskContext {
   // These two could be replaced by a TezConfiguration / DagSpec.
   private List<InputSpec> inputSpecList;
   private List<OutputSpec> outputSpecList;
-  private String processorName;
+  private ProcessorDescriptor processorDescriptor;
   
   public TezEngineTaskContext() {
     super();
   }
 
   public TezEngineTaskContext(TezTaskAttemptID taskAttemptID, String user,
-      String jobName, String vertexName, String processorName,
+      String jobName, String vertexName, ProcessorDescriptor processorDescriptor,
       List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList) {
     super(taskAttemptID, user, jobName, vertexName);
     this.inputSpecList = inputSpecList;
@@ -52,7 +55,7 @@ public class TezEngineTaskContext extends TezTaskContext {
     }
     this.inputSpecList = inputSpecList;
     this.outputSpecList = outputSpecList;
-    this.processorName = processorName;
+    this.processorDescriptor = processorDescriptor;
   }
 
   public String getRuntimeName() {
@@ -61,7 +64,11 @@ public class TezEngineTaskContext extends TezTaskContext {
   }
 
   public String getProcessorName() {
-    return processorName;
+    return processorDescriptor.getClassName();
+  }
+  
+  public ByteBuffer getProcessorUserPayload() {
+    return processorDescriptor.getUserPayload();
   }
   
   public List<InputSpec> getInputSpecList() {
@@ -75,7 +82,10 @@ public class TezEngineTaskContext extends TezTaskContext {
   @Override
   public void write(DataOutput out) throws IOException {
     super.write(out);
-    Text.writeString(out, processorName);
+    byte[] procDesc = 
+        DagTypeConverters.convertToDAGPlan(processorDescriptor).toByteArray();
+    out.writeInt(procDesc.length);
+    out.write(procDesc);
     out.writeInt(inputSpecList.size());
     for (InputSpec inputSpec : inputSpecList) {
       inputSpec.write(out);
@@ -89,8 +99,13 @@ public class TezEngineTaskContext extends TezTaskContext {
   @Override
   public void readFields(DataInput in) throws IOException {
     super.readFields(in);
-    
-    processorName = Text.readString(in);
+    int procDescLength = in.readInt();
+    // TODO at least 3 buffer copies here. Need to convert this to full PB
+    // TEZ-305
+    byte[] procDescBytes = new byte[procDescLength];
+    in.readFully(procDescBytes);
+    processorDescriptor = DagTypeConverters.convertProcessorDescriptorFromDAGPlan(
+        TezEntityDescriptorProto.parseFrom(procDescBytes)); 
     int numInputSpecs = in.readInt();
     inputSpecList = new ArrayList<InputSpec>(numInputSpecs);
     for (int i = 0; i < numInputSpecs; i++) {
@@ -110,7 +125,7 @@ public class TezEngineTaskContext extends TezTaskContext {
   @Override
   public String toString() {
     StringBuffer sb = new StringBuffer();
-    sb.append("processorName=" + processorName
+    sb.append("processorName=" + getProcessorName()
         + ", inputSpecListSize=" + inputSpecList.size()
         + ", outputSpecListSize=" + outputSpecList.size());
     sb.append(", inputSpecList=[");

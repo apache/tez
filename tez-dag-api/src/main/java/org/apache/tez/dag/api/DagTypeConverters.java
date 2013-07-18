@@ -208,7 +208,7 @@ public class DagTypeConverters {
     return map;
   }
 
-  public static Resource CreateResourceRequestFromTaskConfig(
+  public static Resource createResourceRequestFromTaskConfig(
       PlanTaskConfiguration taskConfig) {
     return Resource.newInstance(taskConfig.getMemoryMb(), taskConfig.getVirtualCores());
   }
@@ -259,7 +259,7 @@ public class DagTypeConverters {
     String className = proto.getClassName();
     ByteBuffer bb = null;
     if (proto.hasUserPayload()) {
-      bb = proto.getUserPayload().asReadOnlyByteBuffer();
+      bb = ByteBuffer.wrap(proto.getUserPayload().toByteArray());
     }
     return new ProcessorDescriptor(className, bb);
   }

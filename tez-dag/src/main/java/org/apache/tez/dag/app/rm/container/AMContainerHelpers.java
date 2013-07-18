@@ -104,22 +104,6 @@ public class AMContainerHelpers {
     // Tokens
     ByteBuffer taskCredentialsBuffer = ByteBuffer.wrap(new byte[] {});
     try {
-      // Make dagPlan a local resource for all tasks.
-      
-      if (conf.get(TezConfiguration.TEZ_AM_PLAN_REMOTE_PATH) != null) {
-        Path remotePath = new Path(
-            conf.get(TezConfiguration.TEZ_AM_PLAN_REMOTE_PATH));
-        LOG.info("Localizing dag-plan via : " + remotePath);
-        FileSystem remoteFS = FileSystem.get(conf);
-        LocalResource dagPlanLocalResource = createLocalResource(remoteFS,
-            remotePath, LocalResourceType.FILE,
-            LocalResourceVisibility.APPLICATION);
-        localResources.put(TezConfiguration.TEZ_AM_PLAN_PB_BINARY, dagPlanLocalResource);
-      } else {
-        LOG.warn("Not localizing dag plan  for tasks since "
-            + TezConfiguration.TEZ_AM_PLAN_REMOTE_PATH + " is not set");
-      }
-
       // Setup up task credentials buffer
       Credentials taskCredentials = new Credentials();
 

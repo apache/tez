@@ -71,6 +71,7 @@ import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.records.ProceedToCompletionResponse;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
@@ -244,10 +245,12 @@ public class LocalJobRunnerTez implements ClientProtocol {
               IDConverter.fromMRTaskAttemptId(mapId);
           mapIds.add(mapId);
           // FIXME invalid task context
+          ProcessorDescriptor mapProcessorDesc = new ProcessorDescriptor(
+                      MapProcessor.class.getName(), null);
           TezEngineTaskContext taskContext =
               new TezEngineTaskContext(
                   tezMapId, user, localConf.getJobName(), "TODO_vertexName",
-                  MapProcessor.class.getName(),
+                  mapProcessorDesc,
                   Collections.singletonList(new InputSpec("srcVertex", 0,
                       SimpleInput.class.getName())),
                   Collections.singletonList(new OutputSpec("tgtVertex", 0,
@@ -446,12 +449,13 @@ public class LocalJobRunnerTez implements ClientProtocol {
             localConf.setUser(user);
             localConf.set("mapreduce.jobtracker.address", "local");
             setupChildMapredLocalDirs(reduceId, user, localConf);
-
             // FIXME invalid task context
+            ProcessorDescriptor reduceProcessorDesc = new ProcessorDescriptor(
+                ReduceProcessor.class.getName(), null);
             TezEngineTaskContext taskContext = new TezEngineTaskContext(
                 IDConverter.fromMRTaskAttemptId(reduceId), user,
                 localConf.getJobName(), "TODO_vertexName",
-                ReduceProcessor.class.getName(),
+                reduceProcessorDesc,
                 Collections.singletonList(new InputSpec("TODO_srcVertexName",
                     mapIds.size(), LocalMergedInput.class.getName())),
                 Collections.singletonList(new OutputSpec("TODO_targetVertex",

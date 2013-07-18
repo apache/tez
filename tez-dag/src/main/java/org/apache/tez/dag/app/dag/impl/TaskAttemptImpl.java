@@ -54,6 +54,7 @@ import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -146,7 +147,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   protected final String javaOpts;
   protected final boolean isRescheduled;
 
-  protected String processorName;
+  protected ProcessorDescriptor processorDescriptor;
 
   protected static final FailedTransitionHelper FAILED_HELPER =
       new FailedTransitionHelper();
@@ -257,7 +258,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       TezConfiguration conf,
       Token<JobTokenIdentifier> jobToken, Credentials credentials, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
-      String processorName, TaskLocationHint locationHint,
+      ProcessorDescriptor processorDescriptor, TaskLocationHint locationHint,
       Resource resource, Map<String, LocalResource> localResources,
       Map<String, String> environment,
       String javaOpts, boolean isRescheduled) {
@@ -276,7 +277,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.appContext = appContext;
     this.taskResource = resource;
     this.reportedStatus = new TaskAttemptStatus();
-    this.processorName = processorName;
+    this.processorDescriptor = processorDescriptor;
     initTaskAttemptStatus(reportedStatus);
     RackResolver.init(conf);
     this.stateMachine = stateMachineFactory.make(this);
@@ -315,7 +316,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     // TODO  TEZ-50 user and jobname
     return new TezEngineTaskContext(getID(), dag.getUserName(),
         dag.getName(), getTask()
-        .getVertex().getName(), processorName,
+        .getVertex().getName(), processorDescriptor,
         vertex.getInputSpecList(), vertex.getOutputSpecList());
   }
 

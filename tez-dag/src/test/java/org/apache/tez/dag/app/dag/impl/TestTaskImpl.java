@@ -40,6 +40,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.event.InlineDispatcher;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -87,6 +88,7 @@ public class TestTaskImpl {
   private Map<String, String> environment;
   private String javaOpts;
   private boolean leafVertex;
+  private ProcessorDescriptor mapProcDesc;
 
   private MockTaskImpl mockTask;
 
@@ -111,11 +113,13 @@ public class TestTaskImpl {
     environment = new HashMap<String, String>();
     javaOpts = "";
     leafVertex = false;
+    mapProcDesc = new ProcessorDescriptor(
+        "org.apache.tez.mapreduce.processor.map.MapProcessor", null);
 
     mockTask = new MockTaskImpl(vertexId, partition,
         dispatcher.getEventHandler(), conf, taskAttemptListener, jobToken,
         credentials, clock, taskHeartbeatHandler, appContext,
-        "org.apache.tez.mapreduce.processor.map.MapProcessor", leafVertex,
+        mapProcDesc, leafVertex,
         locationHint, taskResource, localResources, environment, javaOpts);
   }
 
@@ -377,12 +381,12 @@ public class TestTaskImpl {
         TaskAttemptListener taskAttemptListener,
         Token<JobTokenIdentifier> jobToken, Credentials credentials,
         Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
-        String processorName, boolean leafVertex,
+        ProcessorDescriptor processorDesc, boolean leafVertex,
         TaskLocationHint locationHint, Resource resource,
         Map<String, LocalResource> localResources,
         Map<String, String> environment, String javaOpts) {
       super(vertexId, partition, eventHandler, conf, taskAttemptListener,
-          jobToken, credentials, clock, thh, appContext, processorName,
+          jobToken, credentials, clock, thh, appContext, processorDesc,
           leafVertex, locationHint, resource, localResources, environment,
           javaOpts);
     }
@@ -392,7 +396,7 @@ public class TestTaskImpl {
       MockTaskAttemptImpl attempt = new MockTaskAttemptImpl(getTaskId(),
           attemptNumber, eventHandler, taskAttemptListener, attemptNumber,
           conf, jobToken, credentials, clock, taskHeartbeatHandler, appContext,
-          processorName, locationHint, taskResource, localResources,
+          processorDescriptor, locationHint, taskResource, localResources,
           environment, javaOpts, true);
       taskAttempts.add(attempt);
       return attempt;
@@ -432,12 +436,12 @@ public class TestTaskImpl {
         EventHandler eventHandler, TaskAttemptListener tal, int partition,
         TezConfiguration conf, Token<JobTokenIdentifier> jobToken,
         Credentials credentials, Clock clock, TaskHeartbeatHandler thh,
-        AppContext appContext, String processorName,
+        AppContext appContext, ProcessorDescriptor processorDesc,
         TaskLocationHint locationHing, Resource resource,
         Map<String, LocalResource> localResources,
         Map<String, String> environment, String javaOpts, boolean isRescheduled) {
       super(taskId, attemptNumber, eventHandler, tal, partition, conf,
-          jobToken, credentials, clock, thh, appContext, processorName,
+          jobToken, credentials, clock, thh, appContext, processorDesc,
           locationHing, resource, localResources, environment, javaOpts,
           isRescheduled);
     }

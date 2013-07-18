@@ -36,6 +36,7 @@ import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
@@ -132,11 +133,12 @@ public class TestReduceProcessor {
     reduceConf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
     FileOutputFormat.setOutputPath(reduceConf, new Path(workDir, "output"));
-    
+    ProcessorDescriptor reduceProcessorDesc = new ProcessorDescriptor(
+        ReduceProcessor.class.getName(), null);
     // Now run a reduce
     TezEngineTaskContext taskContext = new TezEngineTaskContext(
         TezTestUtils.getMockTaskAttemptId(0, 1, 0, 0), "testUser",
-        "testJob", reduceVertexName, ReduceProcessor.class.getName(),
+        "testJob", reduceVertexName, reduceProcessorDesc,
         Collections.singletonList(new InputSpec(mapVertexName, 1,
             LocalMergedInput.class.getName())),
         Collections.singletonList(new OutputSpec("", 1,

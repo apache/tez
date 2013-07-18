@@ -49,6 +49,7 @@ import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.runtime.RuntimeUtils;
 import org.apache.tez.mapreduce.TezTestUtils;
@@ -181,10 +182,12 @@ public class MapUtils {
     jobConf.setInputFormat(SequenceFileInputFormat.class);
     InputSplit split = createInputSplit(fs, workDir, jobConf, mapInput);
 
+    ProcessorDescriptor mapProcessorDesc = new ProcessorDescriptor(
+        MapProcessor.class.getName(), null);
     writeSplitFiles(fs, jobConf, split);
     TezEngineTaskContext taskContext = new TezEngineTaskContext(
         TezTestUtils.getMockTaskAttemptId(0, 0, mapId, 0), "testuser",
-        "testJob", vertexName, MapProcessor.class.getName(),
+        "testJob", vertexName, mapProcessorDesc,
         inputSpecs, outputSpecs);
 
     Task t = RuntimeUtils.createRuntimeTask(taskContext);
