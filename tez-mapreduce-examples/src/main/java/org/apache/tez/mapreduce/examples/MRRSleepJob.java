@@ -727,9 +727,12 @@ public class MRRSleepJob extends Configured implements Tool {
         mapSleepTime, mapSleepCount, reduceSleepTime, reduceSleepCount,
         iReduceSleepTime, iReduceSleepCount);
 
+    List<String> amArgs = new ArrayList<String>();
+    amArgs.add(MRHelpers.getMRAMJavaOpts(conf));
+
     DAGClient dagClient =
         tezClient.submitDAGApplication(appId, dag, remoteStagingDir,
-            null, null, null, null, null, conf);
+            null, null, amArgs , null, null, conf);
 
     while (true) {
       DAGStatus status = dagClient.getDAGStatus();
