@@ -37,8 +37,6 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
@@ -75,13 +73,10 @@ public class TestTaskScheduler {
     AMRMClientAsync<CookieContainerRequest> mockRMClient = 
                                                   mock(AMRMClientAsync.class);
     
-    ApplicationAttemptId attemptId = 
-        ApplicationAttemptId.newInstance(
-                                  ApplicationId.newInstance(1234, 0), 0);
     String appHost = "host";
     int appPort = 0;
     String appUrl = "url";
-    TaskScheduler scheduler = new TaskScheduler(attemptId, mockApp, appHost, 
+    TaskScheduler scheduler = new TaskScheduler(mockApp, appHost, 
                                                 appPort, appUrl, mockRMClient);
     
     Configuration conf = new Configuration(); 
@@ -343,13 +338,10 @@ public class TestTaskScheduler {
     AMRMClientAsync<CookieContainerRequest> mockRMClient = 
                                                   mock(AMRMClientAsync.class);
     
-    ApplicationAttemptId attemptId = 
-        ApplicationAttemptId.newInstance(
-                                  ApplicationId.newInstance(1234, 0), 0);
     String appHost = "host";
     int appPort = 0;
     String appUrl = "url";
-    TaskScheduler scheduler = new TaskScheduler(attemptId, mockApp, appHost, 
+    TaskScheduler scheduler = new TaskScheduler(mockApp, appHost, 
                                                 appPort, appUrl, mockRMClient);
     
     Configuration conf = new Configuration(); 

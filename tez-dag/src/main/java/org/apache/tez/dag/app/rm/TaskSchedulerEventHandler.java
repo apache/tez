@@ -319,8 +319,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     // TODO set heartbeat value from conf here
     InetSocketAddress serviceAddr = clientService.getBindAddress();
     taskScheduler = 
-        new TaskScheduler(appContext.getApplicationAttemptId(),
-                          this,
+        new TaskScheduler(this,
                           serviceAddr.getHostName(),
                           serviceAddr.getPort(),
                           "");

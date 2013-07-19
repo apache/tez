@@ -34,7 +34,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
@@ -139,14 +138,13 @@ public class TaskScheduler extends AbstractService
     }
   }
   
-  public TaskScheduler(ApplicationAttemptId id, 
-                        TaskSchedulerAppCallback appClient,
+  public TaskScheduler(TaskSchedulerAppCallback appClient,
                         String appHostName, 
                         int appHostPort,
                         String appTrackingUrl) {
     super(TaskScheduler.class.getName());
     this.appClient = appClient;
-    this.amRmClient = AMRMClientAsync.createAMRMClientAsync(id, 1000, this);
+    this.amRmClient = AMRMClientAsync.createAMRMClientAsync(1000, this);
     this.appHostName = appHostName;
     this.appHostPort = appHostPort;
     this.appTrackingUrl = appTrackingUrl;
@@ -154,8 +152,7 @@ public class TaskScheduler extends AbstractService
   
   @Private
   @VisibleForTesting
-  TaskScheduler(ApplicationAttemptId id, 
-      TaskSchedulerAppCallback appClient,
+  TaskScheduler(TaskSchedulerAppCallback appClient,
       String appHostName, 
       int appHostPort,
       String appTrackingUrl,
