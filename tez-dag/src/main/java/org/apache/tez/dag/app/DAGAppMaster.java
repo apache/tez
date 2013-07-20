@@ -1084,6 +1084,7 @@ public class DAGAppMaster extends CompositeService {
     UserGroupInformation.setConfiguration(conf);
     UserGroupInformation appMasterUgi = UserGroupInformation
         .createRemoteUser(jobUserName);
+    appMasterUgi.addCredentials(UserGroupInformation.getCurrentUser().getCredentials());
     appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {
       @Override
       public Object run() throws Exception {
