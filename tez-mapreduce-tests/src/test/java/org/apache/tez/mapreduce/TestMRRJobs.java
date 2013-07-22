@@ -130,7 +130,7 @@ public class TestMRRJobs {
     }
   }
 
-  @Test (timeout = 300000)
+  @Test (timeout = 60000)
   public void testMRRSleepJob() throws IOException, InterruptedException,
       ClassNotFoundException {
     LOG.info("\n\n\nStarting testMRRSleepJob().");
@@ -254,7 +254,7 @@ public class TestMRRJobs {
     // TODO verify failed task diagnostics
   }
 
-  @Test (timeout = 300000)
+  @Test (timeout = 60000)
   public void testFailingAttempt() throws IOException, InterruptedException,
       ClassNotFoundException {
 
@@ -290,7 +290,7 @@ public class TestMRRJobs {
     // TODO verify failed task diagnostics
   }
 
-  @Test (timeout = 300000)
+  @Test (timeout = 60000)
   public void testMRRSleepJobWithCompression() throws IOException,
       InterruptedException, ClassNotFoundException {
     LOG.info("\n\n\nStarting testMRRSleepJobWithCompression().");

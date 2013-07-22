@@ -18,7 +18,6 @@
 package org.apache.tez.engine.api;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import org.apache.hadoop.conf.Configuration;
 
@@ -38,7 +37,7 @@ public interface Task {
    * @throws IOException
    * @throws InterruptedException
    */
-  public void initialize(Configuration conf, ByteBuffer userPayload,
+  public void initialize(Configuration conf, byte[] userPayload,
       Master master) throws IOException, InterruptedException;
   
   /**

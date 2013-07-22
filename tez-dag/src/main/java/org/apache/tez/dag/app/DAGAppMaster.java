@@ -877,7 +877,7 @@ public class DAGAppMaster extends AbstractService {
     Service service;
     List<Service> dependencies = new ArrayList<Service>();
     AtomicInteger dependenciesStarted = new AtomicInteger(0);
-    boolean canStart = false;
+    volatile boolean canStart = false;
 
     @Override
     public void stateChanged(Service dependency) {

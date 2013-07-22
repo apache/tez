@@ -20,10 +20,8 @@ package org.apache.tez.mapreduce.task;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -35,10 +33,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.MapOutputFile;
 import org.apache.hadoop.mapreduce.MRConfig;
@@ -78,7 +73,7 @@ public class MRRuntimeTask extends RuntimeTask {
   }
 
   @Override
-  public void initialize(Configuration conf, ByteBuffer userPayload,
+  public void initialize(Configuration conf, byte[] userPayload,
       Master master) throws IOException, InterruptedException {
 
     DeprecatedKeys.init();
@@ -92,7 +87,7 @@ public class MRRuntimeTask extends RuntimeTask {
       taskConf = MultiStageMRConfigUtil.getConfForVertex(mrConf,
           taskContext.getVertexName());
     } else {
-      taskConf = MRHelpers.createConfFromByteBuffer(userPayload);
+      taskConf = MRHelpers.createConfFromUserPayload(userPayload);
       copyTezConfigParameters(taskConf, conf);
     }
 
@@ -261,27 +256,6 @@ public class MRRuntimeTask extends RuntimeTask {
         job.set(MRJobConfig.CACHE_LOCALFILES, StringUtils
             .arrayToString(localFiles.toArray(new String[localFiles.size()])));
       }
-    }
-  }
-
-  private static final FsPermission urw_gr = FsPermission
-      .createImmutable((short) 0640);
-
-  /**
-   * Write the task specific job-configuration file.
-   * 
-   * @throws IOException
-   */
-  private static void writeLocalJobFile(Path jobFile, JobConf conf)
-      throws IOException {
-    FileSystem localFs = FileSystem.getLocal(conf);
-    localFs.delete(jobFile);
-    OutputStream out = null;
-    try {
-      out = FileSystem.create(localFs, jobFile, urw_gr);
-      conf.writeXml(out);
-    } finally {
-      IOUtils.cleanup(LOG, out);
     }
   }
 

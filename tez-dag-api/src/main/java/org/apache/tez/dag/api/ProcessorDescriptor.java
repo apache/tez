@@ -18,12 +18,10 @@
 
 package org.apache.tez.dag.api;
 
-import java.nio.ByteBuffer;
-
 public class ProcessorDescriptor extends TezEntityDescriptor {
 
   // TODO Fix dependencies so that this can be specified as a class.
-  public ProcessorDescriptor(String processorClassName, ByteBuffer userPayload) {
+  public ProcessorDescriptor(String processorClassName, byte[] userPayload) {
     super(processorClassName, userPayload);
   }
 }

@@ -18,7 +18,6 @@
 package org.apache.tez.engine.task;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezEngineTaskContext;
@@ -35,7 +34,7 @@ public class RuntimeTask implements Task {
   protected final Processor processor;
   
   protected TezEngineTaskContext taskContext;
-  protected ByteBuffer userPayload;
+  protected byte[] userPayload;
   protected Configuration conf;
   protected Master master;
   
@@ -50,7 +49,7 @@ public class RuntimeTask implements Task {
   }
 
   @Override
-  public void initialize(Configuration conf, ByteBuffer userPayload,
+  public void initialize(Configuration conf, byte[] userPayload,
       Master master) throws IOException, InterruptedException {
     this.conf = conf;
     this.userPayload = userPayload;

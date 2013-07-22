@@ -18,12 +18,10 @@
 
 package org.apache.tez.dag.api;
 
-import java.nio.ByteBuffer;
-
 public class InputDescriptor extends TezEntityDescriptor {
   
   // TODO Fix dependencies so that this can be specified as a class.  
-  public InputDescriptor(String inputClassName, ByteBuffer userPayload) {
+  public InputDescriptor(String inputClassName, byte[] userPayload) {
     super(inputClassName, userPayload);
   }
 }

@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -97,9 +96,9 @@ public class TestDAGPlan {
   public void testUserPayloadSerde() {
     DAG dag = new DAG("testDag");
     ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1",
-        ByteBuffer.wrap("processor1Bytes".getBytes()));
+        "processor1Bytes".getBytes());
     ProcessorDescriptor pd2 = new ProcessorDescriptor("processor2",
-        ByteBuffer.wrap("processor2Bytes".getBytes()));
+        "processor2Bytes".getBytes());
     Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
     Vertex v2 = new Vertex("v2", pd2, 1, Resource.newInstance(1024, 1));
     v1.setJavaOpts("").setTaskEnvironment(new HashMap<String, String>())
@@ -108,9 +107,9 @@ public class TestDAGPlan {
         .setTaskLocalResources(new HashMap<String, LocalResource>());
 
     InputDescriptor inputDescriptor = new InputDescriptor("input",
-        ByteBuffer.wrap("inputBytes".getBytes()));
+        "inputBytes".getBytes());
     OutputDescriptor outputDescriptor = new OutputDescriptor("output",
-        ByteBuffer.wrap("outputBytes".getBytes()));
+        "outputBytes".getBytes());
     Edge edge = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE,
         SourceType.STABLE, outputDescriptor, inputDescriptor));
 
@@ -146,15 +145,11 @@ public class TestDAGPlan {
     assertEquals(1, edgePropertyMap.size());
     EdgeProperty edgeProperty = edgePropertyMap.values().iterator().next();
 
-    byte[] ib = new byte[edgeProperty.getEdgeDestination().getUserPayload()
-        .capacity()];
-    edgeProperty.getEdgeDestination().getUserPayload().get(ib);
+    byte[] ib = edgeProperty.getEdgeDestination().getUserPayload();
     assertEquals("inputBytes", new String(ib));
     assertEquals("input", edgeProperty.getEdgeDestination().getClassName());
 
-    byte[] ob = new byte[edgeProperty.getEdgeSource().getUserPayload()
-        .capacity()];
-    edgeProperty.getEdgeSource().getUserPayload().get(ob);
+    byte[] ob = edgeProperty.getEdgeSource().getUserPayload();
     assertEquals("outputBytes", new String(ob));
     assertEquals("output", edgeProperty.getEdgeSource().getClassName());
   }

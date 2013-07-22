@@ -18,19 +18,17 @@
 
 package org.apache.tez.dag.api;
 
-import java.nio.ByteBuffer;
-
 public abstract class TezEntityDescriptor {
 
-  private ByteBuffer userPayload;
+  private byte[] userPayload;
   private String className;
   
-  public TezEntityDescriptor(String className, ByteBuffer userPayload) {
+  public TezEntityDescriptor(String className, byte[] userPayload) {
     this.userPayload = userPayload;
     this.className = className;
   }
   
-  public ByteBuffer getUserPayload() {
+  public byte[] getUserPayload() {
     return this.userPayload;
   }
 

@@ -395,7 +395,7 @@ public class YARNRunner implements ClientProtocol {
     Resource taskResource = isMap ? MRHelpers.getMapResource(stageConf)
         : MRHelpers.getReduceResource(stageConf);
     Vertex vertex = new Vertex(vertexName, new ProcessorDescriptor(
-        processorName, MRHelpers.createByteBufferFromConf(stageConf)),
+        processorName, MRHelpers.createUserPayloadFromConf(stageConf)),
         numTasks, taskResource);
 
     Map<String, String> taskEnv = new HashMap<String, String>();

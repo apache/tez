@@ -527,7 +527,7 @@ public class MRRSleepJob extends Configured implements Tool {
 
     Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
         MapProcessor.class.getName(),
-        MRHelpers.createByteBufferFromConf(mapStageConf)),
+        MRHelpers.createUserPayloadFromConf(mapStageConf)),
         numMapper,
         MRHelpers.getMapResource(mapStageConf));
     mapVertex.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
@@ -550,7 +550,7 @@ public class MRRSleepJob extends Configured implements Tool {
             intermediateReduceStageConfs[i];
         Vertex ivertex = new Vertex("ireduce" + (i+1),
             new ProcessorDescriptor(ReduceProcessor.class.getName(),
-                MRHelpers.createByteBufferFromConf(iconf)),
+                MRHelpers.createUserPayloadFromConf(iconf)),
                 numIReducer,
                 MRHelpers.getReduceResource(iconf));
         ivertex.setJavaOpts(MRHelpers.getReduceJavaOpts(iconf));
@@ -566,7 +566,7 @@ public class MRRSleepJob extends Configured implements Tool {
     if (numReducer > 0) {
       finalReduceVertex = new Vertex("reduce", new ProcessorDescriptor(
           ReduceProcessor.class.getName(),
-          MRHelpers.createByteBufferFromConf(finalReduceConf)),
+          MRHelpers.createUserPayloadFromConf(finalReduceConf)),
           numReducer,
           MRHelpers.getReduceResource(finalReduceConf));
       finalReduceVertex.setJavaOpts(

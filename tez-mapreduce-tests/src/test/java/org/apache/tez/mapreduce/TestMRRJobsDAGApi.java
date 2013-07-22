@@ -270,23 +270,23 @@ public class TestMRRJobsDAGApi {
     DAG dag = new DAG("testMRRSleepJobDagSubmit");
     Vertex stage1Vertex = new Vertex("map", new ProcessorDescriptor(
         MapProcessor.class.getName(),
-        MRHelpers.createByteBufferFromConf(stage1Conf)),
+        MRHelpers.createUserPayloadFromConf(stage1Conf)),
         inputSplitInfo.getNumTasks(), Resource.newInstance(256, 1));
     Vertex stage2Vertex = new Vertex("ireduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName(),
-        MRHelpers.createByteBufferFromConf(stage2Conf)),
+        MRHelpers.createUserPayloadFromConf(stage2Conf)),
         1, Resource.newInstance(256, 1));
     Vertex stage11Vertex = new Vertex("map1", new ProcessorDescriptor(
         MapProcessor.class.getName(),
-        MRHelpers.createByteBufferFromConf(stage1Conf)),
+        MRHelpers.createUserPayloadFromConf(stage1Conf)),
         inputSplitInfo1.getNumTasks(),  Resource.newInstance(256, 1));
     Vertex stage22Vertex = new Vertex("ireduce1", new ProcessorDescriptor(
         ReduceProcessor.class.getName(),
-        MRHelpers.createByteBufferFromConf(stage22Conf)),  
+        MRHelpers.createUserPayloadFromConf(stage22Conf)),  
         2, Resource.newInstance(256, 1));
     Vertex stage3Vertex = new Vertex("reduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName(),
-        MRHelpers.createByteBufferFromConf(stage3Conf)),
+        MRHelpers.createUserPayloadFromConf(stage3Conf)),
         1, Resource.newInstance(256, 1));
 
     LocalResource appJarLr = createLocalResource(remoteFs,

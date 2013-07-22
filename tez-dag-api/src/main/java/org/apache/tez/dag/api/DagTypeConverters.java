@@ -17,7 +17,6 @@
  */
 package org.apache.tez.dag.api;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -237,9 +236,9 @@ public class DagTypeConverters {
   public static InputDescriptor convertInputDescriptorFromDAGPlan(
       TezEntityDescriptorProto proto) {
     String className = proto.getClassName();
-    ByteBuffer bb = null;
+    byte[] bb = null;
     if (proto.hasUserPayload()) {
-      bb = proto.getUserPayload().asReadOnlyByteBuffer();
+      bb = proto.getUserPayload().toByteArray();
     }
     return new InputDescriptor(className, bb);
   }
@@ -247,9 +246,9 @@ public class DagTypeConverters {
   public static OutputDescriptor convertOutputDescriptorFromDAGPlan(
       TezEntityDescriptorProto proto) {
     String className = proto.getClassName();
-    ByteBuffer bb = null;
+    byte[] bb = null;
     if (proto.hasUserPayload()) {
-      bb = proto.getUserPayload().asReadOnlyByteBuffer();
+      bb =  proto.getUserPayload().toByteArray();
     }
     return new OutputDescriptor(className, bb);
   }
@@ -257,9 +256,9 @@ public class DagTypeConverters {
   public static ProcessorDescriptor convertProcessorDescriptorFromDAGPlan(
       TezEntityDescriptorProto proto) {
     String className = proto.getClassName();
-    ByteBuffer bb = null;
+    byte[] bb = null;
     if (proto.hasUserPayload()) {
-      bb = ByteBuffer.wrap(proto.getUserPayload().toByteArray());
+      bb = proto.getUserPayload().toByteArray();
     }
     return new ProcessorDescriptor(className, bb);
   }

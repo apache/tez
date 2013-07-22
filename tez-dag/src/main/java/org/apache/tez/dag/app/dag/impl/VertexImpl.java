@@ -18,7 +18,6 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -402,13 +401,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.javaOpts = vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan
         .getTaskConfig().getJavaOpts() : null;
 
-    ByteBuffer bb = getUserPayload();
+    byte[] bb = getUserPayload();
     if (bb == null) {
       LOG.info("No user payload - falling back to default AM tez conf");
       userConf = conf;
     } else {
       try {
-        userConf = MRHelpers.createConfFromByteBuffer(bb);
+        userConf = MRHelpers.createConfFromUserPayload(bb);
       } catch (IOException e) {
         LOG.info("Failed to create user conf from ByteBuffer");
         throw new TezUncheckedException(
@@ -1438,7 +1437,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   @Override
-  public ByteBuffer getUserPayload() {
+  public byte[] getUserPayload() {
     for (VertexPlan vertexPlan : getDAG().getJobPlan().getVertexList()) {
       if (vertexPlan.getName().equals(vertexName)) {
         if (!vertexPlan.getProcessorDescriptor().hasUserPayload()) {
@@ -1448,10 +1447,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // readOnlyBuffer
           ByteString byteString = vertexPlan.getProcessorDescriptor()
               .getUserPayload();
-          int capacity = byteString.asReadOnlyByteBuffer().rewind().remaining();
-          byte[] b = new byte[capacity];
-          byteString.asReadOnlyByteBuffer().get(b, 0, capacity);
-          return ByteBuffer.wrap(b);
+          byte[] b = byteString.toByteArray();
+          return b;
         }
       }
     }

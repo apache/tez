@@ -21,10 +21,8 @@ package org.apache.tez.mapreduce.hadoop;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -433,25 +431,24 @@ public class MRHelpers {
 
   @LimitedPrivate("Hive, Pig")
   @Unstable
-  public static ByteBuffer createByteBufferFromConf(Configuration conf)
+  public static byte[] createUserPayloadFromConf(Configuration conf)
       throws IOException {
     Preconditions.checkNotNull(conf, "Configuration must be specified");
     DataOutputBuffer dob = new DataOutputBuffer();
     conf.write(dob);
-    return ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+    return dob.getData();
   }
 
   @LimitedPrivate("Hive, Pig")
   @Unstable
-  public static Configuration createConfFromByteBuffer(ByteBuffer bb)
+  public static Configuration createConfFromUserPayload(byte[] bb)
       throws IOException {
     // TODO Avoid copy ?
-    Preconditions.checkNotNull(bb, "ByteBuffer must be specified");
+    Preconditions.checkNotNull(bb, "Bytes must be specified");
     DataInputBuffer dib = new DataInputBuffer();
-    dib.reset(bb.array(), 0, bb.capacity());
+    dib.reset(bb, 0, bb.length);
     Configuration conf = new Configuration(false);
     conf.readFields(dib);
-    bb.rewind();
     return conf;
   }
 

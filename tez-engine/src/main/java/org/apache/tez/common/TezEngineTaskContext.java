@@ -21,7 +21,6 @@ package org.apache.tez.common;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -67,7 +66,7 @@ public class TezEngineTaskContext extends TezTaskContext {
     return processorDescriptor.getClassName();
   }
   
-  public ByteBuffer getProcessorUserPayload() {
+  public byte[] getProcessorUserPayload() {
     return processorDescriptor.getUserPayload();
   }
   
