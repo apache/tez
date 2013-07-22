@@ -37,7 +37,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.MRVertexOutputCommitter;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
@@ -739,16 +738,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         StringUtils.join(LINE_SEPARATOR, getDiagnostics()),
         getAllCounters());
     this.eventHandler.handle(new DAGHistoryEvent(getDAGId(), finishEvt));
-  }
-
-  /**
-   * Create the default file System for this job.
-   * @param conf the conf object
-   * @return the default filesystem for this job
-   * @throws IOException
-   */
-  protected FileSystem getFileSystem(Configuration conf) throws IOException {
-    return FileSystem.get(conf);
   }
 
   static VertexState checkVertexForCompletion(VertexImpl vertex) {

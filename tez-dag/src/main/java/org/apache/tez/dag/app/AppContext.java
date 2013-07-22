@@ -26,6 +26,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
@@ -40,6 +41,8 @@ import org.apache.tez.dag.records.TezDAGID;
 public interface AppContext {
   
   DAGAppMaster getAppMaster();
+  
+  TezConfiguration getConf();
   
   ApplicationId getApplicationID();
 
@@ -70,5 +73,5 @@ public interface AppContext {
   
   AMNodeMap getAllNodes();
   
-  TaskSchedulerEventHandler getTaskScheduler();
+  TaskSchedulerEventHandler getTaskScheduler();  
 }

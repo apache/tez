@@ -22,11 +22,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -34,15 +37,17 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
-import org.apache.hadoop.service.CompositeService;
+import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.service.Service;
+import org.apache.hadoop.service.ServiceOperations;
+import org.apache.hadoop.service.ServiceStateChangeListener;
+import org.apache.hadoop.service.ServiceStateException;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -122,12 +127,12 @@ import org.apache.tez.engine.common.security.JobTokenSecretManager;
  */
 
 @SuppressWarnings("rawtypes")
-public class DAGAppMaster extends CompositeService {
+public class DAGAppMaster extends AbstractService {
 
   private static final Log LOG = LogFactory.getLog(DAGAppMaster.class);
 
   /**
-   * Priority of the MRAppMaster shutdown hook.
+   * Priority of the DAGAppMaster shutdown hook.
    */
   public static final int SHUTDOWN_HOOK_PRIORITY = 30;
 
@@ -145,7 +150,7 @@ public class DAGAppMaster extends CompositeService {
   private AMContainerMap containers;
   private AMNodeMap nodes;
   // TODO Metrics
-  //protected final MRAppMetrics metrics;
+  //protected final DAGAppMetrics metrics;
   // TODO Recovery
   //private Map<TezTaskID, TaskInfo> completedTasksFromPreviousRun;
   private AppContext context;
@@ -179,6 +184,11 @@ public class DAGAppMaster extends CompositeService {
   private Credentials fsTokens = new Credentials(); // Filled during init
   private UserGroupInformation currentUser; // Will be setup during init
 
+  // must be LinkedHashMap to preserve order of service addition
+  Map<Service, ServiceWithDependency> services = 
+      new LinkedHashMap<Service, ServiceWithDependency>();
+
+
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
       long appSubmitTime, DAGPlan dagPB) {
@@ -201,8 +211,8 @@ public class DAGAppMaster extends CompositeService {
     this.nmHttpPort = nmHttpPort;
     this.state = DAGAppMasterState.NEW;
     // TODO Metrics
-    //this.metrics = MRAppMetrics.create();
-    LOG.info("Created MRAppMaster for application " + applicationAttemptId);
+    //this.metrics = DAGAppMetrics.create();
+    LOG.info("Created DAGAppMaster for application " + applicationAttemptId);
   }
 
   @Override
@@ -227,38 +237,35 @@ public class DAGAppMaster extends CompositeService {
 
     clientHandler = new DAGClientHandler();
 
-    // TODO Committer.
-    //    committer = createOutputCommitter(conf);
-
     dispatcher = createDispatcher();
-    addIfService(dispatcher);
+    addIfService(dispatcher, false);
 
     clientRpcServer = new DAGClientServer(clientHandler);
-    addIfService(clientRpcServer);
+    addIfService(clientRpcServer, true);
 
     taskHeartbeatHandler = createTaskHeartbeatHandler(context, conf);
-    addIfService(taskHeartbeatHandler);
+    addIfService(taskHeartbeatHandler, true);
 
     containerHeartbeatHandler = createContainerHeartbeatHandler(context, conf);
-    addIfService(containerHeartbeatHandler);
+    addIfService(containerHeartbeatHandler, true);
 
     //service to handle requests to TaskUmbilicalProtocol
     taskAttemptListener = createTaskAttemptListener(context,
         taskHeartbeatHandler, containerHeartbeatHandler);
-    addIfService(taskAttemptListener);
+    addIfService(taskAttemptListener, true);
 
     containers = new AMContainerMap(containerHeartbeatHandler,
         taskAttemptListener, context);
-    addIfService(containers);
+    addIfService(containers, true);
     dispatcher.register(AMContainerEventType.class, containers);
 
     nodes = new AMNodeMap(dispatcher.getEventHandler(), context);
-    addIfService(nodes);
+    addIfService(nodes, true);
     dispatcher.register(AMNodeEventType.class, nodes);
 
     //service to do the task cleanup
     taskCleaner = createTaskCleaner(context);
-    addIfService(taskCleaner);
+    addIfService(taskCleaner, true);
 
     this.dagEventDispatcher = new DagEventDispatcher();
     this.vertexEventDispatcher = new VertexEventDispatcher();
@@ -273,37 +280,29 @@ public class DAGAppMaster extends CompositeService {
     dispatcher.register(TaskCleaner.EventType.class, taskCleaner);
 
     taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
-        clientRpcServer);
-    addIfService(taskSchedulerEventHandler);
+        clientRpcServer, dispatcher.getEventHandler());
+    addIfService(taskSchedulerEventHandler, true);
     dispatcher.register(AMSchedulerEventType.class,
         taskSchedulerEventHandler);
+    addIfServiceDependency(taskSchedulerEventHandler, clientRpcServer);
 
     //    TODO XXX: Rename to NMComm
     //    corresponding service to launch allocated containers via NodeManager
     //    containerLauncher = createNMCommunicator(context);
     containerLauncher = createContainerLauncher(context);
-    addIfService(containerLauncher);
+    addIfService(containerLauncher, true);
     dispatcher.register(NMCommunicatorEventType.class, containerLauncher);
 
     historyEventHandler = new HistoryEventHandler(context);
-    addIfService(historyEventHandler);
+    addIfService(historyEventHandler, true);
     dispatcher.register(HistoryEventType.class, historyEventHandler);
 
+    initServices(conf);
     super.serviceInit(conf);
   } // end of init()
 
   protected Dispatcher createDispatcher() {
     return new AsyncDispatcher();
-  }
-
-  /**
-   * Create the default file System for this job.
-   * @param conf the conf object
-   * @return the default filesystem for this job
-   * @throws IOException
-   */
-  protected FileSystem getFileSystem(Configuration conf) throws IOException {
-    return FileSystem.get(conf);
   }
 
   /**
@@ -525,15 +524,9 @@ public class DAGAppMaster extends CompositeService {
 
     // create single job
     DAG newDag =
-        new DAGImpl(dagId, appAttemptID, conf, dagPB, dispatcher.getEventHandler(),
+        new DAGImpl(dagId, conf, dagPB, dispatcher.getEventHandler(),
             taskAttemptListener, jobTokenSecretManager, fsTokens, clock,
-            // TODO Recovery
-            //completedTasksFromPreviousRun,
-            // TODO Metrics
-            //metrics,
-            //committer, newApiCommitter,
-            currentUser.getShortUserName(), appSubmitTime,
-            //amInfos,
+            currentUser.getShortUserName(),
             taskHeartbeatHandler, context);
     ((RunningAppContext) context).setDAG(newDag);
 
@@ -578,9 +571,24 @@ public class DAGAppMaster extends CompositeService {
     }
   }
 
-  protected void addIfService(Object object) {
+  protected void addIfService(Object object, boolean addDispatcher) {
     if (object instanceof Service) {
-      addService((Service) object);
+      Service service = (Service) object; 
+      ServiceWithDependency sd = new ServiceWithDependency(service); 
+      services.put(service, sd);
+      if(addDispatcher) {
+        addIfServiceDependency(service, dispatcher);
+      }
+    }
+  }
+  
+  protected void addIfServiceDependency(Object object, Object dependency) {
+    if (object instanceof Service && dependency instanceof Service) {
+      Service service = (Service) object;
+      Service dependencyService = (Service) dependency;
+      ServiceWithDependency sd = services.get(service); 
+      sd.dependencies.add(dependencyService);
+      dependencyService.registerServiceListener(sd);
     }
   }
 
@@ -760,6 +768,11 @@ public class DAGAppMaster extends CompositeService {
     public DAGAppMaster getAppMaster() {
       return DAGAppMaster.this;
     }
+    
+    @Override
+    public TezConfiguration getConf() {
+      return conf;
+    }
 
     @Override
     public ApplicationAttemptId getApplicationAttemptId() {
@@ -834,7 +847,7 @@ public class DAGAppMaster extends CompositeService {
       }
       return taskSchedulerEventHandler.getApplicationAcls();
     }
-
+    
     @Override
     public TezDAGID getDAGID() {
       try {
@@ -857,20 +870,154 @@ public class DAGAppMaster extends CompositeService {
     
   }
 
+  private class ServiceWithDependency implements ServiceStateChangeListener {
+    ServiceWithDependency(Service service) {
+      this.service = service;
+    }
+    Service service;
+    List<Service> dependencies = new ArrayList<Service>();
+    AtomicInteger dependenciesStarted = new AtomicInteger(0);
+    boolean canStart = false;
+
+    @Override
+    public void stateChanged(Service dependency) {
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Service dependency: " + dependency.getName() + " notify" + 
+                  " for service: " + service.getName());
+      }
+      if(dependency.isInState(Service.STATE.STARTED)) {
+        if(dependenciesStarted.incrementAndGet() == dependencies.size()) {
+          synchronized(this) {
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Service: " + service.getName() + " notified to start");
+            }
+            canStart = true;
+            this.notifyAll();
+          }
+        }
+      }
+    }
+    
+    void start() throws InterruptedException {
+      if(dependencies.size() > 0) {
+        synchronized(this) {
+          while(!canStart) {
+            this.wait(1000*60*3L);
+          }
+        }
+      }
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Service: " + service.getName() + " trying to start");
+      }
+      for(Service dependency : dependencies) {
+        if(!dependency.isInState(Service.STATE.STARTED)){
+          LOG.info("Service: " + service.getName() + " not started because " 
+                   + " service: " + dependency.getName() + 
+                   " is in state: " + dependency.getServiceState());
+          return;
+        }
+      }
+      service.start();
+    }
+  }
+  
+  private class ServiceThread extends Thread {
+    final ServiceWithDependency serviceWithDependency;
+    Throwable error = null;
+    public ServiceThread(ServiceWithDependency serviceWithDependency) {
+      this.serviceWithDependency = serviceWithDependency;
+      this.setName("ServiceThread:" + serviceWithDependency.service.getName());
+    }
+    
+    public void run() {
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Starting thread " + serviceWithDependency.service.getName()); 
+      }
+      long start = System.currentTimeMillis();
+      try {
+        serviceWithDependency.start();
+      } catch (Throwable t) {
+        error = t;
+      } finally {
+        if(LOG.isDebugEnabled()) {
+          LOG.debug("Service: " + serviceWithDependency.service.getName() + 
+              " started in " + (System.currentTimeMillis() - start) + "ms");
+        }
+      }
+    }
+  }
+
+  void startServices(){
+    try {
+      Throwable firstError = null;
+      List<ServiceThread> threads = new ArrayList<ServiceThread>();
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Begin parallel start");
+      }
+      for(ServiceWithDependency sd : services.values()) {
+        // start the service. If this fails that service
+        // will be stopped and an exception raised
+        ServiceThread st = new ServiceThread(sd);
+        threads.add(st);
+      }
+      for(ServiceThread st : threads) {
+        st.start();
+      }
+      for(ServiceThread st : threads) {
+        st.join();
+        if(st.error != null && firstError == null) {
+            firstError = st.error;
+        }
+      }
+      
+      if(firstError != null) {
+        throw ServiceStateException.convert(firstError);
+      }
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("End parallel start");
+      }
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+  }
+  
+  void initServices(TezConfiguration conf) {
+    for (ServiceWithDependency sd : services.values()) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Initing service : " + sd.service);
+      }
+      sd.service.init(conf);
+    }
+  }
+  
+  void stopServices() {
+    // stop in reverse order of start
+    List<Service> serviceList = new ArrayList<Service>(services.size());
+    for (ServiceWithDependency sd : services.values()) {
+      serviceList.add(sd.service);
+    }
+    Exception firstException = null;
+    for (int i = services.size() - 1; i >= 0; i--) {
+      Service service = serviceList.get(i);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Stopping service : " + service);
+      }
+      Exception ex = ServiceOperations.stopQuietly(LOG, service);
+      if (ex != null && firstException == null) {
+        firstException = ex;
+      }
+    }
+    //after stopping all services, rethrow the first exception raised
+    if (firstException != null) {
+      throw ServiceStateException.convert(firstException);
+    }
+  }
+  
   @SuppressWarnings("unchecked")
   @Override
   public void serviceStart() throws Exception {
 
     this.state = DAGAppMasterState.RUNNING;
-
-    // TODO Recovery
-    // Pull completedTasks etc from recovery
-    /*
-    if (inRecovery) {
-      completedTasksFromPreviousRun = recoveryServ.getCompletedTasks();
-      amInfos = recoveryServ.getAMInfos();
-    }
-    */
 
     // /////////////////// Create the job itself.
     dag = createDAG(dagPlan);
@@ -879,7 +1026,7 @@ public class DAGAppMaster extends CompositeService {
 
     // metrics system init is really init & start.
     // It's more test friendly to put it here.
-    DefaultMetricsSystem.initialize("MRAppMaster");
+    DefaultMetricsSystem.initialize("DAGAppMaster");
 
     // create a job event for job intialization
     DAGEvent initDagEvent = new DAGEvent(dag.getID(), DAGEventType.DAG_INIT);
@@ -889,6 +1036,7 @@ public class DAGAppMaster extends CompositeService {
     dagEventDispatcher.handle(initDagEvent);
 
     //start all the components
+    startServices();
     super.serviceStart();
 
     this.dagsStartTime = clock.getTime();
@@ -899,6 +1047,12 @@ public class DAGAppMaster extends CompositeService {
 
     // All components have started, start the job.
     startDags();
+  }
+  
+  @Override
+  public void serviceStop() throws Exception {
+    stopServices();
+    super.serviceStop();
   }
 
   /**
@@ -1045,7 +1199,7 @@ public class DAGAppMaster extends CompositeService {
           jobUserName);
 
     } catch (Throwable t) {
-      LOG.fatal("Error starting MRAppMaster", t);
+      LOG.fatal("Error starting DAGAppMaster", t);
       System.exit(1);
     }
   }

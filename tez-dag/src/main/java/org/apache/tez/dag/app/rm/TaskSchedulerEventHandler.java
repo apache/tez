@@ -81,11 +81,12 @@ public class TaskSchedulerEventHandler extends AbstractService
   BlockingQueue<AMSchedulerEvent> eventQueue
                               = new LinkedBlockingQueue<AMSchedulerEvent>();
 
+  @SuppressWarnings("rawtypes")
   public TaskSchedulerEventHandler(AppContext appContext,
-      DAGClientServer clientService) {
+      DAGClientServer clientService, EventHandler eventHandler) {
     super(TaskSchedulerEventHandler.class.getName());
     this.appContext = appContext;
-    this.eventHandler = appContext.getEventHandler();
+    this.eventHandler = eventHandler;
     this.clientService = clientService;
   }
   

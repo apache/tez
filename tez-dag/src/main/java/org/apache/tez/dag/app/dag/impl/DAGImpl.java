@@ -40,7 +40,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
@@ -80,8 +79,6 @@ import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.DAGFinishEvent;
-import org.apache.tez.dag.app.dag.event.TaskEvent;
-import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventTermination;
@@ -111,7 +108,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       .getProperty("line.separator");
 
   //final fields
-  private final ApplicationAttemptId applicationAttemptId;
   private final TezDAGID dagId;
   private final Clock clock;
   private final ApplicationACLsManager aclsManager;
@@ -133,7 +129,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   //private final MRAppMetrics metrics;
   private final String userName;
   private final String queueName;
-  private final long appSubmitTime;
   private final AppContext appContext;
 
   volatile Map<TezVertexID, Vertex> vertices = new HashMap<TezVertexID, Vertex>();
@@ -314,36 +309,25 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private long startTime;
   private long finishTime;
 
-  public DAGImpl(TezDAGID dagId, ApplicationAttemptId applicationAttemptId,
+  public DAGImpl(TezDAGID dagId,
       TezConfiguration conf,
       DAGPlan jobPlan,
       EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
       JobTokenSecretManager jobTokenSecretManager,
       Credentials fsTokenCredentials, Clock clock,
-      // TODO Metrics
-      //MRAppMetrics metrics,
       String appUserName,
-      long appSubmitTime,
-      // TODO Recovery
-      //List<AMInfo> amInfos,
       TaskHeartbeatHandler thh,
       AppContext appContext) {
-    this.applicationAttemptId = applicationAttemptId;
     this.dagId = dagId;
     this.jobPlan = jobPlan;
     this.conf = conf;
     this.dagName = (jobPlan.getName() != null) ? jobPlan.getName() : "<missing app name>";
 
     this.userName = appUserName;
-    // TODO Metrics
-    //this.metrics = metrics;
     this.clock = clock;
-    // TODO Recovery
-    //this.amInfos = amInfos;
     this.appContext = appContext;
     this.queueName = conf.get(MRJobConfig.QUEUE_NAME, "default");
-    this.appSubmitTime = appSubmitTime;
 
     this.taskAttemptListener = taskAttemptListener;
     this.taskHeartbeatHandler = thh;

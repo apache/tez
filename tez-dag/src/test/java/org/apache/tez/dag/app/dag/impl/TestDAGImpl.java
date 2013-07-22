@@ -486,16 +486,16 @@ public class TestDAGImpl {
     appContext = mock(AppContext.class);
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
     doReturn(dagId).when(appContext).getDAGID();
-    dag = new DAGImpl(dagId, appAttemptId, conf, dagPlan,
+    dag = new DAGImpl(dagId, conf, dagPlan,
         dispatcher.getEventHandler(),  taskAttemptListener,
-        jobTokenSecretManager, fsTokens, clock, "user", 10000, thh, appContext);
+        jobTokenSecretManager, fsTokens, clock, "user", thh, appContext);
     doReturn(dag).when(appContext).getDAG();
     mrrAppContext = mock(AppContext.class);
     mrrDagId = new TezDAGID(appAttemptId.getApplicationId(), 2);
     mrrDagPlan = createTestMRRDAGPlan();
-    mrrDag = new DAGImpl(mrrDagId, appAttemptId, conf, mrrDagPlan,
+    mrrDag = new DAGImpl(mrrDagId, conf, mrrDagPlan,
         dispatcher.getEventHandler(),  taskAttemptListener,
-        jobTokenSecretManager, fsTokens, clock, "user", 10000, thh,
+        jobTokenSecretManager, fsTokens, clock, "user", thh,
         mrrAppContext);
     doReturn(mrrDag).when(mrrAppContext).getDAG();
     doReturn(appAttemptId).when(mrrAppContext).getApplicationAttemptId();
