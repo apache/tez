@@ -1081,10 +1081,12 @@ public class DAGAppMaster extends CompositeService {
   protected static void initAndStartAppMaster(final DAGAppMaster appMaster,
       final TezConfiguration conf, String jobUserName) throws IOException,
       InterruptedException {
+    Credentials credentials =
+        UserGroupInformation.getCurrentUser().getCredentials();
     UserGroupInformation.setConfiguration(conf);
     UserGroupInformation appMasterUgi = UserGroupInformation
         .createRemoteUser(jobUserName);
-    appMasterUgi.addCredentials(UserGroupInformation.getCurrentUser().getCredentials());
+    appMasterUgi.addCredentials(credentials);
     appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {
       @Override
       public Object run() throws Exception {
