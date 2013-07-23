@@ -19,22 +19,42 @@
 package org.apache.tez.dag.api.committer;
 
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 
-public interface VertexContext {
+public class VertexContext {
 
-  public Configuration getConf();
+  private final TezDAGID tezDAGID;
+  private final byte[] userPayload;
+  private final ApplicationAttemptId applicationAttemptId;
+  private final TezVertexID tezVertexID;
 
-  public TezDAGID getDAGId();
-  
-  public byte[] getUserPayload();
-  
-  // TODO Get rid of this as part of VertexContext cleanup.
-  public ApplicationAttemptId getApplicationAttemptId();
+  public VertexContext(TezDAGID tezDAGID, byte[] userPayload,
+      TezVertexID tezVertexID,
+      ApplicationAttemptId applicationAttemptId) {
+    this.tezDAGID = tezDAGID;
+    this.userPayload = userPayload;
+    this.tezVertexID = tezVertexID;
+    this.applicationAttemptId = applicationAttemptId;
+  }
 
-  public TezVertexID getVertexId();
+  public TezDAGID getDAGID() {
+    return tezDAGID;
+  }
+
+  public byte[] getUserPayload() {
+    return userPayload;
+  }
+
+  // TODO get rid of this as part of VertexContext cleanup
+  public ApplicationAttemptId getApplicationAttemptId() {
+    return applicationAttemptId;
+  }
+
+  public TezVertexID getVertexID() {
+    return tezVertexID;
+  }
+
 
 }

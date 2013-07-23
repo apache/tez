@@ -116,7 +116,7 @@ import com.google.protobuf.ByteString;
  */
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
-  EventHandler<VertexEvent>, VertexContext {
+  EventHandler<VertexEvent> {
 
   private static final String LINE_SEPARATOR = System
       .getProperty("line.separator");
@@ -154,7 +154,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private Resource taskResource;
 
   private TezConfiguration conf;
-  private final Configuration userConf;
 
   //fields initialized in init
 
@@ -340,6 +339,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private final String vertexName;
   private final ProcessorDescriptor processorDescriptor;
+  private final byte[] userPayload;
+
+  // For committer
+  private final VertexContext vertexContext;
 
   private Map<Vertex, EdgeProperty> sourceVertices;
   private Map<Vertex, EdgeProperty> targetVertices;
@@ -352,7 +355,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private Map<String, LocalResource> localResources;
   private Map<String, String> environment;
   private final String javaOpts;
-  private VertexTerminationCause terminationCause; 
+  private VertexTerminationCause terminationCause;
 
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
       String vertexName, TezConfiguration conf, EventHandler eventHandler,
@@ -401,25 +404,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.javaOpts = vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan
         .getTaskConfig().getJavaOpts() : null;
 
-    byte[] bb = getUserPayload();
-    if (bb == null) {
-      LOG.info("No user payload - falling back to default AM tez conf");
-      userConf = conf;
-    } else {
-      try {
-        userConf = MRHelpers.createConfFromUserPayload(bb);
-      } catch (IOException e) {
-        LOG.info("Failed to create user conf from ByteBuffer");
-        throw new TezUncheckedException(
-            "Failed to create user conf from ByteBuffer", e);
-      }
-    }
-    
+    this.userPayload = initializeUserPayload();
+    this.vertexContext = new VertexContext(getDAGId(),
+        userPayload, this.vertexId,
+        getApplicationAttemptId());
+
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
   }
-  
+
   protected StateMachine<VertexState, VertexEventType, VertexEvent> getStateMachine() {
     return stateMachine;
   }
@@ -437,11 +431,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @Override
   public int getDistanceFromRoot() {
     return distanceFromRoot;
-  }
-
-  @Override
-  public Configuration getConf() {
-    return userConf;
   }
 
   @Override
@@ -477,7 +466,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       readLock.unlock();
     }
   }
-  
+
   @Override
   public int getSucceededTasks() {
     readLock.lock();
@@ -619,10 +608,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       readLock.unlock();
     }
   }
-  
+
   /**
    * Set the terminationCause if it had not yet been set.
-   * 
+   *
    * @param trigger The trigger
    * @return true if setting the value succeeded.
    */
@@ -633,7 +622,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
     return false;
   }
-  
+
   public VertexTerminationCause getTerminationCause(){
     readLock.lock();
     try {
@@ -759,7 +748,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           + ", completedTaskCount=" + vertex.completedTaskCount
           + ", terminationCause=" + vertex.terminationCause);
     }
-    
+
     if (vertex.completedTaskCount == vertex.tasks.size()) {
       //Only succeed if tasks complete successfully and no terminationCause is registered.
       if(vertex.succeededTaskCount == vertex.tasks.size() && vertex.terminationCause == null) {
@@ -825,7 +814,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   /**
    * Set the terminationCause and send a kill-message to all tasks.
-   * The task-kill messages are only sent once. 
+   * The task-kill messages are only sent once.
    * @param the trigger that is causing the Vertex to transition to KILLED/FAILED
    * @param event The type of kill event to send to the vertices.
    */
@@ -837,7 +826,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       }
     }
   }
-  
+
   VertexState finished(VertexState finalState) {
     if (finishTime == 0) setFinishTime();
 
@@ -937,7 +926,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         if (vertex.targetVertices.isEmpty()) {
           vertex.committer = new MRVertexOutputCommitter();
         }
-        vertex.committer.init(vertex);
+        vertex.committer.init(vertex.vertexContext);
         vertex.committer.setupVertex();
 
         // TODO: Metrics
@@ -1262,7 +1251,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       if(state == VertexState.RUNNING && forceTransitionToKillWait){
         return VertexState.TERMINATING;
       }
-      
+
       if(state == VertexState.SUCCEEDED) {
         vertex.vertexScheduler.onVertexCompleted();
       }
@@ -1345,14 +1334,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
     Vertex other = (Vertex) obj;
     return this.vertexId.equals(other.getVertexId());
-  }  
+  }
 
   @Override
   public int hashCode() {
     final int prime = 11239;
     return prime + prime * this.vertexId.hashCode();
   }
-    
+
   @Override
   public Map<Vertex, EdgeProperty> getInputVertices() {
     return Collections.unmodifiableMap(this.sourceVertices);
@@ -1373,13 +1362,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     return this.targetVertices.size();
   }
 
-  @Override
-  public TezDAGID getDAGId() {
+  private TezDAGID getDAGId() {
     return getDAG().getID();
   }
 
-  @Override
-  public ApplicationAttemptId getApplicationAttemptId() {
+  private ApplicationAttemptId getApplicationAttemptId() {
     return appContext.getApplicationAttemptId();
   }
 
@@ -1457,8 +1444,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     return this.vertexScheduler;
   }
 
-  @Override
-  public byte[] getUserPayload() {
+  private byte[] initializeUserPayload() {
     for (VertexPlan vertexPlan : getDAG().getJobPlan().getVertexList()) {
       if (vertexPlan.getName().equals(vertexName)) {
         if (!vertexPlan.getProcessorDescriptor().hasUserPayload()) {
@@ -1474,5 +1460,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       }
     }
     return null;
+  }
+
+  public byte[] getUserPayload() {
+    return userPayload;
   }
 }

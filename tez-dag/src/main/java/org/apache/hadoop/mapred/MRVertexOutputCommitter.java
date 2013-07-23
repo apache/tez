@@ -22,8 +22,6 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.JobStatus.State;
 import org.apache.hadoop.mapreduce.OutputCommitter;
@@ -39,6 +37,7 @@ import org.apache.tez.dag.api.committer.VertexOutputCommitter;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
+import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 public class MRVertexOutputCommitter extends VertexOutputCommitter {
@@ -46,47 +45,47 @@ public class MRVertexOutputCommitter extends VertexOutputCommitter {
   private static final Log LOG = LogFactory.getLog(
       MRVertexOutputCommitter.class);
 
-  private OutputCommitter committer;
-  private JobContext jobContext;
+  private OutputCommitter committer = null;
+  private JobContext jobContext = null;
   private volatile boolean initialized = false;
+  private JobConf jobConf = null;
 
   public MRVertexOutputCommitter() {
   }
 
   @SuppressWarnings("rawtypes")
   private OutputCommitter getOutputCommitter(VertexContext context) {
-    Configuration conf = context.getConf();
 
     OutputCommitter committer = null;
     boolean newApiCommitter = false;
-    if (conf.getBoolean("mapred.reducer.new-api", false)
-        || conf.getBoolean("mapred.mapper.new-api", false))  {
+    if (jobConf.getBoolean("mapred.reducer.new-api", false)
+        || jobConf.getBoolean("mapred.mapper.new-api", false))  {
       newApiCommitter = true;
       LOG.info("Using mapred newApiCommitter.");
     }
-    
+
     LOG.info("OutputCommitter set in config for vertex: "
-        + context.getVertexId() + " : "
-        + conf.get("mapred.output.committer.class"));
+        + context.getVertexID() + " : "
+        + jobConf.get("mapred.output.committer.class"));
 
     if (newApiCommitter) {
-      TezTaskID taskId = TezBuilderUtils.newTaskId(context.getDAGId(),
-          context.getVertexId().getId(), 0);
+      TezTaskID taskId = TezBuilderUtils.newTaskId(context.getDAGID(),
+          context.getVertexID().getId(), 0);
       TezTaskAttemptID attemptID =
           TezBuilderUtils.newTaskAttemptId(taskId, 0);
-      TaskAttemptContext taskContext = new TaskAttemptContextImpl(conf,
+      TaskAttemptContext taskContext = new TaskAttemptContextImpl(jobConf,
           TezMRTypeConverter.fromTez(attemptID));
       try {
         OutputFormat outputFormat = ReflectionUtils.newInstance(taskContext
-            .getOutputFormatClass(), conf);
+            .getOutputFormatClass(), jobConf);
         committer = outputFormat.getOutputCommitter(taskContext);
       } catch (Exception e) {
         throw new TezUncheckedException(e);
       }
     } else {
-      committer = ReflectionUtils.newInstance(conf.getClass(
+      committer = ReflectionUtils.newInstance(jobConf.getClass(
           "mapred.output.committer.class", FileOutputCommitter.class,
-          org.apache.hadoop.mapred.OutputCommitter.class), conf);
+          org.apache.hadoop.mapred.OutputCommitter.class), jobConf);
     }
     LOG.info("OutputCommitter is " + committer.getClass().getName());
     return committer;
@@ -95,15 +94,8 @@ public class MRVertexOutputCommitter extends VertexOutputCommitter {
   // FIXME we are using ApplicationId as DAG id
   private JobContext getJobContextFromVertexContext(VertexContext context)
       throws IOException {
-    // FIXME when we have the vertex level user-land configuration
-    // jobConf should be initialized using the user-land level configuration
-    // for the vertex in question
-
-    Configuration conf = context.getConf();
-
-    JobConf jobConf = new JobConf(conf);
-    JobID jobId = TypeConverter.fromYarn(context.getDAGId().getApplicationId());
-    jobConf.addResource(new Path(MRJobConfig.JOB_CONF_FILE));
+    JobID jobId = TypeConverter.fromYarn(
+        context.getDAGID().getApplicationId());
     return new MRJobContextImpl(jobConf, jobId);
   }
 
@@ -128,8 +120,17 @@ public class MRVertexOutputCommitter extends VertexOutputCommitter {
   @Override
   public void init(VertexContext context) throws IOException {
     // TODO VertexContext not the best way to get ApplicationAttemptId. No
-    // alternates rightnow.
-    context.getConf().setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
+    // alternates right now.
+
+    byte[] userPayload = context.getUserPayload();
+    if (userPayload == null) {
+      jobConf = new JobConf();
+    } else {
+      jobConf = new JobConf(
+          MRHelpers.createConfFromUserPayload(context.getUserPayload()));
+    }
+
+    jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         context.getApplicationAttemptId().getAttemptId());
     committer = getOutputCommitter(context);
     jobContext = getJobContextFromVertexContext(context);

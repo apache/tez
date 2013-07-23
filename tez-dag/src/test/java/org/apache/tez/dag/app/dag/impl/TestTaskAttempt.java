@@ -36,6 +36,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -90,7 +91,7 @@ import org.mockito.ArgumentCaptor;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestTaskAttempt {
 
-  private static final ProcessorDescriptor MAP_PROCESSOR_DESC = 
+  private static final ProcessorDescriptor MAP_PROCESSOR_DESC =
       new ProcessorDescriptor(
       "org.apache.tez.mapreduce.processor.map.MapProcessor", null);
 
@@ -124,7 +125,7 @@ public class TestTaskAttempt {
         new TaskAttemptImpl.ScheduleTaskattemptTransition();
 
     EventHandler eventHandler = mock(EventHandler.class);
-    Set<String> hosts = new HashSet<String>(3);
+    Set<String> hosts = new TreeSet<String>();
     hosts.add("host1");
     hosts.add("host2");
     hosts.add("host3");
@@ -171,10 +172,10 @@ public class TestTaskAttempt {
 
     EventHandler eventHandler = mock(EventHandler.class);
     String hosts[] = new String[] { "192.168.1.1", "host2", "host3" };
-    Set<String> resolved = new HashSet<String>(
+    Set<String> resolved = new TreeSet<String>(
         Arrays.asList(new String[]{ "host1", "host2", "host3" }));
     TaskLocationHint locationHint = new TaskLocationHint(
-        new HashSet<String>(Arrays.asList(hosts)), null);
+        new TreeSet<String>(Arrays.asList(hosts)), null);
 
     TezTaskID taskID = new TezTaskID(
         new TezVertexID(new TezDAGID("1", 1, 1), 1), 1);
@@ -351,7 +352,7 @@ public class TestTaskAttempt {
     // null));
     assertFalse(eventHandler.internalError);
   }
-  
+
   @Test
   // Ensure ContainerTerminating and ContainerTerminated is handled correctly by
   // the TaskAttempt
@@ -419,7 +420,7 @@ public class TestTaskAttempt {
     assertFalse(
         "InternalError occurred trying to handle TA_CONTAINER_TERMINATING",
         eventHandler.internalError);
-    
+
     assertEquals("Task attempt is not in the  FAILED state", taImpl.getState(),
         TaskAttemptState.FAILED);
 
@@ -429,14 +430,14 @@ public class TestTaskAttempt {
     int expectedEvenstAfterTerminating = expectedEventsAtRunning + 3;
     arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
-    
+
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEvenstAfterTerminating), TaskEventTAUpdate.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
-    
+
     taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID,
         "Terminated"));
     int expectedEventAfterTerminated = expectedEvenstAfterTerminating + 0;
@@ -447,7 +448,7 @@ public class TestTaskAttempt {
     assertEquals("Terminated", taImpl.getDiagnostics().get(1));
   }
 
-  
+
   @Test
   // Ensure ContainerTerminated is handled correctly by the TaskAttempt
   public void testContainerTerminatedWhileRunning() throws Exception {
@@ -507,9 +508,9 @@ public class TestTaskAttempt {
     assertFalse(
         "InternalError occurred trying to handle TA_CONTAINER_TERMINATED",
         eventHandler.internalError);
-    
+
     assertEquals("Terminated", taImpl.getDiagnostics().get(0));
-    
+
     // TODO Ensure TA_TERMINATING after this is ingored.
   }
 
@@ -651,14 +652,14 @@ public class TestTaskAttempt {
     int expectedEvenstAfterTerminating = expectedEventsAtRunning + 3;
     arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
-    
+
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEvenstAfterTerminating), TaskEventTAUpdate.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
-    
+
     taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID,
         "Terminated"));
     int expectedEventAfterTerminated = expectedEvenstAfterTerminating + 0;
@@ -670,7 +671,7 @@ public class TestTaskAttempt {
     assertEquals(0, taImpl.getDiagnostics().size());
   }
 
-  
+
   @Test
   // Verifies that multiple TooManyFetchFailures are handled correctly by the
   // TaskAttempt.
@@ -731,12 +732,12 @@ public class TestTaskAttempt {
         TaskAttemptEventType.TA_DONE));
     assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
         TaskAttemptState.SUCCEEDED);
-    
+
     int expectedEventsTillSucceeded = 6;
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEventsTillSucceeded)).handle(arg.capture());
     verifyEventType(arg.getAllValues(), TaskEventTAUpdate.class, 2);
-    
+
     taImpl.handle(new TaskAttemptEvent(taskAttemptID,
         TaskAttemptEventType.TA_TOO_MANY_FETCH_FAILURES));
     int expectedEventsAfterFetchFailure = expectedEventsTillSucceeded + 3;
@@ -771,7 +772,7 @@ public class TestTaskAttempt {
         "Mismatch in num occurences of event: " + eventClass.getCanonicalName(),
         expectedOccurences, count);
   }
-  
+
   public static class MockEventHandler implements EventHandler {
     public boolean internalError;
 

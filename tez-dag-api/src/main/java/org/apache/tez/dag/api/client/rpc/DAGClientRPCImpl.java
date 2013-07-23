@@ -55,7 +55,7 @@ public class DAGClientRPCImpl implements DAGClient {
   private ApplicationReport appReport;
   private YarnClient yarnClient;
   private DAGClientAMProtocolBlockingPB proxy = null;
-  
+
   public DAGClientRPCImpl(ApplicationId appId, String dagId,
       TezConfiguration conf) {
     this.appId = appId;
@@ -66,12 +66,12 @@ public class DAGClientRPCImpl implements DAGClient {
     yarnClient.start();
     appReport = null;
   }
-  
+
   @Override
   public ApplicationId getApplicationId() {
     return appId;
   }
-  
+
   @Override
   public DAGStatus getDAGStatus() throws IOException, TezException {
     if(createAMProxyIfNeeded()) {
@@ -81,7 +81,7 @@ public class DAGClientRPCImpl implements DAGClient {
         resetProxy(e); // create proxy again
       }
     }
-    
+
     // Later maybe from History
     return getDAGStatusViaRM();
   }
@@ -96,18 +96,18 @@ public class DAGClientRPCImpl implements DAGClient {
         resetProxy(e); // create proxy again
       }
     }
-    
+
     // need AM for this. Later maybe from History
     return null;
   }
-  
+
   public void tryKillDAG() throws TezException, IOException {
     if(LOG.isDebugEnabled()) {
       LOG.debug("TryKill for app: " + appId + " dag:" + dagId);
     }
     if(createAMProxyIfNeeded()) {
-      TryKillDAGRequestProto requestProto = 
-          TryKillDAGRequestProto.newBuilder().setDagId(dagId).build();    
+      TryKillDAGRequestProto requestProto =
+          TryKillDAGRequestProto.newBuilder().setDagId(dagId).build();
       try {
         proxy.tryKillDAG(null, requestProto);
       } catch (ServiceException e) {
@@ -125,26 +125,26 @@ public class DAGClientRPCImpl implements DAGClient {
       yarnClient.stop();
     }
   }
-  
+
   @Override
   public ApplicationReport getApplicationReport() {
     return appReport;
   }
-  
+
   void resetProxy(Exception e) {
     if(LOG.isDebugEnabled()) {
-      LOG.debug("Resetting AM proxy for app: " + appId + " dag:" + dagId + 
+      LOG.debug("Resetting AM proxy for app: " + appId + " dag:" + dagId +
           " due to exception :", e);
     }
     proxy = null;
   }
-  
+
   DAGStatus getDAGStatusViaAM() throws IOException, TezException {
     if(LOG.isDebugEnabled()) {
       LOG.debug("GetDAGStatus via AM for app: " + appId + " dag:" + dagId);
     }
-    GetDAGStatusRequestProto requestProto = 
-        GetDAGStatusRequestProto.newBuilder().setDagId(dagId).build();    
+    GetDAGStatusRequestProto requestProto =
+        GetDAGStatusRequestProto.newBuilder().setDagId(dagId).build();
     try {
       return new DAGStatus(
                  proxy.getDAGStatus(null, requestProto).getDagStatus());
@@ -153,9 +153,9 @@ public class DAGClientRPCImpl implements DAGClient {
       throw new TezException(e);
     }
   }
-  
-  
-  
+
+
+
   DAGStatus getDAGStatusViaRM() throws TezException, IOException {
     if(LOG.isDebugEnabled()) {
       LOG.debug("GetDAGStatus via AM for app: " + appId + " dag:" + dagId);
@@ -166,11 +166,11 @@ public class DAGClientRPCImpl implements DAGClient {
     } catch (YarnException e) {
       throw new TezException(e);
     }
-    
+
     if(appReport == null) {
       throw new TezException("Unknown/Invalid appId: " + appId);
     }
-    
+
     DAGStatusProto.Builder builder = DAGStatusProto.newBuilder();
     DAGStatus dagStatus = new DAGStatus(builder);
     DAGStatusStateProto dagState = null;
@@ -189,7 +189,7 @@ public class DAGClientRPCImpl implements DAGClient {
       break;
     case KILLED:
       dagState = DAGStatusStateProto.DAG_KILLED;
-      break;      
+      break;
     case FINISHED:
       switch(appReport.getFinalApplicationStatus()) {
       case UNDEFINED:
@@ -198,37 +198,39 @@ public class DAGClientRPCImpl implements DAGClient {
         break;
       case KILLED:
         dagState = DAGStatusStateProto.DAG_KILLED;
-        break;        
+        break;
       case SUCCEEDED:
         dagState = DAGStatusStateProto.DAG_SUCCEEDED;
         break;
-      }
-      throw new TezUncheckedException("Encountered unknown final application"
+      default:
+        throw new TezUncheckedException("Encountered unknown final application"
           + " status from YARN"
           + ", appState=" + appReport.getYarnApplicationState()
           + ", finalStatus=" + appReport.getFinalApplicationStatus());
+      }
+      break;
     default:
       throw new TezUncheckedException("Encountered unknown application state"
           + " from YARN, appState=" + appReport.getYarnApplicationState());
     }
-    
+
     builder.setState(dagState);
     if(appReport.getDiagnostics() != null) {
       builder.addAllDiagnostics(Collections.singleton(appReport.getDiagnostics()));
     }
-    
+
     return dagStatus;
   }
-  
+
   VertexStatus getVertexStatusViaAM(String vertexName) throws TezException {
     if (LOG.isDebugEnabled()) {
       LOG.debug("GetVertexStatus via AM for app: " + appId + " dag: " + dagId
           + " vertex: " + vertexName);
     }
-    GetVertexStatusRequestProto requestProto = 
+    GetVertexStatusRequestProto requestProto =
         GetVertexStatusRequestProto.newBuilder().
                         setDagId(dagId).setVertexName(vertexName).build();
-    
+
     try {
       return new VertexStatus(
                  proxy.getVertexStatus(null, requestProto).getVertexStatus());
@@ -257,7 +259,7 @@ public class DAGClientRPCImpl implements DAGClient {
       return true;
     }
     appReport = getAppReport();
-    
+
     if(appReport == null) {
       return false;
     }
@@ -265,7 +267,7 @@ public class DAGClientRPCImpl implements DAGClient {
     if(appState != YarnApplicationState.RUNNING) {
       return false;
     }
-    
+
     // YARN-808. Cannot ascertain if AM is ready until we connect to it.
     // workaround check the default string set by YARN
     if(appReport.getHost() == null || appReport.getHost().equals("N/A") ||
