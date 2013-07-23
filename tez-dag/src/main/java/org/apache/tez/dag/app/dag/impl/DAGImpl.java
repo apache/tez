@@ -952,9 +952,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     protected void setup(DAGImpl job) throws IOException {
       job.initTime = job.clock.getTime();
-      String dagIdString = job.dagId.toString();
-
-      dagIdString.replace("application", "job");
+      String dagIdString = job.dagId.toString().replace("application", "job");
 
       // TODO remove - TEZ-71
       String user =

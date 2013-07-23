@@ -19,11 +19,15 @@
 package org.apache.tez.mapreduce;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.commons.logging.Log;
@@ -319,19 +323,21 @@ public class YARNRunner implements ClientProtocol {
 
   // FIXME isn't this a nice mess of a client?
   // read input, write splits, read splits again
-  private TaskLocationHint[] getMapLocationHintsFromInputSplits(JobID jobId,
+  private List<TaskLocationHint> getMapLocationHintsFromInputSplits(JobID jobId,
       FileSystem fs, Configuration conf,
       String jobSubmitDir) throws IOException {
     TaskSplitMetaInfo[] splitsInfo =
         SplitMetaInfoReader.readSplitMetaInfo(jobId, fs, conf,
             new Path(jobSubmitDir));
     int splitsCount = splitsInfo.length;
-    TaskLocationHint[] locationHints =
-        new TaskLocationHint[splitsCount];
+    List<TaskLocationHint> locationHints =
+        new ArrayList<TaskLocationHint>(splitsCount);
     for (int i = 0; i < splitsCount; ++i) {
       TaskLocationHint locationHint =
-          new TaskLocationHint(splitsInfo[i].getLocations(), null);
-      locationHints[i] = locationHint;
+          new TaskLocationHint(
+              new HashSet<String>(
+                  Arrays.asList(splitsInfo[i].getLocations())), null);
+      locationHints.add(locationHint);
     }
     return locationHints;
   }
@@ -368,7 +374,7 @@ public class YARNRunner implements ClientProtocol {
 
   private Vertex createVertexForStage(Configuration stageConf,
       Map<String, LocalResource> jobLocalResources,
-      TaskLocationHint[] locations, int stageNum, int totalStages)
+      List<TaskLocationHint> locations, int stageNum, int totalStages)
       throws IOException {
     // stageNum starts from 0, goes till numStages - 1
     boolean isMap = false;
@@ -438,9 +444,10 @@ public class YARNRunner implements ClientProtocol {
 
     LOG.info("Number of stages: " + stageConfs.length);
 
-    TaskLocationHint[] mapInputLocations = getMapLocationHintsFromInputSplits(
-        jobId, fs, stageConfs[0], jobSubmitDir);
-    TaskLocationHint[] reduceInputLocations = null;
+    List<TaskLocationHint> mapInputLocations =
+        getMapLocationHintsFromInputSplits(
+            jobId, fs, stageConfs[0], jobSubmitDir);
+    List<TaskLocationHint> reduceInputLocations = null;
 
     Vertex[] vertices = new Vertex[stageConfs.length];
     for (int i = 0; i < stageConfs.length; i++) {

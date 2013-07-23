@@ -704,13 +704,17 @@ public class DAGAppMaster extends AbstractService {
         break;
       case KILLED:
         state = DAGAppMasterState.KILLED;
+        break;
       case ERROR:
         state = DAGAppMasterState.ERROR;
+        break;
       default:
         state = DAGAppMasterState.ERROR;
+        break;
       }
     }
-    LOG.info("On DAG completion. Old state: " + oldState + " new state: " + state);
+    LOG.info("On DAG completion. Old state: "
+        + oldState + " new state: " + state);
   }
 
   public class DAGClientHandler {

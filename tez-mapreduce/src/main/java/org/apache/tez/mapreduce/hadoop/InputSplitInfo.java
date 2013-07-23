@@ -18,6 +18,8 @@
 
 package org.apache.tez.mapreduce.hadoop;
 
+import java.util.List;
+
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 
@@ -39,12 +41,12 @@ public class InputSplitInfo {
   /// Meta info file for all the splits information
   private final Path splitsMetaInfoFile;
   /// Location hints to determine where to run the tasks
-  private final TaskLocationHint[] taskLocationHints;
+  private final List<TaskLocationHint> taskLocationHints;
   /// The num of tasks - same as number of splits generated.
   private final int numTasks;
 
   public InputSplitInfo(Path splitsFile, Path splitsMetaInfoFile, int numTasks,
-      TaskLocationHint[] taskLocationHints) {
+      List<TaskLocationHint> taskLocationHints) {
     this.splitsFile = splitsFile;
     this.splitsMetaInfoFile = splitsMetaInfoFile;
     this.taskLocationHints = taskLocationHints;
@@ -54,7 +56,7 @@ public class InputSplitInfo {
   /**
    * Get the TaskLocationHints for each task
    */
-  public TaskLocationHint[] getTaskLocationHints() {
+  public List<TaskLocationHint> getTaskLocationHints() {
     return taskLocationHints;
   }
 

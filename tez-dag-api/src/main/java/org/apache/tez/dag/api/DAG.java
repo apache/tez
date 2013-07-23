@@ -97,7 +97,7 @@ public class DAG { // FIXME rename to Topology
   }
 
   // AnnotatedVertex is used by verify()
-  private class AnnotatedVertex {
+  private static class AnnotatedVertex {
     Vertex v;
 
     int index; //for Tarjan's algorithm
@@ -273,16 +273,23 @@ public class DAG { // FIXME rename to Topology
       taskConfigBuilder.setTaskModule(vertex.getVertexName());
       PlanLocalResource.Builder localResourcesBuilder = PlanLocalResource.newBuilder();
       Map<String,LocalResource> lrs = vertex.getTaskLocalResources();
-      for(String key : lrs.keySet()){
-        LocalResource lr = lrs.get(key);
+      for(Entry<String, LocalResource> entry : lrs.entrySet()){
+        String key = entry.getKey();
+        LocalResource lr = entry.getValue();
         localResourcesBuilder.setName(key);
-        localResourcesBuilder.setUri(DagTypeConverters.convertToDAGPlan(lr.getResource()));
+        localResourcesBuilder.setUri(
+            DagTypeConverters.convertToDAGPlan(lr.getResource()));
         localResourcesBuilder.setSize(lr.getSize());
         localResourcesBuilder.setTimeStamp(lr.getTimestamp());
-        localResourcesBuilder.setType(DagTypeConverters.convertToDAGPlan(lr.getType()));
-        localResourcesBuilder.setVisibility(DagTypeConverters.convertToDAGPlan(lr.getVisibility()));
+        localResourcesBuilder.setType(
+            DagTypeConverters.convertToDAGPlan(lr.getType()));
+        localResourcesBuilder.setVisibility(
+            DagTypeConverters.convertToDAGPlan(lr.getVisibility()));
         if(lr.getType() == LocalResourceType.PATTERN){
-          assert lr.getPattern() != null : "resourceType=PATTERN but pattern is null";
+          if (lr.getPattern() == null || lr.getPattern().isEmpty()) {
+            throw new TezUncheckedException("LocalResource type set to pattern"
+                + " but pattern is null or empty");
+          }
           localResourcesBuilder.setPattern(lr.getPattern());
         }
         taskConfigBuilder.addLocalResource(localResourcesBuilder);
@@ -303,10 +310,10 @@ public class DAG { // FIXME rename to Topology
             PlanTaskLocationHint.Builder taskLocationHintBuilder = PlanTaskLocationHint.newBuilder();
 
             if(hint.getDataLocalHosts() != null){
-              taskLocationHintBuilder.addAllHost(Arrays.asList(hint.getDataLocalHosts()));
+              taskLocationHintBuilder.addAllHost(hint.getDataLocalHosts());
             }
             if(hint.getRacks() != null){
-              taskLocationHintBuilder.addAllRack(Arrays.asList(hint.getRacks()));
+              taskLocationHintBuilder.addAllRack(hint.getRacks());
             }
 
             vertexBuilder.addTaskLocationHint(taskLocationHintBuilder);

@@ -1,0 +1,12 @@
+<FindBugsFilter>
+
+  <Match>
+    <Class name="org.apache.tez.dag.app.rm.node.AMNodeMap" />
+    <Or>
+      <Field name="blacklistDisablePercent" />
+      <Field name="maxTaskFailuresPerNode" />
+    </Or>
+    <Bug pattern="IS2_INCONSISTENT_SYNC" />
+  </Match>
+
+</FindBugsFilter>

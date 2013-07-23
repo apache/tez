@@ -55,11 +55,14 @@ public class ResourceBundles {
     try {
       ResourceBundle bundle = getBundle(bundleName);
       value = (T) bundle.getObject(getLookupKey(key, suffix));
+      if (value != null) {
+        return value;
+      }
     }
     catch (Exception e) {
-      return defaultValue;
+      // Ignore
     }
-    return value == null ? defaultValue : value;
+    return defaultValue;
   }
 
   private static String getLookupKey(String key, String suffix) {

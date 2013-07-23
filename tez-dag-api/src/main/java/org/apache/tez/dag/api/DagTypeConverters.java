@@ -19,6 +19,7 @@ package org.apache.tez.dag.api;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -127,12 +128,12 @@ public class DagTypeConverters {
     List<TaskLocationHint> outputList = new ArrayList<TaskLocationHint>();  
     
     for(PlanTaskLocationHint inputHint : locationHints){
-      TaskLocationHint outputHint = new TaskLocationHint(); 
-      outputHint.setRacks(inputHint.getRackList().toArray(new String[inputHint.getRackList().size()]));
-      outputHint.setDataLocalHosts(inputHint.getHostList().toArray(new String[inputHint.getHostList().size()]));
+      TaskLocationHint outputHint = new TaskLocationHint(
+          new HashSet<String>(inputHint.getHostList()),
+          new HashSet<String>(inputHint.getRackList()));
       outputList.add(outputHint);
     }
-    return new VertexLocationHint(outputList.size(), outputList.toArray(new TaskLocationHint[outputList.size()]));
+    return new VertexLocationHint(outputList.size(), outputList);
   }
 
   // notes re HDFS URL handling:

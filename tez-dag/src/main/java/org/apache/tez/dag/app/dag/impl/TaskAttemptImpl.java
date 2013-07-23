@@ -882,13 +882,15 @@ public class TaskAttemptImpl implements TaskAttempt,
         Set<String> racks = new HashSet<String>();
         if (ta.locationHint != null) {
           if (ta.locationHint.getRacks() != null) {
-            racks.addAll(Arrays.asList(ta.locationHint.getRacks()));
+            racks.addAll(ta.locationHint.getRacks());
           }
           if (ta.locationHint.getDataLocalHosts() != null) {
             for (String host : ta.locationHint.getDataLocalHosts()) {
               racks.add(RackResolver.resolve(host).getNetworkLocation());
             }
-            hostArray = ta.resolveHosts(ta.locationHint.getDataLocalHosts());
+            hostArray = ta.resolveHosts(
+                ta.locationHint.getDataLocalHosts().toArray(
+                    new String[ta.locationHint.getDataLocalHosts().size()]));
           }
         }
         rackArray = racks.toArray(new String[racks.size()]);

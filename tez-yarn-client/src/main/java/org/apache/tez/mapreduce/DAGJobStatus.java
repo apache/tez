@@ -167,7 +167,7 @@ public class DAGJobStatus extends JobStatus {
 
   @Override
   public synchronized float getReduceProgress() {
-    if(dagStatus != null) {
+    if(dagStatus.getVertexProgress() != null) {
       return getProgress(MultiStageMRConfigUtil.getFinalReduceVertexName());
     }
     if (dagStatus.getState() == DAGStatus.State.SUCCEEDED) {

@@ -94,27 +94,28 @@ import com.google.common.annotations.VisibleForTesting;
  */
 public class MRRSleepJob extends Configured implements Tool {
 
-  public static Log LOG = LogFactory.getLog(MRRSleepJob.class);
+  private static final Log LOG = LogFactory.getLog(MRRSleepJob.class);
 
-  public static String MAP_SLEEP_COUNT = "mrr.sleepjob.map.sleep.count";
-  public static String REDUCE_SLEEP_COUNT =
+  public static final String MAP_SLEEP_COUNT = "mrr.sleepjob.map.sleep.count";
+  public static final String REDUCE_SLEEP_COUNT =
     "mrr.sleepjob.reduce.sleep.count";
-  public static String MAP_SLEEP_TIME = "mrr.sleepjob.map.sleep.time";
-  public static String REDUCE_SLEEP_TIME =
+  public static final String MAP_SLEEP_TIME = "mrr.sleepjob.map.sleep.time";
+  public static final String REDUCE_SLEEP_TIME =
     "mrr.sleepjob.reduce.sleep.time";
-  public static String IREDUCE_SLEEP_COUNT =
+  public static final String IREDUCE_SLEEP_COUNT =
       "mrr.sleepjob.ireduce.sleep.count";
-  public static String IREDUCE_SLEEP_TIME =
+  public static final String IREDUCE_SLEEP_TIME =
       "mrr.sleepjob.ireduce.sleep.time";
-  public static String IREDUCE_STAGES_COUNT =
+  public static final String IREDUCE_STAGES_COUNT =
       "mrr.sleepjob.ireduces.stages.count";
-  public static String IREDUCE_TASKS_COUNT =
+  public static final String IREDUCE_TASKS_COUNT =
       "mrr.sleepjob.ireduces.tasks.count";
 
   // Flags to inject failures
-  public static String MAP_THROW_ERROR = "mrr.sleepjob.map.throw.error";
-  public static String MAP_FATAL_ERROR = "mrr.sleepjob.map.fatal.error";
-  public static String MAP_ERROR_TASK_IDS = "mrr.sleepjob.map.error.task.ids";
+  public static final String MAP_THROW_ERROR = "mrr.sleepjob.map.throw.error";
+  public static final String MAP_FATAL_ERROR = "mrr.sleepjob.map.fatal.error";
+  public static final String MAP_ERROR_TASK_IDS =
+      "mrr.sleepjob.map.error.task.ids";
 
   public static class MRRSleepJobPartitioner extends
       Partitioner<IntWritable, IntWritable> {

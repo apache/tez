@@ -21,8 +21,10 @@ package org.apache.tez.mapreduce.hadoop;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -151,10 +153,12 @@ public class MRHelpers {
     JobSplitWriter.createSplitFiles(inputSplitDir, conf,
         inputSplitDir.getFileSystem(conf), splits);
 
-    TaskLocationHint[] locationHints =
-        new TaskLocationHint[splits.length];
+    List<TaskLocationHint> locationHints =
+        new ArrayList<TaskLocationHint>(splits.length);
     for (int i = 0; i < splits.length; ++i) {
-      locationHints[i] = new TaskLocationHint(splits[i].getLocations(), null);
+      locationHints.add(
+          new TaskLocationHint(new HashSet<String>(
+              Arrays.asList(splits[i].getLocations())), null));
     }
 
     return new InputSplitInfo(
@@ -184,10 +188,12 @@ public class MRHelpers {
     JobSplitWriter.createSplitFiles(inputSplitDir, jobConf,
         inputSplitDir.getFileSystem(jobConf), splits);
 
-    TaskLocationHint[] locationHints =
-        new TaskLocationHint[splits.length];
+    List<TaskLocationHint> locationHints =
+        new ArrayList<TaskLocationHint>(splits.length);
     for (int i = 0; i < splits.length; ++i) {
-      locationHints[i] = new TaskLocationHint(splits[i].getLocations(), null);
+      locationHints.add(
+          new TaskLocationHint(new HashSet<String>(
+              Arrays.asList(splits[i].getLocations())), null));
     }
 
     return new InputSplitInfo(

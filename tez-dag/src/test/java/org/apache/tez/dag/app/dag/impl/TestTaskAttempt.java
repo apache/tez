@@ -30,9 +30,12 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -121,10 +124,10 @@ public class TestTaskAttempt {
         new TaskAttemptImpl.ScheduleTaskattemptTransition();
 
     EventHandler eventHandler = mock(EventHandler.class);
-    String[] hosts = new String[3];
-    hosts[0] = "host1";
-    hosts[1] = "host2";
-    hosts[2] = "host3";
+    Set<String> hosts = new HashSet<String>(3);
+    hosts.add("host1");
+    hosts.add("host2");
+    hosts.add("host3");
     TaskLocationHint locationHint = new TaskLocationHint(hosts, null);
 
     TezTaskID taskID = new TezTaskID(
@@ -168,8 +171,10 @@ public class TestTaskAttempt {
 
     EventHandler eventHandler = mock(EventHandler.class);
     String hosts[] = new String[] { "192.168.1.1", "host2", "host3" };
-    String resolved[] = new String[] { "host1", "host2", "host3" };
-    TaskLocationHint locationHint = new TaskLocationHint(hosts, null);
+    Set<String> resolved = new HashSet<String>(
+        Arrays.asList(new String[]{ "host1", "host2", "host3" }));
+    TaskLocationHint locationHint = new TaskLocationHint(
+        new HashSet<String>(Arrays.asList(hosts)), null);
 
     TezTaskID taskID = new TezTaskID(
         new TezVertexID(new TezDAGID("1", 1, 1), 1), 1);
@@ -181,7 +186,8 @@ public class TestTaskAttempt {
         new HashMap<String, LocalResource>(), new HashMap<String, String>(),
         "", false);
     TaskAttemptImpl spyTa = spy(taImpl);
-    when(spyTa.resolveHosts(hosts)).thenReturn(resolved);
+    when(spyTa.resolveHosts(hosts)).thenReturn(
+        resolved.toArray(new String[3]));
 
     TaskAttemptEventSchedule mockTAEvent = mock(TaskAttemptEventSchedule.class);
 
@@ -314,7 +320,7 @@ public class TestTaskAttempt {
     tezConf.setBoolean("fs.file.impl.disable.cache", true);
 
     TaskLocationHint locationHint = new TaskLocationHint(
-        new String[] { "127.0.0.1" }, null);
+        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     Map<String, String> environment = new HashMap<String, String>();
@@ -368,7 +374,7 @@ public class TestTaskAttempt {
     tezConf.setBoolean("fs.file.impl.disable.cache", true);
 
     TaskLocationHint locationHint = new TaskLocationHint(
-        new String[] { "127.0.0.1" }, null);
+        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     Map<String, String> environment = new HashMap<String, String>();
@@ -463,7 +469,7 @@ public class TestTaskAttempt {
     tezConf.setBoolean("fs.file.impl.disable.cache", true);
 
     TaskLocationHint locationHint = new TaskLocationHint(
-        new String[] { "127.0.0.1" }, null);
+        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     Map<String, String> environment = new HashMap<String, String>();
@@ -528,7 +534,7 @@ public class TestTaskAttempt {
     tezConf.setBoolean("fs.file.impl.disable.cache", true);
 
     TaskLocationHint locationHint = new TaskLocationHint(
-        new String[] { "127.0.0.1" }, null);
+        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     Map<String, String> environment = new HashMap<String, String>();
@@ -595,7 +601,7 @@ public class TestTaskAttempt {
     tezConf.setBoolean("fs.file.impl.disable.cache", true);
 
     TaskLocationHint locationHint = new TaskLocationHint(
-        new String[] { "127.0.0.1" }, null);
+        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     Map<String, String> environment = new HashMap<String, String>();
@@ -688,9 +694,10 @@ public class TestTaskAttempt {
     tezConf.setBoolean("fs.file.impl.disable.cache", true);
 
     TaskLocationHint locationHint = new TaskLocationHint(
-        new String[] { "127.0.0.1" }, null);
+        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
-    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+    Map<String, LocalResource> localResources =
+        new HashMap<String, LocalResource>();
     Map<String, String> environment = new HashMap<String, String>();
     String javaOpts = "";
 

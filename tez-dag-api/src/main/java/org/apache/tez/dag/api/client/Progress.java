@@ -50,11 +50,18 @@ public class Progress {
   
   @Override
   public String toString() {
-    return new String("TotalTasks: " + getTotalTaskCount() +
-                       " Succeeded: " + getSucceededTaskCount() +
-                       " Running: " + getRunningTaskCount() + 
-                       " Failed: " + getFailedTaskCount() + 
-                       " Killed: " + getKilledTaskCount());
+    StringBuilder sb = new StringBuilder();
+    sb.append("TotalTasks: ");
+    sb.append(getTotalTaskCount());
+    sb.append(" Succeeded: ");
+    sb.append(getSucceededTaskCount());
+    sb.append(" Running: ");
+    sb.append(getRunningTaskCount());
+    sb.append(" Failed: "); 
+    sb.append(getFailedTaskCount());
+    sb.append(" Killed: "); 
+    sb.append(getKilledTaskCount());
+    return sb.toString();
   }
 
 }

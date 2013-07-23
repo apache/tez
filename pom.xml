@@ -351,6 +351,11 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>findbugs-maven-plugin</artifactId>
+          <version>2.5.2</version>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -423,6 +428,44 @@
         </plugins>
       </build>
     </profile>
+    <profile>
+      <id>findbugs</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+        <property>
+          <name>findbugs</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>findbugs-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>site</id>
+                <phase>pre-site</phase>
+                <goals>
+                  <goal>findbugs</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <excludeFilterFile>findbugs-exclude.xml</excludeFilterFile>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>findbugs-maven-plugin</artifactId>
+        <version>2.5.2</version>
+      </plugin>
+    </plugins>
+  </reporting>
 </project>

@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.VertexStatus;
@@ -202,7 +203,13 @@ public class DAGClientRPCImpl implements DAGClient {
         dagState = DAGStatusStateProto.DAG_SUCCEEDED;
         break;
       }
-      break;
+      throw new TezUncheckedException("Encountered unknown final application"
+          + " status from YARN"
+          + ", appState=" + appReport.getYarnApplicationState()
+          + ", finalStatus=" + appReport.getFinalApplicationStatus());
+    default:
+      throw new TezUncheckedException("Encountered unknown application state"
+          + " from YARN, appState=" + appReport.getYarnApplicationState());
     }
     
     builder.setState(dagState);

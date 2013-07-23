@@ -19,36 +19,31 @@
 package org.apache.tez.dag.api;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 public class VertexLocationHint  {
 
-  private int numTasks;
-  private TaskLocationHint[] taskLocationHints;
-
-  public VertexLocationHint() {
-    this(0);
-  }
-
-  public VertexLocationHint(int numTasks) {
-    this(numTasks, new TaskLocationHint[numTasks]);
-  }
+  private final int numTasks;
+  private final List<TaskLocationHint> taskLocationHints;
 
   public VertexLocationHint(int numTasks,
-      TaskLocationHint[] taskLocationHints) {
+      List<TaskLocationHint> taskLocationHints) {
     this.numTasks = numTasks;
-    this.taskLocationHints = taskLocationHints;
+    if (taskLocationHints != null) {
+      this.taskLocationHints = Collections.unmodifiableList(taskLocationHints);
+    } else {
+      this.taskLocationHints = null;
+    }
   }
 
   public int getNumTasks() {
     return numTasks;
   }
 
-  public TaskLocationHint[] getTaskLocationHints() {
+  public List<TaskLocationHint> getTaskLocationHints() {
     return taskLocationHints;
-  }
-
-  public void setTaskLocationHints(TaskLocationHint[] taskLocationHints) {
-    this.taskLocationHints = taskLocationHints;
   }
 
   @Override
@@ -56,7 +51,9 @@ public class VertexLocationHint  {
     final int prime = 7883;
     int result = 1;
     result = prime * result + numTasks;
-    result = prime * result + Arrays.hashCode(taskLocationHints);
+    if (taskLocationHints != null) {
+      result = prime * result + taskLocationHints.hashCode();
+    }
     return result;
   }
 
@@ -75,7 +72,11 @@ public class VertexLocationHint  {
     if (numTasks != other.numTasks) {
       return false;
     }
-    if (!Arrays.equals(taskLocationHints, other.taskLocationHints)) {
+    if (taskLocationHints != null) {
+      if (!taskLocationHints.equals(other.taskLocationHints)) {
+        return false;
+      }
+    } else if (other.taskLocationHints != null) {
       return false;
     }
     return true;
@@ -84,38 +85,41 @@ public class VertexLocationHint  {
   public static class TaskLocationHint {
 
     // Host names if any to be used
-    private String[] hosts;
+    private final Set<String> hosts;
     // Rack names if any to be used
-    private String[] racks;
+    private final Set<String> racks;
 
-    public TaskLocationHint() {
-      this(new String[0], new String[0]);
+    public TaskLocationHint(Set<String> hosts, Set<String> racks) {
+      if (hosts != null) {
+        this.hosts = Collections.unmodifiableSet(hosts);
+      } else {
+        this.hosts = null;
+      }
+      if (racks != null) {
+        this.racks = Collections.unmodifiableSet(racks);
+      } else {
+        this.racks = null;
+      }
     }
 
-    public TaskLocationHint(String[] hosts, String[] racks) {
-      this.hosts = hosts;
-      this.racks = racks;
-    }
-
-    public String[] getDataLocalHosts() {
+    public Set<String> getDataLocalHosts() {
       return hosts;
     }
-    public void setDataLocalHosts(String[] hosts) {
-      this.hosts = hosts;
-    }
-    public String[] getRacks() {
+
+    public Set<String> getRacks() {
       return racks;
-    }
-    public void setRacks(String[] racks) {
-      this.racks = racks;
     }
 
     @Override
     public int hashCode() {
       final int prime = 9397;
       int result = 1;
-      result = prime * result + Arrays.hashCode(hosts);
-      result = prime * result + Arrays.hashCode(racks);
+      result = ( hosts != null) ?
+          prime * result + hosts.hashCode() :
+          result + prime;
+      result = ( racks != null) ?
+          prime * result + racks.hashCode() :
+          result + prime;
       return result;
     }
 
@@ -131,10 +135,18 @@ public class VertexLocationHint  {
         return false;
       }
       TaskLocationHint other = (TaskLocationHint) obj;
-      if (!Arrays.equals(hosts, other.hosts)) {
+      if (hosts != null) {
+        if (!hosts.equals(other.hosts)) {
+          return false;
+        }
+      } else if (other.hosts != null) {
         return false;
       }
-      if (!Arrays.equals(racks, other.racks)) {
+      if (racks != null) {
+        if (!racks.equals(other.racks)) {
+          return false;
+        }
+      } else if (other.racks != null) {
         return false;
       }
       return true;

@@ -964,14 +964,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       boolean useNullLocationHint = true;
       if (vertex.vertexLocationHint != null
           && vertex.vertexLocationHint.getTaskLocationHints() != null
-          && vertex.vertexLocationHint.getTaskLocationHints().length ==
+          && vertex.vertexLocationHint.getTaskLocationHints().size() ==
               vertex.numTasks) {
         useNullLocationHint = false;
       }
       for (int i=0; i < vertex.numTasks; ++i) {
         TaskLocationHint locHint = null;
         if (!useNullLocationHint) {
-          locHint = vertex.vertexLocationHint.getTaskLocationHints()[i];
+          locHint = vertex.vertexLocationHint.getTaskLocationHints().get(i);
         }
         TaskImpl task =
             new TaskImpl(vertex.getVertexId(), i,
@@ -1332,6 +1332,27 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     return this.vertexId.compareTo(other.getVertexId());
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    Vertex other = (Vertex) obj;
+    return this.vertexId.equals(other.getVertexId());
+  }  
+
+  @Override
+  public int hashCode() {
+    final int prime = 11239;
+    return prime + prime * this.vertexId.hashCode();
+  }
+    
   @Override
   public Map<Vertex, EdgeProperty> getInputVertices() {
     return Collections.unmodifiableMap(this.sourceVertices);

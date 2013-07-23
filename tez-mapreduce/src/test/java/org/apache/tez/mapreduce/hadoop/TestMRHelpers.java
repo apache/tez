@@ -23,7 +23,11 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
@@ -104,21 +108,21 @@ public class TestMRHelpers {
   }
 
   private void verifyLocationHints(Path inputSplitsDir,
-      TaskLocationHint[] actual) throws Exception {
+      List<TaskLocationHint> actual) throws Exception {
     JobID jobId = new JobID("dummy", 1);
     TaskSplitMetaInfo[] splitsInfo =
         SplitMetaInfoReader.readSplitMetaInfo(jobId , remoteFs,
             conf, inputSplitsDir);
     int splitsCount = splitsInfo.length;
-    TaskLocationHint[] locationHints =
-        new TaskLocationHint[splitsCount];
+    List<TaskLocationHint> locationHints =
+        new ArrayList<TaskLocationHint>(splitsCount);
     for (int i = 0; i < splitsCount; ++i) {
-      TaskLocationHint locationHint =
-          new TaskLocationHint(splitsInfo[i].getLocations(), null);
-      locationHints[i] = locationHint;
+      locationHints.add(
+          new TaskLocationHint(new HashSet<String>(
+              Arrays.asList(splitsInfo[i].getLocations())), null));
     }
 
-    Assert.assertArrayEquals(locationHints, actual);
+    Assert.assertEquals(locationHints, actual);
   }
 
   private InputSplitInfo generateNewSplits(Path inputSplitsDir)

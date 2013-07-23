@@ -76,11 +76,11 @@ public class Vertex { // FIXME rename to Task
     return taskResource;
   }
 
-  public Vertex setTaskLocationsHint(TaskLocationHint[] locations) {
+  public Vertex setTaskLocationsHint(List<TaskLocationHint> locations) {
     if (locations == null) {
       return this;
     }
-    assert locations.length == parallelism;
+    assert locations.size() == parallelism;
     taskLocationsHint = new VertexLocationHint(parallelism, locations);
     return this;
   }

@@ -102,7 +102,7 @@ public class TestTaskImpl {
     jobToken = (Token<JobTokenIdentifier>) mock(Token.class);
     credentials = null;
     clock = new SystemClock();
-    locationHint = new TaskLocationHint(new String[1], new String[1]);
+    locationHint = new TaskLocationHint(null, null);
 
     appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     dagId = new TezDAGID(appId, 1);
