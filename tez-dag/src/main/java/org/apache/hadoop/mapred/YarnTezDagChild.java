@@ -55,6 +55,7 @@ import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.counters.Limits;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
@@ -133,12 +134,15 @@ public class YarnTezDagChild {
     UserGroupInformation childUGI = null;
     TezTaskAttemptID taskAttemptId = null;
     ContainerContext containerContext = new ContainerContext(containerId, pid);
+    int getTaskMaxSleepTime = defaultConf.getInt(
+        TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
+        TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT);
 
     try {
       while (true) {
         // poll for new task
         for (int idle = 0; null == containerTask; ++idle) {
-          long sleepTimeMilliSecs = Math.min(idle * 500, 1500);
+          long sleepTimeMilliSecs = Math.min(idle * 100, getTaskMaxSleepTime);
           LOG.info("Sleeping for " + sleepTimeMilliSecs
               + "ms before retrying again. Got null now.");
           MILLISECONDS.sleep(sleepTimeMilliSecs);

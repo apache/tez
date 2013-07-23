@@ -116,12 +116,12 @@ public class DeprecatedKeys {
         TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT);
     
     mrParamToDAGParamMap.put(MRJobConfig.MAX_TASK_FAILURES_PER_TRACKER,
-        TezConfiguration.TEZ_MAX_TASK_FAILURES_PER_NODE);
+        TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE);
     mrParamToDAGParamMap.put(MRJobConfig.MR_AM_JOB_NODE_BLACKLISTING_ENABLE,
-        TezConfiguration.TEZ_NODE_BLACKLISTING_ENABLED);
+        TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED);
     mrParamToDAGParamMap.put(
         MRJobConfig.MR_AM_IGNORE_BLACKLISTING_BLACKLISTED_NODE_PERECENT,
-        TezConfiguration.TEZ_NODE_BLACKLISTING_IGNORE_THRESHOLD);
+        TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD);
   }
 
   // TODO TEZAM4 Sometime, make sure this gets loaded by default. Insteaf of the current initialization in MRAppMaster, TezChild.

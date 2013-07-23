@@ -381,10 +381,10 @@ public class TezClient {
     Resource capability = Records.newRecord(Resource.class);
     capability.setMemory(
         conf.getInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB,
-            TezConfiguration.DEFAULT_TEZ_AM_RESOURCE_MEMORY_MB));
+            TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB_DEFAULT));
     capability.setVirtualCores(
         conf.getInt(TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES,
-            TezConfiguration.DEFAULT_TEZ_AM_RESOURCE_CPU_VCORES));
+            TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES_DEFAULT));
     LOG.debug("AppMaster capability = " + capability);
 
     ByteBuffer securityTokens = null;
@@ -401,7 +401,7 @@ public class TezClient {
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
 
     String amLogLevel = conf.get(TezConfiguration.TEZ_AM_LOG_LEVEL,
-                                 TezConfiguration.DEFAULT_TEZ_AM_LOG_LEVEL);
+                                 TezConfiguration.TEZ_AM_LOG_LEVEL_DEFAULT);
     addLog4jSystemProperties(amLogLevel, vargs);
 
     if (amArgs != null) {
@@ -529,7 +529,7 @@ public class TezClient {
     appContext.setApplicationName(amName);
     appContext.setCancelTokensWhenComplete(conf.getBoolean(
         TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN,
-        TezConfiguration.DEFAULT_TEZ_AM_CANCEL_DELEGATION_TOKEN));
+        TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN_DEFAULT));
     appContext.setAMContainerSpec(amContainer);
 
     return appContext;

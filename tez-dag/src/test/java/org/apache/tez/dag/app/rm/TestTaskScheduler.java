@@ -50,6 +50,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.util.RackResolver;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.rm.TaskScheduler.CookieContainerRequest;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback.AppFinalStatus;
@@ -80,8 +81,11 @@ public class TestTaskScheduler {
                                                 appPort, appUrl, mockRMClient);
     
     Configuration conf = new Configuration(); 
+    int interval = 100;
+    conf.setInt(TezConfiguration.TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX, interval);
     scheduler.init(conf);
     verify(mockRMClient).init(conf);
+    verify(mockRMClient).setHeartbeatInterval(interval);
     
     RegisterApplicationMasterResponse mockRegResponse = 
                                 mock(RegisterApplicationMasterResponse.class);

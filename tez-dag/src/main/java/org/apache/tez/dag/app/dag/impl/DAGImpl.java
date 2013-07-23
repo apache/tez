@@ -899,8 +899,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
             dag.appContext.getTaskScheduler(),
             dag.conf
                 .getFloat(
-                    TezConfiguration.SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION,
-                    TezConfiguration.SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION_DEFAULT));
+                    TezConfiguration.TEZ_AM_SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION,
+                    TezConfiguration.TEZ_AM_SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION_DEFAULT));
       } else {
         LOG.info("Using Natural order dag scheduler");
         dag.dagScheduler = new DAGSchedulerNaturalOrder(dag, dag.eventHandler);

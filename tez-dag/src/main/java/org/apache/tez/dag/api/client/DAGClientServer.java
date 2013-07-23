@@ -63,10 +63,10 @@ public class DAGClientServer extends AbstractService {
       BlockingService blockingService = 
                 DAGClientAMProtocol.newReflectiveBlockingService(service);
       
-      int numHandlers = conf.getInt(TezConfiguration.TEZ_CLIENT_AM_THREAD_COUNT, 
-                          TezConfiguration.TEZ_CLIENT_AM__THREAD_COUNT_DEFAULT);
+      int numHandlers = conf.getInt(TezConfiguration.TEZ_AM_CLIENT_THREAD_COUNT, 
+                          TezConfiguration.TEZ_AM_CLIENT_THREAD_COUNT_DEFAULT);
       
-      String portRange = conf.get(TezConfiguration.TEZ_CLIENT_AM_PORT_RANGE);
+      String portRange = conf.get(TezConfiguration.TEZ_AM_CLIENT_AM_PORT_RANGE);
       
       server = createServer(DAGClientAMProtocolBlockingPB.class, addr, conf, 
                             numHandlers, blockingService, portRange);

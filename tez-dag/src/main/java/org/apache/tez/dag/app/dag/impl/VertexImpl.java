@@ -919,12 +919,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               vertex,
               vertex.conf
                   .getFloat(
-                      TezConfiguration.SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION,
-                      TezConfiguration.SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION_DEFAULT),
+                      TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION,
+                      TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION_DEFAULT),
               vertex.conf
                   .getFloat(
-                      TezConfiguration.SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION,
-                      TezConfiguration.SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT));
+                      TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION,
+                      TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT));
         } else {
           // schedule all tasks upon vertex start
           vertex.vertexScheduler = new ImmediateStartVertexScheduler(vertex);

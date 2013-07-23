@@ -47,6 +47,7 @@ import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.resource.Resources;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback.AppFinalStatus;
 
@@ -177,6 +178,10 @@ public class TaskScheduler extends AbstractService
   @Override
   public synchronized void serviceInit(Configuration conf) {
     amRmClient.init(conf);
+    int heartbeatIntervalMax = conf.getInt(
+        TezConfiguration.TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX,
+        TezConfiguration.TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX_DEFAULT);
+    amRmClient.setHeartbeatInterval(heartbeatIntervalMax);
   }
   
   @Override
