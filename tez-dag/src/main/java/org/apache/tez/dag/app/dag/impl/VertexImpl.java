@@ -35,7 +35,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.MRVertexOutputCommitter;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
@@ -105,10 +104,8 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.protobuf.ByteString;
 
 
 /** Implementation of Vertex interface. Maintains the state machines of Vertex.
@@ -339,7 +336,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private final String vertexName;
   private final ProcessorDescriptor processorDescriptor;
-  private final byte[] userPayload;
 
   // For committer
   private final VertexContext vertexContext;
@@ -404,9 +400,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.javaOpts = vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan
         .getTaskConfig().getJavaOpts() : null;
 
-    this.userPayload = initializeUserPayload();
     this.vertexContext = new VertexContext(getDAGId(),
-        userPayload, this.vertexId,
+        this.processorDescriptor.getUserPayload(), this.vertexId,
         getApplicationAttemptId());
 
     // This "this leak" is okay because the retained pointer is in an
@@ -1444,25 +1439,4 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     return this.vertexScheduler;
   }
 
-  private byte[] initializeUserPayload() {
-    for (VertexPlan vertexPlan : getDAG().getJobPlan().getVertexList()) {
-      if (vertexPlan.getName().equals(vertexName)) {
-        if (!vertexPlan.getProcessorDescriptor().hasUserPayload()) {
-          return null;
-        } else {
-          // Needs to be a ByteBuffer which allows toArray. PB returns a
-          // readOnlyBuffer
-          ByteString byteString = vertexPlan.getProcessorDescriptor()
-              .getUserPayload();
-          byte[] b = byteString.toByteArray();
-          return b;
-        }
-      }
-    }
-    return null;
-  }
-
-  public byte[] getUserPayload() {
-    return userPayload;
-  }
 }
