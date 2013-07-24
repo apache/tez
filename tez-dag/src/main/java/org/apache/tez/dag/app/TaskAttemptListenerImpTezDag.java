@@ -37,6 +37,7 @@ import org.apache.hadoop.security.authorize.PolicyProvider;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezTaskStatus;
@@ -194,11 +195,12 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
     ContainerTask task = null;
 
-    if (containerContext == null || containerContext.getContainerId() == null) {
+    if (containerContext == null || containerContext.getContainerIdentifier() == null) {
       LOG.info("Invalid task request with an empty containerContext or containerId");
       task = TASK_FOR_INVALID_JVM;
     } else {
-      ContainerId containerId = containerContext.getContainerId();
+      ContainerId containerId = ConverterUtils.toContainerId(containerContext
+          .getContainerIdentifier());
       if (LOG.isDebugEnabled()) {
         LOG.debug("Container with id: " + containerId + " asked for a task");
       }

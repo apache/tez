@@ -20,7 +20,6 @@ package org.apache.tez.dag.app.dag.impl;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;

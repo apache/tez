@@ -43,9 +43,6 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.log4j.LogManager;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
@@ -85,15 +82,19 @@ public class YarnTezDagChild {
     UserGroupInformation.setConfiguration(defaultConf);
     Limits.setConfiguration(defaultConf);
 
+    assert args.length == 5;
     String host = args[0];
     int port = Integer.parseInt(args[1]);
     final InetSocketAddress address =
         NetUtils.createSocketAddrForHost(host, port);
-
-    final ContainerId containerId = ConverterUtils.toContainerId(args[2]);
-    final ApplicationId appID =
-        containerId.getApplicationAttemptId().getApplicationId();
-
+    final String containerIdentifier = args[2];
+    final String tokenIdentifier = args[3];
+    final int attemptNumber = Integer.parseInt(args[4]);
+    if (LOG.isDebugEnabled()) {
+      LOG.info("Info from cmd line: AM-host: " + host + " AM-port: " + port
+          + " containerIdentifier: " + containerIdentifier + " attemptNumber: "
+          + attemptNumber + " tokenIdentifier: " + tokenIdentifier);
+    }
     // FIXME fix initialize metrics in child runner
     DefaultMetricsSystem.initialize("VertexTask");
 
@@ -110,7 +111,7 @@ public class YarnTezDagChild {
 
     // Create TaskUmbilicalProtocol as actual task owner.
     UserGroupInformation taskOwner =
-      UserGroupInformation.createRemoteUser(appID.toString());
+      UserGroupInformation.createRemoteUser(tokenIdentifier);
 
     Token<JobTokenIdentifier> jobToken = TokenCache.getJobToken(credentials);
     SecurityUtil.setTokenService(jobToken, address);
@@ -127,13 +128,13 @@ public class YarnTezDagChild {
     // report non-pid to application master
     String pid = System.getenv().get("JVM_PID");
     if (LOG.isDebugEnabled()) {
-      LOG.debug("PID, containerId: " + pid + ", " + containerId);
+      LOG.debug("PID, containerId: " + pid + ", " + containerIdentifier);
     }
     TezEngineTaskContext taskContext = null;
     ContainerTask containerTask = null;
     UserGroupInformation childUGI = null;
     TezTaskAttemptID taskAttemptId = null;
-    ContainerContext containerContext = new ContainerContext(containerId, pid);
+    ContainerContext containerContext = new ContainerContext(containerIdentifier, pid);
     int getTaskMaxSleepTime = defaultConf.getInt(
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT);
@@ -165,8 +166,7 @@ public class YarnTezDagChild {
         taskAttemptId = taskContext.getTaskAttemptId();
 
         final Task t = createAndConfigureTezTask(taskContext, umbilical,
-            credentials, jobToken,
-            containerId.getApplicationAttemptId().getAttemptId());
+            credentials, jobToken, attemptNumber);
 
         final Configuration conf = ((RuntimeTask)t).getConfiguration();
 

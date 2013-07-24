@@ -33,7 +33,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -87,7 +86,6 @@ import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.dag.utils.DAGApps;
 import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
@@ -953,14 +951,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     protected void setup(DAGImpl job) throws IOException {
       job.initTime = job.clock.getTime();
       String dagIdString = job.dagId.toString().replace("application", "job");
-
-      // TODO remove - TEZ-71
-      String user =
-        UserGroupInformation.getCurrentUser().getShortUserName();
-      Path path = DAGApps.getStagingAreaDir(job.conf, user);
-      if(LOG.isDebugEnabled()) {
-        LOG.debug("startJobs: parent=" + path + " child=" + dagIdString);
-      }
 
       // Prepare the TaskAttemptListener server for authentication of Containers
       // TaskAttemptListener gets the information via jobTokenSecretManager.

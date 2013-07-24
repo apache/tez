@@ -24,29 +24,26 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.util.Records;
-import org.apache.tez.records.TezContainerId;
 
 // TODO EVENTUALLY move this over to PB. Fix package/module.
 // TODO EVENTUALLY unit tests for functionality.
 public class ContainerContext implements Writable {
 
-  ContainerId containerId;
+  String containerIdentifier;
   String pid;
 
   public ContainerContext() {
-    containerId = Records.newRecord(ContainerId.class);
+    containerIdentifier = "";
     pid = "";
   }
 
-  public ContainerContext(ContainerId containerId, String pid) {
-    this.containerId = containerId;
+  public ContainerContext(String containerIdStr, String pid) {
+    this.containerIdentifier = containerIdStr;
     this.pid = pid;
   }
 
-  public ContainerId getContainerId() {
-    return containerId;
+  public String getContainerIdentifier() {
+    return containerIdentifier;
   }
 
   public String getPid() {
@@ -55,16 +52,13 @@ public class ContainerContext implements Writable {
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    TezContainerId tezContainerId = new TezContainerId();
-    tezContainerId.readFields(in);
-    this.containerId = tezContainerId.getContainerId();
+    this.containerIdentifier = Text.readString(in);
     this.pid = Text.readString(in);
   }
 
   @Override
   public void write(DataOutput out) throws IOException {
-    TezContainerId tezContainerId = new TezContainerId(containerId);
-    tezContainerId.write(out);
+    Text.writeString(out, containerIdentifier);
     Text.writeString(out, pid);
   }
 }

@@ -29,6 +29,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
@@ -852,6 +853,8 @@ public class TestAMContainer {
       doReturn(new HashMap<ApplicationAccessType, String>()).when(appContext)
       .getApplicationACLs();
       doReturn(eventHandler).when(appContext).getEventHandler();
+      when(appContext.getApplicationAttemptId()).thenReturn(appAttemptID);
+      when(appContext.getApplicationID()).thenReturn(applicationID);
 
       dagID = new TezDAGID(applicationID, 1);
       vertexID = new TezVertexID(dagID, 1);

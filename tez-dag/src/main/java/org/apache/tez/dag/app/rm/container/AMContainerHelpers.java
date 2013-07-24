@@ -176,8 +176,10 @@ public class AMContainerHelpers {
 
     // Set up the launch command
     List<String> commands = TezEngineChildJVM.getVMCommand(
-        taskAttemptListener.getAddress(), conf, vertexId, containerId,
-        vertexId.getDAGId().getApplicationId(), shouldProfile, javaOpts);
+        taskAttemptListener.getAddress(), conf, containerId.toString(),
+        appContext.getApplicationID().toString(),
+        appContext.getApplicationAttemptId().getAttemptId(), 
+        shouldProfile, javaOpts);
 
     // Duplicate the ByteBuffers for access by multiple containers.
     Map<String, ByteBuffer> myServiceData = new HashMap<String, ByteBuffer>();

@@ -26,11 +26,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.YarnTezDagChild;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.records.TezVertexID;
 
 public class TezEngineChildJVM {
 
@@ -70,8 +67,10 @@ public class TezEngineChildJVM {
   
   public static List<String> getVMCommand(
       InetSocketAddress taskAttemptListenerAddr, TezConfiguration conf, 
-      TezVertexID vertexId, 
-      ContainerId containerId, ApplicationId jobID, boolean shouldProfile,
+      String containerIdentifier,
+      String tokenIdentifier,
+      int applicationAttemptNumber,
+      boolean shouldProfile,
       String javaOpts) {
 
     Vector<String> vargs = new Vector<String>(9);
@@ -104,9 +103,10 @@ public class TezEngineChildJVM {
     // pass TaskAttemptListener's address
     vargs.add(taskAttemptListenerAddr.getAddress().getHostAddress()); 
     vargs.add(Integer.toString(taskAttemptListenerAddr.getPort()));
+    vargs.add(containerIdentifier);
+    vargs.add(tokenIdentifier);
+    vargs.add(Integer.toString(applicationAttemptNumber));
 
-    // Finally add the containerId.
-    vargs.add(String.valueOf(containerId.toString()));
     vargs.add("1>" + getTaskLogFile(LogName.STDOUT));
     vargs.add("2>" + getTaskLogFile(LogName.STDERR));
 
