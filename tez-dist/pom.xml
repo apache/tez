@@ -82,18 +82,34 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
-          <descriptors>
-            <descriptor>src/main/assembly/tez-dist.xml</descriptor>
-          </descriptors>
           <tarLongFileMode>gnu</tarLongFileMode>
           <appendAssemblyId>false</appendAssemblyId>
           <attach>false</attach>
-          <finalName>tez-${project.version}</finalName>
         </configuration>
         <executions>
           <execution>
+            <id>package-tez-full</id>
+            <configuration>
+              <finalName>tez-${project.version}-full</finalName>
+              <descriptors>
+                <descriptor>src/main/assembly/tez-dist-full.xml</descriptor>
+              </descriptors>
+              <formats>
+                <format>${package.format}</format>
+              </formats>
+            </configuration>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+          <execution>
             <id>package-tez</id>
             <configuration>
+              <finalName>tez-${project.version}</finalName>
+              <descriptors>
+                <descriptor>src/main/assembly/tez-dist.xml</descriptor>
+              </descriptors>
               <formats>
                 <format>${package.format}</format>
               </formats>

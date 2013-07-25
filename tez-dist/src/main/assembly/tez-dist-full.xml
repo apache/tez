@@ -23,7 +23,7 @@
   <moduleSets>
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
-     <includes>
+      <includes>
         <include>org.apache.tez:tez-dag-api</include>
         <include>org.apache.tez:tez-engine-api</include>
       </includes>
@@ -38,8 +38,6 @@
     <dependencySet>
       <useProjectArtifact>false</useProjectArtifact>
       <outputDirectory>/lib</outputDirectory>
-      <useTransitiveDependencies>true</useTransitiveDependencies>
-      <useTransitiveFiltering>true</useTransitiveFiltering>
       <!-- Exclude hadoop artifacts. They will be found via HADOOP* env -->
       <excludes>
         <exclude>org.apache.tez:tez-dag-api</exclude>
@@ -53,7 +51,17 @@
         <exclude>org.apache.hadoop:hadoop-yarn-common</exclude>
         <exclude>org.apache.hadoop:hadoop-yarn-server-common</exclude>
         <exclude>org.apache.hadoop:hadoop-yarn-server-nodemanager</exclude>
+        <!-- use slf4j from common to avoid multiple binding warnings -->
+        <exclude>org.slf4j:slf4j-api</exclude>
+        <exclude>org.slf4j:slf4j-log4j12</exclude>
       </excludes>
+    </dependencySet>
+    <dependencySet>
+      <useProjectArtifact>false</useProjectArtifact>
+      <outputDirectory>/tests</outputDirectory>
+      <includes>
+        <include>*:*:test-jar</include>
+      </includes>
     </dependencySet>
   </dependencySets>
 </assembly>
