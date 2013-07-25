@@ -475,7 +475,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
   @Override
-  public void onError(Exception e) {
+  public void onError(Throwable t) {
     sendEvent(new DAGEvent(appContext.getDAGID(),
         DAGEventType.INTERNAL_ERROR));
   }

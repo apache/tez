@@ -94,7 +94,7 @@ public class TaskScheduler extends AbstractService
                                 Resource maxContainerCapability,
                                 Map<ApplicationAccessType, String> appAcls
                                 );
-    public void onError(Exception e);
+    public void onError(Throwable t);
     public float getProgress();
     public AppFinalStatus getFinalAppStatus();
   }
@@ -372,11 +372,11 @@ public class TaskScheduler extends AbstractService
   }
 
   @Override
-  public void onError(Exception e) {
+  public void onError(Throwable t) {
     if(isStopped) {
       return;
     }
-    appClient.onError(e);
+    appClient.onError(t);
   }
   
   public synchronized Resource getTotalResources() {
@@ -587,5 +587,5 @@ public class TaskScheduler extends AbstractService
   private boolean isHigherPriority(Priority lhs, Priority rhs) {
     return lhs.getPriority() < rhs.getPriority();
   }
-  
+
 }
