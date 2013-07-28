@@ -88,7 +88,7 @@ public class NotRunningJob implements MRClientProtocol {
     // used for a non running job
     return ApplicationReport.newInstance(unknownAppId, unknownAttemptId, "N/A",
         "N/A", "N/A", "N/A", 0, null, YarnApplicationState.NEW, "N/A", "N/A",
-        0, 0, FinalApplicationStatus.UNDEFINED, null, "N/A", 0.0f, "TEZ_MRR");
+        0, 0, FinalApplicationStatus.UNDEFINED, null, "N/A", 0.0f, "TEZ_MRR", null);
   }
 
   NotRunningJob(ApplicationReport applicationReport, JobState jobState) {
