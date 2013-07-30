@@ -885,33 +885,40 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         // create the Tasks but don't start them yet
         createTasks(vertex);
 
-        boolean hasBipartite = false;
-        if (vertex.sourceVertices != null) {
-          for (EdgeProperty edgeProperty : vertex.sourceVertices.values()) {
-            if(edgeProperty.getConnectionPattern() == ConnectionPattern.BIPARTITE) {
-              hasBipartite = true;
-              break;
+        if (vertex.conf.getBoolean(
+            TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING,
+            TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING_DEFAULT)) {
+          LOG.info("Using immediate start vertex scheduler due to aggressive scheduling");
+          vertex.vertexScheduler = new ImmediateStartVertexScheduler(vertex);
+        } else {
+          boolean hasBipartite = false;
+          if (vertex.sourceVertices != null) {
+            for (EdgeProperty edgeProperty : vertex.sourceVertices.values()) {
+              if (edgeProperty.getConnectionPattern() == ConnectionPattern.BIPARTITE) {
+                hasBipartite = true;
+                break;
+              }
             }
           }
-        }
 
-        if (hasBipartite) {
-          // setup vertex scheduler
-          // TODO this needs to consider data size and perhaps API.
-          // Currently implicitly BIPARTITE is the only edge type
-          vertex.vertexScheduler = new BipartiteSlowStartVertexScheduler(
-              vertex,
-              vertex.conf
-                  .getFloat(
-                      TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION,
-                      TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION_DEFAULT),
-              vertex.conf
-                  .getFloat(
-                      TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION,
-                      TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT));
-        } else {
-          // schedule all tasks upon vertex start
-          vertex.vertexScheduler = new ImmediateStartVertexScheduler(vertex);
+          if (hasBipartite) {
+            // setup vertex scheduler
+            // TODO this needs to consider data size and perhaps API.
+            // Currently implicitly BIPARTITE is the only edge type
+            vertex.vertexScheduler = new BipartiteSlowStartVertexScheduler(
+                vertex,
+                vertex.conf
+                    .getFloat(
+                        TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION,
+                        TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION_DEFAULT),
+                vertex.conf
+                    .getFloat(
+                        TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION,
+                        TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT));
+          } else {
+            // schedule all tasks upon vertex start
+            vertex.vertexScheduler = new ImmediateStartVertexScheduler(vertex);
+          }
         }
 
         // FIXME how do we decide vertex needs a committer?

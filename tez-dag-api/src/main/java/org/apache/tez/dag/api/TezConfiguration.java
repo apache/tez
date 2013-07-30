@@ -119,6 +119,10 @@ public class TezConfiguration extends Configuration {
           + "slowstart-dag-scheduler.min-resource-fraction";
   public static final float 
           TEZ_AM_SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION_DEFAULT = 0.5f;
+  
+  public static final String TEZ_AM_AGGRESSIVE_SCHEDULING = TEZ_AM_PREFIX +
+      "aggressive.scheduling";
+  public static boolean TEZ_AM_AGGRESSIVE_SCHEDULING_DEFAULT = false;
 
   /**
    * The complete path to the serialized dag plan file
