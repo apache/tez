@@ -143,7 +143,7 @@ public class YarnTezDagChild {
       while (true) {
         // poll for new task
         for (int idle = 0; null == containerTask; ++idle) {
-          long sleepTimeMilliSecs = Math.min(idle * 100, getTaskMaxSleepTime);
+          long sleepTimeMilliSecs = Math.min(idle * 10, getTaskMaxSleepTime);
           LOG.info("Sleeping for " + sleepTimeMilliSecs
               + "ms before retrying again. Got null now.");
           MILLISECONDS.sleep(sleepTimeMilliSecs);

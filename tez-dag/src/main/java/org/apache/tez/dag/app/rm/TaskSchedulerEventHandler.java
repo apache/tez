@@ -49,12 +49,11 @@ import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
-import org.apache.tez.dag.app.rm.container.AMContainerEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerEventAssignTA;
 import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
 import org.apache.tez.dag.app.rm.container.AMContainerEventLaunchRequest;
+import org.apache.tez.dag.app.rm.container.AMContainerEventStopRequest;
 import org.apache.tez.dag.app.rm.container.AMContainerEventTASucceeded;
-import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerState;
 import org.apache.tez.dag.app.rm.node.AMNodeEventContainerAllocated;
 import org.apache.tez.dag.app.rm.node.AMNodeEventStateChanged;
@@ -69,7 +68,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   protected final AppContext appContext;
   @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
-  private TaskScheduler taskScheduler;
+  protected TaskScheduler taskScheduler;
   private DAGAppMaster dagAppMaster;
   private Map<ApplicationAccessType, String> appAcls = null;
   private Thread eventHandlingThread;
@@ -77,7 +76,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   // Has a signal (SIGTERM etc) been issued?
   protected volatile boolean isSignalled = false;
   final DAGClientServer clientService;
-  
+
   BlockingQueue<AMSchedulerEvent> eventQueue
                               = new LinkedBlockingQueue<AMSchedulerEvent>();
 
@@ -175,8 +174,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     //TaskAttempt taskAttempt = (TaskAttempt) 
     taskScheduler.deallocateContainer(containerId);
     // TODO does this container need to be stopped via C_STOP_REQUEST
-    sendEvent(new AMContainerEvent(containerId,
-                                   AMContainerEventType.C_STOP_REQUEST));
+    sendEvent(new AMContainerEventStopRequest(containerId));
   }
   
   private void handleTAUnsuccessfulEnd(AMSchedulerEventTAEnded event) {
@@ -210,7 +208,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     }*/
     
     TaskAttempt attempt = event.getAttempt();
-    Container container = taskScheduler.deallocateTask(attempt);
+    Container container = taskScheduler.deallocateTask(attempt, false);
     // use stored value of container id in case the scheduler has removed this
     // assignment because the task has been deallocated earlier. 
     // retroactive case
@@ -229,8 +227,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     if (attemptContainerId != null) {
       // TODO either ways send the necessary events 
       // Ask the container to stop.
-      sendEvent(new AMContainerEvent(attemptContainerId,
-                                     AMContainerEventType.C_STOP_REQUEST));
+      sendEvent(new AMContainerEventStopRequest(attemptContainerId));
       // Inform the Node - the task has asked to be STOPPED / has already
       // stopped.
       sendEvent(new AMNodeEventTaskAttemptEnded(appContext.getAllContainers().
@@ -258,20 +255,26 @@ public class TaskSchedulerEventHandler extends AbstractService
     }*/
     
     TaskAttempt attempt = event.getAttempt();
-    Container container = taskScheduler.deallocateTask(attempt);
+    ContainerId usedContainerId = event.getUsedContainerId();
+
+    // This could be null if a task fails / is killed before a container is
+    // assigned to it.
+    if (event.getUsedContainerId() != null) {
+      sendEvent(new AMContainerEventTASucceeded(usedContainerId,
+          event.getAttemptID()));
+      sendEvent(new AMNodeEventTaskAttemptSucceeded(appContext.getAllContainers().
+          get(usedContainerId).getContainer().getNodeId(), usedContainerId,
+          event.getAttemptID()));
+    }
+    
+    Container container = taskScheduler.deallocateTask(attempt, true);
     if(container != null) {
       ContainerId containerId = container.getId();
-      assert containerId.equals(event.getUsedContainerId());
-      sendEvent(new AMContainerEventTASucceeded(containerId,
-                    event.getAttemptID()));
-      // Inform the Node - the task has asked to be STOPPED / has already
-      // stopped.
-      sendEvent(new AMNodeEventTaskAttemptSucceeded(appContext.getAllContainers().
-          get(containerId).getContainer().getNodeId(), containerId,
-          event.getAttemptID()));
-      // TODO this is where reuse will happen
-      sendEvent(new AMContainerEvent(containerId,
-          AMContainerEventType.C_STOP_REQUEST));
+      // ContainerId specified by the task could be different from what the
+      // TaskScheduler knows about in case of KILLED tasks. The task may be
+      // killed after the scheduler has allocated a container but before the
+      // task knows about it.
+      sendEvent(new AMContainerEventStopRequest(containerId));
     }
   }
 
@@ -313,21 +316,23 @@ public class TaskSchedulerEventHandler extends AbstractService
                                event);
   }
   
+
+  protected TaskScheduler createTaskScheduler(String host, int port,
+      String trackingUrl) {
+    return new TaskScheduler(this, host, port, trackingUrl);
+  }
+
   @Override
   public synchronized void serviceStart() {
     // FIXME hack alert how is this supposed to support multiple DAGs?
     // Answer: this is shared across dags. need job==app-dag-master
     // TODO set heartbeat value from conf here
     InetSocketAddress serviceAddr = clientService.getBindAddress();
-    taskScheduler = 
-        new TaskScheduler(this,
-                          serviceAddr.getHostName(),
-                          serviceAddr.getPort(),
-                          "");
+    taskScheduler = createTaskScheduler(serviceAddr.getHostName(),
+        serviceAddr.getPort(), "");
     taskScheduler.init(getConfig());
-
-    dagAppMaster = appContext.getAppMaster();
     taskScheduler.start();
+    dagAppMaster = appContext.getAppMaster();
     this.eventHandlingThread = new Thread() {
       @Override
       public void run() {
@@ -356,7 +361,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     };
     this.eventHandlingThread.start();
   }
-  
+
   @Override
   public synchronized void serviceStop() {
     this.stopEventHandling = true;
@@ -371,10 +376,11 @@ public class TaskSchedulerEventHandler extends AbstractService
                                            Object appCookie, 
                                            Container container) {    
     ContainerId containerId = container.getId();
-    appContext.getAllContainers().addContainerIfNew(container);
-    appContext.getAllNodes().nodeSeen(container.getNodeId());   
-    sendEvent(new AMNodeEventContainerAllocated(container
-        .getNodeId(), container.getId()));
+    if (appContext.getAllContainers().addContainerIfNew(container)) {
+      appContext.getAllNodes().nodeSeen(container.getNodeId());
+      sendEvent(new AMNodeEventContainerAllocated(container
+          .getNodeId(), container.getId()));
+    }
     
     AMSchedulerEventTALaunchRequest event = 
                          (AMSchedulerEventTALaunchRequest) appCookie;

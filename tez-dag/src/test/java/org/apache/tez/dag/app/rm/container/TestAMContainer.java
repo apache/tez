@@ -925,8 +925,7 @@ public class TestAMContainer {
     
     public void stopRequest() {
       reset(eventHandler);
-      amContainer.handle(new AMContainerEvent(containerID,
-          AMContainerEventType.C_STOP_REQUEST));
+      amContainer.handle(new AMContainerEventStopRequest(containerID));
     }
     
     public void nmStopSent() {

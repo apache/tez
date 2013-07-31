@@ -141,6 +141,28 @@ public class TezConfiguration extends Configuration {
       + "get-task.sleep.interval-ms.max";
   public static final int TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT = 500;
   
+  /**
+   * Configuration to specify whether container should be reused.
+   */
+  public static final String TEZ_AM_CONTAINER_REUSE_ENABLED = TEZ_AM_PREFIX
+      + "container.reuse.enabled";
+  public static final boolean TEZ_AM_CONTAINER_REUSE_ENABLED_DEFAULT = false;
+
+  /**
+   * Whether to reuse containers for rack local tasks. Active only if reuse is
+   * enabled.
+   */
+  public static final String TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED = TEZ_AM_PREFIX
+      + "container.reuse.rack-fallback.enabled";
+  public static final boolean TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED_DEFAULT = true;
+
+  /**
+   * Whether to reuse containers for non-local tasks. Active only if reuse is
+   * enabled.
+   */
+  public static final String TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED = TEZ_AM_PREFIX
+      + "container.reuse.non-local-fallback.enabled";
+  public static final boolean TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED_DEFAULT = false;
 
   public static final String TEZ_AM_PLAN_PB_BINARY = "tez-dag.pb";
   public static final String TEZ_AM_PLAN_PB_TEXT = "tez-dag.pb.txt";

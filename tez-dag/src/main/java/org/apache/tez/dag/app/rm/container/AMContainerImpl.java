@@ -646,6 +646,11 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
       container.unregisterFromContainerListener();
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("TotalIdleTimeBetweenTasks for container: "
+            + container.getContainerId() + " = "
+            + container.idleTimeBetweenTasks);
+      }
     }
 
     @Override
@@ -663,9 +668,6 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("IdleTimeBetweenTasks: " + container.idleTimeBetweenTasks);
-      }
       container.unregisterFromContainerListener();
     }
   }

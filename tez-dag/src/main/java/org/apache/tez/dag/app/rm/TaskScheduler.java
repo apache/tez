@@ -101,6 +101,11 @@ public class TaskScheduler extends AbstractService
   
   final AMRMClientAsync<CookieContainerRequest> amRmClient;
   final TaskSchedulerAppCallback appClient;
+
+  // Container Re-Use configuration
+  private boolean shouldReuseContainers;
+  private boolean reuseRackLocal;
+  private boolean reuseNonLocal;
   
   Map<Object, CookieContainerRequest> taskRequests =  
                   new HashMap<Object, CookieContainerRequest>();
@@ -182,6 +187,22 @@ public class TaskScheduler extends AbstractService
         TezConfiguration.TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX,
         TezConfiguration.TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX_DEFAULT);
     amRmClient.setHeartbeatInterval(heartbeatIntervalMax);
+    
+    shouldReuseContainers = conf.getBoolean(
+        TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED,
+        TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED_DEFAULT);
+    reuseRackLocal = conf.getBoolean(
+        TezConfiguration.TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED,
+        TezConfiguration.TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED_DEFAULT);
+    reuseNonLocal = conf
+        .getBoolean(
+            TezConfiguration.TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED,
+            TezConfiguration.TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED_DEFAULT);
+    LOG.info("TaskScheduler initialized with configuration: " +
+            "maxRMHeartbeatInterval: " + heartbeatIntervalMax +
+            ", containerReuseEnabled: " + shouldReuseContainers + 
+            ", reuseRackLocal: " + reuseRackLocal + 
+            ", reuseNonLocal: " + reuseNonLocal);
   }
   
   @Override
@@ -279,56 +300,30 @@ public class TaskScheduler extends AbstractService
       appClient.containerCompleted(entry.getKey(), entry.getValue());
     }
   }
-
+  
   @Override
   public void onContainersAllocated(List<Container> containers) {
-    if(isStopped) {
+    if (isStopped) {
       return;
     }
-    Map<CookieContainerRequest, Container> appContainers = 
+    Map<CookieContainerRequest, Container> assignedContainers =
         new HashMap<CookieContainerRequest, Container>(containers.size());
     synchronized (this) {
-      for(Container container : containers) {
-        String location = container.getNodeId().getHost();
-        CookieContainerRequest assigned = getMatchingRequest(container, location);
-        if(assigned == null) {
-          location = RackResolver.resolve(location).getNetworkLocation();
-          assigned = getMatchingRequest(container, location);
-        }
-        if(assigned == null) {
-          location = ResourceRequest.ANY;
-          assigned = getMatchingRequest(container, location);
-        }
-        if(assigned == null) {
-          // not matched anything. release container
-          // Probably we cancelled a request and RM allocated that to us 
-          // before RM heard of the cancellation
-          releaseContainer(container.getId(), null);
-          LOG.info("No RM requests matching container: " + container);
+      for (Container container : containers) {
+        CookieContainerRequest assigned = assignAllocatedContainer(container,
+            false);
+        if (assigned == null) {
           continue;
         }
-        
-        Object task = getTask(assigned);
-        assert task != null;
-        assignContainer(task, container, assigned);
-        appContainers.put(assigned, container);
-              
-        LOG.info("Assigning container: " + container + 
-            " for task: " + task + 
-            " at locality: " + location + 
-            " resource memory: " + container.getResource().getMemory() +
-            " cpu: " + container.getResource().getVirtualCores());
-        
+        assignedContainers.put(assigned, container);
       }
     }
-    
+
     // upcall to app must be outside locks
-    for (Entry<CookieContainerRequest, Container> entry : 
-                                        appContainers.entrySet()) {
-      CookieContainerRequest assigned = entry.getKey();
-      appClient.taskAllocated(getTask(assigned), assigned.getCookie().appCookie,
-          entry.getValue());
-    }   
+    for (Entry<CookieContainerRequest, Container> entry : assignedContainers
+        .entrySet()) {
+      informAppAboutAssignments(entry.getKey(), entry.getValue());
+    }
   }
 
   @Override
@@ -405,28 +400,55 @@ public class TaskScheduler extends AbstractService
     LOG.info("Allocation request for task: " + task + 
              " with request: " + request);
   }
-  
-  public synchronized Container deallocateTask(Object task) {
-    CookieContainerRequest request = removeTaskRequest(task);
-    if(request != null) {
-      // task not allocated yet
-      LOG.info("Deallocating task: " + task + " before allocation");
-      return null;
+
+  /**
+   * @param task
+   *          the task to de-allocate.
+   * @param taskSucceeded
+   *          specify whether the task succeeded or failed.
+   * @return the container used for the task if the container is being
+   *         released, otherwise null.
+   */
+  public Container deallocateTask(Object task, boolean taskSucceeded) {
+    CookieContainerRequest request = null;
+    CookieContainerRequest assigned = null;
+    Container container = null;
+
+    synchronized (this) {
+      request =  removeTaskRequest(task);
+      if (request != null) {
+        // task not allocated yet
+        LOG.info("Deallocating task: " + task + " before allocation");
+        return null;
+      }
+
+      // task request not present. Look in allocations
+      container = unAssignContainer(task);
+      if (container == null) {
+        // task neither requested nor allocated.
+        LOG.info("Ignoring removal of unknown task: " + task);
+        container = null;
+      } else {
+        LOG.info("Deallocated task: " + task + " from container: "
+            + container.getId());
+
+        if (!taskSucceeded || !shouldReuseContainers) {
+          releaseContainer(container.getId(), task);
+        } else {
+          assigned = assignAllocatedContainer(container, true);
+        }
+
+      }
     }
-    
-    // task request not present. Look in allocations
-    Container container = unAssignContainer(task, true);
-    if(container != null) {
-      LOG.info("Deallocated task: " + task +
-               " from container: " + container.getId());
-      return container;
+
+    // up call outside of the lock.
+    if (assigned != null) {
+      informAppAboutAssignments(assigned, container);
+      container = null;
     }
-    
-    // task neither requested nor allocated.
-    LOG.info("Ignoring removal of unknown task: " + task);
-    return null;
+    return container;
   }
-  
+
   public synchronized Object deallocateContainer(ContainerId containerId) {
     Object task = unAssignContainer(containerId, true);
     if(task != null) {
@@ -554,7 +576,7 @@ public class TaskScheduler extends AbstractService
     amRmClient.addContainerRequest(request);
   }
   
-  private Container unAssignContainer(Object task, boolean releaseIfFound) {
+  private Container unAssignContainer(Object task) {
     Container container = taskAllocations.remove(task);
     if(container == null) {
       return null;
@@ -562,9 +584,6 @@ public class TaskScheduler extends AbstractService
     Resources.subtractFrom(allocatedResources, container.getResource());
     assert allocatedResources.getMemory() >= 0;
     containerAssigments.remove(container.getId());
-    if(releaseIfFound) {
-      releaseContainer(container.getId(), task);
-    }
     return container;
   }
   
@@ -588,4 +607,56 @@ public class TaskScheduler extends AbstractService
     return lhs.getPriority() < rhs.getPriority();
   }
 
+  private synchronized CookieContainerRequest assignAllocatedContainer(
+      Container container, boolean isBeingReused) {
+
+    // Match host local.
+    String location = container.getNodeId().getHost();
+    CookieContainerRequest assigned = getMatchingRequest(container, location);
+
+    // TODO TEZ-330 Ignore reuseRackLocak/reuseNonLocal in case the initial request
+    // did not have any locality information.
+    
+    // Match rack local.
+    if (assigned == null) {
+      if (!isBeingReused || reuseRackLocal) {
+        location = RackResolver.resolve(location).getNetworkLocation();
+        assigned = getMatchingRequest(container, location);
+      }
+    }
+
+    // Match non local
+    if (assigned == null) {
+      if (!isBeingReused || reuseNonLocal) {
+        location = ResourceRequest.ANY;
+        assigned = getMatchingRequest(container, location);
+      }
+    }
+
+    if (assigned == null) {
+      // not matched anything. release container
+      // Probably we cancelled a request and RM allocated that to us
+      // before RM heard of the cancellation
+      releaseContainer(container.getId(), null);
+      LOG.info("No RM requests matching container: " + container);
+      return null;
+    }
+
+    Object task = getTask(assigned);
+    assert task != null;
+    assignContainer(task, container, assigned);
+
+    LOG.info("Assigning container: " + container + " for task: " + task
+        + " at locality: " + location + " with reuse: " + isBeingReused
+        + " resource memory: " + container.getResource().getMemory() + " cpu: "
+        + container.getResource().getVirtualCores());
+
+    return assigned;
+  }
+
+  private void informAppAboutAssignments(CookieContainerRequest assigned,
+      Container container) {
+    appClient.taskAllocated(getTask(assigned), assigned.getCookie().appCookie,
+        container);
+  }
 }

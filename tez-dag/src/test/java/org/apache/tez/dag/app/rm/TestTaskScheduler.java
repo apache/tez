@@ -127,14 +127,14 @@ public class TestTaskScheduler {
                            addContainerRequest((CookieContainerRequest) any());
 
     // returned from task requests before allocation happens
-    Assert.assertNull(scheduler.deallocateTask(mockTask1));
+    Assert.assertNull(scheduler.deallocateTask(mockTask1, true));
     verify(mockRMClient, times(1)).
                         removeContainerRequest((CookieContainerRequest) any());
     verify(mockRMClient, times(0)).
                                  releaseAssignedContainer((ContainerId) any());
     
     // deallocating unknown task
-    Assert.assertNull(scheduler.deallocateTask(mockTask1));
+    Assert.assertNull(scheduler.deallocateTask(mockTask1, true));
     verify(mockRMClient, times(1)).
                         removeContainerRequest((CookieContainerRequest) any());
     verify(mockRMClient, times(0)).
@@ -274,7 +274,7 @@ public class TestTaskScheduler {
     verify(mockRMClient).releaseAssignedContainer(mockCId4);
     
     // deallocate allocated task
-    Assert.assertEquals(mockContainer1, scheduler.deallocateTask(mockTask1));
+    Assert.assertEquals(mockContainer1, scheduler.deallocateTask(mockTask1, true));
     verify(mockRMClient).releaseAssignedContainer(mockCId1);
     // deallocate allocated container
     Assert.assertEquals(mockTask2, scheduler.deallocateContainer(mockCId2));

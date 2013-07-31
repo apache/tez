@@ -60,9 +60,9 @@ public class AMContainerMap extends AbstractService implements
     }
   }
 
-  public void addContainerIfNew(Container container) {
+  public boolean addContainerIfNew(Container container) {
     AMContainer amc = new AMContainerImpl(container, chh, tal, context);
-    containerMap.putIfAbsent(container.getId(), amc);
+    return (containerMap.putIfAbsent(container.getId(), amc) == null);
   }
 
   public AMContainer get(ContainerId containerId) {
