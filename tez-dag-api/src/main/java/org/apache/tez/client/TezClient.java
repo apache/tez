@@ -214,15 +214,13 @@ public class TezClient {
       return new DAGClientRPCImpl(appId, getDefaultTezDAGID(appId), conf);
   }
 
-  private void addLog4jSystemProperties(String logLevel,
-      List<String> vargs) {
-    vargs.add("-Dlog4j.configuration=container-log4j.properties");
+  private void addLog4jSystemProperties(String logLevel, List<String> vargs) {
+    vargs.add("-Dlog4j.configuration="
+        + TezConfiguration.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
     vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
         + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
-    // Setting this to 0 to avoid log size restrictions.
-    // Should be enforced by YARN.
-    vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_SIZE + "=" + 0);
-    vargs.add("-Dhadoop.root.logger=" + logLevel + ",CLA");
+    vargs.add("-D" + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=" + logLevel
+        + "," + TezConfiguration.TEZ_CONTAINER_LOGGER_NAME);
   }
 
   public FileSystem ensureExists(Path stagingArea)

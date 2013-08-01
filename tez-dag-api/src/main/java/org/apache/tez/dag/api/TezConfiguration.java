@@ -167,6 +167,17 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_PLAN_PB_BINARY = "tez-dag.pb";
   public static final String TEZ_AM_PLAN_PB_TEXT = "tez-dag.pb.txt";
 
+  /*
+   * Logger properties
+   */
+  public static final String TEZ_CONTAINER_LOG4J_PROPERTIES_FILE = "tez-container-log4j.properties";
+  public static final String TEZ_CONTAINER_LOGGER_NAME = "CLA";
+  public static final String TEZ_ROOT_LOGGER_NAME = "tez.root.logger";
+  public static final String TEZ_CONTAINER_LOG_FILE_NAME = "syslog";
+  public static final String TEZ_CONTAINER_ERR_FILE_NAME = "stderr";
+  public static final String TEZ_CONTAINER_OUT_FILE_NAME = "stdout";
+      
+  
   public static final String TEZ_LIB_URIS =
       TEZ_PREFIX + "lib.uris";
 

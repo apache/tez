@@ -20,12 +20,13 @@ package org.apache.hadoop.mapred;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.security.PrivilegedExceptionAction;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
@@ -43,7 +44,9 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
+import org.apache.log4j.Appender;
 import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.InputSpec;
@@ -68,7 +71,7 @@ import org.apache.tez.mapreduce.output.SimpleOutput;
  */
 public class YarnTezDagChild {
 
-  private static final Log LOG = LogFactory.getLog(YarnTezDagChild.class);
+  private static final Logger LOG = Logger.getLogger(YarnTezDagChild.class);
 
   public static void main(String[] args) throws Throwable {
     Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
@@ -138,10 +141,13 @@ public class YarnTezDagChild {
     int getTaskMaxSleepTime = defaultConf.getInt(
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT);
-
+    int taskCount = 0;
     try {
       while (true) {
         // poll for new task
+        if (taskCount > 0) {
+          updateLoggers(null);
+        }
         for (int idle = 0; null == containerTask; ++idle) {
           long sleepTimeMilliSecs = Math.min(idle * 10, getTaskMaxSleepTime);
           LOG.info("Sleeping for " + sleepTimeMilliSecs
@@ -157,6 +163,7 @@ public class YarnTezDagChild {
         if (containerTask.shouldDie()) {
           return;
         }
+        taskCount++;
         taskContext = (TezEngineTaskContext) containerTask
             .getTezEngineTaskContext();
         if (LOG.isDebugEnabled()) {
@@ -164,6 +171,7 @@ public class YarnTezDagChild {
               + taskContext.toString());
         }
         taskAttemptId = taskContext.getTaskAttemptId();
+        updateLoggers(taskAttemptId);
 
         final Task t = createAndConfigureTezTask(taskContext, umbilical,
             credentials, jobToken, attemptNumber);
@@ -319,6 +327,52 @@ public class YarnTezDagChild {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
+    }
+  }
+  
+  private static void updateLoggers(TezTaskAttemptID tezTaskAttemptID)
+      throws FileNotFoundException {
+    String containerLogDir = null;
+
+    LOG.info("Redirecting log files based on TaskAttemptId: " + tezTaskAttemptID);
+    
+    Appender appender = Logger.getRootLogger().getAppender(
+        TezConfiguration.TEZ_CONTAINER_LOGGER_NAME);
+    if (appender != null) {
+      if (appender instanceof TezContainerLogAppender) {
+        TezContainerLogAppender claAppender = (TezContainerLogAppender) appender;
+        containerLogDir = claAppender.getContainerLogDir();
+        claAppender.setLogFileName(constructLogFileName(
+            TezConfiguration.TEZ_CONTAINER_LOG_FILE_NAME, tezTaskAttemptID));
+        claAppender.activateOptions();
+      } else {
+        LOG.warn("Appender is a " + appender.getClass()
+            + "; require an instance of "
+            + TezContainerLogAppender.class.getName()
+            + " to reconfigure the logger output");
+      }
+    } else {
+      LOG.warn("Not configured with appender named: "
+          + TezConfiguration.TEZ_CONTAINER_LOGGER_NAME
+          + ". Cannot reconfigure logger output");
+    }
+
+    if (containerLogDir != null) {
+      System.setOut(new PrintStream(new File(containerLogDir,
+          constructLogFileName(TezConfiguration.TEZ_CONTAINER_OUT_FILE_NAME,
+              tezTaskAttemptID))));
+      System.setErr(new PrintStream(new File(containerLogDir,
+          constructLogFileName(TezConfiguration.TEZ_CONTAINER_ERR_FILE_NAME,
+              tezTaskAttemptID))));
+    }
+  }
+
+  private static String constructLogFileName(String base,
+      TezTaskAttemptID tezTaskAttemptID) {
+    if (tezTaskAttemptID == null) {
+      return base;
+    } else {
+      return base + "_" + tezTaskAttemptID.toString();
     }
   }
 }
