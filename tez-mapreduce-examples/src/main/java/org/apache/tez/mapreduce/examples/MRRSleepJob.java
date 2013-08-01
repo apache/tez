@@ -509,6 +509,10 @@ public class MRRSleepJob extends Configured implements Tool {
 
     DAG dag = new DAG("MRRSleepJob");
     String jarPath = ClassUtil.findContainingJar(getClass());
+    if (jarPath == null)  {
+        throw new TezUncheckedException("Could not find any jar containing"
+            + " MRRSleepJob.class in the classpath");
+    }
     Path remoteJarPath = remoteFs.makeQualified(
         new Path(remoteStagingDir, "dag_job.jar"));
     remoteFs.copyFromLocalFile(new Path(jarPath), remoteJarPath);
