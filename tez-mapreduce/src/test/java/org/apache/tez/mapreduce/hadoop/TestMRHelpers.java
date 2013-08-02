@@ -50,6 +50,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.zookeeper.Environment.Entry;
 import org.junit.Assert;
@@ -271,8 +272,10 @@ public class TestMRHelpers {
     Assert.assertFalse(opts.contains(" fooReduceJavaOpts "));
     Assert.assertTrue(opts.indexOf("fooMapAdminOpts")
         < opts.indexOf("fooMapJavaOpts"));
-    Assert.assertTrue(opts.contains(" -Dhadoop.root.logger=FATAL"));
-    Assert.assertFalse(opts.contains(" -Dhadoop.root.logger=TRACE"));
+    Assert.assertTrue(opts.contains(" -D"
+        + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
+    Assert.assertFalse(opts.contains(" -D"
+        + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
   }
 
   @Test
@@ -286,8 +289,10 @@ public class TestMRHelpers {
     Assert.assertTrue(opts.contains(" fooReduceJavaOpts "));
     Assert.assertTrue(opts.indexOf("fooReduceAdminOpts")
         < opts.indexOf("fooReduceJavaOpts"));
-    Assert.assertFalse(opts.contains(" -Dhadoop.root.logger=FATAL"));
-    Assert.assertTrue(opts.contains(" -Dhadoop.root.logger=TRACE"));
+    Assert.assertFalse(opts.contains(" -D"
+        + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
+    Assert.assertTrue(opts.contains(" -D"
+        + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
   }
 
   @Test

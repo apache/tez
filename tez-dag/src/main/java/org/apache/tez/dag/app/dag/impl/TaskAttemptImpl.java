@@ -20,6 +20,7 @@ package org.apache.tez.dag.app.dag.impl;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -138,6 +139,11 @@ public class TaskAttemptImpl implements TaskAttempt,
   private String nodeRackName;
 
   private TaskAttemptStatus reportedStatus;
+  private DAGCounter localityCounter;
+  
+  // Used to store locality information when
+  Set<String> taskHosts = new HashSet<String>();
+  Set<String> taskRacks = new HashSet<String>();
 
   protected final TaskLocationHint locationHint;
   protected final Resource taskResource;
@@ -365,6 +371,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   public TezCounters getCounters() {
     readLock.lock();
     try {
+      reportedStatus.setLocalityCounter(localityCounter);
       TezCounters counters = reportedStatus.counters;
       if (counters == null) {
         counters = EMPTY_COUNTERS;
@@ -874,25 +881,32 @@ public class TaskAttemptImpl implements TaskAttempt,
       TezTaskContext remoteTaskContext = ta.createRemoteTask();
       // Create startTaskRequest
 
-      String[] hostArray = new String[0];
-      String[] rackArray = new String[0];
-      if (!ta.isRescheduled) {
-        // Ask for node / rack locality.
-        Set<String> racks = new HashSet<String>();
-        if (ta.locationHint != null) {
-          if (ta.locationHint.getRacks() != null) {
-            racks.addAll(ta.locationHint.getRacks());
-          }
-          if (ta.locationHint.getDataLocalHosts() != null) {
-            for (String host : ta.locationHint.getDataLocalHosts()) {
-              racks.add(RackResolver.resolve(host).getNetworkLocation());
-            }
-            hostArray = ta.resolveHosts(
-                ta.locationHint.getDataLocalHosts().toArray(
-                    new String[ta.locationHint.getDataLocalHosts().size()]));
-          }
+      String[] requestHosts = new String[0];
+      String[] requestRacks = new String[0];
+
+      // Compute node/rack location request even if re-scheduled.
+      Set<String> racks = new HashSet<String>();
+      if (ta.locationHint != null) {
+        if (ta.locationHint.getRacks() != null) {
+          racks.addAll(ta.locationHint.getRacks());
         }
-        rackArray = racks.toArray(new String[racks.size()]);
+        if (ta.locationHint.getDataLocalHosts() != null) {
+          for (String host : ta.locationHint.getDataLocalHosts()) {
+            racks.add(RackResolver.resolve(host).getNetworkLocation());
+          }
+          requestHosts = ta.resolveHosts(ta.locationHint.getDataLocalHosts()
+              .toArray(new String[ta.locationHint.getDataLocalHosts().size()]));
+        }
+      }
+      requestRacks = racks.toArray(new String[racks.size()]);
+      
+      ta.taskHosts.addAll(Arrays.asList(requestHosts));
+      ta.taskRacks = racks;
+      
+      // Ask for hosts / racks only if not a re-scheduled task.
+      if (ta.isRescheduled) {
+        requestHosts = new String[0];
+        requestRacks = new String[0];
       }
 
       if (LOG.isDebugEnabled()) {
@@ -904,8 +918,8 @@ public class TaskAttemptImpl implements TaskAttempt,
           new AMSchedulerEventTALaunchRequest(ta.attemptId,
               ta.taskResource,
               ta.localResources, remoteTaskContext, ta,
-              ta.credentials, ta.jobToken, hostArray,
-              rackArray,
+              ta.credentials, ta.jobToken, requestHosts,
+              requestRacks,
               scheduleEvent.getPriority(), ta.environment, //ta.javaOpts,
               ta.conf);
       ta.sendEvent(launchRequestEvent);
@@ -993,6 +1007,19 @@ public class TaskAttemptImpl implements TaskAttempt,
       // JobHistoryEvent
       ta.logJobHistoryAttemptStarted();
 
+      // Compute LOLCAITY counter for this task.
+      if (ta.taskHosts.contains(ta.containerNodeId.getHost())) {
+        ta.localityCounter = DAGCounter.DATA_LOCAL_TASKS;
+      } else if (ta.taskRacks.contains(ta.nodeRackName)) {
+        ta.localityCounter = DAGCounter.RACK_LOCAL_TASKS;
+      } else {
+        // Not computing this if the task does not have locality information.
+        if (ta.locationHint != null) {
+          ta.localityCounter = DAGCounter.OTHER_LOCAL_TASKS;
+        }
+      }
+      
+      
       // Inform the speculator about the container assignment.
       //ta.maybeSendSpeculatorContainerNoLongerRequired();
       // Inform speculator about startTime
@@ -1219,9 +1246,8 @@ public class TaskAttemptImpl implements TaskAttempt,
     // result.phase = Phase.STARTING;
     result.stateString = "NEW";
     result.taskState = TaskAttemptState.NEW;
-    TezCounters counters = EMPTY_COUNTERS;
-    // counters.groups = new HashMap<String, CounterGroup>();
-    result.counters = counters;
+    //TezCounters counters = EMPTY_COUNTERS;
+    //result.counters = counters;
   }
 
   private void addDiagnosticInfo(String diag) {

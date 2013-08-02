@@ -19,7 +19,9 @@
 package org.apache.tez.dag.app.dag.event;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -43,6 +45,9 @@ public class TaskAttemptEventStatusUpdate extends TaskAttemptEvent {
    * 
    */
   public static class TaskAttemptStatus {
+    
+    private AtomicBoolean localitySet = new AtomicBoolean(false);
+
     public TezTaskAttemptID id;
     public float progress;
     public TezCounters counters;
@@ -54,5 +59,19 @@ public class TaskAttemptEventStatusUpdate extends TaskAttemptEvent {
     public long shuffleFinishTime;
     public long sortFinishTime;
     public TaskAttemptState taskState;
+
+    public void setLocalityCounter(DAGCounter localityCounter) {
+      if (!localitySet.get()) {
+        localitySet.set(true);
+        if (counters == null) {
+          counters = new TezCounters();
+        }
+        if (localityCounter != null) {
+          counters.findCounter(localityCounter).increment(1);
+          // TODO Maybe validate that the correct value is being set.
+        }
+      }
+    }
+
   }
 }
