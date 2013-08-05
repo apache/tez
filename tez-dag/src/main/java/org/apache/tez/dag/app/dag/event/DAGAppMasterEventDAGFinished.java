@@ -18,24 +18,17 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.hadoop.yarn.event.AbstractEvent;
 import org.apache.tez.dag.records.TezDAGID;
 
-public class DAGFinishEvent extends AbstractEvent<DAGFinishEvent.Type> {
+public class DAGAppMasterEventDAGFinished extends DAGAppMasterEvent {
+  private final TezDAGID dagId;
 
-  public enum Type {
-    STATE_CHANGED
-  }
-
-  private TezDAGID dagId;
-
-  public DAGFinishEvent(TezDAGID dagId) {
-    super(Type.STATE_CHANGED);
+  public DAGAppMasterEventDAGFinished(TezDAGID dagId) {
+    super(DAGAppMasterEventType.DAG_FINISHED);
     this.dagId = dagId;
   }
-
-  public TezDAGID getDagId() {
+  
+  public TezDAGID getDAGId() {
     return dagId;
   }
-
 }

@@ -803,8 +803,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   protected void logJobHistoryTaskStartedEvent() {
     TaskStartedEvent startEvt = new TaskStartedEvent(taskId,
         getVertex().getName(), scheduledTime, getLaunchTime());
-    this.eventHandler.handle(new DAGHistoryEvent(
-        taskId.getVertexID().getDAGId(), startEvt));
+    this.eventHandler.handle(new DAGHistoryEvent(startEvt));
   }
 
   protected void logJobHistoryTaskFinishedEvent() {
@@ -813,16 +812,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     TaskFinishedEvent finishEvt = new TaskFinishedEvent(taskId,
         getVertex().getName(), getLaunchTime(), clock.getTime(),
         TaskState.SUCCEEDED, getCounters());
-    this.eventHandler.handle(new DAGHistoryEvent(
-        taskId.getVertexID().getDAGId(), finishEvt));
+    this.eventHandler.handle(new DAGHistoryEvent(finishEvt));
   }
 
   protected void logJobHistoryTaskFailedEvent(TaskState finalState) {
     TaskFinishedEvent finishEvt = new TaskFinishedEvent(taskId,
         getVertex().getName(), getLaunchTime(), clock.getTime(),
         finalState, getCounters());
-    this.eventHandler.handle(new DAGHistoryEvent(
-        taskId.getVertexID().getDAGId(), finishEvt));
+    this.eventHandler.handle(new DAGHistoryEvent(finishEvt));
   }
 
   private static class InitialScheduleTransition

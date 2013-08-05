@@ -27,6 +27,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,7 +42,6 @@ import org.apache.hadoop.yarn.api.protocolrecords.StartContainersResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.StopContainersRequest;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
-import org.apache.hadoop.yarn.api.records.SerializedException;
 import org.apache.hadoop.yarn.api.records.Token;
 import org.apache.hadoop.yarn.client.api.impl.ContainerManagementProtocolProxy;
 import org.apache.hadoop.yarn.client.api.impl.ContainerManagementProtocolProxy.ContainerManagementProtocolProxyData;
@@ -88,7 +88,7 @@ public class ContainerLauncherImpl extends AbstractService implements
       new LinkedBlockingQueue<NMCommunicatorEvent>();
   private Clock clock;
   private ContainerManagementProtocolProxy cmProxy;
-
+  private AtomicBoolean serviceStopped = new AtomicBoolean(false);
 
   private Container getContainer(NMCommunicatorEvent event) {
     ContainerId id = event.getContainerId();
@@ -190,8 +190,7 @@ public class ContainerLauncherImpl extends AbstractService implements
             new AMContainerEventLaunched(containerID, port));
         ContainerLaunchedEvent lEvt = new ContainerLaunchedEvent(
             containerID, clock.getTime());
-        context.getEventHandler().handle(new DAGHistoryEvent(
-            context.getDAGID(), lEvt));
+        context.getEventHandler().handle(new DAGHistoryEvent(lEvt));
 
         this.state = ContainerState.RUNNING;
       } catch (Throwable t) {
@@ -294,7 +293,9 @@ public class ContainerLauncherImpl extends AbstractService implements
           try {
             event = eventQueue.take();
           } catch (InterruptedException e) {
-            LOG.error("Returning, interrupted : " + e);
+            if(!serviceStopped.get()) {
+              LOG.error("Returning, interrupted : " + e);
+            }
             return;
           }
           int poolSize = launcherPool.getCorePoolSize();
@@ -343,6 +344,10 @@ public class ContainerLauncherImpl extends AbstractService implements
 
   @Override
   public void serviceStop() {
+    if(!serviceStopped.compareAndSet(false, true)) {
+      LOG.info("Ignoring multiple stops");
+      return;
+    }
     // shutdown any containers that might be left running
     shutdownAllContainers();
     if (eventHandlingThread != null) {

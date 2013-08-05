@@ -19,5 +19,6 @@
 package org.apache.tez.dag.app.dag.event;
 
 public enum DAGAppMasterEventType {
-  INTERNAL_ERROR
+  INTERNAL_ERROR,
+  DAG_FINISHED
 }

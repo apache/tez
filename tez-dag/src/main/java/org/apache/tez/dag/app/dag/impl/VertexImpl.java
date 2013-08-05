@@ -294,6 +294,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.KILLED, VertexState.KILLED,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_START,
                   VertexEventType.V_TASK_ATTEMPT_FETCH_FAILURE,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED))
@@ -704,7 +705,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   void logJobHistoryVertexStartedEvent() {
     VertexStartedEvent startEvt = new VertexStartedEvent(vertexId,
         vertexName, initTime, startTime, numTasks, getProcessorName());
-    this.eventHandler.handle(new DAGHistoryEvent(getDAGId(), startEvt));
+    this.eventHandler.handle(new DAGHistoryEvent(startEvt));
   }
 
   void logJobHistoryVertexFinishedEvent() {
@@ -712,7 +713,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
         vertexName, startTime, finishTime, VertexStatus.State.SUCCEEDED, "",
         getAllCounters());
-    this.eventHandler.handle(new DAGHistoryEvent(getDAGId(), finishEvt));
+    this.eventHandler.handle(new DAGHistoryEvent(finishEvt));
   }
 
   void logJobHistoryVertexFailedEvent(VertexStatus.State state) {
@@ -720,7 +721,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         vertexName, startTime, clock.getTime(), state,
         StringUtils.join(LINE_SEPARATOR, getDiagnostics()),
         getAllCounters());
-    this.eventHandler.handle(new DAGHistoryEvent(getDAGId(), finishEvt));
+    this.eventHandler.handle(new DAGHistoryEvent(finishEvt));
   }
 
   static VertexState checkVertexForCompletion(VertexImpl vertex) {
@@ -950,7 +951,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
 
     private void createTasks(VertexImpl vertex) {
-      // TODO Fixme
       TezConfiguration conf = vertex.conf;
       boolean useNullLocationHint = true;
       if (vertex.vertexLocationHint != null
@@ -981,8 +981,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                 vertex.environment,
                 vertex.javaOpts);
         vertex.addTask(task);
-        LOG.info("Created task for vertex " + vertex.getVertexId() + ": " +
-            task.getTaskId());
+        if(LOG.isDebugEnabled()) {
+          LOG.debug("Created task for vertex " + vertex.getVertexId() + ": " +
+              task.getTaskId());
+        }
       }
 
     }

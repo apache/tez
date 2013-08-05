@@ -70,12 +70,5 @@ public interface DAG {
    */
   Map<ApplicationAccessType, String> getJobACLs();
 
-  /**
-   * @return information for MR AppMasters (previously failed and current)
-   */
-  // TODO Recovery
-  //List<AMInfo> getAMInfos();
-  
   boolean checkAccess(UserGroupInformation callerUGI, ApplicationAccessType jobOperation);
-  void tryKill();
 }

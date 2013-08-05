@@ -45,9 +45,7 @@ import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
-import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
-import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.container.AMContainerEventAssignTA;
 import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
@@ -95,7 +93,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   
   public void setSignalled(boolean isSignalled) {
     this.isSignalled = isSignalled;
-    LOG.info("RMCommunicator notified that iSignalled was : " + isSignalled);
+    LOG.info("TaskScheduler notified that iSignalled was : " + isSignalled);
   }
     
   public Resource getAvailableResources() {
@@ -326,14 +324,13 @@ public class TaskSchedulerEventHandler extends AbstractService
   public synchronized void serviceStart() {
     // FIXME hack alert how is this supposed to support multiple DAGs?
     // Answer: this is shared across dags. need job==app-dag-master
-    // TODO set heartbeat value from conf here
     InetSocketAddress serviceAddr = clientService.getBindAddress();
     taskScheduler = createTaskScheduler(serviceAddr.getHostName(),
         serviceAddr.getPort(), "");
     taskScheduler.init(getConfig());
     taskScheduler.start();
     dagAppMaster = appContext.getAppMaster();
-    this.eventHandlingThread = new Thread() {
+    this.eventHandlingThread = new Thread("TaskSchedulerEventHandlerThread") {
       @Override
       public void run() {
 
@@ -343,7 +340,9 @@ public class TaskSchedulerEventHandler extends AbstractService
           try {
             event = TaskSchedulerEventHandler.this.eventQueue.take();
           } catch (InterruptedException e) {
-            LOG.error("Returning, interrupted : " + e);
+            if(!stopEventHandling) {
+              LOG.warn("Continuing after interrupt : ", e);
+            }
             continue;
           }
 
@@ -427,9 +426,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   public synchronized void appShutdownRequested() {
     // This can happen if the RM has been restarted. If it is in that state,
     // this application must clean itself up.
-    // TODO TEZ-34 change event to reboot and send to app master
-    sendEvent(new DAGEvent(appContext.getDAGID(),
-                           DAGEventType.INTERNAL_ERROR));
+    sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.INTERNAL_ERROR));
   }
 
   @Override
@@ -461,11 +458,16 @@ public class TaskSchedulerEventHandler extends AbstractService
       } else {
         finishState = FinalApplicationStatus.UNDEFINED;
       }
-      for (String s : dagAppMaster.getDiagnostics()) {
-        sb.append(s).append("\n");
+      List<String> diagnostics = dagAppMaster.getDiagnostics();
+      if(diagnostics != null) {
+        for (String s : diagnostics) {
+          sb.append(s).append("\n");
+        }
       }
     }
-    LOG.info("Setting job diagnostics to " + sb.toString());
+    if(LOG.isDebugEnabled()) {
+      LOG.debug("Setting job diagnostics to " + sb.toString());
+    }
 
     String historyUrl = "";
     /*String historyUrl = JobHistoryUtils.getHistoryUrl(getConfig(),
@@ -482,8 +484,7 @@ public class TaskSchedulerEventHandler extends AbstractService
 
   @Override
   public void onError(Throwable t) {
-    sendEvent(new DAGEvent(appContext.getDAGID(),
-        DAGEventType.INTERNAL_ERROR));
+    sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.INTERNAL_ERROR));
   }
 
 }

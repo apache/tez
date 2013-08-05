@@ -50,9 +50,9 @@ public class DAGStatus {
     switch(proxy.getState()) {
     case DAG_SUBMITTED:
       return DAGStatus.State.SUBMITTED;
+    // For simplicity, initing/terminating states are presented as running
     case DAG_INITING:
-      return DAGStatus.State.INITING;
-    case DAG_TERMINATING: // For simplicity, DAG_TERMINATING is presented to user as 'still running'
+    case DAG_TERMINATING:
     case DAG_RUNNING:
       return DAGStatus.State.RUNNING;
     case DAG_SUCCEEDED:

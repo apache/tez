@@ -20,23 +20,16 @@ package org.apache.tez.dag.history;
 
 import org.apache.hadoop.yarn.event.AbstractEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
-import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGHistoryEvent extends AbstractEvent<HistoryEventType>{
 
-  private final TezDAGID dagId;
   private final HistoryEvent historyEvent;
 
-  public DAGHistoryEvent(TezDAGID dagId, HistoryEvent historyEvent) {
+  public DAGHistoryEvent(HistoryEvent historyEvent) {
     super(historyEvent.getEventType());
-    this.dagId = dagId;
     this.historyEvent = historyEvent;
   }
-
-  public TezDAGID getDAGID() {
-    return dagId;
-  }
-
+  
   public HistoryEvent getHistoryEvent() {
     return historyEvent;
   }

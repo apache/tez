@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.records.TezDAGID;
 
 public class HistoryEventHandler extends AbstractService
 implements EventHandler<DAGHistoryEvent> {
@@ -48,8 +49,13 @@ implements EventHandler<DAGHistoryEvent> {
 
   @Override
   public void handle(DAGHistoryEvent event) {
+    TezDAGID dagId = context.getDAGID();
+    String dagIdStr = "N/A";
+    if(dagId != null) {
+      dagIdStr = context.getDAGID().toString();
+    }
     LOG.info("[HISTORY]"
-        + "[DAG:" + context.getDAGID().toString() + "]"
+        + "[DAG:" + dagIdStr + "]"
         + "[Event:" + event.getType().name() + "]"
         + ": " + event.getHistoryEvent().getBlob().toString());
   }

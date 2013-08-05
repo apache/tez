@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -74,13 +75,14 @@ import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDAGFinished;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
-import org.apache.tez.dag.app.dag.event.DAGFinishEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
@@ -93,10 +95,8 @@ import org.apache.tez.dag.app.launcher.ContainerLauncherImpl;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.NMCommunicatorEventType;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
-import org.apache.tez.dag.app.rm.container.AMContainer;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
-import org.apache.tez.dag.app.rm.container.AMContainerState;
 import org.apache.tez.dag.app.rm.node.AMNodeEventType;
 import org.apache.tez.dag.app.rm.node.AMNodeMap;
 import org.apache.tez.dag.app.taskclean.TaskCleaner;
@@ -137,8 +137,7 @@ public class DAGAppMaster extends AbstractService {
   public static final int SHUTDOWN_HOOK_PRIORITY = 30;
 
   private Clock clock;
-  private final DAGPlan dagPlan;
-  private long dagsStartTime;
+  private long appsStartTime;
   private final long startTime;
   private final long appSubmitTime;
   private String appName;
@@ -149,31 +148,23 @@ public class DAGAppMaster extends AbstractService {
   private final int nmHttpPort;
   private AMContainerMap containers;
   private AMNodeMap nodes;
-  // TODO Metrics
-  //protected final DAGAppMetrics metrics;
-  // TODO Recovery
-  //private Map<TezTaskID, TaskInfo> completedTasksFromPreviousRun;
   private AppContext context;
   private TezConfiguration conf;
   private Dispatcher dispatcher;
-  // TODO Recovery
-  //private Recovery recoveryServ;
   private ContainerLauncher containerLauncher;
   private TaskCleaner taskCleaner;
-  //private Speculator speculator;
   private ContainerHeartbeatHandler containerHeartbeatHandler;
   private TaskHeartbeatHandler taskHeartbeatHandler;
   private TaskAttemptListener taskAttemptListener;
   private JobTokenSecretManager jobTokenSecretManager =
       new JobTokenSecretManager();
-  // TODODAGAM Define DAGID
-  private TezDAGID dagId;
-  //  private boolean newApiCommitter;
   private DagEventDispatcher dagEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
-  //private SpeculatorEventDispatcher speculatorEventDispatcher;
   private TaskSchedulerEventHandler taskSchedulerEventHandler;
   private HistoryEventHandler historyEventHandler;
+  
+  private DAGAppMasterShutdownHandler shutdownHandler = 
+      new DAGAppMasterShutdownHandler();
 
   private DAGAppMasterState state;
 
@@ -183,7 +174,7 @@ public class DAGAppMaster extends AbstractService {
   private DAG dag;
   private Credentials fsTokens = new Credentials(); // Filled during init
   private UserGroupInformation currentUser; // Will be setup during init
-
+  
   // must be LinkedHashMap to preserve order of service addition
   Map<Service, ServiceWithDependency> services = 
       new LinkedHashMap<Service, ServiceWithDependency>();
@@ -191,16 +182,15 @@ public class DAGAppMaster extends AbstractService {
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      long appSubmitTime, DAGPlan dagPB) {
+      long appSubmitTime) {
     this(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort,
-        new SystemClock(), appSubmitTime, dagPB);
+        new SystemClock(), appSubmitTime);
   }
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      Clock clock, long appSubmitTime, DAGPlan dagPB) {
+      Clock clock, long appSubmitTime) {
     super(DAGAppMaster.class.getName());
-    this.dagPlan = dagPB;
     this.clock = clock;
     this.startTime = clock.getTime();
     this.appSubmitTime = appSubmitTime;
@@ -228,12 +218,6 @@ public class DAGAppMaster extends AbstractService {
     downloadTokensAndSetupUGI(conf);
 
     context = new RunningAppContext(conf);
-
-    // Job name is the same as the app name util we support DAG of jobs
-    // for an app later
-    appName = dagPlan.getName();
-
-    dagId = new TezDAGID(appAttemptID.getApplicationId(), 1);
 
     clientHandler = new DAGClientHandler();
 
@@ -286,9 +270,6 @@ public class DAGAppMaster extends AbstractService {
         taskSchedulerEventHandler);
     addIfServiceDependency(taskSchedulerEventHandler, clientRpcServer);
 
-    //    TODO XXX: Rename to NMComm
-    //    corresponding service to launch allocated containers via NodeManager
-    //    containerLauncher = createNMCommunicator(context);
     containerLauncher = createContainerLauncher(context);
     addIfService(containerLauncher, true);
     dispatcher.register(NMCommunicatorEventType.class, containerLauncher);
@@ -299,7 +280,7 @@ public class DAGAppMaster extends AbstractService {
 
     initServices(conf);
     super.serviceInit(conf);
-  } // end of init()
+  }
 
   protected Dispatcher createDispatcher() {
     return new AsyncDispatcher();
@@ -312,118 +293,28 @@ public class DAGAppMaster extends AbstractService {
     System.exit(0);
   }
 
-  protected class JobFinishEventHandlerCR
-    implements EventHandler<DAGFinishEvent> {
-    // Considering TaskAttempts are marked as completed before a container exit,
-    // it's very likely that a Container may not have "completed" by the time a
-    // job completes. This would imply that TaskAtetmpts may not be at a FINAL
-    // internal state (state machine state), and cleanup would not have happened.
-
-    // Since the shutdown handler has been called in the same thread which
-    // is handling all other async events, creating a separate thread for shutdown.
-    //
-    // For now, checking to see if all containers have COMPLETED, with a 5
-    // second timeout before the exit.
-    public void handle(DAGFinishEvent event) {
-      setStateOnDAGCompletion();
-      LOG.info("Handling JobFinished Event");
-      AMShutdownRunnable r = new AMShutdownRunnable();
-      Thread t = new Thread(r, "AMShutdownThread");
-      t.start();
-    }
-
-    // TODO Job End Notification
-    /*
-    protected void maybeSendJobEndNotification() {
-      if (getConfig().get(MRJobConfig.MR_JOB_END_NOTIFICATION_URL) != null) {
-        try {
-          LOG.info("Job end notification started for jobID : "
-              + job.getID());
-          JobEndNotifier notifier = new JobEndNotifier();
-          notifier.setConf(getConfig());
-          notifier.notify(job.getReport());
-        } catch (InterruptedException ie) {
-          LOG.warn("Job end notification interrupted for jobID : "
-              + job.getReport().getDAGId(), ie);
-        }
-      }
-    }
-    */
-
-    protected void stopAllServices() {
-      try {
-        // Stop all services
-        // This will also send the final report to the ResourceManager
-        LOG.info("Calling stop for all the services");
-        stop();
-
-      } catch (Throwable t) {
-        LOG.warn("Graceful stop failed ", t);
-      }
-    }
-
-    protected void exit() {
-      LOG.info("Exiting MR AppMaster..GoodBye!");
-      sysexit();
-    }
-
-    private void stopAM() {
-      stopAllServices();
-      exit();
-    }
-
-    protected boolean allContainersComplete() {
-      for (AMContainer amContainer : context.getAllContainers().values()) {
-        if (amContainer.getState() != AMContainerState.COMPLETED) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    protected boolean allTaskAttemptsComplete() {
-      // TODO XXX: Implement.
-      // TaskAttempts will transition to their final state machine state only
-      // after a container is complete and sends out a TA_TERMINATED event.
-      return true;
-    }
-
-    private class AMShutdownRunnable implements Runnable {
-      @Override
-      public void run() {
-        // TODO Job End Notification
-        //maybeSendJobEndNotification();
-        // TODO XXX Add a timeout.
-        LOG.info("Waiting for all containers and TaskAttempts to complete");
-        if (!dag.isUber()) {
-          while (!allContainersComplete() || !allTaskAttemptsComplete()) {
-            try {
-              synchronized (this) {
-                wait(100l);
-              }
-            } catch (InterruptedException e) {
-              LOG.info("AM Shutdown Thread interrupted. Exiting");
-              break;
-            }
-          }
-          LOG.info("All Containers and TaskAttempts Complete. Stopping services");
-        } else {
-          LOG.info("Uberized job. Not waiting for all containers to finish");
-        }
-        stopAM();
-        LOG.info("AM Shutdown Thread Completing");
-      }
-    }
-  }
-
-  private void handle(DAGAppMasterEvent event) {
+  private synchronized void handle(DAGAppMasterEvent event) {
     switch (event.getType()) {
     case INTERNAL_ERROR:
       state = DAGAppMasterState.ERROR;
-      sendEvent(new DAGEvent(dag.getID(), DAGEventType.INTERNAL_ERROR));
+      if(dag != null) {
+        // notify dag to finish which will send the DAG_FINISHED event
+        LOG.info("Internal Error. Notifying dags to finish.");
+        sendEvent(new DAGEvent(dag.getID(), DAGEventType.INTERNAL_ERROR));
+      } else {
+        LOG.info("Internal Error. Finishing directly as no dag is active.");
+        shutdownHandler.shutdown();
+      }
+      break;
+    case DAG_FINISHED:
+      setStateOnDAGCompletion();      
+      LOG.info("Shutting down on completion of dag:" + 
+              ((DAGAppMasterEventDAGFinished)event).getDAGId().toString());
+      shutdownHandler.shutdown();
       break;
     default:
-      LOG.warn("No handler for event type: " + event.getType());
+      throw new TezUncheckedException(
+          "AppMaster: No handler for event type: " + event.getType());
     }
   }
 
@@ -435,93 +326,54 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  private class DAGFinishEventHandler implements EventHandler<DAGFinishEvent> {
-    @Override
-    public void handle(DAGFinishEvent event) {
-      // job has finished
-      // this is the only job, so shut down the Appmaster
-      // note in a workflow scenario, this may lead to creation of a new
-      // job (FIXME?)
-      // TODO Job End Notification
-      /*
-      // Send job-end notification
-      if (getConfig().get(MRJobConfig.MR_JOB_END_NOTIFICATION_URL) != null) {
+  private class DAGAppMasterShutdownHandler {
+    private AtomicBoolean shutdownHandled = new AtomicBoolean(false);
+
+    public void shutdown() {
+      if(!shutdownHandled.compareAndSet(false, true)) {
+        LOG.info("Ignoring multiple shutdown events");
+        return;
+      }
+      
+      LOG.info("Handling DAGAppMaster shutdown");
+      
+      AMShutdownRunnable r = new AMShutdownRunnable();
+      Thread t = new Thread(r, "AMShutdownThread");
+      t.start();
+    }
+    
+    private class AMShutdownRunnable implements Runnable {
+      @Override
+      public void run() {
+        // TODO:currently just wait for some time so clients can know the
+        // final states. Will be removed once RM come on. TEZ-160.        
         try {
-          LOG.info("Job end notification started for jobID : "
-              + job.getReport().getDAGId());
-          JobEndNotifier notifier = new JobEndNotifier();
-          notifier.setConf(getConfig());
-          notifier.notify(job.getReport());
-        } catch (InterruptedException ie) {
-          LOG.warn("Job end notification interrupted for jobID : "
-              + job.getReport().getDAGId(), ie);
+          Thread.sleep(5000);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+
+        try {
+          // Stop all services
+          // This will also send the final report to the ResourceManager
+          LOG.info("Calling stop for all the services");
+          stop();
+
+          //Bring the process down by force.
+          //Not needed after HADOOP-7140
+          LOG.info("Exiting DAGAppMaster..GoodBye!");
+          sysexit();
+
+        } catch (Throwable t) {
+          LOG.warn("Graceful stop failed ", t);
         }
       }
-    */
-      // TODO:currently just wait for some time so clients can know the
-      // final states. Will be removed once RM come on.
-
-      setStateOnDAGCompletion();
-
-      try {
-        Thread.sleep(5000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-
-      try {
-        // Stop all services
-        // This will also send the final report to the ResourceManager
-        LOG.info("Calling stop for all the services");
-        stop();
-
-      } catch (Throwable t) {
-        LOG.warn("Graceful stop failed ", t);
-      }
-
-      //Bring the process down by force.
-      //Not needed after HADOOP-7140
-      LOG.info("Exiting MR AppMaster..GoodBye!");
-      sysexit();
     }
   }
 
-  /**
-   * create an event handler that handles the job finish event.
-   * @return the dag finish event handler.
-   */
-  protected EventHandler<DAGFinishEvent> createDAGFinishEventHandler() {
-    return new DAGFinishEventHandler();
-  }
-
-  /**
-   * Create the recovery service.
-   * @return an instance of the recovery service.
-   */
-  // TODO Recovery
-  /*
-  protected Recovery createRecoveryService(AppContext appContext) {
-    return new RecoveryService(appContext, getCommitter());
-  }
-  */
-
-  /**
-   * Create the RMContainerRequestor.
-   *
-   * @param clientService
-   *          the MR Client Service.
-   * @param appContext
-   *          the application context.
-   * @return an instance of the RMContainerRequestor.
-   */
-//  protected ContainerRequestor createContainerRequestor(
-//      ClientService clientService, AppContext appContext) {
-//    return new ContainerRequestorRouter(clientService, appContext);
-//  }
-
   /** Create and initialize (but don't start) a single dag. */
   protected DAG createDAG(DAGPlan dagPB) {
-
+    TezDAGID dagId = new TezDAGID(appAttemptID.getApplicationId(), 1);
     // create single job
     DAG newDag =
         new DAGImpl(dagId, conf, dagPB, dispatcher.getEventHandler(),
@@ -530,8 +382,6 @@ public class DAGAppMaster extends AbstractService {
             taskHeartbeatHandler, context);
     ((RunningAppContext) context).setDAG(newDag);
 
-    dispatcher.register(DAGFinishEvent.Type.class,
-        createDAGFinishEventHandler());
     return newDag;
   } // end createDag()
 
@@ -625,23 +475,12 @@ public class DAGAppMaster extends AbstractService {
     return new ContainerLauncherImpl(context);
   }
 
-  //TODO:should have an interface for MRClientService
-  /*
-  protected ClientService createClientService(AppContext context) {
-    return new MRClientService(context);
-  }
-  */
-
   public ApplicationId getAppID() {
     return appAttemptID.getApplicationId();
   }
 
   public ApplicationAttemptId getAttemptID() {
     return appAttemptID;
-  }
-
-  public TezDAGID getDAGId() {
-    return dagId;
   }
 
   public int getStartCount() {
@@ -685,14 +524,20 @@ public class DAGAppMaster extends AbstractService {
   }
 
   public List<String> getDiagnostics() {
-    return dag.getDiagnostics();
+    if(dag != null) {
+      return dag.getDiagnostics();
+    }
+    return null;
   }
 
   public float getProgress() {
-    return dag.getProgress();
+    if(dag != null && dag.getState() == DAGState.RUNNING) {
+      return dag.getProgress();
+    }
+    return 0;
   }
 
-  void setStateOnDAGCompletion() {
+  private synchronized void setStateOnDAGCompletion() {
     DAGAppMasterState oldState = state;
     if(state == DAGAppMasterState.RUNNING) {
       switch(dag.getState()) {
@@ -743,16 +588,22 @@ public class DAGAppMaster extends AbstractService {
       if(dagId == null) {
         throw new TezException("Bad dagId: " + dagIdStr);
       }
+      if(dag == null) {
+        throw new TezException("No running dag at present");
+      }
       if(!dagId.equals(dag.getID())) {
         throw new TezException("Unknown dagId: " + dagIdStr);
       }
+      
       return dag;
     }
     
     public void tryKillDAG(String dagIdStr)
         throws TezException {
       DAG dag = getDAG(dagIdStr);
-      dag.tryKill();
+      LOG.info("Sending client kill to dag: " + dagIdStr);
+      //send a DAG_KILL message
+      sendEvent(new DAGEvent(dag.getID(), DAGEventType.DAG_KILL));
     }
   }
 
@@ -856,7 +707,10 @@ public class DAGAppMaster extends AbstractService {
     public TezDAGID getDAGID() {
       try {
         rLock.lock();
-        return dag.getID();
+        if(dag != null) {
+          return dag.getID();
+        }
+        return null;
       } finally {
         rLock.unlock();
       }
@@ -1021,59 +875,27 @@ public class DAGAppMaster extends AbstractService {
   @Override
   public void serviceStart() throws Exception {
 
+    //start all the components
+    startServices();
+    super.serviceStart();
+
     this.state = DAGAppMasterState.RUNNING;
-
-    // /////////////////// Create the job itself.
-    dag = createDAG(dagPlan);
-
-    // End of creating the job.
 
     // metrics system init is really init & start.
     // It's more test friendly to put it here.
     DefaultMetricsSystem.initialize("DAGAppMaster");
 
-    // create a job event for job intialization
-    DAGEvent initDagEvent = new DAGEvent(dag.getID(), DAGEventType.DAG_INIT);
-    // Send init to the job (this does NOT trigger job execution)
-    // This is a synchronous call, not an event through dispatcher. We want
-    // job-init to be done completely here.
-    dagEventDispatcher.handle(initDagEvent);
-
-    //start all the components
-    startServices();
-    super.serviceStart();
-
-    this.dagsStartTime = clock.getTime();
+    this.appsStartTime = clock.getTime();
     AMStartedEvent startEvent = new AMStartedEvent(appAttemptID,
-        startTime, dagsStartTime, appSubmitTime);
+        startTime, appsStartTime, appSubmitTime);
     dispatcher.getEventHandler().handle(
-        new DAGHistoryEvent(this.dagId, startEvent));
-
-    // All components have started, start the job.
-    startDags();
+        new DAGHistoryEvent(startEvent));
   }
   
   @Override
   public void serviceStop() throws Exception {
     stopServices();
     super.serviceStop();
-  }
-
-  /**
-   * This can be overridden to instantiate multiple jobs and create a
-   * workflow.
-   *
-   * TODO:  Rework the design to actually support this.  Currently much of the
-   * job stuff has been moved to init() above to support uberization (MR-1220).
-   * In a typical workflow, one presumably would want to uberize only a subset
-   * of the jobs (the "small" ones), which is awkward with the current design.
-   */
-  @SuppressWarnings("unchecked")
-  protected void startDags() {
-    /** create a job-start event to get this ball rolling */
-    DAGEvent startDagEvent = new DAGEvent(dag.getID(), DAGEventType.DAG_START);
-    /** send the job-start event. this triggers the job execution. */
-    dispatcher.getEventHandler().handle(startDagEvent);
   }
 
   private class DagEventDispatcher implements EventHandler<DAGEvent> {
@@ -1133,8 +955,6 @@ public class DAGAppMaster extends AbstractService {
   public static void main(String[] args) {
     try {
       Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
-      // TODO: Deprecated keys?
-      //DeprecatedKeys.init();
       String containerIdStr =
           System.getenv(Environment.CONTAINER_ID.name());
       String nodeHostString = System.getenv(Environment.NM_HOST.name());
@@ -1150,34 +970,10 @@ public class DAGAppMaster extends AbstractService {
       ContainerId containerId = ConverterUtils.toContainerId(containerIdStr);
       ApplicationAttemptId applicationAttemptId =
           containerId.getApplicationAttemptId();
+
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
 
       TezConfiguration conf = new TezConfiguration(new YarnConfiguration());
-
-      DAGPlan dagPlan = null;
-
-      // Read the protobuf DAG
-      DAGPlan.Builder dagPlanBuilder = DAGPlan.newBuilder();
-      FileInputStream dagPBBinaryStream = null;
-      try {
-        dagPBBinaryStream = new FileInputStream(
-            TezConfiguration.TEZ_AM_PLAN_PB_BINARY);
-        dagPlanBuilder.mergeFrom(dagPBBinaryStream);
-      } finally {
-        if (dagPBBinaryStream != null) {
-          dagPBBinaryStream.close();
-        }
-      }
-
-      dagPlan = dagPlanBuilder.build();
-
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Running a DAG with "
-            + dagPlan.getVertexCount() + " vertices ");
-        for (VertexPlan v : dagPlan.getVertexList()) {
-          LOG.debug("DAG has vertex " + v.getName());
-        }
-      }
 
       String jobUserName = System
           .getenv(ApplicationConstants.Environment.USER.name());
@@ -1187,15 +983,10 @@ public class DAGAppMaster extends AbstractService {
       // the objects myself.
       conf.setBoolean("fs.automatic.close", false);
 
-      Map<String, String> config = DagTypeConverters.createSettingsMapFromDAGPlan(dagPlan.getJobSettingList());
-      for(Entry<String, String> entry : config.entrySet()) {
-        conf.set(entry.getKey(), entry.getValue());
-      }
-
       DAGAppMaster appMaster =
           new DAGAppMaster(applicationAttemptId, containerId, nodeHostString,
               Integer.parseInt(nodePortString),
-              Integer.parseInt(nodeHttpPortString), appSubmitTime, dagPlan);
+              Integer.parseInt(nodeHttpPortString), appSubmitTime);
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 
@@ -1216,13 +1007,17 @@ public class DAGAppMaster extends AbstractService {
       this.appMaster = appMaster;
     }
     public void run() {
-      LOG.info("DAGAppMaster received a signal. Signaling TaskScheduler and "
-        + "JobHistoryEventHandler.");
-      // Notify TaskScheduler that a SIGTERM has been received so
-      // that it doesnt take too long in shutting down
+      if(appMaster.getServiceState() == STATE.STOPPED) {
+        if(LOG.isDebugEnabled()) {
+          LOG.debug("DAGAppMaster already stopped. Ignoring signal");
+        }
+        return;
+      }
 
-      // Signal the task scheduler.
       if(appMaster.getServiceState() == STATE.STARTED) {
+        // Notify TaskScheduler that a SIGTERM has been received so that it
+        // unregisters quickly with proper status
+        LOG.info("DAGAppMaster received a signal. Signaling TaskScheduler");
         appMaster.taskSchedulerEventHandler.setSignalled(true);
       }
       if (EnumSet.of(DAGAppMasterState.NEW, DAGAppMasterState.INITED,
@@ -1232,6 +1027,59 @@ public class DAGAppMaster extends AbstractService {
       }
 
       appMaster.stop();
+    }
+  }
+  
+  private void startDAG() throws IOException {
+    FileInputStream dagPBBinaryStream = null;
+    try {
+      DAGPlan dagPlan = null;
+
+      // Read the protobuf DAG
+      DAGPlan.Builder dagPlanBuilder = DAGPlan.newBuilder();
+      dagPBBinaryStream = new FileInputStream(
+          TezConfiguration.TEZ_AM_PLAN_PB_BINARY);
+      dagPlanBuilder.mergeFrom(dagPBBinaryStream);
+
+      dagPlan = dagPlanBuilder.build();
+
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Running a DAG with " + dagPlan.getVertexCount()
+            + " vertices ");
+        for (VertexPlan v : dagPlan.getVertexList()) {
+          LOG.debug("DAG has vertex " + v.getName());
+        }
+      }
+
+      Map<String, String> config = DagTypeConverters.createSettingsMapFromDAGPlan(dagPlan.getJobSettingList());
+      for(Entry<String, String> entry : config.entrySet()) {
+        conf.set(entry.getKey(), entry.getValue());
+      }
+
+      // Job name is the same as the app name until we support multiple dags
+      // for an app later
+      appName = dagPlan.getName();
+
+      // /////////////////// Create the job itself.
+      dag = createDAG(dagPlan);
+      // End of creating the job.
+
+      // create a job event for job intialization
+      DAGEvent initDagEvent = new DAGEvent(dag.getID(), DAGEventType.DAG_INIT);
+      // Send init to the job (this does NOT trigger job execution)
+      // This is a synchronous call, not an event through dispatcher. We want
+      // job-init to be done completely here.
+      dagEventDispatcher.handle(initDagEvent);
+
+      // All components have started, start the job.
+      /** create a job-start event to get this ball rolling */
+      DAGEvent startDagEvent = new DAGEvent(dag.getID(), DAGEventType.DAG_START);
+      /** send the job-start event. this triggers the job execution. */
+      sendEvent(startDagEvent);
+    } finally {
+      if (dagPBBinaryStream != null) {
+        dagPBBinaryStream.close();
+      }
     }
   }
 
@@ -1250,6 +1098,7 @@ public class DAGAppMaster extends AbstractService {
       public Object run() throws Exception {
         appMaster.init(conf);
         appMaster.start();
+        appMaster.startDAG();
         return null;
       }
     });

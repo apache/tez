@@ -362,7 +362,7 @@ public class TaskScheduler extends AbstractService
     }
     
     preemptIfNeeded();
-      
+    
     return appClient.getProgress();
   }
 

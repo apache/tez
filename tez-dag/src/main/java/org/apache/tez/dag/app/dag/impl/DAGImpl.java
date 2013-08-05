@@ -77,7 +77,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
-import org.apache.tez.dag.app.dag.event.DAGFinishEvent;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDAGFinished;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventTermination;
@@ -228,7 +228,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           
               // Ignore-able events
           .addTransition(DAGState.TERMINATING, DAGState.TERMINATING,
-              EnumSet.of(DAGEventType.DAG_KILL))
+              EnumSet.of(DAGEventType.DAG_KILL, 
+                         DAGEventType.DAG_SCHEDULER_UPDATE))
 
           // Transitions from SUCCEEDED state
           .addTransition(DAGState.SUCCEEDED, DAGState.SUCCEEDED,
@@ -273,6 +274,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           // Ignore-able events
           .addTransition(DAGState.KILLED, DAGState.KILLED,
               EnumSet.of(DAGEventType.DAG_KILL,
+                  DAGEventType.DAG_START,
+                  DAGEventType.DAG_SCHEDULER_UPDATE,
                   DAGEventType.DAG_VERTEX_COMPLETED))
 
           // No transitions from INTERNAL_ERROR state. Ignore all.
@@ -477,12 +480,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
   
   @Override
-  public void tryKill() {
-    //send a DAG_KILL message
-    eventHandler.handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
-  }
-
-  @Override
   public Map<TezVertexID, Vertex> getVertices() {
     synchronized (tasksSyncHandle) {
       return Collections.unmodifiableMap(vertices);
@@ -616,7 +613,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
         finishTime, DAGStatus.State.SUCCEEDED, "", getAllCounters());
     this.eventHandler.handle(
-        new DAGHistoryEvent(dagId, finishEvt));
+        new DAGHistoryEvent(finishEvt));
   }
 
   void logJobHistoryInitedEvent() {
@@ -625,7 +622,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     DAGStartedEvent startEvt = new DAGStartedEvent(this.dagId,
         this.initTime, this.startTime);
     this.eventHandler.handle(
-        new DAGHistoryEvent(dagId, startEvt));
+        new DAGHistoryEvent(startEvt));
   }
 
   void logJobHistoryUnsuccesfulEvent(DAGStatus.State state) {
@@ -634,7 +631,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         StringUtils.join(LINE_SEPARATOR, getDiagnostics()),
         getAllCounters());
     this.eventHandler.handle(
-        new DAGHistoryEvent(dagId, finishEvt));
+        new DAGHistoryEvent(finishEvt));
   }
 
   static DAGState checkJobForCompletion(DAGImpl dag) {
@@ -707,7 +704,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
     */
     if (finishTime == 0) setFinishTime();
-    eventHandler.handle(new DAGFinishEvent(dagId));
+    eventHandler.handle(new DAGAppMasterEventDAGFinished(getID()));
 
     // TODO Metrics
     /*

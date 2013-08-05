@@ -51,12 +51,13 @@ import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.VertexState;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate.UpdateType;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
-import org.apache.tez.dag.app.dag.event.DAGFinishEvent;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDAGFinished;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
@@ -150,11 +151,11 @@ public class TestDAGImpl {
   }
 
   private class DAGFinishEventHandler
-  implements EventHandler<DAGFinishEvent> {
+  implements EventHandler<DAGAppMasterEventDAGFinished> {
     public int dagFinishEvents = 0;
 
     @Override
-    public void handle(DAGFinishEvent event) {
+    public void handle(DAGAppMasterEventDAGFinished event) {
       ++dagFinishEvents;
     }
   }
@@ -508,7 +509,7 @@ public class TestDAGImpl {
     dispatcher.register(HistoryEventType.class,
         new HistoryHandler());
     dagFinishEventHandler = new DAGFinishEventHandler();
-    dispatcher.register(DAGFinishEvent.Type.class, dagFinishEventHandler);
+    dispatcher.register(DAGAppMasterEventType.class, dagFinishEventHandler);
     dispatcher.register(TaskEventType.class, new TaskEventHandler());
     dispatcher.init(conf);
     dispatcher.start();
