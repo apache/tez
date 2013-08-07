@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty.SourceType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeConnectionPattern;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSourceType;
@@ -213,8 +214,9 @@ public class DagTypeConverters {
     return Resource.newInstance(taskConfig.getMemoryMb(), taskConfig.getVirtualCores());
   }
 
-  public static Map<String, String> createSettingsMapFromDAGPlan(
-      List<PlanKeyValuePair> settingList) {
+  public static Map<String, String> convertConfFromProto(
+      ConfigurationProto confProto) {
+    List<PlanKeyValuePair> settingList = confProto.getConfKeyValuesList();
     Map<String, String> map = new HashMap<String, String>();
     for(PlanKeyValuePair setting: settingList){
       map.put(setting.getKey(), setting.getValue());

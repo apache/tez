@@ -117,13 +117,16 @@ message EdgePlan {
   optional TezEntityDescriptorProto edge_destination = 7;
 }
 
+message ConfigurationProto {
+  repeated PlanKeyValuePair confKeyValues = 1;
+}
+
 message DAGPlan {
   required string name = 1;
   repeated VertexPlan vertex = 2;
   repeated EdgePlan edge = 3;
-  repeated PlanKeyValuePair jobSetting = 4;
+  optional ConfigurationProto dagKeyValues = 4;
 }
-
 
 // DAG monitoring messages
 message ProgressProto {

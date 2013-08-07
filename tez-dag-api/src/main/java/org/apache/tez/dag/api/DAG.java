@@ -18,7 +18,6 @@
 package org.apache.tez.dag.api;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -34,6 +33,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
@@ -248,12 +248,12 @@ public class DAG { // FIXME rename to Topology
 
   // create protobuf message describing DAG
   @Private
-  public DAGPlan createDag(Configuration amConf) {
+  public DAGPlan createDag(Configuration dagConf) {
     verify(true);
 
-    DAGPlan.Builder jobBuilder = DAGPlan.newBuilder();
+    DAGPlan.Builder dagBuilder = DAGPlan.newBuilder();
 
-    jobBuilder.setName(this.name);
+    dagBuilder.setName(this.name);
 
     for(Vertex vertex : vertices){
       VertexPlan.Builder vertexBuilder = VertexPlan.newBuilder();
@@ -330,7 +330,7 @@ public class DAG { // FIXME rename to Topology
       }
 
       vertexBuilder.setTaskConfig(taskConfigBuilder);
-      jobBuilder.addVertex(vertexBuilder);
+      dagBuilder.addVertex(vertexBuilder);
     }
 
     for(Edge edge : edges){
@@ -342,18 +342,22 @@ public class DAG { // FIXME rename to Topology
       edgeBuilder.setSourceType(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getSourceType()));
       edgeBuilder.setEdgeSource(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getEdgeSource()));
       edgeBuilder.setEdgeDestination(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getEdgeDestination()));
-      jobBuilder.addEdge(edgeBuilder);
+      dagBuilder.addEdge(edgeBuilder);
     }
 
-    Iterator<Entry<String, String>> iter = amConf.iterator();
-    while (iter.hasNext()) {
-      Entry<String, String> entry = iter.next();
-      PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
-      kvp.setKey(entry.getKey());
-      kvp.setValue(entry.getValue());
-      jobBuilder.addJobSetting(kvp);
+    if(dagConf != null) {
+      Iterator<Entry<String, String>> iter = dagConf.iterator();
+      ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
+      while (iter.hasNext()) {
+        Entry<String, String> entry = iter.next();
+        PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
+        kvp.setKey(entry.getKey());
+        kvp.setValue(entry.getValue());
+        confProtoBuilder.addConfKeyValues(kvp);
+      }
+      dagBuilder.setDagKeyValues(confProtoBuilder);
     }
 
-    return jobBuilder.build();
+    return dagBuilder.build();
   }
 }

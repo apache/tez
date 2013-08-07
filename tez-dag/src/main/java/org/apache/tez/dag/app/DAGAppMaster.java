@@ -65,6 +65,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -974,7 +975,8 @@ public class DAGAppMaster extends AbstractService {
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
 
       TezConfiguration conf = new TezConfiguration(new YarnConfiguration());
-
+      TezUtils.addUserSpecifiedTezConfiguration(conf);
+      
       String jobUserName = System
           .getenv(ApplicationConstants.Environment.USER.name());
 
@@ -1038,7 +1040,7 @@ public class DAGAppMaster extends AbstractService {
       // Read the protobuf DAG
       DAGPlan.Builder dagPlanBuilder = DAGPlan.newBuilder();
       dagPBBinaryStream = new FileInputStream(
-          TezConfiguration.TEZ_AM_PLAN_PB_BINARY);
+          TezConfiguration.TEZ_PB_PLAN_BINARY_NAME);
       dagPlanBuilder.mergeFrom(dagPBBinaryStream);
 
       dagPlan = dagPlanBuilder.build();
@@ -1051,9 +1053,12 @@ public class DAGAppMaster extends AbstractService {
         }
       }
 
-      Map<String, String> config = DagTypeConverters.createSettingsMapFromDAGPlan(dagPlan.getJobSettingList());
-      for(Entry<String, String> entry : config.entrySet()) {
-        conf.set(entry.getKey(), entry.getValue());
+      Map<String, String> config = DagTypeConverters.
+          convertConfFromProto(dagPlan.getDagKeyValues());
+      if(config != null) {
+        for(Entry<String, String> entry : config.entrySet()) {
+          conf.set(entry.getKey(), entry.getValue());
+        }
       }
 
       // Job name is the same as the app name until we support multiple dags

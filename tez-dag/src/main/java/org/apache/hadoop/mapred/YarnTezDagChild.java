@@ -54,6 +54,7 @@ import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -80,6 +81,7 @@ public class YarnTezDagChild {
     }
 
     final Configuration defaultConf = new Configuration();
+    TezUtils.addUserSpecifiedTezConfiguration(defaultConf);
     // Security settings will be loaded based on core-site and core-default. Don't
     // depend on the jobConf for this.
     UserGroupInformation.setConfiguration(defaultConf);

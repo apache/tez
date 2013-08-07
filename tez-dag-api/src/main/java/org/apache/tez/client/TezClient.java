@@ -72,7 +72,9 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientRPCImpl;
+import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 
 public class TezClient {
   private static final Log LOG = LogFactory.getLog(TezClient.class);
@@ -253,7 +255,7 @@ public class TezClient {
     return fs;
   }
 
-  private LocalResource createApplicationResource(FileSystem fs, Path p,
+  private LocalResource createLocalResource(FileSystem fs, Path p,
       LocalResourceType type) throws IOException {
     LocalResource rsrc = Records.newRecord(LocalResource.class);
     FileStatus rsrcStat = fs.getFileStatus(p);
@@ -333,44 +335,34 @@ public class TezClient {
     return tezJarResources;
   }
 
-  private Configuration createFinalAMConf(TezConfiguration amConf) {
-    if (amConf == null) {
-      return new TezConfiguration();
-    } else {
+  private Configuration createFinalTezConfForApp(TezConfiguration amConf) {
+    Configuration conf = new Configuration(false);
+    conf.setQuietMode(true);
 
-      Configuration conf = new Configuration(false);
-      conf.setQuietMode(true);
-
-      Iterator<Entry<String, String>> tezConfIter = this.conf.iterator();
-      while (tezConfIter.hasNext()) {
-        Entry<String, String> entry = tezConfIter.next();
+    assert amConf != null;
+    Iterator<Entry<String, String>> iter = amConf.iterator();
+    while (iter.hasNext()) {
+      Entry<String, String> entry = iter.next();
+      // Copy all tez config parameters.
+      if (entry.getKey().startsWith(TezConfiguration.TEZ_PREFIX)) {
         conf.set(entry.getKey(), entry.getValue());
-      }
-
-      Iterator<Entry<String, String>> iter = amConf.iterator();
-      while (iter.hasNext()) {
-        Entry<String, String> entry = iter.next();
-        // Copy all tez config parameters.
-        if (entry.getKey().startsWith(TezConfiguration.TEZ_PREFIX)) {
-          conf.set(entry.getKey(), entry.getValue());
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Adding tez dag am parameter: " + entry.getKey()
-                + ", with value: " + entry.getValue());
-          }
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Adding tez dag am parameter: " + entry.getKey()
+              + ", with value: " + entry.getValue());
         }
       }
-      return conf;
     }
+    return conf;
   }
 
   private ApplicationSubmissionContext createApplicationSubmissionContext(
       ApplicationId appId, DAG dag, Path appStagingDir, Credentials ts,
       String amQueueName, String amName, List<String> amArgs,
       Map<String, String> amEnv, Map<String, LocalResource> amLocalResources,
-      TezConfiguration amConf) throws IOException, YarnException {
+      TezConfiguration appConf) throws IOException, YarnException {
 
-    if (amConf == null) {
-      amConf = new TezConfiguration();
+    if (appConf == null) {
+      appConf = new TezConfiguration();
     }
 
     FileSystem fs = ensureExists(appStagingDir);
@@ -475,37 +467,65 @@ public class TezClient {
       v.getTaskLocalResources().putAll(tezJarResources);
     }
 
+    // emit conf as PB file
+    Configuration finalTezConf = createFinalTezConfForApp(appConf);
+    Path binaryConfPath =  new Path(appStagingDir,
+        TezConfiguration.TEZ_PB_BINARY_CONF_NAME + "." + appId.toString());
+    FSDataOutputStream amConfPBOutBinaryStream = null;
+    try {
+      ConfigurationProto.Builder confProtoBuilder = 
+          ConfigurationProto.newBuilder();
+      Iterator<Entry<String, String>> iter = finalTezConf.iterator();
+      while (iter.hasNext()) {
+        Entry<String, String> entry = iter.next();
+        PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
+        kvp.setKey(entry.getKey());
+        kvp.setValue(entry.getValue());
+        confProtoBuilder.addConfKeyValues(kvp);
+      }
+      //binary output
+      amConfPBOutBinaryStream = FileSystem.create(fs, binaryConfPath,
+          new FsPermission(TEZ_AM_FILE_PERMISSION));
+      confProtoBuilder.build().writeTo(amConfPBOutBinaryStream);      
+    } finally {
+      if(amConfPBOutBinaryStream != null){
+        amConfPBOutBinaryStream.close();
+      }
+    }
+    LocalResource binaryConfLr = createLocalResource(fs,
+        binaryConfPath, LocalResourceType.FILE);
+    localResources.put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME, binaryConfLr);
+    
+    // Add tez conf to vertices too
+    for (Vertex v : dag.getVertices()) {
+      v.getTaskLocalResources().put(
+          TezConfiguration.TEZ_PB_BINARY_CONF_NAME, binaryConfLr);
+    }
+    
+    DAGPlan dagPB = dag.createDag(null);
     // emit protobuf DAG file style
-    Path binaryPath =  new Path(appStagingDir,
-        TezConfiguration.TEZ_AM_PLAN_PB_BINARY + "." + appId.toString());
-    amConf.set(TezConfiguration.TEZ_AM_PLAN_REMOTE_PATH, binaryPath.toUri()
-        .toString());
-
-    Configuration finalAMConf = createFinalAMConf(amConf);
-
-    DAGPlan dagPB = dag.createDag(finalAMConf);
-
+    Path binaryDAGPath =  new Path(appStagingDir,
+        TezConfiguration.TEZ_PB_PLAN_BINARY_NAME + "." + appId.toString());
     FSDataOutputStream dagPBOutBinaryStream = null;
 
     try {
       //binary output
-      dagPBOutBinaryStream = FileSystem.create(fs, binaryPath,
+      dagPBOutBinaryStream = FileSystem.create(fs, binaryDAGPath,
           new FsPermission(TEZ_AM_FILE_PERMISSION));
       dagPB.writeTo(dagPBOutBinaryStream);
     } finally {
       if(dagPBOutBinaryStream != null){
         dagPBOutBinaryStream.close();
       }
-    }
+    }    
 
-    localResources.put(TezConfiguration.TEZ_AM_PLAN_PB_BINARY,
-        createApplicationResource(fs,
-            binaryPath, LocalResourceType.FILE));
+    localResources.put(TezConfiguration.TEZ_PB_PLAN_BINARY_NAME,
+        createLocalResource(fs, binaryDAGPath, LocalResourceType.FILE));
 
     if (Level.DEBUG.isGreaterOrEqual(Level.toLevel(amLogLevel))) {
       Path textPath = localizeDagPlanAsText(dagPB, fs, appStagingDir, appId);
-      localResources.put(TezConfiguration.TEZ_AM_PLAN_PB_TEXT,
-          createApplicationResource(fs, textPath, LocalResourceType.FILE));
+      localResources.put(TezConfiguration.TEZ_PB_PLAN_TEXT_NAME,
+          createLocalResource(fs, textPath, LocalResourceType.FILE));
     }
 
     Map<ApplicationAccessType, String> acls
@@ -536,7 +556,7 @@ public class TezClient {
   private Path localizeDagPlanAsText(DAGPlan dagPB, FileSystem fs,
       Path appStagingDir, ApplicationId appId) throws IOException {
     Path textPath = new Path(appStagingDir,
-        TezConfiguration.TEZ_AM_PLAN_PB_TEXT + "." + appId.toString());
+        TezConfiguration.TEZ_PB_PLAN_TEXT_NAME + "." + appId.toString());
     FSDataOutputStream dagPBOutTextStream = null;
     try {
       dagPBOutTextStream = FileSystem.create(fs, textPath, new FsPermission(
