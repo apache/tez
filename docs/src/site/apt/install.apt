@@ -1,0 +1,48 @@
+~~ Licensed to the Apache Software Foundation (ASF) under one or more
+~~ contributor license agreements.  See the NOTICE file distributed with
+~~ this work for additional information regarding copyright ownership.
+~~ The ASF licenses this file to You under the Apache License, Version 2.0
+~~ (the "License"); you may not use this file except in compliance with
+~~ the License.  You may obtain a copy of the License at
+~~
+~~     http://www.apache.org/licenses/LICENSE-2.0
+~~
+~~ Unless required by applicable law or agreed to in writing, software
+~~ distributed under the License is distributed on an "AS IS" BASIS,
+~~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~~ See the License for the specific language governing permissions and
+~~ limitations under the License.
+~~
+Install/Deploy Instructions
+
+  [[i]] Deploy Apache Hadoop using either the 2.1.0-beta release or build the 3.0.0-SNAPSHOT from trunk.
+   
+    * One thing to note though when compiling Tez is that you will need to change the value of the hadoop.version property in the top-level pom.xml to match the version of the hadoop branch being used.
+
+  [[i]] Copy the tez jars and their dependencies into HDFS.
+
+  [[i]] Configure tez-site.xml to set tez.lib.uris to point to the paths in HDFS containing the jars. Please note that the paths are not searched recursively so for <basedir> and <basedir>/lib/, you will need to configure the 2 paths as a comma-separated list.
+
+  [[i]] Modify mapred-site.xml to change "mapreduce.framework.name" property from its default value of "yarn" to "yarn-tez"
+
+  [[i]] Set HADOOP_CLASSPATH to have the following paths in it:
+
+    * TEZ_CONF_DIR - location of tez-site.xml
+
+    * TEZ_JARS and TEZ_JARS/libs - location of the tez jars and dependencies.
+
+  [[i]] Submit a MR job as you normally would using something like:
+
++---+
+$HADOOP_PREFIX/bin/hadoop jar hadoop-mapreduce-client-jobclient-VERSION-tests.jar sleep -mt 1 -rt 1 -m 1 -r 1
++---+
+
+    This will use the TEZ DAG ApplicationMaster to run the MR job. This can be verified by looking at the AM's logs from the YARN ResourceManager UI.
+
+  [[i]] There is a basic example of using an MRR job in the tez-mapreduce-examples.jar. Refer to OrderedWordCount.java in the source code. To run this example:
+
++---+
+$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar orderedwordcount <input> <output>
++---+
+
+    This will use the TEZ DAG ApplicationMaster to run the ordered word count job. This job is similar to the word count example except that it also orders all words based on the frequency of occurrence.
