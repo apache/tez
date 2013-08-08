@@ -20,6 +20,7 @@ package org.apache.tez.dag.app.rm;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -52,6 +53,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback.AppFinalStatus;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 
 /* TODO not yet updating cluster nodes on every allocate response
  * from RMContainerRequestor
@@ -126,9 +128,21 @@ public class TaskScheduler extends AbstractService
   
   boolean isStopped = false; 
   
+  private ContainerAssigner NODE_LOCAL_ASSIGNER = new NodeLocalContainerAssigner();
+  private ContainerAssigner RACK_LOCAL_ASSIGNER = new RackLocalContainerAssigner();
+  private ContainerAssigner NON_LOCAL_ASSIGNER = new NonLocalContainerAssigner();
+
   class CRCookie {
     Object task;
     Object appCookie;
+    
+    Object getTask() {
+      return task;
+    }
+    
+    Object getAppCookie() {
+      return appCookie;
+    }
   }
   
   class CookieContainerRequest extends ContainerRequest {
@@ -182,6 +196,7 @@ public class TaskScheduler extends AbstractService
   // AbstractService methods
   @Override
   public synchronized void serviceInit(Configuration conf) {
+
     amRmClient.init(conf);
     int heartbeatIntervalMax = conf.getInt(
         TezConfiguration.TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX,
@@ -253,7 +268,7 @@ public class TaskScheduler extends AbstractService
       throw new TezUncheckedException(e);
     }
   }
-  
+
   // AMRMClientAsync interface methods
   @Override
   public void onContainersCompleted(List<ContainerStatus> statuses) {
@@ -300,23 +315,16 @@ public class TaskScheduler extends AbstractService
       appClient.containerCompleted(entry.getKey(), entry.getValue());
     }
   }
-  
+
   @Override
   public void onContainersAllocated(List<Container> containers) {
     if (isStopped) {
       return;
     }
-    Map<CookieContainerRequest, Container> assignedContainers =
-        new HashMap<CookieContainerRequest, Container>(containers.size());
+    Map<CookieContainerRequest, Container> assignedContainers = null;
+
     synchronized (this) {
-      for (Container container : containers) {
-        CookieContainerRequest assigned = assignAllocatedContainer(container,
-            false);
-        if (assigned == null) {
-          continue;
-        }
-        assignedContainers.put(assigned, container);
-      }
+      assignedContainers = assignAllocatedContainers(containers, false);
     }
 
     // upcall to app must be outside locks
@@ -324,6 +332,26 @@ public class TaskScheduler extends AbstractService
         .entrySet()) {
       informAppAboutAssignments(entry.getKey(), entry.getValue());
     }
+  }
+  
+  /*
+   * Separate calls should be made for contianers being reused and new
+   * containers.
+   */
+  private synchronized Map<CookieContainerRequest, Container> assignAllocatedContainers(
+      List<Container> initialContainerList, boolean isBeingReused) {
+    List<Container> containers = Lists.newLinkedList(initialContainerList);
+    Map<CookieContainerRequest, Container> assignedContainers = new HashMap<CookieContainerRequest, Container>(
+        containers.size());
+    assignContainersWithLocation(containers, isBeingReused,
+        NODE_LOCAL_ASSIGNER, assignedContainers);
+    assignContainersWithLocation(containers, isBeingReused,
+        RACK_LOCAL_ASSIGNER, assignedContainers);
+    assignContainersWithLocation(containers, isBeingReused, NON_LOCAL_ASSIGNER,
+        assignedContainers);
+
+    releaseUnassignedContainers(containers);
+    return assignedContainers;
   }
 
   @Override
@@ -411,7 +439,7 @@ public class TaskScheduler extends AbstractService
    */
   public Container deallocateTask(Object task, boolean taskSucceeded) {
     CookieContainerRequest request = null;
-    CookieContainerRequest assigned = null;
+    Map<CookieContainerRequest, Container> assignedContainers = null;
     Container container = null;
 
     synchronized (this) {
@@ -435,15 +463,17 @@ public class TaskScheduler extends AbstractService
         if (!taskSucceeded || !shouldReuseContainers) {
           releaseContainer(container.getId(), task);
         } else {
-          assigned = assignAllocatedContainer(container, true);
+          assignedContainers = assignAllocatedContainers(
+              Collections.singletonList(container), true);
         }
 
       }
     }
 
     // up call outside of the lock.
-    if (assigned != null) {
-      informAppAboutAssignments(assigned, container);
+    if (assignedContainers != null && assignedContainers.size() == 1) {
+      informAppAboutAssignments(assignedContainers.entrySet().iterator().next()
+          .getKey(), container);
       container = null;
     }
     return container;
@@ -536,7 +566,7 @@ public class TaskScheduler extends AbstractService
   }
   
   private Object getTask(CookieContainerRequest request) {
-    return request.getCookie().task;
+    return request.getCookie().getTask();
   }
   
   private void releaseContainer(ContainerId containerId, Object task) {
@@ -607,51 +637,45 @@ public class TaskScheduler extends AbstractService
     return lhs.getPriority() < rhs.getPriority();
   }
 
-  private synchronized CookieContainerRequest assignAllocatedContainer(
-      Container container, boolean isBeingReused) {
-
-    // Match host local.
-    String location = container.getNodeId().getHost();
-    CookieContainerRequest assigned = getMatchingRequest(container, location);
-
-    // TODO TEZ-330 Ignore reuseRackLocak/reuseNonLocal in case the initial request
-    // did not have any locality information.
+  /**
+   * Assigns allocated containers using the specified assigner. The list of
+   * allocated containers is removed from the specified container list.
+   * 
+   * Separate calls should be made for contianers being reused and new
+   * containers.
+   * 
+   * @param containers
+   *          containers to be assigned.
+   * @param isBeingReused
+   *          specifies whether all containers specified by the list of
+   *          containers are being reused or not.
+   * @param assigner
+   *          the assigner to use - nodeLocal, rackLocal, nonLocal
+   * @param assignedContainers container assignments are populated into this map.         
+   * @return
+   */
+  private synchronized void assignContainersWithLocation(
+      List<Container> containers, boolean isBeingReused,
+      ContainerAssigner assigner,
+      Map<CookieContainerRequest, Container> assignedContainers) {
     
-    // Match rack local.
-    if (assigned == null) {
-      if (!isBeingReused || reuseRackLocal) {
-        location = RackResolver.resolve(location).getNetworkLocation();
-        assigned = getMatchingRequest(container, location);
+    Iterator<Container> containerIterator = containers.iterator();
+    while (containerIterator.hasNext()) {
+      Container container = containerIterator.next();
+      CookieContainerRequest assigned = assigner.assignAllocatedContainer(container,
+          isBeingReused);
+      if (assigned != null) {
+        assignedContainers.put(assigned, container);
+        containerIterator.remove();
       }
     }
-
-    // Match non local
-    if (assigned == null) {
-      if (!isBeingReused || reuseNonLocal) {
-        location = ResourceRequest.ANY;
-        assigned = getMatchingRequest(container, location);
-      }
-    }
-
-    if (assigned == null) {
-      // not matched anything. release container
-      // Probably we cancelled a request and RM allocated that to us
-      // before RM heard of the cancellation
+  }
+  
+  private void releaseUnassignedContainers(List<Container> containers) {
+    for (Container container : containers) {
       releaseContainer(container.getId(), null);
       LOG.info("No RM requests matching container: " + container);
-      return null;
     }
-
-    Object task = getTask(assigned);
-    assert task != null;
-    assignContainer(task, container, assigned);
-
-    LOG.info("Assigning container: " + container + " for task: " + task
-        + " at locality: " + location + " with reuse: " + isBeingReused
-        + " resource memory: " + container.getResource().getMemory() + " cpu: "
-        + container.getResource().getVirtualCores());
-
-    return assigned;
   }
 
   private void informAppAboutAssignments(CookieContainerRequest assigned,
@@ -659,4 +683,73 @@ public class TaskScheduler extends AbstractService
     appClient.taskAllocated(getTask(assigned), assigned.getCookie().appCookie,
         container);
   }
+  
+  private abstract class ContainerAssigner {
+    public abstract CookieContainerRequest assignAllocatedContainer(
+        Container container, boolean isBeingReused);
+
+    public void doBookKeepingForAssignedContainer(CookieContainerRequest assigned,
+        Container container, String matchedLocation, boolean isBeingReused) {
+      if (assigned == null) {
+        return;
+      }
+      Object task = getTask(assigned);
+      assert task != null;
+      assignContainer(task, container, assigned);
+
+      LOG.info("Assigning container: " + container + " for task: " + task
+          + " at locality: " + matchedLocation + " with reuse: "
+          + isBeingReused + " resource memory: "
+          + container.getResource().getMemory() + " cpu: "
+          + container.getResource().getVirtualCores());
+    }
+  }
+
+  private class NodeLocalContainerAssigner extends ContainerAssigner {
+    @Override
+    public CookieContainerRequest assignAllocatedContainer(Container container,
+        boolean isBeingReused) {
+      String location = container.getNodeId().getHost();
+      CookieContainerRequest assigned = getMatchingRequest(container, location);
+      doBookKeepingForAssignedContainer(assigned, container, location,
+          isBeingReused);
+      return assigned;
+    }
+  }
+
+  // TODO TEZ-330 Ignore reuseRackLocak/reuseNonLocal in case the initial
+  // request did not have any locality information.
+  private class RackLocalContainerAssigner extends ContainerAssigner {
+    @Override
+    public CookieContainerRequest assignAllocatedContainer(Container container,
+        boolean isBeingReused) {
+      if (!isBeingReused || TaskScheduler.this.reuseRackLocal) {
+        String location = RackResolver.resolve(container.getNodeId().getHost())
+            .getNetworkLocation();
+        CookieContainerRequest assigned = getMatchingRequest(container,
+            location);
+        doBookKeepingForAssignedContainer(assigned, container, location,
+            isBeingReused);
+        return assigned;
+      }
+      return null;
+    }
+  }
+
+  private class NonLocalContainerAssigner extends ContainerAssigner {
+    @Override
+    public CookieContainerRequest assignAllocatedContainer(Container container,
+        boolean isBeingReused) {
+      if (!isBeingReused || TaskScheduler.this.reuseNonLocal) {
+        String location = ResourceRequest.ANY;
+        CookieContainerRequest assigned = getMatchingRequest(container,
+            location);
+        doBookKeepingForAssignedContainer(assigned, container, location,
+            isBeingReused);
+        return assigned;
+      }
+      return null;
+    }
+  }
+
 }

@@ -58,7 +58,6 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.junit.Test;
 
 public class TestContainerReuse {
-
   
   @Test
   public void test() throws IOException {
@@ -269,9 +268,10 @@ public class TestContainerReuse {
 
     @Override
     public void serviceStart() {
-      taskScheduler = spy(createTaskScheduler("host", 0, ""));
+      TaskScheduler taskSchedulerReal = createTaskScheduler("host", 0, "");
       // Init the service so that reuse configuration is picked up.
-      taskScheduler.serviceInit(getConfig());
+      taskSchedulerReal.serviceInit(getConfig());
+      taskScheduler = spy(taskSchedulerReal);
     }
 
     @Override

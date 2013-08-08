@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.app.rm;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
@@ -28,19 +30,27 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -59,6 +69,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
 
 public class TestTaskScheduler {
   
@@ -503,5 +514,141 @@ public class TestTaskScheduler {
     when(mockApp.getFinalAppStatus()).thenReturn(finalStatus);
     scheduler.stop();
     scheduler.close();
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test
+  public void testLocalityMatching() throws IOException {
+
+    RackResolver.init(new TezConfiguration());
+    TaskSchedulerAppCallback appClient = mock(TaskSchedulerAppCallback.class);
+    AMRMClientAsync<CookieContainerRequest> amrmClient = mock(AMRMClientAsync.class);
+    TaskScheduler taskScheduler = new TaskScheduler(appClient, "host", 0, "",
+        amrmClient);
+
+    Resource resource = Resource.newInstance(1024, 1);
+    Priority priority = Priority.newInstance(1);
+
+    String hostsTask1[] = { "host1" };
+    String hostsTask2[] = { "non-allocated-host" };
+
+    String defaultRack[] = { "/default-rack" };
+    String otherRack[] = { "/other-rack" };
+
+    Object mockTask1 = mock(Object.class);
+    CookieContainerRequest mockCookie1 = mock(CookieContainerRequest.class,
+        RETURNS_DEEP_STUBS);
+    when(mockCookie1.getCookie().getTask()).thenReturn(mockTask1);
+
+    Object mockTask2 = mock(Object.class);
+    CookieContainerRequest mockCookie2 = mock(CookieContainerRequest.class,
+        RETURNS_DEEP_STUBS);
+    when(mockCookie2.getCookie().getTask()).thenReturn(mockTask2);
+
+    Container containerHost1 = createContainer(1, "host1", resource, priority);
+    Container containerHost3 = createContainer(2, "host3", resource, priority);
+    List<Container> allocatedContainers = new LinkedList<Container>();
+
+    allocatedContainers.add(containerHost3);
+    allocatedContainers.add(containerHost1);
+
+    final Map<String, List<CookieContainerRequest>> matchingMap = new HashMap<String, List<CookieContainerRequest>>();
+    taskScheduler.allocateTask(mockTask1, resource, hostsTask1, defaultRack,
+        priority, mockCookie1);
+
+    List<CookieContainerRequest> host1List = new ArrayList<CookieContainerRequest>();
+    host1List.add(mockCookie1);
+    List<CookieContainerRequest> defaultRackList = new ArrayList<CookieContainerRequest>();
+    defaultRackList.add(mockCookie1);
+    matchingMap.put(hostsTask1[0], host1List);
+    matchingMap.put(defaultRack[0], defaultRackList);
+
+    List<CookieContainerRequest> nonAllocatedHostList = new ArrayList<TaskScheduler.CookieContainerRequest>();
+    nonAllocatedHostList.add(mockCookie2);
+    List<CookieContainerRequest> otherRackList = new ArrayList<TaskScheduler.CookieContainerRequest>();
+    otherRackList.add(mockCookie2);
+    taskScheduler.allocateTask(mockTask2, resource, hostsTask2, otherRack,
+        priority, mockCookie2);
+    matchingMap.put(hostsTask2[0], nonAllocatedHostList);
+    matchingMap.put(otherRack[0], otherRackList);
+
+    List<CookieContainerRequest> anyList = new LinkedList<TaskScheduler.CookieContainerRequest>();
+    anyList.add(mockCookie1);
+    anyList.add(mockCookie2);
+
+    matchingMap.put(ResourceRequest.ANY, anyList);
+
+    final List<ArrayList<CookieContainerRequest>> emptyList = new LinkedList<ArrayList<CookieContainerRequest>>();
+
+    when(
+        amrmClient.getMatchingRequests((Priority) any(), anyString(),
+            (Resource) any())).thenAnswer(
+        new Answer<List<? extends Collection<CookieContainerRequest>>>() {
+
+          @Override
+          public List<? extends Collection<CookieContainerRequest>> answer(
+              InvocationOnMock invocation) throws Throwable {
+            String location = (String) invocation.getArguments()[1];
+            if (matchingMap.get(location) != null) {
+              CookieContainerRequest matched = matchingMap.get(location).get(0);
+              // Remove matched from matchingMap - assuming TaskScheduler will
+              // pick the first entry.
+              Iterator<Entry<String, List<CookieContainerRequest>>> iter = matchingMap
+                  .entrySet().iterator();
+              while (iter.hasNext()) {
+                Entry<String, List<CookieContainerRequest>> entry = iter.next();
+                if (entry.getValue().remove(matched)) {
+                  if (entry.getValue().size() == 0) {
+                    iter.remove();
+                  }
+                }
+              }
+              return Collections.singletonList(Collections
+                  .singletonList(matched));
+            } else {
+              return emptyList;
+            }
+          }
+        });
+
+    taskScheduler.onContainersAllocated(allocatedContainers);
+
+    ArgumentCaptor<Object> taskCaptor = ArgumentCaptor.forClass(Object.class);
+    ArgumentCaptor<Container> containerCaptor = ArgumentCaptor
+        .forClass(Container.class);
+    verify(appClient, times(2)).taskAllocated(taskCaptor.capture(), any(),
+        containerCaptor.capture());
+
+    // Expected containerHost1 allocated to task1 due to locality,
+    // containerHost3 allocated to task2.
+
+    List<Container> assignedContainers = containerCaptor.getAllValues();
+    int container1Pos = assignedContainers.indexOf(containerHost1);
+    assertTrue("Container: " + containerHost1 + " was not assigned",
+        container1Pos != -1);
+    assertEquals("Task 1 was not allocated to containerHost1", mockTask1,
+        taskCaptor.getAllValues().get(container1Pos));
+
+    int container2Pos = assignedContainers.indexOf(containerHost3);
+    assertTrue("Container: " + containerHost3 + " was not assigned",
+        container2Pos != -1);
+    assertEquals("Task 2 was not allocated to containerHost3", mockTask2,
+        taskCaptor.getAllValues().get(container2Pos));
+
+    AppFinalStatus finalStatus = new AppFinalStatus(
+        FinalApplicationStatus.SUCCEEDED, "", "");
+    when(appClient.getFinalAppStatus()).thenReturn(finalStatus);
+    taskScheduler.close();
+  }
+
+  private Container createContainer(int id, String host, Resource resource,
+      Priority priority) {
+    ContainerId containerID = ContainerId.newInstance(
+        ApplicationAttemptId.newInstance(ApplicationId.newInstance(1, 1), 1),
+        id);
+    NodeId nodeID = NodeId.newInstance(host, 0);
+    Container container = Container.newInstance(containerID, nodeID, host
+        + ":0", resource, priority, null);
+    return container;
   }
 }
