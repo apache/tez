@@ -56,7 +56,6 @@ import org.apache.tez.engine.task.RuntimeTask;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.task.impl.YarnOutputFiles;
 
@@ -78,18 +77,25 @@ public class MRRuntimeTask extends RuntimeTask {
 
     DeprecatedKeys.init();
 
-    Configuration taskConf = null;
-    
-    if (userPayload == null) {
-      // Fall back to using job.xml
-      Configuration mrConf = new Configuration(conf);
-      mrConf.addResource(MRJobConfig.JOB_CONF_FILE);
-      taskConf = MultiStageMRConfigUtil.getConfForVertex(mrConf,
-          taskContext.getVertexName());
-    } else {
+    Configuration taskConf;
+    if (userPayload != null) {
       taskConf = MRHelpers.createConfFromUserPayload(userPayload);
-      copyTezConfigParameters(taskConf, conf);
+      if (LOG.isDebugEnabled()) {
+        Iterator<Entry<String, String>> iter = taskConf.iterator();
+        String taskIdStr = mrTask.getTaskAttemptId().getTaskID().toString();
+        while (iter.hasNext()) {
+          Entry<String, String> confEntry = iter.next();
+          LOG.debug("TaskConf Entry"
+              + ", taskId=" + taskIdStr
+              + ", key=" + confEntry.getKey()
+              + ", value=" + confEntry.getValue());
+        }
+      }
+    } else {
+      taskConf = new Configuration(false);
     }
+
+    copyTezConfigParameters(taskConf, conf);
 
     // TODO Avoid all this extra config manipulation.
     // FIXME we need I/O/p level configs to be used in init below
