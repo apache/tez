@@ -31,6 +31,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -41,7 +42,6 @@ import org.apache.hadoop.yarn.event.InlineDispatcher;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
@@ -71,7 +71,7 @@ public class TestTaskImpl {
 
   private InlineDispatcher dispatcher;
 
-  private TezConfiguration conf;
+  private Configuration conf;
   private TaskAttemptListener taskAttemptListener;
   private TaskHeartbeatHandler taskHeartbeatHandler;
   private Token<JobTokenIdentifier> jobToken;
@@ -96,7 +96,7 @@ public class TestTaskImpl {
   @Before
   public void setup() {
     dispatcher = new InlineDispatcher();
-    conf = new TezConfiguration();
+    conf = new Configuration();
     taskAttemptListener = mock(TaskAttemptListener.class);
     taskHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     jobToken = (Token<JobTokenIdentifier>) mock(Token.class);
@@ -267,7 +267,7 @@ public class TestTaskImpl {
   @Test
   /**
    * Kill running attempt
-   * {@link TaskState#RUNNING}->{@link TaskState#RUNNING} 
+   * {@link TaskState#RUNNING}->{@link TaskState#RUNNING}
    */
   public void testKillRunningTaskAttempt() {
     LOG.info("--- START: testKillRunningTaskAttempt ---");
@@ -368,7 +368,7 @@ public class TestTaskImpl {
     assertTaskSucceededState();
 
   }
-  
+
   // TODO Add test to validate the correct commit attempt.
 
   @SuppressWarnings("rawtypes")
@@ -377,7 +377,7 @@ public class TestTaskImpl {
     private List<MockTaskAttemptImpl> taskAttempts = new LinkedList<MockTaskAttemptImpl>();
 
     public MockTaskImpl(TezVertexID vertexId, int partition,
-        EventHandler eventHandler, TezConfiguration conf,
+        EventHandler eventHandler, Configuration conf,
         TaskAttemptListener taskAttemptListener,
         Token<JobTokenIdentifier> jobToken, Credentials credentials,
         Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
@@ -434,7 +434,7 @@ public class TestTaskImpl {
 
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
         EventHandler eventHandler, TaskAttemptListener tal, int partition,
-        TezConfiguration conf, Token<JobTokenIdentifier> jobToken,
+        Configuration conf, Token<JobTokenIdentifier> jobToken,
         Credentials credentials, Clock clock, TaskHeartbeatHandler thh,
         AppContext appContext, ProcessorDescriptor processorDesc,
         TaskLocationHint locationHing, Resource resource,

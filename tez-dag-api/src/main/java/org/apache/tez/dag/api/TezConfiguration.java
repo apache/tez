@@ -41,7 +41,7 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_PREFIX = TEZ_PREFIX + "task.";
 
   public static final String TEZ_AM_STAGING_DIR = TEZ_PREFIX + "staging-dir";
-  public static final String TEZ_AM_STAGING_DIR_DEFAULT = "/tmp/hadoop-yarn/staging";
+  public static final String TEZ_AM_STAGING_DIR_DEFAULT = "/tmp/tez/staging";
 
   // TODO Should not be required once all tokens are handled via AppSubmissionContext
   public static final String JOB_SUBMIT_DIR = TEZ_PREFIX + "jobSubmitDir";
@@ -113,16 +113,16 @@ public class TezConfiguration extends Configuration {
           + "slowstart-vertex-scheduler.max-src-fraction";
   public static final float
           TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT = 0.75f;
-  
-  public static final String 
+
+  public static final String
           TEZ_AM_SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION = TEZ_AM_PREFIX
           + "slowstart-dag-scheduler.min-resource-fraction";
-  public static final float 
+  public static final float
           TEZ_AM_SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION_DEFAULT = 0.5f;
-  
+
   public static final String TEZ_AM_AGGRESSIVE_SCHEDULING = TEZ_AM_PREFIX +
       "aggressive.scheduling";
-  public static boolean TEZ_AM_AGGRESSIVE_SCHEDULING_DEFAULT = false;
+  public static boolean TEZ_AM_AGGRESSIVE_SCHEDULING_DEFAULT = true;
 
   /**
    * The complete path to the serialized dag plan file
@@ -132,21 +132,21 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_AM_PLAN_REMOTE_PATH = TEZ_AM_PREFIX
       + "dag-am-plan.remote.path";
-  
+
   public static final String TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX = TEZ_AM_PREFIX
       + "am-rm.heartbeat.interval-ms.max";
   public static final int TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX_DEFAULT = 1000;
-  
+
   public static final String TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX = TEZ_TASK_PREFIX
       + "get-task.sleep.interval-ms.max";
   public static final int TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT = 500;
-  
+
   /**
    * Configuration to specify whether container should be reused.
    */
   public static final String TEZ_AM_CONTAINER_REUSE_ENABLED = TEZ_AM_PREFIX
       + "container.reuse.enabled";
-  public static final boolean TEZ_AM_CONTAINER_REUSE_ENABLED_DEFAULT = false;
+  public static final boolean TEZ_AM_CONTAINER_REUSE_ENABLED_DEFAULT = true;
 
   /**
    * Whether to reuse containers for rack local tasks. Active only if reuse is
@@ -177,12 +177,12 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_CONTAINER_LOG_FILE_NAME = "syslog";
   public static final String TEZ_CONTAINER_ERR_FILE_NAME = "stderr";
   public static final String TEZ_CONTAINER_OUT_FILE_NAME = "stdout";
-      
-  
+
+
   public static final String TEZ_LIB_URIS =
       TEZ_PREFIX + "lib.uris";
 
   public static final String TEZ_APPLICATION_TYPE = "TEZ-MR*";
-  
+
   public static final String LOCAL_FRAMEWORK_NAME = "local-tez";
 }

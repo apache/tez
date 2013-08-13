@@ -40,7 +40,7 @@ import com.google.protobuf.BlockingService;
 
 public class DAGClientServer extends AbstractService {
   static final Log LOG = LogFactory.getLog(DAGClientServer.class);
-      
+
   DAGClientHandler realInstance;
   Server server;
   InetSocketAddress bindAddress;
@@ -49,26 +49,25 @@ public class DAGClientServer extends AbstractService {
     super("DAGClientRPCServer");
     this.realInstance = realInstance;
   }
-  
+
   @Override
   public void serviceStart() {
     try {
-      assert getConfig() instanceof TezConfiguration;
-      TezConfiguration conf = (TezConfiguration) getConfig();
+      Configuration conf = getConfig();
       InetSocketAddress addr = new InetSocketAddress(0);
-      
-      DAGClientAMProtocolBlockingPBServerImpl service = 
+
+      DAGClientAMProtocolBlockingPBServerImpl service =
           new DAGClientAMProtocolBlockingPBServerImpl(realInstance);
-      
-      BlockingService blockingService = 
+
+      BlockingService blockingService =
                 DAGClientAMProtocol.newReflectiveBlockingService(service);
-      
-      int numHandlers = conf.getInt(TezConfiguration.TEZ_AM_CLIENT_THREAD_COUNT, 
+
+      int numHandlers = conf.getInt(TezConfiguration.TEZ_AM_CLIENT_THREAD_COUNT,
                           TezConfiguration.TEZ_AM_CLIENT_THREAD_COUNT_DEFAULT);
-      
+
       String portRange = conf.get(TezConfiguration.TEZ_AM_CLIENT_AM_PORT_RANGE);
-      
-      server = createServer(DAGClientAMProtocolBlockingPB.class, addr, conf, 
+
+      server = createServer(DAGClientAMProtocolBlockingPB.class, addr, conf,
                             numHandlers, blockingService, portRange);
       server.start();
       bindAddress = NetUtils.getConnectAddress(server);
@@ -78,20 +77,20 @@ public class DAGClientServer extends AbstractService {
       throw new TezUncheckedException(e);
     }
   }
-  
+
   @Override
   public void serviceStop() {
     if(server != null) {
       server.stop();
     }
   }
-  
+
   public InetSocketAddress getBindAddress() {
     return bindAddress;
   }
-  
-  private Server createServer(Class<?> pbProtocol, InetSocketAddress addr, Configuration conf, 
-      int numHandlers, 
+
+  private Server createServer(Class<?> pbProtocol, InetSocketAddress addr, Configuration conf,
+      int numHandlers,
       BlockingService blockingService, String portRangeConfig) throws IOException {
     RPC.setProtocolEngine(conf, pbProtocol, ProtobufRpcEngine.class);
     RPC.Server server = new RPC.Builder(conf).setProtocol(pbProtocol)

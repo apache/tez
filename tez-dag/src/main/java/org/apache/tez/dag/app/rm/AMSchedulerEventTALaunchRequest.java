@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -19,13 +19,13 @@ package org.apache.tez.dag.app.rm;
 
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.TezTaskContext;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
@@ -34,7 +34,7 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
 
   // TODO Get rid of remoteTask from here. Can be forgottent after it has been assigned.
   //.... Maybe have the Container talk to the TaskAttempt to pull in the remote task.
-  
+
   private final TezTaskAttemptID attemptId;
   private final Resource capability;
   private final Map<String, LocalResource> localResources;
@@ -46,15 +46,15 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   private final String[] racks;
   private final Priority priority;
   private final Map<String, String> environment;
-  private final TezConfiguration conf;
-  
+  private final Configuration conf;
+
   public AMSchedulerEventTALaunchRequest(TezTaskAttemptID attemptId,
       Resource capability,
       Map<String, LocalResource> localResources,
       TezTaskContext remoteTaskContext, TaskAttempt ta,
       Credentials credentials, Token<JobTokenIdentifier> jobToken,
       String[] hosts, String[] racks, Priority priority,
-      Map<String, String> environment, TezConfiguration conf) {
+      Map<String, String> environment, Configuration conf) {
     super(AMSchedulerEventType.S_TA_LAUNCH_REQUEST);
     this.attemptId = attemptId;
     this.capability = capability;
@@ -81,27 +81,27 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   public String[] getHosts() {
     return hosts;
   }
-  
+
   public String[] getRacks() {
     return racks;
   }
-  
+
   public Priority getPriority() {
     return priority;
   }
-  
+
   public TezTaskContext getRemoteTaskContext() {
     return remoteTaskContext;
   }
-  
+
   public TaskAttempt getTaskAttempt() {
     return this.taskAttempt;
   }
-  
+
   public Credentials getCredentials() {
     return this.credentials;
   }
-  
+
   public Token<JobTokenIdentifier> getJobToken() {
     return this.jobToken;
   }
@@ -109,12 +109,12 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   public Map<String, LocalResource> getLocalResources() {
     return this.localResources;
   }
-  
+
   public Map<String, String> getEnvironment() {
     return this.environment;
   }
-  
-  public TezConfiguration getConf() {
+
+  public Configuration getConf() {
     return this.conf;
   }
 
@@ -124,7 +124,7 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   /*Requirements to determine a container request.
    * + Data-local + Rack-local hosts.
    * + Resource capability
-   * + Env - mapreduce.map.env / mapreduce.reduce.env can change. M/R log level. 
+   * + Env - mapreduce.map.env / mapreduce.reduce.env can change. M/R log level.
    * - JobConf and JobJar file - same location.
    * - Distributed Cache - identical for map / reduce tasks at the moment.
    * - Credentials, tokens etc are identical.

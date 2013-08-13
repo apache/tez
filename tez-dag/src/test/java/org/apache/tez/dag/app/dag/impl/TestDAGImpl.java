@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -80,7 +81,7 @@ public class TestDAGImpl {
   private static final Log LOG = LogFactory.getLog(TestDAGImpl.class);
   private DAGPlan dagPlan;
   private TezDAGID dagId;
-  private TezConfiguration conf;
+  private Configuration conf;
   private DrainDispatcher dispatcher;
   private Credentials fsTokens;
   private AppContext appContext;
@@ -136,7 +137,7 @@ public class TestDAGImpl {
       ((EventHandler<TaskEvent>)task).handle(event);
     }
   }
-  
+
   private class VertexEventDispatcher
       implements EventHandler<VertexEvent> {
 
@@ -475,7 +476,9 @@ public class TestDAGImpl {
 
   @Before
   public void setup() {
-    conf = new TezConfiguration();
+    conf = new Configuration();
+    conf.setBoolean(TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING, false);
+    conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
     appAttemptId = ApplicationAttemptId.newInstance(
         ApplicationId.newInstance(100, 1), 1);
     dagId = new TezDAGID(appAttemptId.getApplicationId(), 1);
@@ -712,8 +715,8 @@ public class TestDAGImpl {
   }
 
   // a dag.kill() on an active DAG races with vertices all succeeding.
-  // if a JOB_KILL is processed while dag is in running state, it should end in KILLED, 
-  // regardless of whether all vertices complete 
+  // if a JOB_KILL is processed while dag is in running state, it should end in KILLED,
+  // regardless of whether all vertices complete
   //
   // Final state:
   //   DAG is in KILLED state, with killTrigger = USER_KILL

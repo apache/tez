@@ -59,7 +59,7 @@ import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptEnded;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptSucceeded;
 
 public class TaskSchedulerEventHandler extends AbstractService
-                                         implements TaskSchedulerAppCallback, 
+                                         implements TaskSchedulerAppCallback,
                                                EventHandler<AMSchedulerEvent> {
   static final Log LOG = LogFactory.getLog(TaskSchedulerEventHandler.class);
 
@@ -86,24 +86,24 @@ public class TaskSchedulerEventHandler extends AbstractService
     this.eventHandler = eventHandler;
     this.clientService = clientService;
   }
-  
+
   public Map<ApplicationAccessType, String> getApplicationAcls() {
     return appAcls;
   }
-  
+
   public void setSignalled(boolean isSignalled) {
     this.isSignalled = isSignalled;
     LOG.info("TaskScheduler notified that iSignalled was : " + isSignalled);
   }
-    
+
   public Resource getAvailableResources() {
     return taskScheduler.getAvailableResources();
   }
-  
+
   public Resource getTotalResources() {
     return taskScheduler.getTotalResources();
   }
-  
+
   public synchronized void handleEvent(AMSchedulerEvent sEvent) {
     LOG.info("Processing the event " + sEvent.toString());
     switch (sEvent.getType()) {
@@ -121,7 +121,7 @@ public class TaskSchedulerEventHandler extends AbstractService
         handleTASucceeded(event);
         break;
       default:
-        throw new TezUncheckedException("Unexecpted TA_ENDED state: " + event.getState()); 
+        throw new TezUncheckedException("Unexecpted TA_ENDED state: " + event.getState());
       }
       break;
     case S_CONTAINER_DEALLOCATE:
@@ -139,7 +139,7 @@ public class TaskSchedulerEventHandler extends AbstractService
       break;
     }
   }
-  
+
   @Override
   public void handle(AMSchedulerEvent event) {
     int qSize = eventQueue.size();
@@ -162,19 +162,19 @@ public class TaskSchedulerEventHandler extends AbstractService
   private void sendEvent(Event<?> event) {
     eventHandler.handle(event);
   }
-  
-  
+
+
   private void handleContainerDeallocate(
                                   AMSchedulerEventDeallocateContainer event) {
     ContainerId containerId = event.getContainerId();
     // TODO what happens to the task that was connected to this container?
     // current assumption is that it will eventually call handleTaStopRequest
-    //TaskAttempt taskAttempt = (TaskAttempt) 
+    //TaskAttempt taskAttempt = (TaskAttempt)
     taskScheduler.deallocateContainer(containerId);
     // TODO does this container need to be stopped via C_STOP_REQUEST
     sendEvent(new AMContainerEventStopRequest(containerId));
   }
-  
+
   private void handleTAUnsuccessfulEnd(AMSchedulerEventTAEnded event) {
     /*MRxTaskAttemptID aId = event.getAttemptID();
     attemptToLaunchRequestMap.remove(aId);
@@ -204,14 +204,14 @@ public class TaskSchedulerEventHandler extends AbstractService
         }
       }
     }*/
-    
+
     TaskAttempt attempt = event.getAttempt();
     Container container = taskScheduler.deallocateTask(attempt, false);
     // use stored value of container id in case the scheduler has removed this
-    // assignment because the task has been deallocated earlier. 
+    // assignment because the task has been deallocated earlier.
     // retroactive case
     ContainerId attemptContainerId = attempt.getAssignedContainerID();
-    
+
     if(container != null) {
       // use scheduler container since it exists
       ContainerId containerId = container.getId();
@@ -223,17 +223,17 @@ public class TaskSchedulerEventHandler extends AbstractService
     }
 
     if (attemptContainerId != null) {
-      // TODO either ways send the necessary events 
+      // TODO either ways send the necessary events
       // Ask the container to stop.
       sendEvent(new AMContainerEventStopRequest(attemptContainerId));
       // Inform the Node - the task has asked to be STOPPED / has already
       // stopped.
       sendEvent(new AMNodeEventTaskAttemptEnded(appContext.getAllContainers().
-          get(attemptContainerId).getContainer().getNodeId(), attemptContainerId,  
+          get(attemptContainerId).getContainer().getNodeId(), attemptContainerId,
           attempt.getID(), event.getState() == TaskAttemptState.FAILED));
     }
   }
-  
+
   private void handleTASucceeded(AMSchedulerEventTAEnded event) {
     /*
     // TODO XXX Remember the assigned containerId even after task success.
@@ -251,7 +251,7 @@ public class TaskSchedulerEventHandler extends AbstractService
       LOG.warn("Received TaskAttemptSucceededEvent for unmapped TaskAttempt: "
           + event.getAttemptID() + ". Full event: " + event);
     }*/
-    
+
     TaskAttempt attempt = event.getAttempt();
     ContainerId usedContainerId = event.getUsedContainerId();
 
@@ -264,7 +264,7 @@ public class TaskSchedulerEventHandler extends AbstractService
           get(usedContainerId).getContainer().getNodeId(), usedContainerId,
           event.getAttemptID()));
     }
-    
+
     Container container = taskScheduler.deallocateTask(attempt, true);
     if(container != null) {
       ContainerId containerId = container.getId();
@@ -306,14 +306,14 @@ public class TaskSchedulerEventHandler extends AbstractService
         TaskType.MAP, mapResourceReqt);
     event.getCapability().setMemory(mapResourceReqt);*/
     TaskAttempt taskAttempt = event.getTaskAttempt();
-    taskScheduler.allocateTask(taskAttempt, 
-                               event.getCapability(), 
-                               event.getHosts(), 
-                               event.getRacks(), 
+    taskScheduler.allocateTask(taskAttempt,
+                               event.getCapability(),
+                               event.getHosts(),
+                               event.getRacks(),
                                event.getPriority(),
                                event);
   }
-  
+
 
   protected TaskScheduler createTaskScheduler(String host, int port,
       String trackingUrl) {
@@ -366,29 +366,31 @@ public class TaskSchedulerEventHandler extends AbstractService
     this.stopEventHandling = true;
     if (eventHandlingThread != null)
       eventHandlingThread.interrupt();
-    taskScheduler.stop();
+    if (taskScheduler != null) {
+      taskScheduler.stop();
+    }
   }
-  
+
   // TaskSchedulerAppCallback methods
   @Override
-  public synchronized void taskAllocated(Object task, 
-                                           Object appCookie, 
-                                           Container container) {    
+  public synchronized void taskAllocated(Object task,
+                                           Object appCookie,
+                                           Container container) {
     ContainerId containerId = container.getId();
     if (appContext.getAllContainers().addContainerIfNew(container)) {
       appContext.getAllNodes().nodeSeen(container.getNodeId());
       sendEvent(new AMNodeEventContainerAllocated(container
           .getNodeId(), container.getId()));
     }
-    
-    AMSchedulerEventTALaunchRequest event = 
+
+    AMSchedulerEventTALaunchRequest event =
                          (AMSchedulerEventTALaunchRequest) appCookie;
     TaskAttempt taskAttempt = event.getTaskAttempt();
     // TODO - perhaps check if the task still needs this container
-    // because the deallocateTask downcall may have raced with the 
+    // because the deallocateTask downcall may have raced with the
     // taskAllocated() upcall
     assert task.equals(taskAttempt);
-    if (appContext.getAllContainers().get(containerId).getState() 
+    if (appContext.getAllContainers().get(containerId).getState()
         == AMContainerState.ALLOCATED) {
 
       sendEvent(new AMContainerEventLaunchRequest(
@@ -411,7 +413,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     // Inform the Containers about completion.
     sendEvent(new AMContainerEventCompleted(containerStatus));
   }
-  
+
   @SuppressWarnings("unchecked")
   @Override
   public synchronized void nodesUpdated(List<NodeReport> updatedNodes) {
@@ -473,7 +475,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     /*String historyUrl = JobHistoryUtils.getHistoryUrl(getConfig(),
         appContext.getApplicationID());
     LOG.info("History url is " + historyUrl);*/
-    
+
     return new AppFinalStatus(finishState, sb.toString(), historyUrl);
   }
 

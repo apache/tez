@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -58,7 +59,6 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
@@ -134,7 +134,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = new TezTaskID(
         new TezVertexID(new TezDAGID("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        mock(TaskAttemptListener.class), 1, new TezConfiguration(),
+        mock(TaskAttemptListener.class), 1, new Configuration(),
         mock(Token.class), new Credentials(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
         MAP_PROCESSOR_DESC, locationHint, Resource.newInstance(1024, 1),
@@ -180,7 +180,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = new TezTaskID(
         new TezVertexID(new TezDAGID("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        mock(TaskAttemptListener.class), 1, new TezConfiguration(),
+        mock(TaskAttemptListener.class), 1, new Configuration(),
         mock(Token.class), new Credentials(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
         MAP_PROCESSOR_DESC, locationHint, Resource.newInstance(1024, 1),
@@ -316,9 +316,9 @@ public class TestTaskAttempt {
     when(taListener.getAddress()).thenReturn(
         new InetSocketAddress("localhost", 0));
 
-    TezConfiguration tezConf = new TezConfiguration();
-    tezConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
-    tezConf.setBoolean("fs.file.impl.disable.cache", true);
+    Configuration taskConf = new Configuration();
+    taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
+    taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
     TaskLocationHint locationHint = new TaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
@@ -331,7 +331,7 @@ public class TestTaskAttempt {
     doReturn(new ClusterInfo()).when(mockAppContext).getClusterInfo();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, 1, tezConf, mock(Token.class), new Credentials(),
+        taListener, 1, taskConf, mock(Token.class), new Credentials(),
         new SystemClock(), mock(TaskHeartbeatHandler.class), mockAppContext,
         MAP_PROCESSOR_DESC, locationHint, resource, localResources,
         environment, javaOpts, false);
@@ -370,9 +370,9 @@ public class TestTaskAttempt {
     when(taListener.getAddress()).thenReturn(
         new InetSocketAddress("localhost", 0));
 
-    TezConfiguration tezConf = new TezConfiguration();
-    tezConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
-    tezConf.setBoolean("fs.file.impl.disable.cache", true);
+    Configuration taskConf = new Configuration();
+    taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
+    taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
     TaskLocationHint locationHint = new TaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
@@ -398,7 +398,7 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, 1, tezConf, mock(Token.class), new Credentials(),
+        taListener, 1, taskConf, mock(Token.class), new Credentials(),
         new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
         MAP_PROCESSOR_DESC, locationHint, resource, localResources,
         environment, javaOpts, false);
@@ -465,9 +465,9 @@ public class TestTaskAttempt {
     when(taListener.getAddress()).thenReturn(
         new InetSocketAddress("localhost", 0));
 
-    TezConfiguration tezConf = new TezConfiguration();
-    tezConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
-    tezConf.setBoolean("fs.file.impl.disable.cache", true);
+    Configuration taskConf = new Configuration();
+    taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
+    taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
     TaskLocationHint locationHint = new TaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
@@ -493,7 +493,7 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, 1, tezConf, mock(Token.class), new Credentials(),
+        taListener, 1, taskConf, mock(Token.class), new Credentials(),
         new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
         MAP_PROCESSOR_DESC, locationHint, resource, localResources,
         environment, javaOpts, false);
@@ -530,9 +530,9 @@ public class TestTaskAttempt {
     when(taListener.getAddress()).thenReturn(
         new InetSocketAddress("localhost", 0));
 
-    TezConfiguration tezConf = new TezConfiguration();
-    tezConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
-    tezConf.setBoolean("fs.file.impl.disable.cache", true);
+    Configuration taskConf = new Configuration();
+    taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
+    taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
     TaskLocationHint locationHint = new TaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
@@ -558,7 +558,7 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, 1, tezConf, mock(Token.class), new Credentials(),
+        taListener, 1, taskConf, mock(Token.class), new Credentials(),
         new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
         MAP_PROCESSOR_DESC, locationHint, resource, localResources,
         environment, javaOpts, false);
@@ -597,9 +597,9 @@ public class TestTaskAttempt {
     when(taListener.getAddress()).thenReturn(
         new InetSocketAddress("localhost", 0));
 
-    TezConfiguration tezConf = new TezConfiguration();
-    tezConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
-    tezConf.setBoolean("fs.file.impl.disable.cache", true);
+    Configuration taskConf = new Configuration();
+    taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
+    taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
     TaskLocationHint locationHint = new TaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
@@ -625,7 +625,7 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, 1, tezConf, mock(Token.class), new Credentials(),
+        taListener, 1, taskConf, mock(Token.class), new Credentials(),
         new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
         MAP_PROCESSOR_DESC, locationHint, resource, localResources,
         environment, javaOpts, false);
@@ -690,9 +690,9 @@ public class TestTaskAttempt {
     when(taListener.getAddress()).thenReturn(
         new InetSocketAddress("localhost", 0));
 
-    TezConfiguration tezConf = new TezConfiguration();
-    tezConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
-    tezConf.setBoolean("fs.file.impl.disable.cache", true);
+    Configuration taskConf = new Configuration();
+    taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
+    taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
     TaskLocationHint locationHint = new TaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
@@ -719,7 +719,7 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, 1, tezConf, mock(Token.class), new Credentials(),
+        taListener, 1, taskConf, mock(Token.class), new Credentials(),
         new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
         MAP_PROCESSOR_DESC, locationHint, resource, localResources,
         environment, javaOpts, false);
@@ -791,7 +791,7 @@ public class TestTaskAttempt {
 
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
         EventHandler eventHandler, TaskAttemptListener tal, int partition,
-        TezConfiguration conf, Token<JobTokenIdentifier> jobToken,
+        Configuration conf, Token<JobTokenIdentifier> jobToken,
         Credentials credentials, Clock clock,
         TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
         ProcessorDescriptor processorDesc, TaskLocationHint locationHint,

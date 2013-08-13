@@ -150,7 +150,7 @@ public class DAGAppMaster extends AbstractService {
   private AMContainerMap containers;
   private AMNodeMap nodes;
   private AppContext context;
-  private TezConfiguration conf;
+  private Configuration conf;
   private Dispatcher dispatcher;
   private ContainerLauncher containerLauncher;
   private TaskCleaner taskCleaner;
@@ -163,8 +163,8 @@ public class DAGAppMaster extends AbstractService {
   private VertexEventDispatcher vertexEventDispatcher;
   private TaskSchedulerEventHandler taskSchedulerEventHandler;
   private HistoryEventHandler historyEventHandler;
-  
-  private DAGAppMasterShutdownHandler shutdownHandler = 
+
+  private DAGAppMasterShutdownHandler shutdownHandler =
       new DAGAppMasterShutdownHandler();
 
   private DAGAppMasterState state;
@@ -175,9 +175,9 @@ public class DAGAppMaster extends AbstractService {
   private DAG dag;
   private Credentials fsTokens = new Credentials(); // Filled during init
   private UserGroupInformation currentUser; // Will be setup during init
-  
+
   // must be LinkedHashMap to preserve order of service addition
-  Map<Service, ServiceWithDependency> services = 
+  Map<Service, ServiceWithDependency> services =
       new LinkedHashMap<Service, ServiceWithDependency>();
 
 
@@ -207,13 +207,11 @@ public class DAGAppMaster extends AbstractService {
   }
 
   @Override
-  public void serviceInit(final Configuration tezConf) throws Exception {
+  public void serviceInit(final Configuration conf) throws Exception {
 
     this.state = DAGAppMasterState.INITED;
 
-    assert tezConf instanceof TezConfiguration;
-
-    this.conf = (TezConfiguration) tezConf;
+    this.conf = conf;
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
 
     downloadTokensAndSetupUGI(conf);
@@ -308,8 +306,8 @@ public class DAGAppMaster extends AbstractService {
       }
       break;
     case DAG_FINISHED:
-      setStateOnDAGCompletion();      
-      LOG.info("Shutting down on completion of dag:" + 
+      setStateOnDAGCompletion();
+      LOG.info("Shutting down on completion of dag:" +
               ((DAGAppMasterEventDAGFinished)event).getDAGId().toString());
       shutdownHandler.shutdown();
       break;
@@ -335,19 +333,19 @@ public class DAGAppMaster extends AbstractService {
         LOG.info("Ignoring multiple shutdown events");
         return;
       }
-      
+
       LOG.info("Handling DAGAppMaster shutdown");
-      
+
       AMShutdownRunnable r = new AMShutdownRunnable();
       Thread t = new Thread(r, "AMShutdownThread");
       t.start();
     }
-    
+
     private class AMShutdownRunnable implements Runnable {
       @Override
       public void run() {
         // TODO:currently just wait for some time so clients can know the
-        // final states. Will be removed once RM come on. TEZ-160.        
+        // final states. Will be removed once RM come on. TEZ-160.
         try {
           Thread.sleep(5000);
         } catch (InterruptedException e) {
@@ -391,7 +389,7 @@ public class DAGAppMaster extends AbstractService {
    * Obtain the tokens needed by the job and put them in the UGI
    * @param conf
    */
-  protected void downloadTokensAndSetupUGI(TezConfiguration conf) {
+  protected void downloadTokensAndSetupUGI(Configuration conf) {
     // TODO remove - TEZ-71
     try {
       this.currentUser = UserGroupInformation.getCurrentUser();
@@ -424,20 +422,20 @@ public class DAGAppMaster extends AbstractService {
 
   protected void addIfService(Object object, boolean addDispatcher) {
     if (object instanceof Service) {
-      Service service = (Service) object; 
-      ServiceWithDependency sd = new ServiceWithDependency(service); 
+      Service service = (Service) object;
+      ServiceWithDependency sd = new ServiceWithDependency(service);
       services.put(service, sd);
       if(addDispatcher) {
         addIfServiceDependency(service, dispatcher);
       }
     }
   }
-  
+
   protected void addIfServiceDependency(Object object, Object dependency) {
     if (object instanceof Service && dependency instanceof Service) {
       Service service = (Service) object;
       Service dependencyService = (Service) dependency;
-      ServiceWithDependency sd = services.get(service); 
+      ServiceWithDependency sd = services.get(service);
       sd.dependencies.add(dependencyService);
       dependencyService.registerServiceListener(sd);
     }
@@ -451,18 +449,19 @@ public class DAGAppMaster extends AbstractService {
   }
 
   protected TaskHeartbeatHandler createTaskHeartbeatHandler(AppContext context,
-      TezConfiguration conf) {
+      Configuration conf) {
     TaskHeartbeatHandler thh = new TaskHeartbeatHandler(context, conf.getInt(
         TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT,
         TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT));
     return thh;
   }
 
-  protected ContainerHeartbeatHandler createContainerHeartbeatHandler(AppContext context,
-      TezConfiguration conf) {
-    ContainerHeartbeatHandler chh = new ContainerHeartbeatHandler(context, conf.getInt(
-        TezConfiguration.TEZ_AM_CONTAINER_LISTENER_THREAD_COUNT,
-        TezConfiguration.TEZ_AM_CONTAINER_LISTENER_THREAD_COUNT_DEFAULT));
+  protected ContainerHeartbeatHandler createContainerHeartbeatHandler(
+      AppContext context, Configuration conf) {
+    ContainerHeartbeatHandler chh = new ContainerHeartbeatHandler(context,
+        conf.getInt(
+            TezConfiguration.TEZ_AM_CONTAINER_LISTENER_THREAD_COUNT,
+            TezConfiguration.TEZ_AM_CONTAINER_LISTENER_THREAD_COUNT_DEFAULT));
     return chh;
   }
 
@@ -595,10 +594,10 @@ public class DAGAppMaster extends AbstractService {
       if(!dagId.equals(dag.getID())) {
         throw new TezException("Unknown dagId: " + dagIdStr);
       }
-      
+
       return dag;
     }
-    
+
     public void tryKillDAG(String dagIdStr)
         throws TezException {
       DAG dag = getDAG(dagIdStr);
@@ -611,22 +610,22 @@ public class DAGAppMaster extends AbstractService {
   private class RunningAppContext implements AppContext {
 
     private DAG dag;
-    private final TezConfiguration conf;
+    private final Configuration conf;
     private final ClusterInfo clusterInfo = new ClusterInfo();
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock rLock = rwLock.readLock();
     private final Lock wLock = rwLock.writeLock();
-    public RunningAppContext(TezConfiguration config) {
+    public RunningAppContext(Configuration config) {
       this.conf = config;
     }
-    
+
     @Override
     public DAGAppMaster getAppMaster() {
       return DAGAppMaster.this;
     }
-    
+
     @Override
-    public TezConfiguration getConf() {
+    public Configuration getConf() {
       return conf;
     }
 
@@ -689,7 +688,7 @@ public class DAGAppMaster extends AbstractService {
     public AMNodeMap getAllNodes() {
       return nodes;
     }
-    
+
     @Override
     public TaskSchedulerEventHandler getTaskScheduler() {
       return taskSchedulerEventHandler;
@@ -703,7 +702,7 @@ public class DAGAppMaster extends AbstractService {
       }
       return taskSchedulerEventHandler.getApplicationAcls();
     }
-    
+
     @Override
     public TezDAGID getDAGID() {
       try {
@@ -726,7 +725,7 @@ public class DAGAppMaster extends AbstractService {
         wLock.unlock();
       }
     }
-    
+
   }
 
   private class ServiceWithDependency implements ServiceStateChangeListener {
@@ -737,14 +736,15 @@ public class DAGAppMaster extends AbstractService {
     List<Service> dependencies = new ArrayList<Service>();
     AtomicInteger dependenciesStarted = new AtomicInteger(0);
     volatile boolean canStart = false;
+    volatile boolean dependenciesFailed = false;
 
     @Override
     public void stateChanged(Service dependency) {
       if(LOG.isDebugEnabled()) {
-        LOG.debug("Service dependency: " + dependency.getName() + " notify" + 
+        LOG.debug("Service dependency: " + dependency.getName() + " notify" +
                   " for service: " + service.getName());
       }
-      if(dependency.isInState(Service.STATE.STARTED)) {
+      if (dependency.isInState(Service.STATE.STARTED)) {
         if(dependenciesStarted.incrementAndGet() == dependencies.size()) {
           synchronized(this) {
             if(LOG.isDebugEnabled()) {
@@ -754,14 +754,30 @@ public class DAGAppMaster extends AbstractService {
             this.notifyAll();
           }
         }
+      } else if (!service.isInState(Service.STATE.STARTED)
+          && dependency.getFailureState() != null) {
+        synchronized(this) {
+          dependenciesFailed = true;
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("Service: " + service.getName() + " will fail to start"
+                + " as dependent service " + dependency.getName()
+                + " failed to start");
+          }
+          this.notifyAll();
+        }
       }
     }
-    
+
     void start() throws InterruptedException {
       if(dependencies.size() > 0) {
         synchronized(this) {
           while(!canStart) {
             this.wait(1000*60*3L);
+            if (dependenciesFailed) {
+              throw new TezUncheckedException("Skipping service start for "
+                  + service.getName()
+                  + " as dependencies failed to start");
+            }
           }
         }
       }
@@ -770,8 +786,8 @@ public class DAGAppMaster extends AbstractService {
       }
       for(Service dependency : dependencies) {
         if(!dependency.isInState(Service.STATE.STARTED)){
-          LOG.info("Service: " + service.getName() + " not started because " 
-                   + " service: " + dependency.getName() + 
+          LOG.info("Service: " + service.getName() + " not started because "
+                   + " service: " + dependency.getName() +
                    " is in state: " + dependency.getServiceState());
           return;
         }
@@ -779,7 +795,7 @@ public class DAGAppMaster extends AbstractService {
       service.start();
     }
   }
-  
+
   private class ServiceThread extends Thread {
     final ServiceWithDependency serviceWithDependency;
     Throwable error = null;
@@ -787,10 +803,10 @@ public class DAGAppMaster extends AbstractService {
       this.serviceWithDependency = serviceWithDependency;
       this.setName("ServiceThread:" + serviceWithDependency.service.getName());
     }
-    
+
     public void run() {
       if(LOG.isDebugEnabled()) {
-        LOG.debug("Starting thread " + serviceWithDependency.service.getName()); 
+        LOG.debug("Starting thread " + serviceWithDependency.service.getName());
       }
       long start = System.currentTimeMillis();
       try {
@@ -799,9 +815,13 @@ public class DAGAppMaster extends AbstractService {
         error = t;
       } finally {
         if(LOG.isDebugEnabled()) {
-          LOG.debug("Service: " + serviceWithDependency.service.getName() + 
+          LOG.debug("Service: " + serviceWithDependency.service.getName() +
               " started in " + (System.currentTimeMillis() - start) + "ms");
         }
+      }
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Service thread completed for "
+            + serviceWithDependency.service.getName());
       }
     }
   }
@@ -819,16 +839,20 @@ public class DAGAppMaster extends AbstractService {
         ServiceThread st = new ServiceThread(sd);
         threads.add(st);
       }
+
       for(ServiceThread st : threads) {
         st.start();
       }
       for(ServiceThread st : threads) {
+        if(LOG.isDebugEnabled()) {
+          LOG.debug("Waiting for service thread to join for " + st.getName());
+        }
         st.join();
         if(st.error != null && firstError == null) {
-            firstError = st.error;
+          firstError = st.error;
         }
       }
-      
+
       if(firstError != null) {
         throw ServiceStateException.convert(firstError);
       }
@@ -839,8 +863,8 @@ public class DAGAppMaster extends AbstractService {
       e.printStackTrace();
     }
   }
-  
-  void initServices(TezConfiguration conf) {
+
+  void initServices(Configuration conf) {
     for (ServiceWithDependency sd : services.values()) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Initing service : " + sd.service);
@@ -848,7 +872,7 @@ public class DAGAppMaster extends AbstractService {
       sd.service.init(conf);
     }
   }
-  
+
   void stopServices() {
     // stop in reverse order of start
     List<Service> serviceList = new ArrayList<Service>(services.size());
@@ -871,7 +895,7 @@ public class DAGAppMaster extends AbstractService {
       throw ServiceStateException.convert(firstException);
     }
   }
-  
+
   @SuppressWarnings("unchecked")
   @Override
   public void serviceStart() throws Exception {
@@ -892,7 +916,7 @@ public class DAGAppMaster extends AbstractService {
     dispatcher.getEventHandler().handle(
         new DAGHistoryEvent(startEvent));
   }
-  
+
   @Override
   public void serviceStop() throws Exception {
     stopServices();
@@ -974,9 +998,9 @@ public class DAGAppMaster extends AbstractService {
 
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
 
-      TezConfiguration conf = new TezConfiguration(new YarnConfiguration());
+      Configuration conf = new Configuration(new YarnConfiguration());
       TezUtils.addUserSpecifiedTezConfiguration(conf);
-      
+
       String jobUserName = System
           .getenv(ApplicationConstants.Environment.USER.name());
 
@@ -1031,7 +1055,7 @@ public class DAGAppMaster extends AbstractService {
       appMaster.stop();
     }
   }
-  
+
   private void startDAG() throws IOException {
     FileInputStream dagPBBinaryStream = null;
     try {
@@ -1090,7 +1114,7 @@ public class DAGAppMaster extends AbstractService {
 
   // TODO XXX Does this really need to be a YarnConfiguration ?
   protected static void initAndStartAppMaster(final DAGAppMaster appMaster,
-      final TezConfiguration conf, String jobUserName) throws IOException,
+      final Configuration conf, String jobUserName) throws IOException,
       InterruptedException {
     Credentials credentials =
         UserGroupInformation.getCurrentUser().getCredentials();

@@ -27,6 +27,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.MRVertexOutputCommitter;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
@@ -105,7 +106,7 @@ public class TestVertexImpl {
   private TaskHeartbeatHandler thh;
   private AppContext appContext;
   private VertexLocationHint vertexLocationHint;
-  private TezConfiguration conf = new TezConfiguration();
+  private Configuration conf;
   private Map<String, EdgeProperty> edges;
 
   private TaskEventDispatcher taskEventDispatcher;
@@ -169,7 +170,7 @@ public class TestVertexImpl {
       ((EventHandler<TaskEvent>)task).handle(event);
     }
   }
-  
+
   private class DagEventDispatcher implements EventHandler<DAGEvent> {
     public Map<DAGEventType, Integer> eventCount =
         new HashMap<DAGEventType, Integer>();
@@ -229,7 +230,7 @@ public class TestVertexImpl {
         .build();
     return dag;
   }
- 
+
 
   private DAGPlan createTestDAGPlan() {
     LOG.info("Setting up dag plan");
@@ -502,6 +503,9 @@ public class TestVertexImpl {
 
   @Before
   public void setup() {
+    conf = new Configuration();
+    conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
+    conf.setBoolean(TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING, false);
     appAttemptId = ApplicationAttemptId.newInstance(
         ApplicationId.newInstance(100, 1), 1);
     dagId = new TezDAGID(appAttemptId.getApplicationId(), 1);
@@ -979,7 +983,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, v6.getState());
     Assert.assertEquals(4, v6.successSourceAttemptCompletionEventNoMap.size());
     Assert.assertEquals(6, v6.getTaskAttemptCompletionEvents(0, 100).length);
-    
+
   }
 
   @SuppressWarnings("unchecked")

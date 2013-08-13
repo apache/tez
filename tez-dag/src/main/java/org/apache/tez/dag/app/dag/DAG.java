@@ -21,18 +21,18 @@ package org.apache.tez.dag.app.dag;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 
 /**
- * Main interface to interact with the job.  
+ * Main interface to interact with the job.
  */
 public interface DAG {
 
@@ -44,7 +44,7 @@ public interface DAG {
   /**
    * Get all the counters of this DAG. This includes job-counters aggregated
    * together with the counters of each task. This creates a clone of the
-   * Counters, so use this judiciously.  
+   * Counters, so use this judiciously.
    * @return job-counters and aggregate task-counters
    */
   TezCounters getAllCounters();
@@ -58,15 +58,15 @@ public interface DAG {
   boolean isUber();
   String getUserName();
   String getQueueName();
-  
-  TezConfiguration getConf();
-  
+
+  Configuration getConf();
+
   DAGPlan getJobPlan();
   DAGStatusBuilder getDAGStatus();
   VertexStatusBuilder getVertexStatus(String vertexName);
-  
+
   /**
-   * @return the ACLs for this job for each type of JobACL given. 
+   * @return the ACLs for this job for each type of JobACL given.
    */
   Map<ApplicationAccessType, String> getJobACLs();
 

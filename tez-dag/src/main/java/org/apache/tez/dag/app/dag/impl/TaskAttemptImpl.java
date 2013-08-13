@@ -31,6 +31,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
@@ -55,7 +56,6 @@ import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
@@ -113,7 +113,7 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   static final TezCounters EMPTY_COUNTERS = new TezCounters();
 
-  protected final TezConfiguration conf;
+  protected final Configuration conf;
   protected final int partition;
   @SuppressWarnings("rawtypes")
   protected EventHandler eventHandler;
@@ -140,7 +140,7 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   private TaskAttemptStatus reportedStatus;
   private DAGCounter localityCounter;
-  
+
   // Used to store locality information when
   Set<String> taskHosts = new HashSet<String>();
   Set<String> taskRacks = new HashSet<String>();
@@ -260,7 +260,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   @SuppressWarnings("rawtypes")
   public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
       TaskAttemptListener tal, int partition,
-      TezConfiguration conf,
+      Configuration conf,
       Token<JobTokenIdentifier> jobToken, Credentials credentials, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       ProcessorDescriptor processorDescriptor, TaskLocationHint locationHint,
@@ -298,8 +298,8 @@ public class TaskAttemptImpl implements TaskAttempt,
   public TezTaskAttemptID getID() {
     return attemptId;
   }
-  
-  @Override 
+
+  @Override
   public TezTaskID getTaskID() {
     return attemptId.getTaskID();
   }
@@ -654,7 +654,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     } else if (taState == TaskAttemptStateInternal.KILLED) {
       jce.addCounterUpdate(DAGCounter.NUM_KILLED_TASKS, 1);
     }
-    
+
 //    long slotMillisIncrement = computeSlotMillis(taskAttempt);
 //    if (!taskAlreadyCompleted) {
 //      // dont double count the elapsed time
@@ -893,10 +893,10 @@ public class TaskAttemptImpl implements TaskAttempt,
         }
       }
       requestRacks = racks.toArray(new String[racks.size()]);
-      
+
       ta.taskHosts.addAll(Arrays.asList(requestHosts));
       ta.taskRacks = racks;
-      
+
       // Ask for hosts / racks only if not a re-scheduled task.
       if (ta.isRescheduled) {
         requestHosts = new String[0];
@@ -1012,8 +1012,8 @@ public class TaskAttemptImpl implements TaskAttempt,
           ta.localityCounter = DAGCounter.OTHER_LOCAL_TASKS;
         }
       }
-      
-      
+
+
       // Inform the speculator about the container assignment.
       //ta.maybeSendSpeculatorContainerNoLongerRequired();
       // Inform speculator about startTime

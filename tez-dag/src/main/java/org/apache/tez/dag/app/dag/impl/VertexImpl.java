@@ -35,6 +35,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.MRVertexOutputCommitter;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
@@ -150,7 +151,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private TezCounters fullCounters = null;
   private Resource taskResource;
 
-  private TezConfiguration conf;
+  private Configuration conf;
 
   //fields initialized in init
 
@@ -355,7 +356,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private VertexTerminationCause terminationCause;
 
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
-      String vertexName, TezConfiguration conf, EventHandler eventHandler,
+      String vertexName, Configuration conf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
       Token<JobTokenIdentifier> jobToken,
       Credentials fsTokenCredentials, Clock clock,
@@ -951,7 +952,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
 
     private void createTasks(VertexImpl vertex) {
-      TezConfiguration conf = vertex.conf;
+      Configuration conf = vertex.conf;
       boolean useNullLocationHint = true;
       if (vertex.vertexLocationHint != null
           && vertex.vertexLocationHint.getTaskLocationHints() != null

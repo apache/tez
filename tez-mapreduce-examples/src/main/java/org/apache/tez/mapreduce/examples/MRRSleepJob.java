@@ -476,7 +476,8 @@ public class MRRSleepJob extends Configured implements Tool {
       finalReduceConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
           NullOutputFormat.class.getName());
 
-      if (iReduceStagesCount != 0) {
+      if (iReduceStagesCount > 0
+          && numIReducer > 0) {
         MultiStageMRConfToTezTranslator.translateVertexConfToTez(finalReduceConf,
             intermediateReduceStageConfs[iReduceStagesCount-1]);
       } else {
@@ -639,6 +640,7 @@ public class MRRSleepJob extends Configured implements Tool {
           MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(i,
               "mapreduce.job.reduces"), numIReducer);
     }
+
     Job job = Job.getInstance(conf, "sleep");
     job.setNumReduceTasks(numReducer);
     job.setJarByClass(MRRSleepJob.class);

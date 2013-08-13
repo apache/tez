@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -45,7 +46,6 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.records.TezVertexID;
@@ -78,14 +78,14 @@ public class AMContainerHelpers {
     return LocalResource.newInstance(resourceURL, type, visibility,
         resourceSize, resourceModificationTime);
   }
-  
+
   /**
    * Create the common {@link ContainerLaunchContext} for all attempts.
-   * 
+   *
    * @param applicationACLs
    */
   private static ContainerLaunchContext createCommonContainerLaunchContext(
-      Map<ApplicationAccessType, String> applicationACLs, TezConfiguration conf,
+      Map<ApplicationAccessType, String> applicationACLs, Configuration conf,
       Token<JobTokenIdentifier> jobToken,
       TezVertexID vertexId, Credentials credentials, AppContext appContext) {
 
@@ -99,8 +99,8 @@ public class AMContainerHelpers {
     // Service data
     Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
 
-    
-    
+
+
     // Tokens
     ByteBuffer taskCredentialsBuffer = ByteBuffer.wrap(new byte[] {});
     try {
@@ -146,7 +146,7 @@ public class AMContainerHelpers {
   @VisibleForTesting
   public static ContainerLaunchContext createContainerLaunchContext(
       Map<ApplicationAccessType, String> acls,
-      ContainerId containerId, TezConfiguration conf, TezVertexID vertexId,
+      ContainerId containerId, Configuration conf, TezVertexID vertexId,
       Token<JobTokenIdentifier> jobToken,
       Resource assignedCapability, Map<String, LocalResource> localResources,
       Map<String, String> vertexEnv,
@@ -178,7 +178,7 @@ public class AMContainerHelpers {
     List<String> commands = TezEngineChildJVM.getVMCommand(
         taskAttemptListener.getAddress(), conf, containerId.toString(),
         appContext.getApplicationID().toString(),
-        appContext.getApplicationAttemptId().getAttemptId(), 
+        appContext.getApplicationAttemptId().getAttemptId(),
         shouldProfile, javaOpts);
 
     // Duplicate the ByteBuffers for access by multiple containers.

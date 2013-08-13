@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -84,7 +85,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   private static final Log LOG = LogFactory.getLog(TaskImpl.class);
 
-  protected final TezConfiguration conf;
+  protected final Configuration conf;
   protected final int partition;
   protected final TaskAttemptListener taskAttemptListener;
   protected final TaskHeartbeatHandler taskHeartbeatHandler;
@@ -132,7 +133,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(TaskStateInternal.NEW, TaskStateInternal.SCHEDULED,
         TaskEventType.T_SCHEDULE, new InitialScheduleTransition())
     .addTransition(TaskStateInternal.NEW, TaskStateInternal.KILLED,
-            TaskEventType.T_TERMINATE, 
+            TaskEventType.T_TERMINATE,
             new KillNewTransition())
 
     // Transitions from SCHEDULED state
@@ -172,7 +173,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         TaskEventType.T_ATTEMPT_FAILED,
         new AttemptFailedTransition())
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.KILL_WAIT,
-        TaskEventType.T_TERMINATE, 
+        TaskEventType.T_TERMINATE,
         KILL_TRANSITION)
 
     // Transitions from KILL_WAIT state
@@ -274,7 +275,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   public TaskImpl(TezVertexID vertexId, int partition,
-      EventHandler eventHandler, TezConfiguration conf,
+      EventHandler eventHandler, Configuration conf,
       TaskAttemptListener taskAttemptListener,
       Token<JobTokenIdentifier> jobToken,
       Credentials credentials, Clock clock,
@@ -708,7 +709,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     eventHandler.handle(new DAGEvent(this.taskId.getVertexID().getDAGId(),
         DAGEventType.INTERNAL_ERROR));
   }
-  
+
   private void sendTaskAttemptCompletionEvent(TezTaskAttemptID attemptId,
       TezDependentTaskCompletionEvent.Status status) {
     TaskAttempt attempt = attempts.get(attemptId);

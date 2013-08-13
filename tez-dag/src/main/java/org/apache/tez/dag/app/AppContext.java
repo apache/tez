@@ -21,12 +21,12 @@ package org.apache.tez.dag.app;
 import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
@@ -39,11 +39,11 @@ import org.apache.tez.dag.records.TezDAGID;
  */
 @InterfaceAudience.Private
 public interface AppContext {
-  
+
   DAGAppMaster getAppMaster();
-  
-  TezConfiguration getConf();
-  
+
+  Configuration getConf();
+
   ApplicationId getApplicationID();
 
   TezDAGID getDAGID();
@@ -51,7 +51,7 @@ public interface AppContext {
   ApplicationAttemptId getApplicationAttemptId();
 
   String getApplicationName();
-  
+
   Map<ApplicationAccessType, String> getApplicationACLs();
 
   long getStartTime();
@@ -66,12 +66,12 @@ public interface AppContext {
   EventHandler getEventHandler();
 
   Clock getClock();
-  
+
   ClusterInfo getClusterInfo();
-  
+
   AMContainerMap getAllContainers();
-  
+
   AMNodeMap getAllNodes();
-  
-  TaskSchedulerEventHandler getTaskScheduler();  
+
+  TaskSchedulerEventHandler getTaskScheduler();
 }

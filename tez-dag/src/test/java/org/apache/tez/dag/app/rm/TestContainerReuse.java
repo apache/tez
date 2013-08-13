@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -58,10 +59,10 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.junit.Test;
 
 public class TestContainerReuse {
-  
+
   @Test
   public void test() throws IOException {
-    TezConfiguration tezConf = new TezConfiguration(new YarnConfiguration());
+    Configuration tezConf = new Configuration(new YarnConfiguration());
     tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, true);
     tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED, true);
     RackResolver.init(tezConf);
@@ -69,16 +70,16 @@ public class TestContainerReuse {
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
     TezDAGID dagID = new TezDAGID("0", 0, 0);
-    
+
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     AMRMClientAsync<CookieContainerRequest> rmClient = spy(new AMRMClientAsyncForTest(rmClientCore, 100));
     String appUrl = "url";
     String appMsg = "success";
-    AppFinalStatus finalStatus = 
+    AppFinalStatus finalStatus =
         new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
-    
+
     doReturn(finalStatus).when(mockApp).getFinalAppStatus();
-    
+
     AppContext appContext = mock(AppContext.class);
     AMContainerMap amContainerMap = new AMContainerMap(mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class), appContext);
     AMNodeMap amNodeMap = new AMNodeMap(eventHandler, appContext);
@@ -90,18 +91,18 @@ public class TestContainerReuse {
     TaskSchedulerEventHandler taskSchedulerEventHandler = spy(taskSchedulerEventHandlerReal);
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();
-    
+
     TaskScheduler taskScheduler = ((TaskSchedulerEventHandlerForTest)taskSchedulerEventHandler).getSpyTaskScheduler();
 
     Resource resource1 = Resource.newInstance(1024, 1);
     String[] host1 = {"host1"};
     String[] host2 = {"host2"};
-    
+
     String []racks = {"/default-rack"};
     Priority priority1 = Priority.newInstance(1);
-    
+
     TezVertexID vertexID1 = new TezVertexID(dagID, 1);
-    
+
     //Vertex 1, Task 1, Attempt 1, host1
     TezTaskAttemptID taID11 = new TezTaskAttemptID(new TezTaskID(vertexID1, 1), 1);
     TaskAttempt ta11 = mock(TaskAttempt.class);
@@ -121,14 +122,14 @@ public class TestContainerReuse {
     TezTaskAttemptID taID14 = new TezTaskAttemptID(new TezTaskID(vertexID1, 4), 1);
     TaskAttempt ta14 = mock(TaskAttempt.class);
     AMSchedulerEventTALaunchRequest lrEvent4 = createLaunchRequestEvent(taID14, ta14, resource1, host2, racks, priority1, tezConf);
-    
+
     taskSchedulerEventHandler.handleEvent(lrEvent1);
     taskSchedulerEventHandler.handleEvent(lrEvent2);
     taskSchedulerEventHandler.handleEvent(lrEvent3);
     taskSchedulerEventHandler.handleEvent(lrEvent4);
 
     Container container1 = createContainer(1, "host1", resource1, priority1);
-    
+
     // One container allocated.
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta11), any(Object.class), eq(container1));
@@ -140,7 +141,7 @@ public class TestContainerReuse {
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
     eventHandler.reset();
-    
+
     // Task assigned to container completed successfully.
     // Verify reuse across hosts.
     taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta12, container1.getId(), TaskAttemptState.SUCCEEDED));
@@ -159,23 +160,23 @@ public class TestContainerReuse {
     eventHandler.reset();
 
     Container container2 = createContainer(2, "host2", resource1, priority1);
-    
+
     // Second container allocated. Should be allocated to the last task.
     taskScheduler.onContainersAllocated(Collections.singletonList(container2));
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta14), any(Object.class), eq(container2));
-    
+
     // Task assigned to container completed successfully. No pending requests. Container should be released.
     taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta14, container2.getId(), TaskAttemptState.SUCCEEDED));
     verify(taskScheduler).deallocateTask(eq(ta14), eq(true));
     verify(rmClient).releaseAssignedContainer(eq(container2.getId()));
     eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
     eventHandler.reset();
-    
+
 
     taskScheduler.close();
     taskSchedulerEventHandler.close();
   }
-  
+
   private Container createContainer(int id, String host, Resource resource, Priority priority) {
     ContainerId containerID = ContainerId.newInstance(
         ApplicationAttemptId.newInstance(ApplicationId.newInstance(1, 1), 1),
@@ -185,10 +186,10 @@ public class TestContainerReuse {
         resource, priority, null);
     return container;
   }
-  
+
   private AMSchedulerEventTALaunchRequest createLaunchRequestEvent(
       TezTaskAttemptID taID, TaskAttempt ta, Resource capability, String[] hosts,
-      String[] racks, Priority priority, TezConfiguration conf) {
+      String[] racks, Priority priority, Configuration conf) {
     AMSchedulerEventTALaunchRequest lr = new AMSchedulerEventTALaunchRequest(
         taID, capability, new HashMap<String, LocalResource>(),
         new TezEngineTaskContext(taID, "user", "jobName", "vertexName",
@@ -200,7 +201,7 @@ public class TestContainerReuse {
         new HashMap<String, String>(), conf);
     return lr;
   }
-  
+
   // Mocking AMRMClientImpl to make use of getMatchingRequest
   public static class AMRMClientForTest extends AMRMClientImpl<CookieContainerRequest> {
 
@@ -213,7 +214,7 @@ public class TestContainerReuse {
     }
   }
 
-  
+
   // Mocking AMRMClientAsyncImpl to make use of getMatchingRequest
   public static class AMRMClientAsyncForTest extends
       AMRMClientAsyncImpl<CookieContainerRequest> {
@@ -244,24 +245,24 @@ public class TestContainerReuse {
     protected void serviceStop() {
     }
   }
-  
+
   // Overrides start / stop. Will be controlled without the extra event handling thread.
   public static class TaskSchedulerEventHandlerForTest extends TaskSchedulerEventHandler {
 
     private AMRMClientAsync<CookieContainerRequest> amrmClientAsync;
-    
+
     @SuppressWarnings("rawtypes")
     public TaskSchedulerEventHandlerForTest(AppContext appContext,
         EventHandler eventHandler, AMRMClientAsync<CookieContainerRequest> amrmClientAsync) {
       super(appContext, null, eventHandler);
       this.amrmClientAsync = amrmClientAsync;
     }
-    
+
     @Override
     public TaskScheduler createTaskScheduler(String host, int port, String trackingUrl) {
       return new TaskScheduler(this, host, port, trackingUrl, amrmClientAsync);
     }
-    
+
     public TaskScheduler getSpyTaskScheduler() {
       return this.taskScheduler;
     }
@@ -297,7 +298,7 @@ public class TestContainerReuse {
         assertFalse(e.getClass().getName().equals(eventClass.getName()));
       }
     }
-    
+
     public void verifyInvocation(Class<? extends Event> eventClass) {
       for (Event e : events) {
         if (e.getClass().getName().equals(eventClass.getName())) {
