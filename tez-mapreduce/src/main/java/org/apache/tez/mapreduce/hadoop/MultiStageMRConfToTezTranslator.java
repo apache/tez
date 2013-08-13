@@ -217,9 +217,7 @@ public class MultiStageMRConfToTezTranslator {
         .getNumIntermediateStages(conf);
     boolean hasFinalReduceStage = (conf.getInt(MRJobConfig.NUM_REDUCES, 0) > 0);
     // Assuming no 0 map jobs, and the first stage is always a map.
-    int totalStages = numIntermediateStages + (hasFinalReduceStage ? 2 : 1);
-    int numEdges = totalStages - 1;
-    int numStages = numEdges + 1;
+    int numStages = numIntermediateStages + (hasFinalReduceStage ? 2 : 1);
 
     Configuration confs[] = new Configuration[numStages];
     Configuration nonItermediateConf = MultiStageMRConfigUtil.extractStageConf(
