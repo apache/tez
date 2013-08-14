@@ -20,8 +20,13 @@ package org.apache.tez.dag.api;
 
 public class OutputDescriptor extends TezEntityDescriptor {
 
-  // TODO Fix dependencies so that this can be specified as a class.
-  public OutputDescriptor(String outputClassName, byte[] userPayload) {
-    super(outputClassName, userPayload);
+  public OutputDescriptor(String outputClassName) {
+    super(outputClassName);
+  }
+
+  @Override
+  public OutputDescriptor setUserPayload(byte[] userPayload) {
+    this.userPayload = userPayload;
+    return this;
   }
 }

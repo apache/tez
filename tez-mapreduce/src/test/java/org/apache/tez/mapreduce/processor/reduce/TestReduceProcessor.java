@@ -134,7 +134,7 @@ public class TestReduceProcessor {
         "localized-resources").toUri().toString());
     FileOutputFormat.setOutputPath(reduceConf, new Path(workDir, "output"));
     ProcessorDescriptor reduceProcessorDesc = new ProcessorDescriptor(
-        ReduceProcessor.class.getName(), null);
+        ReduceProcessor.class.getName());
     // Now run a reduce
     TezEngineTaskContext taskContext = new TezEngineTaskContext(
         TezTestUtils.getMockTaskAttemptId(0, 1, 0, 0), "testUser",

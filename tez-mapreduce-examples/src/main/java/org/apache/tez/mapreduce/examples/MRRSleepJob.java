@@ -532,7 +532,7 @@ public class MRRSleepJob extends Configured implements Tool {
     List<Vertex> vertices = new ArrayList<Vertex>();
 
     Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
-        MapProcessor.class.getName(),
+        MapProcessor.class.getName()).setUserPayload(
         MRHelpers.createUserPayloadFromConf(mapStageConf)),
         numMapper,
         MRHelpers.getMapResource(mapStageConf));
@@ -555,8 +555,8 @@ public class MRRSleepJob extends Configured implements Tool {
         Configuration iconf =
             intermediateReduceStageConfs[i];
         Vertex ivertex = new Vertex("ireduce" + (i+1),
-            new ProcessorDescriptor(ReduceProcessor.class.getName(),
-                MRHelpers.createUserPayloadFromConf(iconf)),
+                new ProcessorDescriptor(ReduceProcessor.class.getName()).
+                setUserPayload(MRHelpers.createUserPayloadFromConf(iconf)),
                 numIReducer,
                 MRHelpers.getReduceResource(iconf));
         ivertex.setJavaOpts(MRHelpers.getReduceJavaOpts(iconf));
@@ -571,7 +571,7 @@ public class MRRSleepJob extends Configured implements Tool {
     Vertex finalReduceVertex = null;
     if (numReducer > 0) {
       finalReduceVertex = new Vertex("reduce", new ProcessorDescriptor(
-          ReduceProcessor.class.getName(),
+          ReduceProcessor.class.getName()).setUserPayload(
           MRHelpers.createUserPayloadFromConf(finalReduceConf)),
           numReducer,
           MRHelpers.getReduceResource(finalReduceConf));
@@ -591,9 +591,9 @@ public class MRRSleepJob extends Configured implements Tool {
             vertices.get(i), new EdgeProperty(
                 ConnectionPattern.BIPARTITE, SourceType.STABLE,
                 new OutputDescriptor(
-                    OnFileSortedOutput.class.getName(), null),
+                    OnFileSortedOutput.class.getName()),
                 new InputDescriptor(
-                    ShuffledMergedInput.class.getName(), null))));
+                    ShuffledMergedInput.class.getName()))));
       }
     }
 

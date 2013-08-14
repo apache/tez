@@ -193,7 +193,7 @@ public class TestContainerReuse {
     AMSchedulerEventTALaunchRequest lr = new AMSchedulerEventTALaunchRequest(
         taID, capability, new HashMap<String, LocalResource>(),
         new TezEngineTaskContext(taID, "user", "jobName", "vertexName",
-            new ProcessorDescriptor("processorClassName", null),
+            new ProcessorDescriptor("processorClassName"),
             Collections.singletonList(new InputSpec("vertexName", 1,
                 "inputClassName")), Collections.singletonList(new OutputSpec(
                 "vertexName", 1, "outputClassName"))), ta,

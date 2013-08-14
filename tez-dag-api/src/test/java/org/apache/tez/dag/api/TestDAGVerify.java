@@ -38,15 +38,15 @@ public class TestDAGVerify {
   @Test
   public void testVerify1() {
     Vertex v1 = new Vertex("v1",
-        new ProcessorDescriptor(dummyProcessorClassName, null),
+        new ProcessorDescriptor(dummyProcessorClassName),
         dummyTaskCount, dummyTaskResource);
     Vertex v2 = new Vertex("v2",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Edge e1 = new Edge(v1, v2,
         new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-            new OutputDescriptor(dummyOutputClassName, null),
-            new InputDescriptor(dummyInputClassName, null)));
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
     DAG dag = new DAG("testDag");
     dag.addVertex(v1);
     dag.addVertex(v2);
@@ -63,33 +63,33 @@ public class TestDAGVerify {
   public void testCycle1() {
     IllegalStateException ex=null;
     Vertex v1 = new Vertex("v1",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Vertex v2 = new Vertex("v2",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Vertex v3 = new Vertex("v3",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Vertex v4 = new Vertex("v4",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Edge e1 = new Edge(v1, v2,
         new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-            new OutputDescriptor("dummy output class", null),
-            new InputDescriptor("dummy input class", null)));
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")));
     Edge e2 = new Edge(v2, v3,
         new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-            new OutputDescriptor("dummy output class", null),
-            new InputDescriptor("dummy input class", null)));
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")));
     Edge e3 = new Edge(v2, v4,
         new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-            new OutputDescriptor("dummy output class", null),
-            new InputDescriptor("dummy input class", null)));
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")));
     Edge e4 = new Edge(v4, v1,
         new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-            new OutputDescriptor("dummy output class", null),
-            new InputDescriptor("dummy input class", null)));
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")));
     DAG dag = new DAG("testDag");
     dag.addVertex(v1);
     dag.addVertex(v2);
@@ -119,33 +119,33 @@ public class TestDAGVerify {
   public void testCycle2() {
     IllegalStateException ex=null;
     Vertex v1 = new Vertex("v1",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Vertex v2 = new Vertex("v2",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Vertex v3 = new Vertex("v3",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Vertex v4 = new Vertex("v4",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Edge e1 = new Edge(v1, v2,
         new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-            new OutputDescriptor("dummy output class", null),
-            new InputDescriptor("dummy input class", null)));
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")));
     Edge e2 = new Edge(v2, v3,
         new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-            new OutputDescriptor("dummy output class", null),
-            new InputDescriptor("dummy input class", null)));
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")));
     Edge e3 = new Edge(v2, v4,
         new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-            new OutputDescriptor("dummy output class", null),
-            new InputDescriptor("dummy input class", null)));
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")));
     Edge e4 = new Edge(v3, v2,
         new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-            new OutputDescriptor("dummy output class", null),
-            new InputDescriptor("dummy input class", null)));
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")));
     DAG dag = new DAG("testDag");
     dag.addVertex(v1);
     dag.addVertex(v2);
@@ -170,10 +170,10 @@ public class TestDAGVerify {
   public void repeatedVertexName() {
     IllegalStateException ex=null;
     Vertex v1 = new Vertex("v1",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Vertex v1repeat = new Vertex("v1",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     DAG dag = new DAG("testDag");
     dag.addVertex(v1);
@@ -197,22 +197,22 @@ public class TestDAGVerify {
     IllegalStateException ex=null;
     try {
       Vertex v1 = new Vertex("v1",
-          new ProcessorDescriptor("MapProcessor", null),
+          new ProcessorDescriptor("MapProcessor"),
           dummyTaskCount, dummyTaskResource);
       Vertex v2 = new Vertex("v2",
-          new ProcessorDescriptor("MapProcessor", null),
+          new ProcessorDescriptor("MapProcessor"),
           dummyTaskCount, dummyTaskResource);
       Vertex v3 = new Vertex("v3",
-          new ProcessorDescriptor("ReduceProcessor", null),
+          new ProcessorDescriptor("ReduceProcessor"),
           dummyTaskCount, dummyTaskResource);
       Edge e1 = new Edge(v1, v3,
           new EdgeProperty(ConnectionPattern.ONE_TO_ONE, SourceType.STABLE,
-              new OutputDescriptor("dummy output class", null),
-              new InputDescriptor("dummy input class", null)));
+              new OutputDescriptor("dummy output class"),
+              new InputDescriptor("dummy input class")));
       Edge e2 = new Edge(v2, v3,
           new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-              new OutputDescriptor("dummy output class", null),
-              new InputDescriptor("dummy input class", null)));
+              new OutputDescriptor("dummy output class"),
+              new InputDescriptor("dummy input class")));
       DAG dag = new DAG("testDag");
       dag.addVertex(v1);
       dag.addVertex(v2);
@@ -236,22 +236,22 @@ public class TestDAGVerify {
   @Test
   public void BinaryInputAllowed() {
     Vertex v1 = new Vertex("v1",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Vertex v2 = new Vertex("v2",
-        new ProcessorDescriptor("MapProcessor", null),
+        new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Vertex v3 = new Vertex("v3",
-        new ProcessorDescriptor("ReduceProcessor", null),
+        new ProcessorDescriptor("ReduceProcessor"),
         dummyTaskCount, dummyTaskResource);
     Edge e1 = new Edge(v1, v3,
         new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-            new OutputDescriptor("dummy output class", null),
-            new InputDescriptor("dummy input class", null)));
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")));
     Edge e2 = new Edge(v2, v3,
         new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-            new OutputDescriptor("dummy output class", null),
-            new InputDescriptor("dummy input class", null)));
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")));
     DAG dag = new DAG("testDag");
     dag.addVertex(v1);
     dag.addVertex(v2);
@@ -269,22 +269,22 @@ public class TestDAGVerify {
     IllegalStateException ex=null;
     try {
       Vertex v1 = new Vertex("v1",
-          new ProcessorDescriptor("MapProcessor", null),
+          new ProcessorDescriptor("MapProcessor"),
           dummyTaskCount, dummyTaskResource);
       Vertex v2 = new Vertex("v2",
-          new ProcessorDescriptor("MapProcessor", null),
+          new ProcessorDescriptor("MapProcessor"),
           dummyTaskCount, dummyTaskResource);
       Vertex v3 = new Vertex("v3",
-          new ProcessorDescriptor("MapProcessor", null),
+          new ProcessorDescriptor("MapProcessor"),
           dummyTaskCount, dummyTaskResource);
       Edge e1 = new Edge(v1, v2,
           new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-              new OutputDescriptor("dummy output class", null),
-              new InputDescriptor("dummy input class", null)));
+              new OutputDescriptor("dummy output class"),
+              new InputDescriptor("dummy input class")));
       Edge e2 = new Edge(v1, v2,
           new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
-              new OutputDescriptor("dummy output class", null),
-              new InputDescriptor("dummy input class", null)));
+              new OutputDescriptor("dummy output class"),
+              new InputDescriptor("dummy input class")));
       DAG dag = new DAG("testDag");
       dag.addVertex(v1);
       dag.addVertex(v2);
@@ -322,7 +322,7 @@ public class TestDAGVerify {
   public void testInvalidVertexConstruction() {
     try {
       Vertex v1 = new Vertex("v1",
-          new ProcessorDescriptor("MapProcessor", null),
+          new ProcessorDescriptor("MapProcessor"),
           0, dummyTaskResource);
       Assert.fail("Expected exception for 0 parallelism");
     } catch (IllegalArgumentException e) {
@@ -330,7 +330,7 @@ public class TestDAGVerify {
     }
     try {
       Vertex v1 = new Vertex("v1",
-          new ProcessorDescriptor("MapProcessor", null),
+          new ProcessorDescriptor("MapProcessor"),
           1, null);
       Assert.fail("Expected exception for 0 parallelism");
     } catch (IllegalArgumentException e) {

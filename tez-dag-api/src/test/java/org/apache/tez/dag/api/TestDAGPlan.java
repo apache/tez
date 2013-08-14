@@ -95,10 +95,10 @@ public class TestDAGPlan {
   @Test
   public void testUserPayloadSerde() {
     DAG dag = new DAG("testDag");
-    ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1",
-        "processor1Bytes".getBytes());
-    ProcessorDescriptor pd2 = new ProcessorDescriptor("processor2",
-        "processor2Bytes".getBytes());
+    ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1").
+        setUserPayload("processor1Bytes".getBytes());
+    ProcessorDescriptor pd2 = new ProcessorDescriptor("processor2").
+        setUserPayload("processor2Bytes".getBytes());
     Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
     Vertex v2 = new Vertex("v2", pd2, 1, Resource.newInstance(1024, 1));
     v1.setJavaOpts("").setTaskEnvironment(new HashMap<String, String>())
@@ -106,10 +106,10 @@ public class TestDAGPlan {
     v2.setJavaOpts("").setTaskEnvironment(new HashMap<String, String>())
         .setTaskLocalResources(new HashMap<String, LocalResource>());
 
-    InputDescriptor inputDescriptor = new InputDescriptor("input",
-        "inputBytes".getBytes());
-    OutputDescriptor outputDescriptor = new OutputDescriptor("output",
-        "outputBytes".getBytes());
+    InputDescriptor inputDescriptor = new InputDescriptor("input").
+        setUserPayload("inputBytes".getBytes());
+    OutputDescriptor outputDescriptor = new OutputDescriptor("output").
+        setUserPayload("outputBytes".getBytes());
     Edge edge = new Edge(v1, v2, new EdgeProperty(ConnectionPattern.BIPARTITE,
         SourceType.STABLE, outputDescriptor, inputDescriptor));
 

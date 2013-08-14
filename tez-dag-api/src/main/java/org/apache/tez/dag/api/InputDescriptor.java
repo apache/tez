@@ -19,9 +19,14 @@
 package org.apache.tez.dag.api;
 
 public class InputDescriptor extends TezEntityDescriptor {
-  
-  // TODO Fix dependencies so that this can be specified as a class.  
-  public InputDescriptor(String inputClassName, byte[] userPayload) {
-    super(inputClassName, userPayload);
+
+  public InputDescriptor(String inputClassName) {
+    super(inputClassName);
+  }
+
+  @Override
+  public InputDescriptor setUserPayload(byte[] userPayload) {
+    this.userPayload = userPayload;
+    return this;
   }
 }

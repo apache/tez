@@ -400,8 +400,8 @@ public class YARNRunner implements ClientProtocol {
 
     Resource taskResource = isMap ? MRHelpers.getMapResource(stageConf)
         : MRHelpers.getReduceResource(stageConf);
-    Vertex vertex = new Vertex(vertexName, new ProcessorDescriptor(
-        processorName, MRHelpers.createUserPayloadFromConf(stageConf)),
+    Vertex vertex = new Vertex(vertexName, new ProcessorDescriptor(processorName).
+        setUserPayload(MRHelpers.createUserPayloadFromConf(stageConf)),
         numTasks, taskResource);
 
     Map<String, String> taskEnv = new HashMap<String, String>();
@@ -461,8 +461,8 @@ public class YARNRunner implements ClientProtocol {
       if (i > 0) {
         EdgeProperty edgeProperty = new EdgeProperty(
             ConnectionPattern.BIPARTITE, SourceType.STABLE,
-            new OutputDescriptor(OnFileSortedOutput.class.getName(), null),
-            new InputDescriptor(ShuffledMergedInput.class.getName(), null));
+            new OutputDescriptor(OnFileSortedOutput.class.getName()),
+            new InputDescriptor(ShuffledMergedInput.class.getName()));
 
         Edge edge = null;
         edge = new Edge(vertices[i - 1], vertices[i], edgeProperty);

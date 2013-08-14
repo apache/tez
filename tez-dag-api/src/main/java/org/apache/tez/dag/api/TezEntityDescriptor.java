@@ -20,16 +20,20 @@ package org.apache.tez.dag.api;
 
 public abstract class TezEntityDescriptor {
 
-  private byte[] userPayload;
+  protected byte[] userPayload;
   private String className;
-  
-  public TezEntityDescriptor(String className, byte[] userPayload) {
-    this.userPayload = userPayload;
+
+  public TezEntityDescriptor(String className) {
     this.className = className;
   }
-  
+
   public byte[] getUserPayload() {
     return this.userPayload;
+  }
+
+  public TezEntityDescriptor setUserPayload(byte[] userPayload) {
+    this.userPayload = userPayload;
+    return this;
   }
 
   public String getClassName() {

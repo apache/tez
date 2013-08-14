@@ -93,7 +93,7 @@ public class TestTaskAttempt {
 
   private static final ProcessorDescriptor MAP_PROCESSOR_DESC =
       new ProcessorDescriptor(
-      "org.apache.tez.mapreduce.processor.map.MapProcessor", null);
+      "org.apache.tez.mapreduce.processor.map.MapProcessor");
 
   static public class StubbedFS extends RawLocalFileSystem {
     @Override

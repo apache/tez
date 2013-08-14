@@ -246,7 +246,7 @@ public class LocalJobRunnerTez implements ClientProtocol {
           mapIds.add(mapId);
           // FIXME invalid task context
           ProcessorDescriptor mapProcessorDesc = new ProcessorDescriptor(
-                      MapProcessor.class.getName(), null);
+                      MapProcessor.class.getName());
           TezEngineTaskContext taskContext =
               new TezEngineTaskContext(
                   tezMapId, user, localConf.getJobName(), "TODO_vertexName",
@@ -451,7 +451,7 @@ public class LocalJobRunnerTez implements ClientProtocol {
             setupChildMapredLocalDirs(reduceId, user, localConf);
             // FIXME invalid task context
             ProcessorDescriptor reduceProcessorDesc = new ProcessorDescriptor(
-                ReduceProcessor.class.getName(), null);
+                ReduceProcessor.class.getName());
             TezEngineTaskContext taskContext = new TezEngineTaskContext(
                 IDConverter.fromMRTaskAttemptId(reduceId), user,
                 localConf.getJobName(), "TODO_vertexName",

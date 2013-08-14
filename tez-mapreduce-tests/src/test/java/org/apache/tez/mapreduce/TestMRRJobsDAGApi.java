@@ -269,23 +269,23 @@ public class TestMRRJobsDAGApi {
     
     DAG dag = new DAG("testMRRSleepJobDagSubmit");
     Vertex stage1Vertex = new Vertex("map", new ProcessorDescriptor(
-        MapProcessor.class.getName(),
+        MapProcessor.class.getName()).setUserPayload(
         MRHelpers.createUserPayloadFromConf(stage1Conf)),
         inputSplitInfo.getNumTasks(), Resource.newInstance(256, 1));
     Vertex stage2Vertex = new Vertex("ireduce", new ProcessorDescriptor(
-        ReduceProcessor.class.getName(),
+        ReduceProcessor.class.getName()).setUserPayload(
         MRHelpers.createUserPayloadFromConf(stage2Conf)),
         1, Resource.newInstance(256, 1));
     Vertex stage11Vertex = new Vertex("map1", new ProcessorDescriptor(
-        MapProcessor.class.getName(),
+        MapProcessor.class.getName()).setUserPayload(
         MRHelpers.createUserPayloadFromConf(stage1Conf)),
         inputSplitInfo1.getNumTasks(),  Resource.newInstance(256, 1));
     Vertex stage22Vertex = new Vertex("ireduce1", new ProcessorDescriptor(
-        ReduceProcessor.class.getName(),
+        ReduceProcessor.class.getName()).setUserPayload(
         MRHelpers.createUserPayloadFromConf(stage22Conf)),  
         2, Resource.newInstance(256, 1));
     Vertex stage3Vertex = new Vertex("reduce", new ProcessorDescriptor(
-        ReduceProcessor.class.getName(),
+        ReduceProcessor.class.getName()).setUserPayload(
         MRHelpers.createUserPayloadFromConf(stage3Conf)),
         1, Resource.newInstance(256, 1));
 
@@ -359,20 +359,20 @@ public class TestMRRJobsDAGApi {
 
     Edge edge1 = new Edge(stage1Vertex, stage2Vertex, new EdgeProperty(
         ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
-        OnFileSortedOutput.class.getName(), null), new InputDescriptor(
-                ShuffledMergedInput.class.getName(), null)));
+        OnFileSortedOutput.class.getName()), new InputDescriptor(
+                ShuffledMergedInput.class.getName())));
     Edge edge11 = new Edge(stage11Vertex, stage22Vertex, new EdgeProperty(
         ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
-        OnFileSortedOutput.class.getName(), null), new InputDescriptor(
-                ShuffledMergedInput.class.getName(), null)));
+        OnFileSortedOutput.class.getName()), new InputDescriptor(
+                ShuffledMergedInput.class.getName())));
     Edge edge2 = new Edge(stage2Vertex, stage3Vertex, new EdgeProperty(
         ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
-        OnFileSortedOutput.class.getName(), null), new InputDescriptor(
-                ShuffledMergedInput.class.getName(), null)));
+        OnFileSortedOutput.class.getName()), new InputDescriptor(
+                ShuffledMergedInput.class.getName())));
     Edge edge3 = new Edge(stage22Vertex, stage3Vertex, new EdgeProperty(
         ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
-        OnFileSortedOutput.class.getName(), null), new InputDescriptor(
-                ShuffledMergedInput.class.getName(), null)));
+        OnFileSortedOutput.class.getName()), new InputDescriptor(
+                ShuffledMergedInput.class.getName())));
 
     dag.addEdge(edge1);
     dag.addEdge(edge11);

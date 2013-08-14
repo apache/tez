@@ -114,7 +114,7 @@ public class TestTaskImpl {
     javaOpts = "";
     leafVertex = false;
     mapProcDesc = new ProcessorDescriptor(
-        "org.apache.tez.mapreduce.processor.map.MapProcessor", null);
+        "org.apache.tez.mapreduce.processor.map.MapProcessor");
 
     mockTask = new MockTaskImpl(vertexId, partition,
         dispatcher.getEventHandler(), conf, taskAttemptListener, jobToken,

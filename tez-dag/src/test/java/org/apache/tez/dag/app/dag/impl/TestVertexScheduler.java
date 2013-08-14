@@ -52,22 +52,22 @@ public class TestVertexScheduler {
     TezVertexID mockSrcVertexId1 = new TezVertexID(dagId, 1);
     EdgeProperty eProp1 = new EdgeProperty(
         EdgeProperty.ConnectionPattern.BIPARTITE,
-        EdgeProperty.SourceType.STABLE, new OutputDescriptor("out", null),
-        new InputDescriptor("in", null));
+        EdgeProperty.SourceType.STABLE, new OutputDescriptor("out"),
+        new InputDescriptor("in"));
     when(mockSrcVertex1.getVertexId()).thenReturn(mockSrcVertexId1);
     Vertex mockSrcVertex2 = mock(Vertex.class);
     TezVertexID mockSrcVertexId2 = new TezVertexID(dagId, 2);
     EdgeProperty eProp2 = new EdgeProperty(
         EdgeProperty.ConnectionPattern.BIPARTITE,
-        EdgeProperty.SourceType.STABLE, new OutputDescriptor("out", null),
-        new InputDescriptor("in", null));
+        EdgeProperty.SourceType.STABLE, new OutputDescriptor("out"),
+        new InputDescriptor("in"));
     when(mockSrcVertex2.getVertexId()).thenReturn(mockSrcVertexId2);
     Vertex mockSrcVertex3 = mock(Vertex.class);
     TezVertexID mockSrcVertexId3 = new TezVertexID(dagId, 3);
     EdgeProperty eProp3 = new EdgeProperty(
         EdgeProperty.ConnectionPattern.ONE_TO_ALL,
-        EdgeProperty.SourceType.STABLE, new OutputDescriptor("out", null),
-        new InputDescriptor("in", null));
+        EdgeProperty.SourceType.STABLE, new OutputDescriptor("out"),
+        new InputDescriptor("in"));
     when(mockSrcVertex3.getVertexId()).thenReturn(mockSrcVertexId3);
     
     Vertex mockManagedVertex = mock(Vertex.class);

@@ -243,7 +243,7 @@ public class DagTypeConverters {
     if (proto.hasUserPayload()) {
       bb = proto.getUserPayload().toByteArray();
     }
-    return new InputDescriptor(className, bb);
+    return new InputDescriptor(className).setUserPayload(bb);
   }
 
   public static OutputDescriptor convertOutputDescriptorFromDAGPlan(
@@ -253,7 +253,7 @@ public class DagTypeConverters {
     if (proto.hasUserPayload()) {
       bb =  proto.getUserPayload().toByteArray();
     }
-    return new OutputDescriptor(className, bb);
+    return new OutputDescriptor(className).setUserPayload(bb);
   }
 
   public static ProcessorDescriptor convertProcessorDescriptorFromDAGPlan(
@@ -263,6 +263,6 @@ public class DagTypeConverters {
     if (proto.hasUserPayload()) {
       bb = proto.getUserPayload().toByteArray();
     }
-    return new ProcessorDescriptor(className, bb);
+    return new ProcessorDescriptor(className).setUserPayload(bb);
   }
 }

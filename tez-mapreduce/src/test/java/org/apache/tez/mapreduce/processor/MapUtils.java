@@ -183,7 +183,7 @@ public class MapUtils {
     InputSplit split = createInputSplit(fs, workDir, jobConf, mapInput);
 
     ProcessorDescriptor mapProcessorDesc = new ProcessorDescriptor(
-        MapProcessor.class.getName(), null);
+        MapProcessor.class.getName());
     writeSplitFiles(fs, jobConf, split);
     TezEngineTaskContext taskContext = new TezEngineTaskContext(
         TezTestUtils.getMockTaskAttemptId(0, 0, mapId, 0), "testuser",
