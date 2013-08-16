@@ -205,8 +205,12 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
         LOG.debug("Container with id: " + containerId + " asked for a task");
       }
       if (!registeredContainers.contains(containerId)) {
-        LOG.info("Container with id: " + containerId
-            + " is invalid and will be killed");
+        if(context.getAllContainers().get(containerId) == null)
+          LOG.info("Container with id: " + containerId
+              + " is invalid and will be killed");
+        else
+          LOG.info("Container with id: " + containerId
+              + " is valid and will be killed");              
         task = TASK_FOR_INVALID_JVM;
       } else {
         pingContainerHeartbeatHandler(containerId);
