@@ -46,6 +46,8 @@
     <distMgmtStagingName>Apache Release Distribution Repository</distMgmtStagingName>
     <distMgmtStagingUrl>https://repository.apache.org/service/local/staging/deploy/maven2</distMgmtStagingUrl>
     <failIfNoTests>false</failIfNoTests>
+    <protobuf.version>2.5.0</protobuf.version>
+    <protoc.path>${env.PROTOC_PATH}</protoc.path>
   </properties>
 
   <distributionManagement>
@@ -231,7 +233,7 @@
       <dependency>
        <groupId>com.google.protobuf</groupId>
        <artifactId>protobuf-java</artifactId>
-       <version>2.4.0a</version>
+       <version>${protobuf.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
