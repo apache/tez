@@ -206,20 +206,20 @@ public class TaskSchedulerEventHandler extends AbstractService
     }*/
 
     TaskAttempt attempt = event.getAttempt();
-    Container container = taskScheduler.deallocateTask(attempt, false);
+    boolean wasContainerAllocated = taskScheduler.deallocateTask(attempt, false);
     // use stored value of container id in case the scheduler has removed this
     // assignment because the task has been deallocated earlier.
     // retroactive case
     ContainerId attemptContainerId = attempt.getAssignedContainerID();
 
-    if(container != null) {
-      // use scheduler container since it exists
-      ContainerId containerId = container.getId();
-      assert attemptContainerId==null || attemptContainerId.equals(containerId);
-      attemptContainerId = containerId;
-    } else {
+    if(!wasContainerAllocated) {
       LOG.info("Task: " + attempt.getID() +
-               " has no container assignment in the scheduler");
+          " has no container assignment in the scheduler");
+      if (attemptContainerId != null) {
+        LOG.error("No container allocated to task: " + attempt.getID()
+            + " according to scheduler. Task reported container id: "
+            + attemptContainerId);
+      }
     }
 
     if (attemptContainerId != null) {
@@ -265,14 +265,10 @@ public class TaskSchedulerEventHandler extends AbstractService
           event.getAttemptID()));
     }
 
-    Container container = taskScheduler.deallocateTask(attempt, true);
-    if(container != null) {
-      ContainerId containerId = container.getId();
-      // ContainerId specified by the task could be different from what the
-      // TaskScheduler knows about in case of KILLED tasks. The task may be
-      // killed after the scheduler has allocated a container but before the
-      // task knows about it.
-      sendEvent(new AMContainerEventStopRequest(containerId));
+    boolean wasContainerAllocated = taskScheduler.deallocateTask(attempt, true);
+    if (!wasContainerAllocated) {
+      LOG.error("De-allocated successful task: " + attempt.getID()
+          + ", but TaskScheduler reported no container assigned to task");
     }
   }
 
@@ -362,10 +358,12 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
   @Override
-  public synchronized void serviceStop() {
-    this.stopEventHandling = true;
-    if (eventHandlingThread != null)
-      eventHandlingThread.interrupt();
+  public void serviceStop() {
+    synchronized(this) {
+      this.stopEventHandling = true;
+      if (eventHandlingThread != null)
+        eventHandlingThread.interrupt();
+    }
     if (taskScheduler != null) {
       taskScheduler.stop();
     }
@@ -414,6 +412,11 @@ public class TaskSchedulerEventHandler extends AbstractService
     sendEvent(new AMContainerEventCompleted(containerStatus));
   }
 
+  @Override
+  public synchronized void containerBeingReleased(ContainerId containerId) {
+    sendEvent(new AMContainerEventStopRequest(containerId));
+  }
+
   @SuppressWarnings("unchecked")
   @Override
   public synchronized void nodesUpdated(List<NodeReport> updatedNodes) {
@@ -440,8 +443,12 @@ public class TaskSchedulerEventHandler extends AbstractService
     this.appAcls = appAcls;
   }
 
+  // Not synchronized to avoid deadlocks from TaskScheduler callbacks.
+  // TaskScheduler uses a separate thread for it's callbacks. Since this method
+  // returns a value which is required, the TaskScheduler wait for the call to
+  // complete and can hence lead to a deadlock if called from within a TSEH lock.
   @Override
-  public synchronized AppFinalStatus getFinalAppStatus() {
+  public AppFinalStatus getFinalAppStatus() {
     FinalApplicationStatus finishState = FinalApplicationStatus.UNDEFINED;
     StringBuffer sb = new StringBuffer();
     if (dagAppMaster == null) {
@@ -479,8 +486,12 @@ public class TaskSchedulerEventHandler extends AbstractService
     return new AppFinalStatus(finishState, sb.toString(), historyUrl);
   }
 
+  // Not synchronized to avoid deadlocks from TaskScheduler callbacks.
+  // TaskScheduler uses a separate thread for it's callbacks. Since this method
+  // returns a value which is required, the TaskScheduler wait for the call to
+  // complete and can hence lead to a deadlock if called from within a TSEH lock.
   @Override
-  public synchronized float getProgress() {
+  public float getProgress() {
     return dagAppMaster.getProgress();
   }
 

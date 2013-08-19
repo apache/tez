@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.rm;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
@@ -30,7 +31,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -64,6 +64,8 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.rm.TaskScheduler.CookieContainerRequest;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback.AppFinalStatus;
+import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerAppCallbackDrainable;
+import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerWithDrainableAppCallback;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -88,8 +90,10 @@ public class TestTaskScheduler {
     String appHost = "host";
     int appPort = 0;
     String appUrl = "url";
-    TaskScheduler scheduler = new TaskScheduler(mockApp, appHost,
-                                                appPort, appUrl, mockRMClient);
+    TaskSchedulerWithDrainableAppCallback scheduler = new TaskSchedulerWithDrainableAppCallback(
+        mockApp, appHost, appPort, appUrl, mockRMClient);
+    TaskSchedulerAppCallbackDrainable drainableAppCallback = scheduler
+        .getDrainableAppCallback();
 
     Configuration conf = new Configuration();
     conf.setBoolean(TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING, false);
@@ -97,6 +101,7 @@ public class TestTaskScheduler {
     int interval = 100;
     conf.setInt(TezConfiguration.TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX, interval);
     scheduler.init(conf);
+    drainableAppCallback.drain();
     verify(mockRMClient).init(conf);
     verify(mockRMClient).setHeartbeatInterval(interval);
 
@@ -111,6 +116,7 @@ public class TestTaskScheduler {
           registerApplicationMaster(anyString(), anyInt(), anyString())).
                                                    thenReturn(mockRegResponse);
     scheduler.start();
+    drainableAppCallback.drain();
     verify(mockRMClient).start();
     verify(mockRMClient).registerApplicationMaster(appHost, appPort, appUrl);
     verify(mockApp).setApplicationRegistrationData(mockMaxResource,
@@ -136,18 +142,21 @@ public class TestTaskScheduler {
     // allocate task
     scheduler.allocateTask(mockTask1, mockCapability, hosts,
                            racks, mockPriority, mockCookie1);
+    drainableAppCallback.drain();
     verify(mockRMClient, times(1)).
                            addContainerRequest((CookieContainerRequest) any());
 
     // returned from task requests before allocation happens
-    Assert.assertNull(scheduler.deallocateTask(mockTask1, true));
+    assertFalse(scheduler.deallocateTask(mockTask1, true));
+    verify(mockApp, times(0)).containerBeingReleased(any(ContainerId.class));
     verify(mockRMClient, times(1)).
                         removeContainerRequest((CookieContainerRequest) any());
     verify(mockRMClient, times(0)).
                                  releaseAssignedContainer((ContainerId) any());
 
     // deallocating unknown task
-    Assert.assertNull(scheduler.deallocateTask(mockTask1, true));
+    assertFalse(scheduler.deallocateTask(mockTask1, true));
+    verify(mockApp, times(0)).containerBeingReleased(any(ContainerId.class));
     verify(mockRMClient, times(1)).
                         removeContainerRequest((CookieContainerRequest) any());
     verify(mockRMClient, times(0)).
@@ -160,16 +169,19 @@ public class TestTaskScheduler {
     Object mockCookie3 = mock(Object.class);
     scheduler.allocateTask(mockTask1, mockCapability, hosts,
         racks, mockPriority, mockCookie1);
+    drainableAppCallback.drain();
     verify(mockRMClient, times(2)).
                                 addContainerRequest(requestCaptor.capture());
     CookieContainerRequest request1 = requestCaptor.getValue();
     scheduler.allocateTask(mockTask2, mockCapability, hosts,
         racks, mockPriority, mockCookie2);
+    drainableAppCallback.drain();
     verify(mockRMClient, times(3)).
                                 addContainerRequest(requestCaptor.capture());
     CookieContainerRequest request2 = requestCaptor.getValue();
     scheduler.allocateTask(mockTask3, mockCapability, hosts,
         racks, mockPriority, mockCookie3);
+    drainableAppCallback.drain();
     verify(mockRMClient, times(4)).
                                 addContainerRequest(requestCaptor.capture());
     CookieContainerRequest request3 = requestCaptor.getValue();
@@ -274,6 +286,7 @@ public class TestTaskScheduler {
 
         });
     scheduler.onContainersAllocated(containers);
+    drainableAppCallback.drain();
     // first container allocated
     verify(mockApp).taskAllocated(mockTask1, mockCookie1, mockContainer1);
     verify(mockApp).taskAllocated(mockTask2, mockCookie2, mockContainer2);
@@ -287,7 +300,8 @@ public class TestTaskScheduler {
     verify(mockRMClient).releaseAssignedContainer(mockCId4);
 
     // deallocate allocated task
-    Assert.assertEquals(mockContainer1, scheduler.deallocateTask(mockTask1, true));
+    assertTrue(scheduler.deallocateTask(mockTask1, true));
+    verify(mockApp).containerBeingReleased(mockCId1);
     verify(mockRMClient).releaseAssignedContainer(mockCId1);
     // deallocate allocated container
     Assert.assertEquals(mockTask2, scheduler.deallocateContainer(mockCId2));
@@ -309,6 +323,7 @@ public class TestTaskScheduler {
     statuses.add(mockStatus4);
 
     scheduler.onContainersCompleted(statuses);
+    drainableAppCallback.drain();
     // released container status returned
     verify(mockApp).containerCompleted(mockTask1, mockStatus1);
     verify(mockApp).containerCompleted(mockTask2, mockStatus2);
@@ -325,13 +340,16 @@ public class TestTaskScheduler {
 
     List<NodeReport> mockUpdatedNodes = mock(List.class);
     scheduler.onNodesUpdated(mockUpdatedNodes);
+    drainableAppCallback.drain();
     verify(mockApp).nodesUpdated(mockUpdatedNodes);
 
     Exception mockException = mock(Exception.class);
     scheduler.onError(mockException);
+    drainableAppCallback.drain();
     verify(mockApp).onError(mockException);
 
     scheduler.onShutdownRequest();
+    drainableAppCallback.drain();
     verify(mockApp).appShutdownRequested();
 
     String appMsg = "success";
@@ -339,6 +357,7 @@ public class TestTaskScheduler {
         new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
     when(mockApp.getFinalAppStatus()).thenReturn(finalStatus);
     scheduler.stop();
+    drainableAppCallback.drain();
     verify(mockRMClient).
                   unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED,
                                               appMsg, appUrl);
@@ -358,8 +377,10 @@ public class TestTaskScheduler {
     String appHost = "host";
     int appPort = 0;
     String appUrl = "url";
-    TaskScheduler scheduler = new TaskScheduler(mockApp, appHost,
-                                                appPort, appUrl, mockRMClient);
+    TaskSchedulerWithDrainableAppCallback scheduler = new TaskSchedulerWithDrainableAppCallback(
+        mockApp, appHost, appPort, appUrl, mockRMClient);
+    TaskSchedulerAppCallbackDrainable drainableAppCallback = scheduler
+        .getDrainableAppCallback();
 
     Configuration conf = new Configuration();
     scheduler.init(conf);
@@ -376,6 +397,7 @@ public class TestTaskScheduler {
 
     // no preemption
     scheduler.getProgress();
+    drainableAppCallback.drain();
     Assert.assertEquals(totalResource, scheduler.getTotalResources());
     verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
 
@@ -397,16 +419,19 @@ public class TestTaskScheduler {
     Resource taskAsk = Resource.newInstance(1024, 1);
     scheduler.allocateTask(mockTaskPri1, taskAsk, null,
                            null, pri1, null);
+    drainableAppCallback.drain();
     verify(mockRMClient, times(1)).
         addContainerRequest(requestCaptor.capture());
     anyContainers.add(requestCaptor.getValue());
     scheduler.allocateTask(mockTaskPri3, taskAsk, null,
                            null, pri3, null);
+    drainableAppCallback.drain();
     verify(mockRMClient, times(2)).
     addContainerRequest(requestCaptor.capture());
     anyContainers.add(requestCaptor.getValue());
     scheduler.allocateTask(mockTaskPri3Kill, taskAsk, null,
                            null, pri3, null);
+    drainableAppCallback.drain();
     verify(mockRMClient, times(3)).
     addContainerRequest(requestCaptor.capture());
     anyContainers.add(requestCaptor.getValue());
@@ -414,6 +439,7 @@ public class TestTaskScheduler {
     Resource freeResource = Resource.newInstance(500, 0);
     when(mockRMClient.getAvailableResources()).thenReturn(freeResource);
     scheduler.getProgress();
+    drainableAppCallback.drain();
     Assert.assertEquals(totalResource, scheduler.getTotalResources());
     verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
 
@@ -485,6 +511,7 @@ public class TestTaskScheduler {
 
         });
     scheduler.onContainersAllocated(containers);
+    drainableAppCallback.drain();
     Assert.assertEquals(3072, scheduler.allocatedResources.getMemory());
     Assert.assertEquals(mockCId1,
         scheduler.taskAllocations.get(mockTaskPri1).getId());
@@ -495,19 +522,23 @@ public class TestTaskScheduler {
 
     // no preemption
     scheduler.getProgress();
+    drainableAppCallback.drain();
     verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
 
     scheduler.allocateTask(mockTaskPri3Wait, taskAsk, null,
                            null, pri3, null);
     // no preemption
     scheduler.getProgress();
+    drainableAppCallback.drain();
     verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
 
     scheduler.allocateTask(mockTaskPri2, taskAsk, null,
                            null, pri2, null);
+    drainableAppCallback.drain();
 
     // mockTaskPri3Kill gets preempted
     scheduler.getProgress();
+    drainableAppCallback.drain();
     verify(mockRMClient, times(1)).releaseAssignedContainer((ContainerId)any());
     verify(mockRMClient, times(1)).releaseAssignedContainer(mockCId3);
 
@@ -515,18 +546,37 @@ public class TestTaskScheduler {
         new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, "", appUrl);
     when(mockApp.getFinalAppStatus()).thenReturn(finalStatus);
     scheduler.stop();
+    drainableAppCallback.drain();
     scheduler.close();
   }
 
   @SuppressWarnings("unchecked")
   @Test
-  public void testLocalityMatching() throws IOException {
+  public void testLocalityMatching() throws Exception {
 
     RackResolver.init(new Configuration());
     TaskSchedulerAppCallback appClient = mock(TaskSchedulerAppCallback.class);
     AMRMClientAsync<CookieContainerRequest> amrmClient = mock(AMRMClientAsync.class);
-    TaskScheduler taskScheduler = new TaskScheduler(appClient, "host", 0, "",
-        amrmClient);
+    TaskSchedulerWithDrainableAppCallback taskScheduler = new TaskSchedulerWithDrainableAppCallback(
+        appClient, "host", 0, "", amrmClient);
+    TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler
+        .getDrainableAppCallback();
+    
+    taskScheduler.init(new Configuration());
+    
+    RegisterApplicationMasterResponse mockRegResponse = mock(RegisterApplicationMasterResponse.class);
+    Resource mockMaxResource = mock(Resource.class);
+    Map<ApplicationAccessType, String> mockAcls = mock(Map.class);
+    when(mockRegResponse.getMaximumResourceCapability()).thenReturn(
+        mockMaxResource);
+    when(mockRegResponse.getApplicationACLs()).thenReturn(mockAcls);
+    when(amrmClient.registerApplicationMaster(anyString(), anyInt(), anyString()))
+        .thenReturn(mockRegResponse);
+    
+    taskScheduler.start();
+    
+    taskScheduler.serviceInit(new Configuration());
+    taskScheduler.serviceStart();
 
     Resource resource = Resource.newInstance(1024, 1);
     Priority priority = Priority.newInstance(1);
@@ -557,6 +607,7 @@ public class TestTaskScheduler {
     final Map<String, List<CookieContainerRequest>> matchingMap = new HashMap<String, List<CookieContainerRequest>>();
     taskScheduler.allocateTask(mockTask1, resource, hostsTask1, defaultRack,
         priority, mockCookie1);
+    drainableAppCallback.drain();
 
     List<CookieContainerRequest> host1List = new ArrayList<CookieContainerRequest>();
     host1List.add(mockCookie1);
@@ -571,6 +622,7 @@ public class TestTaskScheduler {
     otherRackList.add(mockCookie2);
     taskScheduler.allocateTask(mockTask2, resource, hostsTask2, otherRack,
         priority, mockCookie2);
+    drainableAppCallback.drain();
     matchingMap.put(hostsTask2[0], nonAllocatedHostList);
     matchingMap.put(otherRack[0], otherRackList);
 
@@ -614,6 +666,7 @@ public class TestTaskScheduler {
         });
 
     taskScheduler.onContainersAllocated(allocatedContainers);
+    drainableAppCallback.drain();
 
     ArgumentCaptor<Object> taskCaptor = ArgumentCaptor.forClass(Object.class);
     ArgumentCaptor<Container> containerCaptor = ArgumentCaptor
