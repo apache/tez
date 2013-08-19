@@ -204,10 +204,7 @@ public class YarnTezDagChild {
       LOG.fatal("Error running child : "
     	        + StringUtils.stringifyException(throwable));
       if (taskAttemptId != null) {
-        Throwable tCause = throwable.getCause();
-        String cause = tCause == null
-                                 ? throwable.getMessage()
-                                 : StringUtils.stringifyException(tCause);
+        String cause = StringUtils.stringifyException(throwable);
         umbilical.fatalError(taskAttemptId, cause);
       }
     } finally {
