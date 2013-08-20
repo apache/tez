@@ -58,13 +58,20 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.api.Task;
+import org.apache.tez.engine.common.objectregistry.ObjectLifeCycle;
+import org.apache.tez.engine.common.objectregistry.ObjectRegistryImpl;
+import org.apache.tez.engine.common.objectregistry.ObjectRegistryModule;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.TokenCache;
 import org.apache.tez.engine.runtime.RuntimeUtils;
 import org.apache.tez.engine.task.RuntimeTask;
 import org.apache.tez.mapreduce.input.SimpleInput;
 import org.apache.tez.mapreduce.output.SimpleOutput;
+
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 
 
 /**
@@ -102,6 +109,11 @@ public class YarnTezDagChild {
     }
     // FIXME fix initialize metrics in child runner
     DefaultMetricsSystem.initialize("VertexTask");
+
+    ObjectRegistryImpl objectRegistry = new ObjectRegistryImpl();
+    @SuppressWarnings("unused")
+    Injector injector = Guice.createInjector(
+        new ObjectRegistryModule(objectRegistry));
 
     // Security framework already loaded the tokens into current ugi
     Credentials credentials =
@@ -144,6 +156,7 @@ public class YarnTezDagChild {
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT);
     int taskCount = 0;
+    TezVertexID currentVertexId = null;
     try {
       while (true) {
         // poll for new task
@@ -173,6 +186,18 @@ public class YarnTezDagChild {
               + taskContext.toString());
         }
         taskAttemptId = taskContext.getTaskAttemptId();
+        TezVertexID newVertexId = taskAttemptId.getTaskID().getVertexID();
+
+        if (currentVertexId != null) {
+          if (!currentVertexId.equals(newVertexId)) {
+            objectRegistry.clearCache(ObjectLifeCycle.VERTEX);
+          }
+          if (!currentVertexId.getDAGId().equals(newVertexId.getDAGId())) {
+            objectRegistry.clearCache(ObjectLifeCycle.DAG);
+          }
+        }
+        currentVertexId = newVertexId;
+
         updateLoggers(taskAttemptId);
 
         final Task t = createAndConfigureTezTask(taskContext, umbilical,

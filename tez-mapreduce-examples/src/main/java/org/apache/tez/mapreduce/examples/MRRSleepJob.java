@@ -74,6 +74,9 @@ import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.EdgeProperty.SourceType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.engine.common.objectregistry.ObjectLifeCycle;
+import org.apache.tez.engine.common.objectregistry.ObjectRegistry;
+import org.apache.tez.engine.common.objectregistry.ObjectRegistryFactory;
 import org.apache.tez.engine.lib.input.ShuffledMergedInput;
 import org.apache.tez.engine.lib.output.OnFileSortedOutput;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
@@ -220,6 +223,19 @@ public class MRRSleepJob extends Configured implements Tool {
           org.apache.tez.mapreduce.hadoop.MRJobConfig.VERTEX_NAME);
 
       TaskAttemptID taId = context.getTaskAttemptID();
+
+      ObjectRegistry objectRegistry = ObjectRegistryFactory.getObjectRegistry();
+      String fooBarVal = (String) objectRegistry.get("FooBar");
+      if (null == fooBarVal) {
+        LOG.info("Adding FooBar key to Object cache");
+        objectRegistry.add(ObjectLifeCycle.DAG,
+            "FooBar", "BarFooFromTask" + taId.getTaskID().toString());
+      } else {
+        LOG.info("Got FooBar val from Object cache"
+            + ", currentTaskId=" + taId.getTaskID().toString()
+            + ", val=" + fooBarVal);
+      }
+
       String[] taskIds = conf.getStrings(MAP_ERROR_TASK_IDS);
       if (taId.getId()+1 >= context.getMaxMapAttempts()) {
         finalAttempt = true;
