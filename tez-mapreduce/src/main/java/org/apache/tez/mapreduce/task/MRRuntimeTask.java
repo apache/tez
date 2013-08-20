@@ -80,17 +80,6 @@ public class MRRuntimeTask extends RuntimeTask {
     Configuration taskConf;
     if (userPayload != null) {
       taskConf = MRHelpers.createConfFromUserPayload(userPayload);
-      if (LOG.isDebugEnabled()) {
-        Iterator<Entry<String, String>> iter = taskConf.iterator();
-        String taskIdStr = mrTask.getTaskAttemptId().getTaskID().toString();
-        while (iter.hasNext()) {
-          Entry<String, String> confEntry = iter.next();
-          LOG.debug("TaskConf Entry"
-              + ", taskId=" + taskIdStr
-              + ", key=" + confEntry.getKey()
-              + ", value=" + confEntry.getValue());
-        }
-      }
     } else {
       taskConf = new Configuration(false);
     }
@@ -114,6 +103,19 @@ public class MRRuntimeTask extends RuntimeTask {
 
     MRTask mrTask = (MRTask) getProcessor();
     this.mrTask = mrTask;
+
+    if (LOG.isDebugEnabled() && userPayload != null) {
+      Iterator<Entry<String, String>> iter = taskConf.iterator();
+      String taskIdStr = mrTask.getTaskAttemptId().getTaskID().toString();
+      while (iter.hasNext()) {
+        Entry<String, String> confEntry = iter.next();
+        LOG.debug("TaskConf Entry"
+            + ", taskId=" + taskIdStr
+            + ", key=" + confEntry.getKey()
+            + ", value=" + confEntry.getValue());
+      }
+    }
+
     configureMRTask(job, mrTask);
 
     this.conf = job;
