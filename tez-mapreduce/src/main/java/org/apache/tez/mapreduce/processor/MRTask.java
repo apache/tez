@@ -78,6 +78,7 @@ import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRTaskStatus;
 import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.hadoop.mapreduce.JobContextImpl;
+import org.apache.tez.mapreduce.hadoop.mapreduce.TezNullOutputCommitter;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 
 public abstract class MRTask extends RunningTaskContext {
@@ -187,38 +188,6 @@ public abstract class MRTask extends RunningTaskContext {
       setState(State.RUNNING);
     }
 
-    // Save the committer
-    if (useNewApi) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("using new api for output committer");
-      }
-      OutputFormat<?, ?> outputFormat = null;
-      try {
-        outputFormat =
-            ReflectionUtils.newInstance(
-                taskAttemptContext.getOutputFormatClass(), job);
-      } catch (ClassNotFoundException cnfe) {
-        throw new IOException("Unknown OutputFormat", cnfe);
-      }
-      setCommitter(outputFormat.getOutputCommitter(taskAttemptContext));
-    } else {
-      setCommitter(job.getOutputCommitter());
-    }
-
-    Path outputPath = FileOutputFormat.getOutputPath(job);
-    if (outputPath != null) {
-      if ((getCommitter() instanceof FileOutputCommitter)) {
-        FileOutputFormat.setWorkOutputPath(job,
-            ((FileOutputCommitter)getCommitter()).getTaskAttemptPath(taskAttemptContext));
-      } else {
-        FileOutputFormat.setWorkOutputPath(job, outputPath);
-      }
-    }
-    getCommitter().setupTask(taskAttemptContext);
-
-    partitioner = new MRPartitioner(this);
-    ((MRPartitioner)partitioner).initialize(job, getTaskReporter());
-
     boolean useCombiner = false;
     combineProcessor = null;
     if (useNewApi) {
@@ -239,6 +208,47 @@ public abstract class MRTask extends RunningTaskContext {
     localizeConfiguration(jobConf);
   }
 
+  public void initPartitioner(JobConf job) throws IOException,
+      InterruptedException {
+    partitioner = new MRPartitioner(this);
+    ((MRPartitioner) partitioner).initialize(job, getTaskReporter());
+  }
+  
+  public void initCommitter(JobConf job, boolean useNewApi,
+      boolean useNullCommitter) throws IOException, InterruptedException {
+    if (useNullCommitter) {
+      setCommitter(new TezNullOutputCommitter());
+      return;
+    }
+    if (useNewApi) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("using new api for output committer");
+      }
+      OutputFormat<?, ?> outputFormat = null;
+      try {
+        outputFormat = ReflectionUtils.newInstance(
+            taskAttemptContext.getOutputFormatClass(), job);
+      } catch (ClassNotFoundException cnfe) {
+        throw new IOException("Unknown OutputFormat", cnfe);
+      }
+      setCommitter(outputFormat.getOutputCommitter(taskAttemptContext));
+    } else {
+      setCommitter(job.getOutputCommitter());
+    }
+
+    Path outputPath = FileOutputFormat.getOutputPath(job);
+    if (outputPath != null) {
+      if ((getCommitter() instanceof FileOutputCommitter)) {
+        FileOutputFormat.setWorkOutputPath(job,
+            ((FileOutputCommitter) getCommitter())
+                .getTaskAttemptPath(taskAttemptContext));
+      } else {
+        FileOutputFormat.setWorkOutputPath(job, outputPath);
+      }
+    }
+    getCommitter().setupTask(taskAttemptContext);
+  }
+  
   public MRTaskReporter getMRReporter() {
     return mrReporter;
   }

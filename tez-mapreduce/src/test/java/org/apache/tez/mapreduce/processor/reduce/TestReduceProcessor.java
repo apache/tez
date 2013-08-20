@@ -50,6 +50,7 @@ import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.input.SimpleInput;
 import org.apache.tez.mapreduce.output.SimpleOutput;
+import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MapUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -147,6 +148,8 @@ public class TestReduceProcessor {
     Task t = RuntimeUtils.createRuntimeTask(taskContext);
     t.initialize(reduceConf, null, new TestUmbilicalProtocol());
     t.run();
+    MRTask mrTask = (MRTask)t.getProcessor();
+    Assert.assertNull(mrTask.getPartitioner());
     t.close();
     
     // Can this be done via some utility class ? MapOutputFile derivative, or

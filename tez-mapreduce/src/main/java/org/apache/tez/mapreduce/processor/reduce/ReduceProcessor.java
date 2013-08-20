@@ -138,8 +138,11 @@ implements Processor {
     }
     
     if (out instanceof SimpleOutput) {
+      initCommitter(jobConf, useNewApi, false);
       ((SimpleOutput)out).setTask(this);
     } else if (out instanceof SortingOutput) {
+      initCommitter(jobConf, useNewApi, true);
+      initPartitioner(jobConf);
       ((SortingOutput)out).setTask(this);
     }
 

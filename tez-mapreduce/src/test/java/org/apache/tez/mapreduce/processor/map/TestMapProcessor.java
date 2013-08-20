@@ -43,7 +43,9 @@ import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
 import org.apache.tez.mapreduce.TestUmbilicalProtocol;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
+import org.apache.tez.mapreduce.hadoop.mapreduce.TezNullOutputCommitter;
 import org.apache.tez.mapreduce.input.SimpleInput;
+import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MapUtils;
 import org.jboss.netty.buffer.BigEndianHeapChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -115,12 +117,17 @@ public class TestMapProcessor {
         "localized-resources").toUri().toString());
     
 
-    MapUtils.runMapProcessor(localFs, workDir, job, 0,
+    Task t = MapUtils.runMapProcessor(localFs, workDir, job, 0,
         new Path(workDir, "map0"), new TestUmbilicalProtocol(), vertexName,
         Collections.singletonList(new InputSpec("NullVertex", 0,
             SimpleInput.class.getName())),
         Collections.singletonList(new OutputSpec("FakeVertex", 1,
-            LocalOnFileSorterOutput.class.getName()))).close();
+            LocalOnFileSorterOutput.class.getName())));
+
+    MRTask mrTask = (MRTask)t.getProcessor();
+    Assert.assertEquals(TezNullOutputCommitter.class.getName(), mrTask
+        .getCommitter().getClass().getName());
+    t.close();
 
     Path mapOutputFile = mapOutputs.getInputFile(0);
     LOG.info("mapOutputFile = " + mapOutputFile);
