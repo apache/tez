@@ -24,6 +24,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
@@ -46,7 +49,6 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormatCounter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormatCounter;
 import org.apache.hadoop.mapreduce.lib.reduce.WrappedReducer;
-import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.mapreduce.task.ReduceContextImpl;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -65,7 +67,9 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.engine.api.Input;
 import org.apache.tez.engine.api.Master;
+import org.apache.tez.engine.api.Output;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.mapreduce.combine.MRCombiner;
@@ -110,8 +114,6 @@ public abstract class MRTask extends RunningTaskContext {
   public static final int PROGRESS_INTERVAL = 3000;
 
   private MRTaskReporter mrReporter;
-
-  protected TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
 
   /**
    * A Map where Key-> URIScheme and value->FileSystemStatisticUpdater
@@ -722,10 +724,6 @@ public abstract class MRTask extends RunningTaskContext {
     return reporter.getCounter(FileInputFormatCounter.BYTES_READ);
   }
 
-  public TaskSplitIndex getSplitIndex() {
-    return splitMetaInfo;
-  }
-
   public JobContext getJobContext() {
     return jobContext;
   }
@@ -736,5 +734,71 @@ public abstract class MRTask extends RunningTaskContext {
 
   public TezEngineTaskContext getTezEngineTaskContext() {
     return tezEngineTaskContext;
+  }
+  
+  protected FutureTask<Void> initInputAsync(Input input) {
+    FutureTask<Void> initInputFuture = new FutureTask<Void>(
+        new InitInputCallable(input));
+    new Thread(initInputFuture, "InitInputThread").start();
+    return initInputFuture;
+  }
+
+  protected FutureTask<Void> initOutputAsync(Output output) {
+    FutureTask<Void> initOutputFuture = new FutureTask<Void>(
+        new InitOutputCallable(output));
+    new Thread(initOutputFuture, "InitOutputThread").start();
+    return initOutputFuture;
+  }
+
+  protected class InitInputCallable implements Callable<Void> {
+    Input input;
+    InitInputCallable(Input input) {
+      this.input = input;
+    }
+    @Override
+    public Void call() throws IOException, InterruptedException {
+      input.initialize(jobConf, getTaskReporter());
+      LOG.info("Input initialized");
+      return null;
+    }
+  }
+  
+  protected class InitOutputCallable implements Callable<Void> {
+    Output output;
+    InitOutputCallable(Output output) {
+      this.output = output;
+    }
+    @Override
+    public Void call() throws IOException, InterruptedException {
+      output.initialize(jobConf, getTaskReporter());
+      LOG.info("Output initialized");
+      return null;
+    }
+  }
+  
+  private void waitForIOInitialization(FutureTask<Void> future)
+      throws InterruptedException, IOException {
+    try {
+      future.get();
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof InterruptedException) {
+        throw (InterruptedException) e.getCause();
+      } else if (e.getCause() instanceof IOException) {
+        throw (IOException) e.getCause();
+      } else {
+        throw new RuntimeException("UnknownException from I/O initialization",
+            e.getCause());
+      }
+    }
+  }
+
+  protected void waitForInputInitialization(FutureTask<Void> future)
+      throws InterruptedException, IOException {
+    waitForIOInitialization(future);
+  }
+  
+  protected void waitForOutputInitialization(FutureTask<Void> future)
+      throws InterruptedException, IOException {
+    waitForIOInitialization(future);
   }
 }

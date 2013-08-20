@@ -18,11 +18,11 @@
 package org.apache.tez.mapreduce.processor.map;
 
 import java.io.IOException;
+import java.util.concurrent.FutureTask;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.MapRunnable;
@@ -31,9 +31,6 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.map.WrappedMapper;
-import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
-import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
-import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezEngineTaskContext;
@@ -76,14 +73,7 @@ public class MapProcessor extends MRTask implements Processor {
       final Input[] ins,
       final Output[] outs)
           throws IOException, InterruptedException {
-    
-    // Read split information.
-    TaskSplitMetaInfo[] allMetaInfo = readSplits();
-    TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[tezEngineTaskContext
-        .getTaskAttemptId().getTaskID().getId()];
-    splitMetaInfo = new TaskSplitIndex(thisTaskMetaInfo.getSplitLocation(),
-        thisTaskMetaInfo.getStartOffset());
-    
+
     MRTaskReporter reporter = new MRTaskReporter(getTaskReporter());
     boolean useNewApi = jobConf.getUseNewMapper();
     initTask(jobConf, taskAttemptId.getTaskID().getVertexID().getDAGId(),
@@ -97,20 +87,19 @@ public class MapProcessor extends MRTask implements Processor {
     }
     Input in = ins[0];
     Output out = outs[0];
-
-    if (in instanceof SimpleInput) {
-      ((SimpleInput)in).setTask(this);
-    }
     
+    // Sanity check
+    if (!(in instanceof SimpleInput)) {
+      throw new IOException("Unknown input! - " + in.getClass());
+    }
+    SimpleInput input = (SimpleInput)in;
+    input.setTask(this);
+
     if (out instanceof SimpleOutput) {
       ((SimpleOutput)out).setTask(this);
     } else if (out instanceof SortingOutput) {
       ((SortingOutput)out).setTask(this);
     }
-    
-    
-    in.initialize(jobConf, getTaskReporter());
-    out.initialize(jobConf, getTaskReporter());
 
     // If there are no reducers then there won't be any sort. Hence the map 
     // phase will govern the entire attempt's progress.
@@ -122,12 +111,7 @@ public class MapProcessor extends MRTask implements Processor {
       mapPhase = getProgress().addPhase("map");
     }
 
-    // Sanity check
-    if (!(in instanceof SimpleInput)) {
-      throw new IOException("Unknown input! - " + in.getClass());
-    }
-    SimpleInput input = (SimpleInput)in;
-    
+
     if (useNewApi) {
       runNewMapper(jobConf, reporter, input, out, getTaskReporter());
     } else {
@@ -150,6 +134,9 @@ public class MapProcessor extends MRTask implements Processor {
       final Master master
       ) throws IOException, InterruptedException {
     
+    FutureTask<Void> initInputFuture = initInputAsync(input);
+    FutureTask<Void> initOutputFuture = initOutputAsync(output);
+    
     RecordReader in = new OldRecordReader(input);
         
     int numReduceTasks = tezEngineTaskContext.getOutputSpecList().get(0)
@@ -160,6 +147,13 @@ public class MapProcessor extends MRTask implements Processor {
 
     MapRunnable runner =
         (MapRunnable)ReflectionUtils.newInstance(job.getMapRunnerClass(), job);
+
+    // Wait for input/output to be initialized before starting processing.
+    LOG.info("Waiting on input initialization");
+    waitForInputInitialization(initInputFuture);
+
+    LOG.info("Waiting on output initialization");
+    waitForInputInitialization(initOutputFuture);
 
     try {
       runner.run(in, collector, (Reporter)reporter);
@@ -183,6 +177,10 @@ public class MapProcessor extends MRTask implements Processor {
       final Master master
       ) throws IOException, InterruptedException {
     // make a task context so we can get the classes
+    
+    FutureTask<Void> initInputFuture = initInputAsync(in);
+    FutureTask<Void> initOutputFuture = initOutputAsync(out);
+    
     org.apache.hadoop.mapreduce.TaskAttemptContext taskContext =
         new TaskAttemptContextImpl(job, taskAttemptId, reporter);
 
@@ -204,6 +202,13 @@ public class MapProcessor extends MRTask implements Processor {
 
     org.apache.hadoop.mapreduce.RecordWriter output = 
         new NewOutputCollector(out);
+
+    // Wait for input/output to be initialized before starting processing.
+    LOG.info("Waiting on input initialization");
+    waitForInputInitialization(initInputFuture);
+
+    LOG.info("Waiting on output initialization");
+    waitForInputInitialization(initOutputFuture);
 
     org.apache.hadoop.mapreduce.InputSplit split = in.getNewInputSplit();
     
@@ -373,12 +378,5 @@ public class MapProcessor extends MRTask implements Processor {
   public TezCounter getInputRecordsCounter() {
     return reporter.getCounter(TaskCounter.MAP_INPUT_RECORDS);
 
-  }
-  
-  protected TaskSplitMetaInfo[] readSplits() throws IOException {
-    TaskSplitMetaInfo[] allTaskSplitMetaInfo;
-    allTaskSplitMetaInfo = SplitMetaInfoReaderTez.readSplitMetaInfo(getConf(),
-        FileSystem.getLocal(getConf()));
-    return allTaskSplitMetaInfo;
   }
 }

@@ -38,7 +38,9 @@ import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
+import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.counters.TaskCounter;
@@ -74,6 +76,8 @@ public class SimpleInput implements Input {
   org.apache.hadoop.mapred.InputFormat oldInputFormat;
   org.apache.hadoop.mapred.RecordReader oldRecordReader;
 
+  protected TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
+  
   Object key;
   Object value;
   
@@ -101,6 +105,14 @@ public class SimpleInput implements Input {
       jobConf = new JobConf(conf);
     }
     
+    // Read split information.
+    TaskSplitMetaInfo[] allMetaInfo = readSplits(jobConf);
+    TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[task.getTaskAttemptId()
+        .getTaskID().getId()];
+    splitMetaInfo = new TaskSplitIndex(thisTaskMetaInfo.getSplitLocation(),
+        thisTaskMetaInfo.getStartOffset());
+    
+    
     useNewApi = jobConf.getUseNewMapper();
     taskAttemptContext = task.getTaskAttemptContext();
     
@@ -118,7 +130,7 @@ public class SimpleInput implements Input {
         throw new IOException(cnfe);
       }
       
-      newInputSplit = getNewSplitDetails(task.getSplitIndex());
+      newInputSplit = getNewSplitDetails(splitMetaInfo);
       List<Statistics> matchedStats = null;
       if (newInputSplit instanceof org.apache.hadoop.mapreduce.lib.input.FileSplit) {
         matchedStats = MRTask.getFsStatistics(
@@ -131,7 +143,7 @@ public class SimpleInput implements Input {
     } else {
       oldInputFormat = jobConf.getInputFormat();
       org.apache.hadoop.mapred.InputSplit oldInputSplit =
-          getOldSplitDetails(task.getSplitIndex());
+          getOldSplitDetails(splitMetaInfo);
       
       List<Statistics> matchedStats = null;
       if (oldInputSplit instanceof FileSplit) {
@@ -365,4 +377,11 @@ public class SimpleInput implements Input {
     return newInputSplit;
   }
 
+  protected TaskSplitMetaInfo[] readSplits(Configuration conf)
+      throws IOException {
+    TaskSplitMetaInfo[] allTaskSplitMetaInfo;
+    allTaskSplitMetaInfo = SplitMetaInfoReaderTez.readSplitMetaInfo(conf,
+        FileSystem.getLocal(conf));
+    return allTaskSplitMetaInfo;
+  }
 }

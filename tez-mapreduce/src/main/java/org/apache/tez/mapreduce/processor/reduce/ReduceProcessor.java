@@ -19,6 +19,7 @@ package org.apache.tez.mapreduce.processor.reduce;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.FutureTask;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -142,14 +143,6 @@ implements Processor {
       ((SortingOutput)out).setTask(this);
     }
 
-    in.initialize(jobConf, getTaskReporter());
-    out.initialize(jobConf, getTaskReporter());
-
-    sortPhase  = getProgress().addPhase("sort");
-    reducePhase = getProgress().addPhase("reduce");
-    sortPhase.complete();                         // sort is complete
-    setPhase(TezTaskStatus.Phase.REDUCE); 
-
     this.statusUpdate();
     
     Class keyClass = ConfigUtils.getIntermediateInputKeyClass(jobConf);
@@ -204,9 +197,12 @@ implements Processor {
       Class valueClass,
       final Output output) throws IOException, InterruptedException {
     
+    FutureTask<Void> initInputFuture = initInputAsync(input);
+    FutureTask<Void> initOutputFuture = initOutputAsync(output);
+
     Reducer reducer = 
         ReflectionUtils.newInstance(job.getReducerClass(), job);
-    
+
     // make output collector
 
     OutputCollector collector = 
@@ -220,6 +216,13 @@ implements Processor {
         }
       }
     };
+
+    // Wait for input/output to be initialized before starting processing.
+    LOG.info("Waiting on input initialization");
+    waitForInputInitialization(initInputFuture);
+
+    LOG.info("Waiting on output initialization");
+    waitForOutputInitialization(initOutputFuture);
 
     // apply reduce function
     try {
@@ -298,6 +301,26 @@ implements Processor {
       final Output out
       ) throws IOException,InterruptedException, 
       ClassNotFoundException {
+    
+    FutureTask<Void> initInputFuture = initInputAsync(input);
+    FutureTask<Void> initOutputFuture = initOutputAsync(out);
+    
+    // make a task context so we can get the classes
+    org.apache.hadoop.mapreduce.TaskAttemptContext taskContext =
+        new TaskAttemptContextImpl(job, taskAttemptId, reporter);
+    
+    // make a reducer
+    org.apache.hadoop.mapreduce.Reducer reducer =
+        (org.apache.hadoop.mapreduce.Reducer)
+        ReflectionUtils.newInstance(taskContext.getReducerClass(), job);
+
+    // Wait for input/output to be initialized before starting processing.
+    LOG.info("Waiting on input initialization");
+    waitForInputInitialization(initInputFuture);
+
+    LOG.info("Waiting on output initialization");
+    waitForOutputInitialization(initOutputFuture);
+
     // wrap value iterator to report progress.
     final TezRawKeyValueIterator rawIter = input.getIterator();
     TezRawKeyValueIterator rIter = new TezRawKeyValueIterator() {
@@ -319,31 +342,22 @@ implements Processor {
         return ret;
       }
     };
-    
-    // make a task context so we can get the classes
-    org.apache.hadoop.mapreduce.TaskAttemptContext taskContext =
-        new TaskAttemptContextImpl(job, taskAttemptId, reporter);
-    
-    // make a reducer
-    org.apache.hadoop.mapreduce.Reducer reducer =
-        (org.apache.hadoop.mapreduce.Reducer)
-        ReflectionUtils.newInstance(taskContext.getReducerClass(), job);
 
     org.apache.hadoop.mapreduce.RecordWriter trackedRW = 
         new org.apache.hadoop.mapreduce.RecordWriter() {
 
-          @Override
-          public void write(Object key, Object value) throws IOException,
-              InterruptedException {
-            out.write(key, value);
-          }
+      @Override
+      public void write(Object key, Object value) throws IOException,
+      InterruptedException {
+        out.write(key, value);
+      }
 
-          @Override
-          public void close(TaskAttemptContext context) throws IOException,
-              InterruptedException {
-            out.close();
-          }
-        };
+      @Override
+      public void close(TaskAttemptContext context) throws IOException,
+      InterruptedException {
+        out.close();
+      }
+    };
 
     org.apache.hadoop.mapreduce.Reducer.Context reducerContext = 
         createReduceContext(
@@ -354,6 +368,9 @@ implements Processor {
             committer,
             reporter, comparator, keyClass,
             valueClass);
+    
+    
+    
     reducer.run(reducerContext);
     trackedRW.close(reducerContext);
   }
@@ -373,5 +390,15 @@ implements Processor {
   @Override
   public TezCounter getInputRecordsCounter() {
     return reporter.getCounter(TaskCounter.REDUCE_INPUT_GROUPS);
+  }
+
+  @Override
+  protected void waitForInputInitialization(FutureTask<Void> future)
+      throws InterruptedException, IOException {
+    super.waitForInputInitialization(future);
+    sortPhase = getProgress().addPhase("sort");
+    reducePhase = getProgress().addPhase("reduce");
+    sortPhase.complete(); // sort is complete
+    setPhase(TezTaskStatus.Phase.REDUCE);
   }
 }
