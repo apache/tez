@@ -190,12 +190,4 @@
       </plugins>
     </reporting>
 
-  <distributionManagement>
-    <site>
-      <id>apache-website</id>
-      <name>Apache website</name>
-      <url>scpexe://people.apache.org/www/incubator.apache.org/ambari</url>
-    </site>
-  </distributionManagement>
-
 </project>
