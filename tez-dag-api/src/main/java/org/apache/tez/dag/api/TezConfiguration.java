@@ -103,18 +103,37 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_AM_RESOURCE_CPU_VCORES_DEFAULT = 1;
 
   public static final String
-          TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION = TEZ_AM_PREFIX
-          + "slowstart-vertex-scheduler.min-src-fraction";
+          TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION = TEZ_AM_PREFIX
+          + "shuffle-vertex-manager.min-src-fraction";
   public static final float
-          TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION_DEFAULT = 0.25f;
+          TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT = 0.25f;
 
   public static final String
-          TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION = TEZ_AM_PREFIX
-          + "slowstart-vertex-scheduler.max-src-fraction";
+          TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION = TEZ_AM_PREFIX
+          + "shuffle-vertex-manager.max-src-fraction";
   public static final float
-          TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT = 0.75f;
+          TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT = 0.75f;
+  
+  public static final String
+          TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL = TEZ_AM_PREFIX +
+          "shuffle-vertex-manager.enable.auto-parallel";
+  public static final boolean 
+          TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL_DEFAULT = false;
+  
+  public static final String
+          TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE = TEZ_AM_PREFIX +
+          "shuffle-vertex-manager.desired-task-input-size";
+  public static final long 
+          TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT = 
+          1024*1024*100L;
 
   public static final String
+          TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM = TEZ_AM_PREFIX +
+          "shuffle-vertex-manager.min-task-parallelism";
+  public static final int 
+          TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT = 1;
+
+  public static final String 
           TEZ_AM_SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION = TEZ_AM_PREFIX
           + "slowstart-dag-scheduler.min-resource-fraction";
   public static final float
@@ -122,7 +141,7 @@ public class TezConfiguration extends Configuration {
 
   public static final String TEZ_AM_AGGRESSIVE_SCHEDULING = TEZ_AM_PREFIX +
       "aggressive.scheduling";
-  public static boolean TEZ_AM_AGGRESSIVE_SCHEDULING_DEFAULT = true;
+  public static boolean TEZ_AM_AGGRESSIVE_SCHEDULING_DEFAULT = false;
 
   /**
    * The complete path to the serialized dag plan file

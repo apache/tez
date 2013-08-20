@@ -37,8 +37,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -57,10 +55,10 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 
-import com.google.common.base.Preconditions;
 
 public class MRHelpers {
 
@@ -439,23 +437,14 @@ public class MRHelpers {
   @Unstable
   public static byte[] createUserPayloadFromConf(Configuration conf)
       throws IOException {
-    Preconditions.checkNotNull(conf, "Configuration must be specified");
-    DataOutputBuffer dob = new DataOutputBuffer();
-    conf.write(dob);
-    return dob.getData();
+    return TezUtils.createUserPayloadFromConf(conf);
   }
 
   @LimitedPrivate("Hive, Pig")
   @Unstable
   public static Configuration createConfFromUserPayload(byte[] bb)
       throws IOException {
-    // TODO Avoid copy ?
-    Preconditions.checkNotNull(bb, "Bytes must be specified");
-    DataInputBuffer dib = new DataInputBuffer();
-    dib.reset(bb, 0, bb.length);
-    Configuration conf = new Configuration(false);
-    conf.readFields(dib);
-    return conf;
+    return TezUtils.createConfFromUserPayload(bb);
   }
 
   /**

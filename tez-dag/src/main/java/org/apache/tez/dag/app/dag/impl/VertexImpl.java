@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +58,6 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
 import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -107,6 +107,7 @@ import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 
 /** Implementation of Vertex interface. Maintains the state machines of Vertex.
@@ -146,7 +147,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private final AppContext appContext;
 
   private boolean lazyTasksCopyNeeded = false;
-  volatile Map<TezTaskID, Task> tasks = new LinkedHashMap<TezTaskID, Task>();
+  // must be a linked map for ordering
+  volatile LinkedHashMap<TezTaskID, Task> tasks = new LinkedHashMap<TezTaskID, Task>();
+  private List<byte[]> taskUserPayloads = null;
   private Object fullCountersLock = new Object();
   private TezCounters fullCounters = null;
   private Resource taskResource;
@@ -505,7 +508,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public TezDependentTaskCompletionEvent[] getTaskAttemptCompletionEvents(
-      int fromEventId, int maxEvents) {
+      TezTaskAttemptID attemptID, int fromEventId, int maxEvents) {
     TezDependentTaskCompletionEvent[] events = EMPTY_TASK_ATTEMPT_COMPLETION_EVENTS;
     readLock.lock();
     try {
@@ -514,6 +517,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             (sourceTaskAttemptCompletionEvents.size() - fromEventId));
         events = sourceTaskAttemptCompletionEvents.subList(fromEventId,
             actualMax + fromEventId).toArray(events);
+        // create a copy if user payload is different per task
+        if(taskUserPayloads != null && events.length > 0) {
+          int taskId = attemptID.getTaskID().getId();
+          byte[] userPayload = taskUserPayloads.get(taskId);
+          TezDependentTaskCompletionEvent event = events[0].clone();
+          event.setUserPayload(userPayload);
+          events[0] = event;
+        }
       }
       return events;
     } finally {
@@ -631,9 +642,64 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public void scheduleTasks(Collection<TezTaskID> taskIDs) {
-    for (TezTaskID taskID : taskIDs) {
-      eventHandler.handle(new TaskEvent(taskID,
-          TaskEventType.T_SCHEDULE));
+    readLock.lock();
+    try {
+      for (TezTaskID taskID : taskIDs) {
+        eventHandler.handle(new TaskEvent(taskID,
+            TaskEventType.T_SCHEDULE));
+      }
+    } finally {
+      readLock.unlock();
+    }
+  }
+  
+  @Override
+  public void setParallelism(int parallelism, List<byte[]> taskUserPayloads) {
+    writeLock.lock();
+    try {
+      Preconditions.checkArgument(
+          taskUserPayloads == null || taskUserPayloads.size() == parallelism,
+          "Userpayload must be set for all tasks or set to null");
+      if (parallelism >= numTasks) {
+        // not that hard to support perhaps. but checking right now since there
+        // is no use case for it and checking may catch other bugs.
+        throw new TezUncheckedException(
+            "Increasing parallelism is not supported");
+      }
+      if (parallelism == numTasks) {
+        LOG.info("Ingoring setParallelism to current value: " + parallelism);
+        return;
+      }
+
+      LOG.info("Vertex " + getVertexId() + " parallelism set to " + parallelism);
+      // assign to local variable of LinkedHashMap to make sure that changing
+      // type of task causes compile error. We depend on LinkedHashMap for order
+      LinkedHashMap<TezTaskID, Task> currentTasks = this.tasks;
+      Iterator<Map.Entry<TezTaskID, Task>> iter = currentTasks.entrySet()
+          .iterator();
+      int i = 0;
+      while (iter.hasNext()) {
+        i++;
+        Map.Entry<TezTaskID, Task> entry = iter.next();
+        Task task = entry.getValue();
+        if (task.getState() != TaskState.NEW) {
+          throw new TezUncheckedException(
+              "All tasks must be in initial state when changing parallelism"
+                  + " for vertex: " + getVertexId() + " name: " + getName());
+        }
+        if (i <= parallelism) {
+          continue;
+        }
+        LOG.info("Removing task: " + entry.getKey());
+        iter.remove();
+      }
+      this.numTasks = parallelism;
+      if (taskUserPayloads != null) {
+        this.taskUserPayloads = new ArrayList<byte[]>(taskUserPayloads);
+      }
+      assert tasks.size() == numTasks;
+    } finally {
+      writeLock.unlock();
     }
   }
 
@@ -687,7 +753,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   protected void addTask(Task task) {
     synchronized (tasksSyncHandle) {
       if (lazyTasksCopyNeeded) {
-        Map<TezTaskID, Task> newTasks = new LinkedHashMap<TezTaskID, Task>();
+        LinkedHashMap<TezTaskID, Task> newTasks = new LinkedHashMap<TezTaskID, Task>();
         newTasks.putAll(tasks);
         tasks = newTasks;
         lazyTasksCopyNeeded = false;
@@ -887,41 +953,27 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         // create the Tasks but don't start them yet
         createTasks(vertex);
 
-        if (vertex.conf.getBoolean(
-            TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING,
-            TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING_DEFAULT)) {
-          LOG.info("Using immediate start vertex scheduler due to aggressive scheduling");
-          vertex.vertexScheduler = new ImmediateStartVertexScheduler(vertex);
-        } else {
-          boolean hasBipartite = false;
-          if (vertex.sourceVertices != null) {
-            for (EdgeProperty edgeProperty : vertex.sourceVertices.values()) {
-              if (edgeProperty.getConnectionPattern() == ConnectionPattern.BIPARTITE) {
-                hasBipartite = true;
-                break;
-              }
+        boolean hasBipartite = false;
+        if (vertex.sourceVertices != null) {
+          for (EdgeProperty edgeProperty : vertex.sourceVertices.values()) {
+            if (edgeProperty.getConnectionPattern() == ConnectionPattern.BIPARTITE) {
+              hasBipartite = true;
+              break;
             }
           }
-
-          if (hasBipartite) {
-            // setup vertex scheduler
-            // TODO this needs to consider data size and perhaps API.
-            // Currently implicitly BIPARTITE is the only edge type
-            vertex.vertexScheduler = new BipartiteSlowStartVertexScheduler(
-                vertex,
-                vertex.conf
-                    .getFloat(
-                        TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION,
-                        TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MIN_SRC_FRACTION_DEFAULT),
-                vertex.conf
-                    .getFloat(
-                        TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION,
-                        TezConfiguration.TEZ_AM_SLOWSTART_VERTEX_SCHEDULER_MAX_SRC_FRACTION_DEFAULT));
-          } else {
-            // schedule all tasks upon vertex start
-            vertex.vertexScheduler = new ImmediateStartVertexScheduler(vertex);
-          }
         }
+
+        if (hasBipartite) {
+          // setup vertex scheduler
+          // TODO this needs to consider data size and perhaps API.
+          // Currently implicitly BIPARTITE is the only edge type
+          vertex.vertexScheduler = new ShuffleVertexManager(vertex);
+        } else {
+          // schedule all tasks upon vertex start
+          vertex.vertexScheduler = new ImmediateStartVertexScheduler(vertex);
+        }
+
+        vertex.vertexScheduler.initialize(vertex.conf);
 
         // FIXME how do we decide vertex needs a committer?
         // Answer: Do commit for every vertex
@@ -975,7 +1027,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                 vertex.clock,
                 vertex.taskHeartbeatHandler,
                 vertex.appContext,
-                vertex.processorDescriptor,
                 vertex.targetVertices.isEmpty(),
                 locHint, vertex.taskResource,
                 vertex.localResources,
@@ -1160,6 +1211,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       TezTaskID taskId = attemptId.getTaskID();
       //make the previous completion event as obsolete if it exists
       if (TezDependentTaskCompletionEvent.Status.SUCCEEDED.equals(tce.getStatus())) {
+        vertex.vertexScheduler.onSourceTaskCompleted(attemptId, tce);
         Object successEventNo =
             vertex.successSourceAttemptCompletionEventNoMap.remove(taskId);
         if (successEventNo != null) {
@@ -1170,7 +1222,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         vertex.successSourceAttemptCompletionEventNoMap.put(taskId, tce.getEventId());
       }
 
-      vertex.vertexScheduler.onSourceTaskCompleted(attemptId);
     }
   }
 
@@ -1251,15 +1302,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         taskKilled(vertex, task);
       }
 
-      vertex.vertexScheduler.onVertexCompleted();
       VertexState state = VertexImpl.checkVertexForCompletion(vertex);
       if(state == VertexState.RUNNING && forceTransitionToKillWait){
         return VertexState.TERMINATING;
       }
 
-      if(state == VertexState.SUCCEEDED) {
-        vertex.vertexScheduler.onVertexCompleted();
-      }
       return state;
     }
 
@@ -1366,6 +1413,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public int getOutputVerticesCount() {
     return this.targetVertices.size();
   }
+  
+  @Override
+  public ProcessorDescriptor getProcessorDescriptor() {
+    return processorDescriptor;
+  }
+
+  @Override
+  public DAG getDAG() {
+    return appContext.getDAG();
+  }
 
   private TezDAGID getDAGId() {
     return getDAG().getID();
@@ -1378,12 +1435,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public Resource getTaskResource() {
     return taskResource;
   }
-
-  @Override
-  public DAG getDAG() {
-    return appContext.getDAG();
-  }
-
   @VisibleForTesting
   String getProcessorName() {
     return this.processorDescriptor.getClassName();

@@ -41,7 +41,6 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.event.InlineDispatcher;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
-import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
@@ -50,6 +49,7 @@ import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.app.dag.TaskStateInternal;
+import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
@@ -88,7 +88,6 @@ public class TestTaskImpl {
   private Map<String, String> environment;
   private String javaOpts;
   private boolean leafVertex;
-  private ProcessorDescriptor mapProcDesc;
 
   private MockTaskImpl mockTask;
 
@@ -113,14 +112,12 @@ public class TestTaskImpl {
     environment = new HashMap<String, String>();
     javaOpts = "";
     leafVertex = false;
-    mapProcDesc = new ProcessorDescriptor(
-        "org.apache.tez.mapreduce.processor.map.MapProcessor");
+    Vertex vertex = mock(Vertex.class);
 
     mockTask = new MockTaskImpl(vertexId, partition,
         dispatcher.getEventHandler(), conf, taskAttemptListener, jobToken,
-        credentials, clock, taskHeartbeatHandler, appContext,
-        mapProcDesc, leafVertex,
-        locationHint, taskResource, localResources, environment, javaOpts);
+        credentials, clock, taskHeartbeatHandler, appContext, leafVertex,
+        locationHint, taskResource, localResources, environment, javaOpts, vertex);
   }
 
   private TezTaskID getNewTaskID() {
@@ -375,28 +372,30 @@ public class TestTaskImpl {
   private class MockTaskImpl extends TaskImpl {
 
     private List<MockTaskAttemptImpl> taskAttempts = new LinkedList<MockTaskAttemptImpl>();
+    private Vertex vertex;
 
     public MockTaskImpl(TezVertexID vertexId, int partition,
         EventHandler eventHandler, Configuration conf,
         TaskAttemptListener taskAttemptListener,
         Token<JobTokenIdentifier> jobToken, Credentials credentials,
         Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
-        ProcessorDescriptor processorDesc, boolean leafVertex,
+        boolean leafVertex,
         TaskLocationHint locationHint, Resource resource,
         Map<String, LocalResource> localResources,
-        Map<String, String> environment, String javaOpts) {
+        Map<String, String> environment, String javaOpts, Vertex vertex) {
       super(vertexId, partition, eventHandler, conf, taskAttemptListener,
-          jobToken, credentials, clock, thh, appContext, processorDesc,
+          jobToken, credentials, clock, thh, appContext,
           leafVertex, locationHint, resource, localResources, environment,
           javaOpts);
+      this.vertex = vertex;
     }
 
     @Override
     protected TaskAttemptImpl createAttempt(int attemptNumber) {
       MockTaskAttemptImpl attempt = new MockTaskAttemptImpl(getTaskId(),
-          attemptNumber, eventHandler, taskAttemptListener, attemptNumber,
+          attemptNumber, eventHandler, taskAttemptListener,
           conf, jobToken, credentials, clock, taskHeartbeatHandler, appContext,
-          processorDescriptor, locationHint, taskResource, localResources,
+          locationHint, taskResource, localResources,
           environment, javaOpts, true);
       taskAttempts.add(attempt);
       return attempt;
@@ -414,6 +413,11 @@ public class TestTaskImpl {
 
     List<MockTaskAttemptImpl> getAttemptList() {
       return taskAttempts;
+    }
+    
+    @Override
+    public Vertex getVertex() {
+      return vertex;
     }
 
     protected void logJobHistoryTaskStartedEvent() {
@@ -433,15 +437,15 @@ public class TestTaskImpl {
     private TaskAttemptState state = TaskAttemptState.NEW;
 
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
-        EventHandler eventHandler, TaskAttemptListener tal, int partition,
+        EventHandler eventHandler, TaskAttemptListener tal, 
         Configuration conf, Token<JobTokenIdentifier> jobToken,
         Credentials credentials, Clock clock, TaskHeartbeatHandler thh,
-        AppContext appContext, ProcessorDescriptor processorDesc,
+        AppContext appContext,
         TaskLocationHint locationHing, Resource resource,
         Map<String, LocalResource> localResources,
         Map<String, String> environment, String javaOpts, boolean isRescheduled) {
-      super(taskId, attemptNumber, eventHandler, tal, partition, conf,
-          jobToken, credentials, clock, thh, appContext, processorDesc,
+      super(taskId, attemptNumber, eventHandler, tal, conf,
+          jobToken, credentials, clock, thh, appContext,
           locationHing, resource, localResources, environment, javaOpts,
           isRescheduled);
     }

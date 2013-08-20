@@ -58,7 +58,6 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.TezTaskContext;
-import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
@@ -90,10 +89,6 @@ import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestTaskAttempt {
-
-  private static final ProcessorDescriptor MAP_PROCESSOR_DESC =
-      new ProcessorDescriptor(
-      "org.apache.tez.mapreduce.processor.map.MapProcessor");
 
   static public class StubbedFS extends RawLocalFileSystem {
     @Override
@@ -134,10 +129,10 @@ public class TestTaskAttempt {
     TezTaskID taskID = new TezTaskID(
         new TezVertexID(new TezDAGID("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        mock(TaskAttemptListener.class), 1, new Configuration(),
+        mock(TaskAttemptListener.class), new Configuration(),
         mock(Token.class), new Credentials(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
-        MAP_PROCESSOR_DESC, locationHint, Resource.newInstance(1024, 1),
+        locationHint, Resource.newInstance(1024, 1),
         new HashMap<String, LocalResource>(), new HashMap<String, String>(),
         "", false);
 
@@ -180,10 +175,10 @@ public class TestTaskAttempt {
     TezTaskID taskID = new TezTaskID(
         new TezVertexID(new TezDAGID("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        mock(TaskAttemptListener.class), 1, new Configuration(),
+        mock(TaskAttemptListener.class), new Configuration(),
         mock(Token.class), new Credentials(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
-        MAP_PROCESSOR_DESC, locationHint, Resource.newInstance(1024, 1),
+        locationHint, Resource.newInstance(1024, 1),
         new HashMap<String, LocalResource>(), new HashMap<String, String>(),
         "", false);
     TaskAttemptImpl spyTa = spy(taImpl);
@@ -331,9 +326,9 @@ public class TestTaskAttempt {
     doReturn(new ClusterInfo()).when(mockAppContext).getClusterInfo();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, 1, taskConf, mock(Token.class), new Credentials(),
+        taListener, taskConf, mock(Token.class), new Credentials(),
         new SystemClock(), mock(TaskHeartbeatHandler.class), mockAppContext,
-        MAP_PROCESSOR_DESC, locationHint, resource, localResources,
+        locationHint, resource, localResources,
         environment, javaOpts, false);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
@@ -398,9 +393,9 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, 1, taskConf, mock(Token.class), new Credentials(),
+        taListener, taskConf, mock(Token.class), new Credentials(),
         new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
-        MAP_PROCESSOR_DESC, locationHint, resource, localResources,
+        locationHint, resource, localResources,
         environment, javaOpts, false);
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
@@ -493,9 +488,9 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, 1, taskConf, mock(Token.class), new Credentials(),
+        taListener, taskConf, mock(Token.class), new Credentials(),
         new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
-        MAP_PROCESSOR_DESC, locationHint, resource, localResources,
+        locationHint, resource, localResources,
         environment, javaOpts, false);
 
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
@@ -558,9 +553,9 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, 1, taskConf, mock(Token.class), new Credentials(),
+        taListener, taskConf, mock(Token.class), new Credentials(),
         new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
-        MAP_PROCESSOR_DESC, locationHint, resource, localResources,
+        locationHint, resource, localResources,
         environment, javaOpts, false);
 
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
@@ -625,9 +620,9 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, 1, taskConf, mock(Token.class), new Credentials(),
+        taListener, taskConf, mock(Token.class), new Credentials(),
         new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
-        MAP_PROCESSOR_DESC, locationHint, resource, localResources,
+        locationHint, resource, localResources,
         environment, javaOpts, false);
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
@@ -719,9 +714,9 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, 1, taskConf, mock(Token.class), new Credentials(),
+        taListener, taskConf, mock(Token.class), new Credentials(),
         new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
-        MAP_PROCESSOR_DESC, locationHint, resource, localResources,
+        locationHint, resource, localResources,
         environment, javaOpts, false);
 
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
@@ -790,16 +785,16 @@ public class TestTaskAttempt {
   private class MockTaskAttemptImpl extends TaskAttemptImpl {
 
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
-        EventHandler eventHandler, TaskAttemptListener tal, int partition,
+        EventHandler eventHandler, TaskAttemptListener tal,
         Configuration conf, Token<JobTokenIdentifier> jobToken,
         Credentials credentials, Clock clock,
         TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
-        ProcessorDescriptor processorDesc, TaskLocationHint locationHint,
+        TaskLocationHint locationHint,
         Resource resource, Map<String, LocalResource> localResources,
         Map<String, String> environment, String javaOpts, boolean isRescheduled) {
-      super(taskId, attemptNumber, eventHandler, tal, partition, conf,
+      super(taskId, attemptNumber, eventHandler, tal, conf,
           jobToken, credentials, clock, taskHeartbeatHandler, appContext,
-          processorDesc, locationHint, resource, localResources, environment,
+          locationHint, resource, localResources, environment,
           javaOpts, isRescheduled);
     }
 

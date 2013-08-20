@@ -18,10 +18,14 @@
 
 package org.apache.tez.dag.app.dag;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
+// Rename to VertexManager TEZ-364
 public interface VertexScheduler {
+  void initialize(Configuration conf);
   void onVertexStarted();
-  void onVertexCompleted();
-  void onSourceTaskCompleted(TezTaskAttemptID attemptId);
+  void onSourceTaskCompleted(TezTaskAttemptID attemptId,
+      TezDependentTaskCompletionEvent event);
 }

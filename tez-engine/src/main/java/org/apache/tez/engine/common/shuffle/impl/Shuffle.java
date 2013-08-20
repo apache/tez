@@ -18,6 +18,7 @@
 package org.apache.tez.engine.common.shuffle.impl;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -32,8 +33,10 @@ import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskReporter;
 import org.apache.tez.common.TezTaskStatus;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
 
@@ -60,6 +63,9 @@ public class Shuffle implements ExceptionReporter {
   private final Progress copyPhase;
   private final Progress mergePhase;
   private final int tasksInDegree;
+  private final AtomicInteger reduceStartId;
+  private AtomicInteger reduceRange = new AtomicInteger(
+      TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE_DEFAULT);
   
   public Shuffle(TezEngineTaskContext taskContext,
                  RunningTaskContext runningTaskContext,
@@ -99,8 +105,14 @@ public class Shuffle implements ExceptionReporter {
     TezCounter mergedMapOutputsCounter =
         reporter.getCounter(TaskCounter.MERGED_MAP_OUTPUTS);
     
+    reduceStartId = new AtomicInteger( 
+        taskContext.getTaskAttemptId().getTaskID().getId()); 
+    LOG.info("Shuffle assigned reduce start id: " + reduceStartId.get()
+        + " with default reduce range: " + reduceRange.get());
+
     scheduler = 
-      new ShuffleScheduler(this.conf, tasksInDegree, runningTaskContext.getStatus(), 
+      new ShuffleScheduler(this.conf, tasksInDegree,
+                                runningTaskContext.getStatus(), 
                                 this, copyPhase, 
                                 shuffledMapsCounter, 
                                 reduceShuffleBytes, 
@@ -136,10 +148,9 @@ public class Shuffle implements ExceptionReporter {
             TezJobConfig.DEFAULT_TEZ_ENGINE_SHUFFLE_PARALLEL_COPIES);
     Fetcher[] fetchers = new Fetcher[numFetchers];
     for (int i=0; i < numFetchers; ++i) {
-      fetchers[i] = new Fetcher(conf, taskContext.getTaskAttemptId(), 
-                                     scheduler, merger, 
-                                     reporter, metrics, this, 
-                                     runningTaskContext.getJobTokenSecret());
+      fetchers[i] = new Fetcher(conf, scheduler,
+          merger, reporter, metrics, this,
+          runningTaskContext.getJobTokenSecret());
       fetchers[i].start();
     }
     
@@ -190,7 +201,15 @@ public class Shuffle implements ExceptionReporter {
     
     return kvIter;
   }
-
+  
+  public int getReduceStartId() {
+    return reduceStartId.get();
+  }
+  
+  public int getReduceRange() {
+    return reduceRange.get();
+  }
+  
   public synchronized void reportException(Throwable t) {
     if (throwable == null) {
       throwable = t;
@@ -210,4 +229,31 @@ public class Shuffle implements ExceptionReporter {
       super(msg, t);
     }
   }
+  
+  public void updateUserPayload(byte[] userPayload) throws IOException {
+    if(userPayload == null) {
+      return;
+    }
+    Configuration conf = TezUtils.createConfFromUserPayload(userPayload);
+    int reduceRange = conf.getInt(
+        TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE,
+        TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE_DEFAULT);
+    setReduceRange(reduceRange);
+  }
+  
+  private void setReduceRange(int range) {
+    if (range == reduceRange.get()) {
+      return;
+    }
+    if (reduceRange.compareAndSet(
+        TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE_DEFAULT, range)) {
+      LOG.info("Reduce range set to: " + range);
+    } else {
+      TezUncheckedException e = 
+          new TezUncheckedException("Reduce range can be set only once.");
+      reportException(e);
+      throw e; 
+    }
+  }
+
 }

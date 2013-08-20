@@ -78,10 +78,9 @@ class Fetcher extends Thread {
   private final MergeManager merger;
   private final ShuffleScheduler scheduler;
   private final ShuffleClientMetrics metrics;
-  private final ExceptionReporter exceptionReporter;
+  private final Shuffle shuffle;
   private final int id;
   private static int nextId = 0;
-  private final int reduce;
   
   private final int connectionTimeout;
   private final int readTimeout;
@@ -98,18 +97,17 @@ class Fetcher extends Thread {
   private static boolean sslShuffle;
   private static SSLFactory sslFactory;
 
-  public Fetcher(Configuration job, TezTaskAttemptID reduceId, 
+  public Fetcher(Configuration job, 
       ShuffleScheduler scheduler, MergeManager merger,
       TezTaskReporter reporter, ShuffleClientMetrics metrics,
-      ExceptionReporter exceptionReporter, SecretKey jobTokenSecret) {
+      Shuffle shuffle, SecretKey jobTokenSecret) {
     this.job = job;
     this.reporter = reporter;
     this.scheduler = scheduler;
     this.merger = merger;
     this.metrics = metrics;
-    this.exceptionReporter = exceptionReporter;
+    this.shuffle = shuffle;
     this.id = ++nextId;
-    this.reduce = reduceId.getTaskID().getId();
     this.jobTokenSecret = jobTokenSecret;
     ioErrs = reporter.getCounter(SHUFFLE_ERR_GRP_NAME,
         ShuffleErrors.IO_ERROR.toString());
@@ -182,7 +180,7 @@ class Fetcher extends Thread {
     } catch (InterruptedException ie) {
       return;
     } catch (Throwable t) {
-      exceptionReporter.reportException(t);
+      shuffle.reportException(t);
     }
   }
 
@@ -459,7 +457,9 @@ class Fetcher extends Thread {
       return false;
     }
     
-    if (forReduce != reduce) {
+    int reduceStartId = shuffle.getReduceStartId();
+    int reduceRange = shuffle.getReduceRange();
+    if (forReduce < reduceStartId || forReduce >= reduceStartId+reduceRange) {
       wrongReduceErrs.increment(1);
       LOG.warn(getName() + " data for the wrong reduce map: " +
                mapId + " len: " + compressedLength + " decomp len: " +

@@ -22,7 +22,9 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -69,6 +71,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
+import org.apache.tez.dag.app.dag.event.VertexEventSourceTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
@@ -505,7 +508,6 @@ public class TestVertexImpl {
   public void setup() {
     conf = new Configuration();
     conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
-    conf.setBoolean(TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING, false);
     appAttemptId = ApplicationAttemptId.newInstance(
         ApplicationId.newInstance(100, 1), 1);
     dagId = new TezDAGID(appAttemptId.getApplicationId(), 1);
@@ -648,6 +650,47 @@ public class TestVertexImpl {
 
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
+  }
+  
+  @Test//(timeout = 5000)
+  public void testVertexSetParallelism() {
+    VertexImpl v2 = vertices.get("vertex2");
+    initVertex(v2);
+    Assert.assertEquals(2, v2.getTotalTasks());
+    Map<TezTaskID, Task> tasks = v2.getTasks();
+    Assert.assertEquals(2, tasks.size());
+    TezTaskID firstTask = tasks.keySet().iterator().next();
+    
+    startVertex(v2);
+    
+    byte[] payload = new byte[0];
+    List<byte[]> taskPayloads = Collections.singletonList(payload);
+    v2.setParallelism(1, taskPayloads);
+    Assert.assertEquals(1, v2.getTotalTasks());
+    Assert.assertEquals(1, tasks.size());
+    // the last one is removed
+    Assert.assertTrue(tasks.keySet().iterator().next().equals(firstTask));
+    
+    VertexImpl v1 = vertices.get("vertex1");
+    TezTaskID t1_v1 = new TezTaskID(v1.getVertexId(), 0);
+    TezTaskAttemptID ta1_t1_v1 = new TezTaskAttemptID(t1_v1, 0);
+
+    TezDependentTaskCompletionEvent cEvt1 =
+        new TezDependentTaskCompletionEvent(1, ta1_t1_v1,
+            Status.SUCCEEDED, "", 3, 0);
+    v2.handle( 
+        new VertexEventSourceTaskAttemptCompleted(v2.getVertexId(), cEvt1));
+
+    TezTaskID t1_v2 = new TezTaskID(v2.getVertexId(), 0);
+    TezTaskAttemptID ta1_t1_v2 = new TezTaskAttemptID(t1_v2, 0);
+    TezDependentTaskCompletionEvent[] events =
+        v2.getTaskAttemptCompletionEvents(ta1_t1_v2, 0, 100);
+    Assert.assertEquals(1, events.length);
+    TezDependentTaskCompletionEvent clone = events[0]; 
+    // payload must be present in the first event
+    Assert.assertEquals(payload, clone.getUserPayload());
+    // event must be a copy
+    Assert.assertFalse(cEvt1 == clone);
   }
 
   @SuppressWarnings("unchecked")
@@ -852,7 +895,7 @@ public class TestVertexImpl {
     VertexImpl v6 = vertices.get("vertex6");
     initVertex(v6);
     Assert.assertTrue(v6.getVertexScheduler()
-        instanceof BipartiteSlowStartVertexScheduler);
+        instanceof ShuffleVertexManager);
   }
 
   @SuppressWarnings("unchecked")
@@ -937,6 +980,7 @@ public class TestVertexImpl {
     TezTaskID t2_v4 = new TezTaskID(v4.getVertexId(), 1);
     TezTaskID t1_v5 = new TezTaskID(v5.getVertexId(), 0);
     TezTaskID t2_v5 = new TezTaskID(v5.getVertexId(), 1);
+    TezTaskID t1_v6 = new TezTaskID(v6.getVertexId(), 0);
 
     TezTaskAttemptID ta1_t1_v4 = new TezTaskAttemptID(t1_v4, 0);
     TezTaskAttemptID ta2_t1_v4 = new TezTaskAttemptID(t1_v4, 0);
@@ -944,25 +988,26 @@ public class TestVertexImpl {
     TezTaskAttemptID ta1_t1_v5 = new TezTaskAttemptID(t1_v5, 0);
     TezTaskAttemptID ta1_t2_v5 = new TezTaskAttemptID(t2_v5, 0);
     TezTaskAttemptID ta2_t2_v5 = new TezTaskAttemptID(t2_v5, 0);
+    TezTaskAttemptID ta1_t1_v6 = new TezTaskAttemptID(t1_v6, 0);
 
     TezDependentTaskCompletionEvent cEvt1 =
         new TezDependentTaskCompletionEvent(1, ta1_t1_v4,
-            Status.FAILED, "", 3);
+            Status.FAILED, "", 3, 0);
     TezDependentTaskCompletionEvent cEvt2 =
         new TezDependentTaskCompletionEvent(2, ta2_t1_v4,
-            Status.SUCCEEDED, "", 4);
+            Status.SUCCEEDED, "", 4, 1);
     TezDependentTaskCompletionEvent cEvt3 =
         new TezDependentTaskCompletionEvent(2, ta1_t2_v4,
-            Status.SUCCEEDED, "", 5);
+            Status.SUCCEEDED, "", 5, 2);
     TezDependentTaskCompletionEvent cEvt4 =
         new TezDependentTaskCompletionEvent(2, ta1_t1_v5,
-            Status.SUCCEEDED, "", 5);
+            Status.SUCCEEDED, "", 5, 3);
     TezDependentTaskCompletionEvent cEvt5 =
         new TezDependentTaskCompletionEvent(1, ta1_t2_v5,
-            Status.FAILED, "", 3);
+            Status.FAILED, "", 3, 4);
     TezDependentTaskCompletionEvent cEvt6 =
         new TezDependentTaskCompletionEvent(2, ta2_t2_v5,
-            Status.SUCCEEDED, "", 4);
+            Status.SUCCEEDED, "", 4, 5);
 
     v4.handle(new VertexEventTaskAttemptCompleted(cEvt1));
     v4.handle(new VertexEventTaskAttemptCompleted(cEvt2));
@@ -982,7 +1027,8 @@ public class TestVertexImpl {
 
     Assert.assertEquals(VertexState.RUNNING, v6.getState());
     Assert.assertEquals(4, v6.successSourceAttemptCompletionEventNoMap.size());
-    Assert.assertEquals(6, v6.getTaskAttemptCompletionEvents(0, 100).length);
+    Assert.assertEquals(6,
+        v6.getTaskAttemptCompletionEvents(ta1_t1_v6, 0, 100).length);
 
   }
 

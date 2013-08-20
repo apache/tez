@@ -34,14 +34,30 @@ class MapHost {
   
   private State state = State.IDLE;
   private final String hostName;
+  private final int partitionId;
   private final String baseUrl;
+  private final String identifier;
   private List<TezTaskAttemptID> maps = new ArrayList<TezTaskAttemptID>();
   
-  public MapHost(String hostName, String baseUrl) {
+  public MapHost(int partitionId, String hostName, String baseUrl) {
+    this.partitionId = partitionId;
     this.hostName = hostName;
     this.baseUrl = baseUrl;
+    this.identifier = createIdentifier(hostName, partitionId);
   }
   
+  public static String createIdentifier(String hostName, int partitionId) {
+    return hostName + ":" + Integer.toString(partitionId);
+  }
+  
+  public String getIdentifier() {
+    return identifier;
+  }
+  
+  public int getPartitionId() {
+    return partitionId;
+  }
+
   public State getState() {
     return state;
   }

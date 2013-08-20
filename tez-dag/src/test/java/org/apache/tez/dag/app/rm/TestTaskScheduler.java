@@ -96,7 +96,6 @@ public class TestTaskScheduler {
         .getDrainableAppCallback();
 
     Configuration conf = new Configuration();
-    conf.setBoolean(TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING, false);
     conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
     int interval = 100;
     conf.setInt(TezConfiguration.TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX, interval);

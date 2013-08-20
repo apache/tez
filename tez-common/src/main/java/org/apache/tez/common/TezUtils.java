@@ -22,9 +22,13 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
+
+import com.google.common.base.Preconditions;
 
 public class TezUtils {
   
@@ -51,4 +55,24 @@ public class TezUtils {
       }
     }
   }
+  
+  public static byte[] createUserPayloadFromConf(Configuration conf)
+      throws IOException {
+    Preconditions.checkNotNull(conf, "Configuration must be specified");
+    DataOutputBuffer dob = new DataOutputBuffer();
+    conf.write(dob);
+    return dob.getData();
+  }
+
+  public static Configuration createConfFromUserPayload(byte[] bb)
+      throws IOException {
+    // TODO Avoid copy ?
+    Preconditions.checkNotNull(bb, "Bytes must be specified");
+    DataInputBuffer dib = new DataInputBuffer();
+    dib.reset(bb, 0, bb.length);
+    Configuration conf = new Configuration(false);
+    conf.readFields(dib);
+    return conf;
+  }
+
 }

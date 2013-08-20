@@ -47,7 +47,9 @@ public class TezDependentTaskCompletionEvent implements Writable {
   private String taskTrackerHttp;
   private int taskRunTime; // using int since runtime is the time difference
   private TezTaskAttemptID taskAttemptId;
+  private long dataSize;
   Status status;
+  byte[] userPayload;
   // TODO TEZAM2 Get rid of the isMap field. Job specific type information can be determined from TaskAttemptId.getTaskType
 //  boolean isMap = false;
   public static final TezDependentTaskCompletionEvent[] EMPTY_ARRAY = 
@@ -62,24 +64,35 @@ public class TezDependentTaskCompletionEvent implements Writable {
    * per event for each job. 
    * @param eventId event id, event id should be unique and assigned in
    *  incrementally, starting from 0. 
-   * @param taskId task id
+   * @param taskAttemptId task id
    * @param status task's status 
    * @param taskTrackerHttp task tracker's host:port for http. 
    */
   public TezDependentTaskCompletionEvent(int eventId, 
-                             TezTaskAttemptID taskId,
+                             TezTaskAttemptID taskAttemptId,
 //                             boolean isMap,
                              Status status, 
                              String taskTrackerHttp,
-                             int runTime){
+                             int runTime,
+                             long dataSize){
       
-    this.taskAttemptId = taskId;
+    this.taskAttemptId = taskAttemptId;
 //    this.isMap = isMap;
     this.eventId = eventId; 
     this.status =status; 
     this.taskTrackerHttp = taskTrackerHttp;
     this.taskRunTime = runTime;
+    this.dataSize = dataSize;
   }
+  
+  public TezDependentTaskCompletionEvent clone() {
+    TezDependentTaskCompletionEvent clone = new TezDependentTaskCompletionEvent(
+        this.eventId, this.taskAttemptId, this.status, this.taskTrackerHttp,
+        this.taskRunTime, this.dataSize);
+    
+    return clone;
+  }
+  
   /**
    * Returns event Id. 
    * @return event id
@@ -116,6 +129,20 @@ public class TezDependentTaskCompletionEvent implements Writable {
    */
   public int getTaskRunTime() {
     return taskRunTime;
+  }
+  
+  /**
+   * Return size of output produced by the task
+   */
+  public long getDataSize() {
+    return dataSize;
+  }
+  
+  /**
+   * @return user payload. Maybe null
+   */
+  public byte[] getUserPayload() {
+    return userPayload;
   }
 
   /**
@@ -157,6 +184,14 @@ public class TezDependentTaskCompletionEvent implements Writable {
   public void setTaskTrackerHttp(String taskTrackerHttp) {
     this.taskTrackerHttp = taskTrackerHttp;
   }
+  
+  /**
+   * Set the user payload
+   * @param userPayload
+   */
+  public void setUserPayload(byte[] userPayload) {
+    this.userPayload = userPayload;
+  }
     
   @Override
   public String toString(){
@@ -170,6 +205,7 @@ public class TezDependentTaskCompletionEvent implements Writable {
     
   @Override
   public boolean equals(Object o) {
+    // not counting userPayload as that is a piggyback mechanism
     if(o == null)
       return false;
     if(o.getClass().equals(this.getClass())) {
@@ -178,6 +214,7 @@ public class TezDependentTaskCompletionEvent implements Writable {
              && this.status.equals(event.getStatus())
              && this.taskAttemptId.equals(event.getTaskAttemptID()) 
              && this.taskRunTime == event.getTaskRunTime()
+             && this.dataSize == event.getDataSize()
              && this.taskTrackerHttp.equals(event.getTaskTrackerHttp());
     }
     return false;
@@ -196,6 +233,7 @@ public class TezDependentTaskCompletionEvent implements Writable {
     WritableUtils.writeString(out, taskTrackerHttp);
     WritableUtils.writeVInt(out, taskRunTime);
     WritableUtils.writeVInt(out, eventId);
+    WritableUtils.writeCompressedByteArray(out, userPayload);
   }
 
   @Override
@@ -206,7 +244,7 @@ public class TezDependentTaskCompletionEvent implements Writable {
     taskTrackerHttp = WritableUtils.readString(in);
     taskRunTime = WritableUtils.readVInt(in);
     eventId = WritableUtils.readVInt(in);
-    
+    userPayload = WritableUtils.readCompressedByteArray(in);
   }
   
 }

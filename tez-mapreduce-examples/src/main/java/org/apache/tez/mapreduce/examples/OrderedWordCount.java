@@ -36,8 +36,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.client.api.YarnClient;
-import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -116,15 +114,15 @@ public class OrderedWordCount {
 
     // Set reducer class for intermediate reduce
     conf.setClass(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
-        "mapreduce.job.reduce.class"), IntSumReducer.class, Reducer.class);
+        MRJobConfig.REDUCE_CLASS_ATTR), IntSumReducer.class, Reducer.class);
     // Set reducer output key class
     conf.setClass(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
-        "mapreduce.map.output.key.class"), IntWritable.class, Object.class);
+        MRJobConfig.MAP_OUTPUT_KEY_CLASS), IntWritable.class, Object.class);
     // Set reducer output value class
     conf.setClass(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
-        "mapreduce.map.output.value.class"), Text.class, Object.class);
+        MRJobConfig.MAP_OUTPUT_VALUE_CLASS), Text.class, Object.class);
     conf.setInt(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
-        "mapreduce.job.reduces"), 2);
+        MRJobConfig.NUM_REDUCES), 2);
 
     @SuppressWarnings("deprecation")
     Job job = new Job(conf, "orderedwordcount");
@@ -142,10 +140,6 @@ public class OrderedWordCount {
 
     FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
     FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
-
-    YarnClient yarnClient = new YarnClientImpl();
-    yarnClient.init(conf);
-    yarnClient.start();
 
     TezClient tezClient = new TezClient(new TezConfiguration(conf));
 

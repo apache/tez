@@ -156,7 +156,12 @@ public class TezJobConfig {
   public static final String TEZ_ENGINE_SHUFFLE_USE_IN_MEMORY =
       "tez.engine.shuffle.use.in-memory";
   public static final boolean DEFAULT_TEZ_ENGINE_SHUFFLE_USE_IN_MEMORY = false;
-  
+
+  @Private
+  public static final String TEZ_ENGINE_SHUFFLE_PARTITION_RANGE = 
+      "tez.engine.shuffle.partition-range";
+  public static int TEZ_ENGINE_SHUFFLE_PARTITION_RANGE_DEFAULT = 1;
+
   /**
    * 
    */

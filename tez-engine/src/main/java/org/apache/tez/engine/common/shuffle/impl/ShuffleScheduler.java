@@ -31,6 +31,7 @@ import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -54,7 +55,7 @@ class ShuffleScheduler {
   private static final long INITIAL_PENALTY = 10000;
   private static final float PENALTY_GROWTH_RATE = 1.3f;
   
-  private final Map<TezTaskID, Boolean> finishedMaps;
+  private final Map<TezTaskID, MutableInt> finishedMaps;
   private final int tasksInDegree;
   private int remainingMaps;
   private Map<String, MapHost> mapLocations = new HashMap<String, MapHost>();
@@ -69,7 +70,7 @@ class ShuffleScheduler {
   private final Map<String,IntWritable> hostFailures = 
     new HashMap<String,IntWritable>();
   private final TezTaskStatus status;
-  private final ExceptionReporter reporter;
+  private final Shuffle shuffle;
   private final int abortFailureLimit;
   private final Progress progress;
   private final TezCounter shuffledMapsCounter;
@@ -91,7 +92,7 @@ class ShuffleScheduler {
   public ShuffleScheduler(Configuration conf,
                           int tasksInDegree,
                           TezTaskStatus status,
-                          ExceptionReporter reporter,
+                          Shuffle shuffle,
                           Progress progress,
                           TezCounter shuffledMapsCounter,
                           TezCounter reduceShuffleBytes,
@@ -99,8 +100,8 @@ class ShuffleScheduler {
     this.tasksInDegree = tasksInDegree;
     abortFailureLimit = Math.max(30, tasksInDegree / 10);
     remainingMaps = tasksInDegree;
-    finishedMaps = new HashMap<TezTaskID, Boolean>(remainingMaps);
-    this.reporter = reporter;
+    finishedMaps = new HashMap<TezTaskID, MutableInt>(remainingMaps);
+    this.shuffle = shuffle;
     this.status = status;
     this.progress = progress;
     this.shuffledMapsCounter = shuffledMapsCounter;
@@ -133,10 +134,11 @@ class ShuffleScheduler {
     
     if (!isFinishedTaskTrue(taskId)) {
       output.commit();
-      setFinishedTaskTrue(taskId);
-      shuffledMapsCounter.increment(1);
-      if (--remainingMaps == 0) {
-        notifyAll();
+      if(incrementTaskCopyAndCheckCompletion(taskId)) {
+        shuffledMapsCounter.increment(1);
+        if (--remainingMaps == 0) {
+          notifyAll();
+        }
       }
 
       // update the status
@@ -184,7 +186,7 @@ class ShuffleScheduler {
       try {
         throw new IOException(failures + " failures downloading " + mapId);
       } catch (IOException ie) {
-        reporter.reportException(ie);
+        shuffle.reportException(ie);
       }
     }
     
@@ -256,7 +258,7 @@ class ShuffleScheduler {
       LOG.fatal("Shuffle failed with too many fetch failures " +
       "and insufficient progress!");
       String errorMsg = "Exceeded MAX_FAILED_UNIQUE_FETCHES; bailing-out.";
-      reporter.reportException(new IOException(errorMsg));
+      shuffle.reportException(new IOException(errorMsg));
     }
 
   }
@@ -271,13 +273,16 @@ class ShuffleScheduler {
     }
   }
   
-  public synchronized void addKnownMapOutput(String hostName, 
+  public synchronized void addKnownMapOutput(String hostName,
+                                             int partitionId,
                                              String hostUrl,
                                              TezTaskAttemptID mapId) {
-    MapHost host = mapLocations.get(hostName);
+    String identifier = MapHost.createIdentifier(hostName, partitionId);
+    MapHost host = mapLocations.get(identifier);
     if (host == null) {
-      host = new MapHost(hostName, hostUrl);
-      mapLocations.put(hostName, host);
+      host = new MapHost(partitionId, hostName, hostUrl);
+      assert identifier.equals(host.getIdentifier());
+      mapLocations.put(identifier, host);
     }
     host.addKnownMap(mapId);
 
@@ -427,7 +432,7 @@ class ShuffleScheduler {
       } catch (InterruptedException ie) {
         return;
       } catch (Throwable t) {
-        reporter.reportException(t);
+        shuffle.reportException(t);
       }
     }
   }
@@ -444,15 +449,33 @@ class ShuffleScheduler {
   }
   
   void setFinishedTaskTrue(TezTaskID taskId) {
-    finishedMaps.put(taskId, true);
+    synchronized(finishedMaps) {
+      finishedMaps.put(taskId, new MutableInt(shuffle.getReduceRange()));
+    }
+  }
+  
+  boolean incrementTaskCopyAndCheckCompletion(TezTaskID mapTaskId) {
+    synchronized(finishedMaps) {
+      MutableInt result = finishedMaps.get(mapTaskId);
+      if(result == null) {
+        result = new MutableInt(0);
+        finishedMaps.put(mapTaskId, result);
+      }
+      result.increment();
+      return isFinishedTaskTrue(mapTaskId);
+    }
   }
   
   boolean isFinishedTaskTrue(TezTaskID taskId) {
-    Boolean result = finishedMaps.get(taskId);
-    if(result == null) {
-      return false;
+    synchronized (finishedMaps) {
+      MutableInt result = finishedMaps.get(taskId);
+      if(result == null) {
+        return false;
+      }
+      if (result.intValue() == shuffle.getReduceRange()) {
+        return true;
+      }
+      return false;      
     }
-    
-    return result.booleanValue();
   }
 }

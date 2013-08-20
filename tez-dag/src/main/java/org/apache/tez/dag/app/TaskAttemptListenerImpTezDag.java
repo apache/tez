@@ -179,7 +179,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     TezDependentTaskCompletionEvent[] events =
         context.getDAG().
             getVertex(taskAttemptID.getTaskID().getVertexID()).
-                getTaskAttemptCompletionEvents(fromEventIdx, maxEvents);
+                getTaskAttemptCompletionEvents(taskAttemptID, fromEventIdx, maxEvents);
 
     taskHeartbeatHandler.progressing(taskAttemptID);
     pingContainerHeartbeatHandler(taskAttemptID);

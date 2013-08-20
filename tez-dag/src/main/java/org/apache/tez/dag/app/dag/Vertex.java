@@ -27,9 +27,11 @@ import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
@@ -63,8 +65,10 @@ public interface Vertex extends Comparable<Vertex> {
   ProgressBuilder getVertexProgress();
   VertexStatusBuilder getVertexStatus();
   
-  TezDependentTaskCompletionEvent[]
-      getTaskAttemptCompletionEvents(int fromEventId, int maxEvents);
+  void setParallelism(int parallelism, List<byte[]> taskUserPayloads);
+  
+  TezDependentTaskCompletionEvent[] getTaskAttemptCompletionEvents(
+      TezTaskAttemptID attemptId, int fromEventId, int maxEvents);
   
   void setInputVertices(Map<Vertex, EdgeProperty> inVertices);
   void setOutputVertices(Map<Vertex, EdgeProperty> outVertices);
@@ -80,6 +84,7 @@ public interface Vertex extends Comparable<Vertex> {
   void scheduleTasks(Collection<TezTaskID> taskIDs);
   Resource getTaskResource();
 
+  ProcessorDescriptor getProcessorDescriptor();
   public DAG getDAG();
   VertexTerminationCause getTerminationCause();
 }

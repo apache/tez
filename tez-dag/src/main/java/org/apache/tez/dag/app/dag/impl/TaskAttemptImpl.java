@@ -114,7 +114,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   static final TezCounters EMPTY_COUNTERS = new TezCounters();
 
   protected final Configuration conf;
-  protected final int partition;
   @SuppressWarnings("rawtypes")
   protected EventHandler eventHandler;
   private final TezTaskAttemptID attemptId;
@@ -128,6 +127,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   protected Token<JobTokenIdentifier> jobToken;
   private long launchTime = 0;
   private long finishTime = 0;
+  // TEZ-347 remove this and getShufflePort()
   private int shufflePort = -1;
   private String trackerName;
   private int httpPort;
@@ -151,8 +151,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   protected final Map<String, String> environment;
   protected final String javaOpts;
   protected final boolean isRescheduled;
-
-  protected ProcessorDescriptor processorDescriptor;
 
   protected static final FailedTransitionHelper FAILED_HELPER =
       new FailedTransitionHelper();
@@ -259,11 +257,11 @@ public class TaskAttemptImpl implements TaskAttempt,
   // TODO Remove TaskAttemptListener from the constructor.
   @SuppressWarnings("rawtypes")
   public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
-      TaskAttemptListener tal, int partition,
+      TaskAttemptListener tal,
       Configuration conf,
       Token<JobTokenIdentifier> jobToken, Credentials credentials, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
-      ProcessorDescriptor processorDescriptor, TaskLocationHint locationHint,
+      TaskLocationHint locationHint,
       Resource resource, Map<String, LocalResource> localResources,
       Map<String, String> environment,
       String javaOpts, boolean isRescheduled) {
@@ -273,7 +271,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.attemptId = TezBuilderUtils.newTaskAttemptId(taskId, attemptNumber);
     this.eventHandler = eventHandler;
     //Reported status
-    this.partition = partition;
     this.conf = conf;
     this.jobToken = jobToken;
     this.credentials = credentials;
@@ -282,7 +279,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.appContext = appContext;
     this.taskResource = resource;
     this.reportedStatus = new TaskAttemptStatus();
-    this.processorDescriptor = processorDescriptor;
     initTaskAttemptStatus(reportedStatus);
     RackResolver.init(conf);
     this.stateMachine = stateMachineFactory.make(this);
@@ -315,13 +311,12 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   TezTaskContext createRemoteTask() {
-    Vertex vertex = getTask().getVertex();
+    Vertex vertex = getVertex();
+    ProcessorDescriptor procDesc = vertex.getProcessorDescriptor();
     DAG dag = vertex.getDAG();
 
-    // TODO  TEZ-50 user and jobname
     return new TezEngineTaskContext(getID(), dag.getUserName(),
-        dag.getName(), getTask()
-        .getVertex().getName(), processorDescriptor,
+        dag.getName(), vertex.getName(), procDesc,
         vertex.getInputSpecList(), vertex.getOutputSpecList());
   }
 
@@ -527,6 +522,11 @@ public class TaskAttemptImpl implements TaskAttempt,
     return appContext.getDAG()
         .getVertex(attemptId.getTaskID().getVertexID())
         .getTask(attemptId.getTaskID());
+  }
+  
+  Vertex getVertex() {
+    return appContext.getDAG()
+        .getVertex(attemptId.getTaskID().getVertexID());
   }
 
   @SuppressWarnings("unchecked")

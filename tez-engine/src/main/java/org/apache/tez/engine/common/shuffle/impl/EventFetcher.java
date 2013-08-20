@@ -38,7 +38,7 @@ class EventFetcher extends Thread {
   private final ShuffleScheduler scheduler;
   private int fromEventIdx = 0;
   private int maxEventsToFetch;
-  private ExceptionReporter exceptionReporter = null;
+  private Shuffle shuffle = null;
   
   private int maxMapRuntime = 0;
 
@@ -47,14 +47,14 @@ class EventFetcher extends Thread {
   public EventFetcher(TezTaskAttemptID reduce,
                       Master umbilical,
                       ShuffleScheduler scheduler,
-                      ExceptionReporter reporter,
+                      Shuffle shuffle,
                       int maxEventsToFetch) {
     setName("EventFetcher for fetching Map Completion Events");
     setDaemon(true);    
     this.reduce = reduce;
     this.umbilical = umbilical;
     this.scheduler = scheduler;
-    exceptionReporter = reporter;
+    this.shuffle = shuffle;
     this.maxEventsToFetch = maxEventsToFetch;
   }
 
@@ -93,7 +93,7 @@ class EventFetcher extends Thread {
     } catch (InterruptedException e) {
       return;
     } catch (Throwable t) {
-      exceptionReporter.reportException(t);
+      shuffle.reportException(t);
       return;
     }
   }
@@ -146,12 +146,13 @@ class EventFetcher extends Thread {
       // 3. Remove TIPFAILED maps from neededOutputs since we don't need their
       //    outputs at all.
       for (TezDependentTaskCompletionEvent event : events) {
+        byte[] userPayload = event.getUserPayload();
+        if(userPayload != null) {
+          shuffle.updateUserPayload(userPayload);
+        }
         switch (event.getStatus()) {
         case SUCCEEDED:
-          URI u = getBaseURI(event.getTaskTrackerHttp());
-          scheduler.addKnownMapOutput(u.getHost() + ":" + u.getPort(),
-              u.toString(),
-              event.getTaskAttemptID());
+          addMapHosts(event);
           numNewMaps ++;
           int duration = event.getTaskRunTime();
           if (duration > maxMapRuntime) {
@@ -178,7 +179,19 @@ class EventFetcher extends Thread {
     return numNewMaps;
   }
   
-  private URI getBaseURI(String url) {
+  private void addMapHosts(TezDependentTaskCompletionEvent event) {
+    int reduceRange = shuffle.getReduceRange();
+    for(int i=0; i<reduceRange; ++i) {
+      int partitionId = reduce.getTaskID().getId()+i;
+      URI u = getBaseURI(event.getTaskTrackerHttp(), partitionId);
+      scheduler.addKnownMapOutput(u.getHost() + ":" + u.getPort(),
+          partitionId,
+          u.toString(),
+          event.getTaskAttemptID());
+    }
+  }
+  
+  private URI getBaseURI(String url, int reduceId) {
     StringBuffer baseUrl = new StringBuffer(url);
     if (!url.endsWith("/")) {
       baseUrl.append("/");
@@ -191,7 +204,7 @@ class EventFetcher extends Thread {
 
     baseUrl.append(jobID);
     baseUrl.append("&reduce=");
-    baseUrl.append(reduce.getTaskID().getId());
+    baseUrl.append(reduceId);
     baseUrl.append("&map=");
     URI u = URI.create(baseUrl.toString());
     return u;

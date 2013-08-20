@@ -18,9 +18,11 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexScheduler;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
 /**
  * Starts all tasks immediately on vertex start
@@ -38,11 +40,12 @@ public class ImmediateStartVertexScheduler implements VertexScheduler {
   }
 
   @Override
-  public void onVertexCompleted() {
+  public void onSourceTaskCompleted(TezTaskAttemptID attemptId, 
+      TezDependentTaskCompletionEvent event) {
   }
 
   @Override
-  public void onSourceTaskCompleted(TezTaskAttemptID attemptId) {
+  public void initialize(Configuration conf) {    
   }
 
 }

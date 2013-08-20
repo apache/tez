@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -86,7 +87,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private static final Log LOG = LogFactory.getLog(TaskImpl.class);
 
   protected final Configuration conf;
-  protected final int partition;
   protected final TaskAttemptListener taskAttemptListener;
   protected final TaskHeartbeatHandler taskHeartbeatHandler;
   protected final EventHandler eventHandler;
@@ -104,7 +104,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   protected boolean encryptedShuffle;
   protected Credentials credentials;
   protected Token<JobTokenIdentifier> jobToken;
-  protected ProcessorDescriptor processorDescriptor;
   protected TaskLocationHint locationHint;
   protected Resource taskResource;
   protected Map<String, LocalResource> localResources;
@@ -274,18 +273,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  public TaskImpl(TezVertexID vertexId, int partition,
+  public TaskImpl(TezVertexID vertexId, int taskIndex,
       EventHandler eventHandler, Configuration conf,
       TaskAttemptListener taskAttemptListener,
       Token<JobTokenIdentifier> jobToken,
       Credentials credentials, Clock clock,
-      // TODO Recovery
-      //Map<TezTaskID, TaskInfo> completedTasksFromPreviousRun,
-      //int startCount,
-      // TODO Metrics
-      //MRAppMetrics metrics,
       TaskHeartbeatHandler thh, AppContext appContext,
-      ProcessorDescriptor processorDescriptor,
       boolean leafVertex, TaskLocationHint locationHint, Resource resource,
       Map<String, LocalResource> localResources,
       Map<String, String> environment,
@@ -296,24 +289,16 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     readLock = readWriteLock.readLock();
     writeLock = readWriteLock.writeLock();
     this.attempts = Collections.emptyMap();
-    // TODO TEZ-47 get from conf or API
     maxAttempts = this.conf.getInt(TezConfiguration.TEZ_AM_MAX_TASK_ATTEMPTS,
                               TezConfiguration.TEZ_AM_MAX_TASK_ATTEMPTS_DEFAULT);
-    taskId = new TezTaskID(vertexId, partition);
-    this.partition = partition;
+    taskId = new TezTaskID(vertexId, taskIndex);
     this.taskAttemptListener = taskAttemptListener;
     this.taskHeartbeatHandler = thh;
     this.eventHandler = eventHandler;
     this.credentials = credentials;
     this.jobToken = jobToken;
-    // TODO Metrics
-    //this.metrics = metrics;
     this.appContext = appContext;
-    // TODO Security
     this.encryptedShuffle = false;
-    //conf.getBoolean(MRConfig.SHUFFLE_SSL_ENABLED_KEY,
-     //                                       MRConfig.SHUFFLE_SSL_ENABLED_DEFAULT);
-    this.processorDescriptor = processorDescriptor;
 
     this.leafVertex = leafVertex;
     this.locationHint = locationHint;
@@ -321,42 +306,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.localResources = localResources;
     this.environment = environment;
     this.javaOpts = javaOpts;
-    // TODO: Recovery
-    /*
-    // See if this is from a previous generation.
-    if (completedTasksFromPreviousRun != null
-        && completedTasksFromPreviousRun.containsKey(taskId)) {
-      // This task has TaskAttempts from previous generation. We have to replay
-      // them.
-      LOG.info("Task is from previous run " + taskId);
-      TaskInfo taskInfo = completedTasksFromPreviousRun.get(taskId);
-      Map<TaskAttemptID, TaskAttemptInfo> allAttempts =
-          taskInfo.getAllTaskAttempts();
-      taskAttemptsFromPreviousGeneration = new ArrayList<TaskAttemptInfo>();
-      taskAttemptsFromPreviousGeneration.addAll(allAttempts.values());
-      Collections.sort(taskAttemptsFromPreviousGeneration,
-        RECOVERED_ATTEMPTS_COMPARATOR);
-    }
-
-    if (taskAttemptsFromPreviousGeneration.isEmpty()) {
-      // All the previous attempts are exhausted, now start with a new
-      // generation.
-
-      // All the new TaskAttemptIDs are generated based on MR
-      // ApplicationAttemptID so that attempts from previous lives don't
-      // over-step the current one. This assumes that a task won't have more
-      // than 1000 attempts in its single generation, which is very reasonable.
-      // Someone is nuts if he/she thinks he/she can live with 1000 TaskAttempts
-      // and requires serious medical attention.
-      nextAttemptNumber = (startCount - 1) * 1000;
-    } else {
-      // There are still some TaskAttempts from previous generation, use them
-      nextAttemptNumber =
-          taskAttemptsFromPreviousGeneration.remove(0).getAttemptId().getId();
-    }
-     */
-    // This "this leak" is okay because the retained pointer is in an
-    //  instance variable.
     stateMachine = stateMachineFactory.make(this);
   }
 
@@ -592,7 +541,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   // TODO remove hacky name lookup
   @Override
   public boolean needsWaitAfterOutputConsumable() {
-    if (processorDescriptor.getClassName().contains("InitialTaskWithInMemSort")) {
+    Vertex vertex = getVertex();
+    ProcessorDescriptor processorDescriptor = vertex.getProcessorDescriptor();
+    if (processorDescriptor != null && 
+        processorDescriptor.getClassName().contains("InitialTaskWithInMemSort")) {
       return true;
     } else {
       return false;
@@ -612,9 +564,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   TaskAttemptImpl createAttempt(int attemptNumber) {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
-        taskAttemptListener, 0, conf,
+        taskAttemptListener, conf,
         jobToken, credentials, clock, taskHeartbeatHandler,
-        appContext, processorDescriptor, locationHint, taskResource,
+        appContext, locationHint, taskResource,
         localResources, environment, javaOpts, (failedAttempts>0));
   }
 
@@ -738,8 +690,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       if (attempt.getFinishTime() != 0 && attempt.getLaunchTime() != 0)
         runTime = (int) (attempt.getFinishTime() - attempt.getLaunchTime());
 
+      // TODO TEZ-347. Get this event from Task instead of generating here
+      long dataSize = getCounters().findCounter(TaskCounter.MAP_OUTPUT_BYTES).getValue();
       TezDependentTaskCompletionEvent tce = new TezDependentTaskCompletionEvent(
-          -1, attemptId, status, url, runTime);
+          -1, attemptId, status, url, runTime, dataSize);
 
       // raise the event to job so that it adds the completion event to its
       // data structures
