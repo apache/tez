@@ -409,7 +409,7 @@ public class TestContainerReuse {
     AMNodeMap amNodeMap = new AMNodeMap(eventHandler, appContext);
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(amNodeMap).when(appContext).getAllNodes();
-    doReturn(dagID).when(appContext).getDAGID();
+    doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
 
     TaskSchedulerEventHandler taskSchedulerEventHandlerReal = new TaskSchedulerEventHandlerForTest(appContext, eventHandler, rmClient);
