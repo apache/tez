@@ -519,13 +519,13 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   @Override
   public Task getTask() {
-    return appContext.getDAG()
+    return appContext.getCurrentDAG()
         .getVertex(attemptId.getTaskID().getVertexID())
         .getTask(attemptId.getTaskID());
   }
   
   Vertex getVertex() {
-    return appContext.getDAG()
+    return appContext.getCurrentDAG()
         .getVertex(attemptId.getTaskID().getVertexID());
   }
 

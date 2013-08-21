@@ -31,37 +31,37 @@ import org.apache.tez.dag.api.TezException;
  * Application Master.
  */
 public interface DAGClient extends Closeable {
-  
+
   /**
    * Get the YARN ApplicationId for the app running the DAG
    * @return <code>ApplicationId</code>
    */
   public ApplicationId getApplicationId();
-  
+
   @Private
   /**
    * Get the YARN ApplicationReport for the app running the DAG. For performance
-   * reasons this may be stale copy and should be used to access static info. It 
+   * reasons this may be stale copy and should be used to access static info. It
    * may be null.
    * @return <code>ApplicationReport</code> or null
    */
   public ApplicationReport getApplicationReport();
-  
+
   /**
    * Get the status of the specified DAG
    */
   public DAGStatus getDAGStatus() throws IOException, TezException;
-  
+
   /**
-   * Get the status of a Vertex of a DAG 
+   * Get the status of a Vertex of a DAG
    */
   public VertexStatus getVertexStatus(String vertexName)
       throws IOException, TezException;
-  
+
   /**
    * Kill a running DAG
-   * 
+   *
    */
-  public void tryKillDAG()
-      throws TezException, IOException;
+  public void tryKillDAG() throws TezException, IOException;
+
 }

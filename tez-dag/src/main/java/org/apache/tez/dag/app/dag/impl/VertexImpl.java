@@ -1421,7 +1421,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public DAG getDAG() {
-    return appContext.getDAG();
+    return appContext.getCurrentDAG();
   }
 
   private TezDAGID getDAGId() {
@@ -1435,6 +1435,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public Resource getTaskResource() {
     return taskResource;
   }
+
   @VisibleForTesting
   String getProcessorName() {
     return this.processorDescriptor.getClassName();

@@ -177,7 +177,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     // TODO: shouldReset is never used. See TT. Ask for Removal.
     boolean shouldReset = false;
     TezDependentTaskCompletionEvent[] events =
-        context.getDAG().
+        context.getCurrentDAG().
             getVertex(taskAttemptID.getTaskID().getVertexID()).
                 getTaskAttemptCompletionEvents(taskAttemptID, fromEventIdx, maxEvents);
 
@@ -420,7 +420,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     taskHeartbeatHandler.progressing(taskAttemptId);
     pingContainerHeartbeatHandler(taskAttemptId);
 
-    DAG job = context.getDAG();
+    DAG job = context.getCurrentDAG();
     Task task =
         job.getVertex(taskAttemptId.getTaskID().getVertexID()).
             getTask(taskAttemptId.getTaskID());
@@ -474,7 +474,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     // between polls (MRTask) implies tasks end up wasting upto 1 second doing
     // nothing. Similarly for CA_COMMIT.
 
-    DAG job = context.getDAG();
+    DAG job = context.getCurrentDAG();
     Task task =
         job.getVertex(taskAttemptId.getTaskID().getVertexID()).
             getTask(taskAttemptId.getTaskID());

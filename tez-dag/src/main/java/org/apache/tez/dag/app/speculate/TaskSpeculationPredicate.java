@@ -31,7 +31,7 @@ public class TaskSpeculationPredicate {
     //  Subclasses should call TaskSpeculationPredicate.canSpeculate(...) , but
     //  can be even more restrictive.
     // TODO handle multiple dags
-    DAG job = context.getDAG();
+    DAG job = context.getCurrentDAG();
     Task task = job.getVertex(taskID.getVertexID()).getTask(taskID);
     return task.getAttempts().size() == 1;
   }

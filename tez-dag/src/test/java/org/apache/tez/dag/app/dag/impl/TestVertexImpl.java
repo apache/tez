@@ -518,9 +518,9 @@ public class TestVertexImpl {
     appContext = mock(AppContext.class);
     DAG dag = mock(DAG.class);
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
-    doReturn(dag).when(appContext).getDAG();
+    doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(DAGPlan.getDefaultInstance()).when(dag).getJobPlan();
-    doReturn(dagId).when(appContext).getDAGID();
+    doReturn(dagId).when(appContext).getCurrentDAGID();
     doReturn(dagId).when(dag).getID();
     setupVertices();
     edges = DagTypeConverters.createEdgePropertyMapFromDAGPlan(

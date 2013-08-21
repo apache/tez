@@ -37,7 +37,7 @@ message GetDAGStatusRequestProto {
 }
 
 message GetDAGStatusResponseProto {
-  optional DAGStatusProto dagStatus = 1; 
+  optional DAGStatusProto dagStatus = 1;
 }
 
 message GetVertexStatusRequestProto {
@@ -57,10 +57,25 @@ message TryKillDAGResponseProto {
   //nothing yet
 }
 
+message SubmitDAGRequestProto {
+  optional DAGPlan d_a_g_plan = 1;
+}
+
+message SubmitDAGResponseProto {
+  optional string dagId = 1;
+}
+
+message ShutdownSessionRequestProto {
+}
+
+message ShutdownSessionResponseProto {
+}
 
 service DAGClientAMProtocol {
   rpc getAllDAGs (GetAllDAGsRequestProto) returns (GetAllDAGsResponseProto);
   rpc getDAGStatus (GetDAGStatusRequestProto) returns (GetDAGStatusResponseProto);
   rpc getVertexStatus (GetVertexStatusRequestProto) returns (GetVertexStatusResponseProto);
   rpc tryKillDAG (TryKillDAGRequestProto) returns (TryKillDAGResponseProto);
+  rpc submitDAG (SubmitDAGRequestProto) returns (SubmitDAGResponseProto);
+  rpc shutdownSession (ShutdownSessionRequestProto) returns (ShutdownSessionResponseProto);
 }

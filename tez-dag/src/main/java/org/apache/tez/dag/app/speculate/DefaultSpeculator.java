@@ -107,11 +107,11 @@ public class DefaultSpeculator extends AbstractService implements
   public DefaultSpeculator(Configuration conf, AppContext context, Clock clock) {
     this(conf, context, getEstimator(conf, context), clock);
   }
-  
+
   static private TaskRuntimeEstimator getEstimator
       (Configuration conf, AppContext context) {
     TaskRuntimeEstimator estimator;
-    
+
     try {
       // "yarn.mapreduce.job.task.runtime.estimator.class"
       Class<? extends TaskRuntimeEstimator> estimatorClass
@@ -138,7 +138,7 @@ public class DefaultSpeculator extends AbstractService implements
       LOG.error("Can't make a speculation runtime extimator", ex);
       throw new TezUncheckedException(ex);
     }
-    
+
   return estimator;
   }
 
@@ -269,7 +269,7 @@ public class DefaultSpeculator extends AbstractService implements
             (event.getReportedStatus(), event.getTimestamp());
         break;
       }
-      
+
       case JOB_CREATE:
       {
         LOG.info("JOB_CREATE " + event.getJobID());
@@ -293,7 +293,7 @@ public class DefaultSpeculator extends AbstractService implements
 
     TezTaskAttemptID attemptID = reportedStatus.id;
     TezTaskID taskID = attemptID.getTaskID();
-    DAG job = context.getDAG();
+    DAG job = context.getCurrentDAG();
 
     if (job == null) {
       return;
@@ -338,7 +338,7 @@ public class DefaultSpeculator extends AbstractService implements
   // All of these values are negative.  Any value that should be allowed to
   //  speculate is 0 or positive.
   private long speculationValue(TezTaskID taskID, long now) {
-    DAG job = context.getDAG();
+    DAG job = context.getCurrentDAG();
     Task task = job.getVertex(taskID.getVertexID()).getTask(taskID);
     Map<TezTaskAttemptID, TaskAttempt> attempts = task.getAttempts();
     long acceptableRuntime = Long.MIN_VALUE;
@@ -452,9 +452,9 @@ public class DefaultSpeculator extends AbstractService implements
       int numberRunningTasks = 0;
 
       // loop through the tasks of the kind
-      DAG job = context.getDAG();
+      DAG job = context.getCurrentDAG();
 
-      Map<TezTaskID, Task> tasks = 
+      Map<TezTaskID, Task> tasks =
           job.getVertex(TezBuilderUtils.newVertexID(job.getID(), vertexId)).getTasks();
 
       int numberAllowedSpeculativeTasks

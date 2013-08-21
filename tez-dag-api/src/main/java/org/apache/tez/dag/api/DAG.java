@@ -102,10 +102,10 @@ public class DAG { // FIXME rename to Topology
 
     int index; //for Tarjan's algorithm
     int lowlink; //for Tarjan's algorithm
-    boolean onstack; //for Tarjan's algorithm 
-    
+    boolean onstack; //for Tarjan's algorithm
+
     int outDegree;
-    
+
     private AnnotatedVertex(Vertex v){
        this.v = v;
        index = -1;
@@ -169,7 +169,7 @@ public class DAG { // FIXME rename to Topology
     if(restricted){
       for(Edge e : edges){
         vertexMap.get(e.getInputVertex().getVertexName()).outDegree++;
-        if (e.getEdgeProperty().getConnectionPattern() != 
+        if (e.getEdgeProperty().getConnectionPattern() !=
             ConnectionPattern.BIPARTITE) {
           throw new IllegalStateException(
               "Unsupported connection pattern on edge. " + e);
@@ -347,7 +347,8 @@ public class DAG { // FIXME rename to Topology
 
     if(dagConf != null) {
       Iterator<Entry<String, String>> iter = dagConf.iterator();
-      ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
+      ConfigurationProto.Builder confProtoBuilder =
+          ConfigurationProto.newBuilder();
       while (iter.hasNext()) {
         Entry<String, String> entry = iter.next();
         PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();

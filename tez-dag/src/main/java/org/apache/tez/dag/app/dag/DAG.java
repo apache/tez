@@ -65,6 +65,8 @@ public interface DAG {
   DAGStatusBuilder getDAGStatus();
   VertexStatusBuilder getVertexStatus(String vertexName);
 
+  boolean isComplete();
+
   /**
    * @return the ACLs for this job for each type of JobACL given.
    */

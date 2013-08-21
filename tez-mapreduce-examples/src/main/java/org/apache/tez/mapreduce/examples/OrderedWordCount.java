@@ -19,30 +19,62 @@
 package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobID;
+import org.apache.hadoop.mapred.FileAlreadyExistsException;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.TypeConverter;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.util.ClassUtil;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.client.TezClientUtils;
+import org.apache.tez.client.TezSession;
+import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.Edge;
+import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
+import org.apache.tez.dag.api.EdgeProperty.SourceType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.engine.lib.input.ShuffledMergedInput;
+import org.apache.tez.engine.lib.output.OnFileSortedOutput;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
+import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
+import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
+import org.apache.tez.mapreduce.processor.map.MapProcessor;
+import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 
 /**
  * An MRR job built on top of word count to return words sorted by
@@ -108,75 +140,222 @@ public class OrderedWordCount {
       System.err.println("Usage: wordcount <in> <out>");
       System.exit(2);
     }
+    String inputPath = otherArgs[0];
+    String outputPath = otherArgs[1];
 
-    // Configure intermediate reduces
-    conf.setInt(MRJobConfig.MRR_INTERMEDIATE_STAGES, 1);
+    boolean useTezSession = conf.getBoolean("USE_TEZ_SESSION", true);
 
-    // Set reducer class for intermediate reduce
-    conf.setClass(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
-        MRJobConfig.REDUCE_CLASS_ATTR), IntSumReducer.class, Reducer.class);
-    // Set reducer output key class
-    conf.setClass(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
-        MRJobConfig.MAP_OUTPUT_KEY_CLASS), IntWritable.class, Object.class);
-    // Set reducer output value class
-    conf.setClass(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
-        MRJobConfig.MAP_OUTPUT_VALUE_CLASS), Text.class, Object.class);
-    conf.setInt(MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(1,
-        MRJobConfig.NUM_REDUCES), 2);
+    UserGroupInformation.setConfiguration(conf);
+    String user = UserGroupInformation.getCurrentUser().getShortUserName();
 
-    @SuppressWarnings("deprecation")
-    Job job = new Job(conf, "orderedwordcount");
-    job.setJarByClass(OrderedWordCount.class);
+    TezConfiguration tezConf = new TezConfiguration(conf);
+    TezClient tezClient = new TezClient(tezConf);
+    ApplicationId appId = tezClient.createApplication();
 
-    // Configure map
-    job.setMapperClass(TokenizerMapper.class);
-    job.setMapOutputKeyClass(Text.class);
-    job.setMapOutputValueClass(IntWritable.class);
+    FileSystem fs = FileSystem.get(conf);
+    if (fs.exists(new Path(outputPath))) {
+      throw new FileAlreadyExistsException("Output directory " + outputPath +
+          " already exists");
+    }
 
-    // Configure reduce
-    job.setReducerClass(MyOrderByNoOpReducer.class);
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(IntWritable.class);
+    String baseDir = Path.SEPARATOR + "user" + Path.SEPARATOR
+        + user + Path.SEPARATOR+ ".staging" + Path.SEPARATOR;
+    Path stagingDir = new Path(baseDir + Path.SEPARATOR + appId.toString());
+    stagingDir = fs.makeQualified(stagingDir);
+    TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
 
-    FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
-    FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
+    List<String> amArgs = new ArrayList<String>();
+    amArgs.add(MRHelpers.getMRAMJavaOpts(conf));
 
-    TezClient tezClient = new TezClient(new TezConfiguration(conf));
+    String jarPath = ClassUtil.findContainingJar(OrderedWordCount.class);
+    if (jarPath == null)  {
+        throw new TezUncheckedException("Could not find any jar containing"
+            + " OrderedWordCount.class in the classpath");
+    }
+    Path remoteJarPath = fs.makeQualified(
+        new Path(stagingDir, "dag_job.jar"));
+    fs.copyFromLocalFile(new Path(jarPath), remoteJarPath);
+    FileStatus jarFileStatus = fs.getFileStatus(remoteJarPath);
 
-    job.submit();
-    JobID jobId = job.getJobID();
-    ApplicationId appId = TypeConverter.toYarn(jobId).getAppId();
+    Map<String, LocalResource> commonLocalResources =
+        new TreeMap<String, LocalResource>();
+    LocalResource dagJarLocalRsrc = LocalResource.newInstance(
+        ConverterUtils.getYarnUrlFromPath(remoteJarPath),
+        LocalResourceType.FILE,
+        LocalResourceVisibility.APPLICATION,
+        jarFileStatus.getLen(),
+        jarFileStatus.getModificationTime());
+    commonLocalResources.put("dag_job.jar", dagJarLocalRsrc);
 
-    DAGClient dagClient = tezClient.getDAGClient(appId);
-    DAGStatus dagStatus = null;
-    while (true) {
-      dagStatus = dagClient.getDAGStatus();
-      if(dagStatus.getState() == DAGStatus.State.RUNNING ||
-         dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
-         dagStatus.getState() == DAGStatus.State.FAILED ||
-         dagStatus.getState() == DAGStatus.State.KILLED ||
-         dagStatus.getState() == DAGStatus.State.ERROR) {
-        break;
-      }
-      try {
-        Thread.sleep(500);
-      } catch (InterruptedException e) {
-        // continue;
+    TezSession tezSession = null;
+    if (useTezSession) {
+      LOG.info("Creating Tez Session");
+      tezSession = tezClient.createSession(appId, "OrderedWordCountSession",
+          stagingDir, null, "default", amArgs, null, commonLocalResources,
+          tezConf);
+      LOG.info("Created Tez Session");
+    }
+
+    Configuration mapStageConf = new JobConf(conf);
+    mapStageConf.set(MRJobConfig.MAP_CLASS_ATTR,
+        TokenizerMapper.class.getName());
+    mapStageConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
+        Text.class.getName());
+    mapStageConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
+        IntWritable.class.getName());
+    mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
+        TextInputFormat.class.getName());
+    mapStageConf.set(FileInputFormat.INPUT_DIR, inputPath);
+    mapStageConf.setBoolean("mapred.mapper.new-api", true);
+
+    InputSplitInfo inputSplitInfo =
+        MRHelpers.generateInputSplits(mapStageConf, stagingDir);
+    mapStageConf.setInt(MRJobConfig.NUM_MAPS, inputSplitInfo.getNumTasks());
+
+    MultiStageMRConfToTezTranslator.translateVertexConfToTez(mapStageConf,
+        null);
+
+    Configuration iReduceStageConf = new JobConf(conf);
+    iReduceStageConf.setInt(MRJobConfig.NUM_REDUCES, 2);
+    iReduceStageConf.set(MRJobConfig.REDUCE_CLASS_ATTR,
+        IntSumReducer.class.getName());
+    iReduceStageConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
+        IntWritable.class.getName());
+    iReduceStageConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
+        Text.class.getName());
+    iReduceStageConf.setBoolean("mapred.mapper.new-api", true);
+
+    MultiStageMRConfToTezTranslator.translateVertexConfToTez(iReduceStageConf,
+        mapStageConf);
+
+    Configuration finalReduceConf = new JobConf(conf);
+    finalReduceConf.setInt(MRJobConfig.NUM_REDUCES, 1);
+    finalReduceConf.set(MRJobConfig.REDUCE_CLASS_ATTR,
+        MyOrderByNoOpReducer.class.getName());
+    finalReduceConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
+        Text.class.getName());
+    finalReduceConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
+        IntWritable.class.getName());
+    finalReduceConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
+        TextOutputFormat.class.getName());
+    finalReduceConf.set(FileOutputFormat.OUTDIR, outputPath);
+    finalReduceConf.setBoolean("mapred.mapper.new-api", true);
+
+    MultiStageMRConfToTezTranslator.translateVertexConfToTez(finalReduceConf,
+        iReduceStageConf);
+
+    MRHelpers.doJobClientMagic(mapStageConf);
+    MRHelpers.doJobClientMagic(iReduceStageConf);
+    MRHelpers.doJobClientMagic(finalReduceConf);
+
+    List<Vertex> vertices = new ArrayList<Vertex>();
+
+    Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
+        MapProcessor.class.getName()).setUserPayload(
+        MRHelpers.createUserPayloadFromConf(mapStageConf)),
+        inputSplitInfo.getNumTasks(),
+        MRHelpers.getMapResource(mapStageConf));
+    mapVertex.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
+    mapVertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
+    Map<String, LocalResource> mapLocalResources =
+        new HashMap<String, LocalResource>();
+    mapLocalResources.putAll(commonLocalResources);
+    MRHelpers.updateLocalResourcesForInputSplits(fs, inputSplitInfo,
+        mapLocalResources);
+    mapVertex.setTaskLocalResources(mapLocalResources);
+    Map<String, String> mapEnv = new HashMap<String, String>();
+    MRHelpers.updateEnvironmentForMRTasks(mapStageConf, mapEnv, true);
+    mapVertex.setTaskEnvironment(mapEnv);
+    vertices.add(mapVertex);
+
+    Vertex ivertex = new Vertex("ivertex1", new ProcessorDescriptor(
+        ReduceProcessor.class.getName()).
+        setUserPayload(MRHelpers.createUserPayloadFromConf(iReduceStageConf)),
+        2,
+        MRHelpers.getReduceResource(iReduceStageConf));
+    ivertex.setJavaOpts(MRHelpers.getReduceJavaOpts(iReduceStageConf));
+    ivertex.setTaskLocalResources(commonLocalResources);
+    Map<String, String> ireduceEnv = new HashMap<String, String>();
+    MRHelpers.updateEnvironmentForMRTasks(iReduceStageConf, ireduceEnv, false);
+    ivertex.setTaskEnvironment(ireduceEnv);
+    vertices.add(ivertex);
+
+    Vertex finalReduceVertex = new Vertex("finalreduce",
+        new ProcessorDescriptor(
+            ReduceProcessor.class.getName()).setUserPayload(
+                MRHelpers.createUserPayloadFromConf(finalReduceConf)),
+                1,
+                MRHelpers.getReduceResource(finalReduceConf));
+    finalReduceVertex.setJavaOpts(
+        MRHelpers.getReduceJavaOpts(finalReduceConf));
+    finalReduceVertex.setTaskLocalResources(commonLocalResources);
+    Map<String, String> reduceEnv = new HashMap<String, String>();
+    MRHelpers.updateEnvironmentForMRTasks(finalReduceConf, reduceEnv, false);
+    finalReduceVertex.setTaskEnvironment(reduceEnv);
+    vertices.add(finalReduceVertex);
+
+    DAG dag = new DAG("OrderedWordCount");
+    for (int i = 0; i < vertices.size(); ++i) {
+      dag.addVertex(vertices.get(i));
+      if (i != 0) {
+        dag.addEdge(new Edge(vertices.get(i-1),
+            vertices.get(i), new EdgeProperty(
+                ConnectionPattern.BIPARTITE, SourceType.STABLE,
+                new OutputDescriptor(
+                    OnFileSortedOutput.class.getName()),
+                new InputDescriptor(
+                    ShuffledMergedInput.class.getName()))));
       }
     }
 
-    while (dagStatus.getState() == DAGStatus.State.RUNNING) {
-      try {
-        ExampleDriver.printMRRDAGStatus(dagStatus);
+    DAGClient dagClient;
+    if (useTezSession) {
+      LOG.info("Submitting DAG to Tez Session");
+      dagClient = tezClient.submitDAG(tezSession, dag);
+      LOG.info("Submitted DAG to Tez Session");
+    } else {
+      LOG.info("Submitting DAG as a new Tez Application");
+      dagClient = tezClient.submitDAGApplication(appId, dag, stagingDir, null,
+          "default", "OrderedWordCount", amArgs, null, commonLocalResources,
+          tezConf);
+    }
+
+    DAGStatus dagStatus = null;
+    try {
+      while (true) {
+        dagStatus = dagClient.getDAGStatus();
+        if(dagStatus.getState() == DAGStatus.State.RUNNING ||
+            dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
+            dagStatus.getState() == DAGStatus.State.FAILED ||
+            dagStatus.getState() == DAGStatus.State.KILLED ||
+            dagStatus.getState() == DAGStatus.State.ERROR) {
+          break;
+        }
         try {
-          Thread.sleep(1000);
+          Thread.sleep(500);
         } catch (InterruptedException e) {
           // continue;
         }
-        dagStatus = dagClient.getDAGStatus();
-      } catch (TezException e) {
-        LOG.fatal("Failed to get application progress. Exiting");
-        System.exit(-1);
+      }
+
+      while (dagStatus.getState() == DAGStatus.State.RUNNING) {
+        try {
+          ExampleDriver.printMRRDAGStatus(dagStatus);
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e) {
+            // continue;
+          }
+          dagStatus = dagClient.getDAGStatus();
+        } catch (TezException e) {
+          LOG.fatal("Failed to get application progress. Exiting");
+          System.exit(-1);
+        }
+      }
+    } finally {
+      fs.delete(stagingDir, true);
+      if (useTezSession) {
+        tezClient.closeSession(tezSession);
       }
     }
 

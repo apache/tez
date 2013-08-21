@@ -340,7 +340,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   @Override
   public Vertex getVertex() {
-    return appContext.getDAG().getVertex(taskId.getVertexID());
+    return appContext.getCurrentDAG().getVertex(taskId.getVertexID());
   }
 
   @Override

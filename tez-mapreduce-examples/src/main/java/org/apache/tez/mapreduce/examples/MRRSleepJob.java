@@ -61,6 +61,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -743,7 +744,7 @@ public class MRRSleepJob extends Configured implements Tool {
             TezConfiguration.TEZ_AM_STAGING_DIR,
             TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT),
             appId.toString()));
-    tezClient.ensureExists(remoteStagingDir);
+    TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
 
     DAG dag = createDAG(remoteFs, conf, appId, remoteStagingDir,
         numMapper, numReducer, iReduceStagesCount, numIReducer,
@@ -755,7 +756,7 @@ public class MRRSleepJob extends Configured implements Tool {
 
     DAGClient dagClient =
         tezClient.submitDAGApplication(appId, dag, remoteStagingDir,
-            null, null, amArgs , null, null, conf);
+            null, null, dag.getName(), amArgs , null, null, conf);
 
     while (true) {
       DAGStatus status = dagClient.getDAGStatus();

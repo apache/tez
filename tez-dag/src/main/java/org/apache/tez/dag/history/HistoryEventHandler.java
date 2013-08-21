@@ -49,10 +49,10 @@ implements EventHandler<DAGHistoryEvent> {
 
   @Override
   public void handle(DAGHistoryEvent event) {
-    TezDAGID dagId = context.getDAGID();
+    TezDAGID dagId = context.getCurrentDAGID();
     String dagIdStr = "N/A";
     if(dagId != null) {
-      dagIdStr = context.getDAGID().toString();
+      dagIdStr = context.getCurrentDAGID().toString();
     }
     LOG.info("[HISTORY]"
         + "[DAG:" + dagIdStr + "]"

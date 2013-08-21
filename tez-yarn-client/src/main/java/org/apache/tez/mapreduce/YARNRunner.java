@@ -569,6 +569,7 @@ public class YARNRunner implements ClientProtocol {
           ts,
           jobConf.get(JobContext.QUEUE_NAME,
               YarnConfiguration.DEFAULT_QUEUE_NAME),
+          dag.getName(),
           vargs,
           environment,
           jobLocalResources, dagAMConf);

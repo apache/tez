@@ -32,8 +32,13 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequ
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusResponseProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionResponseProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGResponseProto;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.DAGAppMaster.DAGClientHandler;
 
 import com.google.protobuf.RpcController;
@@ -41,9 +46,9 @@ import com.google.protobuf.ServiceException;
 
 public class DAGClientAMProtocolBlockingPBServerImpl implements
     DAGClientAMProtocolBlockingPB {
-  
+
   DAGClientHandler real;
-  
+
   public DAGClientAMProtocolBlockingPBServerImpl(DAGClientHandler real) {
     this.real = real;
   }
@@ -90,7 +95,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
       throw wrapException(e);
     }
   }
-  
+
   @Override
   public TryKillDAGResponseProto tryKillDAG(RpcController controller,
       TryKillDAGRequestProto request) throws ServiceException {
@@ -102,10 +107,28 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
       throw wrapException(e);
     }
   }
-  
-  
+
+  @Override
+  public SubmitDAGResponseProto submitDAG(RpcController controller,
+      SubmitDAGRequestProto request) throws ServiceException {
+    try{
+      DAGPlan dagPlan = request.getDAGPlan();
+      String dagId = real.submitDAG(dagPlan);
+      return SubmitDAGResponseProto.newBuilder().setDagId(dagId).build();
+    } catch(TezException e) {
+      throw wrapException(e);
+    }
+  }
+
   ServiceException wrapException(Exception e){
     return new ServiceException(e);
+  }
+
+  @Override
+  public ShutdownSessionResponseProto shutdownSession(RpcController arg0,
+      ShutdownSessionRequestProto arg1) throws ServiceException {
+    real.shutdownAM();
+    return ShutdownSessionResponseProto.newBuilder().build();
   }
 
 }

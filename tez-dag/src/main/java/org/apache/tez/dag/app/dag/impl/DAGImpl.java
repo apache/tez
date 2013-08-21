@@ -1225,4 +1225,21 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       job.finished(DAGState.ERROR);
     }
   }
+
+  @Override
+  public boolean isComplete() {
+    readLock.lock();
+    try {
+      DAGState state = getState();
+      if (state.equals(DAGState.SUCCEEDED)
+          || state.equals(DAGState.FAILED)
+          || state.equals(DAGState.KILLED)
+          || state.equals(DAGState.ERROR)) {
+        return true;
+      }
+      return false;
+    } finally {
+      readLock.unlock();
+    }
+  }
 }

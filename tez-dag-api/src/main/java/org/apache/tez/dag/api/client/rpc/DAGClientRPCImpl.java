@@ -49,9 +49,9 @@ import com.google.protobuf.ServiceException;
 public class DAGClientRPCImpl implements DAGClient {
   private static final Log LOG = LogFactory.getLog(DAGClientRPCImpl.class);
 
-  private ApplicationId appId;
-  private String dagId;
-  private TezConfiguration conf;
+  private final ApplicationId appId;
+  private final String dagId;
+  private final TezConfiguration conf;
   private ApplicationReport appReport;
   private YarnClient yarnClient;
   private DAGClientAMProtocolBlockingPB proxy = null;
@@ -101,6 +101,7 @@ public class DAGClientRPCImpl implements DAGClient {
     return null;
   }
 
+  @Override
   public void tryKillDAG() throws TezException, IOException {
     if(LOG.isDebugEnabled()) {
       LOG.debug("TryKill for app: " + appId + " dag:" + dagId);
@@ -285,4 +286,5 @@ public class DAGClientRPCImpl implements DAGClient {
         DAGClientAMProtocolBlockingPB.class, 0, addr, conf);
     return true;
   }
+
 }

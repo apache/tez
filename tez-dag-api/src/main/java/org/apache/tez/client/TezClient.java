@@ -18,76 +18,42 @@
 
 package org.apache.tez.client;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.TreeMap;
-import java.util.Vector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
-import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
-import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.util.Apps;
-import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.hadoop.yarn.util.Records;
-import org.apache.log4j.Level;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientRPCImpl;
-import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
-import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
+
+import com.google.protobuf.ServiceException;
 
 public class TezClient {
   private static final Log LOG = LogFactory.getLog(TezClient.class);
 
-  final public static FsPermission TEZ_AM_DIR_PERMISSION =
-      FsPermission.createImmutable((short) 0700); // rwx--------
-  final public static FsPermission TEZ_AM_FILE_PERMISSION =
-      FsPermission.createImmutable((short) 0644); // rw-r--r--
-
-  public static final int UTF8_CHUNK_SIZE = 16 * 1024;
-
   private final TezConfiguration conf;
   private YarnClient yarnClient;
+  Map<String, LocalResource> tezJarResources = null;
 
   /**
    * <p>
@@ -112,7 +78,7 @@ public class TezClient {
 
   /**
    * Submit a Tez DAG to YARN as an application. The job will be submitted to
-   * the yarn cluster or tez service which was specified when creating this
+   * the yarn cluster which was specified when creating this
    * {@link TezClient} instance.
    *
    * @param dag
@@ -144,7 +110,45 @@ public class TezClient {
       TezConfiguration amConf) throws IOException, TezException {
     ApplicationId appId = createApplication();
     return submitDAGApplication(appId, dag, appStagingDir, ts, amQueueName,
-        amArgs, amEnv, amLocalResources, amConf);
+        dag.getName(), amArgs, amEnv, amLocalResources, amConf);
+  }
+
+  /**
+   * Submit a Tez DAG to YARN as an application. The job will be submitted to
+   * the yarn cluster which was specified when creating this
+   * {@link TezClient} instance. The AM will wait for the <code>DAG</code> to
+   * be submitted via RPC.
+   *
+   * @param amName
+   *          Name of the application
+   * @param appStagingDir
+   *          FileSystem path in which resources will be copied
+   * @param ts
+   *          Application credentials
+   * @param amQueueName
+   *          Queue to which the application will be submitted
+   * @param amArgs
+   *          Command line Java arguments for the ApplicationMaster
+   * @param amEnv
+   *          Environment to be added to the ApplicationMaster
+   * @param amLocalResources
+   *          YARN local resource for the ApplicationMaster
+   * @param conf
+   *          Configuration for the Tez DAG AM. tez configuration keys from this
+   *          config will be used when running the AM. Look at
+   *          {@link TezConfiguration} for keys. This can be null if no DAG AM
+   *          parameters need to be changed.
+   * @return <code>ApplicationId</code> of the submitted Tez application
+   * @throws IOException
+   * @throws TezException
+   */
+  public DAGClient submitDAGApplication(String amName, Path appStagingDir,
+      Credentials ts, String amQueueName, List<String> amArgs,
+      Map<String, String> amEnv, Map<String, LocalResource> amLocalResources,
+      TezConfiguration amConf) throws IOException, TezException {
+    ApplicationId appId = createApplication();
+    return submitDAGApplication(appId, null, appStagingDir, ts, amQueueName,
+        amName, amArgs, amEnv, amLocalResources, amConf);
   }
 
   /**
@@ -179,14 +183,15 @@ public class TezClient {
    */
   @Private
   public DAGClient submitDAGApplication(ApplicationId appId, DAG dag,
-      Path appStagingDir, Credentials ts, String amQueueName,
+      Path appStagingDir, Credentials ts, String amQueueName, String amName,
       List<String> amArgs, Map<String, String> amEnv,
       Map<String, LocalResource> amLocalResources, TezConfiguration amConf)
       throws IOException, TezException {
     try {
-      ApplicationSubmissionContext appContext = createApplicationSubmissionContext(
-          appId, dag, appStagingDir, ts, amQueueName, dag.getName(), amArgs,
-          amEnv, amLocalResources, amConf);
+      ApplicationSubmissionContext appContext =
+          TezClientUtils.createApplicationSubmissionContext(
+          conf, appId, dag, appStagingDir, ts, amQueueName, amName, amArgs,
+          amEnv, amLocalResources, amConf, getTezJarResources());
       yarnClient.submitApplication(appContext);
     } catch (YarnException e) {
       throw new TezException(e);
@@ -210,378 +215,19 @@ public class TezClient {
     }
   }
 
-  @Private
-  public DAGClient getDAGClient(ApplicationId appId)
-      throws IOException, TezException {
-      return new DAGClientRPCImpl(appId, getDefaultTezDAGID(appId), conf);
-  }
-
-  private void addLog4jSystemProperties(String logLevel, List<String> vargs) {
-    vargs.add("-Dlog4j.configuration="
-        + TezConfiguration.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
-    vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
-        + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
-    vargs.add("-D" + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=" + logLevel
-        + "," + TezConfiguration.TEZ_CONTAINER_LOGGER_NAME);
-  }
-
-  public FileSystem ensureExists(Path stagingArea)
+  private synchronized Map<String, LocalResource> getTezJarResources()
       throws IOException {
-    FileSystem fs = stagingArea.getFileSystem(conf);
-    String realUser;
-    String currentUser;
-    UserGroupInformation ugi = UserGroupInformation.getLoginUser();
-    realUser = ugi.getShortUserName();
-    currentUser = UserGroupInformation.getCurrentUser().getShortUserName();
-    if (fs.exists(stagingArea)) {
-      FileStatus fsStatus = fs.getFileStatus(stagingArea);
-      String owner = fsStatus.getOwner();
-      if (!(owner.equals(currentUser) || owner.equals(realUser))) {
-        throw new IOException("The ownership on the staging directory "
-            + stagingArea + " is not as expected. " + "It is owned by " + owner
-            + ". The directory must " + "be owned by the submitter "
-            + currentUser + " or " + "by " + realUser);
-      }
-      if (!fsStatus.getPermission().equals(TEZ_AM_DIR_PERMISSION)) {
-        LOG.info("Permissions on staging directory " + stagingArea + " are "
-            + "incorrect: " + fsStatus.getPermission()
-            + ". Fixing permissions " + "to correct value "
-            + TEZ_AM_DIR_PERMISSION);
-        fs.setPermission(stagingArea, TEZ_AM_DIR_PERMISSION);
-      }
-    } else {
-      fs.mkdirs(stagingArea, new FsPermission(TEZ_AM_DIR_PERMISSION));
-    }
-    return fs;
-  }
-
-  private LocalResource createLocalResource(FileSystem fs, Path p,
-      LocalResourceType type) throws IOException {
-    LocalResource rsrc = Records.newRecord(LocalResource.class);
-    FileStatus rsrcStat = fs.getFileStatus(p);
-    rsrc.setResource(ConverterUtils.getYarnUrlFromPath(fs.resolvePath(rsrcStat
-        .getPath())));
-    rsrc.setSize(rsrcStat.getLen());
-    rsrc.setTimestamp(rsrcStat.getModificationTime());
-    rsrc.setType(type);
-    rsrc.setVisibility(LocalResourceVisibility.APPLICATION);
-    return rsrc;
-  }
-
-  private Map<String, LocalResource> setupTezJarsLocalResources()
-      throws IOException {
-    Map<String, LocalResource> tezJarResources =
-        new TreeMap<String, LocalResource>();
-    if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
-      return tezJarResources;
-    }
-
-    // Add tez jars to local resource
-    String[] tezJarUris = conf.getStrings(
-        TezConfiguration.TEZ_LIB_URIS);
-    if (tezJarUris == null
-        || tezJarUris.length == 0) {
-      throw new TezUncheckedException("Invalid configuration of tez jars"
-          + ", " + TezConfiguration.TEZ_LIB_URIS
-          + " is not defined in the configurartion");
-    }
-
-    for (String tezJarUri : tezJarUris) {
-      URI uri;
-      try {
-        uri = new URI(tezJarUri.trim());
-      } catch (URISyntaxException e) {
-        String message = "Invalid URI defined in configuration for"
-            + " location of TEZ jars. providedURI=" + tezJarUri;
-        LOG.error(message);
-        throw new TezUncheckedException(message, e);
-      }
-      if (!uri.isAbsolute()) {
-        String message = "Non-absolute URI defined in configuration for"
-            + " location of TEZ jars. providedURI=" + tezJarUri;
-        LOG.error(message);
-        throw new TezUncheckedException(message);
-      }
-      Path p = new Path(uri);
-      FileSystem pathfs = p.getFileSystem(conf);
-      RemoteIterator<LocatedFileStatus> iter = pathfs.listFiles(p, false);
-      while (iter.hasNext()) {
-        LocatedFileStatus fStatus = iter.next();
-        String rsrcName = fStatus.getPath().getName();
-        // FIXME currently not checking for duplicates due to quirks
-        // in assembly generation
-        if (tezJarResources.containsKey(rsrcName)) {
-          String message = "Duplicate resource found"
-              + ", resourceName=" + rsrcName
-              + ", existingPath=" +
-              tezJarResources.get(rsrcName).getResource().toString()
-              + ", newPath=" + fStatus.getPath();
-          LOG.warn(message);
-          // throw new TezUncheckedException(message);
-        }
-        tezJarResources.put(rsrcName,
-            LocalResource.newInstance(
-                ConverterUtils.getYarnUrlFromPath(fStatus.getPath()),
-                LocalResourceType.FILE,
-                LocalResourceVisibility.PUBLIC,
-                fStatus.getLen(),
-                fStatus.getModificationTime()));
-      }
-    }
-    if (tezJarResources.isEmpty()) {
-      LOG.warn("No tez jars found in configured locations"
-          + ". Ignoring for now. Errors may occur");
+    if (tezJarResources == null) {
+      tezJarResources = TezClientUtils.setupTezJarsLocalResources(conf);
     }
     return tezJarResources;
   }
 
-  private Configuration createFinalTezConfForApp(TezConfiguration amConf) {
-    Configuration conf = new Configuration(false);
-    conf.setQuietMode(true);
-
-    assert amConf != null;
-    Iterator<Entry<String, String>> iter = amConf.iterator();
-    while (iter.hasNext()) {
-      Entry<String, String> entry = iter.next();
-      // Copy all tez config parameters.
-      if (entry.getKey().startsWith(TezConfiguration.TEZ_PREFIX)) {
-        conf.set(entry.getKey(), entry.getValue());
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Adding tez dag am parameter: " + entry.getKey()
-              + ", with value: " + entry.getValue());
-        }
-      }
-    }
-    return conf;
-  }
-
-  private ApplicationSubmissionContext createApplicationSubmissionContext(
-      ApplicationId appId, DAG dag, Path appStagingDir, Credentials ts,
-      String amQueueName, String amName, List<String> amArgs,
-      Map<String, String> amEnv, Map<String, LocalResource> amLocalResources,
-      TezConfiguration appConf) throws IOException, YarnException {
-
-    if (appConf == null) {
-      appConf = new TezConfiguration();
-    }
-
-    FileSystem fs = ensureExists(appStagingDir);
-
-    // Setup resource requirements
-    Resource capability = Records.newRecord(Resource.class);
-    capability.setMemory(
-        conf.getInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB,
-            TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB_DEFAULT));
-    capability.setVirtualCores(
-        conf.getInt(TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES,
-            TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES_DEFAULT));
-    LOG.debug("AppMaster capability = " + capability);
-
-    ByteBuffer securityTokens = null;
-    // Setup security tokens
-    if (ts != null) {
-      DataOutputBuffer dob = new DataOutputBuffer();
-      ts.writeTokenStorageToStream(dob);
-      securityTokens = ByteBuffer.wrap(dob.getData(), 0,
-          dob.getLength());
-    }
-
-    // Setup the command to run the AM
-    List<String> vargs = new ArrayList<String>(8);
-    vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
-
-    String amLogLevel = conf.get(TezConfiguration.TEZ_AM_LOG_LEVEL,
-                                 TezConfiguration.TEZ_AM_LOG_LEVEL_DEFAULT);
-    addLog4jSystemProperties(amLogLevel, vargs);
-
-    if (amArgs != null) {
-      vargs.addAll(amArgs);
-    }
-
-    vargs.add(TezConfiguration.TEZ_APPLICATION_MASTER_CLASS);
-    vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
-        File.separator + ApplicationConstants.STDOUT);
-    vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
-        File.separator + ApplicationConstants.STDERR);
-
-
-    Vector<String> vargsFinal = new Vector<String>(8);
-    // Final command
-    StringBuilder mergedCommand = new StringBuilder();
-    for (CharSequence str : vargs) {
-      mergedCommand.append(str).append(" ");
-    }
-    vargsFinal.add(mergedCommand.toString());
-
-    LOG.debug("Command to launch container for ApplicationMaster is : "
-        + mergedCommand);
-
-    // Setup the CLASSPATH in environment
-    // i.e. add { Hadoop jars, job jar, CWD } to classpath.
-    Map<String, String> environment = new HashMap<String, String>();
-
-    boolean isMiniCluster =
-        conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false);
-    if (isMiniCluster) {
-      Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-          System.getProperty("java.class.path"));
-    }
-
-    Apps.addToEnvironment(environment,
-        Environment.CLASSPATH.name(),
-        Environment.PWD.$());
-
-    Apps.addToEnvironment(environment,
-        Environment.CLASSPATH.name(),
-        Environment.PWD.$() + File.separator + "*");
-
-    // Add YARN/COMMON/HDFS jars to path
-    if (!isMiniCluster) {
-      for (String c : conf.getStrings(
-          YarnConfiguration.YARN_APPLICATION_CLASSPATH,
-          YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
-        Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-            c.trim());
-      }
-    }
-
-    if (amEnv != null) {
-      for (Map.Entry<String, String> entry : amEnv.entrySet()) {
-        Apps.addToEnvironment(environment, entry.getKey(), entry.getValue());
-      }
-    }
-
-    Map<String, LocalResource> localResources =
-        new TreeMap<String, LocalResource>();
-
-    if (amLocalResources != null) {
-      localResources.putAll(amLocalResources);
-    }
-
-    Map<String, LocalResource> tezJarResources =
-        setupTezJarsLocalResources();
-    localResources.putAll(tezJarResources);
-
-    // Add tez jars to vertices too
-    for (Vertex v : dag.getVertices()) {
-      v.getTaskLocalResources().putAll(tezJarResources);
-    }
-
-    // emit conf as PB file
-    Configuration finalTezConf = createFinalTezConfForApp(appConf);
-    Path binaryConfPath =  new Path(appStagingDir,
-        TezConfiguration.TEZ_PB_BINARY_CONF_NAME + "." + appId.toString());
-    FSDataOutputStream amConfPBOutBinaryStream = null;
-    try {
-      ConfigurationProto.Builder confProtoBuilder = 
-          ConfigurationProto.newBuilder();
-      Iterator<Entry<String, String>> iter = finalTezConf.iterator();
-      while (iter.hasNext()) {
-        Entry<String, String> entry = iter.next();
-        PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
-        kvp.setKey(entry.getKey());
-        kvp.setValue(entry.getValue());
-        confProtoBuilder.addConfKeyValues(kvp);
-      }
-      //binary output
-      amConfPBOutBinaryStream = FileSystem.create(fs, binaryConfPath,
-          new FsPermission(TEZ_AM_FILE_PERMISSION));
-      confProtoBuilder.build().writeTo(amConfPBOutBinaryStream);      
-    } finally {
-      if(amConfPBOutBinaryStream != null){
-        amConfPBOutBinaryStream.close();
-      }
-    }
-    LocalResource binaryConfLr = createLocalResource(fs,
-        binaryConfPath, LocalResourceType.FILE);
-    localResources.put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME, binaryConfLr);
-    
-    // Add tez conf to vertices too
-    for (Vertex v : dag.getVertices()) {
-      v.getTaskLocalResources().put(
-          TezConfiguration.TEZ_PB_BINARY_CONF_NAME, binaryConfLr);
-    }
-    
-    DAGPlan dagPB = dag.createDag(null);
-    // emit protobuf DAG file style
-    Path binaryDAGPath =  new Path(appStagingDir,
-        TezConfiguration.TEZ_PB_PLAN_BINARY_NAME + "." + appId.toString());
-    FSDataOutputStream dagPBOutBinaryStream = null;
-
-    try {
-      //binary output
-      dagPBOutBinaryStream = FileSystem.create(fs, binaryDAGPath,
-          new FsPermission(TEZ_AM_FILE_PERMISSION));
-      dagPB.writeTo(dagPBOutBinaryStream);
-    } finally {
-      if(dagPBOutBinaryStream != null){
-        dagPBOutBinaryStream.close();
-      }
-    }    
-
-    localResources.put(TezConfiguration.TEZ_PB_PLAN_BINARY_NAME,
-        createLocalResource(fs, binaryDAGPath, LocalResourceType.FILE));
-
-    if (Level.DEBUG.isGreaterOrEqual(Level.toLevel(amLogLevel))) {
-      Path textPath = localizeDagPlanAsText(dagPB, fs, appStagingDir, appId);
-      localResources.put(TezConfiguration.TEZ_PB_PLAN_TEXT_NAME,
-          createLocalResource(fs, textPath, LocalResourceType.FILE));
-    }
-
-    Map<ApplicationAccessType, String> acls
-        = new HashMap<ApplicationAccessType, String>();
-
-    // Setup ContainerLaunchContext for AM container
-    ContainerLaunchContext amContainer =
-        ContainerLaunchContext.newInstance(localResources, environment,
-            vargsFinal, null, securityTokens, acls);
-
-    // Set up the ApplicationSubmissionContext
-    ApplicationSubmissionContext appContext = Records
-        .newRecord(ApplicationSubmissionContext.class);
-
-    appContext.setApplicationType(TezConfiguration.TEZ_APPLICATION_TYPE);
-    appContext.setApplicationId(appId);
-    appContext.setResource(capability);
-    appContext.setQueue(amQueueName);
-    appContext.setApplicationName(amName);
-    appContext.setCancelTokensWhenComplete(conf.getBoolean(
-        TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN,
-        TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN_DEFAULT));
-    appContext.setAMContainerSpec(amContainer);
-
-    return appContext;
-  }
-
-  private Path localizeDagPlanAsText(DAGPlan dagPB, FileSystem fs,
-      Path appStagingDir, ApplicationId appId) throws IOException {
-    Path textPath = new Path(appStagingDir,
-        TezConfiguration.TEZ_PB_PLAN_TEXT_NAME + "." + appId.toString());
-    FSDataOutputStream dagPBOutTextStream = null;
-    try {
-      dagPBOutTextStream = FileSystem.create(fs, textPath, new FsPermission(
-          TEZ_AM_FILE_PERMISSION));
-      String dagPBStr = dagPB.toString();
-      int dagPBStrLen = dagPBStr.length();
-      if (dagPBStrLen <= UTF8_CHUNK_SIZE) {
-        dagPBOutTextStream.writeUTF(dagPBStr);
-      } else {
-        int startIndex = 0;
-        while (startIndex < dagPBStrLen) {
-          int endIndex = startIndex + UTF8_CHUNK_SIZE;
-          if (endIndex > dagPBStrLen) {
-            endIndex = dagPBStrLen;
-          }
-          dagPBOutTextStream.writeUTF(dagPBStr.substring(startIndex, endIndex));
-          startIndex += UTF8_CHUNK_SIZE;
-        }
-      }
-    } finally {
-      if (dagPBOutTextStream != null) {
-        dagPBOutTextStream.close();
-      }
-    }
-    return textPath;
+  @Private
+  public DAGClient getDAGClient(ApplicationId appId)
+      throws IOException, TezException {
+      return new DAGClientRPCImpl(appId, getDefaultTezDAGID(appId),
+                                   conf);
   }
 
   // DO NOT CHANGE THIS. This code is replicated from TezDAGID.java
@@ -601,4 +247,170 @@ public class TezClient {
                    append(SEPARATOR).
                    append(idFormat.format(1)).toString();
   }
+
+  /**
+   * Create a Tez Session. This will launch a Tez AM on the cluster and
+   * the session then can be used to submit dags to this Tez AM.
+   * @param appId Application Id
+   * @param sessionName
+   *          Name of the Session
+   * @param appStagingDir
+   *          FileSystem path in which resources will be copied
+   * @param ts
+   *          Application credentials
+   * @param amQueueName
+   *          Queue to which the application will be submitted
+   * @param amArgs
+   *          Command line Java arguments for the ApplicationMaster
+   * @param amEnv
+   *          Environment to be added to the ApplicationMaster
+   * @param amLocalResources
+   *          YARN local resource for the ApplicationMaster
+   * @param conf
+   *          Configuration for the Tez DAG AM. tez configuration keys from this
+   *          config will be used when running the AM. Look at
+   *          {@link TezConfiguration} for keys. This can be null if no DAG AM
+   *          parameters need to be changed.
+   * @return TezSession handle to submit subsequent jobs
+   * @throws IOException
+   * @throws TezException
+   */
+  public TezSession createSession(ApplicationId appId, String sessionName,
+      Path appStagingDir, Credentials ts, String amQueueName,
+      List<String> amArgs, Map<String, String> amEnv,
+      Map<String, LocalResource> amLocalResources,
+      TezConfiguration amConf) throws TezException, IOException {
+    if (appId == null) {
+      appId = createApplication();
+    }
+    TezSession tezSession = new TezSession(sessionName, appId);
+    LOG.info("Creating a TezSession"
+        + ", sessionName=" + sessionName
+        + ", applicationId=" + appId);
+    try {
+      ApplicationSubmissionContext appContext =
+          TezClientUtils.createApplicationSubmissionContext(
+          conf, appId, null, appStagingDir, ts, amQueueName, sessionName,
+          amArgs, amEnv, amLocalResources, amConf, getTezJarResources());
+      tezSession.setTezConfigurationLocalResource(
+          appContext.getAMContainerSpec().getLocalResources().get(
+              TezConfiguration.TEZ_PB_BINARY_CONF_NAME));
+      yarnClient.submitApplication(appContext);
+    } catch (YarnException e) {
+      throw new TezException(e);
+    }
+    return tezSession;
+  }
+
+  /**
+   * Create a Tez Session. This will launch a Tez AM on the cluster and
+   * the session then can be used to submit dags to this Tez AM.
+   * @param sessionName
+   *          Name of the Session
+   * @param appStagingDir
+   *          FileSystem path in which resources will be copied
+   * @param ts
+   *          Application credentials
+   * @param amQueueName
+   *          Queue to which the application will be submitted
+   * @param amArgs
+   *          Command line Java arguments for the ApplicationMaster
+   * @param amEnv
+   *          Environment to be added to the ApplicationMaster
+   * @param amLocalResources
+   *          YARN local resource for the ApplicationMaster
+   * @param conf
+   *          Configuration for the Tez DAG AM. tez configuration keys from this
+   *          config will be used when running the AM. Look at
+   *          {@link TezConfiguration} for keys. This can be null if no DAG AM
+   *          parameters need to be changed.
+   * @return TezSession handle to submit subsequent jobs
+   * @throws IOException
+   * @throws TezException
+   */
+  public synchronized TezSession createSession(String sessionName,
+      Path appStagingDir, Credentials ts, String amQueueName,
+      List<String> amArgs, Map<String, String> amEnv, Map<String,
+      LocalResource> amLocalResources, TezConfiguration amConf)
+          throws TezException, IOException {
+    return createSession(null, sessionName, appStagingDir, ts, amQueueName,
+        amArgs, amEnv, amLocalResources, amConf);
+  }
+
+  private DAGClientAMProtocolBlockingPB getAMProxy(
+      ApplicationId applicationId) throws TezException, IOException {
+    return TezClientUtils.getAMProxy(yarnClient, conf, applicationId);
+  }
+
+  public synchronized DAGClient submitDAG(TezSession tezSession, DAG dag)
+      throws IOException, TezException {
+    String dagId = null;
+    LOG.info("Submitting dag to TezSession"
+        + ", sessionName=" + tezSession.getSessionName()
+        + ", applicationId=" + tezSession.getApplicationId());
+    // Add tez jars to vertices too
+    for (Vertex v : dag.getVertices()) {
+      v.getTaskLocalResources().putAll(getTezJarResources());
+      if (null != tezSession.getTezConfigurationLocalResource()) {
+        v.getTaskLocalResources().put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
+            tezSession.getTezConfigurationLocalResource());
+      }
+    }
+    DAGPlan dagPlan = dag.createDag(null);
+    SubmitDAGRequestProto requestProto =
+        SubmitDAGRequestProto.newBuilder().setDAGPlan(dagPlan).build();
+
+    DAGClientAMProtocolBlockingPB proxy;
+    while (true) {
+      proxy = getAMProxy(tezSession.getApplicationId());
+      if (proxy != null) {
+        break;
+      }
+      try {
+        Thread.sleep(100l);
+      } catch (InterruptedException e) {
+        // Ignore
+      }
+    }
+
+    try {
+      dagId = proxy.submitDAG(null, requestProto).getDagId();
+    } catch (ServiceException e) {
+      throw new TezException(e);
+    }
+    LOG.info("Submitted dag to TezSession"
+        + ", sessionName=" + tezSession.getSessionName()
+        + ", applicationId=" + tezSession.getApplicationId()
+        + ", dagId=" + dagId);
+
+    return new DAGClientRPCImpl(tezSession.getApplicationId(), dagId, conf);
+  }
+
+  public synchronized void closeSession(TezSession tezSession)
+      throws TezException, IOException {
+    LOG.info("Closing down Tez Session"
+        + ", sessionName=" + tezSession.getSessionName()
+        + ", applicationId=" + tezSession.getApplicationId());
+    DAGClientAMProtocolBlockingPB proxy = getAMProxy(
+        tezSession.getApplicationId());
+    if (proxy != null) {
+      try {
+        ShutdownSessionRequestProto request =
+            ShutdownSessionRequestProto.newBuilder().build();
+        proxy.shutdownSession(null, request);
+        return;
+      } catch (ServiceException e) {
+        LOG.info("Failed to shutdown Tez Session via proxy", e);
+      }
+    }
+    LOG.info("Could not connect to AM, killing session via YARN"
+        + ", sessionName=" + tezSession.getSessionName()
+        + ", applicationId=" + tezSession.getApplicationId());
+    try {
+      yarnClient.killApplication(tezSession.getApplicationId());
+    } catch (YarnException e) {
+      throw new TezException(e);
+    }
+  }
+
 }

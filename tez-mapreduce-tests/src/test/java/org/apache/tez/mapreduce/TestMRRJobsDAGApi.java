@@ -37,16 +37,21 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.client.TezSession;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -170,31 +175,60 @@ public class TestMRRJobsDAGApi {
     // TODO Add cleanup code.
   }
 
-  // Submits a simple 3 stage sleep job using the DAG submit API instead of job
+  // Submits a simple 5 stage sleep job using the DAG submit API instead of job
   // client.
   @Test(timeout = 60000)
   public void testMRRSleepJobDagSubmit() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
-    State finalState = testMRRSleepJobDagSubmitCore(false);
-    
+    State finalState = testMRRSleepJobDagSubmitCore(false, false, false);
+
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
     // TODO Add additional checks for tracking URL etc. - once it's exposed by
     // the DAG API.
   }
-  
-  // Submits a simple 3 stage sleep job using the DAG submit API instead of job
-  // client.
+
+  // Submits a simple 5 stage sleep job using the DAG submit API. Then kills it.
   @Test(timeout = 60000)
   public void testMRRSleepJobDagSubmitAndKill() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
-    State finalState = testMRRSleepJobDagSubmitCore(true);
-    
+    State finalState = testMRRSleepJobDagSubmitCore(false, true, false);
+
     Assert.assertEquals(DAGStatus.State.KILLED, finalState);
     // TODO Add additional checks for tracking URL etc. - once it's exposed by
     // the DAG API.
   }
-  
-  public State testMRRSleepJobDagSubmitCore(boolean killDagWhileRunning) throws IOException,
+
+  // Submits a DAG to AM via RPC after AM has started
+  @Test(timeout = 60000)
+  public void testMRRSleepJobPlanViaRPC() throws IOException,
+  InterruptedException, TezException, ClassNotFoundException, YarnException {
+    State finalState = testMRRSleepJobDagSubmitCore(true, false, false);
+
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
+  }
+
+  // Submits a simple 5 stage sleep job using tez session. Then kills it.
+  @Test(timeout = 60000)
+  public void testMRRSleepJobDagSubmitAndKillViaRPC() throws IOException,
+  InterruptedException, TezException, ClassNotFoundException, YarnException {
+    State finalState = testMRRSleepJobDagSubmitCore(true, true, false);
+
+    Assert.assertEquals(DAGStatus.State.KILLED, finalState);
+    // TODO Add additional checks for tracking URL etc. - once it's exposed by
+    // the DAG API.
+  }
+
+  // Create and close a tez session without submitting a job
+  @Test(timeout = 60000)
+  public void testTezSessionShutdown() throws IOException,
+  InterruptedException, TezException, ClassNotFoundException, YarnException {
+    testMRRSleepJobDagSubmitCore(true, false, true);
+  }
+
+  public State testMRRSleepJobDagSubmitCore(
+      boolean dagViaRPC,
+      boolean killDagWhileRunning,
+      boolean closeSessionBeforeSubmit) throws IOException,
       InterruptedException, TezException, ClassNotFoundException, YarnException {
     LOG.info("\n\n\nStarting testMRRSleepJobDagSubmit().");
 
@@ -232,10 +266,10 @@ public class TestMRRJobsDAGApi {
         IntWritable.class.getName());
     stage2Conf.set(MRJobConfig.PARTITIONER_CLASS_ATTR,
         MRRSleepJobPartitioner.class.getName());
-    
+
     JobConf stage22Conf = new JobConf(stage2Conf);
     stage22Conf.setInt(MRJobConfig.NUM_REDUCES, 2);
-    
+
     stage3Conf.setLong(MRRSleepJob.REDUCE_SLEEP_TIME, 1);
     stage3Conf.setInt(MRRSleepJob.REDUCE_SLEEP_COUNT, 1);
     stage3Conf.setInt(MRJobConfig.NUM_REDUCES, 1);
@@ -266,7 +300,7 @@ public class TestMRRJobsDAGApi {
         remoteStagingDir);
     InputSplitInfo inputSplitInfo1 = MRHelpers.generateInputSplits(stage1Conf,
         remoteStagingDir);
-    
+
     DAG dag = new DAG("testMRRSleepJobDagSubmit");
     Vertex stage1Vertex = new Vertex("map", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(
@@ -282,7 +316,7 @@ public class TestMRRJobsDAGApi {
         inputSplitInfo1.getNumTasks(),  Resource.newInstance(256, 1));
     Vertex stage22Vertex = new Vertex("ireduce1", new ProcessorDescriptor(
         ReduceProcessor.class.getName()).setUserPayload(
-        MRHelpers.createUserPayloadFromConf(stage22Conf)),  
+        MRHelpers.createUserPayloadFromConf(stage22Conf)),
         2, Resource.newInstance(256, 1));
     Vertex stage3Vertex = new Vertex("reduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName()).setUserPayload(
@@ -316,7 +350,7 @@ public class TestMRRJobsDAGApi {
         createLocalResource(remoteFs, inputSplitInfo.getSplitsMetaInfoFile(),
             LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
     stage1LocalResources.putAll(commonLocalResources);
-    
+
     Map<String, LocalResource> stage11LocalResources = new HashMap<String, LocalResource>();
     stage11LocalResources.put(
         inputSplitInfo1.getSplitsFile().getName(),
@@ -332,7 +366,7 @@ public class TestMRRJobsDAGApi {
     stage1Vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
     stage1Vertex.setTaskLocalResources(stage1LocalResources);
     stage1Vertex.setTaskEnvironment(commonEnv);
-    
+
     stage11Vertex.setJavaOpts(MRHelpers.getMapJavaOpts(stage1Conf));
     stage11Vertex.setTaskLocationsHint(inputSplitInfo1.getTaskLocationHints());
     stage11Vertex.setTaskLocalResources(stage11LocalResources);
@@ -342,7 +376,7 @@ public class TestMRRJobsDAGApi {
     stage2Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage2Conf));
     stage2Vertex.setTaskLocalResources(commonLocalResources);
     stage2Vertex.setTaskEnvironment(commonEnv);
-    
+
     stage22Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage22Conf));
     stage22Vertex.setTaskLocalResources(commonLocalResources);
     stage22Vertex.setTaskEnvironment(commonEnv);
@@ -379,28 +413,81 @@ public class TestMRRJobsDAGApi {
     dag.addEdge(edge2);
     dag.addEdge(edge3);
 
-    Map<String, LocalResource> amLocalResources = new HashMap<String, LocalResource>();
+    Map<String, LocalResource> amLocalResources =
+        new HashMap<String, LocalResource>();
     amLocalResources.put("yarn-site.xml", yarnSiteLr);
     amLocalResources.putAll(commonLocalResources);
 
     TezClient tezClient = new TezClient(new TezConfiguration(
         mrrTezCluster.getConfig()));
-    // TODO Use utility method post TEZ-205 to figure out AM arguments etc.
-    DAGClient dagClient = tezClient.submitDAGApplication(dag, remoteStagingDir,
-        null, "default", Collections.singletonList(""), commonEnv,
-        amLocalResources, new TezConfiguration());
+    DAGClient dagClient = null;
+    TezSession tezSession = null;
+    if(!dagViaRPC) {
+      // TODO Use utility method post TEZ-205 to figure out AM arguments etc.
+      dagClient = tezClient.submitDAGApplication(dag, remoteStagingDir,
+          null, "default", Collections.singletonList(""), commonEnv,
+          amLocalResources, new TezConfiguration());
+    } else {
+      tezSession = tezClient.createSession("testsession", remoteStagingDir,
+          null, "default", Collections.singletonList(""), commonEnv,
+          amLocalResources, new TezConfiguration());
+    }
 
-    
+    if (dagViaRPC && closeSessionBeforeSubmit) {
+      YarnClient yarnClient = YarnClient.createYarnClient();
+      yarnClient.init(mrrTezCluster.getConfig());
+      yarnClient.start();
+      boolean sentKillSession = false;
+      while(true) {
+        Thread.sleep(500l);
+        ApplicationReport appReport =
+            yarnClient.getApplicationReport(tezSession.getApplicationId());
+        if (appReport == null) {
+          continue;
+        }
+        YarnApplicationState appState = appReport.getYarnApplicationState();
+        if (!sentKillSession) {
+          if (appState == YarnApplicationState.RUNNING) {
+            tezClient.closeSession(tezSession);
+            sentKillSession = true;
+          }
+        } else {
+          if (appState == YarnApplicationState.FINISHED
+              || appState == YarnApplicationState.KILLED
+              || appState == YarnApplicationState.FAILED) {
+            LOG.info("Application completed after sending session shutdown"
+                + ", yarnApplicationState=" + appState
+                + ", finalAppStatus=" + appReport.getFinalApplicationStatus());
+            Assert.assertEquals(YarnApplicationState.FINISHED,
+                appState);
+            Assert.assertEquals(FinalApplicationStatus.UNDEFINED,
+                appReport.getFinalApplicationStatus());
+            break;
+          }
+        }
+      }
+      yarnClient.stop();
+      return null;
+    }
+
+    if(dagViaRPC) {
+      LOG.info("Submitting dag to tez session with appId="
+          + tezSession.getApplicationId());
+      dagClient = tezClient.submitDAG(tezSession, dag);
+    }
     DAGStatus dagStatus = dagClient.getDAGStatus();
     while (!dagStatus.isCompleted()) {
-      LOG.info("Waiting for job to complete. Sleeping for 500ms. Current state: "
-          + dagStatus.getState());
-      // TODO The test will fail if the AM sleep is removed. TEZ-207 to fix
-      // this.
+      LOG.info("Waiting for job to complete. Sleeping for 500ms."
+          + " Current state: " + dagStatus.getState());
       Thread.sleep(500l);
-      if(killDagWhileRunning && dagStatus.getState() == DAGStatus.State.RUNNING){
-        dagClient.tryKillDAG();
-        dagStatus = dagClient.getDAGStatus();
+      if(killDagWhileRunning
+          && dagStatus.getState() == DAGStatus.State.RUNNING) {
+        LOG.info("Killing running dag/session");
+        if (dagViaRPC) {
+          tezClient.closeSession(tezSession);
+        } else {
+          dagClient.tryKillDAG();
+        }
       }
       dagStatus = dagClient.getDAGStatus();
     }

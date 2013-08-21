@@ -84,7 +84,7 @@ abstract class StartEndTimesBase<V> implements TaskRuntimeEstimator {
     this.context = context;
 
 
-    final DAG dag = context.getDAG();
+    final DAG dag = context.getCurrentDAG();
     for (Entry<TezVertexID, Vertex> entry: dag.getVertices().entrySet()) {
       vertexStatistics.put(entry.getKey(), new DataStatistics());
       slowTaskRelativeTresholds =
@@ -93,7 +93,7 @@ abstract class StartEndTimesBase<V> implements TaskRuntimeEstimator {
   }
 
   protected DataStatistics dataStatisticsForTask(TezTaskID taskID) {
-    DAG dag = context.getDAG();
+    DAG dag = context.getCurrentDAG();
 
     if (dag == null) {
       return null;
@@ -110,14 +110,14 @@ abstract class StartEndTimesBase<V> implements TaskRuntimeEstimator {
 
   @Override
   public long thresholdRuntime(TezTaskID taskID) {
-    DAG job = context.getDAG();
+    DAG job = context.getCurrentDAG();
 
     DataStatistics statistics = dataStatisticsForTask(taskID);
 
     Vertex v = job.getVertex(taskID.getVertexID());
     int completedTasksOfType = v.getCompletedTasks();
     int totalTasksOfType = v.getTotalTasks();
-    
+
     if (completedTasksOfType < MINIMUM_COMPLETE_NUMBER_TO_SPECULATE
         || (((float)completedTasksOfType) / totalTasksOfType)
               < MINIMUM_COMPLETE_PROPORTION_TO_SPECULATE ) {
@@ -146,7 +146,7 @@ abstract class StartEndTimesBase<V> implements TaskRuntimeEstimator {
 
     TezTaskAttemptID attemptID = status.id;
     TezTaskID taskID = attemptID.getTaskID();
-    DAG job = context.getDAG();
+    DAG job = context.getCurrentDAG();
 
     if (job == null) {
       return;
@@ -160,7 +160,7 @@ abstract class StartEndTimesBase<V> implements TaskRuntimeEstimator {
 
     Long boxedStart = startTimes.get(attemptID);
     long start = boxedStart == null ? Long.MIN_VALUE : boxedStart;
-    
+
     TaskAttempt taskAttempt = task.getAttempt(attemptID);
 
     if (taskAttempt.getState() == TaskAttemptState.SUCCEEDED) {

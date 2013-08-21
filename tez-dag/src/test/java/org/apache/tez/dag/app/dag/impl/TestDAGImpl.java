@@ -488,11 +488,11 @@ public class TestDAGImpl {
     jobTokenSecretManager = new JobTokenSecretManager();
     appContext = mock(AppContext.class);
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
-    doReturn(dagId).when(appContext).getDAGID();
+    doReturn(dagId).when(appContext).getCurrentDAGID();
     dag = new DAGImpl(dagId, conf, dagPlan,
         dispatcher.getEventHandler(),  taskAttemptListener,
         jobTokenSecretManager, fsTokens, clock, "user", thh, appContext);
-    doReturn(dag).when(appContext).getDAG();
+    doReturn(dag).when(appContext).getCurrentDAG();
     mrrAppContext = mock(AppContext.class);
     mrrDagId = new TezDAGID(appAttemptId.getApplicationId(), 2);
     mrrDagPlan = createTestMRRDAGPlan();
@@ -500,7 +500,7 @@ public class TestDAGImpl {
         dispatcher.getEventHandler(),  taskAttemptListener,
         jobTokenSecretManager, fsTokens, clock, "user", thh,
         mrrAppContext);
-    doReturn(mrrDag).when(mrrAppContext).getDAG();
+    doReturn(mrrDag).when(mrrAppContext).getCurrentDAG();
     doReturn(appAttemptId).when(mrrAppContext).getApplicationAttemptId();
     taskEventDispatcher = new TaskEventDispatcher();
     dispatcher.register(TaskEventType.class, taskEventDispatcher);

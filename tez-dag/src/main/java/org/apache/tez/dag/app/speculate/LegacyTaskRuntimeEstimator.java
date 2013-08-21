@@ -41,11 +41,11 @@ public class LegacyTaskRuntimeEstimator extends StartEndTimesBase {
   @Override
   public void updateAttempt(TaskAttemptStatus status, long timestamp) {
     super.updateAttempt(status, timestamp);
-    
+
 
     TezTaskAttemptID attemptID = status.id;
     TezTaskID taskID = attemptID.getTaskID();
-    DAG job = context.getDAG();
+    DAG job = context.getCurrentDAG();
 
     if (job == null) {
       return;
@@ -113,7 +113,7 @@ public class LegacyTaskRuntimeEstimator extends StartEndTimesBase {
   private long storedPerAttemptValue
        (Map<TaskAttempt, AtomicLong> data, TezTaskAttemptID attemptID) {
     TezTaskID taskID = attemptID.getTaskID();
-    DAG job = context.getDAG();
+    DAG job = context.getCurrentDAG();
 
     Task task = job.getVertex(taskID.getVertexID()).getTask(taskID);
 

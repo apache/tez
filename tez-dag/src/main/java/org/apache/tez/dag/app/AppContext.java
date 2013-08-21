@@ -46,7 +46,7 @@ public interface AppContext {
 
   ApplicationId getApplicationID();
 
-  TezDAGID getDAGID();
+  TezDAGID getCurrentDAGID();
 
   ApplicationAttemptId getApplicationAttemptId();
 
@@ -58,7 +58,7 @@ public interface AppContext {
 
   String getUser();
 
-  DAG getDAG();
+  DAG getCurrentDAG();
 
   void setDAG(DAG dag);
 
