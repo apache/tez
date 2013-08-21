@@ -140,7 +140,7 @@ public class TestTaskScheduler {
                         ArgumentCaptor.forClass(CookieContainerRequest.class);
     // allocate task
     scheduler.allocateTask(mockTask1, mockCapability, hosts,
-                           racks, mockPriority, mockCookie1);
+                           racks, mockPriority, null, mockCookie1);
     drainableAppCallback.drain();
     verify(mockRMClient, times(1)).
                            addContainerRequest((CookieContainerRequest) any());
@@ -167,19 +167,19 @@ public class TestTaskScheduler {
     Object mockTask3 = mock(Object.class);
     Object mockCookie3 = mock(Object.class);
     scheduler.allocateTask(mockTask1, mockCapability, hosts,
-        racks, mockPriority, mockCookie1);
+        racks, mockPriority, null, mockCookie1);
     drainableAppCallback.drain();
     verify(mockRMClient, times(2)).
                                 addContainerRequest(requestCaptor.capture());
     CookieContainerRequest request1 = requestCaptor.getValue();
     scheduler.allocateTask(mockTask2, mockCapability, hosts,
-        racks, mockPriority, mockCookie2);
+        racks, mockPriority, null, mockCookie2);
     drainableAppCallback.drain();
     verify(mockRMClient, times(3)).
                                 addContainerRequest(requestCaptor.capture());
     CookieContainerRequest request2 = requestCaptor.getValue();
     scheduler.allocateTask(mockTask3, mockCapability, hosts,
-        racks, mockPriority, mockCookie3);
+        racks, mockPriority, null, mockCookie3);
     drainableAppCallback.drain();
     verify(mockRMClient, times(4)).
                                 addContainerRequest(requestCaptor.capture());
@@ -417,19 +417,19 @@ public class TestTaskScheduler {
 
     Resource taskAsk = Resource.newInstance(1024, 1);
     scheduler.allocateTask(mockTaskPri1, taskAsk, null,
-                           null, pri1, null);
+                           null, pri1, null, null);
     drainableAppCallback.drain();
     verify(mockRMClient, times(1)).
         addContainerRequest(requestCaptor.capture());
     anyContainers.add(requestCaptor.getValue());
     scheduler.allocateTask(mockTaskPri3, taskAsk, null,
-                           null, pri3, null);
+                           null, pri3, null, null);
     drainableAppCallback.drain();
     verify(mockRMClient, times(2)).
     addContainerRequest(requestCaptor.capture());
     anyContainers.add(requestCaptor.getValue());
     scheduler.allocateTask(mockTaskPri3Kill, taskAsk, null,
-                           null, pri3, null);
+                           null, pri3, null, null);
     drainableAppCallback.drain();
     verify(mockRMClient, times(3)).
     addContainerRequest(requestCaptor.capture());
@@ -525,14 +525,14 @@ public class TestTaskScheduler {
     verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
 
     scheduler.allocateTask(mockTaskPri3Wait, taskAsk, null,
-                           null, pri3, null);
+                           null, pri3, null, null);
     // no preemption
     scheduler.getProgress();
     drainableAppCallback.drain();
     verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
 
     scheduler.allocateTask(mockTaskPri2, taskAsk, null,
-                           null, pri2, null);
+                           null, pri2, null, null);
     drainableAppCallback.drain();
 
     // mockTaskPri3Kill gets preempted
@@ -605,7 +605,7 @@ public class TestTaskScheduler {
 
     final Map<String, List<CookieContainerRequest>> matchingMap = new HashMap<String, List<CookieContainerRequest>>();
     taskScheduler.allocateTask(mockTask1, resource, hostsTask1, defaultRack,
-        priority, mockCookie1);
+        priority, null, mockCookie1);
     drainableAppCallback.drain();
 
     List<CookieContainerRequest> host1List = new ArrayList<CookieContainerRequest>();
@@ -620,7 +620,7 @@ public class TestTaskScheduler {
     List<CookieContainerRequest> otherRackList = new ArrayList<TaskScheduler.CookieContainerRequest>();
     otherRackList.add(mockCookie2);
     taskScheduler.allocateTask(mockTask2, resource, hostsTask2, otherRack,
-        priority, mockCookie2);
+        priority, null, mockCookie2);
     drainableAppCallback.drain();
     matchingMap.put(hostsTask2[0], nonAllocatedHostList);
     matchingMap.put(otherRack[0], otherRackList);

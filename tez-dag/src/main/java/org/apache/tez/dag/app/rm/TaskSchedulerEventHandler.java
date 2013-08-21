@@ -307,6 +307,7 @@ public class TaskSchedulerEventHandler extends AbstractService
                                event.getHosts(),
                                event.getRacks(),
                                event.getPriority(),
+                               taskAttempt.getVertexID(),
                                event);
   }
 

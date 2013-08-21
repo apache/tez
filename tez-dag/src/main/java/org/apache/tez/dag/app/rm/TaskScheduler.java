@@ -108,6 +108,13 @@ public class TaskScheduler extends AbstractService
     public AppFinalStatus getFinalAppStatus();
   }
 
+  /**
+   * Used as a default container resource if the user does not specify one.
+   * Effectively behaves as a universal matcher and avoids a bunch of null
+   * checks.
+   */
+  private final Object DEFAULT_CONTAINER_SIGNATURE = new Object();
+  
   final AMRMClientAsync<CookieContainerRequest> amRmClient;
   final TaskSchedulerAppCallback realAppClient;
   final TaskSchedulerAppCallback appClientDelegate;
@@ -133,7 +140,7 @@ public class TaskScheduler extends AbstractService
   /**
    * Map of containers currently being held by the TaskScheduler.
    */
-  Map<ContainerId, Container> heldContainers = new HashMap<ContainerId, Container>();
+  Map<ContainerId, HeldContainer> heldContainers = new HashMap<ContainerId, HeldContainer>();
   
   Resource totalResources = Resource.newInstance(0, 0);
   Resource allocatedResources = Resource.newInstance(0, 0);
@@ -152,8 +159,20 @@ public class TaskScheduler extends AbstractService
   long reuseContainerDelay;
   
   class CRCookie {
-    Object task;
-    Object appCookie;
+    // Do not use these variables directly. Can caused mocked unit tests to fail.
+    private Object task;
+    private Object appCookie;
+    private Object containerSignature;
+    
+    CRCookie(Object task, Object appCookie, Object containerSignature) {
+      this.task = task;
+      this.appCookie = appCookie;
+      if (containerSignature != null) {
+        this.containerSignature = containerSignature;
+      } else {
+        this.containerSignature = DEFAULT_CONTAINER_SIGNATURE;
+      }
+    }
 
     Object getTask() {
       return task;
@@ -161,6 +180,10 @@ public class TaskScheduler extends AbstractService
 
     Object getAppCookie() {
       return appCookie;
+    }
+    
+    Object getContainerSignature() {
+      return containerSignature;
     }
   }
 
@@ -330,11 +353,11 @@ public class TaskScheduler extends AbstractService
     synchronized (this) {
       for(ContainerStatus containerStatus : statuses) {
         ContainerId completedId = containerStatus.getContainerId();
-        Container container = heldContainers.get(completedId);
+        HeldContainer delayedContainer = heldContainers.get(completedId);
 
         Object task = releasedContainers.remove(completedId);
         if(task != null){
-          if (container != null) {
+          if (delayedContainer != null) {
             LOG.warn("Held container sohuld be null since releasedContainer is not");
           }
           // TODO later we may want to check if exit code matched expectation
@@ -351,9 +374,9 @@ public class TaskScheduler extends AbstractService
         // not found in released containers. check currently allocated containers
         // no need to release this container as the RM has already completed it
         task = unAssignContainer(completedId, false);
-        if (container != null) {
+        if (delayedContainer != null) {
           heldContainers.remove(completedId);
-          Resources.subtract(allocatedResources, container.getResource());
+          Resources.subtract(allocatedResources, delayedContainer.getContainer().getResource());
         } else {
           LOG.warn("Held container expected to be not null for a non-AM-released container");
         }
@@ -494,12 +517,11 @@ public class TaskScheduler extends AbstractService
                                            String[] hosts,
                                            String[] racks,
                                            Priority priority,
+                                           Object containerSignature,
                                            Object clientCookie) {
     // TODO check for nulls etc
     // TODO extra memory allocation
-    CRCookie cookie = new CRCookie();
-    cookie.task = task;
-    cookie.appCookie = clientCookie;
+    CRCookie cookie = new CRCookie(task, clientCookie, containerSignature);
     CookieContainerRequest request =
              new CookieContainerRequest(capability,
                                          hosts,
@@ -642,13 +664,31 @@ public class TaskScheduler extends AbstractService
       // pick first one
       for(Collection<CookieContainerRequest> requests : requestsList) {
         Iterator<CookieContainerRequest> iterator = requests.iterator();
-        if(iterator.hasNext()) {
-          assigned = requests.iterator().next();
+        while(iterator.hasNext()) {
+          // Check if the container can be assigned.
+          CookieContainerRequest cookieContainerRequest = iterator.next();
+          if (canAssignTaskToContainer(cookieContainerRequest, container)) {
+            assigned = cookieContainerRequest;
+            break;
+          }
         }
       }
     }
-
     return assigned;
+  }
+
+  private boolean canAssignTaskToContainer(
+      CookieContainerRequest cookieContainerRequest, Container container) {
+    HeldContainer heldContainer = heldContainers.get(container.getId());
+    if (heldContainer == null) { // New container.
+      return true;
+    } else {
+      if (heldContainer.getContainerSignature().equals(
+          cookieContainerRequest.getCookie().getContainerSignature())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private Object getTask(CookieContainerRequest request) {
@@ -661,9 +701,9 @@ public class TaskScheduler extends AbstractService
       // A task was assigned to this container at some point. Inform the app.
       appClientDelegate.containerBeingReleased(containerId);
     }
-    Container container = heldContainers.remove(containerId);
-    if (container != null) {
-      Resources.subtractFrom(allocatedResources, container.getResource());
+    HeldContainer delayedContainer = heldContainers.remove(containerId);
+    if (delayedContainer != null) {
+      Resources.subtractFrom(allocatedResources, delayedContainer.getContainer().getResource());
     }
     amRmClient.releaseAssignedContainer(containerId);
     if (assignedTask != null) {
@@ -683,7 +723,8 @@ public class TaskScheduler extends AbstractService
     Container result = taskAllocations.put(task, container);
     assert result == null;
     containerAssignments.put(container.getId(), task);
-    if (heldContainers.put(container.getId(), container) == null) {
+    if (heldContainers.put(container.getId(), new HeldContainer(container,
+        -1, assigned.getCookie().getContainerSignature())) == null) {
       Resources.addTo(allocatedResources, container.getResource());
     }
   }
@@ -778,7 +819,7 @@ public class TaskScheduler extends AbstractService
 
   private void informAppAboutAssignment(CookieContainerRequest assigned,
       Container container) {
-    appClientDelegate.taskAllocated(getTask(assigned), assigned.getCookie().appCookie, container);
+    appClientDelegate.taskAllocated(getTask(assigned), assigned.getCookie().getAppCookie(), container);
   }
 
   private void informAppAboutAssignments(Map<CookieContainerRequest, Container> assignedContainers) {
@@ -893,7 +934,7 @@ public class TaskScheduler extends AbstractService
   @VisibleForTesting
   class DelayedContainerManager extends Thread {
     
-    private BlockingQueue<DelayedContainer> delayedContainers = new LinkedBlockingQueue<TaskScheduler.DelayedContainer>();
+    private BlockingQueue<HeldContainer> delayedContainers = new LinkedBlockingQueue<TaskScheduler.HeldContainer>();
     private volatile boolean tryAssigningAll = false;
     private volatile boolean running = true;
     private long delay;
@@ -924,9 +965,12 @@ public class TaskScheduler extends AbstractService
             LOG.info("AllocatedContainerManager Thread interrupted");
           }
         } else {
-          DelayedContainer allocatedContainer = delayedContainers.peek();
+          HeldContainer allocatedContainer = delayedContainers.peek();
           long currentTs = System.currentTimeMillis();
           long nextScheduleTs = allocatedContainer.getNextScheduleTime();
+          Preconditions
+              .checkState(nextScheduleTs != -1,
+                  "Containers with a nextScheduleTime of -1 should not be in the delayed queue");
           if (currentTs >= nextScheduleTs) {
             // Remove the container and try scheduling it.
             delayedContainers.poll();
@@ -993,13 +1037,22 @@ public class TaskScheduler extends AbstractService
     }
     
     private void releasePendingContainers() {
-      List<DelayedContainer> pendingContainers = Lists.newArrayListWithCapacity(delayedContainers.size());
+      List<HeldContainer> pendingContainers = Lists.newArrayListWithCapacity(delayedContainers.size());
       delayedContainers.drainTo(pendingContainers);
       releaseUnassignedContainers(new ContainerIterable(pendingContainers));
     }
 
     private boolean addDelayedContainer(Container container, long nextScheduleTime, boolean wake) {
-      DelayedContainer delayedContainer = new DelayedContainer(container, nextScheduleTime);
+      HeldContainer delayedContainer = heldContainers.get(container.getId());
+      if (delayedContainer == null) {
+        // Currently only already running containers are added to this. Hence
+        // this condition should never occur.
+        // Change this if and when all containers are handled by this construct.
+        throw new TezUncheckedException(
+            "Attempting to add a non-running container to the delayed container list");
+      } else {
+        delayedContainer.setNextScheduleTime(nextScheduleTime);
+      }
       boolean added = delayedContainers.offer(delayedContainer);
       if (wake && added) {
         synchronized(this) {
@@ -1009,7 +1062,7 @@ public class TaskScheduler extends AbstractService
       return added;
     }
     
-    private void addDelayedContainers(Iterable<Container> containers) {
+    public void addDelayedContainers(Iterable<Container> containers) {
       // If there's no pending requests matching a specific container, release
       // it instead of delaying it.
       releaseContainersWithNoPendingRequests(containers);
@@ -1032,16 +1085,16 @@ public class TaskScheduler extends AbstractService
 
   private class ContainerIterable implements Iterable<Container> {
 
-    private final Iterable<DelayedContainer> delayedContainers;
+    private final Iterable<HeldContainer> delayedContainers;
 
-    ContainerIterable(Iterable<DelayedContainer> delayedContainers) {
+    ContainerIterable(Iterable<HeldContainer> delayedContainers) {
       this.delayedContainers = delayedContainers;
     }
 
     @Override
     public Iterator<Container> iterator() {
 
-      final Iterator<DelayedContainer> delayedContainerIterator = delayedContainers
+      final Iterator<HeldContainer> delayedContainerIterator = delayedContainers
           .iterator();
 
       return new Iterator<Container>() {
@@ -1064,13 +1117,15 @@ public class TaskScheduler extends AbstractService
     }
   }
 
-  class DelayedContainer {
+  static class HeldContainer {
     Container container;
-    long nextScheduleTime;
+    private long nextScheduleTime;
+    private Object containerSignature;
     
-    DelayedContainer(Container container, long nextScheduleTime) {
+    HeldContainer(Container container, long nextScheduleTime, Object containerParams) {
       this.container = container;
       this.nextScheduleTime = nextScheduleTime;
+      this.containerSignature = containerParams;
     }
     
     public Container getContainer() {
@@ -1079,6 +1134,20 @@ public class TaskScheduler extends AbstractService
     
     public long getNextScheduleTime() {
       return this.nextScheduleTime;
+    }
+    
+    public void setNextScheduleTime(long nextScheduleTime) {
+      this.nextScheduleTime = nextScheduleTime;
+    }
+    
+    public Object getContainerSignature() {
+      return this.containerSignature;
+    }
+    
+    @Override
+    public String toString() {
+      return "HeldContainer: id: " + container.getId() + ", nextScheduleTime: "
+          + nextScheduleTime + ", signature: " + containerSignature.toString();
     }
   }
 }
