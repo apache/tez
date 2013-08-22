@@ -839,7 +839,7 @@ public class TaskScheduler extends AbstractService
           + container.getResource().toString();
       if (!(pendingMap.containsKey(identifier))) {
         pendingMap.put(identifier,
-            Boolean.valueOf(hasAnyMatchingRequests(container)));
+            Boolean.valueOf(hasPendingANYRequests(container)));
       }
       if (pendingMap.get(identifier).equals(Boolean.valueOf(false))) {
         iterator.remove();
@@ -848,7 +848,59 @@ public class TaskScheduler extends AbstractService
     }
   }
 
-  private boolean hasAnyMatchingRequests(Container container) {
+  
+  /**
+   * Returns true if a node-local request exists at the specified priority level for
+   * the specified capability. NOTE: Makes an assumption that a specific
+   * priority level does not contain a mix of local/non-local requests.
+   */
+  private boolean hasPendingNodeLocalRequest(Priority priority,
+      Resource capability) {
+    String location = ResourceRequest.ANY;
+    List<? extends Collection<CookieContainerRequest>> requestsList = amRmClient
+        .getMatchingRequests(priority, location, capability);
+    if (requestsList.size() > 0) {
+      // pick first one
+      for (Collection<CookieContainerRequest> requests : requestsList) {
+        Iterator<CookieContainerRequest> iterator = requests.iterator();
+        if (iterator.hasNext()) {
+          // Check if the container can be assigned.
+          CookieContainerRequest cookieContainerRequest = iterator.next();
+          return (cookieContainerRequest.getNodes().size() > 0);
+        }
+      }
+    }
+    return false;
+  }
+  
+  /**
+   * Returns true if a node/rack local request exists at the specified priority
+   * level for the specified capability. NOTE: Makes an assumption that a
+   * specific priority level does not contain a mix of local/non-local requests.
+   */
+  private boolean hasPendingLocalRequest(Priority priority, Resource capability) {
+    String location = ResourceRequest.ANY;
+    List<? extends Collection<CookieContainerRequest>> requestsList = amRmClient
+        .getMatchingRequests(priority, location, capability);
+    if (requestsList.size() > 0) {
+      // pick first one
+      for (Collection<CookieContainerRequest> requests : requestsList) {
+        Iterator<CookieContainerRequest> iterator = requests.iterator();
+        if (iterator.hasNext()) {
+          // Check if the container can be assigned.
+          CookieContainerRequest cookieContainerRequest = iterator.next();
+          return (cookieContainerRequest.getNodes().size() > 0 || cookieContainerRequest
+              .getRacks().size() > 0);
+        }
+      }
+    }
+    return false;
+  }
+  
+  /**
+   * Returns true if there are any pending requests for the specified container.
+   */
+  private boolean hasPendingANYRequests(Container container) {
     Priority priority = container.getPriority();
     String location = ResourceRequest.ANY;
     Resource capability = container.getResource();
@@ -859,6 +911,7 @@ public class TaskScheduler extends AbstractService
     }
     return false;
   }
+
 
   private abstract class ContainerAssigner {
     public abstract CookieContainerRequest assignAllocatedContainer(
@@ -895,13 +948,14 @@ public class TaskScheduler extends AbstractService
     }
   }
 
-  // TODO TEZ-330 Ignore reuseRackLocak/reuseNonLocal in case the initial
-  // request did not have any locality information.
   private class RackLocalContainerAssigner extends ContainerAssigner {
     @Override
     public CookieContainerRequest assignAllocatedContainer(Container container,
         boolean honorLocalityFlags) {
-      if (!honorLocalityFlags || TaskScheduler.this.reuseRackLocal) {
+      if (!honorLocalityFlags
+          || TaskScheduler.this.reuseRackLocal
+          || !hasPendingNodeLocalRequest(container.getPriority(),
+              container.getResource())) {
         String location = RackResolver.resolve(container.getNodeId().getHost())
             .getNetworkLocation();
         CookieContainerRequest assigned = getMatchingRequest(container,
@@ -918,7 +972,10 @@ public class TaskScheduler extends AbstractService
     @Override
     public CookieContainerRequest assignAllocatedContainer(Container container,
         boolean honorLocalityFlags) {
-      if (!honorLocalityFlags || TaskScheduler.this.reuseNonLocal) {
+      if (!honorLocalityFlags
+          || TaskScheduler.this.reuseNonLocal
+          || !hasPendingLocalRequest(container.getPriority(),
+              container.getResource())) {
         String location = ResourceRequest.ANY;
         CookieContainerRequest assigned = getMatchingRequest(container,
             location);
