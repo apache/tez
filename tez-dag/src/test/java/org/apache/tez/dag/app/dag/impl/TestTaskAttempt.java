@@ -44,7 +44,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -62,6 +61,7 @@ import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ClusterInfo;
+import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
@@ -83,7 +83,6 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -129,12 +128,9 @@ public class TestTaskAttempt {
     TezTaskID taskID = new TezTaskID(
         new TezVertexID(new TezDAGID("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        mock(TaskAttemptListener.class), new Configuration(),
-        mock(Token.class), new Credentials(), new SystemClock(),
+        mock(TaskAttemptListener.class), new Configuration(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
-        locationHint, Resource.newInstance(1024, 1),
-        new HashMap<String, LocalResource>(), new HashMap<String, String>(),
-        "", false);
+        locationHint, false, Resource.newInstance(1024, 1), createFakeContainerContext());
 
     TaskAttemptEventSchedule sEvent = mock(TaskAttemptEventSchedule.class);
 
@@ -176,11 +172,10 @@ public class TestTaskAttempt {
         new TezVertexID(new TezDAGID("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         mock(TaskAttemptListener.class), new Configuration(),
-        mock(Token.class), new Credentials(), new SystemClock(),
-        mock(TaskHeartbeatHandler.class), mock(AppContext.class),
-        locationHint, Resource.newInstance(1024, 1),
-        new HashMap<String, LocalResource>(), new HashMap<String, String>(),
-        "", false);
+        new SystemClock(), mock(TaskHeartbeatHandler.class),
+        mock(AppContext.class), locationHint, false, Resource.newInstance(1024,
+            1), createFakeContainerContext());
+        
     TaskAttemptImpl spyTa = spy(taImpl);
     when(spyTa.resolveHosts(hosts)).thenReturn(
         resolved.toArray(new String[3]));
@@ -318,18 +313,14 @@ public class TestTaskAttempt {
     TaskLocationHint locationHint = new TaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
-    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
-    Map<String, String> environment = new HashMap<String, String>();
-    String javaOpts = "";
 
     AppContext mockAppContext = mock(AppContext.class);
     doReturn(new ClusterInfo()).when(mockAppContext).getClusterInfo();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, taskConf, mock(Token.class), new Credentials(),
-        new SystemClock(), mock(TaskHeartbeatHandler.class), mockAppContext,
-        locationHint, resource, localResources,
-        environment, javaOpts, false);
+        taListener, taskConf, new SystemClock(),
+        mock(TaskHeartbeatHandler.class), mockAppContext, locationHint, false,
+        resource, createFakeContainerContext());
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
     ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
@@ -372,9 +363,6 @@ public class TestTaskAttempt {
     TaskLocationHint locationHint = new TaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
-    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
-    Map<String, String> environment = new HashMap<String, String>();
-    String javaOpts = "";
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
     ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
@@ -393,10 +381,9 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, taskConf, mock(Token.class), new Credentials(),
-        new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
-        locationHint, resource, localResources,
-        environment, javaOpts, false);
+        taListener, taskConf, new SystemClock(),
+        mock(TaskHeartbeatHandler.class), appCtx, locationHint, false,
+        resource, createFakeContainerContext());
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
 
@@ -467,9 +454,6 @@ public class TestTaskAttempt {
     TaskLocationHint locationHint = new TaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
-    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
-    Map<String, String> environment = new HashMap<String, String>();
-    String javaOpts = "";
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
     ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
@@ -488,10 +472,9 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, taskConf, mock(Token.class), new Credentials(),
-        new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
-        locationHint, resource, localResources,
-        environment, javaOpts, false);
+        taListener, taskConf, new SystemClock(),
+        mock(TaskHeartbeatHandler.class), appCtx, locationHint, false,
+        resource, createFakeContainerContext());
 
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
     // At state STARTING.
@@ -532,9 +515,6 @@ public class TestTaskAttempt {
     TaskLocationHint locationHint = new TaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
-    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
-    Map<String, String> environment = new HashMap<String, String>();
-    String javaOpts = "";
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
     ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
@@ -553,10 +533,9 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, taskConf, mock(Token.class), new Credentials(),
-        new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
-        locationHint, resource, localResources,
-        environment, javaOpts, false);
+        taListener, taskConf, new SystemClock(),
+        mock(TaskHeartbeatHandler.class), appCtx, locationHint, false,
+        resource, createFakeContainerContext());
 
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
     // At state STARTING.
@@ -599,9 +578,6 @@ public class TestTaskAttempt {
     TaskLocationHint locationHint = new TaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
-    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
-    Map<String, String> environment = new HashMap<String, String>();
-    String javaOpts = "";
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
     ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
@@ -620,10 +596,9 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, taskConf, mock(Token.class), new Credentials(),
-        new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
-        locationHint, resource, localResources,
-        environment, javaOpts, false);
+        taListener, taskConf, new SystemClock(),
+        mock(TaskHeartbeatHandler.class), appCtx, locationHint, false,
+        resource, createFakeContainerContext());
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
 
@@ -692,10 +667,6 @@ public class TestTaskAttempt {
     TaskLocationHint locationHint = new TaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
-    Map<String, LocalResource> localResources =
-        new HashMap<String, LocalResource>();
-    Map<String, String> environment = new HashMap<String, String>();
-    String javaOpts = "";
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
     ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
@@ -714,10 +685,9 @@ public class TestTaskAttempt {
     doReturn(containers).when(appCtx).getAllContainers();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, taskConf, mock(Token.class), new Credentials(),
-        new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
-        locationHint, resource, localResources,
-        environment, javaOpts, false);
+        taListener, taskConf, new SystemClock(),
+        mock(TaskHeartbeatHandler.class), appCtx, locationHint, false,
+        resource, createFakeContainerContext());
 
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
     // At state STARTING.
@@ -786,16 +756,13 @@ public class TestTaskAttempt {
 
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
         EventHandler eventHandler, TaskAttemptListener tal,
-        Configuration conf, Token<JobTokenIdentifier> jobToken,
-        Credentials credentials, Clock clock,
+        Configuration conf, Clock clock,
         TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
-        TaskLocationHint locationHint,
-        Resource resource, Map<String, LocalResource> localResources,
-        Map<String, String> environment, String javaOpts, boolean isRescheduled) {
+        TaskLocationHint locationHint,  boolean isRescheduled,
+        Resource resource, ContainerContext containerContext) {
       super(taskId, attemptNumber, eventHandler, tal, conf,
-          jobToken, credentials, clock, taskHeartbeatHandler, appContext,
-          locationHint, resource, localResources, environment,
-          javaOpts, isRescheduled);
+          clock, taskHeartbeatHandler, appContext,
+          locationHint, isRescheduled, resource, containerContext);
     }
 
     @Override
@@ -818,6 +785,10 @@ public class TestTaskAttempt {
     protected void logJobHistoryAttemptUnsuccesfulCompletion(
         TaskAttemptState state) {
     }
-
+  }
+  
+  private static ContainerContext createFakeContainerContext() {
+    return new ContainerContext(new HashMap<String, LocalResource>(),
+        new Credentials(), new HashMap<String, String>(), "");
   }
 }

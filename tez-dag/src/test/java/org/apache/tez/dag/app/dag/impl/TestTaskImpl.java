@@ -33,7 +33,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -45,10 +44,11 @@ import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
-import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.app.dag.TaskStateInternal;
+import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
@@ -58,7 +58,6 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -74,7 +73,6 @@ public class TestTaskImpl {
   private Configuration conf;
   private TaskAttemptListener taskAttemptListener;
   private TaskHeartbeatHandler taskHeartbeatHandler;
-  private Token<JobTokenIdentifier> jobToken;
   private Credentials credentials;
   private Clock clock;
   private TaskLocationHint locationHint;
@@ -88,17 +86,16 @@ public class TestTaskImpl {
   private Map<String, String> environment;
   private String javaOpts;
   private boolean leafVertex;
+  private ContainerContext containerContext;
 
   private MockTaskImpl mockTask;
 
-  @SuppressWarnings("unchecked")
   @Before
   public void setup() {
     dispatcher = new InlineDispatcher();
     conf = new Configuration();
     taskAttemptListener = mock(TaskAttemptListener.class);
     taskHeartbeatHandler = mock(TaskHeartbeatHandler.class);
-    jobToken = (Token<JobTokenIdentifier>) mock(Token.class);
     credentials = null;
     clock = new SystemClock();
     locationHint = new TaskLocationHint(null, null);
@@ -112,12 +109,14 @@ public class TestTaskImpl {
     environment = new HashMap<String, String>();
     javaOpts = "";
     leafVertex = false;
+    containerContext = new ContainerContext(localResources, credentials,
+        environment, javaOpts);
     Vertex vertex = mock(Vertex.class);
 
     mockTask = new MockTaskImpl(vertexId, partition,
-        dispatcher.getEventHandler(), conf, taskAttemptListener, jobToken,
-        credentials, clock, taskHeartbeatHandler, appContext, leafVertex,
-        locationHint, taskResource, localResources, environment, javaOpts, vertex);
+        dispatcher.getEventHandler(), conf, taskAttemptListener, clock,
+        taskHeartbeatHandler, appContext, leafVertex, locationHint,
+        taskResource, containerContext, vertex);
   }
 
   private TezTaskID getNewTaskID() {
@@ -376,17 +375,13 @@ public class TestTaskImpl {
 
     public MockTaskImpl(TezVertexID vertexId, int partition,
         EventHandler eventHandler, Configuration conf,
-        TaskAttemptListener taskAttemptListener,
-        Token<JobTokenIdentifier> jobToken, Credentials credentials,
-        Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
-        boolean leafVertex,
+        TaskAttemptListener taskAttemptListener, Clock clock,
+        TaskHeartbeatHandler thh, AppContext appContext, boolean leafVertex,
         TaskLocationHint locationHint, Resource resource,
-        Map<String, LocalResource> localResources,
-        Map<String, String> environment, String javaOpts, Vertex vertex) {
+        ContainerContext containerContext, Vertex vertex) {
       super(vertexId, partition, eventHandler, conf, taskAttemptListener,
-          jobToken, credentials, clock, thh, appContext,
-          leafVertex, locationHint, resource, localResources, environment,
-          javaOpts);
+          clock, thh, appContext, leafVertex, locationHint, resource,
+          containerContext);
       this.vertex = vertex;
     }
 
@@ -394,9 +389,8 @@ public class TestTaskImpl {
     protected TaskAttemptImpl createAttempt(int attemptNumber) {
       MockTaskAttemptImpl attempt = new MockTaskAttemptImpl(getTaskId(),
           attemptNumber, eventHandler, taskAttemptListener,
-          conf, jobToken, credentials, clock, taskHeartbeatHandler, appContext,
-          locationHint, taskResource, localResources,
-          environment, javaOpts, true);
+          conf, clock, taskHeartbeatHandler, appContext,
+          locationHint, true, taskResource, containerContext);
       taskAttempts.add(attempt);
       return attempt;
     }
@@ -437,17 +431,12 @@ public class TestTaskImpl {
     private TaskAttemptState state = TaskAttemptState.NEW;
 
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
-        EventHandler eventHandler, TaskAttemptListener tal, 
-        Configuration conf, Token<JobTokenIdentifier> jobToken,
-        Credentials credentials, Clock clock, TaskHeartbeatHandler thh,
-        AppContext appContext,
-        TaskLocationHint locationHing, Resource resource,
-        Map<String, LocalResource> localResources,
-        Map<String, String> environment, String javaOpts, boolean isRescheduled) {
-      super(taskId, attemptNumber, eventHandler, tal, conf,
-          jobToken, credentials, clock, thh, appContext,
-          locationHing, resource, localResources, environment, javaOpts,
-          isRescheduled);
+        EventHandler eventHandler, TaskAttemptListener tal, Configuration conf,
+        Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
+        TaskLocationHint locationHing, boolean isRescheduled,
+        Resource resource, ContainerContext containerContext) {
+      super(taskId, attemptNumber, eventHandler, tal, conf, clock, thh,
+          appContext, locationHing, isRescheduled, resource, containerContext);
     }
 
     @Override

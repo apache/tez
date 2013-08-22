@@ -29,9 +29,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
@@ -50,6 +47,7 @@ import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskReport;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.Task;
@@ -73,7 +71,6 @@ import org.apache.tez.dag.history.events.TaskStartedEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -99,15 +96,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   // TODO Metrics
   //private final MRAppMetrics metrics;
   protected final AppContext appContext;
+  private final Resource taskResource;
+  private final ContainerContext containerContext;
   private long scheduledTime;
 
   protected boolean encryptedShuffle;
-  protected Credentials credentials;
-  protected Token<JobTokenIdentifier> jobToken;
   protected TaskLocationHint locationHint;
-  protected Resource taskResource;
-  protected Map<String, LocalResource> localResources;
-  protected Map<String, String> environment;
 
   // counts the number of attempts that are either running or in a state where
   //  they will come to be running when they get a Container
@@ -261,8 +255,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   private final boolean leafVertex;
 
-  protected String javaOpts;
-
   @Override
   public TaskState getState() {
     readLock.lock();
@@ -276,13 +268,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   public TaskImpl(TezVertexID vertexId, int taskIndex,
       EventHandler eventHandler, Configuration conf,
       TaskAttemptListener taskAttemptListener,
-      Token<JobTokenIdentifier> jobToken,
-      Credentials credentials, Clock clock,
-      TaskHeartbeatHandler thh, AppContext appContext,
+      Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
       boolean leafVertex, TaskLocationHint locationHint, Resource resource,
-      Map<String, LocalResource> localResources,
-      Map<String, String> environment,
-      String javaOpts) {
+      ContainerContext containerContext) {
     this.conf = conf;
     this.clock = clock;
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
@@ -295,17 +283,13 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.taskAttemptListener = taskAttemptListener;
     this.taskHeartbeatHandler = thh;
     this.eventHandler = eventHandler;
-    this.credentials = credentials;
-    this.jobToken = jobToken;
     this.appContext = appContext;
     this.encryptedShuffle = false;
 
     this.leafVertex = leafVertex;
     this.locationHint = locationHint;
     this.taskResource = resource;
-    this.localResources = localResources;
-    this.environment = environment;
-    this.javaOpts = javaOpts;
+    this.containerContext = containerContext;
     stateMachine = stateMachineFactory.make(this);
   }
 
@@ -564,10 +548,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   TaskAttemptImpl createAttempt(int attemptNumber) {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
-        taskAttemptListener, conf,
-        jobToken, credentials, clock, taskHeartbeatHandler,
-        appContext, locationHint, taskResource,
-        localResources, environment, javaOpts, (failedAttempts>0));
+        taskAttemptListener, conf, clock, taskHeartbeatHandler, appContext,
+        locationHint, (failedAttempts > 0), taskResource, containerContext);
   }
 
   protected TaskAttempt getSuccessfulAttempt() {

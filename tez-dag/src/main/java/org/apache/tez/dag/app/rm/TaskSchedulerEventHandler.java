@@ -395,12 +395,8 @@ public class TaskSchedulerEventHandler extends AbstractService
       sendEvent(new AMContainerEventLaunchRequest(
           containerId,
           taskAttempt.getVertexID(),
-          event.getJobToken(),
-          // TODO getConf from AMSchedulerEventTALaunchRequest
-          event.getCredentials(), false, event.getConf(),
-          taskAttempt.getLocalResources(),
-          taskAttempt.getEnvironment(),
-          taskAttempt.getJavaOpts()));
+          false,
+          event.getContainerContext()));
     }
     sendEvent(new DAGEventSchedulerUpdateTAAssigned(taskAttempt, container));
     sendEvent(new AMContainerEventAssignTA(containerId,

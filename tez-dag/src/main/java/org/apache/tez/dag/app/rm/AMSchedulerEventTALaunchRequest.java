@@ -17,18 +17,12 @@
 
 package org.apache.tez.dag.app.rm;
 
-import java.util.Map;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.TezTaskContext;
+import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.engine.common.security.JobTokenIdentifier;
 
 public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
 
@@ -36,38 +30,29 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   //.... Maybe have the Container talk to the TaskAttempt to pull in the remote task.
 
   private final TezTaskAttemptID attemptId;
-  private final Resource capability;
-  private final Map<String, LocalResource> localResources;
-  private final TezTaskContext remoteTaskContext;
-  private final TaskAttempt taskAttempt;
-  private final Credentials credentials;
-  private Token<JobTokenIdentifier> jobToken;
   private final String[] hosts;
   private final String[] racks;
   private final Priority priority;
-  private final Map<String, String> environment;
-  private final Configuration conf;
+  private final Resource capability;
+  private final ContainerContext containerContext;
+  
+
+  private final TezTaskContext remoteTaskContext;
+  private final TaskAttempt taskAttempt;
 
   public AMSchedulerEventTALaunchRequest(TezTaskAttemptID attemptId,
       Resource capability,
-      Map<String, LocalResource> localResources,
       TezTaskContext remoteTaskContext, TaskAttempt ta,
-      Credentials credentials, Token<JobTokenIdentifier> jobToken,
-      String[] hosts, String[] racks, Priority priority,
-      Map<String, String> environment, Configuration conf) {
+      String[] hosts, String[] racks, Priority priority, ContainerContext containerContext) {
     super(AMSchedulerEventType.S_TA_LAUNCH_REQUEST);
     this.attemptId = attemptId;
     this.capability = capability;
-    this.localResources = localResources;
     this.remoteTaskContext = remoteTaskContext;
     this.taskAttempt = ta;
-    this.credentials = credentials;
-    this.jobToken = jobToken;
     this.hosts = hosts;
     this.racks = racks;
     this.priority = priority;
-    this.environment = environment;
-    this.conf = conf;
+    this.containerContext = containerContext;
   }
 
   public TezTaskAttemptID getAttemptID() {
@@ -98,24 +83,8 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
     return this.taskAttempt;
   }
 
-  public Credentials getCredentials() {
-    return this.credentials;
-  }
-
-  public Token<JobTokenIdentifier> getJobToken() {
-    return this.jobToken;
-  }
-
-  public Map<String, LocalResource> getLocalResources() {
-    return this.localResources;
-  }
-
-  public Map<String, String> getEnvironment() {
-    return this.environment;
-  }
-
-  public Configuration getConf() {
-    return this.conf;
+  public ContainerContext getContainerContext() {
+    return this.containerContext;
   }
 
   // Parameter replacement: @taskid@ will not be usable

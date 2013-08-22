@@ -18,43 +18,24 @@
 
 package org.apache.tez.dag.app.rm.container;
 
-import java.util.Map;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.common.security.JobTokenIdentifier;
 
 public class AMContainerEventLaunchRequest extends AMContainerEvent {
 
   private final TezVertexID vertexId;
-  private final Token<JobTokenIdentifier> jobToken;
-  private final Credentials credentials;
   private final boolean shouldProfile;
-  private final Configuration conf;
-  private final Map<String, LocalResource> localResources;
-  private final Map<String, String> environment;
-  private final String javaOpts;
+  private final ContainerContext containerContext;
 
   public AMContainerEventLaunchRequest(ContainerId containerId,
-      TezVertexID vertexId,
-      Token<JobTokenIdentifier> jobToken,
-      Credentials credentials, boolean shouldProfile, Configuration conf,
-      Map<String, LocalResource> localResources,
-      Map<String, String> environment, String javaOpts) {
+      TezVertexID vertexId, boolean shouldProfile,
+      ContainerContext containerContext) {
     super(containerId, AMContainerEventType.C_LAUNCH_REQUEST);
     this.vertexId = vertexId;
-    this.jobToken = jobToken;
-    this.credentials = credentials;
     this.shouldProfile = shouldProfile;
-    this.conf = conf;
-    this.localResources = localResources;
-    this.environment = environment;
-    this.javaOpts = javaOpts;
+    this.containerContext = containerContext;
   }
 
   public TezDAGID getDAGId() {
@@ -65,31 +46,11 @@ public class AMContainerEventLaunchRequest extends AMContainerEvent {
     return this.vertexId;
   }
 
-  public Token<JobTokenIdentifier> getJobToken() {
-    return this.jobToken;
-  }
-
-  public Credentials getCredentials() {
-    return this.credentials;
-  }
-
   public boolean shouldProfile() {
     return this.shouldProfile;
   }
-
-  public Configuration getConf() {
-    return this.conf;
-  }
-
-  public Map<String, LocalResource> getLocalResources() {
-    return localResources;
-  }
-
-  public Map<String, String> getEnvironment() {
-    return environment;
-  }
-
-  public String getJavaOpts() {
-	  return javaOpts;
+  
+  public ContainerContext getContainerContext() {
+    return this.containerContext;
   }
 }

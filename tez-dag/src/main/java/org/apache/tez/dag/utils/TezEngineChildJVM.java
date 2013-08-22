@@ -22,7 +22,6 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Vector;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.YarnTezDagChild;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -66,7 +65,7 @@ public class TezEngineChildJVM {
   }
 
   public static List<String> getVMCommand(
-      InetSocketAddress taskAttemptListenerAddr, Configuration conf,
+      InetSocketAddress taskAttemptListenerAddr,
       String containerIdentifier,
       String tokenIdentifier,
       int applicationAttemptNumber,

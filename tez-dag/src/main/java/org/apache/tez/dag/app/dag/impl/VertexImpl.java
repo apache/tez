@@ -39,7 +39,6 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.MRVertexOutputCommitter;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -70,15 +69,16 @@ import org.apache.tez.dag.api.committer.VertexOutputCommitter;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.VertexScheduler;
 import org.apache.tez.dag.app.dag.VertexState;
+import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
@@ -103,7 +103,6 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -333,8 +332,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private long finishTime;
   private float progress;
 
-  private Credentials fsTokens;
-  private Token<JobTokenIdentifier> jobToken;
+  private Credentials credentials;
 
   private final TezVertexID vertexId;  //runtime assigned id.
   private final VertexPlan vertexPlan;
@@ -356,13 +354,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private Map<String, LocalResource> localResources;
   private Map<String, String> environment;
   private final String javaOpts;
+  private final ContainerContext containerContext;
   private VertexTerminationCause terminationCause;
 
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
       String vertexName, Configuration conf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
-      Token<JobTokenIdentifier> jobToken,
-      Credentials fsTokenCredentials, Clock clock,
+      Credentials credentials, Clock clock,
       // TODO: Recovery
       //Map<TaskId, TaskInfo> completedTasksFromPreviousRun,
       // TODO Metrics
@@ -386,8 +384,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.readLock = readWriteLock.readLock();
     this.writeLock = readWriteLock.writeLock();
 
-    this.fsTokens = fsTokenCredentials;
-    this.jobToken = jobToken;
+    this.credentials = credentials;
     this.committer = new NullVertexOutputCommitter();
     this.vertexLocationHint = vertexLocationHint;
 
@@ -409,6 +406,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         this.processorDescriptor.getUserPayload(), this.vertexId,
         getApplicationAttemptId());
 
+    this.containerContext = new ContainerContext(this.localResources,
+        this.credentials, this.environment, this.javaOpts);
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
@@ -1022,16 +1021,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                 vertex.eventHandler,
                 conf,
                 vertex.taskAttemptListener,
-                vertex.jobToken,
-                vertex.fsTokens,
                 vertex.clock,
                 vertex.taskHeartbeatHandler,
                 vertex.appContext,
                 vertex.targetVertices.isEmpty(),
                 locHint, vertex.taskResource,
-                vertex.localResources,
-                vertex.environment,
-                vertex.javaOpts);
+                vertex.containerContext);
         vertex.addTask(task);
         if(LOG.isDebugEnabled()) {
           LOG.debug("Created task for vertex " + vertex.getVertexId() + ": " +

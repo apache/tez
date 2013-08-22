@@ -23,34 +23,28 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.Token;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
-import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezEngineChildJVM;
-import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.TokenCache;
 import org.apache.tez.engine.common.shuffle.server.ShuffleHandler;
 
@@ -85,9 +79,8 @@ public class AMContainerHelpers {
    * @param applicationACLs
    */
   private static ContainerLaunchContext createCommonContainerLaunchContext(
-      Map<ApplicationAccessType, String> applicationACLs, Configuration conf,
-      Token<JobTokenIdentifier> jobToken,
-      TezVertexID vertexId, Credentials credentials, AppContext appContext) {
+      Map<ApplicationAccessType, String> applicationACLs,
+      Credentials credentials) {
 
     // Application resources
     Map<String, LocalResource> localResources =
@@ -107,16 +100,11 @@ public class AMContainerHelpers {
       // Setup up task credentials buffer
       Credentials taskCredentials = new Credentials();
 
-      if (UserGroupInformation.isSecurityEnabled()) {
-        LOG.info("Adding #" + credentials.numberOfTokens() + " tokens and #"
-            + credentials.numberOfSecretKeys()
-            + " secret keys for NM use for launching container");
-        taskCredentials.addAll(credentials);
-      }
-
-      // LocalStorageToken is needed irrespective of whether security is enabled
-      // or not.
-      TokenCache.setJobToken(jobToken, taskCredentials);
+      // Add tokens if they exist.
+      LOG.info("Adding #" + credentials.numberOfTokens() + " tokens and #"
+          + credentials.numberOfSecretKeys()
+          + " secret keys for NM use for launching container");
+      taskCredentials.addAll(credentials);
 
       DataOutputBuffer containerTokens_dob = new DataOutputBuffer();
       LOG.info("Size of containertokens_dob is "
@@ -128,7 +116,8 @@ public class AMContainerHelpers {
       // Add shuffle token
       LOG.info("Putting shuffle token in serviceData");
       serviceData.put(ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID,
-          ShuffleHandler.serializeServiceData(jobToken));
+          ShuffleHandler.serializeServiceData(TokenCache
+              .getJobToken(taskCredentials)));
 
     } catch (IOException e) {
       throw new TezUncheckedException(e);
@@ -146,9 +135,8 @@ public class AMContainerHelpers {
   @VisibleForTesting
   public static ContainerLaunchContext createContainerLaunchContext(
       Map<ApplicationAccessType, String> acls,
-      ContainerId containerId, Configuration conf, TezVertexID vertexId,
-      Token<JobTokenIdentifier> jobToken,
-      Resource assignedCapability, Map<String, LocalResource> localResources,
+      ContainerId containerId,
+      Map<String, LocalResource> localResources,
       Map<String, String> vertexEnv,
       String javaOpts,
       TaskAttemptListener taskAttemptListener, Credentials credentials,
@@ -157,7 +145,7 @@ public class AMContainerHelpers {
     synchronized (commonContainerSpecLock) {
       if (commonContainerSpec == null) {
         commonContainerSpec = createCommonContainerLaunchContext(
-            acls, conf, jobToken, vertexId, credentials, appContext);
+            acls, credentials);
       }
     }
 
@@ -176,7 +164,7 @@ public class AMContainerHelpers {
 
     // Set up the launch command
     List<String> commands = TezEngineChildJVM.getVMCommand(
-        taskAttemptListener.getAddress(), conf, containerId.toString(),
+        taskAttemptListener.getAddress(), containerId.toString(),
         appContext.getApplicationID().toString(),
         appContext.getApplicationAttemptId().getAttemptId(),
         shouldProfile, javaOpts);

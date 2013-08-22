@@ -32,7 +32,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.MRVertexOutputCommitter;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -64,8 +63,8 @@ import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.VertexState;
+import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
@@ -75,15 +74,14 @@ import org.apache.tez.dag.app.dag.event.VertexEventSourceTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
-import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventTermination;
+import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent.Status;
 import org.junit.After;
@@ -104,7 +102,6 @@ public class TestVertexImpl {
   private DrainDispatcher dispatcher;
   private TaskAttemptListener taskAttemptListener;
   private Credentials fsTokens;
-  private Token<JobTokenIdentifier> jobToken;
   private Clock clock = new SystemClock();
   private TaskHeartbeatHandler thh;
   private AppContext appContext;
@@ -459,7 +456,7 @@ public class TestVertexImpl {
       String vName = vPlan.getName();
       TezVertexID vertexId = new TezVertexID(dagId, i+1);
       VertexImpl v = new VertexImpl(vertexId, vPlan, vPlan.getName(), conf,
-          dispatcher.getEventHandler(), taskAttemptListener, jobToken, fsTokens,
+          dispatcher.getEventHandler(), taskAttemptListener, fsTokens,
           clock, thh, appContext, vertexLocationHint);
       vertices.put(vName, v);
       vertexIdMap.put(vertexId, v);
@@ -514,7 +511,6 @@ public class TestVertexImpl {
     dagPlan = createTestDAGPlan();
     dispatcher = new DrainDispatcher();
     fsTokens = new Credentials();
-    jobToken = new Token<JobTokenIdentifier>();
     appContext = mock(AppContext.class);
     DAG dag = mock(DAG.class);
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
@@ -1193,7 +1189,7 @@ public class TestVertexImpl {
     TezVertexID vId = new TezVertexID(invalidDagId, 1);
     VertexPlan vPlan = dPlan.getVertex(0);
     VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
-        dispatcher.getEventHandler(), taskAttemptListener, jobToken, fsTokens,
+        dispatcher.getEventHandler(), taskAttemptListener, fsTokens,
         clock, thh, appContext, vertexLocationHint);
     v.handle(new VertexEvent(vId, VertexEventType.V_INIT));
     Assert.assertEquals(VertexState.FAILED, v.getState());

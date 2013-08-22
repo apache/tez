@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -33,12 +32,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -61,6 +57,7 @@ import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
@@ -97,7 +94,6 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
-import org.apache.tez.engine.common.security.JobTokenIdentifier;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -123,8 +119,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final Lock writeLock;
   protected final AppContext appContext;
   private final TaskHeartbeatHandler taskHeartbeatHandler;
-  private Credentials credentials;
-  protected Token<JobTokenIdentifier> jobToken;
   private long launchTime = 0;
   private long finishTime = 0;
   // TEZ-347 remove this and getShufflePort()
@@ -146,11 +140,9 @@ public class TaskAttemptImpl implements TaskAttempt,
   Set<String> taskRacks = new HashSet<String>();
 
   protected final TaskLocationHint locationHint;
-  protected final Resource taskResource;
-  protected final Map<String, LocalResource> localResources;
-  protected final Map<String, String> environment;
-  protected final String javaOpts;
   protected final boolean isRescheduled;
+  private final Resource taskResource;
+  private final ContainerContext containerContext;
 
   protected static final FailedTransitionHelper FAILED_HELPER =
       new FailedTransitionHelper();
@@ -257,14 +249,10 @@ public class TaskAttemptImpl implements TaskAttempt,
   // TODO Remove TaskAttemptListener from the constructor.
   @SuppressWarnings("rawtypes")
   public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
-      TaskAttemptListener tal,
-      Configuration conf,
-      Token<JobTokenIdentifier> jobToken, Credentials credentials, Clock clock,
+      TaskAttemptListener tal, Configuration conf, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
-      TaskLocationHint locationHint,
-      Resource resource, Map<String, LocalResource> localResources,
-      Map<String, String> environment,
-      String javaOpts, boolean isRescheduled) {
+      TaskLocationHint locationHint, boolean isRescheduled,
+      Resource resource, ContainerContext containerContext) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
@@ -272,21 +260,17 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.eventHandler = eventHandler;
     //Reported status
     this.conf = conf;
-    this.jobToken = jobToken;
-    this.credentials = credentials;
     this.clock = clock;
     this.taskHeartbeatHandler = taskHeartbeatHandler;
     this.appContext = appContext;
-    this.taskResource = resource;
     this.reportedStatus = new TaskAttemptStatus();
     initTaskAttemptStatus(reportedStatus);
     RackResolver.init(conf);
     this.stateMachine = stateMachineFactory.make(this);
     this.locationHint = locationHint;
-    this.localResources = localResources;
-    this.environment = environment;
-    this.javaOpts = javaOpts;
     this.isRescheduled = isRescheduled;
+    this.taskResource = resource;
+    this.containerContext = containerContext;
   }
 
 
@@ -908,14 +892,10 @@ public class TaskAttemptImpl implements TaskAttempt,
             + remoteTaskContext);
       }
       // Send out a launch request to the scheduler.
-      AMSchedulerEventTALaunchRequest launchRequestEvent =
-          new AMSchedulerEventTALaunchRequest(ta.attemptId,
-              ta.taskResource,
-              ta.localResources, remoteTaskContext, ta,
-              ta.credentials, ta.jobToken, requestHosts,
-              requestRacks,
-              scheduleEvent.getPriority(), ta.environment, //ta.javaOpts,
-              ta.conf);
+
+      AMSchedulerEventTALaunchRequest launchRequestEvent = new AMSchedulerEventTALaunchRequest(
+          ta.attemptId, ta.taskResource, remoteTaskContext, ta, requestHosts,
+          requestRacks, scheduleEvent.getPriority(), ta.containerContext);
       ta.sendEvent(launchRequestEvent);
     }
   }
@@ -1299,20 +1279,4 @@ public class TaskAttemptImpl implements TaskAttempt,
   public String toString() {
     return getID().toString();
   }
-
-  @Override
-  public Map<String, LocalResource> getLocalResources() {
-    return this.localResources;
-  }
-
-  @Override
-  public Map<String, String> getEnvironment() {
-    return this.environment;
-  }
-
-  @Override
-  public String getJavaOpts() {
-	return this.javaOpts;
-  }
-
 }

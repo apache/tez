@@ -43,6 +43,7 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
+import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
@@ -337,17 +338,15 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventLaunchRequest event = (AMContainerEventLaunchRequest) cEvent;
+      ContainerContext containerContext = event.getContainerContext();
 
       container.clc = AMContainerHelpers.createContainerLaunchContext(
           container.appContext.getApplicationACLs(),
-          container.getContainerId(), event.getConf(),
-          event.getVertexId(),
-          event.getJobToken(),
-          container.getContainer().getResource(),
-          event.getLocalResources(),
-          event.getEnvironment(),
-          event.getJavaOpts(),
-          container.taskAttemptListener, event.getCredentials(),
+          container.getContainerId(),
+          containerContext.getLocalResources(),
+          containerContext.getEnvironment(),
+          containerContext.getJavaOpts(),
+          container.taskAttemptListener, containerContext.getCredentials(),
           event.shouldProfile(), container.appContext);
 
       // Registering now, so that in case of delayed NM response, the child

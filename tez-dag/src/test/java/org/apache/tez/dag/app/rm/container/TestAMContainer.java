@@ -37,7 +37,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
@@ -56,6 +55,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
+import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventNodeFailed;
@@ -67,6 +67,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
+import org.apache.tez.engine.common.security.TokenCache;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -825,11 +826,8 @@ public class TestAMContainer {
 
     TezTaskContext tezTaskContext;
 
-    Token<JobTokenIdentifier> jobToken;
-
     public AMContainerImpl amContainer;
 
-    @SuppressWarnings("unchecked")
     public WrappedContainer() {
       applicationID = ApplicationId.newInstance(rmIdentifier, 1);
       appAttemptID = ApplicationAttemptId.newInstance(applicationID, 1);
@@ -864,9 +862,6 @@ public class TestAMContainer {
       tezTaskContext = mock(TezTaskContext.class);
       doReturn(taskAttemptID).when(tezTaskContext).getTaskAttemptId();
 
-
-      jobToken = (Token<JobTokenIdentifier>) mock(Token.class);
-
       amContainer = new AMContainerImpl(container, chh, tal,
           appContext);
     }
@@ -896,10 +891,14 @@ public class TestAMContainer {
 
     public void launchContainer() {
       reset(eventHandler);
-      amContainer.handle(new AMContainerEventLaunchRequest(containerID, vertexID,
-          jobToken, new Credentials(), false, new Configuration(),
-          new HashMap<String, LocalResource>(), new HashMap<String, String>(),
-          null));
+      Credentials credentials = new Credentials();
+      @SuppressWarnings("unchecked")
+      Token<JobTokenIdentifier> jobToken = mock(Token.class);
+      TokenCache.setJobToken(jobToken, credentials);
+      amContainer.handle(new AMContainerEventLaunchRequest(containerID,
+          vertexID, false, new ContainerContext(
+              new HashMap<String, LocalResource>(), credentials,
+              new HashMap<String, String>(), "")));
     }
 
     public void assignTaskAttempt(TezTaskAttemptID taID) {

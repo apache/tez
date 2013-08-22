@@ -38,6 +38,7 @@ import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
+import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.rm.TaskScheduler.CookieContainerRequest;
@@ -478,15 +479,15 @@ public class TestContainerReuse {
   private AMSchedulerEventTALaunchRequest createLaunchRequestEvent(
       TezTaskAttemptID taID, TaskAttempt ta, Resource capability, String[] hosts,
       String[] racks, Priority priority, Configuration conf) {
-    AMSchedulerEventTALaunchRequest lr = new AMSchedulerEventTALaunchRequest(
-        taID, capability, new HashMap<String, LocalResource>(),
-        new TezEngineTaskContext(taID, "user", "jobName", "vertexName",
-            new ProcessorDescriptor("processorClassName"),
-            Collections.singletonList(new InputSpec("vertexName", 1,
-                "inputClassName")), Collections.singletonList(new OutputSpec(
-                "vertexName", 1, "outputClassName"))), ta,
-        new Credentials(), null, hosts, racks, priority,
-        new HashMap<String, String>(), conf);
+
+    ContainerContext containerContext = 
+        new ContainerContext(new HashMap<String, LocalResource>(),
+            new Credentials(), new HashMap<String, String>(), "");
+    AMSchedulerEventTALaunchRequest lr = new AMSchedulerEventTALaunchRequest(taID, capability, new TezEngineTaskContext(taID, "user", "jobName", "vertexName",
+        new ProcessorDescriptor("processorClassName"),
+        Collections.singletonList(new InputSpec("vertexName", 1,
+            "inputClassName")), Collections.singletonList(new OutputSpec(
+            "vertexName", 1, "outputClassName"))), ta, hosts, racks, priority, containerContext);
     return lr;
   }
 

@@ -303,7 +303,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private int numKilledVertices = 0;
   private boolean isUber = false;
   private DAGTerminationCause terminationCause;
-  private Credentials fsTokens;
+  private Credentials credentials;
   private Token<JobTokenIdentifier> jobToken;
   private JobTokenSecretManager jobTokenSecretManager;
 
@@ -338,7 +338,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     this.readLock = readWriteLock.readLock();
     this.writeLock = readWriteLock.writeLock();
 
-    this.fsTokens = fsTokenCredentials;
+    this.credentials = fsTokenCredentials;
     this.jobTokenSecretManager = jobTokenSecretManager;
 
     this.aclsManager = new ApplicationACLsManager(conf);
@@ -915,7 +915,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       return new VertexImpl(
           vertexId, vertexPlan, vertexName, dag.conf,
           dag.eventHandler, dag.taskAttemptListener,
-          dag.jobToken, dag.fsTokens, dag.clock,
+          dag.credentials, dag.clock,
           dag.taskHeartbeatHandler, dag.appContext,
           vertexLocationHint);
     }
@@ -965,15 +965,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       LOG.info("Adding job token for " + dagIdString
           + " to jobTokenSecretManager");
 
-      // Upload the jobTokens onto the remote FS so that ContainerManager can
-      // localize it to be used by the Containers(tasks)
-      Credentials tokenStorage = new Credentials();
-      // TODO Consider sending the jobToken over RPC.
-      TokenCache.setJobToken(job.jobToken, tokenStorage);
-
-      if (UserGroupInformation.isSecurityEnabled()) {
-        tokenStorage.addAll(job.fsTokens);
-      }
+      // Populate the jobToken into job credentials.
+      TokenCache.setJobToken(job.jobToken, job.credentials);
     }
 
     /**

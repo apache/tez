@@ -19,10 +19,8 @@
 package org.apache.tez.dag.app.dag;
 
 import java.util.List;
-import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
@@ -111,10 +109,4 @@ public interface TaskAttempt {
   public Task getTask();
   
   public boolean getIsRescheduled();
-
-  public Map<String, LocalResource> getLocalResources();
-
-  public Map<String, String> getEnvironment();
-  
-  public String getJavaOpts();
 }
