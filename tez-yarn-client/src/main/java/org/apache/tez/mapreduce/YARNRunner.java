@@ -27,7 +27,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.commons.logging.Log;
@@ -78,6 +77,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
@@ -550,6 +550,11 @@ public class YARNRunner implements ClientProtocol {
         MRJobConfig.MR_AM_COMMAND_OPTS, MRJobConfig.MR_AM_ENV);
     vargs.add(mrAppMasterUserOptions);
 
+    StringBuilder javaOpts = new StringBuilder();
+    for (String varg : vargs) {
+      javaOpts.append(varg).append(" ");
+    }
+
     // Setup the CLASSPATH in environment
     // i.e. add { Hadoop jars, job jar, CWD } to classpath.
     Map<String, String> environment = new HashMap<String, String>();
@@ -558,22 +563,18 @@ public class YARNRunner implements ClientProtocol {
     MRHelpers.updateEnvironmentForMRAM(conf, environment);
 
     TezConfiguration dagAMConf = getDAGAMConfFromMRConf();
+    dagAMConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS, javaOpts.toString());
 
     // Submit to ResourceManager
     try {
-      Path appStagingDir = fs.resolvePath(new Path(jobSubmitDir));
-      dagClient = tezClient.submitDAGApplication(
-          appId,
-          dag,
-          appStagingDir,
-          ts,
+      dagAMConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
+          jobSubmitDir);
+      AMConfiguration amConfig = new AMConfiguration(
           jobConf.get(JobContext.QUEUE_NAME,
               YarnConfiguration.DEFAULT_QUEUE_NAME),
-          dag.getName(),
-          vargs,
           environment,
-          jobLocalResources, dagAMConf);
-
+          jobLocalResources, dagAMConf, ts);
+      tezClient.submitDAGApplication(appId, dag, amConfig);
     } catch (TezException e) {
       throw new IOException(e);
     }

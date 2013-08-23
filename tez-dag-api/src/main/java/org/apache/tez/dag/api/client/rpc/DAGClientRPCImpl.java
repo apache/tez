@@ -31,6 +31,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -62,7 +63,7 @@ public class DAGClientRPCImpl implements DAGClient {
     this.dagId = dagId;
     this.conf = conf;
     yarnClient = new YarnClientImpl();
-    yarnClient.init(conf);
+    yarnClient.init(new YarnConfiguration(conf));
     yarnClient.start();
     appReport = null;
   }

@@ -20,7 +20,6 @@ package org.apache.tez.mapreduce;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -50,8 +49,10 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezSession;
+import org.apache.tez.client.TezSessionConfiguration;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -418,19 +419,25 @@ public class TestMRRJobsDAGApi {
     amLocalResources.put("yarn-site.xml", yarnSiteLr);
     amLocalResources.putAll(commonLocalResources);
 
-    TezClient tezClient = new TezClient(new TezConfiguration(
-        mrrTezCluster.getConfig()));
+    TezConfiguration tezConf = new TezConfiguration(
+            mrrTezCluster.getConfig());
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
+        remoteStagingDir.toString());
+
+    TezClient tezClient = new TezClient(tezConf);
     DAGClient dagClient = null;
     TezSession tezSession = null;
+    TezSessionConfiguration tezSessionConfig;
+    AMConfiguration amConfig = new AMConfiguration(
+        "default", commonEnv, amLocalResources,
+        tezConf, null);
     if(!dagViaRPC) {
       // TODO Use utility method post TEZ-205 to figure out AM arguments etc.
-      dagClient = tezClient.submitDAGApplication(dag, remoteStagingDir,
-          null, "default", Collections.singletonList(""), commonEnv,
-          amLocalResources, new TezConfiguration());
+      dagClient = tezClient.submitDAGApplication(dag, amConfig);
     } else {
-      tezSession = tezClient.createSession("testsession", remoteStagingDir,
-          null, "default", Collections.singletonList(""), commonEnv,
-          amLocalResources, new TezConfiguration());
+      tezSessionConfig = new TezSessionConfiguration(amConfig, tezConf);
+      tezSession = new TezSession("testsession", tezSessionConfig);
+      tezSession.start();
     }
 
     if (dagViaRPC && closeSessionBeforeSubmit) {
@@ -448,7 +455,7 @@ public class TestMRRJobsDAGApi {
         YarnApplicationState appState = appReport.getYarnApplicationState();
         if (!sentKillSession) {
           if (appState == YarnApplicationState.RUNNING) {
-            tezClient.closeSession(tezSession);
+            tezSession.stop();
             sentKillSession = true;
           }
         } else {
@@ -473,7 +480,7 @@ public class TestMRRJobsDAGApi {
     if(dagViaRPC) {
       LOG.info("Submitting dag to tez session with appId="
           + tezSession.getApplicationId());
-      dagClient = tezClient.submitDAG(tezSession, dag);
+      dagClient = tezSession.submitDAG(dag);
     }
     DAGStatus dagStatus = dagClient.getDAGStatus();
     while (!dagStatus.isCompleted()) {
@@ -484,7 +491,7 @@ public class TestMRRJobsDAGApi {
           && dagStatus.getState() == DAGStatus.State.RUNNING) {
         LOG.info("Killing running dag/session");
         if (dagViaRPC) {
-          tezClient.closeSession(tezSession);
+          tezSession.stop();
         } else {
           dagClient.tryKillDAG();
         }

@@ -46,7 +46,6 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
-import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
@@ -98,7 +97,7 @@ public class TezClientUtils {
    * @throws IOException
    */
   static Map<String, LocalResource> setupTezJarsLocalResources(
-      Configuration conf)
+      TezConfiguration conf)
       throws IOException {
     Map<String, LocalResource> tezJarResources =
         new TreeMap<String, LocalResource>();
@@ -220,34 +219,31 @@ public class TezClientUtils {
    * @throws YarnException
    */
   static ApplicationSubmissionContext createApplicationSubmissionContext(
-      Configuration conf, ApplicationId appId, DAG dag, Path appStagingDir,
-      Credentials ts, String amQueueName, String amName, List<String> amArgs,
-      Map<String, String> amEnv, Map<String, LocalResource> amLocalResources,
-      TezConfiguration appConf,
+      Configuration conf, ApplicationId appId, DAG dag, String amName,
+      AMConfiguration amConfig,
       Map<String, LocalResource> tezJarResources)
-          throws IOException, YarnException {
+          throws IOException, YarnException{
 
-    if (appConf == null) {
-      appConf = new TezConfiguration();
-    }
-
-    FileSystem fs = TezClientUtils.ensureStagingDirExists(conf, appStagingDir);
+    FileSystem fs = TezClientUtils.ensureStagingDirExists(conf,
+        amConfig.getStagingDir());
 
     // Setup resource requirements
     Resource capability = Records.newRecord(Resource.class);
     capability.setMemory(
-        conf.getInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB,
+        amConfig.getAMConf().getInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB,
             TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB_DEFAULT));
     capability.setVirtualCores(
-        conf.getInt(TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES,
+        amConfig.getAMConf().getInt(TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES,
             TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES_DEFAULT));
-    LOG.debug("AppMaster capability = " + capability);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("AppMaster capability = " + capability);
+    }
 
     ByteBuffer securityTokens = null;
     // Setup security tokens
-    if (ts != null) {
+    if (amConfig.getCredentials() != null) {
       DataOutputBuffer dob = new DataOutputBuffer();
-      ts.writeTokenStorageToStream(dob);
+      amConfig.getCredentials().writeTokenStorageToStream(dob);
       securityTokens = ByteBuffer.wrap(dob.getData(), 0,
           dob.getLength());
     }
@@ -256,13 +252,13 @@ public class TezClientUtils {
     List<String> vargs = new ArrayList<String>(8);
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
 
-    String amLogLevel = conf.get(TezConfiguration.TEZ_AM_LOG_LEVEL,
-                                 TezConfiguration.TEZ_AM_LOG_LEVEL_DEFAULT);
+    String amLogLevel = amConfig.getAMConf().get(
+        TezConfiguration.TEZ_AM_LOG_LEVEL,
+        TezConfiguration.TEZ_AM_LOG_LEVEL_DEFAULT);
     addLog4jSystemProperties(amLogLevel, vargs);
 
-    if (amArgs != null) {
-      vargs.addAll(amArgs);
-    }
+    vargs.add(amConfig.getAMConf().get(TezConfiguration.TEZ_AM_JAVA_OPTS,
+        TezConfiguration.DEFAULT_TEZ_AM_JAVA_OPTS));
 
     vargs.add(TezConfiguration.TEZ_APPLICATION_MASTER_CLASS);
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
@@ -311,8 +307,8 @@ public class TezClientUtils {
       }
     }
 
-    if (amEnv != null) {
-      for (Map.Entry<String, String> entry : amEnv.entrySet()) {
+    if (amConfig.getEnv() != null) {
+      for (Map.Entry<String, String> entry : amConfig.getEnv().entrySet()) {
         Apps.addToEnvironment(environment, entry.getKey(), entry.getValue());
       }
     }
@@ -320,14 +316,14 @@ public class TezClientUtils {
     Map<String, LocalResource> localResources =
         new TreeMap<String, LocalResource>();
 
-    if (amLocalResources != null) {
-      localResources.putAll(amLocalResources);
+    if (amConfig.getLocalResources() != null) {
+      localResources.putAll(amConfig.getLocalResources());
     }
     localResources.putAll(tezJarResources);
 
     // emit conf as PB file
-    Configuration finalTezConf = createFinalTezConfForApp(appConf);
-    Path binaryConfPath =  new Path(appStagingDir,
+    Configuration finalTezConf = createFinalTezConfForApp(amConfig.getAMConf());
+    Path binaryConfPath =  new Path(amConfig.getStagingDir(),
         TezConfiguration.TEZ_PB_BINARY_CONF_NAME + "." + appId.toString());
     FSDataOutputStream amConfPBOutBinaryStream = null;
     try {
@@ -367,10 +363,10 @@ public class TezClientUtils {
       }
 
       // emit protobuf DAG file style
-      Path binaryPath =  new Path(appStagingDir,
+      Path binaryPath =  new Path(amConfig.getStagingDir(),
           TezConfiguration.TEZ_PB_PLAN_BINARY_NAME + "." + appId.toString());
-      appConf.set(TezConfiguration.TEZ_AM_PLAN_REMOTE_PATH, binaryPath.toUri()
-          .toString());
+      amConfig.getAMConf().set(TezConfiguration.TEZ_AM_PLAN_REMOTE_PATH,
+          binaryPath.toUri().toString());
 
       DAGPlan dagPB = dag.createDag(null);
 
@@ -393,7 +389,8 @@ public class TezClientUtils {
               LocalResourceVisibility.APPLICATION));
 
       if (Level.DEBUG.isGreaterOrEqual(Level.toLevel(amLogLevel))) {
-        Path textPath = localizeDagPlanAsText(dagPB, fs, appStagingDir, appId);
+        Path textPath = localizeDagPlanAsText(dagPB, fs,
+            amConfig.getStagingDir(), appId);
         localResources.put(TezConfiguration.TEZ_PB_PLAN_TEXT_NAME,
             TezClientUtils.createLocalResource(fs,
                 textPath, LocalResourceType.FILE,
@@ -419,14 +416,15 @@ public class TezClientUtils {
     appContext.setApplicationType(TezConfiguration.TEZ_APPLICATION_TYPE);
     appContext.setApplicationId(appId);
     appContext.setResource(capability);
-    appContext.setQueue(amQueueName);
+    appContext.setQueue(amConfig.getQueueName());
     appContext.setApplicationName(amName);
-    appContext.setCancelTokensWhenComplete(conf.getBoolean(
+    appContext.setCancelTokensWhenComplete(amConfig.getAMConf().getBoolean(
         TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN,
         TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN_DEFAULT));
     appContext.setAMContainerSpec(amContainer);
 
     return appContext;
+
   }
 
   @VisibleForTesting

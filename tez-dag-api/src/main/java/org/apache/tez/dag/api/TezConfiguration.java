@@ -53,6 +53,10 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_LOG_LEVEL = TEZ_AM_PREFIX+"log.level";
   public static final String TEZ_AM_LOG_LEVEL_DEFAULT = "INFO";
 
+  public static final String TEZ_AM_JAVA_OPTS = TEZ_AM_PREFIX
+      + "java.opts";
+  public static final String DEFAULT_TEZ_AM_JAVA_OPTS = " -Xmx1024m ";
+
   public static final String TEZ_AM_CANCEL_DELEGATION_TOKEN = TEZ_AM_PREFIX +
       "am.complete.cancel.delegation.tokens";
   public static final boolean TEZ_AM_CANCEL_DELEGATION_TOKEN_DEFAULT = true;
@@ -113,27 +117,27 @@ public class TezConfiguration extends Configuration {
           + "shuffle-vertex-manager.max-src-fraction";
   public static final float
           TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT = 0.75f;
-  
+
   public static final String
           TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL = TEZ_AM_PREFIX +
           "shuffle-vertex-manager.enable.auto-parallel";
-  public static final boolean 
+  public static final boolean
           TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL_DEFAULT = false;
-  
+
   public static final String
           TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE = TEZ_AM_PREFIX +
           "shuffle-vertex-manager.desired-task-input-size";
-  public static final long 
-          TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT = 
+  public static final long
+          TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT =
           1024*1024*100L;
 
   public static final String
           TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM = TEZ_AM_PREFIX +
           "shuffle-vertex-manager.min-task-parallelism";
-  public static final int 
+  public static final int
           TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT = 1;
 
-  public static final String 
+  public static final String
           TEZ_AM_SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION = TEZ_AM_PREFIX
           + "slowstart-dag-scheduler.min-resource-fraction";
   public static final float
@@ -186,7 +190,7 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_CONTAINER_REUSE_DELAY_ALLOCATION_MILLIS = TEZ_AM_PREFIX
       + "container.reuse.delay-allocation-millis";
   public static final long TEZ_AM_CONTAINER_REUSE_DELAY_ALLOCATION_MILLIS_DEFAULT = 3000l;
-  
+
   public static final String TEZ_PB_BINARY_CONF_NAME = "tez-conf.pb";
   public static final String TEZ_PB_PLAN_BINARY_NAME = "tez-dag.pb";
   public static final String TEZ_PB_PLAN_TEXT_NAME = "tez-dag.pb.txt";

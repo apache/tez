@@ -50,9 +50,11 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezSession;
+import org.apache.tez.client.TezSessionConfiguration;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -158,14 +160,16 @@ public class OrderedWordCount {
           " already exists");
     }
 
-    String baseDir = Path.SEPARATOR + "user" + Path.SEPARATOR
-        + user + Path.SEPARATOR+ ".staging" + Path.SEPARATOR;
-    Path stagingDir = new Path(baseDir + Path.SEPARATOR + appId.toString());
+    String stagingDirStr = Path.SEPARATOR + "user" + Path.SEPARATOR
+        + user + Path.SEPARATOR+ ".staging" + Path.SEPARATOR
+        + Path.SEPARATOR + appId.toString();
+    Path stagingDir = new Path(stagingDirStr);
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
     stagingDir = fs.makeQualified(stagingDir);
     TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
 
-    List<String> amArgs = new ArrayList<String>();
-    amArgs.add(MRHelpers.getMRAMJavaOpts(conf));
+    tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
+        MRHelpers.getMRAMJavaOpts(conf));
 
     String jarPath = ClassUtil.findContainingJar(OrderedWordCount.class);
     if (jarPath == null)  {
@@ -188,11 +192,15 @@ public class OrderedWordCount {
     commonLocalResources.put("dag_job.jar", dagJarLocalRsrc);
 
     TezSession tezSession = null;
+    AMConfiguration amConfig = new AMConfiguration("default", null,
+        commonLocalResources, tezConf, null);
     if (useTezSession) {
       LOG.info("Creating Tez Session");
-      tezSession = tezClient.createSession(appId, "OrderedWordCountSession",
-          stagingDir, null, "default", amArgs, null, commonLocalResources,
-          tezConf);
+      TezSessionConfiguration sessionConfig =
+          new TezSessionConfiguration(amConfig, tezConf);
+      tezSession = new TezSession("OrderedWordCountSession",
+          sessionConfig);
+      tezSession.start();
       LOG.info("Created Tez Session");
     }
 
@@ -311,13 +319,11 @@ public class OrderedWordCount {
     DAGClient dagClient;
     if (useTezSession) {
       LOG.info("Submitting DAG to Tez Session");
-      dagClient = tezClient.submitDAG(tezSession, dag);
+      dagClient = tezSession.submitDAG(dag);
       LOG.info("Submitted DAG to Tez Session");
     } else {
       LOG.info("Submitting DAG as a new Tez Application");
-      dagClient = tezClient.submitDAGApplication(appId, dag, stagingDir, null,
-          "default", "OrderedWordCount", amArgs, null, commonLocalResources,
-          tezConf);
+      dagClient = tezClient.submitDAGApplication(dag, amConfig);
     }
 
     DAGStatus dagStatus = null;
@@ -355,7 +361,7 @@ public class OrderedWordCount {
     } finally {
       fs.delete(stagingDir, true);
       if (useTezSession) {
-        tezClient.closeSession(tezSession);
+        tezSession.stop();
       }
     }
 

@@ -60,6 +60,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.dag.api.DAG;
@@ -739,6 +740,11 @@ public class MRRSleepJob extends Configured implements Tool {
     ApplicationId appId =
         tezClient.createApplication();
 
+    conf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
+        conf.get(
+            TezConfiguration.TEZ_AM_STAGING_DIR,
+            TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT));
+
     Path remoteStagingDir =
         remoteFs.makeQualified(new Path(conf.get(
             TezConfiguration.TEZ_AM_STAGING_DIR,
@@ -751,12 +757,14 @@ public class MRRSleepJob extends Configured implements Tool {
         mapSleepTime, mapSleepCount, reduceSleepTime, reduceSleepCount,
         iReduceSleepTime, iReduceSleepCount);
 
-    List<String> amArgs = new ArrayList<String>();
-    amArgs.add(MRHelpers.getMRAMJavaOpts(conf));
+    conf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
+        MRHelpers.getMRAMJavaOpts(conf));
+
+    AMConfiguration amConfig = new AMConfiguration(null, null,
+        null, conf, null);
 
     DAGClient dagClient =
-        tezClient.submitDAGApplication(appId, dag, remoteStagingDir,
-            null, null, dag.getName(), amArgs , null, null, conf);
+        tezClient.submitDAGApplication(appId, dag, amConfig);
 
     while (true) {
       DAGStatus status = dagClient.getDAGStatus();
