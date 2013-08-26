@@ -137,7 +137,9 @@ public class MapProcessor extends MRTask implements Processor {
       final Master master
       ) throws IOException, InterruptedException {
     
-    FutureTask<Void> initInputFuture = initInputAsync(input);
+    // Initialize input in-line since it sets parameters which may be used by the processor.
+    // Done only for SimpleInput.
+    input.initialize(job, master);
     FutureTask<Void> initOutputFuture = initOutputAsync(output);
     
     RecordReader in = new OldRecordReader(input);
@@ -151,12 +153,9 @@ public class MapProcessor extends MRTask implements Processor {
     MapRunnable runner =
         (MapRunnable)ReflectionUtils.newInstance(job.getMapRunnerClass(), job);
 
-    // Wait for input/output to be initialized before starting processing.
-    LOG.info("Waiting on input initialization");
-    waitForInputInitialization(initInputFuture);
-
+    // Wait for output to be initialized before starting processing.
     LOG.info("Waiting on output initialization");
-    waitForInputInitialization(initOutputFuture);
+    waitForOutputInitialization(initOutputFuture);
 
     try {
       runner.run(in, collector, (Reporter)reporter);
@@ -179,11 +178,13 @@ public class MapProcessor extends MRTask implements Processor {
       Output out,
       final Master master
       ) throws IOException, InterruptedException {
-    // make a task context so we can get the classes
-    
-    FutureTask<Void> initInputFuture = initInputAsync(in);
+
+    // Initialize input in-line since it sets parameters which may be used by the processor.
+    // Done only for SimpleInput.
+    in.initialize(job, master);
     FutureTask<Void> initOutputFuture = initOutputAsync(out);
     
+    // make a task context so we can get the classes
     org.apache.hadoop.mapreduce.TaskAttemptContext taskContext =
         new TaskAttemptContextImpl(job, taskAttemptId, reporter);
 
@@ -206,12 +207,9 @@ public class MapProcessor extends MRTask implements Processor {
     org.apache.hadoop.mapreduce.RecordWriter output = 
         new NewOutputCollector(out);
 
-    // Wait for input/output to be initialized before starting processing.
-    LOG.info("Waiting on input initialization");
-    waitForInputInitialization(initInputFuture);
-
+    // Wait for output to be initialized before starting processing.
     LOG.info("Waiting on output initialization");
-    waitForInputInitialization(initOutputFuture);
+    waitForOutputInitialization(initOutputFuture);
 
     org.apache.hadoop.mapreduce.InputSplit split = in.getNewInputSplit();
     
