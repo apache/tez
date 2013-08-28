@@ -335,6 +335,7 @@ public class TestContainerReuse {
 
     // One container allocated.
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
+    drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta11), any(Object.class), eq(container1));
 
     // Task assigned to container completed successfully. Container should be re-used.
@@ -451,6 +452,7 @@ public class TestContainerReuse {
 
     // One container allocated.
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
+    drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta11), any(Object.class), eq(container1));
 
     // Send launch request for task2 (vertex2)
@@ -542,6 +544,7 @@ public class TestContainerReuse {
 
     // One container allocated.
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
+    drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta11), any(Object.class), eq(container1));
 
     // Send launch request for task2 (vertex2)
