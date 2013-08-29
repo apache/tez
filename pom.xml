@@ -78,6 +78,12 @@
       <url>https://maven.atlassian.com/repository/public</url>
       <layout>default</layout>
     </pluginRepository>
+    <pluginRepository>
+      <id>${distMgmtSnapshotsId}</id>
+      <name>${distMgmtSnapshotsName}</name>
+      <url>${distMgmtSnapshotsUrl}</url>
+      <layout>default</layout>
+    </pluginRepository>
   </pluginRepositories>
 
   <dependencyManagement>
