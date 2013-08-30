@@ -107,6 +107,8 @@ import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 
 
 /** Implementation of Vertex interface. Maintains the state machines of Vertex.
@@ -387,6 +389,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.credentials = credentials;
     this.committer = new NullVertexOutputCommitter();
     this.vertexLocationHint = vertexLocationHint;
+    if (LOG.isDebugEnabled()) {
+      logLocationHints(this.vertexLocationHint);
+    }
 
     this.taskResource = DagTypeConverters
         .createResourceRequestFromTaskConfig(vertexPlan.getTaskConfig());
@@ -1495,5 +1500,36 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   VertexScheduler getVertexScheduler() {
     return this.vertexScheduler;
   }
+  
+  private static void logLocationHints(VertexLocationHint locationHint) {
+    Multiset<String> hosts = HashMultiset.create();
+    Multiset<String> racks = HashMultiset.create();
+    int counter = 0;
+    for (TaskLocationHint taskLocationHint : locationHint
+        .getTaskLocationHints()) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("Hosts: ");
+      for (String host : taskLocationHint.getDataLocalHosts()) {
+        hosts.add(host);
+        sb.append(host).append(", ");
+      }
+      sb.append("Racks: ");
+      for (String rack : taskLocationHint.getRacks()) {
+        racks.add(rack);
+        sb.append(rack).append(", ");
+      }
+      LOG.debug("Location: " + counter + " : " + sb.toString());
+      counter++;
+    }
 
+    LOG.debug("Host Counts");
+    for (Multiset.Entry<String> host : hosts.entrySet()) {
+      LOG.debug("host: " + host.toString());
+    }
+
+    LOG.debug("Rack Counts");
+    for (Multiset.Entry<String> rack : racks.entrySet()) {
+      LOG.debug("rack: " + rack.toString());
+    }
+  }
 }
