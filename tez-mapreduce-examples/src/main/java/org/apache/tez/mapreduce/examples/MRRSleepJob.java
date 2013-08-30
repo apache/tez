@@ -72,8 +72,9 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
-import org.apache.tez.dag.api.EdgeProperty.SourceType;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.engine.common.objectregistry.ObjectLifeCycle;
@@ -607,7 +608,8 @@ public class MRRSleepJob extends Configured implements Tool {
       if (i != 0) {
         dag.addEdge(new Edge(vertices.get(i-1),
             vertices.get(i), new EdgeProperty(
-                ConnectionPattern.BIPARTITE, SourceType.STABLE,
+                DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+                SchedulingType.SEQUENTIAL, 
                 new OutputDescriptor(
                     OnFileSortedOutput.class.getName()),
                 new InputDescriptor(

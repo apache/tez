@@ -55,7 +55,7 @@ import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -955,7 +955,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         boolean hasBipartite = false;
         if (vertex.sourceVertices != null) {
           for (EdgeProperty edgeProperty : vertex.sourceVertices.values()) {
-            if (edgeProperty.getConnectionPattern() == ConnectionPattern.BIPARTITE) {
+            if (edgeProperty.getDataMovementType() == DataMovementType.SCATTER_GATHER) {
               hasBipartite = true;
               break;
             }

@@ -62,8 +62,9 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
-import org.apache.tez.dag.api.EdgeProperty.SourceType;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatus.State;
@@ -393,19 +394,23 @@ public class TestMRRJobsDAGApi {
     dag.addVertex(stage3Vertex);
 
     Edge edge1 = new Edge(stage1Vertex, stage2Vertex, new EdgeProperty(
-        ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
+        DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL, new OutputDescriptor(
         OnFileSortedOutput.class.getName()), new InputDescriptor(
                 ShuffledMergedInput.class.getName())));
     Edge edge11 = new Edge(stage11Vertex, stage22Vertex, new EdgeProperty(
-        ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
+        DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, 
+        SchedulingType.SEQUENTIAL, new OutputDescriptor(
         OnFileSortedOutput.class.getName()), new InputDescriptor(
                 ShuffledMergedInput.class.getName())));
     Edge edge2 = new Edge(stage2Vertex, stage3Vertex, new EdgeProperty(
-        ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
+        DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, 
+        SchedulingType.SEQUENTIAL, new OutputDescriptor(
         OnFileSortedOutput.class.getName()), new InputDescriptor(
                 ShuffledMergedInput.class.getName())));
     Edge edge3 = new Edge(stage22Vertex, stage3Vertex, new EdgeProperty(
-        ConnectionPattern.BIPARTITE, SourceType.STABLE, new OutputDescriptor(
+        DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, 
+        SchedulingType.SEQUENTIAL, new OutputDescriptor(
         OnFileSortedOutput.class.getName()), new InputDescriptor(
                 ShuffledMergedInput.class.getName())));
 

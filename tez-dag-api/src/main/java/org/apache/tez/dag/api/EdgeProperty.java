@@ -17,49 +17,107 @@
  */
 package org.apache.tez.dag.api;
 
-public class EdgeProperty { // FIXME rename to ChannelProperty
+public class EdgeProperty {
   
-  public enum ConnectionPattern {
+  /**
+   * Defines the manner of data movement between source and destination tasks.
+   * Determines which destination tasks have access to data produced on this
+   * edge by a source task. A destination task may choose to read any portion of
+   * the data available to it.
+   */
+  public enum DataMovementType {
+    /**
+     * Output on this edge produced by the i-th source task is available to the 
+     * i-th destination task.
+     */
     ONE_TO_ONE,
-    ONE_TO_ALL,
-    BIPARTITE // FIXME rename to SHUFFLE
+    /**
+     * Output on this edge produced by any source task is available to all
+     * destination tasks.
+     */
+    BROADCAST,
+    /**
+     * The i-th output on this edge produced by all source tasks is available to
+     * the same destination task. Source tasks scatter their outputs and they
+     * are gathered by designated destination tasks.
+     */
+    SCATTER_GATHER
   }
   
-  public enum SourceType {
-    STABLE,
-    STABLE_PERSISTED,
-    STREAMING
+  /**
+   * Determines the lifetime of the data produced on this edge by a source task.
+   */
+  public enum DataSourceType {
+    /**
+     * Data produced by the source is persisted and available even when the
+     * task is not running. The data may become unavailable and may cause the 
+     * source task to be re-executed.
+     */
+    PERSISTED,
+    /**
+     * Source data is stored reliably and will always be available
+     */
+    PERSISTED_RELIABLE,
+    /**
+     * Data produced by the source task is available only while the source task
+     * is running. This requires the destination task to run concurrently with 
+     * the source task.
+     */
+    EPHEMERAL
   }
   
-  ConnectionPattern connectionPattern;
-  SourceType sourceType;
+  /**
+   * Determines when the destination task is eligible to run, once the source  
+   * task is eligible to run.
+   */
+  public enum SchedulingType {
+    /**
+     * Destination task is eligible to run after one or more of its source tasks 
+     * have started or completed.
+     */
+    SEQUENTIAL,
+    /**
+     * Destination task must run concurrently with the source task
+     */
+    CONCURRENT
+  }
+  
+  DataMovementType dataMovementType;
+  DataSourceType dataSourceType;
+  SchedulingType schedulingType;
   InputDescriptor inputDescriptor;
   OutputDescriptor outputDescriptor;
   
   /**
-   * @param connectionPattern
-   * @param sourceType
+   * @param dataMovementType
+   * @param dataSourceType
    * @param edgeSource
    *          The {@link OutputDescriptor} that generates data on the edge.
    * @param edgeDestination
    *          The {@link InputDescriptor} which will consume data from the edge.
    */
-  public EdgeProperty(ConnectionPattern connectionPattern, 
-                       SourceType sourceType,
+  public EdgeProperty(DataMovementType dataMovementType, 
+                       DataSourceType dataSourceType,
+                       SchedulingType schedulingType,
                        OutputDescriptor edgeSource,
                        InputDescriptor edgeDestination) {
-    this.connectionPattern = connectionPattern;
-    this.sourceType = sourceType;
+    this.dataMovementType = dataMovementType;
+    this.dataSourceType = dataSourceType;
+    this.schedulingType = schedulingType;
     this.inputDescriptor = edgeDestination;
     this.outputDescriptor = edgeSource;
   }
   
-  public ConnectionPattern getConnectionPattern() {
-    return connectionPattern;
+  public DataMovementType getDataMovementType() {
+    return dataMovementType;
   }
   
-  public SourceType getSourceType() {
-    return sourceType;
+  public DataSourceType getDataSourceType() {
+    return dataSourceType;
+  }
+  
+  public SchedulingType getSchedulingType() {
+    return schedulingType;
   }
   
   /**
@@ -82,8 +140,8 @@ public class EdgeProperty { // FIXME rename to ChannelProperty
   
   @Override
   public String toString() {
-    return "{ " + connectionPattern + " : " + inputDescriptor.getClassName()
-        + " >> " + sourceType + " >> " + outputDescriptor.getClassName() + " }";
+    return "{ " + dataMovementType + " : " + inputDescriptor.getClassName()
+        + " >> " + dataSourceType + " >> " + outputDescriptor.getClassName() + " }";
   }
   
 }

@@ -19,8 +19,9 @@
 package org.apache.tez.dag.api;
 
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
-import org.apache.tez.dag.api.EdgeProperty.SourceType;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -44,7 +45,68 @@ public class TestDAGVerify {
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Edge e1 = new Edge(v1, v2,
-        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addEdge(e1);
+    dag.verify();
+  }
+
+  @Test(expected = IllegalStateException.class)  
+  public void testVerify2() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Edge e1 = new Edge(v1, v2,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addEdge(e1);
+    dag.verify();
+  }
+
+  @Test(expected = IllegalStateException.class)  
+  public void testVerify3() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Edge e1 = new Edge(v1, v2,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.EPHEMERAL, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addEdge(e1);
+    dag.verify();
+  }
+
+  @Test(expected = IllegalStateException.class)  
+  public void testVerify4() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Edge e1 = new Edge(v1, v2,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.EPHEMERAL, SchedulingType.CONCURRENT, 
             new OutputDescriptor(dummyOutputClassName),
             new InputDescriptor(dummyInputClassName)));
     DAG dag = new DAG("testDag");
@@ -75,19 +137,23 @@ public class TestDAGVerify {
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Edge e1 = new Edge(v1, v2,
-        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
             new OutputDescriptor("dummy output class"),
             new InputDescriptor("dummy input class")));
     Edge e2 = new Edge(v2, v3,
-        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
             new OutputDescriptor("dummy output class"),
             new InputDescriptor("dummy input class")));
     Edge e3 = new Edge(v2, v4,
-        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
             new OutputDescriptor("dummy output class"),
             new InputDescriptor("dummy input class")));
     Edge e4 = new Edge(v4, v1,
-        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
             new OutputDescriptor("dummy output class"),
             new InputDescriptor("dummy input class")));
     DAG dag = new DAG("testDag");
@@ -131,19 +197,23 @@ public class TestDAGVerify {
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Edge e1 = new Edge(v1, v2,
-        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
             new OutputDescriptor("dummy output class"),
             new InputDescriptor("dummy input class")));
     Edge e2 = new Edge(v2, v3,
-        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
             new OutputDescriptor("dummy output class"),
             new InputDescriptor("dummy input class")));
     Edge e3 = new Edge(v2, v4,
-        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
             new OutputDescriptor("dummy output class"),
             new InputDescriptor("dummy input class")));
     Edge e4 = new Edge(v3, v2,
-        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
             new OutputDescriptor("dummy output class"),
             new InputDescriptor("dummy input class")));
     DAG dag = new DAG("testDag");
@@ -206,11 +276,13 @@ public class TestDAGVerify {
           new ProcessorDescriptor("ReduceProcessor"),
           dummyTaskCount, dummyTaskResource);
       Edge e1 = new Edge(v1, v3,
-          new EdgeProperty(ConnectionPattern.ONE_TO_ONE, SourceType.STABLE,
+          new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+              DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
               new OutputDescriptor("dummy output class"),
               new InputDescriptor("dummy input class")));
       Edge e2 = new Edge(v2, v3,
-          new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+          new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+              DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
               new OutputDescriptor("dummy output class"),
               new InputDescriptor("dummy input class")));
       DAG dag = new DAG("testDag");
@@ -245,11 +317,13 @@ public class TestDAGVerify {
         new ProcessorDescriptor("ReduceProcessor"),
         dummyTaskCount, dummyTaskResource);
     Edge e1 = new Edge(v1, v3,
-        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             new OutputDescriptor("dummy output class"),
             new InputDescriptor("dummy input class")));
     Edge e2 = new Edge(v2, v3,
-        new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
             new OutputDescriptor("dummy output class"),
             new InputDescriptor("dummy input class")));
     DAG dag = new DAG("testDag");
@@ -278,11 +352,13 @@ public class TestDAGVerify {
           new ProcessorDescriptor("MapProcessor"),
           dummyTaskCount, dummyTaskResource);
       Edge e1 = new Edge(v1, v2,
-          new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+          new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+              DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
               new OutputDescriptor("dummy output class"),
               new InputDescriptor("dummy input class")));
       Edge e2 = new Edge(v1, v2,
-          new EdgeProperty(ConnectionPattern.BIPARTITE, SourceType.STABLE,
+          new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+              DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
               new OutputDescriptor("dummy output class"),
               new InputDescriptor("dummy input class")));
       DAG dag = new DAG("testDag");

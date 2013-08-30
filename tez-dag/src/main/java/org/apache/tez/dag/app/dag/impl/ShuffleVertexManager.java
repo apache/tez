@@ -33,7 +33,7 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexScheduler;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -74,7 +74,7 @@ public class ShuffleVertexManager implements VertexScheduler {
     this.managedVertex = managedVertex;
     Map<Vertex, EdgeProperty> inputs = managedVertex.getInputVertices();
     for(Map.Entry<Vertex, EdgeProperty> entry : inputs.entrySet()) {
-      if(entry.getValue().getConnectionPattern() == ConnectionPattern.BIPARTITE) {
+      if(entry.getValue().getDataMovementType() == DataMovementType.SCATTER_GATHER) {
         Vertex vertex = entry.getKey();
         bipartiteSources.put(vertex.getVertexId(), vertex);
       }

@@ -35,8 +35,9 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
-import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeConnectionPattern;
-import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSourceType;
+import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataMovementType;
+import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataSourceType;
+import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSchedulingType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
@@ -239,9 +240,10 @@ public class TestDAGImpl {
             .setInputVertexName("vertex1")
             .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
             .setOutputVertexName("vertex2")
-            .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
+            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
             .setId("e1")
-            .setSourceType(PlanEdgeSourceType.STABLE)
+            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
             .build()
             )
        .addEdge(
@@ -250,9 +252,10 @@ public class TestDAGImpl {
            .setInputVertexName("vertex2")
            .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
            .setOutputVertexName("vertex3")
-           .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
+           .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
            .setId("e2")
-           .setSourceType(PlanEdgeSourceType.STABLE)
+           .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+           .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
            .build()
            )
       .build();
@@ -409,9 +412,10 @@ public class TestDAGImpl {
             .setInputVertexName("vertex1")
             .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
             .setOutputVertexName("vertex3")
-            .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
+            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
             .setId("e1")
-            .setSourceType(PlanEdgeSourceType.STABLE)
+            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
             .build()
             )
         .addEdge(
@@ -420,9 +424,10 @@ public class TestDAGImpl {
             .setInputVertexName("vertex2")
             .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
             .setOutputVertexName("vertex3")
-            .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
+            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
             .setId("e2")
-            .setSourceType(PlanEdgeSourceType.STABLE)
+            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
             .build()
             )
         .addEdge(
@@ -431,9 +436,10 @@ public class TestDAGImpl {
             .setInputVertexName("vertex3")
             .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o3_v4"))
             .setOutputVertexName("vertex4")
-            .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
+            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
             .setId("e3")
-            .setSourceType(PlanEdgeSourceType.STABLE)
+            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
             .build()
             )
         .addEdge(
@@ -442,9 +448,10 @@ public class TestDAGImpl {
             .setInputVertexName("vertex3")
             .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o3_v5"))
             .setOutputVertexName("vertex5")
-            .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
+            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
             .setId("e4")
-            .setSourceType(PlanEdgeSourceType.STABLE)
+            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
             .build()
             )
         .addEdge(
@@ -453,9 +460,10 @@ public class TestDAGImpl {
             .setInputVertexName("vertex4")
             .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o4"))
             .setOutputVertexName("vertex6")
-            .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
+            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
             .setId("e5")
-            .setSourceType(PlanEdgeSourceType.STABLE)
+            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
             .build()
             )
         .addEdge(
@@ -464,9 +472,10 @@ public class TestDAGImpl {
             .setInputVertexName("vertex5")
             .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o5"))
             .setOutputVertexName("vertex6")
-            .setConnectionPattern(PlanEdgeConnectionPattern.BIPARTITE)
+            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
             .setId("e6")
-            .setSourceType(PlanEdgeSourceType.STABLE)
+            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
             .build()
             )
         .build();

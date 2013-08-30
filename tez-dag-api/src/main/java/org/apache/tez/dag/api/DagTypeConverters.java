@@ -31,13 +31,15 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
-import org.apache.tez.dag.api.EdgeProperty.SourceType;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
-import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeConnectionPattern;
-import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSourceType;
+import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataMovementType;
+import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataSourceType;
+import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSchedulingType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResource;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceType;
@@ -56,7 +58,7 @@ public class DagTypeConverters {
       case PUBLIC : return PlanLocalResourceVisibility.PUBLIC;  
       case PRIVATE : return PlanLocalResourceVisibility.PRIVATE;
       case APPLICATION : return PlanLocalResourceVisibility.APPLICATION;
-      default : throw new RuntimeException("unknown 'visibility'");
+      default : throw new RuntimeException("unknown 'visibility': " + visibility);
     }
   }
   
@@ -65,43 +67,59 @@ public class DagTypeConverters {
       case PUBLIC : return LocalResourceVisibility.PUBLIC;  
       case PRIVATE : return LocalResourceVisibility.PRIVATE;
       case APPLICATION : return LocalResourceVisibility.APPLICATION;
-      default : throw new RuntimeException("unknown 'visibility'");
+      default : throw new RuntimeException("unknown 'visibility': " + visibility);
     }
   }
   
-  public static PlanEdgeSourceType convertToDAGPlan(SourceType sourceType){
+  public static PlanEdgeDataSourceType convertToDAGPlan(DataSourceType sourceType){
     switch(sourceType){
-      case STABLE : return PlanEdgeSourceType.STABLE;  
-      case STABLE_PERSISTED : return PlanEdgeSourceType.STABLE_PERSISTED;
-      case STREAMING :  return PlanEdgeSourceType.STREAMING;
-      default : throw new RuntimeException("unknown 'sourceType'");
+      case PERSISTED : return PlanEdgeDataSourceType.PERSISTED;  
+      case PERSISTED_RELIABLE : return PlanEdgeDataSourceType.PERSISTED_RELIABLE;
+      case EPHEMERAL :  return PlanEdgeDataSourceType.EPHEMERAL;
+      default : throw new RuntimeException("unknown 'dataSourceType': " + sourceType);
     }
   }
   
-  public static SourceType convertFromDAGPlan(PlanEdgeSourceType sourceType){
+  public static DataSourceType convertFromDAGPlan(PlanEdgeDataSourceType sourceType){
     switch(sourceType){
-      case STABLE : return SourceType.STABLE;  
-      case STABLE_PERSISTED : return SourceType.STABLE_PERSISTED;
-      case STREAMING :  return SourceType.STREAMING;
-      default : throw new RuntimeException("unknown 'sourceType'");
+      case PERSISTED : return DataSourceType.PERSISTED;  
+      case PERSISTED_RELIABLE : return DataSourceType.PERSISTED_RELIABLE;
+      case EPHEMERAL :  return DataSourceType.EPHEMERAL;
+      default : throw new RuntimeException("unknown 'dataSourceType': " + sourceType);
     }
   }
   
-  public static PlanEdgeConnectionPattern convertToDAGPlan(ConnectionPattern pattern){
-    switch(pattern){
-      case ONE_TO_ONE : return PlanEdgeConnectionPattern.ONE_TO_ONE;  
-      case ONE_TO_ALL : return PlanEdgeConnectionPattern.ONE_TO_ALL;
-      case BIPARTITE : return PlanEdgeConnectionPattern.BIPARTITE;
-      default : throw new RuntimeException("unknown 'pattern'");
+  public static PlanEdgeDataMovementType convertToDAGPlan(DataMovementType type){
+    switch(type){
+      case ONE_TO_ONE : return PlanEdgeDataMovementType.ONE_TO_ONE;  
+      case BROADCAST : return PlanEdgeDataMovementType.BROADCAST;
+      case SCATTER_GATHER : return PlanEdgeDataMovementType.SCATTER_GATHER;
+      default : throw new RuntimeException("unknown 'dataMovementType': " + type);
     }
   }
   
-  public static ConnectionPattern convertFromDAGPlan(PlanEdgeConnectionPattern pattern){
-    switch(pattern){
-      case ONE_TO_ONE : return ConnectionPattern.ONE_TO_ONE;  
-      case ONE_TO_ALL : return ConnectionPattern.ONE_TO_ALL;
-      case BIPARTITE : return ConnectionPattern.BIPARTITE;
-      default : throw new IllegalArgumentException("unknown 'pattern'");
+  public static DataMovementType convertFromDAGPlan(PlanEdgeDataMovementType type){
+    switch(type){
+      case ONE_TO_ONE : return DataMovementType.ONE_TO_ONE;  
+      case BROADCAST : return DataMovementType.BROADCAST;
+      case SCATTER_GATHER : return DataMovementType.SCATTER_GATHER;
+      default : throw new IllegalArgumentException("unknown 'dataMovementType': " + type);
+    }
+  }
+  
+  public static PlanEdgeSchedulingType convertToDAGPlan(SchedulingType type){
+    switch(type){
+      case SEQUENTIAL : return PlanEdgeSchedulingType.SEQUENTIAL;  
+      case CONCURRENT : return PlanEdgeSchedulingType.CONCURRENT;
+      default : throw new RuntimeException("unknown 'SchedulingType': " + type);
+    }
+  }
+  
+  public static SchedulingType convertFromDAGPlan(PlanEdgeSchedulingType type){
+    switch(type){
+      case SEQUENTIAL : return SchedulingType.SEQUENTIAL;  
+      case CONCURRENT : return SchedulingType.CONCURRENT;
+      default : throw new IllegalArgumentException("unknown 'SchedulingType': " + type);
     }
   }
   
@@ -110,7 +128,7 @@ public class DagTypeConverters {
     case ARCHIVE : return PlanLocalResourceType.ARCHIVE;
     case FILE : return PlanLocalResourceType.FILE;
     case PATTERN : return PlanLocalResourceType.PATTERN;
-    default : throw new IllegalArgumentException("unknown 'type'");
+    default : throw new IllegalArgumentException("unknown 'type': " + type);
     }
   }
   
@@ -119,7 +137,7 @@ public class DagTypeConverters {
     case ARCHIVE : return LocalResourceType.ARCHIVE;
     case FILE : return LocalResourceType.FILE;
     case PATTERN : return LocalResourceType.PATTERN;
-    default : throw new IllegalArgumentException("unknown 'type'");
+    default : throw new IllegalArgumentException("unknown 'type': " + type);
     }
   }
 
@@ -198,8 +216,9 @@ public class DagTypeConverters {
     for(EdgePlan edge: edgeList){
        map.put(edge.getId(), 
            new EdgeProperty(
-               convertFromDAGPlan(edge.getConnectionPattern()),
-               convertFromDAGPlan(edge.getSourceType()),
+               convertFromDAGPlan(edge.getDataMovementType()),
+               convertFromDAGPlan(edge.getDataSourceType()),
+               convertFromDAGPlan(edge.getSchedulingType()),
                convertOutputDescriptorFromDAGPlan(edge.getEdgeSource()),
                convertInputDescriptorFromDAGPlan(edge.getEdgeDestination())
                )

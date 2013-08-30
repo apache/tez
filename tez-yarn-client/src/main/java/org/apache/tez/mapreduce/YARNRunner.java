@@ -82,8 +82,9 @@ import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
-import org.apache.tez.dag.api.EdgeProperty.SourceType;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -460,7 +461,8 @@ public class YARNRunner implements ClientProtocol {
       dag.addVertex(vertices[i]);
       if (i > 0) {
         EdgeProperty edgeProperty = new EdgeProperty(
-            ConnectionPattern.BIPARTITE, SourceType.STABLE,
+            DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+            SchedulingType.SEQUENTIAL, 
             new OutputDescriptor(OnFileSortedOutput.class.getName()),
             new InputDescriptor(ShuffledMergedInput.class.getName()));
 

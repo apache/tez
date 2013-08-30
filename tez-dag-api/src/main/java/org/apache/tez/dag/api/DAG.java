@@ -31,7 +31,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.dag.api.EdgeProperty.ConnectionPattern;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -169,10 +171,20 @@ public class DAG { // FIXME rename to Topology
     if(restricted){
       for(Edge e : edges){
         vertexMap.get(e.getInputVertex().getVertexName()).outDegree++;
-        if (e.getEdgeProperty().getConnectionPattern() !=
-            ConnectionPattern.BIPARTITE) {
+        if (e.getEdgeProperty().getDataMovementType() !=
+            DataMovementType.SCATTER_GATHER) {
           throw new IllegalStateException(
               "Unsupported connection pattern on edge. " + e);
+        }
+        if (e.getEdgeProperty().getDataSourceType() !=
+            DataSourceType.PERSISTED) {
+          throw new IllegalStateException(
+              "Unsupported source type on edge. " + e);
+        }
+        if (e.getEdgeProperty().getSchedulingType() !=
+            SchedulingType.SEQUENTIAL) {
+          throw new IllegalStateException(
+              "Unsupported scheduling type on edge. " + e);
         }
       }
       for(AnnotatedVertex av: vertexMap.values()){
@@ -338,8 +350,9 @@ public class DAG { // FIXME rename to Topology
       edgeBuilder.setId(edge.getId());
       edgeBuilder.setInputVertexName(edge.getInputVertex().getVertexName());
       edgeBuilder.setOutputVertexName(edge.getOutputVertex().getVertexName());
-      edgeBuilder.setConnectionPattern(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().connectionPattern));
-      edgeBuilder.setSourceType(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getSourceType()));
+      edgeBuilder.setDataMovementType(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getDataMovementType()));
+      edgeBuilder.setDataSourceType(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getDataSourceType()));
+      edgeBuilder.setSchedulingType(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getSchedulingType()));
       edgeBuilder.setEdgeSource(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getEdgeSource()));
       edgeBuilder.setEdgeDestination(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getEdgeDestination()));
       dagBuilder.addEdge(edgeBuilder);

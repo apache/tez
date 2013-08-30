@@ -35,16 +35,21 @@ enum PlanVertexType {
   OUTPUT = 2;
 }
 
-enum PlanEdgeConnectionPattern {
+enum PlanEdgeDataMovementType {
   ONE_TO_ONE = 0;
-  ONE_TO_ALL = 1;
-  BIPARTITE = 2;
+  BROADCAST = 1;
+  SCATTER_GATHER = 2;
 }
 
-enum PlanEdgeSourceType {
-  STABLE = 0;
-  STABLE_PERSISTED = 1;
-  STREAMING = 2;
+enum PlanEdgeDataSourceType {
+  PERSISTED = 0;
+  PERSISTED_RELIABLE = 1;
+  EPHEMERAL = 2;
+}
+
+enum PlanEdgeSchedulingType {
+  SEQUENTIAL = 0;
+  CONCURRENT = 1;
 }
 
 message PlanKeyValuePair {
@@ -111,10 +116,11 @@ message EdgePlan {
   required string id = 1;
   required string inputVertexName = 2;
   required string outputVertexName = 3;
-  required PlanEdgeConnectionPattern connectionPattern = 4;
-  required PlanEdgeSourceType sourceType = 5;
-  optional TezEntityDescriptorProto edge_source = 6;
-  optional TezEntityDescriptorProto edge_destination = 7;
+  required PlanEdgeDataMovementType dataMovementType = 4;
+  required PlanEdgeDataSourceType dataSourceType = 5;
+  required PlanEdgeSchedulingType schedulingType = 6;
+  optional TezEntityDescriptorProto edge_source = 7;
+  optional TezEntityDescriptorProto edge_destination = 8;
 }
 
 message ConfigurationProto {
