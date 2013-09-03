@@ -482,6 +482,21 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   @Override
+  public int getRunningTasks() {
+    readLock.lock();
+    try {
+      int num=0;
+      for (Task task : tasks.values()) {
+        if(task.getState() == TaskState.RUNNING)
+          num++;
+      }
+      return num;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
   public TezCounters getAllCounters() {
 
     readLock.lock();
@@ -564,7 +579,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       ProgressBuilder progress = new ProgressBuilder();
       progress.setTotalTaskCount(numTasks);
       progress.setSucceededTaskCount(succeededTaskCount);
-      progress.setRunningTaskCount(0); // TODO TEZ-130
+      progress.setRunningTaskCount(getRunningTasks());
       progress.setFailedTaskCount(failedTaskCount);
       progress.setKilledTaskCount(killedTaskCount);
       return progress;
