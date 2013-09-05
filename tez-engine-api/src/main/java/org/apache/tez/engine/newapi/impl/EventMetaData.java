@@ -18,6 +18,8 @@
 
 package org.apache.tez.engine.newapi.impl;
 
+import org.apache.tez.dag.records.TezTaskAttemptID;
+
 /**
  * Class that encapsulates all the information to identify the unique
  * object that either generated an Event or is the recipient of an Event.
@@ -27,7 +29,8 @@ public class EventMetaData {
   public static enum EventGenerator {
     INPUT,
     PROCESSOR,
-    OUTPUT
+    OUTPUT,
+    SYSTEM
   }
 
   /**
@@ -38,20 +41,41 @@ public class EventMetaData {
   /**
    * Name of the vertex where the event was generated.
    */
-  private final String vertexName;
+  private final String taskVertexName;
 
-  public EventMetaData(EventGenerator idType,
-      String vertexName) {
-    this.generator = idType;
-    this.vertexName = vertexName;
+  /**
+   * Name of the vertex to which the Input or Output is connected to.
+   */
+  private final String edgeVertexName;
+
+  /**
+   * Task Attempt ID
+   */
+  private final TezTaskAttemptID taskAttemptID;
+
+  public EventMetaData(EventGenerator generator,
+      String taskVertexName, String edgeVertexName,
+      TezTaskAttemptID taskAttemptID) {
+    this.generator = generator;
+    this.taskVertexName = taskVertexName;
+    this.edgeVertexName = edgeVertexName;
+    this.taskAttemptID = taskAttemptID;
   }
 
-  public EventGenerator getIDType() {
+  public EventGenerator getEventGenerator() {
     return generator;
   }
 
-  public String getVertexName() {
-    return vertexName;
+  public TezTaskAttemptID getTaskAttemptID() {
+    return taskAttemptID;
+  }
+
+  public String getTaskVertexName() {
+    return taskVertexName;
+  }
+
+  public String getEdgeVertexName() {
+    return edgeVertexName;
   }
 
 }

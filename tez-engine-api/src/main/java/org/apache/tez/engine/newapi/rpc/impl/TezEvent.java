@@ -18,24 +18,27 @@
 
 package org.apache.tez.engine.newapi.rpc.impl;
 
-import org.apache.tez.engine.newapi.UserEvent;
+import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.impl.EventMetaData;
 
-public class TezUserEvent {
+public class TezEvent {
 
-  private final UserEvent userEvent;
+  private final String eventClassName;
+
+  private final Event event;
 
   private EventMetaData sourceInfo;
 
   private EventMetaData targetInfo;
 
-  public TezUserEvent(UserEvent userEvent, EventMetaData sourceInfo) {
-    this.userEvent = userEvent;
+  public TezEvent(Event event, EventMetaData sourceInfo) {
+    this.event = event;
+    this.eventClassName = event.getClass().getName();
     this.setSourceInfo(sourceInfo);
   }
 
-  public UserEvent getUserEvent() {
-    return userEvent;
+  public Event getEvent() {
+    return event;
   }
 
   public EventMetaData getSourceInfo() {
@@ -52,6 +55,10 @@ public class TezUserEvent {
 
   public void setTargetInfo(EventMetaData targetInfo) {
     this.targetInfo = targetInfo;
+  }
+
+  public String getEventClassName() {
+    return eventClassName;
   }
 
 }

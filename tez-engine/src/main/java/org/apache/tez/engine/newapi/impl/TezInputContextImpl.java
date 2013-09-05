@@ -23,7 +23,6 @@ import java.util.List;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.TezInputContext;
@@ -32,13 +31,15 @@ public class TezInputContextImpl extends TezTaskContextImpl
     implements TezInputContext {
 
   private final byte[] userPayload;
+  private final String sourceVertexName;
 
   @Private
-  public TezInputContextImpl(Configuration tezConf, String vertexName,
-      TezTaskAttemptID taskAttemptID, TezCounters counters,
-      byte[] userPayload) {
-    super(tezConf, vertexName, taskAttemptID, counters);
+  public TezInputContextImpl(Configuration conf, String taskVertexName,
+      String sourceVertexName, TezTaskAttemptID taskAttemptID,
+      TezCounters counters, byte[] userPayload) {
+    super(conf, taskVertexName, taskAttemptID, counters);
     this.userPayload = userPayload;
+    this.sourceVertexName = sourceVertexName;
   }
 
   @Override
@@ -52,5 +53,9 @@ public class TezInputContextImpl extends TezTaskContextImpl
     return userPayload;
   }
 
+  @Override
+  public String getSourceVertexName() {
+    return sourceVertexName;
+  }
 
 }

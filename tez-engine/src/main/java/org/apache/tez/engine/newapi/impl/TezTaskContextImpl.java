@@ -26,17 +26,17 @@ import org.apache.tez.engine.newapi.TezTaskContext;
 
 public abstract class TezTaskContextImpl implements TezTaskContext {
 
-  private final Configuration tezConf;
-  private final String vertexName;
+  private final Configuration conf;
+  private final String taskVertexName;
   private final TezTaskAttemptID taskAttemptID;
   private final TezCounters counters;
 
   @Private
-  public TezTaskContextImpl(Configuration tezConf,
-      String vertexName, TezTaskAttemptID taskAttemptID,
+  public TezTaskContextImpl(Configuration conf,
+      String taskVertexName, TezTaskAttemptID taskAttemptID,
       TezCounters counters) {
-    this.tezConf = tezConf;
-    this.vertexName = vertexName;
+    this.conf = conf;
+    this.taskVertexName = taskVertexName;
     this.taskAttemptID = taskAttemptID;
     this.counters = counters;
   }
@@ -52,9 +52,11 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   }
 
   @Override
-  public String getVertexName() {
-    return vertexName;
+  public String getTaskVertexName() {
+    // TODO Auto-generated method stub
+    return taskVertexName;
   }
+
 
   @Override
   public TezCounters getCounters() {

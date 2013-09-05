@@ -23,4 +23,10 @@ package org.apache.tez.engine.newapi;
  */
 public interface TezInputContext extends TezTaskContext {
 
+  /**
+   * Get the Vertex Name of the Source that generated data for this Input
+   * @return Name of the Source Vertex
+   */
+  public String getSourceVertexName();
+
 }

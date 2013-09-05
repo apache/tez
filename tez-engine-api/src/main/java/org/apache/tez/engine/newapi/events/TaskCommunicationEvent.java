@@ -16,9 +16,17 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi;
+package org.apache.tez.engine.newapi.events;
 
-public class UserEvent extends Event {
+import org.apache.tez.engine.newapi.Event;
+
+/**
+ * Event used by user code to send information between tasks. An output can
+ * generate an Event of this type to sending information regarding output data
+ * ( such as URI for file-based output data, port info in case of
+ * streaming-based data transfers ) to the Input on the destination vertex.
+ */
+public final class TaskCommunicationEvent extends Event {
 
   /**
    * Index(i) of the i-th (physical) Input or Output that generated an Event.
@@ -33,7 +41,7 @@ public class UserEvent extends Event {
   private int targetIndex;
 
   /**
-   * User Payload for this User Event
+   * User Payload for this Event
    */
   private final byte[] userPayload;
 
@@ -42,9 +50,8 @@ public class UserEvent extends Event {
    * @param index Index to identify the physical edge of the input/output
    * @param userPayload User Payload of the User Event
    */
-  public UserEvent(int index,
+  public TaskCommunicationEvent(int index,
       byte[] userPayload) {
-    super(EventType.USER);
     this.userPayload = userPayload;
     this.sourceIndex = index;
   }
@@ -53,7 +60,7 @@ public class UserEvent extends Event {
    * Constructor for Processor-generated User Events
    * @param userPayload
    */
-  public UserEvent(byte[] userPayload) {
+  public TaskCommunicationEvent(byte[] userPayload) {
     this(-1, userPayload);
   }
 

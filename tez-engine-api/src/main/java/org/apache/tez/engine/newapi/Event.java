@@ -25,18 +25,4 @@ package org.apache.tez.engine.newapi;
  */
 public abstract class Event {
 
-  public static enum EventType {
-    SYSTEM,
-    USER
-  }
-
-  private final EventType eventType;
-
-  public Event(EventType eventType) {
-    this.eventType = eventType;
-  }
-
-  public EventType getEventType() {
-    return eventType;
-  }
 }

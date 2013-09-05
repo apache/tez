@@ -23,4 +23,11 @@ package org.apache.tez.engine.newapi;
  */
 public interface TezOutputContext extends TezTaskContext {
 
+  /**
+   * Get the Vertex Name of the Destination that is the recipient of this
+   * Output's data
+   * @return Name of the Destination Vertex
+   */
+  public String getDestinationVertexName();
+
 }

@@ -215,14 +215,16 @@ public class LogicalIOProcessorRuntimeTask {
 
   private TezInputContext createInputContext(InputSpec inputSpec) {
     TezInputContext inputContext = new TezInputContextImpl(tezConf,
-        taskSpec.getVertexName(), taskSpec.getTaskAttemptID(), tezCounters,
+        taskSpec.getVertexName(), inputSpec.getSourceVertexName(),
+        taskSpec.getTaskAttemptID(), tezCounters,
         inputSpec.getInputDescriptor().getUserPayload());
     return inputContext;
   }
 
   private TezOutputContext createOutputContext(OutputSpec outputSpec) {
     TezOutputContext outputContext = new TezOutputContextImpl(tezConf,
-        taskSpec.getVertexName(), taskSpec.getTaskAttemptID(), tezCounters,
+        taskSpec.getVertexName(), outputSpec.getDestinationVertexName(),
+        taskSpec.getTaskAttemptID(), tezCounters,
         outputSpec.getOutputDescriptor().getUserPayload());
     return outputContext;
   }

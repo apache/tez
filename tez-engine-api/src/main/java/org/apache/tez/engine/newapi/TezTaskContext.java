@@ -42,10 +42,10 @@ public interface TezTaskContext {
   public int getAttemptNumber();
 
   /**
-   * Get the name of the Vertex
+   * Get the name of the Vertex in which the task is running
    * @return Vertex Name
    */
-  public String getVertexName();
+  public String getTaskVertexName();
 
 
   public TezCounters getCounters();

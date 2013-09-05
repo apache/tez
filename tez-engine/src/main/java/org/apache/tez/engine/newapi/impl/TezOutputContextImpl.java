@@ -27,16 +27,20 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.TezOutputContext;
 
-public class TezOutputContextImpl extends TezTaskContextImpl implements
-    TezOutputContext {
+public class TezOutputContextImpl extends TezTaskContextImpl
+    implements TezOutputContext {
 
   private final byte[] userPayload;
+  private final String destinationVertexName;
 
   @Private
-  public TezOutputContextImpl(Configuration tezConf, String vertexName,
-      TezTaskAttemptID taskAttemptID, TezCounters counters, byte[] userPayload) {
-    super(tezConf, vertexName, taskAttemptID, counters);
+  public TezOutputContextImpl(Configuration conf, String taskVertexName,
+      String destinationVertexName,
+      TezTaskAttemptID taskAttemptID, TezCounters counters,
+      byte[] userPayload) {
+    super(conf, taskVertexName, taskAttemptID, counters);
     this.userPayload = userPayload;
+    this.destinationVertexName = destinationVertexName;
   }
 
   @Override
@@ -48,6 +52,11 @@ public class TezOutputContextImpl extends TezTaskContextImpl implements
   @Override
   public byte[] getUserPayload() {
     return userPayload;
+  }
+
+  @Override
+  public String getDestinationVertexName() {
+    return destinationVertexName;
   }
 
 }
