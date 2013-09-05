@@ -21,6 +21,7 @@ package org.apache.tez.engine.newapi.rpc.impl;
 import java.util.List;
 
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 /**
  * Serializable Task information that is sent across the Umbilical from the
@@ -28,6 +29,23 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
  */
 public interface TaskSpec {
 
+  /**
+   * Get the vertex name for the current task.
+   * @return the vertex name set by the user.
+   */
+  public String getVertexName();
+  
+  /**
+   * Get the task attempt id for the current task.
+   * @return the {@link TaskAttemptID}
+   */
+  public TezTaskAttemptID getTaskAttemptID();
+  
+  /**
+   * Get the owner of the job.
+   * @return the owner.
+   */
+  public String getUser();
   /**
    * The Processor definition for the given Task
    * @return {@link ProcessorDescriptor}

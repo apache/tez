@@ -20,8 +20,8 @@ package org.apache.tez.engine.newapi.impl;
 
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.TezProcessorContext;
@@ -31,7 +31,7 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
 
   private final byte[] userPayload;
 
-  public TezProcessorContextImpl(TezConfiguration tezConf, String vertexName,
+  public TezProcessorContextImpl(Configuration tezConf, String vertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters,
       byte[] userPayload) {
     super(tezConf, vertexName, taskAttemptID, counters);

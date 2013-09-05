@@ -21,7 +21,6 @@ package org.apache.tez.engine.newapi;
 import java.util.List;
 
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.TezConfiguration;
 
 /**
  * Base interface for Context classes used to initialize the Input, Output
@@ -29,11 +28,6 @@ import org.apache.tez.dag.api.TezConfiguration;
  */
 public interface TezTaskContext {
 
-  /**
-   * Get the Tez Configuration
-   * @return {@link TezConfiguration}
-   */
-  public TezConfiguration getConfiguration();
 
   /**
    * Get the index of this Task

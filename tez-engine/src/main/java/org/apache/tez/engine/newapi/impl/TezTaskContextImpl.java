@@ -18,30 +18,27 @@
 
 package org.apache.tez.engine.newapi.impl;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.newapi.TezTaskContext;
 
 public abstract class TezTaskContextImpl implements TezTaskContext {
 
-  private final TezConfiguration tezConf;
+  private final Configuration tezConf;
   private final String vertexName;
   private final TezTaskAttemptID taskAttemptID;
   private final TezCounters counters;
 
-  public TezTaskContextImpl(TezConfiguration tezConf,
+  @Private
+  public TezTaskContextImpl(Configuration tezConf,
       String vertexName, TezTaskAttemptID taskAttemptID,
       TezCounters counters) {
     this.tezConf = tezConf;
     this.vertexName = vertexName;
     this.taskAttemptID = taskAttemptID;
     this.counters = counters;
-  }
-
-  @Override
-  public TezConfiguration getConfiguration() {
-    return tezConf;
   }
 
   @Override
@@ -64,4 +61,5 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     return counters;
   }
 
+  // TODO Add a method to get working dir
 }
