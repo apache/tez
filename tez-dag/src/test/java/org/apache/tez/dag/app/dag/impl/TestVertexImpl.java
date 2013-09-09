@@ -613,38 +613,38 @@ public class TestVertexImpl {
     Assert.assertEquals(2, v3.getOutputVerticesCount());
 
     Assert.assertTrue("vertex1".equals(v3.getInputSpecList().get(0)
-        .getVertexName())
+        .getSourceVertexName())
         || "vertex2".equals(v3.getInputSpecList().get(0)
-            .getVertexName()));
+            .getSourceVertexName()));
     Assert.assertTrue("vertex1".equals(v3.getInputSpecList().get(1)
-        .getVertexName())
+        .getSourceVertexName())
         || "vertex2".equals(v3.getInputSpecList().get(1)
-            .getVertexName()));
+            .getSourceVertexName()));
     Assert.assertTrue("i3_v1".equals(v3.getInputSpecList().get(0)
-        .getInputClassName())
+        .getInputDescriptor().getClassName())
         || "i3_v2".equals(v3.getInputSpecList().get(0)
-            .getInputClassName()));
+            .getInputDescriptor().getClassName()));
     Assert.assertTrue("i3_v1".equals(v3.getInputSpecList().get(1)
-        .getInputClassName())
+        .getInputDescriptor().getClassName())
         || "i3_v2".equals(v3.getInputSpecList().get(1)
-            .getInputClassName()));
+            .getInputDescriptor().getClassName()));
 
     Assert.assertTrue("vertex4".equals(v3.getOutputSpecList().get(0)
-        .getVertexName())
+        .getDestinationVertexName())
         || "vertex5".equals(v3.getOutputSpecList().get(0)
-            .getVertexName()));
+            .getDestinationVertexName()));
     Assert.assertTrue("vertex4".equals(v3.getOutputSpecList().get(1)
-        .getVertexName())
+        .getDestinationVertexName())
         || "vertex5".equals(v3.getOutputSpecList().get(1)
-            .getVertexName()));
+            .getDestinationVertexName()));
     Assert.assertTrue("o3_v4".equals(v3.getOutputSpecList().get(0)
-        .getOutputClassName())
+        .getOutputDescriptor().getClassName())
         || "o3_v5".equals(v3.getOutputSpecList().get(0)
-            .getOutputClassName()));
+            .getOutputDescriptor().getClassName()));
     Assert.assertTrue("o3_v4".equals(v3.getOutputSpecList().get(1)
-        .getOutputClassName())
+        .getOutputDescriptor().getClassName())
         || "o3_v5".equals(v3.getOutputSpecList().get(1)
-            .getOutputClassName()));
+            .getOutputDescriptor().getClassName()));
   }
 
   @Test(timeout = 5000)
@@ -654,7 +654,7 @@ public class TestVertexImpl {
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
   }
-  
+
   @Test//(timeout = 5000)
   public void testVertexSetParallelism() {
     VertexImpl v2 = vertices.get("vertex2");
@@ -663,9 +663,9 @@ public class TestVertexImpl {
     Map<TezTaskID, Task> tasks = v2.getTasks();
     Assert.assertEquals(2, tasks.size());
     TezTaskID firstTask = tasks.keySet().iterator().next();
-    
+
     startVertex(v2);
-    
+
     byte[] payload = new byte[0];
     List<byte[]> taskPayloads = Collections.singletonList(payload);
     v2.setParallelism(1, taskPayloads);
@@ -673,7 +673,7 @@ public class TestVertexImpl {
     Assert.assertEquals(1, tasks.size());
     // the last one is removed
     Assert.assertTrue(tasks.keySet().iterator().next().equals(firstTask));
-    
+
     VertexImpl v1 = vertices.get("vertex1");
     TezTaskID t1_v1 = new TezTaskID(v1.getVertexId(), 0);
     TezTaskAttemptID ta1_t1_v1 = new TezTaskAttemptID(t1_v1, 0);
@@ -681,7 +681,7 @@ public class TestVertexImpl {
     TezDependentTaskCompletionEvent cEvt1 =
         new TezDependentTaskCompletionEvent(1, ta1_t1_v1,
             Status.SUCCEEDED, "", 3, 0);
-    v2.handle( 
+    v2.handle(
         new VertexEventSourceTaskAttemptCompleted(v2.getVertexId(), cEvt1));
 
     TezTaskID t1_v2 = new TezTaskID(v2.getVertexId(), 0);
@@ -689,7 +689,7 @@ public class TestVertexImpl {
     TezDependentTaskCompletionEvent[] events =
         v2.getTaskAttemptCompletionEvents(ta1_t1_v2, 0, 100);
     Assert.assertEquals(1, events.length);
-    TezDependentTaskCompletionEvent clone = events[0]; 
+    TezDependentTaskCompletionEvent clone = events[0];
     // payload must be present in the first event
     Assert.assertEquals(payload, clone.getUserPayload());
     // event must be a copy

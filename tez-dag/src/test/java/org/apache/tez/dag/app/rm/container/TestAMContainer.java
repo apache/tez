@@ -110,7 +110,7 @@ public class TestAMContainer {
     wc.verifyNoOutgoingEvents();
     assertFalse(pulledTask.shouldDie());
     assertEquals(wc.tezTaskContext.getTaskAttemptId(), pulledTask.getTask()
-        .getTaskAttemptId());
+        .getTaskAttemptID());
     assertEquals(wc.taskAttemptID, wc.amContainer.getRunningTaskAttempt());
     assertEquals(0, wc.amContainer.getQueuedTaskAttempts().size());
 
@@ -166,7 +166,7 @@ public class TestAMContainer {
     wc.verifyNoOutgoingEvents();
     assertFalse(pulledTask.shouldDie());
     assertEquals(wc.tezTaskContext.getTaskAttemptId(), pulledTask.getTask()
-        .getTaskAttemptId());
+        .getTaskAttemptID());
     assertEquals(wc.taskAttemptID, wc.amContainer.getRunningTaskAttempt());
     assertEquals(0, wc.amContainer.getQueuedTaskAttempts().size());
 

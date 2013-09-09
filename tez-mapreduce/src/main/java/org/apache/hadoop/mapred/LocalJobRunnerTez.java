@@ -78,6 +78,9 @@ import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 import org.apache.tez.engine.lib.input.LocalMergedInput;
 import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
+import org.apache.tez.engine.newapi.impl.TezEvent;
+import org.apache.tez.engine.newapi.impl.TezHeartbeatRequest;
+import org.apache.tez.engine.newapi.impl.TezHeartbeatResponse;
 import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
 import org.apache.tez.engine.runtime.RuntimeUtils;
@@ -670,6 +673,20 @@ public class LocalJobRunnerTez implements ClientProtocol {
         TezTaskAttemptID taskAttemptId) throws IOException {
       // TODO TEZAM5 Really depends on the module - inmem shuffle or not.
       return new ProceedToCompletionResponse(true, true);
+    }
+
+    @Override
+    public TezHeartbeatResponse heartbeat(TezHeartbeatRequest request) {
+      // TODO Auto-generated method stub
+      // TODO TODONEWTEZ
+      return null;
+    }
+
+    @Override
+    public void taskFailed(TezTaskAttemptID attemptID, TezEvent taskFailedEvent)
+        throws IOException {
+      // TODO Auto-generated method stub
+      // TODO TODONEWTEZ
     }
   }
 

@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -18,26 +18,26 @@
 package org.apache.tez.dag.app.rm.container;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.engine.newapi.impl.TaskSpec;
 
 public class AMContainerEventAssignTA extends AMContainerEvent {
 
   private final TezTaskAttemptID attemptId;
   // TODO Maybe have tht TAL pull the remoteTask from the TaskAttempt itself ?
-  private final TezTaskContext remoteTaskContext;
-  
+  private final TaskSpec remoteTaskSpec;
+
   public AMContainerEventAssignTA(ContainerId containerId,
-      TezTaskAttemptID attemptId, Object remoteTaskContext) {
+      TezTaskAttemptID attemptId, Object remoteTaskSpec) {
     super(containerId, AMContainerEventType.C_ASSIGN_TA);
     this.attemptId = attemptId;
-    this.remoteTaskContext = (TezTaskContext)remoteTaskContext;
+    this.remoteTaskSpec = (TaskSpec)remoteTaskSpec;
   }
-  
-  public TezTaskContext getRemoteTaskContext() {
-    return this.remoteTaskContext;
+
+  public TaskSpec getRemoteTaskSpec() {
+    return this.remoteTaskSpec;
   }
-  
+
   public TezTaskAttemptID getTaskAttemptId() {
     return this.attemptId;
   }

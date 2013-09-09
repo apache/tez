@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.common.InputSpec;
-import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -34,23 +32,25 @@ import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.engine.newapi.impl.InputSpec;
+import org.apache.tez.engine.newapi.impl.OutputSpec;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
 
 /**
- * Main interface to interact with the job. Provides only getters. 
+ * Main interface to interact with the job. Provides only getters.
  */
 public interface Vertex extends Comparable<Vertex> {
 
   TezVertexID getVertexId();
   public VertexPlan getVertexPlan();
-  
+
   int getDistanceFromRoot();
   String getName();
   VertexState getState();
 
   /**
-   * Get all the counters of this vertex. 
+   * Get all the counters of this vertex.
    * @return aggregate task-counters
    */
   TezCounters getAllCounters();
@@ -64,18 +64,18 @@ public interface Vertex extends Comparable<Vertex> {
   float getProgress();
   ProgressBuilder getVertexProgress();
   VertexStatusBuilder getVertexStatus();
-  
+
   void setParallelism(int parallelism, List<byte[]> taskUserPayloads);
-  
+
   TezDependentTaskCompletionEvent[] getTaskAttemptCompletionEvents(
       TezTaskAttemptID attemptId, int fromEventId, int maxEvents);
-  
+
   void setInputVertices(Map<Vertex, EdgeProperty> inVertices);
   void setOutputVertices(Map<Vertex, EdgeProperty> outVertices);
 
   Map<Vertex, EdgeProperty> getInputVertices();
   Map<Vertex, EdgeProperty> getOutputVertices();
-  
+
   List<InputSpec> getInputSpecList();
   List<OutputSpec> getOutputSpecList();
 

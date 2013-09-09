@@ -16,36 +16,22 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi.rpc.impl;
+package org.apache.tez.engine.newapi.impl;
 
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.records.TezVertexID;
+import java.util.Collections;
+import java.util.List;
 
-/**
- * Serializable information of a given Physical Input.
- */
-public interface InputSpec {
 
-  /**
-   * @return The name of the Source Vertex whose Output is consumed by this
-   * Input.
-   */
-  public String getSourceVertexName();
+public class TezHeartbeatResponse {
 
-  /**
-   * @return The Vertex ID of the Source Vertex whose Output is consumed by this
-   * Input.
-   */
-  public TezVertexID getSourceVertexID();
+  private final List<TezEvent> events;
 
-  /**
-   * @return {@link InputDescriptor}
-   */
-  public InputDescriptor getInputDescriptor();
+  public TezHeartbeatResponse(List<TezEvent> events) {
+    this.events = Collections.unmodifiableList(events);
+  }
 
-  /**
-   * @return The no. of physical edges mapping to this Input.
-   */
-  public int getPhysicalEdgeCount();
+  public List<TezEvent> getEvents() {
+    return events;
+  }
 
 }

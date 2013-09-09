@@ -50,8 +50,6 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
-import org.apache.tez.common.InputSpec;
-import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -103,6 +101,8 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.engine.newapi.impl.InputSpec;
+import org.apache.tez.engine.newapi.impl.OutputSpec;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -656,7 +656,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       readLock.unlock();
     }
   }
-  
+
   @Override
   public void setParallelism(int parallelism, List<byte[]> taskUserPayloads) {
     writeLock.lock();
@@ -1413,7 +1413,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public int getOutputVerticesCount() {
     return this.targetVertices.size();
   }
-  
+
   @Override
   public ProcessorDescriptor getProcessorDescriptor() {
     return processorDescriptor;
@@ -1453,8 +1453,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         this.getInputVerticesCount());
     for (Entry<Vertex, EdgeProperty> entry : this.getInputVertices().entrySet()) {
       InputSpec inputSpec = new InputSpec(entry.getKey().getName(),
-          entry.getKey().getTotalTasks(),
-          entry.getValue().getEdgeDestination().getClassName());
+          entry.getValue().getEdgeDestination(), entry.getKey().getTotalTasks());
       if (LOG.isDebugEnabled()) {
         LOG.debug("For vertex : " + this.getName()
             + ", Using InputSpec : " + inputSpec);
@@ -1472,8 +1471,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount());
       for (Entry<Vertex, EdgeProperty> entry : this.getOutputVertices().entrySet()) {
         OutputSpec outputSpec = new OutputSpec(entry.getKey().getName(),
-            entry.getKey().getTotalTasks(),
-            entry.getValue().getEdgeSource().getClassName());
+            entry.getValue().getEdgeSource(), entry.getKey().getTotalTasks());
         if (LOG.isDebugEnabled()) {
           LOG.debug("For vertex : " + this.getName()
               + ", Using OutputSpec : " + outputSpec);
@@ -1500,7 +1498,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   VertexScheduler getVertexScheduler() {
     return this.vertexScheduler;
   }
-  
+
   private static void logLocationHints(VertexLocationHint locationHint) {
     Multiset<String> hosts = HashMultiset.create();
     Multiset<String> racks = HashMultiset.create();

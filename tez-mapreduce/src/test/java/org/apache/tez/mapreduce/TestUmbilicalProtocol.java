@@ -29,6 +29,9 @@ import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.engine.newapi.impl.TezEvent;
+import org.apache.tez.engine.newapi.impl.TezHeartbeatRequest;
+import org.apache.tez.engine.newapi.impl.TezHeartbeatResponse;
 import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
 
@@ -36,12 +39,12 @@ public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
 
   private static final Log LOG = LogFactory.getLog(TestUmbilicalProtocol.class);
   private ProceedToCompletionResponse proceedToCompletionResponse;
-  
-  
+
+
   public TestUmbilicalProtocol() {
     proceedToCompletionResponse = new ProceedToCompletionResponse(false, true);
   }
-  
+
   public TestUmbilicalProtocol(boolean shouldLinger) {
     if (shouldLinger) {
       proceedToCompletionResponse = new ProceedToCompletionResponse(false, false);
@@ -136,13 +139,27 @@ public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
   public void outputReady(TezTaskAttemptID taskAttemptId,
       OutputContext outputContext) throws IOException {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
   public ProceedToCompletionResponse proceedToCompletion(
       TezTaskAttemptID taskAttemptId) throws IOException {
     return proceedToCompletionResponse;
+  }
+
+  @Override
+  public TezHeartbeatResponse heartbeat(TezHeartbeatRequest request) {
+    // TODO Auto-generated method stub
+    // TODO TODONEWTEZ
+    return null;
+  }
+
+  @Override
+  public void taskFailed(TezTaskAttemptID attemptID, TezEvent taskFailedEvent)
+      throws IOException {
+    // TODO Auto-generated method stub
+    // TODO TODONEWTEZ
   }
 
 }

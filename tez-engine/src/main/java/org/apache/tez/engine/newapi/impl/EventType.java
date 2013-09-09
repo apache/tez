@@ -16,33 +16,10 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi.rpc.impl;
+package org.apache.tez.engine.newapi.impl;
 
-import org.apache.tez.dag.api.OutputDescriptor;
-import org.apache.tez.dag.records.TezVertexID;
-
-public interface OutputSpec {
-
-  /**
-   * @return The name of the Target Vertex whose Input is consumed by this
-   * Output.
-   */
-  public String getDestinationVertexName();
-
-  /**
-   * @return The Vertex ID of the Target Vertex whose Input is consumed by this
-   * Output.
-   */
-  public TezVertexID getDestinationVertexID();
-
-  /**
-   * @return {@link OutputDescriptor}
-   */
-  public OutputDescriptor getOutputDescriptor();
-
-  /**
-   * @return The no. of physical edges mapping to this Output.
-   */
-  public int getPhysicalEdgeCount();
-
+public enum EventType {
+  TASK_FAILED_EVENT,
+  DATA_MOVEMENT_EVENT,
+  INPUT_DATA_ERROR_EVENT
 }

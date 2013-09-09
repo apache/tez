@@ -83,6 +83,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.engine.newapi.impl.TaskSpec;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -175,7 +176,7 @@ public class TestTaskAttempt {
         new SystemClock(), mock(TaskHeartbeatHandler.class),
         mock(AppContext.class), locationHint, false, Resource.newInstance(1024,
             1), createFakeContainerContext());
-        
+
     TaskAttemptImpl spyTa = spy(taImpl);
     when(spyTa.resolveHosts(hosts)).thenReturn(
         resolved.toArray(new String[3]));
@@ -766,7 +767,7 @@ public class TestTaskAttempt {
     }
 
     @Override
-    protected TezTaskContext createRemoteTask() {
+    protected TaskSpec createRemoteTaskSpec() {
       // FIXME
       return null;
     }
@@ -786,7 +787,7 @@ public class TestTaskAttempt {
         TaskAttemptState state) {
     }
   }
-  
+
   private static ContainerContext createFakeContainerContext() {
     return new ContainerContext(new HashMap<String, LocalResource>(),
         new Credentials(), new HashMap<String, String>(), "");

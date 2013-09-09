@@ -35,6 +35,7 @@ import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.authorize.PolicyProvider;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
@@ -58,6 +59,10 @@ import org.apache.tez.dag.app.rm.container.AMContainerTask;
 import org.apache.tez.dag.app.security.authorize.MRAMPolicyProvider;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
+import org.apache.tez.engine.newapi.events.TaskFailedEvent;
+import org.apache.tez.engine.newapi.impl.TezEvent;
+import org.apache.tez.engine.newapi.impl.TezHeartbeatRequest;
+import org.apache.tez.engine.newapi.impl.TezHeartbeatResponse;
 import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
@@ -210,7 +215,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
               + " is invalid and will be killed");
         else
           LOG.info("Container with id: " + containerId
-              + " is valid and will be killed");              
+              + " is valid and will be killed");
         task = TASK_FOR_INVALID_JVM;
       } else {
         pingContainerHeartbeatHandler(containerId);
@@ -224,16 +229,16 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
             LOG.info("No task currently assigned to Container with id: "
                 + containerId);
           } else {
-            registerTaskAttempt(taskContext.getTask().getTaskAttemptId(),
+            registerTaskAttempt(taskContext.getTask().getTaskAttemptID(),
                 containerId);
             task = new ContainerTask(taskContext.getTask(), false);
             context.getEventHandler().handle(
                 new TaskAttemptEventStartedRemotely(taskContext.getTask()
-                    .getTaskAttemptId(), containerId, context
+                    .getTaskAttemptID(), containerId, context
                     .getApplicationACLs(), context.getAllContainers()
                     .get(containerId).getShufflePort()));
             LOG.info("Container with id: " + containerId + " given task: "
-                + taskContext.getTask().getTaskAttemptId());
+                + taskContext.getTask().getTaskAttemptID());
           }
         }
       }
@@ -474,10 +479,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     // between polls (MRTask) implies tasks end up wasting upto 1 second doing
     // nothing. Similarly for CA_COMMIT.
 
-    DAG job = context.getCurrentDAG();
-    Task task =
-        job.getVertex(taskAttemptId.getTaskID().getVertexID()).
-            getTask(taskAttemptId.getTaskID());
 
     // TODO In-Memory Shuffle
     /*
@@ -563,4 +564,30 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
           + ", ContainerId not known for this attempt");
     }
   }
+
+  @Override
+  public TezHeartbeatResponse heartbeat(TezHeartbeatRequest request)
+      throws IOException, TezException {
+    // TODO TODONEWTEZ Auto-generated method stub
+    TezTaskAttemptID taskAttemptID = request.getCurrentTaskAttemptID();
+    LOG.info("Ping from " + taskAttemptID.toString());
+    taskHeartbeatHandler.pinged(taskAttemptID);
+    pingContainerHeartbeatHandler(taskAttemptID);
+    return null;
+  }
+
+  @Override
+  public void taskFailed(TezTaskAttemptID taskAttemptId,
+      TezEvent tezEvent) throws IOException {
+    TaskFailedEvent taskFailedEvent = (TaskFailedEvent) tezEvent.getEvent();
+    LOG.fatal("Task: " + taskAttemptId + " - failed : "
+        + taskFailedEvent.getDiagnostics());
+    reportDiagnosticInfo(taskAttemptId, "Error: "
+        + taskFailedEvent.getDiagnostics());
+
+    context.getEventHandler().handle(
+        new TaskAttemptEvent(taskAttemptId, TaskAttemptEventType.TA_FAILED));
+
+  }
+
 }

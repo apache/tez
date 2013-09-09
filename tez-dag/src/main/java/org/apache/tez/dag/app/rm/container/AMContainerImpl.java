@@ -40,7 +40,6 @@ import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
-import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.ContainerContext;
@@ -55,6 +54,7 @@ import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
 import org.apache.tez.dag.app.rm.NMCommunicatorStopRequestEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 //import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
+import org.apache.tez.engine.newapi.impl.TaskSpec;
 
 @SuppressWarnings("rawtypes")
 public class AMContainerImpl implements AMContainer {
@@ -74,8 +74,8 @@ public class AMContainerImpl implements AMContainer {
   private final List<TezTaskAttemptID> completedAttempts = new LinkedList<TezTaskAttemptID>();
 
   // TODO Maybe this should be pulled from the TaskAttempt.s
-  private final Map<TezTaskAttemptID, TezTaskContext> remoteTaskMap =
-      new HashMap<TezTaskAttemptID, TezTaskContext>();
+  private final Map<TezTaskAttemptID, TaskSpec> remoteTaskMap =
+      new HashMap<TezTaskAttemptID, TaskSpec>();
 
   // TODO ?? Convert to list and hash.
 
@@ -453,10 +453,10 @@ public class AMContainerImpl implements AMContainer {
       }
       container.pendingAttempt = event.getTaskAttemptId();
       if (LOG.isDebugEnabled()) {
-        LOG.debug("AssignTA: attempt: " + event.getRemoteTaskContext());
+        LOG.debug("AssignTA: attempt: " + event.getRemoteTaskSpec());
       }
       container.remoteTaskMap
-          .put(event.getTaskAttemptId(), event.getRemoteTaskContext());
+          .put(event.getTaskAttemptId(), event.getRemoteTaskSpec());
       return container.getState();
     }
   }
@@ -600,7 +600,7 @@ public class AMContainerImpl implements AMContainer {
         AMContainerImpl container, AMContainerEvent cEvent) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("AssignTAAtIdle: attempt: " +
-            ((AMContainerEventAssignTA) cEvent).getRemoteTaskContext());
+            ((AMContainerEventAssignTA) cEvent).getRemoteTaskSpec());
       }
       return super.transition(container, cEvent);
     }

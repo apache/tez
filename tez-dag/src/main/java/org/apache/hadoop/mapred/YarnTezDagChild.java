@@ -49,13 +49,12 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
-import org.apache.tez.common.InputSpec;
-import org.apache.tez.common.OutputSpec;
-import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.Limits;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
@@ -65,7 +64,9 @@ import org.apache.tez.engine.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.engine.common.objectregistry.ObjectRegistryModule;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.TokenCache;
-import org.apache.tez.engine.runtime.RuntimeUtils;
+import org.apache.tez.engine.newapi.impl.InputSpec;
+import org.apache.tez.engine.newapi.impl.OutputSpec;
+import org.apache.tez.engine.newapi.impl.TaskSpec;
 import org.apache.tez.engine.task.RuntimeTask;
 import org.apache.tez.mapreduce.input.SimpleInput;
 import org.apache.tez.mapreduce.output.SimpleOutput;
@@ -147,11 +148,12 @@ public class YarnTezDagChild {
     if (LOG.isDebugEnabled()) {
       LOG.debug("PID, containerId: " + pid + ", " + containerIdentifier);
     }
-    TezEngineTaskContext taskContext = null;
+    TaskSpec taskSpec = null;
     ContainerTask containerTask = null;
     UserGroupInformation childUGI = null;
     TezTaskAttemptID taskAttemptId = null;
-    ContainerContext containerContext = new ContainerContext(containerIdentifier, pid);
+    ContainerContext containerContext = new ContainerContext(
+        containerIdentifier, pid);
     int getTaskMaxSleepTime = defaultConf.getInt(
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT);
@@ -173,19 +175,18 @@ public class YarnTezDagChild {
         LOG.info("TaskInfo: shouldDie: "
             + containerTask.shouldDie()
             + (containerTask.shouldDie() == true ? "" : ", taskAttemptId: "
-                + containerTask.getTezEngineTaskContext().getTaskAttemptId()));
+                + containerTask.getTaskSpec().getTaskAttemptID()));
 
         if (containerTask.shouldDie()) {
           return;
         }
         taskCount++;
-        taskContext = (TezEngineTaskContext) containerTask
-            .getTezEngineTaskContext();
+        taskSpec = containerTask.getTaskSpec();
         if (LOG.isDebugEnabled()) {
           LOG.debug("New container task context:"
-              + taskContext.toString());
+              + taskSpec.toString());
         }
-        taskAttemptId = taskContext.getTaskAttemptId();
+        taskAttemptId = taskSpec.getTaskAttemptID();
         TezVertexID newVertexId = taskAttemptId.getTaskID().getVertexID();
 
         if (currentVertexId != null) {
@@ -200,7 +201,7 @@ public class YarnTezDagChild {
 
         updateLoggers(taskAttemptId);
 
-        final Task t = createAndConfigureTezTask(taskContext, umbilical,
+        final Task t = createAndConfigureTezTask(taskSpec, umbilical,
             credentials, jobToken, attemptNumber);
 
         final Configuration conf = ((RuntimeTask)t).getConfiguration();
@@ -297,7 +298,7 @@ public class YarnTezDagChild {
   }
 
   private static Task createAndConfigureTezTask(
-      TezEngineTaskContext taskContext, TezTaskUmbilicalProtocol master,
+      TaskSpec taskSpec, TezTaskUmbilicalProtocol master,
       Credentials cxredentials, Token<JobTokenIdentifier> jobToken,
       int appAttemptId) throws IOException, InterruptedException {
 
@@ -308,19 +309,29 @@ public class YarnTezDagChild {
 
     configureLocalDirs(conf);
 
-
     // FIXME need Input/Output vertices else we have this hack
-    if (taskContext.getInputSpecList().isEmpty()) {
-      taskContext.getInputSpecList().add(
-          new InputSpec("null", 0, SimpleInput.class.getName()));
+    if (taskSpec.getInputs().isEmpty()) {
+      InputDescriptor simpleInputDesc =
+          new InputDescriptor(SimpleInput.class.getName());
+      simpleInputDesc.setUserPayload(
+          taskSpec.getProcessorDescriptor().getUserPayload());
+      taskSpec.getInputs().add(
+          new InputSpec("null", simpleInputDesc, 0));
     }
-    if (taskContext.getOutputSpecList().isEmpty()) {
-      taskContext.getOutputSpecList().add(
-          new OutputSpec("null", 0, SimpleOutput.class.getName()));
+    if (taskSpec.getOutputs().isEmpty()) {
+      OutputDescriptor simpleOutputDesc =
+          new OutputDescriptor(SimpleOutput.class.getName());
+      simpleOutputDesc.setUserPayload(
+          taskSpec.getProcessorDescriptor().getUserPayload());
+      taskSpec.getOutputs().add(
+          new OutputSpec("null", simpleOutputDesc, 0));
     }
-    Task t = RuntimeUtils.createRuntimeTask(taskContext);
-    
-    t.initialize(conf, taskContext.getProcessorUserPayload(), master);
+    Task t = null;
+
+    // FIXME TODONEWTEZ
+
+    // RuntimeUtils.createRuntimeTask(taskSpec);
+    // t.initialize(conf, taskSpec.getProcessorUserPayload(), master);
 
     // FIXME wrapper should initialize all of processor, inputs and outputs
     // Currently, processor is inited via task init
@@ -353,13 +364,13 @@ public class YarnTezDagChild {
       }
     }
   }
-  
+
   private static void updateLoggers(TezTaskAttemptID tezTaskAttemptID)
       throws FileNotFoundException {
     String containerLogDir = null;
 
     LOG.info("Redirecting log files based on TaskAttemptId: " + tezTaskAttemptID);
-    
+
     Appender appender = Logger.getRootLogger().getAppender(
         TezConfiguration.TEZ_CONTAINER_LOGGER_NAME);
     if (appender != null) {

@@ -41,12 +41,12 @@ import org.apache.tez.engine.newapi.Processor;
 import org.apache.tez.engine.newapi.TezInputContext;
 import org.apache.tez.engine.newapi.TezOutputContext;
 import org.apache.tez.engine.newapi.TezProcessorContext;
+import org.apache.tez.engine.newapi.impl.InputSpec;
+import org.apache.tez.engine.newapi.impl.OutputSpec;
+import org.apache.tez.engine.newapi.impl.TaskSpec;
 import org.apache.tez.engine.newapi.impl.TezInputContextImpl;
 import org.apache.tez.engine.newapi.impl.TezOutputContextImpl;
 import org.apache.tez.engine.newapi.impl.TezProcessorContextImpl;
-import org.apache.tez.engine.newapi.rpc.impl.InputSpec;
-import org.apache.tez.engine.newapi.rpc.impl.OutputSpec;
-import org.apache.tez.engine.newapi.rpc.impl.TaskSpec;
 
 import com.google.common.base.Preconditions;
 
@@ -56,7 +56,7 @@ public class LogicalIOProcessorRuntimeTask {
   private enum State {
     NEW, INITED, RUNNING, CLOSED
   }
-  
+
   private static final Log LOG = LogFactory
       .getLog(LogicalIOProcessorRuntimeTask.class);
 
@@ -71,11 +71,11 @@ public class LogicalIOProcessorRuntimeTask {
 
   private final ProcessorDescriptor processorDescriptor;
   private final LogicalIOProcessor processor;
-  
+
   private final TezCounters tezCounters;
 
   private State state;
-  
+
   private Map<String, LogicalInput> inputMap;
   private Map<String, LogicalOutput> outputMap;
 
@@ -177,12 +177,12 @@ public class LogicalIOProcessorRuntimeTask {
       closeOutputEventMap.put(destVertexName, closeOutputEvents);
     }
   }
-  
+
   public Map<String, List<Event>> getInputCloseEvents() {
     Preconditions.checkState(this.state == State.CLOSED, "Not closed yet");
     return closeInputEventMap;
   }
-  
+
   public Map<String, List<Event>> getOutputCloseEvents() {
     Preconditions.checkState(this.state == State.CLOSED, "Not closed yet");
     return closeOutputEventMap;

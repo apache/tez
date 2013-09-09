@@ -47,8 +47,6 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.Records;
-import org.apache.tez.common.TezEngineTaskContext;
-import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -94,6 +92,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
+import org.apache.tez.engine.newapi.impl.TaskSpec;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -294,14 +293,13 @@ public class TaskAttemptImpl implements TaskAttempt,
     return getVertexID().getDAGId();
   }
 
-  TezTaskContext createRemoteTask() {
+  TaskSpec createRemoteTaskSpec() {
     Vertex vertex = getVertex();
     ProcessorDescriptor procDesc = vertex.getProcessorDescriptor();
     DAG dag = vertex.getDAG();
-
-    return new TezEngineTaskContext(getID(), dag.getUserName(),
-        dag.getName(), vertex.getName(), procDesc,
-        vertex.getInputSpecList(), vertex.getOutputSpecList());
+    return new TaskSpec(getID(), dag.getUserName(),
+        vertex.getName(), procDesc, vertex.getInputSpecList(),
+        vertex.getOutputSpecList());
   }
 
   @Override
@@ -507,7 +505,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         .getVertex(attemptId.getTaskID().getVertexID())
         .getTask(attemptId.getTaskID());
   }
-  
+
   Vertex getVertex() {
     return appContext.getCurrentDAG()
         .getVertex(attemptId.getTaskID().getVertexID());
@@ -856,7 +854,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       // recovery.
 
       // Create the remote task.
-      TezTaskContext remoteTaskContext = ta.createRemoteTask();
+      TaskSpec remoteTaskSpec = ta.createRemoteTaskSpec();
       // Create startTaskRequest
 
       String[] requestHosts = new String[0];
@@ -889,12 +887,12 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       if (LOG.isDebugEnabled()) {
         LOG.debug("Asking for container launch with taskAttemptContext: "
-            + remoteTaskContext);
+            + remoteTaskSpec);
       }
       // Send out a launch request to the scheduler.
 
       AMSchedulerEventTALaunchRequest launchRequestEvent = new AMSchedulerEventTALaunchRequest(
-          ta.attemptId, ta.taskResource, remoteTaskContext, ta, requestHosts,
+          ta.attemptId, ta.taskResource, remoteTaskSpec, ta, requestHosts,
           requestRacks, scheduleEvent.getPriority(), ta.containerContext);
       ta.sendEvent(launchRequestEvent);
     }

@@ -18,6 +18,7 @@
 
 package org.apache.tez.engine.newapi.events;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.engine.newapi.Event;
 
 /**
@@ -26,7 +27,7 @@ import org.apache.tez.engine.newapi.Event;
  * ( such as URI for file-based output data, port info in case of
  * streaming-based data transfers ) to the Input on the destination vertex.
  */
-public final class TaskCommunicationEvent extends Event {
+public final class DataMovementEvent extends Event {
 
   /**
    * Index(i) of the i-th (physical) Input or Output that generated an Event.
@@ -46,21 +47,36 @@ public final class TaskCommunicationEvent extends Event {
   private final byte[] userPayload;
 
   /**
+   * Version number to indicate what attempt generated this Event
+   */
+  private int version;
+
+  /**
    * User Event constructor
-   * @param index Index to identify the physical edge of the input/output
+   * @param sourceIndex Index to identify the physical edge of the input/output
+   * that generated the event
    * @param userPayload User Payload of the User Event
    */
-  public TaskCommunicationEvent(int index,
+  public DataMovementEvent(int sourceIndex,
       byte[] userPayload) {
     this.userPayload = userPayload;
-    this.sourceIndex = index;
+    this.sourceIndex = sourceIndex;
+  }
+
+  @Private
+  public DataMovementEvent(int sourceIndex,
+      int targetIndex,
+      byte[] userPayload) {
+    this.userPayload = userPayload;
+    this.sourceIndex = sourceIndex;
+    this.targetIndex = targetIndex;
   }
 
   /**
    * Constructor for Processor-generated User Events
    * @param userPayload
    */
-  public TaskCommunicationEvent(byte[] userPayload) {
+  public DataMovementEvent(byte[] userPayload) {
     this(-1, userPayload);
   }
 
@@ -76,9 +92,18 @@ public final class TaskCommunicationEvent extends Event {
     return targetIndex;
   }
 
+  @Private
   void setTargetIndex(int targetIndex) {
     this.targetIndex = targetIndex;
   }
 
+  public int getVersion() {
+    return version;
+  }
+
+  @Private
+  public void setVersion(int version) {
+    this.version = version;
+  }
 
 }

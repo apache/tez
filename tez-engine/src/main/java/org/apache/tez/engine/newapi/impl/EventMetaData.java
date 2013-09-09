@@ -18,13 +18,18 @@
 
 package org.apache.tez.engine.newapi.impl;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
+import org.apache.hadoop.io.Writable;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 /**
  * Class that encapsulates all the information to identify the unique
  * object that either generated an Event or is the recipient of an Event.
  */
-public class EventMetaData {
+public class EventMetaData implements Writable {
 
   public static enum EventGenerator {
     INPUT,
@@ -36,22 +41,25 @@ public class EventMetaData {
   /**
    * Source Type ( one of Input/Output/Processor ) that generated the Event.
    */
-  private final EventGenerator generator;
+  private EventGenerator generator;
 
   /**
    * Name of the vertex where the event was generated.
    */
-  private final String taskVertexName;
+  private String taskVertexName;
 
   /**
    * Name of the vertex to which the Input or Output is connected to.
    */
-  private final String edgeVertexName;
+  private String edgeVertexName;
 
   /**
    * Task Attempt ID
    */
-  private final TezTaskAttemptID taskAttemptID;
+  private TezTaskAttemptID taskAttemptID;
+
+  public EventMetaData() {
+  }
 
   public EventMetaData(EventGenerator generator,
       String taskVertexName, String edgeVertexName,
@@ -76,6 +84,37 @@ public class EventMetaData {
 
   public String getEdgeVertexName() {
     return edgeVertexName;
+  }
+
+  @Override
+  public void write(DataOutput out) throws IOException {
+    out.writeInt(generator.ordinal());
+    if (taskVertexName != null) {
+      out.writeBoolean(true);
+      out.writeUTF(taskVertexName);
+    } else {
+      out.writeBoolean(false);
+    }
+    if (edgeVertexName != null) {
+      out.writeBoolean(true);
+      out.writeUTF(edgeVertexName);
+    } else {
+      out.writeBoolean(false);
+    }
+    taskAttemptID.write(out);
+  }
+
+  @Override
+  public void readFields(DataInput in) throws IOException {
+    generator = EventGenerator.values()[in.readInt()];
+    if (in.readBoolean()) {
+      taskVertexName = in.readUTF();
+    }
+    if (in.readBoolean()) {
+      edgeVertexName = in.readUTF();
+    }
+    taskAttemptID = new TezTaskAttemptID();
+    taskAttemptID.readFields(in);
   }
 
 }

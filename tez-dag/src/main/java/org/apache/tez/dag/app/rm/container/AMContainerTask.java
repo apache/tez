@@ -18,13 +18,13 @@
 
 package org.apache.tez.dag.app.rm.container;
 
-import org.apache.tez.common.TezTaskContext;
+import org.apache.tez.engine.newapi.impl.TaskSpec;
 
 public class AMContainerTask {
   private final boolean shouldDie;
-  private final TezTaskContext tezTask;
+  private final TaskSpec tezTask;
 
-  public AMContainerTask(boolean shouldDie, TezTaskContext tezTask) {
+  public AMContainerTask(boolean shouldDie, TaskSpec tezTask) {
     this.shouldDie = shouldDie;
     this.tezTask = tezTask;
   }
@@ -33,7 +33,7 @@ public class AMContainerTask {
     return this.shouldDie;
   }
 
-  public TezTaskContext getTask() {
+  public TaskSpec getTask() {
     return this.tezTask;
   }
 }
