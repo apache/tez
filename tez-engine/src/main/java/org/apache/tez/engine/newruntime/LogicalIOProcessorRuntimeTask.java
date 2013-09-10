@@ -44,9 +44,11 @@ import org.apache.tez.engine.newapi.TezProcessorContext;
 import org.apache.tez.engine.newapi.impl.InputSpec;
 import org.apache.tez.engine.newapi.impl.OutputSpec;
 import org.apache.tez.engine.newapi.impl.TaskSpec;
+import org.apache.tez.engine.newapi.impl.TezEvent;
 import org.apache.tez.engine.newapi.impl.TezInputContextImpl;
 import org.apache.tez.engine.newapi.impl.TezOutputContextImpl;
 import org.apache.tez.engine.newapi.impl.TezProcessorContextImpl;
+import org.apache.tez.engine.newapi.impl.TezUmbilical;
 
 import com.google.common.base.Preconditions;
 
@@ -62,6 +64,7 @@ public class LogicalIOProcessorRuntimeTask {
 
   private final TaskSpec taskSpec;
   private final Configuration tezConf;
+  private final TezUmbilical tezUmbilical;
 
   private final List<InputSpec> inputSpecs;
   private final List<LogicalInput> inputs;
@@ -85,11 +88,13 @@ public class LogicalIOProcessorRuntimeTask {
   private Map<String, List<Event>> closeInputEventMap;
   private Map<String, List<Event>> closeOutputEventMap;
 
-  public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, Configuration tezConf) {
+  public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, Configuration tezConf,
+      TezUmbilical tezUmbilical) {
     LOG.info("Initializing LogicalIOProcessorRuntimeTask with TaskSpec: "
         + taskSpec);
     this.taskSpec = taskSpec;
     this.tezConf = tezConf;
+    this.tezUmbilical = tezUmbilical;
     this.inputSpecs = taskSpec.getInputs();
     this.inputs = createInputs(inputSpecs);
     this.outputSpecs = taskSpec.getOutputs();
@@ -215,7 +220,7 @@ public class LogicalIOProcessorRuntimeTask {
 
   private TezInputContext createInputContext(InputSpec inputSpec) {
     TezInputContext inputContext = new TezInputContextImpl(tezConf,
-        taskSpec.getVertexName(), inputSpec.getSourceVertexName(),
+        tezUmbilical, taskSpec.getVertexName(), inputSpec.getSourceVertexName(),
         taskSpec.getTaskAttemptID(), tezCounters,
         inputSpec.getInputDescriptor().getUserPayload());
     return inputContext;
@@ -223,7 +228,8 @@ public class LogicalIOProcessorRuntimeTask {
 
   private TezOutputContext createOutputContext(OutputSpec outputSpec) {
     TezOutputContext outputContext = new TezOutputContextImpl(tezConf,
-        taskSpec.getVertexName(), outputSpec.getDestinationVertexName(),
+        tezUmbilical, taskSpec.getVertexName(),
+        outputSpec.getDestinationVertexName(),
         taskSpec.getTaskAttemptID(), tezCounters,
         outputSpec.getOutputDescriptor().getUserPayload());
     return outputContext;
@@ -231,8 +237,8 @@ public class LogicalIOProcessorRuntimeTask {
 
   private TezProcessorContext createProcessorContext() {
     TezProcessorContext processorContext = new TezProcessorContextImpl(tezConf,
-        taskSpec.getVertexName(), taskSpec.getTaskAttemptID(), tezCounters,
-        processorDescriptor.getUserPayload());
+        tezUmbilical, taskSpec.getVertexName(), taskSpec.getTaskAttemptID(),
+        tezCounters, processorDescriptor.getUserPayload());
     return processorContext;
   }
 
@@ -245,9 +251,9 @@ public class LogicalIOProcessorRuntimeTask {
       if (input instanceof LogicalInput) {
         inputs.add((LogicalInput) input);
       } else {
-        throw new TezUncheckedException(
-            input.getClass().getName()
-                + " is not a sub-type of LogicalInput. Only LogicalInput sub-types supported by a LogicalIOProcessor.");
+        throw new TezUncheckedException(input.getClass().getName()
+            + " is not a sub-type of LogicalInput."
+            + " Only LogicalInput sub-types supported by LogicalIOProcessor.");
       }
 
     }
@@ -263,9 +269,9 @@ public class LogicalIOProcessorRuntimeTask {
       if (output instanceof LogicalOutput) {
         outputs.add((LogicalOutput) output);
       } else {
-        throw new TezUncheckedException(
-            output.getClass().getName()
-                + " is not a sub-type of LogicalOutput. Only LogicalOutput sub-types supported by a LogicalIOProcessor.");
+        throw new TezUncheckedException(output.getClass().getName()
+            + " is not a sub-type of LogicalOutput."
+            + " Only LogicalOutput sub-types supported by LogicalIOProcessor.");
       }
     }
     return outputs;
@@ -276,10 +282,14 @@ public class LogicalIOProcessorRuntimeTask {
     Processor processor = RuntimeUtils.createClazzInstance(processorDescriptor
         .getClassName());
     if (!(processor instanceof LogicalIOProcessor)) {
-      throw new TezUncheckedException(
-          processor.getClass().getName()
-              + " is not a sub-type of LogicalIOProcessor. Only LogicalIOProcessor sub-types supported at the moment");
+      throw new TezUncheckedException(processor.getClass().getName()
+          + " is not a sub-type of LogicalIOProcessor."
+          + " Only LogicalOutput sub-types supported by LogicalIOProcessor.");
     }
     return (LogicalIOProcessor) processor;
+  }
+
+  public void handleEvent(TezEvent e) {
+    // TODO TODONEWTEZ
   }
 }

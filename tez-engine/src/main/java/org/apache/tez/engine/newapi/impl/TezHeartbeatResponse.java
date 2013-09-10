@@ -18,13 +18,22 @@
 
 package org.apache.tez.engine.newapi.impl;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.hadoop.io.Writable;
 
-public class TezHeartbeatResponse {
+public class TezHeartbeatResponse implements Writable {
 
-  private final List<TezEvent> events;
+  private long lastRequestId;
+  private List<TezEvent> events;
+
+  public TezHeartbeatResponse() {
+  }
 
   public TezHeartbeatResponse(List<TezEvent> events) {
     this.events = Collections.unmodifiableList(events);
@@ -32,6 +41,31 @@ public class TezHeartbeatResponse {
 
   public List<TezEvent> getEvents() {
     return events;
+  }
+
+  public long getLastRequestId() {
+    return lastRequestId;
+  }
+
+  @Override
+  public void write(DataOutput out) throws IOException {
+    out.writeLong(lastRequestId);
+    out.writeInt(events.size());
+    for (TezEvent e : events) {
+      e.write(out);
+    }
+  }
+
+  @Override
+  public void readFields(DataInput in) throws IOException {
+    lastRequestId = in.readLong();
+    int eventCount = in.readInt();
+    events = new ArrayList<TezEvent>(eventCount);
+    for (int i = 0; i < eventCount; ++i) {
+      TezEvent e = new TezEvent();
+      e.readFields(in);
+      events.add(e);
+    }
   }
 
 }

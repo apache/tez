@@ -20,6 +20,9 @@ option java_package = "org.apache.tez.engine.api.events";
 option java_outer_classname = "SystemEventProtos";
 option java_generate_equals_and_hash = true;
 
-message TaskFailedEventProto {
+message TaskAttemptFailedEventProto {
   optional string diagnostics = 1;
+}
+
+message TaskAttemptCompletedEventProto {
 }

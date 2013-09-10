@@ -35,11 +35,12 @@ public class TezHeartbeatRequest implements Writable {
   private TezTaskAttemptID currentTaskAttemptID;
   private int startIndex;
   private int maxEvents;
+  private long requestId;
 
   public TezHeartbeatRequest() {
   }
 
-  public TezHeartbeatRequest(List<TezEvent> events,
+  public TezHeartbeatRequest(long requestId, List<TezEvent> events,
       TezTaskAttemptID taskAttemptID,
       int startIndex, int maxEvents) {
     this.events = Collections.unmodifiableList(events);
@@ -60,6 +61,10 @@ public class TezHeartbeatRequest implements Writable {
     return maxEvents;
   }
 
+  public long getRequestId() {
+    return requestId;
+  }
+
   public TezTaskAttemptID getCurrentTaskAttemptID() {
     return currentTaskAttemptID;
   }
@@ -78,6 +83,7 @@ public class TezHeartbeatRequest implements Writable {
     }
     out.writeInt(startIndex);
     out.writeInt(maxEvents);
+    out.writeLong(requestId);
   }
 
   @Override
@@ -97,6 +103,7 @@ public class TezHeartbeatRequest implements Writable {
     }
     startIndex = in.readInt();
     maxEvents = in.readInt();
+    requestId = in.readLong();
   }
 
 }

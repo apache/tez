@@ -16,29 +16,13 @@
  * limitations under the License.
  */
 
-option java_package = "org.apache.tez.engine.api.events";
-option java_outer_classname = "EventProtos";
-option java_generate_equals_and_hash = true;
+package org.apache.tez.engine.newapi.events;
 
-message DataMovementEventProto {
-  optional int32 source_index = 1;
-  optional int32 target_index = 2;
-  optional bytes user_payload = 3;
-  optional int32 version = 4;
-}
+import org.apache.tez.engine.newapi.Event;
 
-message InputReadErrorEventProto {
-  optional int32 index = 1;
-  optional string diagnostics = 2;
-  optional int32 version = 3;
-}
+public class TaskAttemptCompletedEvent extends Event {
 
-message InputFailedEventProto {
-  optional int32 source_index = 1;
-  optional int32 target_index = 2;
-  optional int32 version = 4;
-}
+  public TaskAttemptCompletedEvent() {
+  }
 
-message InputInformationEventProto {
-  optional bytes user_payload = 1;
 }

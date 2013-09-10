@@ -25,12 +25,18 @@ import java.io.IOException;
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.engine.api.events.EventProtos.DataMovementEventProto;
-import org.apache.tez.engine.api.events.EventProtos.InputDataErrorEventProto;
-import org.apache.tez.engine.api.events.SystemEventProtos.TaskFailedEventProto;
+import org.apache.tez.engine.api.events.EventProtos.InputFailedEventProto;
+import org.apache.tez.engine.api.events.EventProtos.InputInformationEventProto;
+import org.apache.tez.engine.api.events.EventProtos.InputReadErrorEventProto;
+import org.apache.tez.engine.api.events.SystemEventProtos.TaskAttemptCompletedEventProto;
+import org.apache.tez.engine.api.events.SystemEventProtos.TaskAttemptFailedEventProto;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.events.DataMovementEvent;
+import org.apache.tez.engine.newapi.events.InputFailedEvent;
+import org.apache.tez.engine.newapi.events.InputInformationEvent;
 import org.apache.tez.engine.newapi.events.InputReadErrorEvent;
-import org.apache.tez.engine.newapi.events.TaskFailedEvent;
+import org.apache.tez.engine.newapi.events.TaskAttemptCompletedEvent;
+import org.apache.tez.engine.newapi.events.TaskAttemptFailedEvent;
 
 import com.google.protobuf.ByteString;
 
@@ -54,8 +60,14 @@ public class TezEvent implements Writable {
       eventType = EventType.DATA_MOVEMENT_EVENT;
     } else if (event instanceof InputReadErrorEvent) {
       eventType = EventType.INPUT_READ_ERROR_EVENT;
-    } else if (event instanceof TaskFailedEvent) {
-      eventType = EventType.TASK_FAILED_EVENT;
+    } else if (event instanceof TaskAttemptFailedEvent) {
+      eventType = EventType.TASK_ATTEMPT_FAILED_EVENT;
+    } else if (event instanceof TaskAttemptCompletedEvent) {
+      eventType = EventType.TASK_ATTEMPT_COMPLETED_EVENT;
+    } else if (event instanceof InputInformationEvent) {
+      eventType = EventType.INTPUT_INFORMATION_EVENT;
+    } else if (event instanceof InputFailedEvent) {
+      eventType = EventType.INPUT_FAILED_EVENT;
     } else {
       throw new TezUncheckedException("Unknown event, event="
           + event.getClass().getName());
@@ -104,17 +116,35 @@ public class TezEvent implements Writable {
       break;
     case INPUT_READ_ERROR_EVENT:
       InputReadErrorEvent ideEvt = (InputReadErrorEvent) event;
-      eventBytes = InputDataErrorEventProto.newBuilder()
+      eventBytes = InputReadErrorEventProto.newBuilder()
           .setIndex(ideEvt.getIndex())
           .setDiagnostics(ideEvt.getDiagnostics())
           .build().toByteArray();
       break;
-    case TASK_FAILED_EVENT:
-      TaskFailedEvent tfEvt = (TaskFailedEvent) event;
-      eventBytes = TaskFailedEventProto.newBuilder()
+    case TASK_ATTEMPT_FAILED_EVENT:
+      TaskAttemptFailedEvent tfEvt = (TaskAttemptFailedEvent) event;
+      eventBytes = TaskAttemptFailedEventProto.newBuilder()
           .setDiagnostics(tfEvt.getDiagnostics())
           .build().toByteArray();
       break;
+    case TASK_ATTEMPT_COMPLETED_EVENT:
+      eventBytes = TaskAttemptCompletedEventProto.newBuilder()
+          .build().toByteArray();
+      break;
+    case INPUT_FAILED_EVENT:
+      InputFailedEvent ifEvt = (InputFailedEvent) event;
+      eventBytes = InputFailedEventProto.newBuilder()
+          .setSourceIndex(ifEvt.getSourceIndex())
+          .setTargetIndex(ifEvt.getTargetIndex())
+          .setVersion(ifEvt.getVersion()).build().toByteArray();
+    case INTPUT_INFORMATION_EVENT:
+      InputInformationEvent iEvt = (InputInformationEvent) event;
+      eventBytes = InputInformationEventProto.newBuilder()
+          .setUserPayload(ByteString.copyFrom(iEvt.getUserPayload()))
+          .build().toByteArray();
+    default:
+      throw new TezUncheckedException("Unknown TezEvent"
+         + ", type=" + eventType);
     }
     out.writeInt(eventType.ordinal());
     out.writeInt(eventBytes.length);
@@ -138,16 +168,34 @@ public class TezEvent implements Writable {
           dmProto.getUserPayload().toByteArray());
       break;
     case INPUT_READ_ERROR_EVENT:
-      InputDataErrorEventProto ideProto =
-          InputDataErrorEventProto.parseFrom(eventBytes);
+      InputReadErrorEventProto ideProto =
+          InputReadErrorEventProto.parseFrom(eventBytes);
       event = new InputReadErrorEvent(ideProto.getDiagnostics(),
           ideProto.getIndex(), ideProto.getVersion());
       break;
-    case TASK_FAILED_EVENT:
-      TaskFailedEventProto tfProto =
-          TaskFailedEventProto.parseFrom(eventBytes);
-      event = new TaskFailedEvent(tfProto.getDiagnostics());
+    case TASK_ATTEMPT_FAILED_EVENT:
+      TaskAttemptFailedEventProto tfProto =
+          TaskAttemptFailedEventProto.parseFrom(eventBytes);
+      event = new TaskAttemptFailedEvent(tfProto.getDiagnostics());
       break;
+    case TASK_ATTEMPT_COMPLETED_EVENT:
+      event = new TaskAttemptCompletedEvent();
+      break;
+    case INPUT_FAILED_EVENT:
+      InputFailedEventProto ifProto =
+          InputFailedEventProto.parseFrom(eventBytes);
+      event = new InputFailedEvent(ifProto.getSourceIndex(),
+          ifProto.getTargetIndex(), ifProto.getVersion());
+      break;
+    case INTPUT_INFORMATION_EVENT:
+      InputInformationEventProto infoProto =
+          InputInformationEventProto.parseFrom(eventBytes);
+      event = new InputInformationEvent(
+          infoProto.getUserPayload().toByteArray());
+      break;
+    default:
+      throw new TezUncheckedException("Unknown TezEvent"
+         + ", type=" + eventType);
     }
   }
 

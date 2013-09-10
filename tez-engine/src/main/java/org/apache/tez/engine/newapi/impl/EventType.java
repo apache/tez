@@ -19,7 +19,8 @@
 package org.apache.tez.engine.newapi.impl;
 
 public enum EventType {
-  TASK_FAILED_EVENT,
+  TASK_ATTEMPT_COMPLETED_EVENT,
+  TASK_ATTEMPT_FAILED_EVENT,
   DATA_MOVEMENT_EVENT,
   INPUT_READ_ERROR_EVENT,
   INPUT_FAILED_EVENT,

@@ -156,8 +156,15 @@ public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
   }
 
   @Override
-  public void taskFailed(TezTaskAttemptID attemptID, TezEvent taskFailedEvent)
-      throws IOException {
+  public void taskAttemptFailed(TezTaskAttemptID attemptID,
+      TezEvent taskFailedEvent) throws IOException {
+    // TODO Auto-generated method stub
+    // TODO TODONEWTEZ
+  }
+
+  @Override
+  public void taskAttemptCompleted(TezTaskAttemptID attemptID,
+      TezEvent taskAttemptCompletedEvent) throws IOException {
     // TODO Auto-generated method stub
     // TODO TODONEWTEZ
   }

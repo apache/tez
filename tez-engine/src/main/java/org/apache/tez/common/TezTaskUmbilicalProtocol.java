@@ -87,7 +87,9 @@ public interface TezTaskUmbilicalProtocol extends Master {
   public TezHeartbeatResponse heartbeat(TezHeartbeatRequest request)
       throws IOException, TezException;
 
-  public void taskFailed(TezTaskAttemptID attemptID,
+  public void taskAttemptFailed(TezTaskAttemptID attemptID,
       TezEvent taskFailedEvent) throws IOException;
 
+  public void taskAttemptCompleted(TezTaskAttemptID attemptID,
+      TezEvent taskAttemptCompletedEvent) throws IOException;
 }

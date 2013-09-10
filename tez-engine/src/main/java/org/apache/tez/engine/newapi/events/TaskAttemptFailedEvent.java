@@ -20,11 +20,11 @@ package org.apache.tez.engine.newapi.events;
 
 import org.apache.tez.engine.newapi.Event;
 
-public class TaskFailedEvent extends Event {
+public class TaskAttemptFailedEvent extends Event {
 
   private final String diagnostics;
 
-  public TaskFailedEvent(String diagnostics) {
+  public TaskAttemptFailedEvent(String diagnostics) {
     this.diagnostics = diagnostics;
   }
 

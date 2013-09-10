@@ -26,10 +26,10 @@ import org.apache.tez.engine.newapi.TezTaskContext;
 
 public abstract class TezTaskContextImpl implements TezTaskContext {
 
-  private final Configuration conf;
-  private final String taskVertexName;
-  private final TezTaskAttemptID taskAttemptID;
-  private final TezCounters counters;
+  protected final Configuration conf;
+  protected final String taskVertexName;
+  protected final TezTaskAttemptID taskAttemptID;
+  protected final TezCounters counters;
 
   @Private
   public TezTaskContextImpl(Configuration conf,

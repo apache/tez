@@ -56,6 +56,15 @@ public class InputFailedEvent extends Event{
     this.sourceIndex = sourceIndex;
   }
 
+  @Private
+  public InputFailedEvent(int sourceIndex,
+      int targetIndex,
+      int version) {
+    this.sourceIndex = sourceIndex;
+    this.targetIndex = targetIndex;
+    this.version = version;
+  }
+
   public int getSourceIndex() {
     return sourceIndex;
   }

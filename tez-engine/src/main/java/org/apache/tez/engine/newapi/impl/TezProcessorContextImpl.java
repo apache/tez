@@ -18,6 +18,7 @@
 
 package org.apache.tez.engine.newapi.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -25,23 +26,34 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.TezProcessorContext;
+import org.apache.tez.engine.newapi.impl.EventMetaData.EventGenerator;
 
 public class TezProcessorContextImpl extends TezTaskContextImpl
   implements TezProcessorContext {
 
   private final byte[] userPayload;
+  private final TezUmbilical tezUmbilical;
+  private final EventMetaData sourceInfo;
 
-  public TezProcessorContextImpl(Configuration tezConf, String vertexName,
+  public TezProcessorContextImpl(Configuration tezConf,
+      TezUmbilical tezUmbilical, String vertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters,
       byte[] userPayload) {
     super(tezConf, vertexName, taskAttemptID, counters);
     this.userPayload = userPayload;
+    this.tezUmbilical = tezUmbilical;
+    this.sourceInfo = new EventMetaData(EventGenerator.PROCESSOR,
+        taskVertexName, "", taskAttemptID);
   }
 
   @Override
   public void sendEvents(List<Event> events) {
-    // TODO Auto-generated method stub
-
+    List<TezEvent> tezEvents = new ArrayList<TezEvent>(events.size());
+    for (Event e : events) {
+      TezEvent tEvt = new TezEvent(e, sourceInfo);
+      tezEvents.add(tEvt);
+    }
+    tezUmbilical.addEvents(tezEvents);
   }
 
   @Override

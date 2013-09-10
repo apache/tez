@@ -59,7 +59,7 @@ import org.apache.tez.dag.app.rm.container.AMContainerTask;
 import org.apache.tez.dag.app.security.authorize.MRAMPolicyProvider;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
-import org.apache.tez.engine.newapi.events.TaskFailedEvent;
+import org.apache.tez.engine.newapi.events.TaskAttemptFailedEvent;
 import org.apache.tez.engine.newapi.impl.TezEvent;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatRequest;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatResponse;
@@ -577,16 +577,31 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   }
 
   @Override
-  public void taskFailed(TezTaskAttemptID taskAttemptId,
-      TezEvent tezEvent) throws IOException {
-    TaskFailedEvent taskFailedEvent = (TaskFailedEvent) tezEvent.getEvent();
-    LOG.fatal("Task: " + taskAttemptId + " - failed : "
+  public void taskAttemptFailed(TezTaskAttemptID taskAttemptId,
+      TezEvent tezAttemptFailedEvent) throws IOException {
+    TaskAttemptFailedEvent taskFailedEvent =
+        (TaskAttemptFailedEvent) tezAttemptFailedEvent.getEvent();
+    LOG.fatal("Task Attempt: " + taskAttemptId + " - failed : "
         + taskFailedEvent.getDiagnostics());
     reportDiagnosticInfo(taskAttemptId, "Error: "
         + taskFailedEvent.getDiagnostics());
 
     context.getEventHandler().handle(
         new TaskAttemptEvent(taskAttemptId, TaskAttemptEventType.TA_FAILED));
+
+  }
+
+  @Override
+  public void taskAttemptCompleted(TezTaskAttemptID taskAttemptId,
+      TezEvent taskAttemptCompletedEvent) throws IOException {
+    LOG.info("Task attempt completed acknowledgement from "
+      + taskAttemptId.toString());
+
+    taskHeartbeatHandler.progressing(taskAttemptId);
+    pingContainerHeartbeatHandler(taskAttemptId);
+
+    context.getEventHandler().handle(
+        new TaskAttemptEvent(taskAttemptId, TaskAttemptEventType.TA_DONE));
 
   }
 
