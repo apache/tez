@@ -54,6 +54,11 @@ public class EventMetaData implements Writable {
   private String edgeVertexName;
 
   /**
+   * i'th physical input/output that this event maps to.
+   */
+  private int index;
+
+  /**
    * Task Attempt ID
    */
   private TezTaskAttemptID taskAttemptID;
@@ -102,6 +107,7 @@ public class EventMetaData implements Writable {
       out.writeBoolean(false);
     }
     taskAttemptID.write(out);
+    out.writeInt(index);
   }
 
   @Override
@@ -115,6 +121,15 @@ public class EventMetaData implements Writable {
     }
     taskAttemptID = new TezTaskAttemptID();
     taskAttemptID.readFields(in);
+    index = in.readInt();
+  }
+
+  public int getIndex() {
+    return index;
+  }
+
+  public void setIndex(int index) {
+    this.index = index;
   }
 
 }
