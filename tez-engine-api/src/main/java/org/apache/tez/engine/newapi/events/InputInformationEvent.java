@@ -16,12 +16,26 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi.impl;
+package org.apache.tez.engine.newapi.events;
 
-public enum EventType {
-  TASK_FAILED_EVENT,
-  DATA_MOVEMENT_EVENT,
-  INPUT_DATA_ERROR_EVENT,
-  INPUT_FAILED_EVENT,
-  INTPUT_INFORMATION_EVENT
+import org.apache.tez.engine.newapi.Event;
+
+/**
+ * Event used to send user specific data from the user 
+ * code in the AM to the task input
+ */
+public class InputInformationEvent extends Event {
+
+  /**
+   * User Payload for this Event
+   */
+  private final byte[] userPayload;
+  public InputInformationEvent(byte[] userPayload) {
+    this.userPayload = userPayload;
+  }
+
+  public byte[] getUserPayload() {
+    return userPayload;
+  }
+
 }
