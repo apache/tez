@@ -83,6 +83,7 @@
                 <directory>${basedir}/src/main/proto</directory>
                 <includes>
                   <include>Events.proto</include>
+                  <include>ShufflePayloads.proto</include>
                 </includes>
               </source>
               <output>${project.build.directory}/generated-sources/java</output>
