@@ -147,7 +147,7 @@ public class TezUmbilical extends AbstractService {
             case TASK_FAILED_EVENT:
               // route to ???
               break;
-            case INPUT_DATA_ERROR_EVENT:
+            case INPUT_READ_ERROR_EVENT:
               // invalid event? ignore?
               break;
             }

@@ -29,7 +29,7 @@ import org.apache.tez.engine.api.events.EventProtos.InputDataErrorEventProto;
 import org.apache.tez.engine.api.events.SystemEventProtos.TaskFailedEventProto;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.events.DataMovementEvent;
-import org.apache.tez.engine.newapi.events.InputDataErrorEvent;
+import org.apache.tez.engine.newapi.events.InputReadErrorEvent;
 import org.apache.tez.engine.newapi.events.TaskFailedEvent;
 
 import com.google.protobuf.ByteString;
@@ -52,8 +52,8 @@ public class TezEvent implements Writable {
     this.setSourceInfo(sourceInfo);
     if (event instanceof DataMovementEvent) {
       eventType = EventType.DATA_MOVEMENT_EVENT;
-    } else if (event instanceof InputDataErrorEvent) {
-      eventType = EventType.INPUT_DATA_ERROR_EVENT;
+    } else if (event instanceof InputReadErrorEvent) {
+      eventType = EventType.INPUT_READ_ERROR_EVENT;
     } else if (event instanceof TaskFailedEvent) {
       eventType = EventType.TASK_FAILED_EVENT;
     } else {
@@ -102,8 +102,8 @@ public class TezEvent implements Writable {
         .setUserPayload(ByteString.copyFrom(dmEvt.getUserPayload()))
         .build().toByteArray();
       break;
-    case INPUT_DATA_ERROR_EVENT:
-      InputDataErrorEvent ideEvt = (InputDataErrorEvent) event;
+    case INPUT_READ_ERROR_EVENT:
+      InputReadErrorEvent ideEvt = (InputReadErrorEvent) event;
       eventBytes = InputDataErrorEventProto.newBuilder()
           .setIndex(ideEvt.getIndex())
           .setDiagnostics(ideEvt.getDiagnostics())
@@ -137,10 +137,10 @@ public class TezEvent implements Writable {
           dmProto.getTargetIndex(),
           dmProto.getUserPayload().toByteArray());
       break;
-    case INPUT_DATA_ERROR_EVENT:
+    case INPUT_READ_ERROR_EVENT:
       InputDataErrorEventProto ideProto =
           InputDataErrorEventProto.parseFrom(eventBytes);
-      event = new InputDataErrorEvent(ideProto.getDiagnostics(),
+      event = new InputReadErrorEvent(ideProto.getDiagnostics(),
           ideProto.getIndex(), ideProto.getVersion());
       break;
     case TASK_FAILED_EVENT:

@@ -21,6 +21,12 @@ package org.apache.tez.engine.newapi.events;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.engine.newapi.Event;
 
+/**
+ * Event sent from the AM to an Input to indicate that one of it's sources has
+ * failed - effectively the input is no longer available from the particular
+ * source.
+ * Users are not expected to send this event.
+ */
 public class InputFailedEvent extends Event{
 
   /**
