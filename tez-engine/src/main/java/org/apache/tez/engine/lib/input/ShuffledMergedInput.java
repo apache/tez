@@ -18,90 +18,160 @@
 package org.apache.tez.engine.lib.input;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.RunningTaskContext;
-import org.apache.tez.common.TezEngineTaskContext;
-import org.apache.tez.common.TezTaskReporter;
-import org.apache.tez.engine.api.Input;
-import org.apache.tez.engine.api.Master;
-import org.apache.tez.engine.common.combine.CombineInput;
+import org.apache.hadoop.io.RawComparator;
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.engine.common.ConfigUtils;
+import org.apache.tez.engine.common.ValuesIterator;
 import org.apache.tez.engine.common.shuffle.impl.Shuffle;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
+import org.apache.tez.engine.newapi.Event;
+import org.apache.tez.engine.newapi.KVReader;
+import org.apache.tez.engine.newapi.LogicalInput;
+import org.apache.tez.engine.newapi.TezInputContext;
 
 /**
- * {@link ShuffledMergedInput} in an {@link Input} which shuffles intermediate
- * sorted data, merges them and provides key/<values> to the consumer. 
+ * <code>ShuffleMergedInput</code> in a {@link LogicalInput} which shuffles
+ * intermediate sorted data, merges them and provides key/<values> to the
+ * consumer.
+ * 
+ * The Copy and Merge will be triggered by the initialization - which is handled
+ * by the Tez framework. Input is not consumable until the Copy and Merge are
+ * complete. Methods are provided to check for this, as well as to wait for
+ * completion. Attempting to get a reader on a non-complete input will block.
+ * 
  */
-public class ShuffledMergedInput implements Input {
+public class ShuffledMergedInput implements LogicalInput {
 
   static final Log LOG = LogFactory.getLog(ShuffledMergedInput.class);
-  TezRawKeyValueIterator rIter = null;
 
-  protected TezEngineTaskContext task;
-  protected int index;
-  protected RunningTaskContext runningTaskContext;
+  protected TezInputContext inputContext;
+  protected TezRawKeyValueIterator rawIter = null;
+  protected Configuration conf;
+  protected int numInputs = 0;
+  protected Shuffle shuffle;
+  @SuppressWarnings("rawtypes")
+  protected ValuesIterator vIter;
   
-  private Configuration conf;
-  private CombineInput raw;
-  private int taskIndegree = 0;
-
-  public ShuffledMergedInput(TezEngineTaskContext task, int index) {
-    this.task = task;
-    this.index = index;
-    this.taskIndegree = this.task.getInputSpecList().get(this.index)
-        .getNumInputs();
-  }
-
-  public void mergeWith(ShuffledMergedInput other) {
-    this.taskIndegree += other.taskIndegree;
-  }
+  private TezCounter inputKeyCounter;
+  private TezCounter inputValueCounter;
   
-  public void setTask(RunningTaskContext runningTaskContext) {
-    this.runningTaskContext = runningTaskContext;
-  }
-  
-  public void initialize(Configuration conf, Master master) throws IOException,
-      InterruptedException {
-    this.conf = conf;
-        
-    Shuffle shuffle = 
-      new Shuffle(
-          task, runningTaskContext, this.conf, 
-          taskIndegree,
-          (TezTaskReporter)master, 
-          runningTaskContext.getCombineProcessor());
-    rIter = shuffle.run();
+  @Override
+  public List<Event> initialize(TezInputContext inputContext) throws IOException {
+    this.inputContext = inputContext;
+    this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
     
-    raw = new CombineInput(rIter);
+    this.inputKeyCounter = inputContext.getCounters().findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
+    this.inputValueCounter = inputContext.getCounters().findCounter(TaskCounter.REDUCE_INPUT_RECORDS);
+    
+    // Start the shuffle - copy and merge.
+    shuffle = new Shuffle(inputContext, this.conf, numInputs);
+    shuffle.run();
+    
+    return Collections.emptyList();
   }
 
-  public boolean hasNext() throws IOException, InterruptedException {
-    return raw.hasNext();
+  /**
+   * Check if the input is ready for consumption
+   * 
+   * @return true if the input is ready for consumption, or if an error occurred
+   *         processing fetching the input. false if the shuffle and merge are
+   *         still in progress
+   */
+  public boolean isInputReady() {
+    return shuffle.isInputReady();
   }
 
-  public Object getNextKey() throws IOException, InterruptedException {
-    return raw.getNextKey();
+  /**
+   * Waits for the input to become ready for consumption
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  public void waitForInputReady() throws IOException, InterruptedException {
+    rawIter = shuffle.waitForInput();
+    createValuesIteartor();
   }
 
-  @SuppressWarnings({ "unchecked", "rawtypes" })
-  public Iterable getNextValues() 
-      throws IOException, InterruptedException {
-    return raw.getNextValues();
+  @Override
+  public List<Event> close() throws IOException {
+    rawIter.close();
+    return Collections.emptyList();
   }
 
-  public float getProgress() throws IOException, InterruptedException {
-    return raw.getProgress();
+  /**
+   * Get a KVReader for the Input.</p> This method will block until the input is
+   * ready - i.e. the copy and merge stages are complete. Users can use the
+   * isInputReady method to check if the input is ready, which gives an
+   * indication of whether this method will block or not.
+   * 
+   * NOTE: All values for the current K-V pair must be read prior to invoking
+   * moveToNext. Once moveToNext() is called, the valueIterator from the
+   * previous K-V pair will throw an Exception
+   * 
+   * @return a KVReader over the sorted input.
+   */
+  @Override
+  public KVReader getReader() throws IOException {
+    if (rawIter != null) {
+      try {
+        waitForInputReady();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException("Interrupted while waiting for input ready", e);
+      }
+    }
+    return new KVReader() {
+      
+      @Override
+      public boolean moveToNext() throws IOException {
+        return vIter.moveToNext();
+      }
+      
+      @SuppressWarnings("unchecked")
+      @Override
+      public KVRecord getCurrentKV() {
+        return new KVRecord(vIter.getKey(), vIter.getValues());
+      }
+    };
   }
 
-  public void close() throws IOException {
-    raw.close();
+  @Override
+  public void handleEvents(List<Event> inputEvents) {
+    shuffle.handleEvents(inputEvents);
   }
 
-  public TezRawKeyValueIterator getIterator() {
-    return rIter;
+  @Override
+  public void setNumPhysicalInputs(int numInputs) {
+    this.numInputs = numInputs;
   }
   
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  private void createValuesIteartor()
+      throws IOException {
+    vIter = new ValuesIterator(rawIter,
+        (RawComparator) ConfigUtils.getIntermediateInputKeyComparator(conf),
+        ConfigUtils.getIntermediateInputKeyClass(conf),
+        ConfigUtils.getIntermediateInputValueClass(conf), conf, inputKeyCounter, inputValueCounter);
+            
+  }
+
+
+  // This functionality is currently broken. If there's inputs which need to be
+  // written to disk, there's a possibility that inputs from the different
+  // sources could clobber each others' output. Also the current structures do
+  // not have adequate information to de-dupe these (vertex name)
+//  public void mergeWith(ShuffledMergedInput other) {
+//    this.numInputs += other.getNumPhysicalInputs();
+//  }
+//  
+//  public int getNumPhysicalInputs() {
+//    return this.numInputs;
+//  }
 }

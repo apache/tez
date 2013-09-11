@@ -63,13 +63,14 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.server.api.ApplicationInitializationContext;
 import org.apache.hadoop.yarn.server.api.ApplicationTerminationContext;
 import org.apache.hadoop.yarn.server.api.AuxiliaryService;
-import org.apache.tez.common.RunningTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
 import org.apache.tez.engine.common.security.SecureShuffleUtils;
 import org.apache.tez.engine.common.shuffle.impl.ShuffleHeader;
 import org.apache.tez.engine.common.sort.impl.ExternalSorter;
+import org.apache.tez.engine.newapi.TezOutputContext;
+import org.apache.tez.engine.shuffle.common.ShuffleUtils;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -245,9 +246,9 @@ public class ShuffleHandler extends AuxiliaryService {
     userRsrc.remove(appId.toString());
   }
 
-  public synchronized void init(Configuration conf, RunningTaskContext task) {
+  public void initialize(TezOutputContext outputContext, Configuration conf) throws IOException {
     this.init(new Configuration(conf));
-    tokenSecret = task.getJobTokenSecret();
+    tokenSecret = ShuffleUtils.getJobTokenSecretFromTokenBytes(outputContext.getServiceConsumerMetaData(MAPREDUCE_SHUFFLE_SERVICEID));
   }
 
   @Override
@@ -441,14 +442,16 @@ public class ShuffleHandler extends AuxiliaryService {
       for (String mapId : mapIds) {
         try {
           // TODO: Error handling - validate mapId via TezTaskAttemptId.forName
-          if (!mapId.equals(sorter.getTaskAttemptId().toString())) {
-            String errorMessage =
-                "Illegal shuffle request mapId: " + mapId
-                    + " while actual mapId is " + sorter.getTaskAttemptId(); 
-            LOG.warn(errorMessage);
-            sendError(ctx, errorMessage, BAD_REQUEST);
-            return;
-          }
+          
+          // TODO NEWTEZ Fix this. TaskAttemptId is no longer valid. mapId validation will not work anymore.
+//          if (!mapId.equals(sorter.getTaskAttemptId().toString())) {
+//            String errorMessage =
+//                "Illegal shuffle request mapId: " + mapId
+//                    + " while actual mapId is " + sorter.getTaskAttemptId(); 
+//            LOG.warn(errorMessage);
+//            sendError(ctx, errorMessage, BAD_REQUEST);
+//            return;
+//          }
 
           lastMap =
             sendMapOutput(ctx, ch, userRsrc.get(jobId), jobId, mapId, reduceId);

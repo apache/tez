@@ -68,8 +68,8 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatus.State;
-import org.apache.tez.engine.lib.input.ShuffledMergedInput;
-import org.apache.tez.engine.lib.output.OnFileSortedOutput;
+import org.apache.tez.engine.lib.oldinput.OldShuffledMergedInput;
+import org.apache.tez.engine.lib.oldoutput.OldOnFileSortedOutput;
 import org.apache.tez.mapreduce.examples.MRRSleepJob;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.ISleepReducer;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.MRRSleepJobPartitioner;
@@ -396,23 +396,23 @@ public class TestMRRJobsDAGApi {
     Edge edge1 = new Edge(stage1Vertex, stage2Vertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL, new OutputDescriptor(
-        OnFileSortedOutput.class.getName()), new InputDescriptor(
-                ShuffledMergedInput.class.getName())));
+        OldOnFileSortedOutput.class.getName()), new InputDescriptor(
+                OldShuffledMergedInput.class.getName())));
     Edge edge11 = new Edge(stage11Vertex, stage22Vertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, 
         SchedulingType.SEQUENTIAL, new OutputDescriptor(
-        OnFileSortedOutput.class.getName()), new InputDescriptor(
-                ShuffledMergedInput.class.getName())));
+        OldOnFileSortedOutput.class.getName()), new InputDescriptor(
+                OldShuffledMergedInput.class.getName())));
     Edge edge2 = new Edge(stage2Vertex, stage3Vertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, 
         SchedulingType.SEQUENTIAL, new OutputDescriptor(
-        OnFileSortedOutput.class.getName()), new InputDescriptor(
-                ShuffledMergedInput.class.getName())));
+        OldOnFileSortedOutput.class.getName()), new InputDescriptor(
+                OldShuffledMergedInput.class.getName())));
     Edge edge3 = new Edge(stage22Vertex, stage3Vertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, 
         SchedulingType.SEQUENTIAL, new OutputDescriptor(
-        OnFileSortedOutput.class.getName()), new InputDescriptor(
-                ShuffledMergedInput.class.getName())));
+        OldOnFileSortedOutput.class.getName()), new InputDescriptor(
+                OldShuffledMergedInput.class.getName())));
 
     dag.addEdge(edge1);
     dag.addEdge(edge11);

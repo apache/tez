@@ -18,52 +18,103 @@
 package org.apache.tez.engine.lib.output;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.RunningTaskContext;
-import org.apache.tez.common.TezEngineTaskContext;
-import org.apache.tez.engine.api.Master;
-import org.apache.tez.engine.api.Output;
-import org.apache.tez.engine.common.sort.SortingOutput;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.engine.common.shuffle.newimpl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.engine.common.sort.impl.ExternalSorter;
 import org.apache.tez.engine.common.sort.impl.dflt.DefaultSorter;
-import org.apache.tez.engine.records.OutputContext;
+import org.apache.tez.engine.newapi.Event;
+import org.apache.tez.engine.newapi.KVWriter;
+import org.apache.tez.engine.newapi.LogicalOutput;
+import org.apache.tez.engine.newapi.TezOutputContext;
+import org.apache.tez.engine.newapi.Writer;
+import org.apache.tez.engine.newapi.events.DataMovementEvent;
+import org.apache.tez.engine.shuffle.common.ShuffleUtils;
+
+import com.google.common.collect.Lists;
 
 /**
- * {@link OnFileSortedOutput} is an {@link Output} which sorts key/value pairs 
+ * <code>OnFileSortedOutput</code> is an {@link LogicalOutput} which sorts key/value pairs 
  * written to it and persists it to a file.
  */
-public class OnFileSortedOutput implements SortingOutput {
+public class OnFileSortedOutput implements LogicalOutput {
   
   protected ExternalSorter sorter;
+  protected Configuration conf;
+  protected int numOutputs;
+  protected TezOutputContext outputContext;
+  private long startTime;
+  private long endTime;
   
-  public OnFileSortedOutput(TezEngineTaskContext task) throws IOException {
-    sorter = new DefaultSorter(task);
-  }
   
-  public void initialize(Configuration conf, Master master) 
-      throws IOException, InterruptedException {
-    sorter.initialize(conf, master);
+  @Override
+  public List<Event> initialize(TezOutputContext outputContext)
+      throws IOException {
+    this.startTime = System.nanoTime();
+    this.outputContext = outputContext;
+    sorter = new DefaultSorter();
+    this.conf = TezUtils.createConfFromUserPayload(outputContext.getUserPayload());
+    // Initializing this parametr in this conf since it is used in multiple
+    // places (wherever LocalDirAllocator is used) - TezTaskOutputFiles,
+    // TezMerger, etc.
+    this.conf.setStrings(TezJobConfig.LOCAL_DIRS, outputContext.getWorkDirs());
+    sorter.initialize(outputContext, conf, numOutputs);
+    return Collections.emptyList();
   }
 
   @Override
-  public void setTask(RunningTaskContext task) {
-    sorter.setTask(task);
-  }
-  
-  public void write(Object key, Object value) throws IOException,
-      InterruptedException {
-    sorter.write(key, value);
+  public Writer getWriter() throws IOException {
+    return new KVWriter() {
+      @Override
+      public void write(Object key, Object value) throws IOException {
+        sorter.write(key, value);
+      }
+    };
   }
 
-  public void close() throws IOException, InterruptedException {
+  @Override
+  public void handleEvents(List<Event> outputEvents) {
+    // Not expecting any events.
+  }
+
+  @Override
+  public void setNumPhysicalOutputs(int numOutputs) {
+    this.numOutputs = numOutputs;
+  }
+
+  @Override
+  public List<Event> close() throws IOException {
     sorter.flush();
     sorter.close();
-  }
+    this.endTime = System.nanoTime();
 
-  @Override
-  public OutputContext getOutputContext() {
-    return null;
-  }
+    String host = System.getenv(ApplicationConstants.Environment.NM_HOST
+        .toString());
+    ByteBuffer shuffleMetadata = outputContext
+        .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
+    int shufflePort = ShuffleUtils.deserializeShuffleMetaData(shuffleMetadata);
 
+    DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
+        .newBuilder();
+    payloadBuilder.setHost(host);
+    payloadBuilder.setPort(shufflePort);
+    payloadBuilder.setPathComponent(outputContext.getUniqueIdentifier());
+    payloadBuilder.setRunDuration((int) ((endTime - startTime) / 1000));
+    DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
+
+    List<Event> events = Lists.newArrayListWithCapacity(numOutputs);
+
+    for (int i = 0; i < numOutputs; i++) {
+      DataMovementEvent event = new DataMovementEvent(i,
+          payloadProto.toByteArray());
+      events.add(event);
+    }
+    return events;
+  }
 }

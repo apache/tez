@@ -39,11 +39,7 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezTaskContext;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.sort.impl.ExternalSorter;
 import org.apache.tez.engine.common.sort.impl.IFile;
@@ -53,13 +49,15 @@ import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.engine.common.sort.impl.TezSpillRecord;
 import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 import org.apache.tez.engine.common.sort.impl.TezMerger.Segment;
-import org.apache.tez.engine.records.OutputContext;
+import org.apache.tez.engine.newapi.TezOutputContext;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class DefaultSorter extends ExternalSorter implements IndexedSortable {
-
+  
   private static final Log LOG = LogFactory.getLog(DefaultSorter.class);
 
+  // TODO NEWTEZ Progress reporting to Tez framework. (making progress vs %complete)
+  
   /**
    * The size of each record in the index file for the map-outputs.
    */
@@ -112,26 +110,15 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   private int totalIndexCacheMemory;
   private int indexCacheMemoryLimit;
 
-  public DefaultSorter(TezTaskContext task) throws IOException {
-    // Does this assisted inject work ?
-    super((TezEngineTaskContext)task);
-  }
-
   @Override
-  public void initialize(Configuration conf, Master master)
-      throws IOException, InterruptedException {
-    if (task == null) {
-      LOG.info("Bailing!", new IOException());
-      return;
-    }
-
-    super.initialize(conf, master);
+  public void initialize(TezOutputContext outputContext, Configuration conf, int numOutputs) throws IOException { 
+    super.initialize(outputContext, conf, numOutputs);
 
     // sanity checks
-    final float spillper = job.getFloat(
+    final float spillper = this.conf.getFloat(
         TezJobConfig.TEZ_ENGINE_SORT_SPILL_PERCENT,
         TezJobConfig.DEFAULT_TEZ_ENGINE_SORT_SPILL_PERCENT);
-    final int sortmb = job.getInt(TezJobConfig.TEZ_ENGINE_IO_SORT_MB,
+    final int sortmb = this.conf.getInt(TezJobConfig.TEZ_ENGINE_IO_SORT_MB,
         TezJobConfig.DEFAULT_TEZ_ENGINE_IO_SORT_MB);
     if (spillper > (float) 1.0 || spillper <= (float) 0.0) {
       throw new IOException("Invalid \""
@@ -142,7 +129,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
           + "\": " + sortmb);
     }
 
-    indexCacheMemoryLimit = job.getInt(TezJobConfig.TEZ_ENGINE_INDEX_CACHE_MEMORY_LIMIT_BYTES,
+    indexCacheMemoryLimit = this.conf.getInt(TezJobConfig.TEZ_ENGINE_INDEX_CACHE_MEMORY_LIMIT_BYTES,
                                        TezJobConfig.DEFAULT_TEZ_ENGINE_INDEX_CACHE_MEMORY_LIMIT_BYTES);
 
     // buffers and accounting
@@ -172,7 +159,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     keySerializer.open(bb);
 
     spillInProgress = false;
-    minSpillsForCombine = job.getInt(TezJobConfig.TEZ_ENGINE_COMBINE_MIN_SPILLS, 3);
+    minSpillsForCombine = this.conf.getInt(TezJobConfig.TEZ_ENGINE_COMBINE_MIN_SPILLS, 3);
     spillThread.setDaemon(true);
     spillThread.setName("SpillThread");
     spillLock.lock();
@@ -194,7 +181,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
 
   @Override
   public void write(Object key, Object value)
-      throws IOException, InterruptedException {
+      throws IOException {
     collect(
         key, value, partitioner.getPartition(key, value, partitions));
   }
@@ -206,7 +193,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
    */
   synchronized void collect(Object key, Object value, final int partition
                                    ) throws IOException {
-    runningTaskContext.getTaskReporter().progress();
+
     if (key.getClass() != keyClass) {
       throw new IOException("Type mismatch in key from map: expected "
                             + keyClass.getName() + ", received "
@@ -571,7 +558,6 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
               // wait for spill
               try {
                 while (spillInProgress) {
-                  runningTaskContext.getTaskReporter().progress();
                   spillDone.await();
                 }
               } catch (InterruptedException e) {
@@ -598,12 +584,11 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   }
 
   @Override
-  public void flush() throws IOException, InterruptedException {
+  public void flush() throws IOException {
     LOG.info("Starting flush of map output");
     spillLock.lock();
     try {
       while (spillInProgress) {
-        runningTaskContext.getTaskReporter().progress();
         spillDone.await();
       }
       checkSpillException();
@@ -655,7 +640,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   }
 
   @Override
-  public void close() throws IOException, InterruptedException { }
+  public void close() throws IOException { }
 
   protected class SpillThread extends Thread {
 
@@ -698,10 +683,9 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     final Throwable lspillException = sortSpillException;
     if (lspillException != null) {
       if (lspillException instanceof Error) {
-        final String logMsg = "Task " + task.getTaskAttemptId() + " failed : " +
-          StringUtils.stringifyException(lspillException);
-        runningTaskContext.getTaskReporter().reportFatalError(
-            task.getTaskAttemptId(), lspillException, logMsg);
+        final String logMsg = "Task " + outputContext.getUniqueIdentifier()
+            + " failed : " + StringUtils.stringifyException(lspillException);
+        outputContext.fatalError(lspillException, logMsg);
       }
       throw new IOException("Spill failed", lspillException);
     }
@@ -739,7 +723,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
       throws IOException, InterruptedException {
     final int mstart = getMetaStart();
     final int mend = getMetaEnd();
-    sorter.sort(this, mstart, mend, runningTaskContext.getTaskReporter());
+    sorter.sort(this, mstart, mend, nullProgressable);
     spill(mstart, mend);
   }
 
@@ -766,7 +750,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         IFile.Writer writer = null;
         try {
           long segmentStart = out.getPos();
-          writer = new Writer(job, out, keyClass, valClass, codec,
+          writer = new Writer(conf, out, keyClass, valClass, codec,
                                     spilledRecordsCounter);
           if (combineProcessor == null) {
             // spill directly
@@ -824,7 +808,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         Path indexFilename =
             mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
                 * MAP_OUTPUT_INDEX_RECORD_LENGTH);
-        spillRec.writeToFile(indexFilename, job);
+        spillRec.writeToFile(indexFilename, conf);
       } else {
         indexCacheList.add(spillRec);
         totalIndexCacheMemory +=
@@ -859,7 +843,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         try {
           long segmentStart = out.getPos();
           // Create a new codec, don't care!
-          writer = new IFile.Writer(job, out, keyClass, valClass, codec,
+          writer = new IFile.Writer(conf, out, keyClass, valClass, codec,
                                           spilledRecordsCounter);
 
           if (i == partition) {
@@ -890,7 +874,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         Path indexFilename =
             mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
                 * MAP_OUTPUT_INDEX_RECORD_LENGTH);
-        spillRec.writeToFile(indexFilename, job);
+        spillRec.writeToFile(indexFilename, conf);
       } else {
         indexCacheList.add(spillRec);
         totalIndexCacheMemory +=
@@ -988,12 +972,12 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     public void close() { }
   }
 
-  private void mergeParts() throws IOException, InterruptedException {
+  private void mergeParts() throws IOException {
     // get the approximate size of the final output/index files
     long finalOutFileSize = 0;
     long finalIndexFileSize = 0;
     final Path[] filename = new Path[numSpills];
-    final TezTaskAttemptID mapId = task.getTaskAttemptId();
+    final String taskIdentifier = outputContext.getUniqueIdentifier();
 
     for(int i = 0; i < numSpills; i++) {
       filename[i] = mapOutputFile.getSpillFile(i);
@@ -1007,16 +991,15 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
           mapOutputFile.getOutputIndexFileForWriteInVolume(filename[0]));
       } else {
         indexCacheList.get(0).writeToFile(
-          mapOutputFile.getOutputIndexFileForWriteInVolume(filename[0]), job);
+          mapOutputFile.getOutputIndexFileForWriteInVolume(filename[0]), conf);
       }
-      sortPhase.complete();
       return;
     }
 
     // read in paged indices
     for (int i = indexCacheList.size(); i < numSpills; ++i) {
       Path indexFileName = mapOutputFile.getSpillIndexFile(i);
-      indexCacheList.add(new TezSpillRecord(indexFileName, job));
+      indexCacheList.add(new TezSpillRecord(indexFileName, conf));
     }
 
     //make correction in the length to include the sequence file header
@@ -1039,7 +1022,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         for (int i = 0; i < partitions; i++) {
           long segmentStart = finalOut.getPos();
           Writer writer =
-            new Writer(job, finalOut, keyClass, valClass, codec, null);
+            new Writer(conf, finalOut, keyClass, valClass, codec, null);
           writer.close();
 
           TezIndexRecord rec =
@@ -1049,15 +1032,13 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
                   writer.getCompressedLength());
           sr.putIndex(rec, i);
         }
-        sr.writeToFile(finalIndexFile, job);
+        sr.writeToFile(finalIndexFile, conf);
       } finally {
         finalOut.close();
       }
-      sortPhase.complete();
       return;
     }
     else {
-      sortPhase.addPhases(partitions); // Divide sort phase into sub-phases
       TezMerger.considerFinalMergeForProgress();
 
       final TezSpillRecord spillRec = new TezSpillRecord(partitions);
@@ -1069,12 +1050,12 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
           TezIndexRecord indexRecord = indexCacheList.get(i).getIndex(parts);
 
           Segment s =
-            new Segment(job, rfs, filename[i], indexRecord.getStartOffset(),
+            new Segment(conf, rfs, filename[i], indexRecord.getStartOffset(),
                              indexRecord.getPartLength(), codec, true);
           segmentList.add(i, s);
 
           if (LOG.isDebugEnabled()) {
-            LOG.debug("MapId=" + mapId + " Reducer=" + parts +
+            LOG.debug("TaskIdentifier=" + taskIdentifier + " Partition=" + parts +
                 "Spill =" + i + "(" + indexRecord.getStartOffset() + "," +
                 indexRecord.getRawLength() + ", " +
                 indexRecord.getPartLength() + ")");
@@ -1082,34 +1063,33 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         }
 
         int mergeFactor =
-            job.getInt(TezJobConfig.TEZ_ENGINE_IO_SORT_FACTOR,
+            this.conf.getInt(TezJobConfig.TEZ_ENGINE_IO_SORT_FACTOR,
                 TezJobConfig.DEFAULT_TEZ_ENGINE_IO_SORT_FACTOR);
         // sort the segments only if there are intermediate merges
         boolean sortSegments = segmentList.size() > mergeFactor;
         //merge
-        TezRawKeyValueIterator kvIter = TezMerger.merge(job, rfs,
+        TezRawKeyValueIterator kvIter = TezMerger.merge(conf, rfs,
                        keyClass, valClass, codec,
                        segmentList, mergeFactor,
-                       new Path(mapId.toString()),
-                       (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(job),
-                       runningTaskContext.getTaskReporter(), sortSegments,
+                       new Path(taskIdentifier),
+                       (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(conf),
+                       nullProgressable, sortSegments,
                        null, spilledRecordsCounter,
-                       sortPhase.phase());
+                       null); // Not using any Progress in TezMerger. Should just work.
 
         //write merged output to disk
         long segmentStart = finalOut.getPos();
         Writer writer =
-            new Writer(job, finalOut, keyClass, valClass, codec,
+            new Writer(conf, finalOut, keyClass, valClass, codec,
                 spilledRecordsCounter);
         if (combineProcessor == null || numSpills < minSpillsForCombine) {
           TezMerger.writeFile(kvIter, writer,
-              runningTaskContext.getTaskReporter(), job);
+              nullProgressable, conf);
         } else {
           runCombineProcessor(kvIter, writer);
         }
         writer.close();
 
-        sortPhase.startNextPhase();
         // record offsets
         final TezIndexRecord rec =
             new TezIndexRecord(
@@ -1118,17 +1098,11 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
                 writer.getCompressedLength());
         spillRec.putIndex(rec, parts);
       }
-      spillRec.writeToFile(finalIndexFile, job);
+      spillRec.writeToFile(finalIndexFile, conf);
       finalOut.close();
       for(int i = 0; i < numSpills; i++) {
         rfs.delete(filename[i],true);
       }
     }
   }
-
-  @Override
-  public OutputContext getOutputContext() {
-    return null;
-  }
-
 }

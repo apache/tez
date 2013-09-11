@@ -16,16 +16,15 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.common.task.local.output;
+package org.apache.tez.engine.common.task.local.newoutput;
 
 import java.io.IOException;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.fs.Path;
-import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.engine.common.shuffle.impl.TaskAttemptIdentifier;
 
 /**
  * Manipulate the working area for the transient store for maps and reduces.
@@ -38,12 +37,14 @@ import org.apache.tez.dag.records.TezTaskID;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public abstract class TezTaskOutput implements Configurable {
+public abstract class TezTaskOutput {
 
   protected Configuration conf;
   protected String uniqueId;
 
-  public TezTaskOutput() {
+  public TezTaskOutput(Configuration conf, String uniqueId) {
+    this.conf = conf;
+    this.uniqueId = uniqueId;
   }
 
   /**
@@ -133,42 +134,23 @@ public abstract class TezTaskOutput implements Configurable {
   /**
    * Return a local reduce input file created earlier
    *
-   * @param mapId a map task id
+   * @param attemptIdentifier The identifier for the source task
    * @return path
    * @throws IOException
    */
-  public abstract Path getInputFile(int mapId) throws IOException;
+  public abstract Path getInputFile(TaskAttemptIdentifier attemptIdentifier) throws IOException;
 
   /**
    * Create a local reduce input file name.
    *
-   * @param mapId a map task id
+   * @param taskIdentifier The identifier for the source task
    * @param size the size of the file
    * @return path
    * @throws IOException
    */
   public abstract Path getInputFileForWrite(
-      TezTaskID mapId, long size) throws IOException;
+      int taskIdentifier, long size) throws IOException;
 
   /** Removes all of the files related to a task. */
   public abstract void removeAll() throws IOException;
-
-  public void setUniqueIdentifier(String uniqueId) {
-    this.uniqueId = uniqueId;
-  }
-  
-  public String getUniqueIdentifier() {
-    return this.uniqueId;
-  }
-  
-  @Override
-  public void setConf(Configuration conf) {
-    this.conf = conf;
-  }
-
-  @Override
-  public Configuration getConf() {
-    return conf;
-  }
-
 }

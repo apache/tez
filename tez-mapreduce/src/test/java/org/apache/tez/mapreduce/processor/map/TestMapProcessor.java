@@ -38,8 +38,7 @@ import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.sort.impl.IFile;
 import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
-import org.apache.tez.engine.lib.output.InMemorySortedOutput;
-import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
+import org.apache.tez.engine.lib.oldoutput.OldLocalOnFileSorterOutput;
 import org.apache.tez.mapreduce.TestUmbilicalProtocol;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
@@ -47,14 +46,9 @@ import org.apache.tez.mapreduce.hadoop.mapreduce.TezNullOutputCommitter;
 import org.apache.tez.mapreduce.input.SimpleInput;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MapUtils;
-import org.jboss.netty.buffer.BigEndianHeapChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.TruncatedChannelBuffer;
-import org.jboss.netty.handler.stream.ChunkedStream;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 @SuppressWarnings("deprecation")
@@ -122,7 +116,7 @@ public class TestMapProcessor {
         Collections.singletonList(new InputSpec("NullVertex", 0,
             SimpleInput.class.getName())),
         Collections.singletonList(new OutputSpec("FakeVertex", 1,
-            LocalOnFileSorterOutput.class.getName())));
+            OldLocalOnFileSorterOutput.class.getName())));
 
     MRTask mrTask = (MRTask)t.getProcessor();
     Assert.assertEquals(TezNullOutputCommitter.class.getName(), mrTask
@@ -151,76 +145,76 @@ public class TestMapProcessor {
     reader.close();
   }
 
-  @Test
-  @Ignore
-  public void testMapProcessorWithInMemSort() throws Exception {
-    
-    String vertexName = MultiStageMRConfigUtil.getInitialMapVertexName();
-    
-    final int partitions = 2;
-    JobConf jobConf = new JobConf(defaultConf);
-    jobConf.setNumReduceTasks(partitions);
-    setUpJobConf(jobConf);
-    TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles();
-    mapOutputs.setConf(jobConf);
-    
-    Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
-    Configuration stageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
-        vertexName);
-    
-    JobConf job = new JobConf(stageConf);
-
-    job.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
-        "localized-resources").toUri().toString());
-    localFs.delete(workDir, true);
-    Task t =
-        MapUtils.runMapProcessor(
-            localFs, workDir, job, 0, new Path(workDir, "map0"), 
-            new TestUmbilicalProtocol(true), vertexName, 
-            Collections.singletonList(new InputSpec("NullVertex", 0,
-                SimpleInput.class.getName())),
-            Collections.singletonList(new OutputSpec("FakeVertex", 1,
-                InMemorySortedOutput.class.getName()))
-            );
-    InMemorySortedOutput[] outputs = (InMemorySortedOutput[])t.getOutputs();
-    
-    verifyInMemSortedStream(outputs[0], 0, 4096);
-    int i = 0;
-    for (i = 2; i < 256; i <<= 1) {
-      verifyInMemSortedStream(outputs[0], 0, i);
-    }
-    verifyInMemSortedStream(outputs[0], 1, 4096);
-    for (i = 2; i < 256; i <<= 1) {
-      verifyInMemSortedStream(outputs[0], 1, i);
-    }
-
-    t.close();
-  }
-  
-  private void verifyInMemSortedStream(
-      InMemorySortedOutput output, int partition, int chunkSize) 
-          throws Exception {
-    ChunkedStream cs = 
-        new ChunkedStream(
-            output.getSorter().getSortedStream(partition), chunkSize);
-    int actualBytes = 0;
-    ChannelBuffer b = null;
-    while ((b = (ChannelBuffer)cs.nextChunk()) != null) {
-      LOG.info("b = " + b);
-      actualBytes += 
-          (b instanceof TruncatedChannelBuffer) ? 
-              ((TruncatedChannelBuffer)b).capacity() :
-              ((BigEndianHeapChannelBuffer)b).readableBytes();
-    }
-    
-    LOG.info("verifyInMemSortedStream" +
-    		" partition=" + partition + 
-    		" chunkSize=" + chunkSize +
-        " expected=" + 
-    		output.getSorter().getShuffleHeader(partition).getCompressedLength() + 
-        " actual=" + actualBytes);
-    Assert.assertEquals(
-        output.getSorter().getShuffleHeader(partition).getCompressedLength(), 
-        actualBytes);
-  }
+//  @Test
+//  @Ignore
+//  public void testMapProcessorWithInMemSort() throws Exception {
+//    
+//    String vertexName = MultiStageMRConfigUtil.getInitialMapVertexName();
+//    
+//    final int partitions = 2;
+//    JobConf jobConf = new JobConf(defaultConf);
+//    jobConf.setNumReduceTasks(partitions);
+//    setUpJobConf(jobConf);
+//    TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles();
+//    mapOutputs.setConf(jobConf);
+//    
+//    Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
+//    Configuration stageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
+//        vertexName);
+//    
+//    JobConf job = new JobConf(stageConf);
+//
+//    job.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
+//        "localized-resources").toUri().toString());
+//    localFs.delete(workDir, true);
+//    Task t =
+//        MapUtils.runMapProcessor(
+//            localFs, workDir, job, 0, new Path(workDir, "map0"), 
+//            new TestUmbilicalProtocol(true), vertexName, 
+//            Collections.singletonList(new InputSpec("NullVertex", 0,
+//                SimpleInput.class.getName())),
+//            Collections.singletonList(new OutputSpec("FakeVertex", 1,
+//                OldInMemorySortedOutput.class.getName()))
+//            );
+//    OldInMemorySortedOutput[] outputs = (OldInMemorySortedOutput[])t.getOutputs();
+//    
+//    verifyInMemSortedStream(outputs[0], 0, 4096);
+//    int i = 0;
+//    for (i = 2; i < 256; i <<= 1) {
+//      verifyInMemSortedStream(outputs[0], 0, i);
+//    }
+//    verifyInMemSortedStream(outputs[0], 1, 4096);
+//    for (i = 2; i < 256; i <<= 1) {
+//      verifyInMemSortedStream(outputs[0], 1, i);
+//    }
+//
+//    t.close();
+//  }
+//  
+//  private void verifyInMemSortedStream(
+//      OldInMemorySortedOutput output, int partition, int chunkSize) 
+//          throws Exception {
+//    ChunkedStream cs = 
+//        new ChunkedStream(
+//            output.getSorter().getSortedStream(partition), chunkSize);
+//    int actualBytes = 0;
+//    ChannelBuffer b = null;
+//    while ((b = (ChannelBuffer)cs.nextChunk()) != null) {
+//      LOG.info("b = " + b);
+//      actualBytes += 
+//          (b instanceof TruncatedChannelBuffer) ? 
+//              ((TruncatedChannelBuffer)b).capacity() :
+//              ((BigEndianHeapChannelBuffer)b).readableBytes();
+//    }
+//    
+//    LOG.info("verifyInMemSortedStream" +
+//    		" partition=" + partition + 
+//    		" chunkSize=" + chunkSize +
+//        " expected=" + 
+//    		output.getSorter().getShuffleHeader(partition).getCompressedLength() + 
+//        " actual=" + actualBytes);
+//    Assert.assertEquals(
+//        output.getSorter().getShuffleHeader(partition).getCompressedLength(), 
+//        actualBytes);
+//  }
 }

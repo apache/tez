@@ -55,6 +55,7 @@ import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 public class TezMerger {  
   private static final Log LOG = LogFactory.getLog(TezMerger.class);
 
+  
   // Local directories
   private static LocalDirAllocator lDirAlloc = 
     new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);

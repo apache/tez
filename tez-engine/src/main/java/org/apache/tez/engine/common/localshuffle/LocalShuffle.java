@@ -29,25 +29,24 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.RunningTaskContext;
-import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezTaskReporter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.sort.impl.TezMerger;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
-import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
-import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
+import org.apache.tez.engine.common.task.local.newoutput.TezLocalTaskOutputFiles;
+import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutput;
+import org.apache.tez.engine.newapi.TezInputContext;
 
 @SuppressWarnings({"rawtypes"})
 public class LocalShuffle {
 
-  private final TezEngineTaskContext taskContext;
-  private final RunningTaskContext runningTaskContext;
+  // TODO NEWTEZ This is broken.
+
+  private final TezInputContext inputContext;
   private final Configuration conf;
-  private final int tasksInDegree;
+  private final int numInputs;
 
   private final Class keyClass;
   private final Class valClass;
@@ -60,18 +59,15 @@ public class LocalShuffle {
   private final CompressionCodec codec;
   private final TezTaskOutput mapOutputFile;
 
-  public LocalShuffle(TezEngineTaskContext taskContext, 
-      RunningTaskContext runningTaskContext, 
-      Configuration conf,
-      TezTaskReporter reporter
-      ) throws IOException {
-    this.taskContext = taskContext;
-    this.runningTaskContext = runningTaskContext;
+  public LocalShuffle(TezInputContext inputContext, Configuration conf, int numInputs) throws IOException {
+    this.inputContext = inputContext;
     this.conf = conf;
+    this.numInputs = numInputs;
+    
     this.keyClass = ConfigUtils.getIntermediateInputKeyClass(conf);
     this.valClass = ConfigUtils.getIntermediateInputValueClass(conf);
     this.comparator = ConfigUtils.getIntermediateInputKeyComparator(conf);
-
+    
     this.sortFactor =
         conf.getInt(
             TezJobConfig.TEZ_ENGINE_IO_SORT_FACTOR, 
@@ -79,10 +75,9 @@ public class LocalShuffle {
     
     this.rfs = FileSystem.getLocal(conf).getRaw();
 
-    this.spilledRecordsCounter = 
-        reporter.getCounter(TaskCounter.SPILLED_RECORDS);
+    this.spilledRecordsCounter = inputContext.getCounters().findCounter(TaskCounter.SPILLED_RECORDS);
     
-    // compression
+ // compression
     if (ConfigUtils.isIntermediateInputCompressed(conf)) {
       Class<? extends CompressionCodec> codecClass =
           ConfigUtils.getIntermediateInputCompressorClass(conf, DefaultCodec.class);
@@ -90,19 +85,16 @@ public class LocalShuffle {
     } else {
       this.codec = null;
     }
-
-    this.tasksInDegree = taskContext.getInputSpecList().get(0).getNumInputs();
-
+    
     // Always local
-    this.mapOutputFile = new TezLocalTaskOutputFiles();
-    this.mapOutputFile.setConf(conf);
-
+    this.mapOutputFile = new TezLocalTaskOutputFiles(conf, inputContext.getUniqueIdentifier());
   }
+ 
   
   public TezRawKeyValueIterator run() throws IOException {
     // Copy is complete, obviously! 
-    this.runningTaskContext.getProgress().addPhase("copy").complete();
 
+    
     // Merge
     return TezMerger.merge(conf, rfs, 
         keyClass, valClass,
@@ -110,17 +102,17 @@ public class LocalShuffle {
         getMapFiles(),
         false, 
         sortFactor,
-        new Path(taskContext.getTaskAttemptId().toString()), 
+        new Path(inputContext.getUniqueIdentifier()), // TODO NEWTEZ This is likely broken 
         comparator,
-        runningTaskContext.getTaskReporter(), spilledRecordsCounter, null, null);
+        null, spilledRecordsCounter, null, null);
   }
   
   private Path[] getMapFiles() 
   throws IOException {
     List<Path> fileList = new ArrayList<Path>();
       // for local jobs
-      for(int i = 0; i < tasksInDegree; ++i) {
-        fileList.add(mapOutputFile.getInputFile(i));
+      for(int i = 0; i < numInputs; ++i) {
+        //fileList.add(mapOutputFile.getInputFile(i));
       }
       
     return fileList.toArray(new Path[0]);

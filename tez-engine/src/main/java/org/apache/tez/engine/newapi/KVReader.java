@@ -22,33 +22,57 @@ import java.io.IOException;
 
 /**
  * A key/value(s) pair based {@link Reader}.
+ * 
+ * Example usage
+ * <code>
+ * while (kvReader.moveToNext()) {
+ *   KVRecord kvRecord = getCurrentKV();
+ *   Object key =  kvRecord.getKey();
+ *   Iterable values = kvRecord.getValues();
+ * </code>
+ *
  */
 public interface KVReader extends Reader {
 
   /**
-   * Check if there is another key/value(s) pair
+   * Moves to the next key/values(s) pair
    * 
-   * @return true if another key/value(s) pair exists
+   * @return true if another key/value(s) pair exists, false if there are no more.
    * @throws IOException
    *           if an error occurs
    */
-  public boolean hasNext() throws IOException;
+  public boolean moveToNext() throws IOException;
 
   /**
-   * Gets the next key.
-   * 
-   * @return the next key, or null if none exists
+   * Return the current key/value(s) pair. Use moveToNext() to advance.
+   * @return
    * @throws IOException
-   *           if an error occurs
    */
-  public Object getNextKey() throws IOException;
+  public KVRecord getCurrentKV() throws IOException;
+  
+  
 
+  
   /**
-   * Get the next values.
-   * 
-   * @return an <code>Iterable</code> view of the values for the current key
-   * @throws IOException
-   *           if an error occurs
+   * Represents a key and an associated set of values
+   *
    */
-  public Iterable<Object> getNextValues() throws IOException;
+  public static class KVRecord {
+
+    private Object key;
+    private Iterable<Object> values;
+
+    public KVRecord(Object key, Iterable<Object> values) {
+      this.key = key;
+      this.values = values;
+    }
+
+    public Object getKey() {
+      return this.key;
+    }
+
+    public Iterable<Object> getValues() {
+      return this.values;
+    }
+  }
 }

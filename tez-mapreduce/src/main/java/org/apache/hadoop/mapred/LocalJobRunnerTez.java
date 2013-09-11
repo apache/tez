@@ -76,8 +76,8 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
-import org.apache.tez.engine.lib.input.LocalMergedInput;
-import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
+import org.apache.tez.engine.lib.oldinput.LocalMergedInput;
+import org.apache.tez.engine.lib.oldoutput.OldLocalOnFileSorterOutput;
 import org.apache.tez.engine.newapi.impl.TezEvent;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatRequest;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatResponse;
@@ -257,7 +257,7 @@ public class LocalJobRunnerTez implements ClientProtocol {
                   Collections.singletonList(new InputSpec("srcVertex", 0,
                       SimpleInput.class.getName())),
                   Collections.singletonList(new OutputSpec("tgtVertex", 0,
-                      LocalOnFileSorterOutput.class.getName())));
+                      OldLocalOnFileSorterOutput.class.getName())));
 
           TezTaskOutput mapOutput = new TezLocalTaskOutputFiles();
           mapOutput.setConf(localConf);

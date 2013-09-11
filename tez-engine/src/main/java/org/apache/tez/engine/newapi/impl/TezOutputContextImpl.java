@@ -49,6 +49,9 @@ public class TezOutputContextImpl extends TezTaskContextImpl
     this.tezUmbilical = tezUmbilical;
     this.sourceInfo = new EventMetaData(EventGenerator.OUTPUT, taskVertexName,
         destinationVertexName, taskAttemptID);
+    this.uniqueIdentifier = String.format("%s_%s_%6d_%2d_%s", taskAttemptID
+        .getTaskID().getVertexID().getDAGId().toString(), taskVertexName,
+        getTaskIndex(), getAttemptNumber(), destinationVertexName);
   }
 
   @Override

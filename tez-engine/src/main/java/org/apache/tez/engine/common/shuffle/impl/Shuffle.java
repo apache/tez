@@ -18,6 +18,10 @@
 package org.apache.tez.engine.common.shuffle.impl;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
@@ -27,18 +31,16 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
-import org.apache.hadoop.util.Progress;
-import org.apache.tez.common.RunningTaskContext;
-import org.apache.tez.common.TezEngineTaskContext;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezTaskReporter;
-import org.apache.tez.common.TezTaskStatus;
-import org.apache.tez.common.TezUtils;
-import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
+import org.apache.tez.engine.newapi.Event;
+import org.apache.tez.engine.newapi.TezInputContext;
+
+import com.google.common.base.Preconditions;
 
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
@@ -46,160 +48,176 @@ public class Shuffle implements ExceptionReporter {
   
   private static final Log LOG = LogFactory.getLog(Shuffle.class);
   private static final int PROGRESS_FREQUENCY = 2000;
-  private static final int MAX_EVENTS_TO_FETCH = 10000;
-  private static final int MIN_EVENTS_TO_FETCH = 100;
-  private static final int MAX_RPC_OUTSTANDING_EVENTS = 3000000;
-
-  private final TezEngineTaskContext taskContext;
-  private final RunningTaskContext runningTaskContext;
-  private final Configuration conf;
-  private final TezTaskReporter reporter;
-  private final ShuffleClientMetrics metrics;
   
+  private final Configuration conf;
+  private final TezInputContext inputContext;
+  private final ShuffleClientMetrics metrics;
+
+  private final ShuffleInputEventHandler eventHandler;
   private final ShuffleScheduler scheduler;
   private final MergeManager merger;
   private Throwable throwable = null;
   private String throwingThreadName = null;
-  private final Progress copyPhase;
-  private final Progress mergePhase;
-  private final int tasksInDegree;
+  private final int numInputs;
   private final AtomicInteger reduceStartId;
   private AtomicInteger reduceRange = new AtomicInteger(
       TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE_DEFAULT);
   
-  public Shuffle(TezEngineTaskContext taskContext,
-                 RunningTaskContext runningTaskContext,
-                 Configuration conf,
-                 int tasksInDegree,
-                 TezTaskReporter reporter,
-                 Processor combineProcessor
-                 ) throws IOException {
-    this.taskContext = taskContext;
-    this.runningTaskContext = runningTaskContext;
+  private FutureTask<TezRawKeyValueIterator> runShuffleFuture;
+
+  public Shuffle(TezInputContext inputContext, Configuration conf, int numInputs) throws IOException {
+    // TODO NEWTEZ Handle Combiner
+    this.inputContext = inputContext;
     this.conf = conf;
-    this.reporter = reporter;
-    this.metrics = 
-        new ShuffleClientMetrics(
-            taskContext.getTaskAttemptId(), this.conf, 
-            this.taskContext.getUser(), this.taskContext.getJobName());
-    this.tasksInDegree = tasksInDegree;
+    this.metrics = new ShuffleClientMetrics(inputContext.getDAGName(),
+        inputContext.getTaskVertexName(), inputContext.getTaskIndex(),
+        this.conf, UserGroupInformation.getCurrentUser().getShortUserName());
+            
+    this.numInputs = numInputs;
     
     FileSystem localFS = FileSystem.getLocal(this.conf);
     LocalDirAllocator localDirAllocator = 
         new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
-    
-    copyPhase = this.runningTaskContext.getProgress().addPhase("copy");
-    mergePhase = this.runningTaskContext.getProgress().addPhase("merge");
 
     // TODO TEZ Get rid of Map / Reduce references.
     TezCounter shuffledMapsCounter = 
-        reporter.getCounter(TaskCounter.SHUFFLED_MAPS);
+        inputContext.getCounters().findCounter(TaskCounter.SHUFFLED_MAPS);
     TezCounter reduceShuffleBytes =
-        reporter.getCounter(TaskCounter.REDUCE_SHUFFLE_BYTES);
+        inputContext.getCounters().findCounter(TaskCounter.REDUCE_SHUFFLE_BYTES);
     TezCounter failedShuffleCounter =
-        reporter.getCounter(TaskCounter.FAILED_SHUFFLE);
+        inputContext.getCounters().findCounter(TaskCounter.FAILED_SHUFFLE);
     TezCounter spilledRecordsCounter = 
-        reporter.getCounter(TaskCounter.SPILLED_RECORDS);
+        inputContext.getCounters().findCounter(TaskCounter.SPILLED_RECORDS);
     TezCounter reduceCombineInputCounter =
-        reporter.getCounter(TaskCounter.COMBINE_INPUT_RECORDS);
+        inputContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS);
     TezCounter mergedMapOutputsCounter =
-        reporter.getCounter(TaskCounter.MERGED_MAP_OUTPUTS);
+        inputContext.getCounters().findCounter(TaskCounter.MERGED_MAP_OUTPUTS);
     
-    reduceStartId = new AtomicInteger( 
-        taskContext.getTaskAttemptId().getTaskID().getId()); 
+    reduceStartId = new AtomicInteger(inputContext.getTaskIndex());
     LOG.info("Shuffle assigned reduce start id: " + reduceStartId.get()
         + " with default reduce range: " + reduceRange.get());
 
-    scheduler = 
-      new ShuffleScheduler(this.conf, tasksInDegree,
-                                runningTaskContext.getStatus(), 
-                                this, copyPhase, 
-                                shuffledMapsCounter, 
-                                reduceShuffleBytes, 
-                                failedShuffleCounter);
-    merger = new MergeManager(this.taskContext.getTaskAttemptId(), 
-                                    this.conf, localFS, 
-                                    localDirAllocator, reporter, 
-                                    combineProcessor, 
-                                    spilledRecordsCounter, 
-                                    reduceCombineInputCounter, 
-                                    mergedMapOutputsCounter, 
-                                    this, mergePhase);
+    scheduler = new ShuffleScheduler(
+          this.inputContext,
+          this.conf,
+          this.numInputs,
+          this,
+          shuffledMapsCounter,
+          reduceShuffleBytes,
+          failedShuffleCounter);
+    eventHandler= new ShuffleInputEventHandler(
+          inputContext,
+          this,
+          scheduler);
+    merger = new MergeManager(
+          this.conf,
+          localFS,
+          localDirAllocator,
+          inputContext,
+          null, // TODO NEWTEZ Fix Combiner
+          spilledRecordsCounter,
+          reduceCombineInputCounter,
+          mergedMapOutputsCounter,
+          this);
   }
 
-  public TezRawKeyValueIterator run() throws IOException, InterruptedException {
-    // Scale the maximum events we fetch per RPC call to mitigate OOM issues
-    // on the ApplicationMaster when a thundering herd of reducers fetch events
-    // TODO: This should not be necessary after HADOOP-8942
-    int eventsPerReducer = Math.max(MIN_EVENTS_TO_FETCH,
-        MAX_RPC_OUTSTANDING_EVENTS / tasksInDegree);
-    int maxEventsToFetch = Math.min(MAX_EVENTS_TO_FETCH, eventsPerReducer);
-
-    // Start the map-completion events fetcher thread
-    final EventFetcher eventFetcher = 
-      new EventFetcher(taskContext.getTaskAttemptId(), reporter, scheduler, this,
-          maxEventsToFetch);
-    eventFetcher.start();
-    
-    // Start the map-output fetcher threads
-    final int numFetchers = 
-        conf.getInt(
-            TezJobConfig.TEZ_ENGINE_SHUFFLE_PARALLEL_COPIES, 
-            TezJobConfig.DEFAULT_TEZ_ENGINE_SHUFFLE_PARALLEL_COPIES);
-    Fetcher[] fetchers = new Fetcher[numFetchers];
-    for (int i=0; i < numFetchers; ++i) {
-      fetchers[i] = new Fetcher(conf, scheduler,
-          merger, reporter, metrics, this,
-          runningTaskContext.getJobTokenSecret());
-      fetchers[i].start();
+  public void handleEvents(List<Event> events) {
+    eventHandler.handleEvents(events);
+  }
+  
+  /**
+   * Indicates whether the Shuffle and Merge processing is complete.
+   * @return false if not complete, true if complete or if an error occurred.
+   */
+  public boolean isInputReady() {
+    if (runShuffleFuture == null) {
+      return false;
     }
-    
-    // Wait for shuffle to complete successfully
-    while (!scheduler.waitUntilDone(PROGRESS_FREQUENCY)) {
-      reporter.progress();
+    return runShuffleFuture.isDone();
+    //return scheduler.isDone() && merger.isMergeComplete();
+  }
+
+  /**
+   * Waits for the Shuffle and Merge to complete, and returns an iterator over the input.
+   * @return an iterator over the fetched input.
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  public TezRawKeyValueIterator waitForInput() throws IOException, InterruptedException {
+    Preconditions.checkState(runShuffleFuture != null,
+        "waitForInput can only be called after run");
+    TezRawKeyValueIterator kvIter;
+    try {
+      kvIter = runShuffleFuture.get();
+    } catch (ExecutionException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof IOException) {
+        throw (IOException) cause;
+      } else if (cause instanceof InterruptedException) {
+        throw (InterruptedException) cause;
+      } else {
+        throw new TezUncheckedException(
+            "Unexpected exception type while running Shuffle and Merge", cause);
+      }
+    }
+    return kvIter;
+  }
+
+  public void run() {
+    RunShuffleCallable runShuffle = new RunShuffleCallable();
+    runShuffleFuture = new FutureTask<TezRawKeyValueIterator>(runShuffle);
+    new Thread(runShuffleFuture, "ShuffleMergeRunner").start();
+  }
+  
+  private class RunShuffleCallable implements Callable<TezRawKeyValueIterator> {
+    @Override
+    public TezRawKeyValueIterator call() throws IOException, InterruptedException {
+      final int numFetchers = 
+          conf.getInt(
+              TezJobConfig.TEZ_ENGINE_SHUFFLE_PARALLEL_COPIES, 
+              TezJobConfig.DEFAULT_TEZ_ENGINE_SHUFFLE_PARALLEL_COPIES);
+      Fetcher[] fetchers = new Fetcher[numFetchers];
+      for (int i = 0; i < numFetchers; ++i) {
+        fetchers[i] = new Fetcher(conf, scheduler, merger, metrics, Shuffle.this, inputContext);
+        fetchers[i].start();
+      }
       
-      synchronized (this) {
+      while (!scheduler.waitUntilDone(PROGRESS_FREQUENCY)) {
+        synchronized (this) {
+          if (throwable != null) {
+            throw new ShuffleError("error in shuffle in " + throwingThreadName,
+                                   throwable);
+          }
+        }
+      }
+      
+      // Stop the map-output fetcher threads
+      for (Fetcher fetcher : fetchers) {
+        fetcher.shutDown();
+      }
+      fetchers = null;
+      
+      // stop the scheduler
+      scheduler.close();
+
+
+      // Finish the on-going merges...
+      TezRawKeyValueIterator kvIter = null;
+      try {
+        kvIter = merger.close();
+      } catch (Throwable e) {
+        throw new ShuffleError("Error while doing final merge " , e);
+      }
+      
+      // Sanity check
+      synchronized (Shuffle.this) {
         if (throwable != null) {
           throw new ShuffleError("error in shuffle in " + throwingThreadName,
                                  throwable);
         }
       }
+      return kvIter;
     }
-
-    // Stop the event-fetcher thread
-    eventFetcher.shutDown();
-    
-    // Stop the map-output fetcher threads
-    for (Fetcher fetcher : fetchers) {
-      fetcher.shutDown();
-    }
-    fetchers = null;
-    
-    // stop the scheduler
-    scheduler.close();
-
-    copyPhase.complete(); // copy is already complete
-    runningTaskContext.getStatus().setPhase(TezTaskStatus.Phase.SORT);
-    
-    runningTaskContext.statusUpdate();
-    
-    // Finish the on-going merges...
-    TezRawKeyValueIterator kvIter = null;
-    try {
-      kvIter = merger.close();
-    } catch (Throwable e) {
-      throw new ShuffleError("Error while doing final merge " , e);
-    }
-
-    // Sanity check
-    synchronized (this) {
-      if (throwable != null) {
-        throw new ShuffleError("error in shuffle in " + throwingThreadName,
-                               throwable);
-      }
-    }
-    
-    return kvIter;
   }
   
   public int getReduceStartId() {
@@ -229,19 +247,8 @@ public class Shuffle implements ExceptionReporter {
       super(msg, t);
     }
   }
-  
-  public void updateUserPayload(byte[] userPayload) throws IOException {
-    if(userPayload == null) {
-      return;
-    }
-    Configuration conf = TezUtils.createConfFromUserPayload(userPayload);
-    int reduceRange = conf.getInt(
-        TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE,
-        TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE_DEFAULT);
-    setReduceRange(reduceRange);
-  }
-  
-  private void setReduceRange(int range) {
+
+  public void setPartitionRange(int range) {
     if (range == reduceRange.get()) {
       return;
     }

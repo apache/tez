@@ -48,7 +48,7 @@ import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.sort.SortingOutput;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
-import org.apache.tez.engine.lib.input.ShuffledMergedInput;
+import org.apache.tez.engine.lib.oldinput.OldShuffledMergedInput;
 import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.input.SimpleInput;
 import org.apache.tez.mapreduce.output.SimpleOutput;
@@ -108,12 +108,12 @@ implements Processor {
 
     if (in instanceof SimpleInput) {
       ((SimpleInput)in).setTask(this);
-    } else if (in instanceof ShuffledMergedInput) {
-      ((ShuffledMergedInput)in).setTask(this);
+    } else if (in instanceof OldShuffledMergedInput) {
+      ((OldShuffledMergedInput)in).setTask(this);
     }
     
     if(ins.length > 1) {
-      if (!(in instanceof ShuffledMergedInput)) {
+      if (!(in instanceof OldShuffledMergedInput)) {
         throw new IOException(
             "Only ShuffledMergedInput can support multiple inputs"
                 + ". inputCount=" + ins.length);
@@ -124,15 +124,15 @@ implements Processor {
                 + ins.length + " From contex:" + inputs.size());
       }
       // initialize and merge the remaining
-      ShuffledMergedInput s0 = ((ShuffledMergedInput)in);
+      OldShuffledMergedInput s0 = ((OldShuffledMergedInput)in);
       for(int i=1; i<ins.length; ++i) {
         Input inputi = ins[i];
-        if (!(inputi instanceof ShuffledMergedInput)) {
+        if (!(inputi instanceof OldShuffledMergedInput)) {
           throw new IOException(
               "Only ShuffledMergedInput can support multiple inputs"
                   + ". inputCount=" + ins.length);
         }      
-        ShuffledMergedInput si = ((ShuffledMergedInput)inputi);
+        OldShuffledMergedInput si = ((OldShuffledMergedInput)inputi);
         s0.mergeWith(si);
       }
     }
@@ -162,10 +162,10 @@ implements Processor {
         reporter.getCounter(TaskCounter.REDUCE_INPUT_RECORDS);
         
     // Sanity check
-    if (!(in instanceof ShuffledMergedInput)) {
+    if (!(in instanceof OldShuffledMergedInput)) {
       throw new IOException("Illegal input to reduce: " + in.getClass());
     }
-    ShuffledMergedInput shuffleInput = (ShuffledMergedInput)in;
+    OldShuffledMergedInput shuffleInput = (OldShuffledMergedInput)in;
 
     if (useNewApi) {
       try {
@@ -194,7 +194,7 @@ implements Processor {
   void runOldReducer(JobConf job,
       TezTaskUmbilicalProtocol umbilical,
       final MRTaskReporter reporter,
-      ShuffledMergedInput input,
+      OldShuffledMergedInput input,
       RawComparator comparator,
       Class keyClass,
       Class valueClass,
@@ -265,7 +265,7 @@ implements Processor {
     private Counter reduceInputValueCounter;
     private Progress reducePhase;
 
-    public ReduceValuesIterator (ShuffledMergedInput in,
+    public ReduceValuesIterator (OldShuffledMergedInput in,
         RawComparator<KEY> comparator, 
         Class<KEY> keyClass,
         Class<VALUE> valClass,
@@ -297,7 +297,7 @@ implements Processor {
   void runNewReducer(JobConf job,
       final TezTaskUmbilicalProtocol umbilical,
       final MRTaskReporter reporter,
-      ShuffledMergedInput input,
+      OldShuffledMergedInput input,
       RawComparator comparator,
       Class keyClass,
       Class valueClass,

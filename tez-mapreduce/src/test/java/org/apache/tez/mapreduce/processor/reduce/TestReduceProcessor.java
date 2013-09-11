@@ -40,8 +40,8 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
-import org.apache.tez.engine.lib.input.LocalMergedInput;
-import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
+import org.apache.tez.engine.lib.oldinput.LocalMergedInput;
+import org.apache.tez.engine.lib.oldoutput.OldLocalOnFileSorterOutput;
 import org.apache.tez.engine.runtime.RuntimeUtils;
 import org.apache.tez.mapreduce.TestUmbilicalProtocol;
 import org.apache.tez.mapreduce.TezTestUtils;
@@ -122,7 +122,7 @@ public class TestReduceProcessor {
         Collections.singletonList(new InputSpec("NullVertex", 0,
             SimpleInput.class.getName())),
         Collections.singletonList(new OutputSpec("FakeVertex", 1,
-            LocalOnFileSorterOutput.class.getName())));
+            OldLocalOnFileSorterOutput.class.getName())));
 
     LOG.info("Starting reduce...");
     

@@ -56,7 +56,7 @@ public class IDUtils {
     }
     throw new IllegalArgumentException(exceptionMsg);
   }
-
+  
   /** Construct a TaskAttemptID object from given string 
    * @return constructed TaskAttemptID object or null if the given String is null
    * @throws IllegalArgumentException if the given string is malformed
@@ -89,5 +89,4 @@ public class IDUtils {
     }
     throw new IllegalArgumentException(exceptionMsg);
   }
-
 }

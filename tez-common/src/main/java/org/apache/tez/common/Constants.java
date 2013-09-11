@@ -22,6 +22,8 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 
 public class Constants {
 
+  // TODO NEWTEZ Check which of these constants are expecting specific pieces of information which are being removed - like taskAttemptId
+  
   public static final String TEZ = "tez";
 
   public static final String MAP_OUTPUT_FILENAME_STRING = "file.out";
@@ -31,6 +33,7 @@ public class Constants {
   public static final int MAP_OUTPUT_INDEX_RECORD_LENGTH = 24;
   public static String MERGED_OUTPUT_PREFIX = ".merged";
   
+  // TODO NEWTEZ Remove this constant once the old code is removed.
   public static final String TEZ_ENGINE_TASK_ATTEMPT_ID = 
       "tez.engine.task.attempt.id";
 

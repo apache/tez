@@ -29,6 +29,7 @@ import org.apache.hadoop.classification.InterfaceStability;
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public enum TaskCounter {
+  // TODO Eventually, rename counters to be non-MR specific and map them to MR equivalent.
   MAP_INPUT_RECORDS, 
   MAP_OUTPUT_RECORDS,
   MAP_SKIPPED_RECORDS,

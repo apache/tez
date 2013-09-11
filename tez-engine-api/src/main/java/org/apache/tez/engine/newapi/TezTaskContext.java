@@ -18,8 +18,10 @@
 
 package org.apache.tez.engine.newapi;
 
+import java.nio.ByteBuffer;
 import java.util.List;
 
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounters;
 
 /**
@@ -28,7 +30,17 @@ import org.apache.tez.common.counters.TezCounters;
  */
 public interface TezTaskContext {
 
+  // TODO NEWTEZ
+  // Scale the maximum events we fetch per RPC call to mitigate OOM issues
+  // on the ApplicationMaster when a thundering herd of reducers fetch events
+  // This should not be necessary after HADOOP-8942
 
+  /**
+   * Get the {@link ApplicationId} for the running app
+   * @return the {@link ApplicationId}
+   */
+  public ApplicationId getApplicationId();
+  
   /**
    * Get the index of this Task
    * @return Task Index
@@ -42,11 +54,16 @@ public interface TezTaskContext {
   public int getAttemptNumber();
 
   /**
+   * Get the name of the DAG
+   * @return the DAG name
+   */
+  public String getDAGName();
+  
+  /**
    * Get the name of the Vertex in which the task is running
    * @return Vertex Name
    */
   public String getTaskVertexName();
-
 
   public TezCounters getCounters();
 
@@ -62,4 +79,46 @@ public interface TezTaskContext {
    */
   public byte[] getUserPayload();
 
+  /**
+   * Get the work diectories for the Input/Output/Processor
+   * @return an array of work dirs
+   */
+  public String[] getWorkDirs();
+  
+  /**
+   * Returns an identifier which is unique to the specific Input, Processor or
+   * Output
+   * 
+   * @return
+   */
+  public String getUniqueIdentifier();
+  
+  /**
+   * Report a fatal error to the framework. This will cause the entire task to
+   * fail and should not be used for reporting temporary or recoverable errors
+   * 
+   * @param exception an exception representing the error
+   */
+  public void fatalError(Throwable exception, String message);
+  
+  /**
+   * Returns meta-data for the specified service. As an example, when the MR
+   * ShuffleHandler is used - this would return the jobToken serialized as bytes
+   * 
+   * @param serviceName
+   *          the name of the service for which meta-data is required
+   * @return a ByteBuffer representing the meta-data
+   */
+  public ByteBuffer getServiceConsumerMetaData(String serviceName);
+
+  /**
+   * Return Provider meta-data for the specified service As an example, when the
+   * MR ShuffleHandler is used - this would return the shuffle port serialized
+   * as bytes
+   * 
+   * @param serviceName
+   *          the name of the service for which provider meta-data is required
+   * @return a ByteBuffer representing the meta-data
+   */
+  public ByteBuffer getServiceProviderMetaData(String serviceName);
 }

@@ -23,7 +23,7 @@ import java.io.IOException;
 /**
  * A key/value(s) pair based {@link Writer}
  */
-public interface KVWriter {
+public interface KVWriter extends Writer {
   /**
    * Writes a key/value pair.
    * 

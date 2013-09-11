@@ -18,65 +18,39 @@
 package org.apache.tez.engine.lib.input;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezEngineTaskContext;
-import org.apache.tez.common.TezTaskReporter;
-import org.apache.tez.engine.api.Input;
-import org.apache.tez.engine.api.Master;
-import org.apache.tez.engine.common.combine.CombineInput;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.engine.common.localshuffle.LocalShuffle;
-import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
+import org.apache.tez.engine.newapi.Event;
+import org.apache.tez.engine.newapi.LogicalInput;
+import org.apache.tez.engine.newapi.TezInputContext;
 
 /**
- * {@link LocalMergedInput} in an {@link Input} which shuffles intermediate
+ * <code>LocalMergedInput</code> in an {@link LogicalInput} which shuffles intermediate
  * sorted data, merges them and provides key/<values> to the consumer. 
  */
 public class LocalMergedInput extends ShuffledMergedInput {
 
-  TezRawKeyValueIterator rIter = null;
-  
-  private Configuration conf;
-  private CombineInput raw;
 
-  public LocalMergedInput(TezEngineTaskContext task, int index) {
-    super(task, index);
+  // TODO NEWTEZ Fix CombineProcessor
+  //private CombineInput raw;
+
+  @Override
+  public List<Event> initialize(TezInputContext inputContext) throws IOException {
+    this.inputContext = inputContext;
+    this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
+
+    LocalShuffle localShuffle = new LocalShuffle(inputContext, conf, numInputs);
+    // TODO NEWTEZ async run and checkIfComplete methods
+    rawIter = localShuffle.run();
+    return Collections.emptyList();
   }
 
-  public void initialize(Configuration conf, Master master) throws IOException,
-      InterruptedException {
-    this.conf = conf;
-
-    LocalShuffle shuffle =
-        new LocalShuffle(task, runningTaskContext, this.conf, (TezTaskReporter)master);
-    rIter = shuffle.run();
-    raw = new CombineInput(rIter);
+  @Override
+  public List<Event> close() throws IOException {
+    rawIter.close();
+    return Collections.emptyList();
   }
-
-  public boolean hasNext() throws IOException, InterruptedException {
-    return raw.hasNext();
-  }
-
-  public Object getNextKey() throws IOException, InterruptedException {
-    return raw.getNextKey();
-  }
-
-  @SuppressWarnings({ "unchecked", "rawtypes" })
-  public Iterable getNextValues() 
-      throws IOException, InterruptedException {
-    return raw.getNextValues();
-  }
-
-  public float getProgress() throws IOException, InterruptedException {
-    return raw.getProgress();
-  }
-
-  public void close() throws IOException {
-    raw.close();
-  }
-
-  public TezRawKeyValueIterator getIterator() {
-    return rIter;
-  }
-  
 }

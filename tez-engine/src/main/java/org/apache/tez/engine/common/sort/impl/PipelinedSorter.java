@@ -43,18 +43,15 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.IndexedSorter;
 import org.apache.hadoop.util.Progress;
-import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.common.ConfigUtils;
-import org.apache.tez.engine.common.sort.SortingOutput;
+import org.apache.tez.engine.newapi.TezOutputContext;
+import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 import org.apache.tez.engine.common.sort.impl.TezMerger.Segment;
-import org.apache.tez.engine.records.OutputContext;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
-public class PipelinedSorter extends ExternalSorter implements SortingOutput {
+public class PipelinedSorter extends ExternalSorter {
   
   private static final Log LOG = LogFactory.getLog(PipelinedSorter.class);
   
@@ -92,32 +89,21 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
   private int totalIndexCacheMemory;
   private int indexCacheMemoryLimit;
 
-
-  public PipelinedSorter(TezEngineTaskContext task) throws IOException {
-    super(task);
-  }
-
-  public void initialize(Configuration conf, Master master) 
-      throws IOException, InterruptedException {
-    
-    if (task == null) {
-      LOG.info("Bailing!", new IOException());
-      return;
-    }
-    super.initialize(conf, master);
+  public void initialize(TezOutputContext outputContext, Configuration conf, int numOutputs) throws IOException {
+    super.initialize(outputContext, conf, numOutputs);
     
     partitionBits = bitcount(partitions)+1;
    
     //sanity checks
     final float spillper =
-      job.getFloat(
+      this.conf.getFloat(
           TezJobConfig.TEZ_ENGINE_SORT_SPILL_PERCENT, 
           TezJobConfig.DEFAULT_TEZ_ENGINE_SORT_SPILL_PERCENT);
     final int sortmb = 
-        job.getInt(
+        this.conf.getInt(
             TezJobConfig.TEZ_ENGINE_IO_SORT_MB, 
             TezJobConfig.DEFAULT_TEZ_ENGINE_IO_SORT_MB);
-    indexCacheMemoryLimit = job.getInt(TezJobConfig.TEZ_ENGINE_INDEX_CACHE_MEMORY_LIMIT_BYTES,
+    indexCacheMemoryLimit = this.conf.getInt(TezJobConfig.TEZ_ENGINE_INDEX_CACHE_MEMORY_LIMIT_BYTES,
                                        TezJobConfig.DEFAULT_TEZ_ENGINE_INDEX_CACHE_MEMORY_LIMIT_BYTES);
     if (spillper > (float)1.0 || spillper <= (float)0.0) {
       throw new IOException("Invalid \"" + TezJobConfig.TEZ_ENGINE_SORT_SPILL_PERCENT +
@@ -137,7 +123,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
     span = new SortSpan(largeBuffer, 1024*1024, 16);
     merger = new SpanMerger(comparator);
     final int sortThreads = 
-            job.getInt(
+            this.conf.getInt(
                 TezJobConfig.TEZ_ENGINE_SORT_THREADS, 
                 TezJobConfig.DEFAULT_TEZ_ENGINE_SORT_THREADS);
     sortmaster = Executors.newFixedThreadPool(sortThreads);
@@ -151,7 +137,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
     }    
     valSerializer.open(span.out);
     keySerializer.open(span.out);
-    minSpillsForCombine = job.getInt(TezJobConfig.TEZ_ENGINE_COMBINE_MIN_SPILLS, 3);
+    minSpillsForCombine = this.conf.getInt(TezJobConfig.TEZ_ENGINE_COMBINE_MIN_SPILLS, 3);
   }
 
   private int bitcount(int n) {
@@ -193,8 +179,9 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
     keySerializer.open(span.out);
   }
 
+  @Override
   public void write(Object key, Object value) 
-      throws IOException, InterruptedException {
+      throws IOException {
     collect(
         key, value, partitioner.getPartition(key, value, partitions));
   }
@@ -206,7 +193,6 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
    */
   synchronized void collect(Object key, Object value, final int partition
                                    ) throws IOException {
-    runningTaskContext.getTaskReporter().progress();
     if (key.getClass() != keyClass) {
       throw new IOException("Type mismatch in key from map: expected "
                             + keyClass.getName() + ", received "
@@ -262,7 +248,6 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
     }
     mapOutputRecordCounter.increment(1);
     mapOutputByteCounter.increment(valend - keystart);
-    runningTaskContext.getTaskReporter().progress();
   }
 
   public void spill() throws IOException { 
@@ -282,7 +267,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
         //write merged output to disk
         long segmentStart = out.getPos();
         Writer writer =
-          new Writer(job, out, keyClass, valClass, codec,
+          new Writer(conf, out, keyClass, valClass, codec,
               spilledRecordsCounter);
         writer.setRLE(merger.needsRLE());
         if (combineProcessor == null) {
@@ -308,7 +293,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
         mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
             * MAP_OUTPUT_INDEX_RECORD_LENGTH);
       // TODO: cache
-      spillRec.writeToFile(indexFilename, job);
+      spillRec.writeToFile(indexFilename, conf);
       ++numSpills;
     } catch(InterruptedException ie) {
       // TODO:the combiner has been interrupted
@@ -318,8 +303,8 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
   }
 
   @Override
-  public void flush() throws IOException, InterruptedException {
-    final TezTaskAttemptID mapId = task.getTaskAttemptId();
+  public void flush() throws IOException {
+    final String uniqueIdentifier = outputContext.getUniqueIdentifier();
     Path finalOutputFile =
         mapOutputFile.getOutputFileForWrite(0); //TODO
     Path finalIndexFile =
@@ -347,8 +332,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
     
     //The output stream for the final single output file
     FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
-    
-    sortPhase.addPhases(partitions); // Divide sort phase into sub-phases
+
     TezMerger.considerFinalMergeForProgress();
 
     final TezSpillRecord spillRec = new TezSpillRecord(partitions);
@@ -357,7 +341,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
     for(int i = 0; i < numSpills; i++) {
       // TODO: build this cache before
       Path indexFilename = mapOutputFile.getSpillIndexFile(i);
-      TezSpillRecord spillIndex = new TezSpillRecord(indexFilename, job);
+      TezSpillRecord spillIndex = new TezSpillRecord(indexFilename, conf);
       indexCacheList.add(spillIndex);
     }
     
@@ -370,34 +354,34 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
         TezIndexRecord indexRecord = indexCacheList.get(i).getIndex(parts);
 
         Segment s =
-            new Segment(job, rfs, spillFilename, indexRecord.getStartOffset(),
+            new Segment(conf, rfs, spillFilename, indexRecord.getStartOffset(),
                              indexRecord.getPartLength(), codec, true);
         segmentList.add(i, s);
       }
 
       int mergeFactor = 
-              job.getInt(TezJobConfig.TEZ_ENGINE_IO_SORT_FACTOR, 
+              this.conf.getInt(TezJobConfig.TEZ_ENGINE_IO_SORT_FACTOR, 
                   TezJobConfig.DEFAULT_TEZ_ENGINE_IO_SORT_FACTOR);
       // sort the segments only if there are intermediate merges
       boolean sortSegments = segmentList.size() > mergeFactor;
       //merge
-      @SuppressWarnings("unchecked")
-      TezRawKeyValueIterator kvIter = TezMerger.merge(job, rfs,
+      TezRawKeyValueIterator kvIter = TezMerger.merge(conf, rfs,
                      keyClass, valClass, codec,
                      segmentList, mergeFactor,
-                     new Path(mapId.toString()),
-                     (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(job), 
-                     runningTaskContext.getTaskReporter(), sortSegments,
-                     null, spilledRecordsCounter, sortPhase.phase());
+                     new Path(uniqueIdentifier),
+                     (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(conf), 
+                     nullProgressable, sortSegments,
+                     null, spilledRecordsCounter,
+                     null); // Not using any Progress in TezMerger. Should just work.
 
       //write merged output to disk
       long segmentStart = finalOut.getPos();
       Writer writer =
-          new Writer(job, finalOut, keyClass, valClass, codec,
+          new Writer(conf, finalOut, keyClass, valClass, codec,
                            spilledRecordsCounter);
       writer.setRLE(merger.needsRLE());
       if (combineProcessor == null || numSpills < minSpillsForCombine) {
-        TezMerger.writeFile(kvIter, writer, runningTaskContext.getTaskReporter(), job);
+        TezMerger.writeFile(kvIter, writer, nullProgressable, conf);
       } else {
     	runCombineProcessor(kvIter, writer);
       }
@@ -405,8 +389,6 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
       //close
       writer.close();
 
-      sortPhase.startNextPhase();
-      
       // record offsets
       final TezIndexRecord rec = 
           new TezIndexRecord(
@@ -416,7 +398,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
       spillRec.putIndex(rec, parts);
     }
 
-    spillRec.writeToFile(finalIndexFile, job);
+    spillRec.writeToFile(finalIndexFile, conf);
     finalOut.close();
     for(int i = 0; i < numSpills; i++) {
       Path indexFilename = mapOutputFile.getSpillIndexFile(i);
@@ -520,7 +502,7 @@ public class PipelinedSorter extends ExternalSorter implements SortingOutput {
       kj = new byte[keymax];
       LOG.info("begin sorting Span"+index + " ("+length()+")");
       if(length() > 1) {
-        sorter.sort(this, 0, length(), runningTaskContext.getTaskReporter());
+        sorter.sort(this, 0, length(), nullProgressable);
       }
       LOG.info("done sorting Span"+index);
       return new SpanIterator(this);

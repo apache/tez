@@ -29,12 +29,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.util.DataChecksum;
-import org.apache.tez.common.TezTaskContext;
-import org.apache.tez.engine.api.Master;
 import org.apache.tez.engine.common.shuffle.impl.ShuffleHeader;
 import org.apache.tez.engine.common.shuffle.server.ShuffleHandler;
 import org.apache.tez.engine.common.sort.impl.IFile;
-import org.apache.tez.engine.records.OutputContext;
+import org.apache.tez.engine.newapi.TezOutputContext;
 
 public class InMemoryShuffleSorter extends DefaultSorter {
 
@@ -51,16 +49,11 @@ public class InMemoryShuffleSorter extends DefaultSorter {
   
   byte[] kvbuffer;
   IntBuffer kvmeta;
-  
-  public InMemoryShuffleSorter(TezTaskContext task) throws IOException {
-    super(task);
-  }
 
   @Override
-  public void initialize(Configuration conf, Master master) throws IOException,
-      InterruptedException {
-    super.initialize(conf, master);
-    shuffleHandler.init(conf, runningTaskContext);
+  public void initialize(TezOutputContext outputContext, Configuration conf, int numOutputs) throws IOException {
+    super.initialize(outputContext, conf, numOutputs);
+    shuffleHandler.initialize(outputContext, conf);
   }
 
   @Override
@@ -98,7 +91,7 @@ public class InMemoryShuffleSorter extends DefaultSorter {
       
       shuffleHeaders.add( 
           new ShuffleHeader(
-              task.getTaskAttemptId().toString(), 
+              outputContext.getUniqueIdentifier(), // TODO Verify that this is correct. 
               length + IFILE_CHECKSUM_LENGTH, length, i)
           );
       LOG.info("shuffleHeader[" + i + "]:" +
@@ -116,7 +109,7 @@ public class InMemoryShuffleSorter extends DefaultSorter {
   }
 
   @Override
-  public void close() throws IOException, InterruptedException{
+  public void close() throws IOException {
     // FIXME
     //shuffleHandler.stop();
   }
@@ -130,9 +123,4 @@ public class InMemoryShuffleSorter extends DefaultSorter {
     return spillIndices.get(partition);
   }
 
-  @Override
-  public OutputContext getOutputContext() {
-    return new OutputContext(shuffleHandler.getPort());
-  }
-  
 }

@@ -20,9 +20,6 @@ package org.apache.tez.engine.common.shuffle.impl;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.tez.dag.records.TezTaskAttemptID;
-
-
 class MapHost {
   
   public static enum State {
@@ -37,7 +34,8 @@ class MapHost {
   private final int partitionId;
   private final String baseUrl;
   private final String identifier;
-  private List<TezTaskAttemptID> maps = new ArrayList<TezTaskAttemptID>();
+  // Tracks attempt IDs
+  private List<TaskAttemptIdentifier> maps = new ArrayList<TaskAttemptIdentifier>();
   
   public MapHost(int partitionId, String hostName, String baseUrl) {
     this.partitionId = partitionId;
@@ -70,16 +68,16 @@ class MapHost {
     return baseUrl;
   }
 
-  public synchronized void addKnownMap(TezTaskAttemptID mapId) {
-    maps.add(mapId);
+  public synchronized void addKnownMap(TaskAttemptIdentifier srcAttempt) {
+    maps.add(srcAttempt);
     if (state == State.IDLE) {
       state = State.PENDING;
     }
   }
-  
-  public synchronized List<TezTaskAttemptID> getAndClearKnownMaps() {
-    List<TezTaskAttemptID> currentKnownMaps = maps;
-    maps = new ArrayList<TezTaskAttemptID>();
+
+  public synchronized List<TaskAttemptIdentifier> getAndClearKnownMaps() {
+    List<TaskAttemptIdentifier> currentKnownMaps = maps;
+    maps = new ArrayList<TaskAttemptIdentifier>();
     return currentKnownMaps;
   }
   

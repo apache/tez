@@ -18,53 +18,64 @@
 package org.apache.tez.engine.lib.output;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.RunningTaskContext;
-import org.apache.tez.common.TezEngineTaskContext;
-import org.apache.tez.engine.api.Master;
-import org.apache.tez.engine.api.Output;
-import org.apache.tez.engine.common.sort.SortingOutput;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.engine.common.sort.impl.dflt.InMemoryShuffleSorter;
-import org.apache.tez.engine.records.OutputContext;
+import org.apache.tez.engine.newapi.Event;
+import org.apache.tez.engine.newapi.KVWriter;
+import org.apache.tez.engine.newapi.LogicalOutput;
+import org.apache.tez.engine.newapi.Output;
+import org.apache.tez.engine.newapi.TezOutputContext;
+import org.apache.tez.engine.newapi.Writer;
 
 /**
  * {@link InMemorySortedOutput} is an {@link Output} which sorts key/value pairs 
  * written to it and persists it to a file.
  */
-public class InMemorySortedOutput implements SortingOutput {
+public class InMemorySortedOutput implements LogicalOutput {
   
   protected InMemoryShuffleSorter sorter;
+  protected int numTasks;
+  protected TezOutputContext outputContext;
   
-  public InMemorySortedOutput(TezEngineTaskContext task) throws IOException {
-    sorter = new InMemoryShuffleSorter(task);
-  }
-  
-  public void initialize(Configuration conf, Master master) 
-      throws IOException, InterruptedException {
-    sorter.initialize(conf, master);
-  }
 
-  public void setTask(RunningTaskContext task) {
-    sorter.setTask(task);
-  }
-  
-  public void write(Object key, Object value) throws IOException,
-      InterruptedException {
-    sorter.write(key, value);
-  }
-
-  public void close() throws IOException, InterruptedException {
-    sorter.flush();
-    sorter.close();
+  @Override
+  public List<Event> initialize(TezOutputContext outputContext)
+      throws IOException {
+    this.outputContext = outputContext;
+    this.sorter = new InMemoryShuffleSorter();
+    sorter.initialize(outputContext, TezUtils.createConfFromUserPayload(outputContext.getUserPayload()), numTasks);
+    return Collections.emptyList();
   }
 
   @Override
-  public OutputContext getOutputContext() {
-    return sorter.getOutputContext();
+  public Writer getWriter() throws IOException {
+    return new KVWriter() {
+      
+      @Override
+      public void write(Object key, Object value) throws IOException {
+        sorter.write(key, value);
+      }
+    };
   }
 
-  public InMemoryShuffleSorter getSorter()  {
-    return sorter;
+  @Override
+  public void handleEvents(List<Event> outputEvents) {
+    // No events expected.
+  }
+
+  @Override
+  public void setNumPhysicalOutputs(int numOutputs) {
+    this.numTasks = numOutputs;
+  }
+  
+  @Override
+  public List<Event> close() throws IOException {
+    sorter.flush();
+    sorter.close();
+    // TODO NEWTEZ Event generation
+    return null;
   }
 }

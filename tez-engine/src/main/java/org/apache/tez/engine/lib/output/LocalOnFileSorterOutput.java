@@ -19,39 +19,40 @@
 package org.apache.tez.engine.lib.output;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.tez.common.TezEngineTaskContext;
-import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
+import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutput;
+import org.apache.tez.engine.newapi.Event;
 
 public class LocalOnFileSorterOutput extends OnFileSortedOutput {
 
   private static final Log LOG = LogFactory.getLog(LocalOnFileSorterOutput.class);
 
-  public LocalOnFileSorterOutput(TezEngineTaskContext task) throws IOException {
-    super(task);
-  }
+  
 
   @Override
-  public void close() throws IOException, InterruptedException {
+  public List<Event> close() throws IOException {
     LOG.debug("Closing LocalOnFileSorterOutput");
     super.close();
 
     TezTaskOutput mapOutputFile = sorter.getMapOutput();
-    FileSystem localFs = FileSystem.getLocal(mapOutputFile.getConf());
+    FileSystem localFs = FileSystem.getLocal(conf);
 
     Path src = mapOutputFile.getOutputFile();
     Path dst =
         mapOutputFile.getInputFileForWrite(
-            sorter.getTaskAttemptId().getTaskID(),
+            outputContext.getTaskIndex(),
             localFs.getFileStatus(src).getLen());
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Renaming src = " + src + ", dst = " + dst);
     }
     localFs.rename(src, dst);
+    // TODO NEWTEZ Event generation.
+    return null;
   }
 }

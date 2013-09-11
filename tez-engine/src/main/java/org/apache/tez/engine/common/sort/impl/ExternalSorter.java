@@ -21,6 +21,7 @@ package org.apache.tez.engine.common.sort.impl;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,47 +37,41 @@ import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.hadoop.util.IndexedSorter;
-import org.apache.hadoop.util.Progress;
+import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.QuickSort;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.Constants;
-import org.apache.tez.common.RunningTaskContext;
-import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.engine.api.Input;
-import org.apache.tez.engine.api.Master;
-import org.apache.tez.engine.api.Output;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.engine.api.Partitioner;
 import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.common.ConfigUtils;
-import org.apache.tez.engine.common.combine.CombineInput;
-import org.apache.tez.engine.common.combine.CombineOutput;
 import org.apache.tez.engine.common.shuffle.impl.ShuffleHeader;
-import org.apache.tez.engine.common.sort.impl.IFile.Writer;
-import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
-import org.apache.tez.engine.common.task.local.output.TezTaskOutputFiles;
+import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutput;
+import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutputFiles;
+import org.apache.tez.engine.hadoop.compat.NullProgressable;
+import org.apache.tez.engine.newapi.TezOutputContext;
 import org.apache.tez.engine.records.OutputContext;
+import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public abstract class ExternalSorter {
 
   private static final Log LOG = LogFactory.getLog(ExternalSorter.class);
 
-  public abstract void close() throws IOException, InterruptedException;
+  public abstract void close() throws IOException;
 
-  public abstract void flush() throws IOException, InterruptedException;
+  public abstract void flush() throws IOException;
 
-  public abstract void write(Object key, Object value) throws IOException,
-      InterruptedException;
+  public abstract void write(Object key, Object value) throws IOException;
 
+  protected Progressable nullProgressable = new NullProgressable();
+  protected TezOutputContext outputContext;
   protected Processor combineProcessor;
   protected Partitioner partitioner;
-  protected TezEngineTaskContext task;
-  protected RunningTaskContext runningTaskContext;
-  protected Configuration job;
+  protected Configuration conf;
   protected FileSystem rfs;
   protected TezTaskOutput mapOutputFile;
   protected int partitions;
@@ -92,69 +87,68 @@ public abstract class ExternalSorter {
   // Compression for map-outputs
   protected CompressionCodec codec;
 
+  // TODO NEWTEZ Setup CombineProcessor
+  // TODO NEWTEZ Setup Partitioner in SimpleOutput
+
   // Counters
+  // TODO TEZ Rename all counter variables [Mapping of counter to MR for compatibility in the MR layer]
   protected TezCounter mapOutputByteCounter;
   protected TezCounter mapOutputRecordCounter;
   protected TezCounter fileOutputByteCounter;
   protected TezCounter spilledRecordsCounter;
-  protected Progress sortPhase;
 
-  public void initialize(Configuration conf, Master master)
-      throws IOException, InterruptedException {
+  public void initialize(TezOutputContext outputContext, Configuration conf, int numOutputs) throws IOException {
+    this.outputContext = outputContext;
+    this.conf = conf;
+    this.partitions = numOutputs;
 
-    this.job = conf;
-    LOG.info("TEZ_ENGINE_TASK_ATTEMPT_ID: " +
-        job.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
-
-    partitions = task.getOutputSpecList().get(0).getNumOutputs();
-//    partitions =
-//        job.getInt(
-//            TezJobConfig.TEZ_ENGINE_TASK_OUTDEGREE,
-//            TezJobConfig.DEFAULT_TEZ_ENGINE_TASK_OUTDEGREE);
-    rfs = ((LocalFileSystem)FileSystem.getLocal(job)).getRaw();
+    rfs = ((LocalFileSystem)FileSystem.getLocal(this.conf)).getRaw();
 
     // sorter
-    sorter = ReflectionUtils.newInstance(job.getClass(
+    sorter = ReflectionUtils.newInstance(this.conf.getClass(
         TezJobConfig.TEZ_ENGINE_INTERNAL_SORTER_CLASS, QuickSort.class,
-        IndexedSorter.class), job);
+        IndexedSorter.class), this.conf);
 
-    comparator = ConfigUtils.getIntermediateOutputKeyComparator(job);
+    comparator = ConfigUtils.getIntermediateOutputKeyComparator(this.conf);
 
     // k/v serialization
-    keyClass = ConfigUtils.getIntermediateOutputKeyClass(job);
-    valClass = ConfigUtils.getIntermediateOutputValueClass(job);
-    serializationFactory = new SerializationFactory(job);
+    keyClass = ConfigUtils.getIntermediateOutputKeyClass(this.conf);
+    valClass = ConfigUtils.getIntermediateOutputValueClass(this.conf);
+    serializationFactory = new SerializationFactory(this.conf);
     keySerializer = serializationFactory.getSerializer(keyClass);
     valSerializer = serializationFactory.getSerializer(valClass);
 
     //    counters
     mapOutputByteCounter =
-        runningTaskContext.getTaskReporter().getCounter(TaskCounter.MAP_OUTPUT_BYTES);
+        outputContext.getCounters().findCounter(TaskCounter.MAP_OUTPUT_BYTES);
     mapOutputRecordCounter =
-      runningTaskContext.getTaskReporter().getCounter(TaskCounter.MAP_OUTPUT_RECORDS);
+        outputContext.getCounters().findCounter(TaskCounter.MAP_OUTPUT_RECORDS);
     fileOutputByteCounter =
-        runningTaskContext.getTaskReporter().
-            getCounter(TaskCounter.MAP_OUTPUT_MATERIALIZED_BYTES);
+        outputContext.getCounters().findCounter(TaskCounter.MAP_OUTPUT_MATERIALIZED_BYTES);
     spilledRecordsCounter =
-        runningTaskContext.getTaskReporter().getCounter(TaskCounter.SPILLED_RECORDS);
+        outputContext.getCounters().findCounter(TaskCounter.SPILLED_RECORDS);
     // compression
-    if (ConfigUtils.shouldCompressIntermediateOutput(job)) {
+    if (ConfigUtils.shouldCompressIntermediateOutput(this.conf)) {
       Class<? extends CompressionCodec> codecClass =
-          ConfigUtils.getIntermediateOutputCompressorClass(job, DefaultCodec.class);
-      codec = ReflectionUtils.newInstance(codecClass, job);
+          ConfigUtils.getIntermediateOutputCompressorClass(this.conf, DefaultCodec.class);
+      codec = ReflectionUtils.newInstance(codecClass, this.conf);
     } else {
       codec = null;
     }
 
     // Task outputs
-    mapOutputFile =
-        (TezTaskOutput) ReflectionUtils.newInstance(
-            conf.getClass(
-                Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER,
-                TezTaskOutputFiles.class), conf);
+    mapOutputFile = instantiateTaskOutputManager(this.conf, outputContext);
+  }
 
-    // sortPhase
-    sortPhase  = runningTaskContext.getProgress().addPhase("sort");
+  // TODO NEWTEZ Add an interface (! Processor) for CombineProcessor, which MR tasks can initialize and set.
+  // Alternately add a config key with a classname, which is easy to initialize.
+  public void setCombiner(Processor combineProcessor) {
+    this.combineProcessor = combineProcessor;
+  }
+  
+  // TODO NEWTEZ Setup a config value for the Partitioner class, from where it can be initialized.
+  public void setPartitioner(Partitioner partitioner) {
+    this.partitioner = partitioner;
   }
 
   /**
@@ -168,42 +162,33 @@ public abstract class ExternalSorter {
     }
   }
 
-  public void setTask(RunningTaskContext task) {
-    this.runningTaskContext = task;
-    this.combineProcessor = task.getCombineProcessor();
-    this.partitioner = task.getPartitioner();
-  }
-
-  public TezTaskAttemptID getTaskAttemptId() {
-    return task.getTaskAttemptId();
-  }
-
   @Private
   public TezTaskOutput getMapOutput() {
     return mapOutputFile;
   }
 
   protected void runCombineProcessor(TezRawKeyValueIterator kvIter,
-      Writer writer) throws IOException, InterruptedException {
+      Writer writer) throws IOException {
 
-    CombineInput combineIn = new CombineInput(kvIter);
-    combineIn.initialize(job, runningTaskContext.getTaskReporter());
-
-    CombineOutput combineOut = new CombineOutput(writer);
-    combineOut.initialize(job, runningTaskContext.getTaskReporter());
-
-    try {
-      combineProcessor.process(new Input[] {combineIn},
-          new Output[] {combineOut});
-    } catch (IOException ioe) {
-      try {
-        combineProcessor.close();
-      } catch (IOException ignored) {}
-
-      // Do not close output here as the sorter should close the combine output
-
-      throw ioe;
-    }
+    // TODO NEWTEZ Fix Combiner.
+//    CombineInput combineIn = new CombineInput(kvIter);
+//    combineIn.initialize(job, runningTaskContext.getTaskReporter());
+//
+//    CombineOutput combineOut = new CombineOutput(writer);
+//    combineOut.initialize(job, runningTaskContext.getTaskReporter());
+//
+//    try {
+//      combineProcessor.process(new Input[] {combineIn},
+//          new Output[] {combineOut});
+//    } catch (IOException ioe) {
+//      try {
+//        combineProcessor.close();
+//      } catch (IOException ignored) {}
+//
+//      // Do not close output here as the sorter should close the combine output
+//
+//      throw ioe;
+//    }
 
   }
 
@@ -228,10 +213,6 @@ public abstract class ExternalSorter {
     }
   }
 
-  public ExternalSorter(TezEngineTaskContext tezEngineTask) {
-    this.task = tezEngineTask;
-  }
-
   public InputStream getSortedStream(int partition) {
     throw new UnsupportedOperationException("getSortedStream isn't supported!");
   }
@@ -243,4 +224,23 @@ public abstract class ExternalSorter {
   public OutputContext getOutputContext() {
     return null;
   }
+  
+  
+
+  private TezTaskOutput instantiateTaskOutputManager(Configuration conf, TezOutputContext outputContext) {
+    Class<?> clazz = conf.getClass(Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER,
+        TezTaskOutputFiles.class);
+    try {
+      Constructor<?> ctor = clazz.getConstructor(Configuration.class, String.class);
+      ctor.setAccessible(true);
+      TezTaskOutput instance = (TezTaskOutput) ctor.newInstance(conf, outputContext.getUniqueIdentifier());
+      return instance;
+    } catch (Exception e) {
+      throw new TezUncheckedException(
+          "Unable to instantiate configured TezOutputFileManager: "
+              + conf.get(Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER,
+                  TezTaskOutputFiles.class.getName()), e);
+    }
+  }
+  
 }

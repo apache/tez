@@ -30,7 +30,7 @@ import org.apache.hadoop.io.WritableUtils;
 import org.apache.tez.engine.common.shuffle.impl.InMemoryWriter;
 import org.apache.tez.engine.common.sort.impl.dflt.DefaultSorter.InMemValBytes;
 
-class SortBufferInputStream extends InputStream {
+  public class SortBufferInputStream extends InputStream {
 
   private static final Log LOG = LogFactory.getLog(SortBufferInputStream.class);
   

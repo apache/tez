@@ -24,7 +24,7 @@ import org.apache.hadoop.metrics.MetricsUtil;
 import org.apache.hadoop.metrics.Updater;
 import org.apache.tez.common.Constants;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.engine.common.TezEngineUtils;
 
 class ShuffleClientMetrics implements Updater {
 
@@ -35,10 +35,10 @@ class ShuffleClientMetrics implements Updater {
   private int numThreadsBusy = 0;
   private final int numCopiers;
   
-  ShuffleClientMetrics(TezTaskAttemptID reduceId, Configuration jobConf, 
-      String user, String jobName) {
+  ShuffleClientMetrics(String dagName, String vertexName, int taskIndex, Configuration conf, 
+      String user) {
     this.numCopiers = 
-        jobConf.getInt(
+        conf.getInt(
             TezJobConfig.TEZ_ENGINE_SHUFFLE_PARALLEL_COPIES, 
             TezJobConfig.DEFAULT_TEZ_ENGINE_SHUFFLE_PARALLEL_COPIES);
 
@@ -46,12 +46,10 @@ class ShuffleClientMetrics implements Updater {
     this.shuffleMetrics = 
       MetricsUtil.createRecord(metricsContext, "shuffleInput");
     this.shuffleMetrics.setTag("user", user);
-    this.shuffleMetrics.setTag("jobName", jobName);
-    this.shuffleMetrics.setTag("jobId", 
-        reduceId.getTaskID().getVertexID().getDAGId().toString());
-    this.shuffleMetrics.setTag("taskId", reduceId.toString());
+    this.shuffleMetrics.setTag("dagName", dagName);
+    this.shuffleMetrics.setTag("taskId", TezEngineUtils.getTaskIdentifier(vertexName, taskIndex));
     this.shuffleMetrics.setTag("sessionId", 
-        jobConf.get(
+        conf.get(
             TezJobConfig.TEZ_ENGINE_METRICS_SESSION_ID, 
             TezJobConfig.DEFAULT_TEZ_ENGINE_METRICS_SESSION_ID));
     metricsContext.registerUpdater(this);

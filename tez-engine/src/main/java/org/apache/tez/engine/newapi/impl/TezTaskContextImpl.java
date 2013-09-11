@@ -18,18 +18,27 @@
 
 package org.apache.tez.engine.newapi.impl;
 
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.newapi.TezTaskContext;
+import org.apache.tez.engine.shuffle.common.ShuffleUtils;
 
 public abstract class TezTaskContextImpl implements TezTaskContext {
 
-  protected final Configuration conf;
+  private final Configuration conf;
   protected final String taskVertexName;
-  protected final TezTaskAttemptID taskAttemptID;
-  protected final TezCounters counters;
+  private final TezTaskAttemptID taskAttemptID;
+  private final TezCounters counters;
+  private String[] workDirs;
+  protected String uniqueIdentifier;
 
   @Private
   public TezTaskContextImpl(Configuration conf,
@@ -39,8 +48,17 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     this.taskVertexName = taskVertexName;
     this.taskAttemptID = taskAttemptID;
     this.counters = counters;
+    // TODO Maybe change this to be task id specific at some point. For now
+    // Shuffle code relies on this being a path specified by YARN
+    this.workDirs = this.conf.getStrings(TezJobConfig.LOCAL_DIRS); 
   }
 
+  @Override
+  public ApplicationId getApplicationId() {
+    return taskAttemptID.getTaskID().getVertexID().getDAGId()
+        .getApplicationId();
+  }
+  
   @Override
   public int getTaskIndex() {
     return taskAttemptID.getTaskID().getId();
@@ -52,8 +70,14 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   }
 
   @Override
+  public String getDAGName() {
+    // TODO NEWTEZ Change to some form of the DAG name, for now using dagId as
+    // the unique identifier.
+    return taskAttemptID.getTaskID().getVertexID().getDAGId().toString();
+  }
+  
+  @Override
   public String getTaskVertexName() {
-    // TODO Auto-generated method stub
     return taskVertexName;
   }
 
@@ -63,5 +87,30 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     return counters;
   }
 
-  // TODO Add a method to get working dir
+  @Override
+  public String[] getWorkDirs() {
+    return Arrays.copyOf(workDirs, workDirs.length);
+  }
+  
+  @Override
+  public String getUniqueIdentifier() {
+    return uniqueIdentifier;
+  }
+  
+  @Override
+  public void fatalError(Throwable exception, String message) {
+    // TODO NEWTEZ Implement once the TezContext communication is setup.
+  }
+  
+  @Override
+  public ByteBuffer getServiceConsumerMetaData(String serviceName) {
+    // TODO NEWTEZ Make sure this data is set by the AM for the Shuffle service name.
+    return null;
+  }
+  
+  @Override
+  public ByteBuffer getServiceProviderMetaData(String serviceName) {
+    return AuxiliaryServiceHelper.getServiceDataFromEnv(
+        ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, System.getenv());
+  }
 }

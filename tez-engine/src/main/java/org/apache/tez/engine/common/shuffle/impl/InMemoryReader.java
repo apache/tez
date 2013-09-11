@@ -25,8 +25,6 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DataOutputBuffer;
-import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.common.sort.impl.IFile;
 import org.apache.tez.engine.common.sort.impl.IFile.Reader;
 
@@ -36,14 +34,14 @@ import org.apache.tez.engine.common.sort.impl.IFile.Reader;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class InMemoryReader extends Reader {
-  private final TezTaskAttemptID taskAttemptId;
+  private final TaskAttemptIdentifier taskAttemptId;
   private final MergeManager merger;
   DataInputBuffer memDataIn = new DataInputBuffer();
   private int start;
   private int length;
   private int prevKeyPos;
 
-  public InMemoryReader(MergeManager merger, TezTaskAttemptID taskAttemptId,
+  public InMemoryReader(MergeManager merger, TaskAttemptIdentifier taskAttemptId,
                         byte[] data, int start, int length)
   throws IOException {
     super(null, null, length - start, null, null);

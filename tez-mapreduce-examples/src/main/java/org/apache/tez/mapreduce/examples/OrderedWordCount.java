@@ -70,8 +70,8 @@ import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.engine.lib.input.ShuffledMergedInput;
-import org.apache.tez.engine.lib.output.OnFileSortedOutput;
+import org.apache.tez.engine.lib.oldinput.OldShuffledMergedInput;
+import org.apache.tez.engine.lib.oldoutput.OldOnFileSortedOutput;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -312,9 +312,9 @@ public class OrderedWordCount {
                 DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
                 SchedulingType.SEQUENTIAL, 
                 new OutputDescriptor(
-                    OnFileSortedOutput.class.getName()),
+                    OldOnFileSortedOutput.class.getName()),
                 new InputDescriptor(
-                    ShuffledMergedInput.class.getName()))));
+                    OldShuffledMergedInput.class.getName()))));
       }
     }
 

@@ -29,8 +29,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.engine.common.task.local.output.TezTaskOutputFiles;
+import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutputFiles;
+
 
 class MapOutput {
   private static final Log LOG = LogFactory.getLog(MapOutput.class);
@@ -42,10 +42,10 @@ class MapOutput {
     DISK
   }
   
+  private TaskAttemptIdentifier attemptIdentifier;
   private final int id;
   
   private final MergeManager merger;
-  private final TezTaskAttemptID mapId;
   
   private final long size;
   
@@ -61,13 +61,13 @@ class MapOutput {
   
   private final boolean primaryMapOutput;
   
-  MapOutput(TezTaskAttemptID mapId, MergeManager merger, long size, 
+  MapOutput(TaskAttemptIdentifier attemptIdentifier, MergeManager merger, long size, 
             Configuration conf, LocalDirAllocator localDirAllocator,
             int fetcher, boolean primaryMapOutput, 
             TezTaskOutputFiles mapOutputFile)
          throws IOException {
     this.id = ID.incrementAndGet();
-    this.mapId = mapId;
+    this.attemptIdentifier = attemptIdentifier;
     this.merger = merger;
 
     type = Type.DISK;
@@ -79,7 +79,7 @@ class MapOutput {
     
     this.localFS = FileSystem.getLocal(conf);
     outputPath =
-      mapOutputFile.getInputFileForWrite(mapId.getTaskID(),size);
+      mapOutputFile.getInputFileForWrite(this.attemptIdentifier.getTaskIndex(), size);
     tmpOutputPath = outputPath.suffix(String.valueOf(fetcher));
 
     disk = localFS.create(tmpOutputPath);
@@ -87,10 +87,10 @@ class MapOutput {
     this.primaryMapOutput = primaryMapOutput;
   }
   
-  MapOutput(TezTaskAttemptID mapId, MergeManager merger, int size, 
+  MapOutput(TaskAttemptIdentifier attemptIdentifier, MergeManager merger, int size, 
             boolean primaryMapOutput) {
     this.id = ID.incrementAndGet();
-    this.mapId = mapId;
+    this.attemptIdentifier = attemptIdentifier;
     this.merger = merger;
 
     type = Type.MEMORY;
@@ -107,10 +107,10 @@ class MapOutput {
     this.primaryMapOutput = primaryMapOutput;
   }
 
-  public MapOutput(TezTaskAttemptID mapId) {
+  public MapOutput(TaskAttemptIdentifier attemptIdentifier) {
     this.id = ID.incrementAndGet();
-    this.mapId = mapId;
-    
+    this.attemptIdentifier = attemptIdentifier;
+
     type = Type.WAIT;
     merger = null;
     memory = null;
@@ -159,8 +159,8 @@ class MapOutput {
     return disk;
   }
 
-  public TezTaskAttemptID getMapId() {
-    return mapId;
+  public TaskAttemptIdentifier getAttemptIdentifier() {
+    return this.attemptIdentifier;
   }
 
   public Type getType() {
@@ -198,7 +198,7 @@ class MapOutput {
   }
   
   public String toString() {
-    return "MapOutput(" + mapId + ", " + type + ")";
+    return "MapOutput( AttemptIdentifier: " + attemptIdentifier + ", Type: " + type + ")";
   }
   
   public static class MapOutputComparator 
