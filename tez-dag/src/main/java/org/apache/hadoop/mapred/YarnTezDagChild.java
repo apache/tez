@@ -28,7 +28,6 @@ import java.net.InetSocketAddress;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -113,7 +112,6 @@ public class YarnTezDagChild {
   private static TezTaskAttemptID currentTaskAttemptID;
   private static long amPollInterval;
   private static TezTaskUmbilicalProtocol umbilical;
-  private static Object eventLock = new Object();
   private static ReentrantReadWriteLock taskLock = new ReentrantReadWriteLock();
   private static LogicalIOProcessorRuntimeTask currentTask = null;
 
@@ -220,20 +218,18 @@ public class YarnTezDagChild {
     } finally {
       taskLock.readLock().unlock();
     }
-    synchronized (eventLock) {
-      List<TezEvent> events = new ArrayList<TezEvent>();
-      eventsToSend.drainTo(events);
-      long reqId = requestCounter.incrementAndGet();
-      TezHeartbeatRequest request = new TezHeartbeatRequest(reqId, events,
-          currentTaskAttemptID, eventCounter, maxEventsToGet);
-      TezHeartbeatResponse response = umbilical.heartbeat(request);
-      if (response.getLastRequestId() != reqId) {
-        // TODO TODONEWTEZ
-        throw new TezException("AM and Task out of sync");
-      }
-      eventCounter += response.getEvents().size();
-      eventsToBeProcessed.addAll(response.getEvents());
+    List<TezEvent> events = new ArrayList<TezEvent>();
+    eventsToSend.drainTo(events);
+    long reqId = requestCounter.incrementAndGet();
+    TezHeartbeatRequest request = new TezHeartbeatRequest(reqId, events,
+        currentTaskAttemptID, eventCounter, maxEventsToGet);
+    TezHeartbeatResponse response = umbilical.heartbeat(request);
+    if (response.getLastRequestId() != reqId) {
+      // TODO TODONEWTEZ
+      throw new TezException("AM and Task out of sync");
     }
+    eventCounter += response.getEvents().size();
+    eventsToBeProcessed.addAll(response.getEvents());
   }
 
   public static void main(String[] args) throws Throwable {
@@ -310,9 +306,7 @@ public class YarnTezDagChild {
     TezUmbilical tezUmbilical = new TezUmbilical() {
       @Override
       public void addEvents(Collection<TezEvent> events) {
-        synchronized (eventLock) {
-          eventsToSend.addAll(events);
-        }
+        eventsToSend.addAll(events);
       }
     };
 
