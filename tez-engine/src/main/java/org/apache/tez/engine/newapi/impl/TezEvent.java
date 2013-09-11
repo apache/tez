@@ -220,9 +220,11 @@ public class TezEvent implements Writable {
   public void readFields(DataInput in) throws IOException {
     deserializeEvent(in);
     if (in.readBoolean()) {
+      sourceInfo = new EventMetaData();
       sourceInfo.readFields(in);
     }
     if (in.readBoolean()) {
+      destinationInfo = new EventMetaData();
       destinationInfo.readFields(in);
     }
   }

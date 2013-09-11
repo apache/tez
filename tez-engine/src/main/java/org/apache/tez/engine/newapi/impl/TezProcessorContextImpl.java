@@ -26,7 +26,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.TezProcessorContext;
-import org.apache.tez.engine.newapi.impl.EventMetaData.EventGenerator;
+import org.apache.tez.engine.newapi.impl.EventMetaData.EventProducerConsumerType;
 
 public class TezProcessorContextImpl extends TezTaskContextImpl
   implements TezProcessorContext {
@@ -42,7 +42,7 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
     super(tezConf, vertexName, taskAttemptID, counters);
     this.userPayload = userPayload;
     this.tezUmbilical = tezUmbilical;
-    this.sourceInfo = new EventMetaData(EventGenerator.PROCESSOR,
+    this.sourceInfo = new EventMetaData(EventProducerConsumerType.PROCESSOR,
         taskVertexName, "", taskAttemptID);
     this.uniqueIdentifier = String.format("%s_%s_%6d_%2d", taskAttemptID
         .getTaskID().getVertexID().getDAGId().toString(), taskVertexName,

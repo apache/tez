@@ -83,7 +83,7 @@ import org.apache.tez.engine.newapi.impl.TezEvent;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatRequest;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatResponse;
 import org.apache.tez.engine.newapi.impl.TezUmbilical;
-import org.apache.tez.engine.newapi.impl.EventMetaData.EventGenerator;
+import org.apache.tez.engine.newapi.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.engine.newruntime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.mapreduce.input.SimpleInput;
 import org.apache.tez.mapreduce.output.SimpleOutput;
@@ -176,11 +176,6 @@ public class YarnTezDagChild {
               continue;
             }
             // TODO TODONEWTEZ
-            if (!e.getDestinationInfo().getTaskAttemptID().equals(
-                currentTaskAttemptID)) {
-              // error? or block?
-              continue;
-            }
             try {
               taskLock.readLock().lock();
               if (currentTask != null) {
@@ -233,7 +228,8 @@ public class YarnTezDagChild {
   }
 
   public static void main(String[] args) throws Throwable {
-    Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
+    Thread.setDefaultUncaughtExceptionHandler(
+        new YarnUncaughtExceptionHandler());
     if (LOG.isDebugEnabled()) {
       LOG.debug("Child starting");
     }
@@ -386,7 +382,8 @@ public class YarnTezDagChild {
         childUGI.doAs(new PrivilegedExceptionAction<Object>() {
           @Override
           public Object run() throws Exception {
-            EventMetaData sourceInfo = new EventMetaData(EventGenerator.SYSTEM,
+            EventMetaData sourceInfo = new EventMetaData(
+                EventProducerConsumerType.SYSTEM,
                 taskSpec.getVertexName(), "", currentTaskAttemptID);
             try {
               currentTask.initialize();

@@ -31,7 +31,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
  */
 public class EventMetaData implements Writable {
 
-  public static enum EventGenerator {
+  public static enum EventProducerConsumerType {
     INPUT,
     PROCESSOR,
     OUTPUT,
@@ -39,9 +39,10 @@ public class EventMetaData implements Writable {
   }
 
   /**
-   * Source Type ( one of Input/Output/Processor ) that generated the Event.
+   * Producer Type ( one of Input/Output/Processor ) that generated the Event
+   * or Consumer Type that will consume the Event.
    */
-  private EventGenerator generator;
+  private EventProducerConsumerType producerConsumerType;
 
   /**
    * Name of the vertex where the event was generated.
@@ -66,17 +67,17 @@ public class EventMetaData implements Writable {
   public EventMetaData() {
   }
 
-  public EventMetaData(EventGenerator generator,
+  public EventMetaData(EventProducerConsumerType generator,
       String taskVertexName, String edgeVertexName,
       TezTaskAttemptID taskAttemptID) {
-    this.generator = generator;
+    this.producerConsumerType = generator;
     this.taskVertexName = taskVertexName;
     this.edgeVertexName = edgeVertexName;
     this.taskAttemptID = taskAttemptID;
   }
 
-  public EventGenerator getEventGenerator() {
-    return generator;
+  public EventProducerConsumerType getEventGenerator() {
+    return producerConsumerType;
   }
 
   public TezTaskAttemptID getTaskAttemptID() {
@@ -93,7 +94,7 @@ public class EventMetaData implements Writable {
 
   @Override
   public void write(DataOutput out) throws IOException {
-    out.writeInt(generator.ordinal());
+    out.writeInt(producerConsumerType.ordinal());
     if (taskVertexName != null) {
       out.writeBoolean(true);
       out.writeUTF(taskVertexName);
@@ -112,7 +113,7 @@ public class EventMetaData implements Writable {
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    generator = EventGenerator.values()[in.readInt()];
+    producerConsumerType = EventProducerConsumerType.values()[in.readInt()];
     if (in.readBoolean()) {
       taskVertexName = in.readUTF();
     }

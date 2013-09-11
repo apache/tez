@@ -27,7 +27,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.TezInputContext;
-import org.apache.tez.engine.newapi.impl.EventMetaData.EventGenerator;
+import org.apache.tez.engine.newapi.impl.EventMetaData.EventProducerConsumerType;
 
 public class TezInputContextImpl extends TezTaskContextImpl
     implements TezInputContext {
@@ -47,7 +47,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
     this.userPayload = userPayload;
     this.sourceVertexName = sourceVertexName;
     this.sourceInfo = new EventMetaData(
-        EventGenerator.INPUT, taskVertexName, sourceVertexName,
+        EventProducerConsumerType.INPUT, taskVertexName, sourceVertexName,
         taskAttemptID);
     this.uniqueIdentifier = String.format("%s_%s_%6d_%2d_%s", taskAttemptID
         .getTaskID().getVertexID().getDAGId().toString(), taskVertexName,
