@@ -24,11 +24,11 @@ import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
+import org.apache.tez.dag.app.dag.impl.Edge;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
@@ -57,6 +57,7 @@ public interface Vertex extends Comparable<Vertex> {
 
   Map<TezTaskID, Task> getTasks();
   Task getTask(TezTaskID taskID);
+  Task getTask(int taskIndex);
   List<String> getDiagnostics();
   int getTotalTasks();
   int getCompletedTasks();
@@ -65,19 +66,20 @@ public interface Vertex extends Comparable<Vertex> {
   ProgressBuilder getVertexProgress();
   VertexStatusBuilder getVertexStatus();
 
-  void setParallelism(int parallelism, List<byte[]> taskUserPayloads);
+  void setParallelism(int parallelism,Map<Vertex, EdgeManager> sourceEdgeManagers);
 
   TezDependentTaskCompletionEvent[] getTaskAttemptCompletionEvents(
       TezTaskAttemptID attemptId, int fromEventId, int maxEvents);
+  
+  // CHANGE THESE TO LISTS AND MAINTAIN ORDER?
+  void setInputVertices(Map<Vertex, Edge> inVertices);
+  void setOutputVertices(Map<Vertex, Edge> outVertices);
 
-  void setInputVertices(Map<Vertex, EdgeProperty> inVertices);
-  void setOutputVertices(Map<Vertex, EdgeProperty> outVertices);
-
-  Map<Vertex, EdgeProperty> getInputVertices();
-  Map<Vertex, EdgeProperty> getOutputVertices();
-
-  List<InputSpec> getInputSpecList();
-  List<OutputSpec> getOutputSpecList();
+  Map<Vertex, Edge> getInputVertices();
+  Map<Vertex, Edge> getOutputVertices();
+  
+  List<InputSpec> getInputSpecList(int taskIndex);
+  List<OutputSpec> getOutputSpecList(int taskIndex);
 
   int getInputVerticesCount();
   int getOutputVerticesCount();

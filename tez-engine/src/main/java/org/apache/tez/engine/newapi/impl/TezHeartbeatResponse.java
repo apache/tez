@@ -47,24 +47,39 @@ public class TezHeartbeatResponse implements Writable {
     return lastRequestId;
   }
 
+  public void setEvents(List<TezEvent> events) {
+    this.events = events;
+  }
+
+  public void setLastRequestId(long lastRequestId ) {
+    this.lastRequestId = lastRequestId;
+  }
+
   @Override
   public void write(DataOutput out) throws IOException {
     out.writeLong(lastRequestId);
-    out.writeInt(events.size());
-    for (TezEvent e : events) {
-      e.write(out);
+    if(events != null) {
+      out.writeBoolean(true);
+      out.writeInt(events.size());
+      for (TezEvent e : events) {
+        e.write(out);
+      }
+    } else {
+      out.writeBoolean(false);
     }
   }
 
   @Override
   public void readFields(DataInput in) throws IOException {
     lastRequestId = in.readLong();
-    int eventCount = in.readInt();
-    events = new ArrayList<TezEvent>(eventCount);
-    for (int i = 0; i < eventCount; ++i) {
-      TezEvent e = new TezEvent();
-      e.readFields(in);
-      events.add(e);
+    if(in.readBoolean()) {
+      int eventCount = in.readInt();
+      events = new ArrayList<TezEvent>(eventCount);
+      for (int i = 0; i < eventCount; ++i) {
+        TezEvent e = new TezEvent();
+        e.readFields(in);
+        events.add(e);
+      }
     }
   }
 

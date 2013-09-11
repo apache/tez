@@ -93,7 +93,7 @@ public final class DataMovementEvent extends Event {
   }
 
   @Private
-  void setTargetIndex(int targetIndex) {
+  public void setTargetIndex(int targetIndex) {
     this.targetIndex = targetIndex;
   }
 

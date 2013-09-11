@@ -74,7 +74,7 @@ public class InputFailedEvent extends Event{
   }
 
   @Private
-  void setTargetIndex(int targetIndex) {
+  public void setTargetIndex(int targetIndex) {
     this.targetIndex = targetIndex;
   }
 

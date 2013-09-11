@@ -25,7 +25,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -142,10 +141,8 @@ public class TestDAGPlan {
         .getUserPayload().toByteArray()));
     assertEquals("output", edgeProto.getEdgeSource().getClassName());
 
-    Map<String, EdgeProperty> edgePropertyMap = DagTypeConverters
-        .createEdgePropertyMapFromDAGPlan(dagProto.getEdgeList());
-    assertEquals(1, edgePropertyMap.size());
-    EdgeProperty edgeProperty = edgePropertyMap.values().iterator().next();
+    EdgeProperty edgeProperty = DagTypeConverters
+        .createEdgePropertyMapFromDAGPlan(dagProto.getEdgeList().get(0));
 
     byte[] ib = edgeProperty.getEdgeDestination().getUserPayload();
     assertEquals("inputBytes", new String(ib));

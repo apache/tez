@@ -19,15 +19,13 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezUtils;
+import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -35,6 +33,7 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
+import org.apache.tez.dag.app.dag.EdgeManager;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.records.TezDAGID;
@@ -61,9 +60,10 @@ public class TestVertexScheduler {
         true);
     conf.setLong(TezConfiguration.TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE, 1000L);
     ShuffleVertexManager scheduler = null;
+    EventHandler mockEventHandler = mock(EventHandler.class);
     TezDAGID dagId = new TezDAGID("1", 1, 1);
-    HashMap<Vertex, EdgeProperty> mockInputVertices = 
-        new HashMap<Vertex, EdgeProperty>();
+    HashMap<Vertex, Edge> mockInputVertices = 
+        new HashMap<Vertex, Edge>();
     Vertex mockSrcVertex1 = mock(Vertex.class);
     TezVertexID mockSrcVertexId1 = new TezVertexID(dagId, 1);
     EdgeProperty eProp1 = new EdgeProperty(
@@ -97,12 +97,13 @@ public class TestVertexScheduler {
     when(mockManagedVertex.getVertexId()).thenReturn(mockManagedVertexId);
     when(mockManagedVertex.getInputVertices()).thenReturn(mockInputVertices);
     
+    
     TezDependentTaskCompletionEvent mockEvent = 
         mock(TezDependentTaskCompletionEvent.class);
     
-    mockInputVertices.put(mockSrcVertex1, eProp1);
-    mockInputVertices.put(mockSrcVertex2, eProp2);
-    mockInputVertices.put(mockSrcVertex3, eProp3);
+    mockInputVertices.put(mockSrcVertex1, new Edge(eProp1, mockEventHandler));
+    mockInputVertices.put(mockSrcVertex2, new Edge(eProp2, mockEventHandler));
+    mockInputVertices.put(mockSrcVertex3, new Edge(eProp3, mockEventHandler));
 
     // check initialization
     scheduler = createScheduler(conf, mockManagedVertex, 0.1f, 0.1f);
@@ -132,16 +133,16 @@ public class TestVertexScheduler {
           return null;
       }}).when(mockManagedVertex).scheduleTasks(anyCollection());
     
-    final List<byte[]> taskPayloads = new ArrayList<byte[]>();
+    final Map<Vertex, EdgeManager> newEdgeManagers = new HashMap<Vertex, EdgeManager>();
     
     doAnswer(new Answer() {
       public Object answer(InvocationOnMock invocation) {
           managedTasks.remove(mockTaskId3);
           managedTasks.remove(mockTaskId4);
-          taskPayloads.clear();
-          taskPayloads.addAll((List<byte[]>)invocation.getArguments()[1]);
+          newEdgeManagers.clear();
+          newEdgeManagers.putAll((Map<Vertex, EdgeManager>)invocation.getArguments()[1]);
           return null;
-      }}).when(mockManagedVertex).setParallelism(eq(2), anyList());
+      }}).when(mockManagedVertex).setParallelism(eq(2), anyMap());
     
     // source vertices have 0 tasks. immediate start of all managed tasks
     when(mockSrcVertex1.getTotalTasks()).thenReturn(0);
@@ -171,7 +172,7 @@ public class TestVertexScheduler {
     Assert.assertTrue(scheduler.numSourceTasks == 4);
     scheduler.onSourceTaskCompleted(mockSrcAttemptId11, mockEvent);
     // managedVertex tasks reduced
-    verify(mockManagedVertex, times(0)).setParallelism(anyInt(), anyList());
+    verify(mockManagedVertex, times(0)).setParallelism(anyInt(), anyMap());
     Assert.assertEquals(0, scheduler.pendingTasks.size()); // all tasks scheduled
     Assert.assertEquals(4, scheduledTasks.size());
     Assert.assertEquals(1, scheduler.numSourceTasksCompleted);
@@ -208,23 +209,19 @@ public class TestVertexScheduler {
     
     scheduler.onSourceTaskCompleted(mockSrcAttemptId12, mockEvent);
     // managedVertex tasks reduced
-    verify(mockManagedVertex).setParallelism(eq(2), anyList());
-    Assert.assertEquals(2, taskPayloads.size());
+    verify(mockManagedVertex).setParallelism(eq(2), anyMap());
+    Assert.assertEquals(2, newEdgeManagers.size());
+    // TODO improve tests for parallelism
     Assert.assertEquals(0, scheduler.pendingTasks.size()); // all tasks scheduled
     Assert.assertEquals(2, scheduledTasks.size());
     Assert.assertTrue(scheduledTasks.contains(mockTaskId1));
     Assert.assertTrue(scheduledTasks.contains(mockTaskId2));
     Assert.assertEquals(2, scheduler.numSourceTasksCompleted);
     Assert.assertEquals(1000L, scheduler.completedSourceTasksOutputSize);
-    Configuration taskConf = TezUtils.createConfFromUserPayload(taskPayloads.get(0));
-    Assert.assertEquals(2,
-        taskConf.getInt(TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE, 0));
-    taskConf = TezUtils.createConfFromUserPayload(taskPayloads.get(1));
-    Assert.assertEquals(2,
-        taskConf.getInt(TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE, 0));
+    
     // more completions dont cause recalculation of parallelism
     scheduler.onSourceTaskCompleted(mockSrcAttemptId21, mockEvent);
-    verify(mockManagedVertex).setParallelism(eq(2), anyList());
+    verify(mockManagedVertex).setParallelism(eq(2), anyMap());
   }
   
   @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -232,9 +229,10 @@ public class TestVertexScheduler {
   public void testShuffleVertexManagerSlowStart() {
     Configuration conf = new Configuration();
     ShuffleVertexManager scheduler = null;
+    EventHandler mockEventHandler = mock(EventHandler.class);
     TezDAGID dagId = new TezDAGID("1", 1, 1);
-    HashMap<Vertex, EdgeProperty> mockInputVertices = 
-        new HashMap<Vertex, EdgeProperty>();
+    HashMap<Vertex, Edge> mockInputVertices = 
+        new HashMap<Vertex, Edge>();
     Vertex mockSrcVertex1 = mock(Vertex.class);
     TezVertexID mockSrcVertexId1 = new TezVertexID(dagId, 1);
     EdgeProperty eProp1 = new EdgeProperty(
@@ -272,7 +270,7 @@ public class TestVertexScheduler {
         mock(TezDependentTaskCompletionEvent.class);
 
     // fail if there is no bipartite src vertex
-    mockInputVertices.put(mockSrcVertex3, eProp3);
+    mockInputVertices.put(mockSrcVertex3, new Edge(eProp3, mockEventHandler));
     try {
       scheduler = createScheduler(conf, mockManagedVertex, 0.1f, 0.1f);
      Assert.assertFalse(true);
@@ -281,8 +279,8 @@ public class TestVertexScheduler {
           "Atleast 1 bipartite source should exist"));
     }
     
-    mockInputVertices.put(mockSrcVertex1, eProp1);
-    mockInputVertices.put(mockSrcVertex2, eProp2);
+    mockInputVertices.put(mockSrcVertex1, new Edge(eProp1, mockEventHandler));
+    mockInputVertices.put(mockSrcVertex2, new Edge(eProp2, mockEventHandler));
     
     // check initialization
     scheduler = createScheduler(conf, mockManagedVertex, 0.1f, 0.1f);

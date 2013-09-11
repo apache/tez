@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.dag;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.tez.common.counters.TezCounters;
@@ -25,6 +26,7 @@ import org.apache.tez.dag.api.oldrecords.TaskReport;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.engine.newapi.impl.TezEvent;
 
 /**
  * Read only view of Task.
@@ -71,4 +73,9 @@ public interface Task {
   TezTaskAttemptID getOutputConsumableAttempt();
   
   public Vertex getVertex();
+  
+  public List<TezEvent> getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
+      int fromEventId, int maxEvents);
+  
+  public List<TezEvent> getAndClearTaskTezEvents();
 }

@@ -209,23 +209,14 @@ public class DagTypeConverters {
     return edgePlanMap;
   }
   
-  public static Map<String, EdgeProperty> createEdgePropertyMapFromDAGPlan(
-      List<EdgePlan> edgeList) {  
-      
-    Map<String, EdgeProperty> map = new HashMap<String, EdgeProperty>();
-    for(EdgePlan edge: edgeList){
-       map.put(edge.getId(), 
-           new EdgeProperty(
-               convertFromDAGPlan(edge.getDataMovementType()),
-               convertFromDAGPlan(edge.getDataSourceType()),
-               convertFromDAGPlan(edge.getSchedulingType()),
-               convertOutputDescriptorFromDAGPlan(edge.getEdgeSource()),
-               convertInputDescriptorFromDAGPlan(edge.getEdgeDestination())
-               )
-           );
-    }
-    
-    return map;
+  public static EdgeProperty createEdgePropertyMapFromDAGPlan(EdgePlan edge) {
+    return new EdgeProperty(
+        convertFromDAGPlan(edge.getDataMovementType()),
+        convertFromDAGPlan(edge.getDataSourceType()),
+        convertFromDAGPlan(edge.getSchedulingType()),
+        convertOutputDescriptorFromDAGPlan(edge.getEdgeSource()),
+        convertInputDescriptorFromDAGPlan(edge.getEdgeDestination())
+    );
   }
 
   public static Resource createResourceRequestFromTaskConfig(

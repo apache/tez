@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -54,10 +55,12 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatus;
+import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerImpl;
 import org.apache.tez.dag.app.rm.container.AMContainerTask;
 import org.apache.tez.dag.app.security.authorize.MRAMPolicyProvider;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
 import org.apache.tez.engine.newapi.events.TaskAttemptFailedEvent;
 import org.apache.tez.engine.newapi.impl.TezEvent;
@@ -89,9 +92,18 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   private Server server;
 
 
-  // TODO Use this to figure out whether an incoming ping is valid.
-  private ConcurrentMap<TezTaskAttemptID, ContainerId> attemptToContainerIdMap =
-      new ConcurrentHashMap<TezTaskAttemptID, ContainerId>();
+  class AttemptInfo {
+    AttemptInfo(ContainerId containerId) {
+      this.containerId = containerId;
+      this.lastReponse = null;
+      this.lastRequestId = -1;
+    }
+    ContainerId containerId;
+    long lastRequestId;
+    TezHeartbeatResponse lastReponse;
+  }
+  private ConcurrentMap<TezTaskAttemptID, AttemptInfo> attemptToInfoMap =
+      new ConcurrentHashMap<TezTaskAttemptID, AttemptInfo>();
 
   private Set<ContainerId> registeredContainers = Collections
       .newSetFromMap(new ConcurrentHashMap<ContainerId, Boolean>());
@@ -479,9 +491,13 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     // between polls (MRTask) implies tasks end up wasting upto 1 second doing
     // nothing. Similarly for CA_COMMIT.
 
+    /*
+    DAG job = context.getCurrentDAG();
+    Task task =
+        job.getVertex(taskAttemptId.getTaskID().getVertexID()).
+            getTask(taskAttemptId.getTaskID());
 
     // TODO In-Memory Shuffle
-    /*
     if (task.needsWaitAfterOutputConsumable()) {
       TezTaskAttemptID outputReadyAttempt = task.getOutputConsumableAttempt();
       if (outputReadyAttempt != null) {
@@ -518,7 +534,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
   @Override
   public void unregisterTaskAttempt(TezTaskAttemptID attemptId) {
-    attemptToContainerIdMap.remove(attemptId);
+    attemptToInfoMap.remove(attemptId);
   }
 
   public AMContainerTask pullTaskAttemptContext(ContainerId containerId) {
@@ -539,7 +555,8 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   @Override
   public void registerTaskAttempt(TezTaskAttemptID attemptId,
       ContainerId containerId) {
-    attemptToContainerIdMap.put(attemptId, containerId);
+    AttemptInfo attemptInfo = new AttemptInfo(containerId);
+    attemptToInfoMap.put(attemptId, attemptInfo);
   }
 
   @Override
@@ -556,7 +573,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   }
 
   private void pingContainerHeartbeatHandler(TezTaskAttemptID taskAttemptId) {
-    ContainerId containerId = attemptToContainerIdMap.get(taskAttemptId);
+    ContainerId containerId = attemptToInfoMap.get(taskAttemptId).containerId;
     if (containerId != null) {
       containerHeartbeatHandler.pinged(containerId);
     } else {
@@ -568,12 +585,45 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   @Override
   public TezHeartbeatResponse heartbeat(TezHeartbeatRequest request)
       throws IOException, TezException {
-    // TODO TODONEWTEZ Auto-generated method stub
+    long requestId = request.getRequestId();
     TezTaskAttemptID taskAttemptID = request.getCurrentTaskAttemptID();
-    LOG.info("Ping from " + taskAttemptID.toString());
-    taskHeartbeatHandler.pinged(taskAttemptID);
-    pingContainerHeartbeatHandler(taskAttemptID);
-    return null;
+    AttemptInfo attemptInfo = attemptToInfoMap.get(taskAttemptID);
+    if(attemptInfo == null) {
+      throw new TezException("Attempt " + taskAttemptID
+          + " is not recognized for heartbeat");
+    }
+    synchronized (attemptInfo) {      
+      if(attemptInfo.lastRequestId == requestId) {
+        return attemptInfo.lastReponse;
+      }
+      if(attemptInfo.lastRequestId+1 < requestId) {
+        throw new TezException("Attempt " + taskAttemptID
+            + " has invalid request id. Expected: " + attemptInfo.lastRequestId+1 
+            + " and actual: " + requestId);
+      }
+      
+      // not safe to multiple call from same task
+      LOG.info("Ping from " + taskAttemptID.toString());
+      List<TezEvent> inEvents = request.getEvents();
+      if(inEvents!=null && inEvents.size()>0) {    
+        TezVertexID vertexId = taskAttemptID.getTaskID().getVertexID();
+        context.getEventHandler().handle(new VertexEventRouteEvent(vertexId, inEvents));
+      }
+      taskHeartbeatHandler.pinged(taskAttemptID);
+      pingContainerHeartbeatHandler(taskAttemptID);
+      TezHeartbeatResponse response = new TezHeartbeatResponse();
+      response.setLastRequestId(requestId);
+      List<TezEvent> outEvents = context
+          .getCurrentDAG()
+          .getVertex(taskAttemptID.getTaskID().getVertexID())
+          .getTask(taskAttemptID.getTaskID())
+          .getTaskAttemptTezEvents(taskAttemptID, request.getStartIndex(),
+              request.getMaxEvents());
+      response.setEvents(outEvents);
+      attemptInfo.lastRequestId = requestId;
+      attemptInfo.lastReponse = response;
+      return response;
+    }
   }
 
   @Override

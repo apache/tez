@@ -107,7 +107,13 @@ public class EventMetaData implements Writable {
     } else {
       out.writeBoolean(false);
     }
-    taskAttemptID.write(out);
+    if(taskAttemptID != null) {
+      out.writeBoolean(true);
+      taskAttemptID.write(out);
+    } else {
+      out.writeBoolean(false);
+    }
+    
     out.writeInt(index);
   }
 
@@ -120,8 +126,10 @@ public class EventMetaData implements Writable {
     if (in.readBoolean()) {
       edgeVertexName = in.readUTF();
     }
-    taskAttemptID = new TezTaskAttemptID();
-    taskAttemptID.readFields(in);
+    if (in.readBoolean()) {
+      taskAttemptID = new TezTaskAttemptID();
+      taskAttemptID.readFields(in);
+    }
     index = in.readInt();
   }
 

@@ -57,4 +57,6 @@ public enum VertexEventType {
   INTERNAL_ERROR,
   V_COUNTER_UPDATE,
   
+  V_ROUTE_EVENT,
+  
 }

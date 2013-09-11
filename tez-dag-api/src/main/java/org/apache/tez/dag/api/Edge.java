@@ -31,6 +31,7 @@ public class Edge{
     this.edgeProperty = edgeProperty;
   }
   
+  // RENAME to source and destination
   public Vertex getInputVertex() {
     return inputVertex;
   }

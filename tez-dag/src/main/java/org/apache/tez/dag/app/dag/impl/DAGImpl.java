@@ -131,7 +131,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final AppContext appContext;
 
   volatile Map<TezVertexID, Vertex> vertices = new HashMap<TezVertexID, Vertex>();
-  private Map<String, EdgeProperty> edges = new HashMap<String, EdgeProperty>();
+  private Map<String, Edge> edges = new HashMap<String, Edge>();
   private TezCounters dagCounters = new TezCounters();
   private Object fullCountersLock = new Object();
   private TezCounters fullCounters = null;
@@ -836,7 +836,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           dag.addVertex(v);
         }
 
-        dag.edges = DagTypeConverters.createEdgePropertyMapFromDAGPlan(dag.getJobPlan().getEdgeList());
+        createDAGEdges(dag);
         Map<String,EdgePlan> edgePlans = DagTypeConverters.createEdgePlanMapFromDAGPlan(dag.getJobPlan().getEdgeList());
 
         // setup the dag
@@ -861,6 +861,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         return dag.finished(DAGState.FAILED);
       }
     }
+    
+    private void createDAGEdges(DAGImpl dag) {
+      for (EdgePlan edgePlan : dag.getJobPlan().getEdgeList()) {
+        EdgeProperty edgeProperty = DagTypeConverters
+            .createEdgePropertyMapFromDAGPlan(edgePlan);
+        // edge manager may be also set via API when using custom edge type
+        dag.edges.put(edgePlan.getId(),
+            new Edge(edgeProperty, dag.getEventHandler()));
+      }
+    }
 
     private void assignDAGScheduler(DAGImpl dag) {
       if (dag.conf.getBoolean(TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING,
@@ -870,17 +880,17 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       } else {
         boolean isMRR = true;
         for (Vertex vertex : dag.vertices.values()) {
-          Map<Vertex, EdgeProperty> outVertices = vertex.getOutputVertices();
-          Map<Vertex, EdgeProperty> inVertices = vertex.getInputVertices();
+          Map<Vertex, Edge> outVertices = vertex.getOutputVertices();
+          Map<Vertex, Edge> inVertices = vertex.getInputVertices();
           if (!(outVertices == null || outVertices.isEmpty() || (outVertices
-              .size() == 1 && outVertices.values().iterator().next()
+              .size() == 1 && outVertices.values().iterator().next().getEdgeProperty()
               .getDataMovementType() == EdgeProperty.DataMovementType.SCATTER_GATHER))) {
             // more than 1 output OR single output is not bipartite
             isMRR = false;
             break;
           }
           if (!(inVertices == null || inVertices.isEmpty() || (inVertices
-              .size() == 1 && inVertices.values().iterator().next()
+              .size() == 1 && inVertices.values().iterator().next().getEdgeProperty()
               .getDataMovementType() == EdgeProperty.DataMovementType.SCATTER_GATHER))) {
             // more than 1 output OR single output is not bipartite
             isMRR = false;
@@ -924,24 +934,28 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     private void parseVertexEdges(DAGImpl dag, Map<String, EdgePlan> edgePlans, Vertex vertex) {
       VertexPlan vertexPlan = vertex.getVertexPlan();
 
-      Map<Vertex, EdgeProperty> inVertices =
-          new HashMap<Vertex, EdgeProperty>();
+      Map<Vertex, Edge> inVertices =
+          new HashMap<Vertex, Edge>();
 
-      Map<Vertex, EdgeProperty> outVertices =
-          new HashMap<Vertex, EdgeProperty>();
+      Map<Vertex, Edge> outVertices =
+          new HashMap<Vertex, Edge>();
 
       for(String inEdgeId : vertexPlan.getInEdgeIdList()){
         EdgePlan edgePlan = edgePlans.get(inEdgeId);
         Vertex inVertex = dag.vertexMap.get(edgePlan.getInputVertexName());
-        EdgeProperty edgeProp = dag.edges.get(inEdgeId);
-        inVertices.put(inVertex, edgeProp);
+        Edge edge = dag.edges.get(inEdgeId);
+        edge.setSourceVertex(inVertex);
+        edge.setDestinationVertex(vertex);
+        inVertices.put(inVertex, edge);
       }
 
       for(String outEdgeId : vertexPlan.getOutEdgeIdList()){
         EdgePlan edgePlan = edgePlans.get(outEdgeId);
         Vertex outVertex = dag.vertexMap.get(edgePlan.getOutputVertexName());
-        EdgeProperty edgeProp = dag.edges.get(outEdgeId);
-        outVertices.put(outVertex, edgeProp);
+        Edge edge = dag.edges.get(outEdgeId);
+        edge.setSourceVertex(vertex);
+        edge.setDestinationVertex(outVertex);
+        outVertices.put(outVertex, edge);
       }
 
       vertex.setInputVertices(inVertices);
@@ -1008,7 +1022,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     vertexMap.put(v.getName(), v);
   }
 
-  Vertex getVertex(String vertexName) {
+  @Override
+  public Vertex getVertex(String vertexName) {
     return vertexMap.get(vertexName);
   }
 

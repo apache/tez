@@ -49,6 +49,10 @@ public interface DAG {
    */
   TezCounters getAllCounters();
 
+  /**
+   * Get Vertex by vertex name
+   */
+  Vertex getVertex(String vertexName);
   Map<TezVertexID,Vertex> getVertices();
   Vertex getVertex(TezVertexID vertexId);
   List<String> getDiagnostics();

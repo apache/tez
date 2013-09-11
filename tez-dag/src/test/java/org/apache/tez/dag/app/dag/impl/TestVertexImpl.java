@@ -24,7 +24,6 @@ import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -62,6 +61,7 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.EdgeManager;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
@@ -71,7 +71,6 @@ import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
-import org.apache.tez.dag.app.dag.event.VertexEventSourceTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
@@ -108,7 +107,7 @@ public class TestVertexImpl {
   private AppContext appContext;
   private VertexLocationHint vertexLocationHint;
   private Configuration conf;
-  private Map<String, EdgeProperty> edges;
+  private Map<String, Edge> edges;
 
   private TaskEventDispatcher taskEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
@@ -477,27 +476,32 @@ public class TestVertexImpl {
     Map<String, EdgePlan> edgePlans =
         DagTypeConverters.createEdgePlanMapFromDAGPlan(dagPlan.getEdgeList());
 
+    // TODO - this test logic is tightly linked to impl DAGImpl code.
     for (int i = 0; i < vCnt; ++i) {
       VertexPlan vertexPlan = dagPlan.getVertex(i);
       Vertex vertex = vertices.get(vertexPlan.getName());
-      Map<Vertex, EdgeProperty> inVertices =
-          new HashMap<Vertex, EdgeProperty>();
+      Map<Vertex, Edge> inVertices =
+          new HashMap<Vertex, Edge>();
 
-      Map<Vertex, EdgeProperty> outVertices =
-          new HashMap<Vertex, EdgeProperty>();
+      Map<Vertex, Edge> outVertices =
+          new HashMap<Vertex, Edge>();
 
       for(String inEdgeId : vertexPlan.getInEdgeIdList()){
         EdgePlan edgePlan = edgePlans.get(inEdgeId);
         Vertex inVertex = this.vertices.get(edgePlan.getInputVertexName());
-        EdgeProperty edgeProp = this.edges.get(inEdgeId);
-        inVertices.put(inVertex, edgeProp);
+        Edge edge = this.edges.get(inEdgeId);
+        edge.setSourceVertex(inVertex);
+        edge.setDestinationVertex(vertex);
+        inVertices.put(inVertex, edge);
       }
 
       for(String outEdgeId : vertexPlan.getOutEdgeIdList()){
         EdgePlan edgePlan = edgePlans.get(outEdgeId);
         Vertex outVertex = this.vertices.get(edgePlan.getOutputVertexName());
-        EdgeProperty edgeProp = this.edges.get(outEdgeId);
-        outVertices.put(outVertex, edgeProp);
+        Edge edge = this.edges.get(outEdgeId);
+        edge.setSourceVertex(vertex);
+        edge.setDestinationVertex(outVertex);
+        outVertices.put(outVertex, edge);
       }
       LOG.info("Setting input vertices for vertex " + vertex.getName()
           + ", inputVerticesCnt=" + inVertices.size());
@@ -526,8 +530,15 @@ public class TestVertexImpl {
     doReturn(dagId).when(appContext).getCurrentDAGID();
     doReturn(dagId).when(dag).getID();
     setupVertices();
-    edges = DagTypeConverters.createEdgePropertyMapFromDAGPlan(
-        dagPlan.getEdgeList());
+    
+    // TODO - this test logic is tightly linked to impl DAGImpl code.
+    edges = new HashMap<String, Edge>();
+    for (EdgePlan edgePlan : dagPlan.getEdgeList()) {
+      EdgeProperty edgeProperty = DagTypeConverters
+          .createEdgePropertyMapFromDAGPlan(edgePlan);
+      edges.put(edgePlan.getId(), new Edge(edgeProperty, dispatcher.getEventHandler()));
+    }
+
     parseVertexEdges();
     taskEventDispatcher = new TaskEventDispatcher();
     dispatcher.register(TaskEventType.class, taskEventDispatcher);
@@ -607,43 +618,43 @@ public class TestVertexImpl {
     Assert.assertEquals("x3.y3", v3.getProcessorName());
     Assert.assertEquals("foo", v3.getJavaOpts());
 
-    Assert.assertEquals(2, v3.getInputSpecList().size());
+    Assert.assertEquals(2, v3.getInputSpecList(0).size());
     Assert.assertEquals(2, v3.getInputVerticesCount());
     Assert.assertEquals(2, v3.getOutputVerticesCount());
     Assert.assertEquals(2, v3.getOutputVerticesCount());
 
-    Assert.assertTrue("vertex1".equals(v3.getInputSpecList().get(0)
+    Assert.assertTrue("vertex1".equals(v3.getInputSpecList(0).get(0)
         .getSourceVertexName())
-        || "vertex2".equals(v3.getInputSpecList().get(0)
+        || "vertex2".equals(v3.getInputSpecList(0).get(0)
             .getSourceVertexName()));
-    Assert.assertTrue("vertex1".equals(v3.getInputSpecList().get(1)
+    Assert.assertTrue("vertex1".equals(v3.getInputSpecList(0).get(1)
         .getSourceVertexName())
-        || "vertex2".equals(v3.getInputSpecList().get(1)
+        || "vertex2".equals(v3.getInputSpecList(0).get(1)
             .getSourceVertexName()));
-    Assert.assertTrue("i3_v1".equals(v3.getInputSpecList().get(0)
+    Assert.assertTrue("i3_v1".equals(v3.getInputSpecList(0).get(0)
         .getInputDescriptor().getClassName())
-        || "i3_v2".equals(v3.getInputSpecList().get(0)
+        || "i3_v2".equals(v3.getInputSpecList(0).get(0)
             .getInputDescriptor().getClassName()));
-    Assert.assertTrue("i3_v1".equals(v3.getInputSpecList().get(1)
+    Assert.assertTrue("i3_v1".equals(v3.getInputSpecList(0).get(1)
         .getInputDescriptor().getClassName())
-        || "i3_v2".equals(v3.getInputSpecList().get(1)
+        || "i3_v2".equals(v3.getInputSpecList(0).get(1)
             .getInputDescriptor().getClassName()));
 
-    Assert.assertTrue("vertex4".equals(v3.getOutputSpecList().get(0)
+    Assert.assertTrue("vertex4".equals(v3.getOutputSpecList(0).get(0)
         .getDestinationVertexName())
-        || "vertex5".equals(v3.getOutputSpecList().get(0)
+        || "vertex5".equals(v3.getOutputSpecList(0).get(0)
             .getDestinationVertexName()));
-    Assert.assertTrue("vertex4".equals(v3.getOutputSpecList().get(1)
+    Assert.assertTrue("vertex4".equals(v3.getOutputSpecList(0).get(1)
         .getDestinationVertexName())
-        || "vertex5".equals(v3.getOutputSpecList().get(1)
+        || "vertex5".equals(v3.getOutputSpecList(0).get(1)
             .getDestinationVertexName()));
-    Assert.assertTrue("o3_v4".equals(v3.getOutputSpecList().get(0)
+    Assert.assertTrue("o3_v4".equals(v3.getOutputSpecList(0).get(0)
         .getOutputDescriptor().getClassName())
-        || "o3_v5".equals(v3.getOutputSpecList().get(0)
+        || "o3_v5".equals(v3.getOutputSpecList(0).get(0)
             .getOutputDescriptor().getClassName()));
-    Assert.assertTrue("o3_v4".equals(v3.getOutputSpecList().get(1)
+    Assert.assertTrue("o3_v4".equals(v3.getOutputSpecList(0).get(1)
         .getOutputDescriptor().getClassName())
-        || "o3_v5".equals(v3.getOutputSpecList().get(1)
+        || "o3_v5".equals(v3.getOutputSpecList(0).get(1)
             .getOutputDescriptor().getClassName()));
   }
 
@@ -657,43 +668,26 @@ public class TestVertexImpl {
 
   @Test//(timeout = 5000)
   public void testVertexSetParallelism() {
-    VertexImpl v2 = vertices.get("vertex2");
-    initVertex(v2);
-    Assert.assertEquals(2, v2.getTotalTasks());
-    Map<TezTaskID, Task> tasks = v2.getTasks();
+    VertexImpl v3 = vertices.get("vertex3");
+    initVertex(v3);
+    Assert.assertEquals(2, v3.getTotalTasks());
+    Map<TezTaskID, Task> tasks = v3.getTasks();
     Assert.assertEquals(2, tasks.size());
     TezTaskID firstTask = tasks.keySet().iterator().next();
 
-    startVertex(v2);
+    startVertex(v3);
 
-    byte[] payload = new byte[0];
-    List<byte[]> taskPayloads = Collections.singletonList(payload);
-    v2.setParallelism(1, taskPayloads);
-    Assert.assertEquals(1, v2.getTotalTasks());
+    Vertex v1 = vertices.get("vertex1");
+    EdgeManager mockEdgeManager = mock(EdgeManager.class);
+    Map<Vertex, EdgeManager> edgeManager = Collections.singletonMap(
+       v1, mockEdgeManager);
+    v3.setParallelism(1, edgeManager);
+    Assert.assertEquals(1, v3.getTotalTasks());
     Assert.assertEquals(1, tasks.size());
     // the last one is removed
     Assert.assertTrue(tasks.keySet().iterator().next().equals(firstTask));
 
-    VertexImpl v1 = vertices.get("vertex1");
-    TezTaskID t1_v1 = new TezTaskID(v1.getVertexId(), 0);
-    TezTaskAttemptID ta1_t1_v1 = new TezTaskAttemptID(t1_v1, 0);
-
-    TezDependentTaskCompletionEvent cEvt1 =
-        new TezDependentTaskCompletionEvent(1, ta1_t1_v1,
-            Status.SUCCEEDED, "", 3, 0);
-    v2.handle(
-        new VertexEventSourceTaskAttemptCompleted(v2.getVertexId(), cEvt1));
-
-    TezTaskID t1_v2 = new TezTaskID(v2.getVertexId(), 0);
-    TezTaskAttemptID ta1_t1_v2 = new TezTaskAttemptID(t1_v2, 0);
-    TezDependentTaskCompletionEvent[] events =
-        v2.getTaskAttemptCompletionEvents(ta1_t1_v2, 0, 100);
-    Assert.assertEquals(1, events.length);
-    TezDependentTaskCompletionEvent clone = events[0];
-    // payload must be present in the first event
-    Assert.assertEquals(payload, clone.getUserPayload());
-    // event must be a copy
-    Assert.assertFalse(cEvt1 == clone);
+    Assert.assertTrue(v3.sourceVertices.get(v1).getEdgeManager() == mockEdgeManager);
   }
 
   @SuppressWarnings("unchecked")

@@ -18,9 +18,11 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -60,6 +62,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
+import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
@@ -71,6 +74,7 @@ import org.apache.tez.dag.history.events.TaskStartedEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.engine.newapi.impl.TezEvent;
 import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -102,6 +106,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   protected boolean encryptedShuffle;
   protected TaskLocationHint locationHint;
+  
+  private List<TezEvent> tezEventsForTaskAttempts = new ArrayList<TezEvent>();
+  private static final List<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS = 
+      new ArrayList(0);
+  
 
   // counts the number of attempts that are either running or in a state where
   //  they will come to be running when they get a Container
@@ -113,6 +122,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
      ATTEMPT_KILLED_TRANSITION = new AttemptKilledTransition();
   private static final SingleArcTransition<TaskImpl, TaskEvent>
      KILL_TRANSITION = new KillTransition();
+  private static final SingleArcTransition<TaskImpl, TaskEvent>
+     ADD_TEZ_EVENT_TRANSITION = new AddTezEventTransition();
 
   private static final StateMachineFactory
                <TaskImpl, TaskStateInternal, TaskEventType, TaskEvent>
@@ -128,6 +139,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(TaskStateInternal.NEW, TaskStateInternal.KILLED,
             TaskEventType.T_TERMINATE,
             new KillNewTransition())
+    .addTransition(TaskStateInternal.NEW, TaskStateInternal.NEW,
+        TaskEventType.T_ADD_TEZ_EVENT, ADD_TEZ_EVENT_TRANSITION)
+
 
     // Transitions from SCHEDULED state
       //when the first attempt is launched, the task state is set to RUNNING
@@ -142,6 +156,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         EnumSet.of(TaskStateInternal.SCHEDULED, TaskStateInternal.FAILED),
         TaskEventType.T_ATTEMPT_FAILED,
         new AttemptFailedTransition())
+    .addTransition(TaskStateInternal.SCHEDULED, TaskStateInternal.SCHEDULED,
+        TaskEventType.T_ADD_TEZ_EVENT, ADD_TEZ_EVENT_TRANSITION)
 
     // Transitions from RUNNING state
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.RUNNING,
@@ -168,12 +184,17 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.KILL_WAIT,
         TaskEventType.T_TERMINATE,
         KILL_TRANSITION)
+    .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.RUNNING,
+        TaskEventType.T_ADD_TEZ_EVENT, ADD_TEZ_EVENT_TRANSITION)
+
 
     // Transitions from KILL_WAIT state
     .addTransition(TaskStateInternal.KILL_WAIT,
         EnumSet.of(TaskStateInternal.KILL_WAIT, TaskStateInternal.KILLED),
         TaskEventType.T_ATTEMPT_KILLED,
         new KillWaitAttemptKilledTransition())
+    .addTransition(TaskStateInternal.KILL_WAIT, TaskStateInternal.KILL_WAIT,
+        TaskEventType.T_ADD_TEZ_EVENT, ADD_TEZ_EVENT_TRANSITION)
     // Ignore-able transitions.
     .addTransition(
         TaskStateInternal.KILL_WAIT,
@@ -196,6 +217,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(TaskStateInternal.SUCCEEDED, //only possible for map tasks
         EnumSet.of(TaskStateInternal.SCHEDULED, TaskStateInternal.SUCCEEDED),
         TaskEventType.T_ATTEMPT_KILLED, new MapRetroactiveKilledTransition())
+    .addTransition(TaskStateInternal.SUCCEEDED, TaskStateInternal.SUCCEEDED,
+        TaskEventType.T_ADD_TEZ_EVENT, ADD_TEZ_EVENT_TRANSITION)
     // Ignore-able transitions.
     .addTransition(
         TaskStateInternal.SUCCEEDED, TaskStateInternal.SUCCEEDED,
@@ -204,11 +227,15 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
     // Transitions from FAILED state
     .addTransition(TaskStateInternal.FAILED, TaskStateInternal.FAILED,
+        TaskEventType.T_ADD_TEZ_EVENT, ADD_TEZ_EVENT_TRANSITION)
+    .addTransition(TaskStateInternal.FAILED, TaskStateInternal.FAILED,
         EnumSet.of(
             TaskEventType.T_TERMINATE,
             TaskEventType.T_ADD_SPEC_ATTEMPT))
 
     // Transitions from KILLED state
+    .addTransition(TaskStateInternal.KILLED, TaskStateInternal.KILLED,
+        TaskEventType.T_ADD_TEZ_EVENT, ADD_TEZ_EVENT_TRANSITION)
     .addTransition(TaskStateInternal.KILLED, TaskStateInternal.KILLED,
         EnumSet.of(
             TaskEventType.T_TERMINATE,
@@ -414,6 +441,46 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     } finally {
       readLock.unlock();
     }
+  }
+  
+  @Override
+  public List<TezEvent> getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
+      int fromEventId, int maxEvents) {
+    List<TezEvent> events = EMPTY_TASK_ATTEMPT_TEZ_EVENTS;
+    readLock.lock();
+    try {
+      if (tezEventsForTaskAttempts.size() > fromEventId) {
+        int actualMax = Math.min(maxEvents,
+            (tezEventsForTaskAttempts.size() - fromEventId));
+        events = Collections.unmodifiableList(tezEventsForTaskAttempts.subList(
+            fromEventId, actualMax + fromEventId));
+        // currently not modifying the events so that we dont have to create 
+        // copies of events. e.g. if we have to set taskAttemptId into the TezEvent
+        // destination metadata then we will need to create a copy of the TezEvent
+        // and then modify the metadata and then send the copy on the RPC. This 
+        // is important because TezEvents are only routed in the AM and not copied 
+        // during routing. So e.g. a broadcast edge will send the same event to 
+        // all consumers (like it should). If copies were created then re-routing 
+        // the events on parallelism changes would be difficult. We would have to 
+        // buffer the events in the Vertex until the parallelism was set and then 
+        // route the events.
+      }
+      return events;
+    } finally {
+      readLock.unlock();
+    }    
+  }
+  
+  @Override 
+  public List<TezEvent> getAndClearTaskTezEvents() {
+    readLock.lock();
+    try {
+      List<TezEvent> events = tezEventsForTaskAttempts;
+      tezEventsForTaskAttempts = new ArrayList<TezEvent>(); 
+      return events;
+    } finally {
+      readLock.unlock();
+    }        
   }
 
   @VisibleForTesting
@@ -1076,6 +1143,15 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     if (attempt != null && !attempt.isFinished()) {
       eventHandler.handle(new TaskAttemptEventKillRequest(attempt.getID(),
           logMsg));
+    }
+  }
+  
+  private static class AddTezEventTransition 
+      implements SingleArcTransition<TaskImpl, TaskEvent> {
+    @Override
+    public void transition(TaskImpl task, TaskEvent event) {
+      TaskEventAddTezEvent addEvent = (TaskEventAddTezEvent) event;
+      task.tezEventsForTaskAttempts.add(addEvent.getTezEvent());
     }
   }
 
