@@ -20,6 +20,7 @@ package org.apache.tez.engine.newruntime;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -290,6 +291,33 @@ public class LogicalIOProcessorRuntimeTask {
   }
 
   public void handleEvent(TezEvent e) {
-    // TODO TODONEWTEZ
+    switch (e.getDestinationInfo().getEventGenerator()) {
+    case INPUT:
+      LogicalInput input = inputMap.get(
+          e.getDestinationInfo().getEdgeVertexName());
+      if (input != null) {
+        input.handleEvents(Collections.singletonList(e.getEvent()));
+      } else {
+        throw new TezUncheckedException("Unhandled event for invalid target: "
+            + e);
+      }
+      break;
+    case OUTPUT:
+      LogicalOutput output = outputMap.get(
+          e.getDestinationInfo().getEdgeVertexName());
+      if (output != null) {
+        output.handleEvents(Collections.singletonList(e.getEvent()));
+      } else {
+        throw new TezUncheckedException("Unhandled event for invalid target: "
+            + e);
+      }
+      break;
+    case PROCESSOR:
+      processor.handleEvents(Collections.singletonList(e.getEvent()));
+      break;
+    case SYSTEM:
+      LOG.warn("Trying to send a System event in a Task: " + e);
+      break;
+    }
   }
 }
