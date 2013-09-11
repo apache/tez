@@ -54,11 +54,7 @@ import org.apache.tez.engine.newapi.impl.TezUmbilical;
 import com.google.common.base.Preconditions;
 
 @Private
-public class LogicalIOProcessorRuntimeTask {
-
-  private enum State {
-    NEW, INITED, RUNNING, CLOSED
-  }
+public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   private static final Log LOG = LogFactory
       .getLog(LogicalIOProcessorRuntimeTask.class);
@@ -77,8 +73,6 @@ public class LogicalIOProcessorRuntimeTask {
   private final LogicalIOProcessor processor;
 
   private final TezCounters tezCounters;
-
-  private State state;
 
   private Map<String, LogicalInput> inputMap;
   private Map<String, LogicalOutput> outputMap;
@@ -152,9 +146,11 @@ public class LogicalIOProcessorRuntimeTask {
   }
 
   public void run() throws IOException {
-    Preconditions.checkState(this.state == State.INITED,
-        "Can only run while in INITED state. Current: " + this.state);
-    this.state = State.RUNNING;
+    synchronized (this.state) {
+      Preconditions.checkState(this.state == State.INITED,
+          "Can only run while in INITED state. Current: " + this.state);
+      this.state = State.RUNNING;
+    }
     LogicalIOProcessor lioProcessor = (LogicalIOProcessor) processor;
     lioProcessor.run(inputMap, outputMap);
   }
@@ -223,7 +219,7 @@ public class LogicalIOProcessorRuntimeTask {
     TezInputContext inputContext = new TezInputContextImpl(tezConf,
         tezUmbilical, taskSpec.getVertexName(), inputSpec.getSourceVertexName(),
         taskSpec.getTaskAttemptID(), tezCounters,
-        inputSpec.getInputDescriptor().getUserPayload());
+        inputSpec.getInputDescriptor().getUserPayload(), this);
     return inputContext;
   }
 
@@ -232,14 +228,14 @@ public class LogicalIOProcessorRuntimeTask {
         tezUmbilical, taskSpec.getVertexName(),
         outputSpec.getDestinationVertexName(),
         taskSpec.getTaskAttemptID(), tezCounters,
-        outputSpec.getOutputDescriptor().getUserPayload());
+        outputSpec.getOutputDescriptor().getUserPayload(), this);
     return outputContext;
   }
 
   private TezProcessorContext createProcessorContext() {
     TezProcessorContext processorContext = new TezProcessorContextImpl(tezConf,
         tezUmbilical, taskSpec.getVertexName(), taskSpec.getTaskAttemptID(),
-        tezCounters, processorDescriptor.getUserPayload());
+        tezCounters, processorDescriptor.getUserPayload(), this);
     return processorContext;
   }
 
@@ -320,4 +316,5 @@ public class LogicalIOProcessorRuntimeTask {
       break;
     }
   }
+
 }

@@ -27,21 +27,21 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.TezProcessorContext;
 import org.apache.tez.engine.newapi.impl.EventMetaData.EventProducerConsumerType;
+import org.apache.tez.engine.newruntime.RuntimeTask;
 
 public class TezProcessorContextImpl extends TezTaskContextImpl
   implements TezProcessorContext {
 
   private final byte[] userPayload;
-  private final TezUmbilical tezUmbilical;
   private final EventMetaData sourceInfo;
 
   public TezProcessorContextImpl(Configuration tezConf,
       TezUmbilical tezUmbilical, String vertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters,
-      byte[] userPayload) {
-    super(tezConf, vertexName, taskAttemptID, counters);
+      byte[] userPayload, RuntimeTask runtimeTask) {
+    super(tezConf, vertexName, taskAttemptID, counters, runtimeTask,
+        tezUmbilical);
     this.userPayload = userPayload;
-    this.tezUmbilical = tezUmbilical;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.PROCESSOR,
         taskVertexName, "", taskAttemptID);
     this.uniqueIdentifier = String.format("%s_%s_%6d_%2d", taskAttemptID
@@ -68,6 +68,11 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
   public void setProgress(float progress) {
     // TODO Auto-generated method stub
 
+  }
+
+  @Override
+  public void fatalError(Throwable exception, String message) {
+    super.signalFatalError(exception, message, sourceInfo);
   }
 
 }

@@ -28,13 +28,13 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.TezOutputContext;
 import org.apache.tez.engine.newapi.impl.EventMetaData.EventProducerConsumerType;
+import org.apache.tez.engine.newruntime.RuntimeTask;
 
 public class TezOutputContextImpl extends TezTaskContextImpl
     implements TezOutputContext {
 
   private final byte[] userPayload;
   private final String destinationVertexName;
-  private final TezUmbilical tezUmbilical;
   private final EventMetaData sourceInfo;
 
   @Private
@@ -42,11 +42,11 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       TezUmbilical tezUmbilical, String taskVertexName,
       String destinationVertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters,
-      byte[] userPayload) {
-    super(conf, taskVertexName, taskAttemptID, counters);
+      byte[] userPayload, RuntimeTask runtimeTask) {
+    super(conf, taskVertexName, taskAttemptID, counters, runtimeTask,
+        tezUmbilical);
     this.userPayload = userPayload;
     this.destinationVertexName = destinationVertexName;
-    this.tezUmbilical = tezUmbilical;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.OUTPUT,
         taskVertexName, destinationVertexName, taskAttemptID);
     this.uniqueIdentifier = String.format("%s_%s_%6d_%2d_%s", taskAttemptID
@@ -72,6 +72,11 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   @Override
   public String getDestinationVertexName() {
     return destinationVertexName;
+  }
+
+  @Override
+  public void fatalError(Throwable exception, String message) {
+    super.signalFatalError(exception, message, sourceInfo);
   }
 
 }

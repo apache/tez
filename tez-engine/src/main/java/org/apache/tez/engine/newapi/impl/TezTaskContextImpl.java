@@ -23,13 +23,14 @@ import java.util.Arrays;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.newapi.TezTaskContext;
-import org.apache.tez.engine.shuffle.common.ShuffleUtils;
+import org.apache.tez.engine.newruntime.RuntimeTask;
 
 public abstract class TezTaskContextImpl implements TezTaskContext {
 
@@ -39,18 +40,23 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   private final TezCounters counters;
   private String[] workDirs;
   protected String uniqueIdentifier;
+  protected final RuntimeTask runtimeTask;
+  protected final TezUmbilical tezUmbilical;
 
   @Private
   public TezTaskContextImpl(Configuration conf,
       String taskVertexName, TezTaskAttemptID taskAttemptID,
-      TezCounters counters) {
+      TezCounters counters, RuntimeTask runtimeTask,
+      TezUmbilical tezUmbilical) {
     this.conf = conf;
     this.taskVertexName = taskVertexName;
     this.taskAttemptID = taskAttemptID;
     this.counters = counters;
     // TODO Maybe change this to be task id specific at some point. For now
     // Shuffle code relies on this being a path specified by YARN
-    this.workDirs = this.conf.getStrings(TezJobConfig.LOCAL_DIRS); 
+    this.workDirs = this.conf.getStrings(TezJobConfig.LOCAL_DIRS);
+    this.runtimeTask = runtimeTask;
+    this.tezUmbilical = tezUmbilical;
   }
 
   @Override
@@ -58,7 +64,7 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     return taskAttemptID.getTaskID().getVertexID().getDAGId()
         .getApplicationId();
   }
-  
+
   @Override
   public int getTaskIndex() {
     return taskAttemptID.getTaskID().getId();
@@ -75,7 +81,7 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     // the unique identifier.
     return taskAttemptID.getTaskID().getVertexID().getDAGId().toString();
   }
-  
+
   @Override
   public String getTaskVertexName() {
     return taskVertexName;
@@ -91,26 +97,38 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   public String[] getWorkDirs() {
     return Arrays.copyOf(workDirs, workDirs.length);
   }
-  
+
   @Override
   public String getUniqueIdentifier() {
     return uniqueIdentifier;
   }
-  
-  @Override
-  public void fatalError(Throwable exception, String message) {
-    // TODO NEWTEZ Implement once the TezContext communication is setup.
-  }
-  
+
   @Override
   public ByteBuffer getServiceConsumerMetaData(String serviceName) {
     // TODO NEWTEZ Make sure this data is set by the AM for the Shuffle service name.
     return null;
   }
-  
+
   @Override
   public ByteBuffer getServiceProviderMetaData(String serviceName) {
     return AuxiliaryServiceHelper.getServiceDataFromEnv(
-        ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, System.getenv());
+        serviceName, System.getenv());
+  }
+
+  protected void signalFatalError(Throwable t, String message,
+      EventMetaData sourceInfo) {
+    runtimeTask.setFatalError(t, message);
+    String diagnostics;
+    if (t != null && message != null) {
+      diagnostics = "exceptionThrown=" + StringUtils.stringifyException(t)
+          + ", errorMessage=" + message;
+    } else if (t == null && message == null) {
+      diagnostics = "Unknown error";
+    } else {
+      diagnostics = t != null ?
+          "exceptionThrown=" + StringUtils.stringifyException(t)
+          : " errorMessage=" + message;
+    }
+    tezUmbilical.signalFatalError(taskAttemptID, diagnostics, sourceInfo);
   }
 }

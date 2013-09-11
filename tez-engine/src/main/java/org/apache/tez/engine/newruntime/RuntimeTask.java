@@ -16,18 +16,30 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi.impl;
+package org.apache.tez.engine.newruntime;
 
-import java.util.Collection;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.tez.dag.records.TezTaskAttemptID;
+public abstract class RuntimeTask {
 
-public interface TezUmbilical {
+  protected AtomicBoolean hasFatalError = new AtomicBoolean(false);
+  protected Throwable fatalError = null;
+  protected String fatalErrorMessage = null;
 
-  public void addEvents(Collection<TezEvent> events);
+  protected enum State {
+    NEW, INITED, RUNNING, CLOSED;
+  }
 
-  public void signalFatalError(TezTaskAttemptID taskAttemptID,
-      String diagnostics,
-      EventMetaData sourceInfo);
+  protected State state;
+
+  public void setFatalError(Throwable t, String message) {
+    hasFatalError.set(true);
+    this.fatalError = t;
+    this.fatalErrorMessage = message;
+  }
+
+  public boolean hadFatalError() {
+    return hasFatalError.get();
+  }
 
 }

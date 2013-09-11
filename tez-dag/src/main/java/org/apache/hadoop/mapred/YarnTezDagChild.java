@@ -183,7 +183,20 @@ public class YarnTezDagChild {
                   currentTask.handleEvent(e);
                 } catch (Throwable t) {
                   LOG.warn("Failed to handle event", t);
-                  // TODONEWTEZ
+                  currentTask.setFatalError(t, "Failed to handle event");
+                  TezEvent taskAttemptFailedEvent = new TezEvent(
+                      new TaskAttemptFailedEvent(
+                          StringUtils.stringifyException(t)),
+                      new EventMetaData(EventProducerConsumerType.SYSTEM,
+                          "", "", currentTaskAttemptID));
+                  try {
+                    umbilical.taskAttemptFailed(currentTaskAttemptID,
+                        taskAttemptFailedEvent);
+                  } catch (IOException ioe) {
+                    // TODO Auto-generated catch block
+                    ioe.printStackTrace();
+                    // TODO NEWTEZ System exit?
+                  }
                 }
               }
             } finally {
@@ -304,6 +317,22 @@ public class YarnTezDagChild {
       public void addEvents(Collection<TezEvent> events) {
         eventsToSend.addAll(events);
       }
+
+      @Override
+      public void signalFatalError(TezTaskAttemptID taskAttemptID,
+          String diagnostics,
+          EventMetaData sourceInfo) {
+        TezEvent taskAttemptFailedEvent =
+            new TezEvent(new TaskAttemptFailedEvent(diagnostics),
+                sourceInfo);
+        try {
+          umbilical.taskAttemptFailed(taskAttemptID, taskAttemptFailedEvent);
+        } catch (IOException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+          // TODONEWTEZ System.exit ?
+        }
+      }
     };
 
     // report non-pid to application master
@@ -320,6 +349,7 @@ public class YarnTezDagChild {
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT);
     int taskCount = 0;
     TezVertexID currentVertexId = null;
+    EventMetaData currentSourceInfo = null;
     try {
       while (true) {
         // poll for new task
@@ -371,6 +401,10 @@ public class YarnTezDagChild {
           taskLock.writeLock().unlock();
         }
 
+        final EventMetaData sourceInfo = new EventMetaData(
+            EventProducerConsumerType.SYSTEM,
+            taskSpec.getVertexName(), "", currentTaskAttemptID);
+        currentSourceInfo = sourceInfo;
 
         // TODO Initiate Java VM metrics
         // JvmMetrics.initSingleton(containerId.toString(), job.getSessionId());
@@ -382,25 +416,29 @@ public class YarnTezDagChild {
         childUGI.doAs(new PrivilegedExceptionAction<Object>() {
           @Override
           public Object run() throws Exception {
-            EventMetaData sourceInfo = new EventMetaData(
-                EventProducerConsumerType.SYSTEM,
-                taskSpec.getVertexName(), "", currentTaskAttemptID);
             try {
               currentTask.initialize();
-              currentTask.run();
-              currentTask.close();
+              if (!currentTask.hadFatalError()) {
+                currentTask.run();
+                currentTask.close();
+              }
               // TODONEWTEZ check if task had a fatal error before
               // sending completed event
-              TezEvent taskCompletedEvent =
-                  new TezEvent(new TaskAttemptCompletedEvent(), sourceInfo);
-              umbilical.taskAttemptCompleted(currentTaskAttemptID,
-                  taskCompletedEvent);
+              if (!currentTask.hadFatalError()) {
+                TezEvent taskCompletedEvent =
+                    new TezEvent(new TaskAttemptCompletedEvent(), sourceInfo);
+                umbilical.taskAttemptCompleted(currentTaskAttemptID,
+                    taskCompletedEvent);
+              }
             } catch (Throwable t) {
-              TezEvent taskAttemptFailedEvent =
-                  new TezEvent(new TaskAttemptFailedEvent(t.getMessage()),
-                      sourceInfo);
-              umbilical.taskAttemptCompleted(currentTaskAttemptID,
-                  taskAttemptFailedEvent);
+              if (!currentTask.hadFatalError()) {
+                TezEvent taskAttemptFailedEvent =
+                    new TezEvent(new TaskAttemptFailedEvent(
+                        StringUtils.stringifyException(t)),
+                        sourceInfo);
+                umbilical.taskAttemptCompleted(currentTaskAttemptID,
+                    taskAttemptFailedEvent);
+              }
             }
             try {
               taskLock.writeLock().lock();
@@ -416,13 +454,20 @@ public class YarnTezDagChild {
       }
     } catch (FSError e) {
       LOG.fatal("FSError from child", e);
-      umbilical.fsError(currentTaskAttemptID, e.getMessage());
+      TezEvent taskAttemptFailedEvent =
+          new TezEvent(new TaskAttemptFailedEvent(
+              StringUtils.stringifyException(e)),
+              currentSourceInfo);
+      umbilical.taskAttemptFailed(currentTaskAttemptID, taskAttemptFailedEvent);
     } catch (Throwable throwable) {
-      LOG.fatal("Error running child : "
-    	        + StringUtils.stringifyException(throwable));
+      String cause = StringUtils.stringifyException(throwable);
+      LOG.fatal("Error running child : " + cause);
       if (currentTaskAttemptID != null) {
-        String cause = StringUtils.stringifyException(throwable);
-        umbilical.fatalError(currentTaskAttemptID, cause);
+        TezEvent taskAttemptFailedEvent =
+            new TezEvent(new TaskAttemptFailedEvent(cause),
+                currentSourceInfo);
+        umbilical.taskAttemptFailed(currentTaskAttemptID,
+            taskAttemptFailedEvent);
       }
     } finally {
       stopped.set(true);
