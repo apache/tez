@@ -25,7 +25,7 @@ import java.io.IOException;
  * 
  * Example usage
  * <code>
- * while (kvReader.moveToNext()) {
+ * while (kvReader.next()) {
  *   KVRecord kvRecord = getCurrentKV();
  *   Object key =  kvRecord.getKey();
  *   Iterable values = kvRecord.getValues();
@@ -41,7 +41,7 @@ public interface KVReader extends Reader {
    * @throws IOException
    *           if an error occurs
    */
-  public boolean moveToNext() throws IOException;
+  public boolean next() throws IOException;
 
   /**
    * Return the current key/value(s) pair. Use moveToNext() to advance.

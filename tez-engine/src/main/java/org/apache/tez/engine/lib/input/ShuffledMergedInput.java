@@ -130,7 +130,7 @@ public class ShuffledMergedInput implements LogicalInput {
     return new KVReader() {
       
       @Override
-      public boolean moveToNext() throws IOException {
+      public boolean next() throws IOException {
         return vIter.moveToNext();
       }
       
