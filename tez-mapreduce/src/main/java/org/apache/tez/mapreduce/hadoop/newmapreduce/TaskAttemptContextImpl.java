@@ -24,7 +24,7 @@ import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.TaskType;
-import org.apache.tez.engine.newapi.TezInputContext;
+import org.apache.tez.engine.newapi.TezTaskContext;
 import org.apache.tez.mapreduce.common.Utils;
 
 // NOTE: NEWTEZ: This is a copy of org.apache.tez.mapreduce.hadoop.mapred (not mapreduce). mapred likely does not need it's own copy of this class.
@@ -34,19 +34,18 @@ import org.apache.tez.mapreduce.common.Utils;
 @InterfaceStability.Unstable
 public class TaskAttemptContextImpl
        extends org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl {
-  private TezInputContext inputContext;
+  private TezTaskContext taskContext;
 
   // FIXME we need to use DAG Id but we are using App Id
-  public TaskAttemptContextImpl(Configuration conf, TezInputContext inputContext) {
-    // TODO NEWTEZ Figure out how to compute the TaskType - MAP or REDUCE. For
-    // SimpleInput, it likely doesn't matter - but setting it to MAP
-    // TODO NEWTEZ Can the jt Identifier string be inputContext.getUniqueId ?
+  public TaskAttemptContextImpl(Configuration conf,
+      TezTaskContext taskContext, boolean isMap) {
+    // TODO NEWTEZ Can the jt Identifier string be taskContext.getUniqueId ?
     super(conf, new TaskAttemptID(
-        new TaskID(String.valueOf(inputContext.getApplicationId()
-            .getClusterTimestamp()), inputContext.getApplicationId().getId(),
-            TaskType.MAP, inputContext.getTaskIndex()),
-        inputContext.getAttemptNumber()));
-    this.inputContext = inputContext;
+        new TaskID(String.valueOf(taskContext.getApplicationId()
+            .getClusterTimestamp()), taskContext.getApplicationId().getId(),
+            TaskType.MAP, taskContext.getTaskIndex()),
+        taskContext.getAttemptNumber()));
+    this.taskContext = taskContext;
     
   }
   
@@ -58,12 +57,12 @@ public class TaskAttemptContextImpl
 
   @Override
   public Counter getCounter(Enum<?> counterName) {
-    return Utils.getMRCounter(inputContext.getCounters().findCounter(counterName));
+    return Utils.getMRCounter(taskContext.getCounters().findCounter(counterName));
   }
 
   @Override
   public Counter getCounter(String groupName, String counterName) {
-    return Utils.getMRCounter(inputContext.getCounters().findCounter(groupName, counterName));
+    return Utils.getMRCounter(taskContext.getCounters().findCounter(groupName, counterName));
   }
 
   /**

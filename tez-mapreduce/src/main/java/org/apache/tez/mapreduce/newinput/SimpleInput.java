@@ -265,7 +265,7 @@ public class SimpleInput implements LogicalInput {
 
   
   private TaskAttemptContext createTaskAttemptContext() {
-    return new TaskAttemptContextImpl(this.jobConf, inputContext);
+    return new TaskAttemptContextImpl(this.jobConf, inputContext, true);
   }
   
 
