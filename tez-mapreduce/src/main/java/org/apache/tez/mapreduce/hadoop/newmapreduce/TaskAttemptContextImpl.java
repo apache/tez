@@ -43,12 +43,13 @@ public class TaskAttemptContextImpl
     super(conf, new TaskAttemptID(
         new TaskID(String.valueOf(taskContext.getApplicationId()
             .getClusterTimestamp()), taskContext.getApplicationId().getId(),
-            TaskType.MAP, taskContext.getTaskIndex()),
-        taskContext.getAttemptNumber()));
+            isMap ? TaskType.MAP : TaskType.REDUCE,
+            taskContext.getTaskIndex()),
+            taskContext.getAttemptNumber()));
     this.taskContext = taskContext;
-    
+
   }
-  
+
   @Override
   public float getProgress() {
     // TODO NEWTEZ Will this break anything ?

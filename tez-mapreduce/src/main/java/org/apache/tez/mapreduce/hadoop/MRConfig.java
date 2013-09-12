@@ -21,8 +21,8 @@ import org.apache.hadoop.classification.InterfaceAudience;
 
 /**
  * Place holder for cluster level configuration keys.
- * 
- * The keys should have "mapreduce.cluster." as the prefix. 
+ *
+ * The keys should have "mapreduce.cluster." as the prefix.
  *
  */
 @InterfaceAudience.Private
@@ -32,7 +32,7 @@ public interface MRConfig {
   public static final String TEMP_DIR = "mapreduce.cluster.temp.dir";
   public static final String LOCAL_DIR = "mapreduce.cluster.local.dir";
   public static final String MAPMEMORY_MB = "mapreduce.cluster.mapmemory.mb";
-  public static final String REDUCEMEMORY_MB = 
+  public static final String REDUCEMEMORY_MB =
     "mapreduce.cluster.reducememory.mb";
   public static final String MR_ACLS_ENABLED = "mapreduce.cluster.acls.enabled";
   public static final String MR_ADMINS =
@@ -42,26 +42,26 @@ public interface MRConfig {
     "mapreduce.cluster.permissions.supergroup";
 
   //Delegation token related keys
-  public static final String  DELEGATION_KEY_UPDATE_INTERVAL_KEY = 
+  public static final String  DELEGATION_KEY_UPDATE_INTERVAL_KEY =
     "mapreduce.cluster.delegation.key.update-interval";
-  public static final long    DELEGATION_KEY_UPDATE_INTERVAL_DEFAULT = 
+  public static final long    DELEGATION_KEY_UPDATE_INTERVAL_DEFAULT =
     24*60*60*1000; // 1 day
-  public static final String  DELEGATION_TOKEN_RENEW_INTERVAL_KEY = 
+  public static final String  DELEGATION_TOKEN_RENEW_INTERVAL_KEY =
     "mapreduce.cluster.delegation.token.renew-interval";
-  public static final long    DELEGATION_TOKEN_RENEW_INTERVAL_DEFAULT = 
+  public static final long    DELEGATION_TOKEN_RENEW_INTERVAL_DEFAULT =
     24*60*60*1000;  // 1 day
-  public static final String  DELEGATION_TOKEN_MAX_LIFETIME_KEY = 
+  public static final String  DELEGATION_TOKEN_MAX_LIFETIME_KEY =
     "mapreduce.cluster.delegation.token.max-lifetime";
-  public static final long    DELEGATION_TOKEN_MAX_LIFETIME_DEFAULT = 
+  public static final long    DELEGATION_TOKEN_MAX_LIFETIME_DEFAULT =
     7*24*60*60*1000; // 7 days
-  
+
   public static final String RESOURCE_CALCULATOR_PROCESS_TREE =
     "mapreduce.job.process-tree.class";
-  public static final String STATIC_RESOLUTIONS = 
+  public static final String STATIC_RESOLUTIONS =
     "mapreduce.job.net.static.resolutions";
 
   public static final String MASTER_ADDRESS  = "mapreduce.jobtracker.address";
-  public static final String MASTER_USER_NAME = 
+  public static final String MASTER_USER_NAME =
     "mapreduce.jobtracker.kerberos.principal";
 
   public static final String FRAMEWORK_NAME  = "mapreduce.framework.name";
@@ -101,4 +101,7 @@ public interface MRConfig {
 
   public static final int DEFAULT_MAPRED_IFILE_READAHEAD_BYTES =
     4 * 1024 * 1024;
+
+  public static final String IS_MAP_PROCESSOR =
+      "tez.mapreduce.is_map_processor";
 }
