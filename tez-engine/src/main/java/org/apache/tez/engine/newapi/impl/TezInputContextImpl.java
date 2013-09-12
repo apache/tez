@@ -18,8 +18,10 @@
 
 package org.apache.tez.engine.newapi.impl;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
@@ -42,9 +44,9 @@ public class TezInputContextImpl extends TezTaskContextImpl
       TezUmbilical tezUmbilical, String taskVertexName,
       String sourceVertexName, TezTaskAttemptID taskAttemptID,
       TezCounters counters, byte[] userPayload,
-      RuntimeTask runtimeTask) {
+      RuntimeTask runtimeTask, Map<String, ByteBuffer> serviceConsumerMetadata) {
     super(conf, taskVertexName, taskAttemptID, counters, runtimeTask,
-        tezUmbilical);
+        tezUmbilical, serviceConsumerMetadata);
     this.userPayload = userPayload;
     this.sourceVertexName = sourceVertexName;
     this.sourceInfo = new EventMetaData(

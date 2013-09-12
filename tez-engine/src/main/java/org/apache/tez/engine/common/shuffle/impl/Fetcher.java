@@ -49,10 +49,8 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.security.SecureShuffleUtils;
 import org.apache.tez.engine.common.shuffle.impl.MapOutput.Type;
-import org.apache.tez.engine.common.shuffle.server.ShuffleHandler;
 import org.apache.tez.engine.common.sort.impl.IFileInputStream;
 import org.apache.tez.engine.newapi.TezInputContext;
-import org.apache.tez.engine.shuffle.common.ShuffleUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -98,16 +96,14 @@ class Fetcher extends Thread {
   public Fetcher(Configuration job, 
       ShuffleScheduler scheduler, MergeManager merger,
       ShuffleClientMetrics metrics,
-      Shuffle shuffle, TezInputContext inputContext) throws IOException {
+      Shuffle shuffle, SecretKey jobTokenSecret, TezInputContext inputContext) throws IOException {
     this.job = job;
     this.scheduler = scheduler;
     this.merger = merger;
     this.metrics = metrics;
     this.shuffle = shuffle;
     this.id = ++nextId;
-    this.jobTokenSecret = ShuffleUtils
-        .getJobTokenSecretFromTokenBytes(inputContext
-            .getServiceConsumerMetaData(ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID));
+    this.jobTokenSecret = jobTokenSecret;
     ioErrs = inputContext.getCounters().findCounter(SHUFFLE_ERR_GRP_NAME,
         ShuffleErrors.IO_ERROR.toString());
     wrongLengthErrs = inputContext.getCounters().findCounter(SHUFFLE_ERR_GRP_NAME,

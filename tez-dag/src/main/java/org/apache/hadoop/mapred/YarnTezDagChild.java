@@ -396,7 +396,7 @@ public class YarnTezDagChild {
           currentVertexId = newVertexId;
           updateLoggers(currentTaskAttemptID);
           currentTask = createLogicalTask(
-              taskSpec, defaultConf, tezUmbilical);
+              taskSpec, defaultConf, tezUmbilical, jobToken);
         } finally {
           taskLock.writeLock().unlock();
         }
@@ -537,8 +537,8 @@ public class YarnTezDagChild {
   }
 
   private static LogicalIOProcessorRuntimeTask createLogicalTask(
-      TaskSpec taskSpec, Configuration conf,
-      TezUmbilical tezUmbilical) throws IOException {
+      TaskSpec taskSpec, Configuration conf, TezUmbilical tezUmbilical,
+      Token<JobTokenIdentifier> jobToken) throws IOException {
 
     // FIXME TODONEWTEZ
     // conf.setBoolean("ipc.client.tcpnodelay", true);
@@ -564,7 +564,7 @@ public class YarnTezDagChild {
           new OutputSpec("null", simpleOutputDesc, 0));
     }
     return new LogicalIOProcessorRuntimeTask(taskSpec, conf,
-        tezUmbilical);
+        tezUmbilical, jobToken);
   }
 
 

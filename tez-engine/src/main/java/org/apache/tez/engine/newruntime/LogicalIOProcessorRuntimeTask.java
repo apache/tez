@@ -19,8 +19,10 @@
 package org.apache.tez.engine.newruntime;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,9 +31,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.token.Token;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.Input;
 import org.apache.tez.engine.newapi.LogicalIOProcessor;
@@ -50,6 +54,7 @@ import org.apache.tez.engine.newapi.impl.TezInputContextImpl;
 import org.apache.tez.engine.newapi.impl.TezOutputContextImpl;
 import org.apache.tez.engine.newapi.impl.TezProcessorContextImpl;
 import org.apache.tez.engine.newapi.impl.TezUmbilical;
+import org.apache.tez.engine.shuffle.common.ShuffleUtils;
 
 import com.google.common.base.Preconditions;
 
@@ -73,6 +78,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final LogicalIOProcessor processor;
 
   private final TezCounters tezCounters;
+  
+  private final Map<String, ByteBuffer> serviceConsumerMetadata;
 
   private Map<String, LogicalInput> inputMap;
   private Map<String, LogicalOutput> outputMap;
@@ -82,9 +89,13 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   private Map<String, List<Event>> closeInputEventMap;
   private Map<String, List<Event>> closeOutputEventMap;
+  
+  
 
-  public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, Configuration tezConf,
-      TezUmbilical tezUmbilical) {
+  public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec,
+      Configuration tezConf, TezUmbilical tezUmbilical,
+      Token<JobTokenIdentifier> jobToken) throws IOException {
+    // TODO Remove jobToken from here post TEZ-421
     LOG.info("Initializing LogicalIOProcessorRuntimeTask with TaskSpec: "
         + taskSpec);
     this.taskSpec = taskSpec;
@@ -97,6 +108,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.processorDescriptor = taskSpec.getProcessorDescriptor();
     this.processor = createProcessor(processorDescriptor);
     this.tezCounters = new TezCounters();
+    this.serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
+    this.serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,
+        ShuffleUtils.convertJobTokenToBytes(jobToken));
     this.state = State.NEW;
   }
 
@@ -219,7 +233,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     TezInputContext inputContext = new TezInputContextImpl(tezConf,
         tezUmbilical, taskSpec.getVertexName(), inputSpec.getSourceVertexName(),
         taskSpec.getTaskAttemptID(), tezCounters,
-        inputSpec.getInputDescriptor().getUserPayload(), this);
+        inputSpec.getInputDescriptor().getUserPayload(), this,
+        serviceConsumerMetadata);
     return inputContext;
   }
 
@@ -228,14 +243,16 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         tezUmbilical, taskSpec.getVertexName(),
         outputSpec.getDestinationVertexName(),
         taskSpec.getTaskAttemptID(), tezCounters,
-        outputSpec.getOutputDescriptor().getUserPayload(), this);
+        outputSpec.getOutputDescriptor().getUserPayload(), this,
+        serviceConsumerMetadata);
     return outputContext;
   }
 
   private TezProcessorContext createProcessorContext() {
     TezProcessorContext processorContext = new TezProcessorContextImpl(tezConf,
         tezUmbilical, taskSpec.getVertexName(), taskSpec.getTaskAttemptID(),
-        tezCounters, processorDescriptor.getUserPayload(), this);
+        tezCounters, processorDescriptor.getUserPayload(), this,
+        serviceConsumerMetadata);
     return processorContext;
   }
 

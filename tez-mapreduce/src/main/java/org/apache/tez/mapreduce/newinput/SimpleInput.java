@@ -173,12 +173,14 @@ public class SimpleInput implements LogicalInput {
       Object key;
       Object value;
       
+      private final boolean localNewApi = useNewApi;
+      
       @SuppressWarnings("unchecked")
       @Override
       public boolean next() throws IOException {
         boolean hasNext = false;
         long bytesInPrev = getInputBytes();
-        if (useNewApi) {
+        if (localNewApi) {
           try {
             hasNext = newRecordReader.nextKeyValue();
           } catch (InterruptedException e) {
@@ -201,7 +203,7 @@ public class SimpleInput implements LogicalInput {
       @Override
       public KVRecord getCurrentKV() throws IOException {
         KVRecord kvRecord = null;
-        if (useNewApi) {
+        if (localNewApi) {
           try {
             valueIterator.setValue(newRecordReader.getCurrentValue());
             kvRecord = new KVRecord(newRecordReader.getCurrentKey(), valueIterable);

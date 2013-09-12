@@ -20,6 +20,7 @@ package org.apache.tez.engine.newapi.impl;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
@@ -42,12 +43,13 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   protected String uniqueIdentifier;
   protected final RuntimeTask runtimeTask;
   protected final TezUmbilical tezUmbilical;
+  private final Map<String, ByteBuffer> serviceConsumerMetadata;
 
   @Private
   public TezTaskContextImpl(Configuration conf,
       String taskVertexName, TezTaskAttemptID taskAttemptID,
       TezCounters counters, RuntimeTask runtimeTask,
-      TezUmbilical tezUmbilical) {
+      TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata) {
     this.conf = conf;
     this.taskVertexName = taskVertexName;
     this.taskAttemptID = taskAttemptID;
@@ -57,6 +59,7 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     this.workDirs = this.conf.getStrings(TezJobConfig.LOCAL_DIRS);
     this.runtimeTask = runtimeTask;
     this.tezUmbilical = tezUmbilical;
+    this.serviceConsumerMetadata = serviceConsumerMetadata;
   }
 
   @Override
@@ -105,8 +108,8 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
 
   @Override
   public ByteBuffer getServiceConsumerMetaData(String serviceName) {
-    // TODO NEWTEZ Make sure this data is set by the AM for the Shuffle service name.
-    return null;
+    return (ByteBuffer) serviceConsumerMetadata.get(serviceName)
+        .asReadOnlyBuffer().rewind();
   }
 
   @Override
