@@ -48,6 +48,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.engine.api.Partitioner;
 import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.common.ConfigUtils;
+import org.apache.tez.engine.common.TezEngineUtils;
 import org.apache.tez.engine.common.shuffle.impl.ShuffleHeader;
 import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutput;
 import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutputFiles;
@@ -138,17 +139,16 @@ public abstract class ExternalSorter {
 
     // Task outputs
     mapOutputFile = instantiateTaskOutputManager(this.conf, outputContext);
+    
+    LOG.info("Instantiating Partitioner: [" + conf.get(TezJobConfig.TEZ_ENGINE_PARTITIONER_CLASS) + "]");
+    this.conf.setInt(TezJobConfig.TEZ_ENGINE_NUM_EXPECTED_PARTITIONS, this.partitions);
+    this.partitioner = TezEngineUtils.instantiatePartitioner(this.conf);
   }
 
   // TODO NEWTEZ Add an interface (! Processor) for CombineProcessor, which MR tasks can initialize and set.
   // Alternately add a config key with a classname, which is easy to initialize.
   public void setCombiner(Processor combineProcessor) {
     this.combineProcessor = combineProcessor;
-  }
-  
-  // TODO NEWTEZ Setup a config value for the Partitioner class, from where it can be initialized.
-  public void setPartitioner(Partitioner partitioner) {
-    this.partitioner = partitioner;
   }
 
   /**
@@ -242,5 +242,4 @@ public abstract class ExternalSorter {
                   TezTaskOutputFiles.class.getName()), e);
     }
   }
-  
 }

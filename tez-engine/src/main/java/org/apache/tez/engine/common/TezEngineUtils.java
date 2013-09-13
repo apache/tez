@@ -18,6 +18,15 @@
 
 package org.apache.tez.engine.common;
 
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
+import org.apache.commons.logging.Log;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.engine.api.Partitioner;
+
 public class TezEngineUtils {
 
   public static String getTaskIdentifier(String vertexName, int taskIndex) {
@@ -36,4 +45,38 @@ public class TezEngineUtils {
         taskAttemptNumber);
   }
 
+  @SuppressWarnings("unchecked")
+  public static Partitioner instantiatePartitioner(Configuration conf)
+      throws IOException {
+    Class<? extends Partitioner> clazz = (Class<? extends Partitioner>) conf
+        .getClass(TezJobConfig.TEZ_ENGINE_PARTITIONER_CLASS, Partitioner.class);
+
+    Partitioner partitioner = null;
+
+    try {
+      Constructor<? extends Partitioner> ctorWithConf = clazz
+          .getConstructor(Configuration.class);
+      partitioner = ctorWithConf.newInstance(conf);
+    } catch (SecurityException e) {
+      throw new IOException(e);
+    } catch (NoSuchMethodException e) {
+      try {
+        // Try a 0 argument constructor.
+        partitioner = clazz.newInstance();
+      } catch (InstantiationException e1) {
+        throw new IOException(e1);
+      } catch (IllegalAccessException e1) {
+        throw new IOException(e1);
+      }
+    } catch (IllegalArgumentException e) {
+      throw new IOException(e);
+    } catch (InstantiationException e) {
+      throw new IOException(e);
+    } catch (IllegalAccessException e) {
+      throw new IOException(e);
+    } catch (InvocationTargetException e) {
+      throw new IOException(e);
+    }
+    return partitioner;
+  }
 }

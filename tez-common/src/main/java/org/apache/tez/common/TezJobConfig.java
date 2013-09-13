@@ -124,6 +124,13 @@ public class TezJobConfig {
   public static final int DEFAULT_TEZ_ENGINE_SORT_THREADS = 1;
 
   /**
+   * Specifies a partitioner class, which is used in Tez engine components like OnFileSortedOutput
+   */
+  public static final String TEZ_ENGINE_PARTITIONER_CLASS = "tez.engine.partitioner.class";
+  
+  public static final String TEZ_ENGINE_NUM_EXPECTED_PARTITIONS = "tez.engine.num.expected.partitions";
+  
+  /**
    * 
    */
   public static final String COUNTERS_MAX_KEY = "tez.engine.job.counters.max";

@@ -17,9 +17,26 @@
  */
 package org.apache.tez.engine.api;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezJobConfig;
+
 /**
- * {@link Partitioner} is used by the TEZ framework to partition 
- * output key/value pairs.
+ * {@link Partitioner} is used by the TEZ framework to partition output
+ * key/value pairs.
+ * 
+ * <b>Partitioner Initialization</b></p> The Partitioner class is picked up
+ * using the TEZ_ENGINE_PARTITIONER_CLASS attribute in {@link TezJobConfig}
+ * 
+ * TODO NEWTEZ Change construction to first check for a Constructor with a bytep[] payload
+ * 
+ * Partitioners need to provide a single argument ({@link Configuration})
+ * constructor or a 0 argument constructor. If both exist, preference is given
+ * to the single argument constructor. This is primarily for MR support.
+ * 
+ * If using the configuration constructor, TEZ_ENGINE_NUM_EXPECTED_PARTITIONS
+ * will be set in the configuration, to indicate the max number of expected
+ * partitions.
+ * 
  */
 public interface Partitioner {
   
