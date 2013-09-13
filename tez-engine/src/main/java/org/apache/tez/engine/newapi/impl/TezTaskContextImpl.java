@@ -37,7 +37,7 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
 
   private final Configuration conf;
   protected final String taskVertexName;
-  private final TezTaskAttemptID taskAttemptID;
+  protected final TezTaskAttemptID taskAttemptID;
   private final TezCounters counters;
   private String[] workDirs;
   protected String uniqueIdentifier;

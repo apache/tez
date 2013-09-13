@@ -18,13 +18,12 @@
 
 package org.apache.tez.engine.newapi;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
  * Represents an input through which a TezProcessor receives data on an edge.
  * </p>
- * 
+ *
  * <code>Input</code> classes must have a 0 argument public constructor for Tez
  * to construct the <code>Input</code>. Tez will take care of initializing and
  * closing the Input after a {@link Processor} completes. </p>
@@ -33,29 +32,29 @@ public interface Input {
 
   /**
    * Initializes the <code>Input</code>.
-   * 
+   *
    * @param inputContext
    *          the {@link TezInputContext}
    * @return
-   * @throws IOException
+   * @throws Exception
    *           if an error occurs
    */
   public List<Event> initialize(TezInputContext inputContext)
-      throws IOException;
+      throws Exception;
 
   /**
    * Gets an instance of the {@link Reader} for this <code>Output</code>
-   * 
+   *
    * @return
-   * @throws IOException
+   * @throws Exception
    *           if an error occurs
    */
-  public Reader getReader() throws IOException;
+  public Reader getReader() throws Exception;
 
   /**
    * Handles user and system generated {@link Events}s, which typically carry
    * information such as an output being available on the previous vertex.
-   * 
+   *
    * @param inputEvents
    *          the list of {@link Event}s
    */
@@ -63,10 +62,10 @@ public interface Input {
 
   /**
    * Closes the <code>Input</code>
-   * 
+   *
    * @return
-   * @throws IOException
+   * @throws Exception
    *           if an error occurs
    */
-  public List<Event> close() throws IOException;
+  public List<Event> close() throws Exception;
 }

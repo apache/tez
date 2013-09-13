@@ -19,6 +19,7 @@
 package org.apache.tez.engine.newapi.impl;
 
 import java.nio.ByteBuffer;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -69,13 +70,17 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
 
   @Override
   public void setProgress(float progress) {
-    // TODO Auto-generated method stub
-
+    runtimeTask.setProgress(progress);
   }
 
   @Override
   public void fatalError(Throwable exception, String message) {
     super.signalFatalError(exception, message, sourceInfo);
+  }
+
+  @Override
+  public boolean canCommit() throws IOException {
+    return tezUmbilical.canCommit(this.taskAttemptID);
   }
 
 }

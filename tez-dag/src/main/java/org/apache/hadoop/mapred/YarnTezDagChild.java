@@ -75,6 +75,7 @@ import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.TokenCache;
 import org.apache.tez.engine.newapi.events.TaskAttemptCompletedEvent;
 import org.apache.tez.engine.newapi.events.TaskAttemptFailedEvent;
+import org.apache.tez.engine.newapi.events.TaskStatusUpdateEvent;
 import org.apache.tez.engine.newapi.impl.EventMetaData;
 import org.apache.tez.engine.newapi.impl.InputSpec;
 import org.apache.tez.engine.newapi.impl.OutputSpec;
@@ -218,15 +219,24 @@ public class YarnTezDagChild {
   }
 
   private static void heartbeat() throws TezException, IOException {
+    TezEvent updateEvent = null;
     try {
       taskLock.readLock().lock();
       if (currentTask == null) {
         return;
+      } else {
+        updateEvent = new TezEvent(new TaskStatusUpdateEvent(
+            currentTask.getCounters(), currentTask.getProgress()),
+            new EventMetaData(EventProducerConsumerType.SYSTEM,
+                "", "", currentTaskAttemptID));
       }
     } finally {
       taskLock.readLock().unlock();
     }
     List<TezEvent> events = new ArrayList<TezEvent>();
+    if (updateEvent != null) {
+      events.add(updateEvent);
+    }
     eventsToSend.drainTo(events);
     long reqId = requestCounter.incrementAndGet();
     TezHeartbeatRequest request = new TezHeartbeatRequest(reqId, events,
@@ -332,6 +342,12 @@ public class YarnTezDagChild {
           e.printStackTrace();
           // TODONEWTEZ System.exit ?
         }
+      }
+
+      @Override
+      public boolean canCommit(TezTaskAttemptID taskAttemptID)
+          throws IOException {
+        return umbilical.canCommit(taskAttemptID);
       }
     };
 

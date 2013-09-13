@@ -32,17 +32,17 @@ public interface Processor {
 
   /**
    * Initializes the <code>Processor</code>
-   * 
+   *
    * @param processorContext
    * @throws IOException
    *           if an error occurs
    */
   public void initialize(TezProcessorContext processorContext)
-      throws IOException;
+      throws Exception;
 
   /**
    * Handles user and system generated {@link Events}s.
-   * 
+   *
    * @param processorEvents
    *          the list of {@link Event}s
    */
@@ -50,9 +50,9 @@ public interface Processor {
 
   /**
    * Closes the <code>Processor</code>
-   * 
+   *
    * @throws IOException
    *           if an error occurs
    */
-  public void close() throws IOException;
+  public void close() throws Exception;
 }

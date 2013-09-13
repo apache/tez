@@ -18,6 +18,8 @@
 
 package org.apache.tez.engine.newapi;
 
+import java.io.IOException;
+
 /**
  * Context handle for the Processor to initialize itself.
  */
@@ -28,5 +30,12 @@ public interface TezProcessorContext extends TezTaskContext {
    * @param progress Progress in the range from [0.0 - 1.0f]
    */
   public void setProgress(float progress);
+
+  /**
+   * Check whether this attempt can commit its output
+   * @return true if commit allowed
+   * @throws IOException
+   */
+  public boolean canCommit() throws IOException;
 
 }

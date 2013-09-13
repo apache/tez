@@ -20,11 +20,15 @@ package org.apache.tez.engine.newruntime;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.tez.common.counters.TezCounters;
+
 public abstract class RuntimeTask {
 
   protected AtomicBoolean hasFatalError = new AtomicBoolean(false);
   protected Throwable fatalError = null;
   protected String fatalErrorMessage = null;
+  protected float progress;
+  protected final TezCounters tezCounters = new TezCounters();
 
   protected enum State {
     NEW, INITED, RUNNING, CLOSED;
@@ -40,6 +44,18 @@ public abstract class RuntimeTask {
 
   public boolean hadFatalError() {
     return hasFatalError.get();
+  }
+
+  public synchronized void setProgress(float progress) {
+    this.progress = progress;
+  }
+
+  public synchronized float getProgress() {
+    return this.progress;
+  }
+
+  public TezCounters getCounters() {
+    return this.tezCounters;
   }
 
 }

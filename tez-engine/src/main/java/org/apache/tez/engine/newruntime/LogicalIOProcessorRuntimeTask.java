@@ -32,7 +32,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.token.Token;
-import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
@@ -77,8 +76,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final ProcessorDescriptor processorDescriptor;
   private final LogicalIOProcessor processor;
 
-  private final TezCounters tezCounters;
-  
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
 
   private Map<String, LogicalInput> inputMap;
@@ -89,8 +86,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   private Map<String, List<Event>> closeInputEventMap;
   private Map<String, List<Event>> closeOutputEventMap;
-  
-  
+
+
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec,
       Configuration tezConf, TezUmbilical tezUmbilical,
@@ -107,14 +104,13 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.outputs = createOutputs(outputSpecs);
     this.processorDescriptor = taskSpec.getProcessorDescriptor();
     this.processor = createProcessor(processorDescriptor);
-    this.tezCounters = new TezCounters();
     this.serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
     this.serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,
         ShuffleUtils.convertJobTokenToBytes(jobToken));
     this.state = State.NEW;
   }
 
-  public void initialize() throws IOException {
+  public void initialize() throws Exception {
     Preconditions.checkState(this.state == State.NEW, "Already initialized");
     this.state = State.INITED;
     inputMap = new LinkedHashMap<String, LogicalInput>(inputs.size());
@@ -159,7 +155,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     return initOutputEventMap;
   }
 
-  public void run() throws IOException {
+  public void run() throws Exception {
     synchronized (this.state) {
       Preconditions.checkState(this.state == State.INITED,
           "Can only run while in INITED state. Current: " + this.state);
@@ -169,7 +165,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     lioProcessor.run(inputMap, outputMap);
   }
 
-  public void close() throws IOException {
+  public void close() throws Exception {
     Preconditions.checkState(this.state == State.RUNNING,
         "Can only run while in RUNNING state. Current: " + this.state);
     this.state=State.CLOSED;
@@ -205,7 +201,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private List<Event> initializeInput(Input input, InputSpec inputSpec)
-      throws IOException {
+      throws Exception {
     TezInputContext tezInputContext = createInputContext(inputSpec);
     if (input instanceof LogicalInput) {
       ((LogicalInput) input).setNumPhysicalInputs(inputSpec
@@ -215,7 +211,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private List<Event> initializeOutput(Output output, OutputSpec outputSpec)
-      throws IOException {
+      throws Exception {
     TezOutputContext tezOutputContext = createOutputContext(outputSpec);
     if (output instanceof LogicalOutput) {
       ((LogicalOutput) output).setNumPhysicalOutputs(outputSpec
@@ -224,7 +220,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     return output.initialize(tezOutputContext);
   }
 
-  private void initializeLogicalIOProcessor() throws IOException {
+  private void initializeLogicalIOProcessor() throws Exception {
     TezProcessorContext processorContext = createProcessorContext();
     processor.initialize(processorContext);
   }

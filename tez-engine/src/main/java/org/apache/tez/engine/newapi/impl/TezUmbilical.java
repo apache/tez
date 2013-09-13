@@ -18,6 +18,7 @@
 
 package org.apache.tez.engine.newapi.impl;
 
+import java.io.IOException;
 import java.util.Collection;
 
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -29,5 +30,7 @@ public interface TezUmbilical {
   public void signalFatalError(TezTaskAttemptID taskAttemptID,
       String diagnostics,
       EventMetaData sourceInfo);
+
+  public boolean canCommit(TezTaskAttemptID taskAttemptID) throws IOException;
 
 }
