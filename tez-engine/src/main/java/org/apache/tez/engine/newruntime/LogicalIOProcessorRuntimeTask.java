@@ -21,17 +21,21 @@ package org.apache.tez.engine.newruntime;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -66,10 +70,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private static final Log LOG = LogFactory
       .getLog(LogicalIOProcessorRuntimeTask.class);
 
-  private final TaskSpec taskSpec;
-  private final Configuration tezConf;
-  private final TezUmbilical tezUmbilical;
-
   private final List<InputSpec> inputSpecs;
   private final List<LogicalInput> inputs;
 
@@ -84,15 +84,17 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private Map<String, LogicalInput> inputMap;
   private Map<String, LogicalOutput> outputMap;
 
+  private AtomicBoolean stopped;
+  private LinkedBlockingQueue<TezEvent> eventsToBeProcessed;
+  private Thread eventRouterThread = null;
+
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec,
       Configuration tezConf, TezUmbilical tezUmbilical,
       Token<JobTokenIdentifier> jobToken) throws IOException {
     // TODO Remove jobToken from here post TEZ-421
+    super(taskSpec, tezConf, tezUmbilical);
     LOG.info("Initializing LogicalIOProcessorRuntimeTask with TaskSpec: "
         + taskSpec);
-    this.taskSpec = taskSpec;
-    this.tezConf = tezConf;
-    this.tezUmbilical = tezUmbilical;
     this.inputSpecs = taskSpec.getInputs();
     this.inputs = createInputs(inputSpecs);
     this.outputSpecs = taskSpec.getOutputs();
@@ -102,6 +104,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
     this.serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,
         ShuffleUtils.convertJobTokenToBytes(jobToken));
+    this.stopped = new AtomicBoolean(false);
+    this.eventsToBeProcessed = new LinkedBlockingQueue<TezEvent>();    
     this.state = State.NEW;
   }
 
@@ -130,6 +134,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
     // Initialize processor.
     initializeLogicalIOProcessor();
+    startRouterThread();
   }
 
   public void run() throws Exception {
@@ -143,29 +148,36 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   public void close() throws Exception {
-    Preconditions.checkState(this.state == State.RUNNING,
-        "Can only run while in RUNNING state. Current: " + this.state);
-    this.state = State.CLOSED;
+    try {
+      Preconditions.checkState(this.state == State.RUNNING,
+          "Can only run while in RUNNING state. Current: " + this.state);
+      this.state = State.CLOSED;
 
-    // Close the Inputs.
-    for (int i = 0; i < inputs.size(); i++) {
-      String srcVertexName = inputSpecs.get(i).getSourceVertexName();
-      List<Event> closeInputEvents = inputs.get(i).close();
-      sendTaskGeneratedEvents(closeInputEvents,
-          EventProducerConsumerType.INPUT, taskSpec.getVertexName(),
-          srcVertexName, taskSpec.getTaskAttemptID());
-    }
+      // Close the Inputs.
+      for (int i = 0; i < inputs.size(); i++) {
+        String srcVertexName = inputSpecs.get(i).getSourceVertexName();
+        List<Event> closeInputEvents = inputs.get(i).close();
+        sendTaskGeneratedEvents(closeInputEvents,
+            EventProducerConsumerType.INPUT, taskSpec.getVertexName(),
+            srcVertexName, taskSpec.getTaskAttemptID());
+      }
 
-    // Close the Processor.
-    processor.close();
+      // Close the Processor.
+      processor.close();
 
-    // Close the Outputs.
-    for (int i = 0; i < outputs.size(); i++) {
-      String destVertexName = outputSpecs.get(i).getDestinationVertexName();
-      List<Event> closeOutputEvents = outputs.get(i).close();
-      sendTaskGeneratedEvents(closeOutputEvents,
-          EventProducerConsumerType.OUTPUT, taskSpec.getVertexName(),
-          destVertexName, taskSpec.getTaskAttemptID());
+      // Close the Outputs.
+      for (int i = 0; i < outputs.size(); i++) {
+        String destVertexName = outputSpecs.get(i).getDestinationVertexName();
+        List<Event> closeOutputEvents = outputs.get(i).close();
+        sendTaskGeneratedEvents(closeOutputEvents,
+            EventProducerConsumerType.OUTPUT, taskSpec.getVertexName(),
+            destVertexName, taskSpec.getTaskAttemptID());
+      }
+    } finally {
+      stopped.set(true);
+      if (eventRouterThread != null) {
+        eventRouterThread.interrupt();
+      }
     }
   }
 
@@ -241,7 +253,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
             + " is not a sub-type of LogicalInput."
             + " Only LogicalInput sub-types supported by LogicalIOProcessor.");
       }
-
     }
     return inputs;
   }
@@ -290,34 +301,89 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
   }
 
-  public void handleEvent(TezEvent e) {
-    switch (e.getDestinationInfo().getEventGenerator()) {
-    case INPUT:
-      LogicalInput input = inputMap.get(
-          e.getDestinationInfo().getEdgeVertexName());
-      if (input != null) {
-        input.handleEvents(Collections.singletonList(e.getEvent()));
-      } else {
-        throw new TezUncheckedException("Unhandled event for invalid target: "
-            + e);
+  private boolean handleEvent(TezEvent e) {
+    try {
+      switch (e.getDestinationInfo().getEventGenerator()) {
+      case INPUT:
+        LogicalInput input = inputMap.get(
+            e.getDestinationInfo().getEdgeVertexName());
+        if (input != null) {
+          input.handleEvents(Collections.singletonList(e.getEvent()));
+        } else {
+          throw new TezUncheckedException("Unhandled event for invalid target: "
+              + e);
+        }
+        break;
+      case OUTPUT:
+        LogicalOutput output = outputMap.get(
+            e.getDestinationInfo().getEdgeVertexName());
+        if (output != null) {
+          output.handleEvents(Collections.singletonList(e.getEvent()));
+        } else {
+          throw new TezUncheckedException("Unhandled event for invalid target: "
+              + e);
+        }
+        break;
+      case PROCESSOR:
+        processor.handleEvents(Collections.singletonList(e.getEvent()));
+        break;
+      case SYSTEM:
+        LOG.warn("Trying to send a System event in a Task: " + e);
+        break;
       }
-      break;
-    case OUTPUT:
-      LogicalOutput output = outputMap.get(
-          e.getDestinationInfo().getEdgeVertexName());
-      if (output != null) {
-        output.handleEvents(Collections.singletonList(e.getEvent()));
-      } else {
-        throw new TezUncheckedException("Unhandled event for invalid target: "
-            + e);
+    } catch (Throwable t) {
+      LOG.warn("Failed to handle event", t);
+      setFatalError(t, "Failed to handle event");
+      EventMetaData sourceInfo = new EventMetaData(
+          e.getDestinationInfo().getEventGenerator(),
+          taskSpec.getVertexName(), e.getDestinationInfo().getEdgeVertexName(),
+          getTaskAttemptID());
+      tezUmbilical.signalFatalError(getTaskAttemptID(),
+          StringUtils.stringifyException(t), sourceInfo);
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public synchronized void handleEvents(Collection<TezEvent> events) {
+    eventsToBeProcessed.addAll(events);
+    eventCounter.addAndGet(events.size());
+  }
+
+  private void startRouterThread() {
+    eventRouterThread = new Thread(new Runnable() {
+      public void run() {
+        while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
+          try {
+            TezEvent e = eventsToBeProcessed.take();
+            if (e == null) {
+              continue;
+            }
+            // TODO TODONEWTEZ
+            if (!handleEvent(e)) {
+              LOG.warn("Stopping Event Router thread as failed to handle"
+                  + " event: " + e);
+              break;
+            }
+          } catch (InterruptedException e) {
+            if (!stopped.get()) {
+              LOG.warn("Event Router thread interrupted. Returning.");
+            }
+          }
+        }
       }
-      break;
-    case PROCESSOR:
-      processor.handleEvents(Collections.singletonList(e.getEvent()));
-      break;
-    case SYSTEM:
-      LOG.warn("Trying to send a System event in a Task: " + e);
-      break;
+    });
+
+    eventRouterThread.setName("TezTaskEventRouter["
+        + taskSpec.getTaskAttemptID().toString() + "]");
+    eventRouterThread.start();
+  }
+
+  public synchronized void cleanup() {
+    stopped.set(true);
+    if (eventRouterThread != null) {
+      eventRouterThread.interrupt();
     }
   }
 

@@ -18,9 +18,16 @@
 
 package org.apache.tez.engine.newruntime;
 
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.engine.newapi.impl.TaskSpec;
+import org.apache.tez.engine.newapi.impl.TezEvent;
+import org.apache.tez.engine.newapi.impl.TezUmbilical;
 
 public abstract class RuntimeTask {
 
@@ -28,7 +35,21 @@ public abstract class RuntimeTask {
   protected Throwable fatalError = null;
   protected String fatalErrorMessage = null;
   protected float progress;
-  protected final TezCounters tezCounters = new TezCounters();
+  protected final TezCounters tezCounters;
+  protected final TaskSpec taskSpec;
+  protected final Configuration tezConf;
+  protected final TezUmbilical tezUmbilical;
+  protected final AtomicInteger eventCounter;
+
+  protected RuntimeTask(TaskSpec taskSpec, Configuration tezConf,
+      TezUmbilical tezUmbilical) {
+    this.taskSpec = taskSpec;
+    this.tezConf = tezConf;
+    this.tezUmbilical = tezUmbilical;
+    this.tezCounters = new TezCounters();
+    this.eventCounter = new AtomicInteger(0);
+    this.progress = 0.0f;
+  }
 
   protected enum State {
     NEW, INITED, RUNNING, CLOSED;
@@ -56,6 +77,16 @@ public abstract class RuntimeTask {
 
   public TezCounters getCounters() {
     return this.tezCounters;
+  }
+
+  public TezTaskAttemptID getTaskAttemptID() {
+    return taskSpec.getTaskAttemptID();
+  }
+
+  public abstract void handleEvents(Collection<TezEvent> events);
+
+  public int getEventCounter() {
+    return eventCounter.get();
   }
 
 }

@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -103,11 +102,8 @@ public class YarnTezDagChild {
   private static AtomicBoolean stopped = new AtomicBoolean(false);
 
   private static String containerIdStr;
-  private static int eventCounter = 0;
   private static int maxEventsToGet = 0;
   private static LinkedBlockingQueue<TezEvent> eventsToSend =
-      new LinkedBlockingQueue<TezEvent>();
-  private static LinkedBlockingQueue<TezEvent> eventsToBeProcessed =
       new LinkedBlockingQueue<TezEvent>();
   private static AtomicLong requestCounter = new AtomicLong(0);
   private static TezTaskAttemptID currentTaskAttemptID;
@@ -149,86 +145,21 @@ public class YarnTezDagChild {
     return heartbeatThread;
   }
 
-  private static Thread startRouterThread() {
-    Thread eventRouterThread = new Thread(new Runnable() {
-      public void run() {
-        while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
-          while (true) {
-            try {
-              taskLock.readLock().lock();
-              if (currentTask != null) {
-                break;
-              }
-            } finally {
-              taskLock.readLock().unlock();
-            }
-            try {
-              Thread.sleep(10);
-            } catch (InterruptedException e) {
-              if (!stopped.get()) {
-                LOG.warn("Event Router thread interrupted. Returning.");
-              }
-              return;
-            }
-          }
-          try {
-            TezEvent e = eventsToBeProcessed.poll(10, TimeUnit.MILLISECONDS);
-            if (e == null) {
-              continue;
-            }
-            // TODO TODONEWTEZ
-            try {
-              taskLock.readLock().lock();
-              if (currentTask != null) {
-                try {
-                  currentTask.handleEvent(e);
-                } catch (Throwable t) {
-                  LOG.warn("Failed to handle event", t);
-                  currentTask.setFatalError(t, "Failed to handle event");
-                  TezEvent taskAttemptFailedEvent = new TezEvent(
-                      new TaskAttemptFailedEvent(
-                          StringUtils.stringifyException(t)),
-                      new EventMetaData(EventProducerConsumerType.SYSTEM,
-                          "", "", currentTaskAttemptID));
-                  try {
-                    umbilical.taskAttemptFailed(currentTaskAttemptID,
-                        taskAttemptFailedEvent);
-                  } catch (IOException ioe) {
-                    // TODO Auto-generated catch block
-                    ioe.printStackTrace();
-                    // TODO NEWTEZ System exit?
-                  }
-                }
-              }
-            } finally {
-              taskLock.readLock().unlock();
-            }
-          } catch (InterruptedException e) {
-            if (!stopped.get()) {
-              LOG.warn("Event Router thread interrupted. Returning.");
-            }
-            return;
-          }
-        }
-      }
-    });
-    eventRouterThread.setName("Tez Container Event Router Thread ["
-        + containerIdStr + "]");
-    eventRouterThread.start();
-    return eventRouterThread;
-  }
-
   private static void heartbeat() throws TezException, IOException {
     TezEvent updateEvent = null;
+    int eventCounter = 0;
+    int eventsRange = 0;
+    TezTaskAttemptID taskAttemptID = null;
     try {
       taskLock.readLock().lock();
-      if (currentTask == null) {
-        return;
-      } else {
+      if (currentTask != null) {
+        taskAttemptID = currentTaskAttemptID;
+        eventCounter = currentTask.getEventCounter();
+        eventsRange = maxEventsToGet;
         updateEvent = new TezEvent(new TaskStatusUpdateEvent(
             currentTask.getCounters(), currentTask.getProgress()),
-            new EventMetaData(EventProducerConsumerType.SYSTEM,
-                "", "", currentTaskAttemptID));
+              new EventMetaData(EventProducerConsumerType.SYSTEM,
+                  "", "", taskAttemptID));
       }
     } finally {
       taskLock.readLock().unlock();
@@ -240,14 +171,20 @@ public class YarnTezDagChild {
     eventsToSend.drainTo(events);
     long reqId = requestCounter.incrementAndGet();
     TezHeartbeatRequest request = new TezHeartbeatRequest(reqId, events,
-        currentTaskAttemptID, eventCounter, maxEventsToGet);
+        taskAttemptID, eventCounter, eventsRange);
     TezHeartbeatResponse response = umbilical.heartbeat(request);
     if (response.getLastRequestId() != reqId) {
       // TODO TODONEWTEZ
       throw new TezException("AM and Task out of sync");
     }
-    eventCounter += response.getEvents().size();
-    eventsToBeProcessed.addAll(response.getEvents());
+    try {
+      taskLock.readLock().lock();
+      if (currentTask != null) {
+        currentTask.handleEvents(response.getEvents());
+      }
+    } finally {
+      taskLock.readLock().unlock();
+    }
   }
 
   public static void main(String[] args) throws Throwable {
@@ -320,7 +257,6 @@ public class YarnTezDagChild {
     });
 
     Thread heartbeatThread = startHeartbeatThread();
-    Thread eventRouterThread = startRouterThread();
 
     TezUmbilical tezUmbilical = new TezUmbilical() {
       @Override
@@ -364,7 +300,7 @@ public class YarnTezDagChild {
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT);
     int taskCount = 0;
-    TezVertexID currentVertexId = null;
+    TezVertexID lastVertexId = null;
     EventMetaData currentSourceInfo = null;
     try {
       while (true) {
@@ -401,15 +337,15 @@ public class YarnTezDagChild {
           TezVertexID newVertexId =
               currentTaskAttemptID.getTaskID().getVertexID();
 
-          if (currentVertexId != null) {
-            if (!currentVertexId.equals(newVertexId)) {
+          if (lastVertexId != null) {
+            if (!lastVertexId.equals(newVertexId)) {
               objectRegistry.clearCache(ObjectLifeCycle.VERTEX);
             }
-            if (!currentVertexId.getDAGId().equals(newVertexId.getDAGId())) {
+            if (!lastVertexId.getDAGId().equals(newVertexId.getDAGId())) {
               objectRegistry.clearCache(ObjectLifeCycle.DAG);
             }
           }
-          currentVertexId = newVertexId;
+          lastVertexId = newVertexId;
           updateLoggers(currentTaskAttemptID);
           currentTask = createLogicalTask(
               taskSpec, defaultConf, tezUmbilical, jobToken);
@@ -458,7 +394,11 @@ public class YarnTezDagChild {
             }
             try {
               taskLock.writeLock().lock();
+              if (currentTask != null) {
+                currentTask.cleanup();
+              }
               currentTask = null;
+              currentTaskAttemptID = null;
             } finally {
               taskLock.writeLock().unlock();
             }
@@ -487,8 +427,7 @@ public class YarnTezDagChild {
       }
     } finally {
       stopped.set(true);
-      eventRouterThread.join();
-      heartbeatThread.join();
+      heartbeatThread.interrupt();
       RPC.stopProxy(umbilical);
       DefaultMetricsSystem.shutdown();
       // Shutting down log4j of the child-vm...
