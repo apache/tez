@@ -20,7 +20,6 @@ import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.KVWriter;
 import org.apache.tez.engine.newapi.LogicalOutput;
 import org.apache.tez.engine.newapi.TezOutputContext;
-import org.apache.tez.engine.newapi.Writer;
 import org.apache.tez.mapreduce.common.Utils;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.newmapred.MRReporter;
@@ -155,7 +154,7 @@ public class SimpleOutput implements LogicalOutput {
   }
 
   @Override
-  public Writer getWriter() throws IOException {
+  public KVWriter getWriter() throws IOException {
     return new KVWriter() {
       private final boolean useNewWriter = useNewApi;
 

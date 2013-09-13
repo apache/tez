@@ -901,6 +901,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       } else {
         // Don't think this can be a pluggable decision, so simply raise an
         // event for the TaskAttempt to delete its output.
+        // TODO . Wait for commit attempt to succeed. Dont kill this. If commit
+        // attempt fails then choose a different committer.
         LOG.info(task.commitAttempt
             + " already given a go for committing the task output, so killing "
             + attemptID);

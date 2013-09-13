@@ -16,28 +16,20 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi;
+package org.apache.tez.mapreduce.newinput;
 
-import java.util.Map;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.mapred.RecordReader;
 
-/**
- * Represents a processor which consumes {@link LogicalInput}s and produces
- * {@link LogicalOutput}s
- */
-public interface LogicalIOProcessor extends Processor {
+public class SimpleInputLegacy extends SimpleInput {
 
-  /**
-   * Runs the {@link LogicalProcessor}
-   * 
-   * @param inputs
-   *          a map of the source vertex name to {@link LogicalInput} - one per
-   *          incoming edge.
-   * @param outputs
-   *          a map of the destination vertex name to {@link LogicalOutput} -
-   *          one per outgoing edge
-   * @throws Exception TODO
-   */
-  public void run(Map<String, LogicalInput> inputs,
-      Map<String, LogicalOutput> outputs) throws Exception;
-
+  @Private
+  public org.apache.hadoop.mapreduce.InputSplit getNewInputSplit() {
+    return this.newInputSplit;
+  }  
+  
+  @SuppressWarnings("rawtypes")
+  public RecordReader getOldRecordReader() {
+    return this.oldRecordReader;
+  }
 }

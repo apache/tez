@@ -20,8 +20,8 @@ package org.apache.tez.mapreduce.hadoop.newmapreduce;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.TaskAttemptID;
-import org.apache.hadoop.mapred.TaskID;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.hadoop.mapreduce.TaskID;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.tez.engine.newapi.TezTaskContext;
@@ -40,16 +40,19 @@ public class TaskAttemptContextImpl
   public TaskAttemptContextImpl(Configuration conf,
       TezTaskContext taskContext, boolean isMap) {
     // TODO NEWTEZ Can the jt Identifier string be taskContext.getUniqueId ?
-    super(conf, new TaskAttemptID(
+    this(conf, new TaskAttemptID(
         new TaskID(String.valueOf(taskContext.getApplicationId()
             .getClusterTimestamp()), taskContext.getApplicationId().getId(),
             isMap ? TaskType.MAP : TaskType.REDUCE,
             taskContext.getTaskIndex()),
-            taskContext.getAttemptNumber()));
-    this.taskContext = taskContext;
-
+            taskContext.getAttemptNumber()), taskContext);
   }
-
+  
+  public TaskAttemptContextImpl(Configuration conf, TaskAttemptID taId, TezTaskContext context) {
+    super(conf, taId);
+    this.taskContext = context;
+  }
+  
   @Override
   public float getProgress() {
     // TODO NEWTEZ Will this break anything ?

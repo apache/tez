@@ -33,7 +33,6 @@ import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.KVWriter;
 import org.apache.tez.engine.newapi.LogicalOutput;
 import org.apache.tez.engine.newapi.TezOutputContext;
-import org.apache.tez.engine.newapi.Writer;
 import org.apache.tez.engine.newapi.events.DataMovementEvent;
 import org.apache.tez.engine.shuffle.common.ShuffleUtils;
 
@@ -69,7 +68,7 @@ public class OnFileSortedOutput implements LogicalOutput {
   }
 
   @Override
-  public Writer getWriter() throws IOException {
+  public KVWriter getWriter() throws IOException {
     return new KVWriter() {
       @Override
       public void write(Object key, Object value) throws IOException {

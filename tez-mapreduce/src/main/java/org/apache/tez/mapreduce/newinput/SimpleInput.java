@@ -80,20 +80,15 @@ public class SimpleInput implements LogicalInput {
   private org.apache.hadoop.mapreduce.InputFormat newInputFormat;
   @SuppressWarnings("rawtypes")
   private org.apache.hadoop.mapreduce.RecordReader newRecordReader;
-  private org.apache.hadoop.mapreduce.InputSplit newInputSplit;
+  protected org.apache.hadoop.mapreduce.InputSplit newInputSplit;
   
   @SuppressWarnings("rawtypes")
   private InputFormat oldInputFormat;
   @SuppressWarnings("rawtypes")
-  private RecordReader oldRecordReader;
+  protected RecordReader oldRecordReader;
 
   protected TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
   
-  // Setup the values iterator once, and set value on the same object each time
-  // to prevent lots of objects being created.
-  private SimpleValueIterator valueIterator = new SimpleValueIterator();
-  private SimpleIterable valueIterable = new SimpleIterable(valueIterator);
-
   private TezCounter inputRecordCounter;
   private TezCounter fileInputByteCounter; 
   private List<Statistics> fsStats;
@@ -173,6 +168,12 @@ public class SimpleInput implements LogicalInput {
       Object key;
       Object value;
       
+      // Setup the values iterator once, and set value on the same object each time
+      // to prevent lots of objects being created.
+      private SimpleValueIterator valueIterator = new SimpleValueIterator();
+      private SimpleIterable valueIterable = new SimpleIterable(valueIterator);
+
+
       private final boolean localNewApi = useNewApi;
       
       @SuppressWarnings("unchecked")
@@ -233,6 +234,7 @@ public class SimpleInput implements LogicalInput {
     // Not required at the moment. May be required if splits are sent via events.
   }
 
+  @Override
   public List<Event> close() throws IOException {
     long bytesInPrev = getInputBytes();
     if (useNewApi) {
@@ -274,18 +276,16 @@ public class SimpleInput implements LogicalInput {
   private static class SimpleValueIterator implements Iterator<Object> {
 
     private Object value;
-    int nextCount = 0;
 
     public void setValue(Object value) {
       this.value = value;
     }
 
     public boolean hasNext() {
-      return nextCount == 0;
+      return value != null;
     }
 
     public Object next() {
-      nextCount++;
       Object value = this.value;
       this.value = null;
       return value;

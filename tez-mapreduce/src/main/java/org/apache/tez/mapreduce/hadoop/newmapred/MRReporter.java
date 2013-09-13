@@ -3,6 +3,7 @@ package org.apache.tez.mapreduce.hadoop.newmapred;
 import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.tez.engine.newapi.TezProcessorContext;
 import org.apache.tez.engine.newapi.TezTaskContext;
 import org.apache.tez.mapreduce.common.Utils;
 
@@ -10,7 +11,12 @@ public class MRReporter implements Reporter {
 
   private TezTaskContext tezTaskContext;
   private InputSplit split;
+  private boolean isProcessorContext = false;
   
+  public MRReporter(TezProcessorContext tezProcContext) {
+    this(tezProcContext, null);
+    isProcessorContext = true;
+  }
   public MRReporter(TezTaskContext tezTaskContext) {
     this(tezTaskContext, null);
   }
@@ -22,7 +28,7 @@ public class MRReporter implements Reporter {
   
   @Override
   public void progress() {
-    // Not reporting progress in Tez.
+    //TODO
   }
 
   @Override

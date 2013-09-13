@@ -96,7 +96,7 @@ public class ShuffledMergedInput implements LogicalInput {
    */
   public void waitForInputReady() throws IOException, InterruptedException {
     rawIter = shuffle.waitForInput();
-    createValuesIteartor();
+    createValuesIterator();
   }
 
   @Override
@@ -153,7 +153,7 @@ public class ShuffledMergedInput implements LogicalInput {
   }
   
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  private void createValuesIteartor()
+  private void createValuesIterator()
       throws IOException {
     vIter = new ValuesIterator(rawIter,
         (RawComparator) ConfigUtils.getIntermediateInputKeyComparator(conf),

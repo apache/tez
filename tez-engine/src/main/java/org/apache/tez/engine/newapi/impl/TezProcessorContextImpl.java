@@ -72,7 +72,7 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
   public void setProgress(float progress) {
     runtimeTask.setProgress(progress);
   }
-
+  
   @Override
   public void fatalError(Throwable exception, String message) {
     super.signalFatalError(exception, message, sourceInfo);
