@@ -19,12 +19,17 @@
 package org.apache.tez.mapreduce.newprocessor;
 
 import java.io.IOException;
+import java.net.URI;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.crypto.SecretKey;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,6 +44,7 @@ import org.apache.hadoop.mapred.FileOutputCommitter;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
+import org.apache.hadoop.mapred.MapOutputFile;
 import org.apache.hadoop.mapred.RawKeyValueIterator;
 import org.apache.hadoop.mapred.TaskAttemptContext;
 import org.apache.hadoop.mapred.TaskAttemptID;
@@ -46,29 +52,41 @@ import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskType;
+import org.apache.hadoop.mapreduce.filecache.DistributedCache;
 import org.apache.hadoop.mapreduce.lib.reduce.WrappedReducer;
+import org.apache.hadoop.mapreduce.security.token.JobTokenSecretManager;
 import org.apache.hadoop.mapreduce.task.ReduceContextImpl;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 import org.apache.tez.common.Constants;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskStatus.State;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.engine.common.security.JobTokenIdentifier;
+import org.apache.tez.engine.common.security.TokenCache;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.engine.newapi.TezProcessorContext;
 import org.apache.tez.engine.records.OutputContext;
+import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.newmapred.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.hadoop.mapreduce.JobContextImpl;
 import org.apache.tez.mapreduce.hadoop.mapreduce.TezNullOutputCommitter;
 //import org.apache.tez.mapreduce.partition.MRPartitioner;
+import org.apache.tez.mapreduce.task.impl.YarnOutputFiles;
 
+@SuppressWarnings("deprecation")
 public abstract class MRTask {
 
   static final Log LOG = LogFactory.getLog(MRTask.class);
@@ -86,6 +104,7 @@ public abstract class MRTask {
   protected TezProcessorContext tezEngineTaskContext;
   protected TaskAttemptID taskAttemptId;
   protected Progress progress = new Progress();
+  protected SecretKey jobTokenSecret;
 
   boolean isMap;
 
@@ -117,6 +136,8 @@ public abstract class MRTask {
   public void initialize(TezProcessorContext context) throws IOException,
   InterruptedException {
     
+    DeprecatedKeys.init();
+
     tezEngineTaskContext = context;
     counters = context.getCounters();
     this.taskAttemptId = new TaskAttemptID(
@@ -143,7 +164,126 @@ public abstract class MRTask {
     initResourceCalculatorPlugin();
 
     LOG.info("MRTask.inited: taskAttemptId = " + taskAttemptId.toString());
+    
+    // TODO Post MRR
+    // A single file per vertex will likely be a better solution. Does not
+    // require translation - client can take care of this. Will work independent
+    // of whether the configuration is for intermediate tasks or not. Has the
+    // overhead of localizing multiple files per job - i.e. the client would
+    // need to write these files to hdfs, add them as local resources per
+    // vertex. A solution like this may be more practical once it's possible to
+    // submit configuration parameters to the AM and effectively tasks via RPC.
+
+    jobConf.set(MRJobConfig.VERTEX_NAME, tezEngineTaskContext.getTaskVertexName());
+
+    if (LOG.isDebugEnabled() && userPayload != null) {
+      Iterator<Entry<String, String>> iter = jobConf.iterator();
+      String taskIdStr = taskAttemptId.getTaskID().toString();
+      while (iter.hasNext()) {
+        Entry<String, String> confEntry = iter.next();
+        LOG.debug("TaskConf Entry"
+            + ", taskId=" + taskIdStr
+            + ", key=" + confEntry.getKey()
+            + ", value=" + confEntry.getValue());
+      }
+    }
+
+    configureMRTask();
   }
+  
+  private void configureMRTask()
+      throws IOException, InterruptedException {
+
+    Credentials credentials = UserGroupInformation.getCurrentUser()
+        .getCredentials();
+    jobConf.setCredentials(credentials);
+    // TODO Can this be avoided all together. Have the MRTezOutputCommitter use
+    // the Tez parameter.
+    // TODO This could be fetched from the env if YARN is setting it for all
+    // Containers.
+    // Set it in conf, so as to be able to be used the the OutputCommitter.
+    // TODO should this be DAG Id
+    jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, tezEngineTaskContext
+        .getApplicationId().getId());
+
+    jobConf.setClass(MRConfig.TASK_LOCAL_OUTPUT_CLASS, YarnOutputFiles.class,
+        MapOutputFile.class); // MR
+
+    // Not needed. This is probably being set via the source/consumer meta
+    Token<JobTokenIdentifier> jobToken = TokenCache.getJobToken(credentials);
+    if (jobToken != null) {
+      // Will MR ever run without a job token.
+      SecretKey sk = JobTokenSecretManager.createSecretKey(jobToken
+          .getPassword());
+      this.jobTokenSecret = sk;
+    } else {
+      LOG.warn("No job token set");
+    }
+
+    jobConf.set(MRJobConfig.JOB_LOCAL_DIR, jobConf.get(TezJobConfig.JOB_LOCAL_DIR));
+    jobConf.set(MRConfig.LOCAL_DIR, jobConf.get(TezJobConfig.LOCAL_DIRS));
+    
+    if (jobConf.get(TezJobConfig.DAG_CREDENTIALS_BINARY) != null) {
+      jobConf.set(MRJobConfig.MAPREDUCE_JOB_CREDENTIALS_BINARY,
+          jobConf.get(TezJobConfig.DAG_CREDENTIALS_BINARY));
+    }
+
+    // Set up the DistributedCache related configs
+    setupDistributedCacheConfig(jobConf);
+  }
+
+  /**
+   * Set up the DistributedCache related configs to make
+   * {@link DistributedCache#getLocalCacheFiles(Configuration)} and
+   * {@link DistributedCache#getLocalCacheArchives(Configuration)} working.
+   * 
+   * @param job
+   * @throws IOException
+   */
+  private static void setupDistributedCacheConfig(final JobConf job)
+      throws IOException {
+
+    String localWorkDir = (job.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR));
+    // ^ ^ all symlinks are created in the current work-dir
+
+    // Update the configuration object with localized archives.
+    URI[] cacheArchives = DistributedCache.getCacheArchives(job);
+    if (cacheArchives != null) {
+      List<String> localArchives = new ArrayList<String>();
+      for (int i = 0; i < cacheArchives.length; ++i) {
+        URI u = cacheArchives[i];
+        Path p = new Path(u);
+        Path name = new Path((null == u.getFragment()) ? p.getName()
+            : u.getFragment());
+        String linkName = name.toUri().getPath();
+        localArchives.add(new Path(localWorkDir, linkName).toUri().getPath());
+      }
+      if (!localArchives.isEmpty()) {
+        job.set(MRJobConfig.CACHE_LOCALARCHIVES, StringUtils
+            .arrayToString(localArchives.toArray(new String[localArchives
+                .size()])));
+      }
+    }
+
+    // Update the configuration object with localized files.
+    URI[] cacheFiles = DistributedCache.getCacheFiles(job);
+    if (cacheFiles != null) {
+      List<String> localFiles = new ArrayList<String>();
+      for (int i = 0; i < cacheFiles.length; ++i) {
+        URI u = cacheFiles[i];
+        Path p = new Path(u);
+        Path name = new Path((null == u.getFragment()) ? p.getName()
+            : u.getFragment());
+        String linkName = name.toUri().getPath();
+        localFiles.add(new Path(localWorkDir, linkName).toUri().getPath());
+      }
+      if (!localFiles.isEmpty()) {
+        job.set(MRJobConfig.CACHE_LOCALFILES, StringUtils
+            .arrayToString(localFiles.toArray(new String[localFiles.size()])));
+      }
+    }
+  }
+
 
   private void initResourceCalculatorPlugin() {
     Class<? extends ResourceCalculatorProcessTree> clazz =
