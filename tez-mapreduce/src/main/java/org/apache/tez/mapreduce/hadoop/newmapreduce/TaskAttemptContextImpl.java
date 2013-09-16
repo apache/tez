@@ -20,9 +20,9 @@ package org.apache.tez.mapreduce.hadoop.newmapreduce;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.TaskID;
-import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.tez.engine.newapi.TezTaskContext;
 import org.apache.tez.mapreduce.common.Utils;
@@ -34,6 +34,7 @@ import org.apache.tez.mapreduce.common.Utils;
 @InterfaceStability.Unstable
 public class TaskAttemptContextImpl
        extends org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl {
+  
   private TezTaskContext taskContext;
 
   // FIXME we need to use DAG Id but we are using App Id

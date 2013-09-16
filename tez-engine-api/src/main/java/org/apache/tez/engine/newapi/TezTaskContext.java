@@ -84,7 +84,7 @@ public interface TezTaskContext {
    * @return an array of work dirs
    */
   public String[] getWorkDirs();
-  
+
   /**
    * Returns an identifier which is unique to the specific Input, Processor or
    * Output

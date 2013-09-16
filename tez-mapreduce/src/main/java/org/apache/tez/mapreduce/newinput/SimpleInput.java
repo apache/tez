@@ -98,9 +98,10 @@ public class SimpleInput implements LogicalInput {
 
   @Override
   public List<Event> initialize(TezInputContext inputContext) throws IOException {
+    this.inputContext = inputContext;
     Configuration conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
     this.jobConf = new JobConf(conf);
-    
+
     // Read split information.
     TaskSplitMetaInfo[] allMetaInfo = readSplits(conf);
     TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[inputContext.getTaskIndex()];

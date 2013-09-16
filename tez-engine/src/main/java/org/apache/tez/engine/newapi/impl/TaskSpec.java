@@ -41,12 +41,13 @@ public class TaskSpec implements Writable {
   public TaskSpec() {
   }
 
+  // TODO NEWTEZ Remove user
   public TaskSpec(TezTaskAttemptID taskAttemptID, String user,
       String vertexName, ProcessorDescriptor processorDescriptor,
       List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList) {
     this.taskAttemptId = taskAttemptID;
-    this.user = user;
     this.vertexName = vertexName;
+    this.user = user;
     this.processorDescriptor = processorDescriptor;
     this.inputSpecList = inputSpecList;
     this.outputSpecList = outputSpecList;
@@ -78,6 +79,8 @@ public class TaskSpec implements Writable {
 
   @Override
   public void write(DataOutput out) throws IOException {
+    taskAttemptId.write(out);
+    out.writeUTF(vertexName);
     byte[] procDesc =
         DagTypeConverters.convertToDAGPlan(processorDescriptor).toByteArray();
     out.writeInt(procDesc.length);
@@ -94,6 +97,9 @@ public class TaskSpec implements Writable {
 
   @Override
   public void readFields(DataInput in) throws IOException {
+    taskAttemptId = new TezTaskAttemptID();
+    taskAttemptId.readFields(in);
+    vertexName = in.readUTF();
     int procDescLength = in.readInt();
     // TODO at least 3 buffer copies here. Need to convert this to full PB
     // TEZ-305
@@ -121,6 +127,7 @@ public class TaskSpec implements Writable {
   @Override
   public String toString() {
     StringBuffer sb = new StringBuffer();
+    sb.append("TaskAttemptID:" + taskAttemptId);
     sb.append("processorName=" + processorDescriptor.getClassName()
         + ", inputSpecListSize=" + inputSpecList.size()
         + ", outputSpecListSize=" + outputSpecList.size());

@@ -57,8 +57,12 @@ public class SplitMetaInfoReaderTez {
         MRJobConfig.SPLIT_METAINFO_MAXSIZE,
         MRJobConfig.DEFAULT_SPLIT_METAINFO_MAXSIZE);
 
+    // TODO NEWTEZ Figure out how this can be improved. i.e. access from context instead of setting in conf ?
+    String basePath = conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, ".");
+    LOG.info("Attempting to find splits in dir: " + basePath);
+    
     Path metaSplitFile = new Path(
-        conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR),
+        basePath,
         MRJobConfig.JOB_SPLIT_METAINFO);
     String jobSplitFile = MRJobConfig.JOB_SPLIT;
 
@@ -91,7 +95,7 @@ public class SplitMetaInfoReaderTez {
       JobSplit.SplitMetaInfo splitMetaInfo = new JobSplit.SplitMetaInfo();
       splitMetaInfo.readFields(in);
       JobSplit.TaskSplitIndex splitIndex = new JobSplit.TaskSplitIndex(
-          new Path(conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR), jobSplitFile)
+          new Path(basePath, jobSplitFile)
               .toUri().toString(), splitMetaInfo.getStartOffset());
       allSplitMetaInfo[i] = new JobSplit.TaskSplitMetaInfo(splitIndex,
           splitMetaInfo.getLocations(), splitMetaInfo.getInputDataLength());
