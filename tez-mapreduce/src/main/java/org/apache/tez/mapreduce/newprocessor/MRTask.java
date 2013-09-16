@@ -36,10 +36,12 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.RawComparator;
+import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.FileOutputCommitter;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
@@ -62,6 +64,8 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.util.DiskChecker.DiskErrorException;
+import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 import org.apache.tez.common.Constants;
 import org.apache.tez.common.TezJobConfig;
@@ -101,7 +105,7 @@ public abstract class MRTask {
   protected GcTimeUpdater gcUpdater;
   private ResourceCalculatorProcessTree pTree;
   private long initCpuCumulativeTime = 0;
-  protected TezProcessorContext tezEngineTaskContext;
+  protected TezProcessorContext processorContext;
   protected TaskAttemptID taskAttemptId;
   protected Progress progress = new Progress();
   protected SecretKey jobTokenSecret;
@@ -138,7 +142,7 @@ public abstract class MRTask {
     
     DeprecatedKeys.init();
 
-    tezEngineTaskContext = context;
+    processorContext = context;
     counters = context.getCounters();
     this.taskAttemptId = new TaskAttemptID(
         new TaskID(
@@ -174,7 +178,7 @@ public abstract class MRTask {
     // vertex. A solution like this may be more practical once it's possible to
     // submit configuration parameters to the AM and effectively tasks via RPC.
 
-    jobConf.set(MRJobConfig.VERTEX_NAME, tezEngineTaskContext.getTaskVertexName());
+    jobConf.set(MRJobConfig.VERTEX_NAME, processorContext.getTaskVertexName());
 
     if (LOG.isDebugEnabled() && userPayload != null) {
       Iterator<Entry<String, String>> iter = jobConf.iterator();
@@ -203,7 +207,7 @@ public abstract class MRTask {
     // Containers.
     // Set it in conf, so as to be able to be used the the OutputCommitter.
     // TODO should this be DAG Id
-    jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, tezEngineTaskContext
+    jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, processorContext
         .getApplicationId().getId());
 
     jobConf.setClass(MRConfig.TASK_LOCAL_OUTPUT_CLASS, YarnOutputFiles.class,
@@ -220,9 +224,8 @@ public abstract class MRTask {
       LOG.warn("No job token set");
     }
 
-    jobConf.set(MRJobConfig.JOB_LOCAL_DIR, jobConf.get(TezJobConfig.JOB_LOCAL_DIR));
-    jobConf.set(MRConfig.LOCAL_DIR, jobConf.get(TezJobConfig.LOCAL_DIRS));
-    
+    configureLocalDirs();
+
     if (jobConf.get(TezJobConfig.DAG_CREDENTIALS_BINARY) != null) {
       jobConf.set(MRJobConfig.MAPREDUCE_JOB_CREDENTIALS_BINARY,
           jobConf.get(TezJobConfig.DAG_CREDENTIALS_BINARY));
@@ -230,6 +233,47 @@ public abstract class MRTask {
 
     // Set up the DistributedCache related configs
     setupDistributedCacheConfig(jobConf);
+  }
+  
+  private void configureLocalDirs() throws IOException {
+    // TODO NEWTEZ Is most of this functionality required ?
+    jobConf.setStrings(TezJobConfig.LOCAL_DIRS, processorContext.getWorkDirs());
+    jobConf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, System.getenv(Environment.PWD.name()));
+    
+    jobConf.setStrings(MRConfig.LOCAL_DIR, processorContext.getWorkDirs());
+    
+    LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
+    Path workDir = null;
+    // First, try to find the JOB_LOCAL_DIR on this host.
+    try {
+      workDir = lDirAlloc.getLocalPathToRead("work", jobConf);
+    } catch (DiskErrorException e) {
+      // DiskErrorException means dir not found. If not found, it will
+      // be created below.
+    }
+    if (workDir == null) {
+      // JOB_LOCAL_DIR doesn't exist on this host -- Create it.
+      workDir = lDirAlloc.getLocalPathForWrite("work", jobConf);
+      FileSystem lfs = FileSystem.getLocal(jobConf).getRaw();
+      boolean madeDir = false;
+      try {
+        madeDir = lfs.mkdirs(workDir);
+      } catch (FileAlreadyExistsException e) {
+        // Since all tasks will be running in their own JVM, the race condition
+        // exists where multiple tasks could be trying to create this directory
+        // at the same time. If this task loses the race, it's okay because
+        // the directory already exists.
+        madeDir = true;
+        workDir = lDirAlloc.getLocalPathToRead("work", jobConf);
+      }
+      if (!madeDir) {
+          throw new IOException("Mkdirs failed to create "
+              + workDir.toString());
+      }
+    }
+    // TODO NEWTEZ Is this required ?
+    jobConf.set(TezJobConfig.JOB_LOCAL_DIR, workDir.toString());
+    jobConf.set(MRJobConfig.JOB_LOCAL_DIR, workDir.toString());
   }
 
   /**
@@ -299,12 +343,12 @@ public abstract class MRTask {
   }
 
   public TezProcessorContext getUmbilical() {
-    return this.tezEngineTaskContext;
+    return this.processorContext;
   }
 
   public void initTask() throws IOException,
                                 InterruptedException {
-    this.mrReporter = new MRTaskReporter(tezEngineTaskContext);
+    this.mrReporter = new MRTaskReporter(processorContext);
     this.useNewApi = jobConf.getUseNewMapper();
     TezDAGID dagId = IDConverter.fromMRTaskAttemptId(taskAttemptId).getTaskID()
         .getVertexID().getDAGId();
@@ -513,7 +557,7 @@ public abstract class MRTask {
 
   private void commit(org.apache.hadoop.mapreduce.OutputCommitter committer
       ) throws IOException {
-    while (!tezEngineTaskContext.canCommit()) {
+    while (!processorContext.canCommit()) {
       // This will loop till the AM asks for the task to be killed. As
       // against, the AM sending a signal to the task to kill itself
       // gracefully.
@@ -732,6 +776,6 @@ public abstract class MRTask {
   }
 
   public TezProcessorContext getTezEngineTaskContext() {
-    return tezEngineTaskContext;
+    return processorContext;
   }
 }

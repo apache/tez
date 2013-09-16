@@ -47,6 +47,7 @@ import org.apache.tez.engine.newapi.TezProcessorContext;
 import org.apache.tez.mapreduce.hadoop.newmapreduce.MapContextImpl;
 import org.apache.tez.mapreduce.newinput.SimpleInput;
 import org.apache.tez.mapreduce.newinput.SimpleInputLegacy;
+import org.apache.tez.mapreduce.newoutput.SimpleOutput;
 import org.apache.tez.mapreduce.newprocessor.MRTask;
 import org.apache.tez.mapreduce.newprocessor.MRTaskReporter;
 
@@ -85,7 +86,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
   public void run(Map<String, LogicalInput> inputs,
       Map<String, LogicalOutput> outputs) throws Exception {
 
-    LOG.info("Running map: " + tezEngineTaskContext.getUniqueIdentifier());
+    LOG.info("Running map: " + processorContext.getUniqueIdentifier());
     
     initTask();
 
@@ -112,15 +113,11 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     
     KVWriter kvWriter = ((OnFileSortedOutput)out).getWriter();
     
-    //TODO fix committer
-//    if (out instanceof SimpleOutput) {
-//      initCommitter(jobConf, useNewApi, false);
-//      ((SimpleOutput)out).setTask(this);
-//    } else if (out instanceof SortingOutput) {
-//      initCommitter(jobConf, useNewApi, true);
-//      initPartitioner(jobConf);
-//      ((SortingOutput)out).setTask(this);
-//    }
+    if (out instanceof SimpleOutput) {
+      initCommitter(jobConf, useNewApi, false);
+    } else { // Assuming no other output needs commit.
+      initCommitter(jobConf, useNewApi, true);
+    }
 
     if (useNewApi) {
       runNewMapper(jobConf, mrReporter, input, kvWriter, doingShuffle);
@@ -195,7 +192,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
         job, taskAttemptId, 
         input, output, 
         getCommitter(), 
-        tezEngineTaskContext, split);
+        processorContext, split);
 
     org.apache.hadoop.mapreduce.Mapper.Context mapperContext = 
         new WrappedMapper().getMapContext(mapContext);
@@ -342,12 +339,12 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
   
   @Override
   public TezCounter getOutputRecordsCounter() {
-    return tezEngineTaskContext.getCounters().findCounter(TaskCounter.MAP_OUTPUT_RECORDS);
+    return processorContext.getCounters().findCounter(TaskCounter.MAP_OUTPUT_RECORDS);
   }
 
   @Override
   public TezCounter getInputRecordsCounter() {
-    return tezEngineTaskContext.getCounters().findCounter(TaskCounter.MAP_INPUT_RECORDS);
+    return processorContext.getCounters().findCounter(TaskCounter.MAP_INPUT_RECORDS);
   }
 
 }

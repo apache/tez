@@ -37,7 +37,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
@@ -45,9 +44,8 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.SecretManager.InvalidToken;
-import org.apache.hadoop.util.DiskChecker.DiskErrorException;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -76,6 +74,7 @@ import org.apache.tez.engine.newapi.events.TaskAttemptCompletedEvent;
 import org.apache.tez.engine.newapi.events.TaskAttemptFailedEvent;
 import org.apache.tez.engine.newapi.events.TaskStatusUpdateEvent;
 import org.apache.tez.engine.newapi.impl.EventMetaData;
+import org.apache.tez.engine.newapi.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.engine.newapi.impl.InputSpec;
 import org.apache.tez.engine.newapi.impl.OutputSpec;
 import org.apache.tez.engine.newapi.impl.TaskSpec;
@@ -83,7 +82,6 @@ import org.apache.tez.engine.newapi.impl.TezEvent;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatRequest;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatResponse;
 import org.apache.tez.engine.newapi.impl.TezUmbilical;
-import org.apache.tez.engine.newapi.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.engine.newruntime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.mapreduce.newinput.SimpleInputLegacy;
 import org.apache.tez.mapreduce.newoutput.SimpleOutput;
@@ -447,60 +445,6 @@ public class YarnTezDagChild {
     }
   }
 
-  /**
-   * Configure mapred-local dirs. This config is used by the task for finding
-   * out an output directory.
-   * @throws IOException
-   */
-  /**
-   * Configure tez-local-dirs, tez-localized-file-dir, etc. Also create these
-   * dirs.
-   */
-
-  private static void configureLocalDirs(Configuration conf) throws IOException {
-    String[] localSysDirs = StringUtils.getTrimmedStrings(
-        System.getenv(Environment.LOCAL_DIRS.name()));
-    conf.setStrings(TezJobConfig.LOCAL_DIRS, localSysDirs);
-    conf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR,
-        System.getenv(Environment.PWD.name()));
-
-    LOG.info(TezJobConfig.LOCAL_DIRS + " for child: " +
-        conf.get(TezJobConfig.LOCAL_DIRS));
-    LOG.info(TezJobConfig.TASK_LOCAL_RESOURCE_DIR + " for child: "
-        + conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR));
-
-    LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
-    Path workDir = null;
-    // First, try to find the JOB_LOCAL_DIR on this host.
-    try {
-      workDir = lDirAlloc.getLocalPathToRead("work", conf);
-    } catch (DiskErrorException e) {
-      // DiskErrorException means dir not found. If not found, it will
-      // be created below.
-    }
-    if (workDir == null) {
-      // JOB_LOCAL_DIR doesn't exist on this host -- Create it.
-      workDir = lDirAlloc.getLocalPathForWrite("work", conf);
-      FileSystem lfs = FileSystem.getLocal(conf).getRaw();
-      boolean madeDir = false;
-      try {
-        madeDir = lfs.mkdirs(workDir);
-      } catch (FileAlreadyExistsException e) {
-        // Since all tasks will be running in their own JVM, the race condition
-        // exists where multiple tasks could be trying to create this directory
-        // at the same time. If this task loses the race, it's okay because
-        // the directory already exists.
-        madeDir = true;
-        workDir = lDirAlloc.getLocalPathToRead("work", conf);
-      }
-      if (!madeDir) {
-          throw new IOException("Mkdirs failed to create "
-              + workDir.toString());
-      }
-    }
-    conf.set(TezJobConfig.JOB_LOCAL_DIR, workDir.toString());
-  }
-
   private static LogicalIOProcessorRuntimeTask createLogicalTask(int attemptNum,
       TaskSpec taskSpec, Configuration conf, TezUmbilical tezUmbilical,
       Token<JobTokenIdentifier> jobToken) throws IOException {
@@ -508,7 +452,6 @@ public class YarnTezDagChild {
     // FIXME TODONEWTEZ
     conf.setBoolean("ipc.client.tcpnodelay", true);
     conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, attemptNum);
-    configureLocalDirs(conf);
     FileSystem.get(conf).setWorkingDirectory(getWorkingDirectory(conf));
 
     // FIXME need Input/Output vertices else we have this hack
@@ -528,6 +471,9 @@ public class YarnTezDagChild {
       taskSpec.getOutputs().add(
           new OutputSpec("null", simpleOutputDesc, 0));
     }
+    String [] localDirs = StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
+    conf.setStrings(TezJobConfig.LOCAL_DIRS, localDirs);
+    LOG.info("LocalDirs for child: " + localDirs);
     return new LogicalIOProcessorRuntimeTask(taskSpec, conf,
         tezUmbilical, jobToken);
   }

@@ -60,7 +60,7 @@ public class TezEngineUtils {
       throw new IOException("Unable to find Partitioner class in config", e);
     }
 
-    LOG.info("ZZZ: Using partitioner class: " + clazz.getName());
+    LOG.info("Using partitioner class: " + clazz.getName());
 
     Partitioner partitioner = null;
 

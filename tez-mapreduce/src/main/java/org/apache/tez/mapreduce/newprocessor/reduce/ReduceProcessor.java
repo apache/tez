@@ -95,7 +95,7 @@ implements LogicalIOProcessor {
   public void run(Map<String, LogicalInput> inputs,
       Map<String, LogicalOutput> outputs) throws Exception {
 
-    LOG.info("Running reduce: " + tezEngineTaskContext.getUniqueIdentifier());
+    LOG.info("Running reduce: " + processorContext.getUniqueIdentifier());
     
     initTask();
     
@@ -112,13 +112,11 @@ implements LogicalIOProcessor {
     Input in = inputs.values().iterator().next();
     Output out = outputs.values().iterator().next();
     
-//    if (out instanceof SimpleOutput) {
-//      initCommitter(jobConf, useNewApi, false);
-//    } else if (out instanceof SortingOutput) {
-//      initCommitter(jobConf, useNewApi, true);
-//      initPartitioner(jobConf);
-//      ((SortingOutput)out).setTask(this);
-//    }
+    if (out instanceof SimpleOutput) {
+      initCommitter(jobConf, useNewApi, false);
+    } else {
+      initCommitter(jobConf, useNewApi, true);
+    }
 
     this.statusUpdate();
     
@@ -352,12 +350,12 @@ implements LogicalIOProcessor {
 
   @Override
   public TezCounter getOutputRecordsCounter() {
-    return tezEngineTaskContext.getCounters().findCounter(TaskCounter.REDUCE_OUTPUT_RECORDS);
+    return processorContext.getCounters().findCounter(TaskCounter.REDUCE_OUTPUT_RECORDS);
   }
 
   @Override
   public TezCounter getInputRecordsCounter() {
-    return tezEngineTaskContext.getCounters().findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
+    return processorContext.getCounters().findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
   }
 
 }

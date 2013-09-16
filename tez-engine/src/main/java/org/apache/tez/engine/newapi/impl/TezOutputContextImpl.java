@@ -52,7 +52,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
     this.destinationVertexName = destinationVertexName;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.OUTPUT,
         taskVertexName, destinationVertexName, taskAttemptID);
-    this.uniqueIdentifier = String.format("%s_%s_%6d_%2d_%s", taskAttemptID
+    this.uniqueIdentifier = String.format("%s_%s_%06d_%02d_%s", taskAttemptID
         .getTaskID().getVertexID().getDAGId().toString(), taskVertexName,
         getTaskIndex(), getAttemptNumber(), destinationVertexName);
   }
