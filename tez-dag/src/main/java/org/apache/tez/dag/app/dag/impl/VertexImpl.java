@@ -1460,6 +1460,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             srcEdge.sendTezEventToSourceTasks(tezEvent);
           }
           break;
+        case TASK_STATUS_UPDATE_EVENT:
+          // TODO NEWTEZ FIXME: Handle this event
+          break;
         default:
           throw new TezUncheckedException("Unhandled tez event type: "
               + tezEvent.getEventType());

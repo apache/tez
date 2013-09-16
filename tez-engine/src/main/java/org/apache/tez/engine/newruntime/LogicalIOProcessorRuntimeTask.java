@@ -215,9 +215,12 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   private TezInputContext createInputContext(InputSpec inputSpec) {
     TezInputContext inputContext = new TezInputContextImpl(tezConf,
-        tezUmbilical, taskSpec.getVertexName(), inputSpec.getSourceVertexName(),
-        taskSpec.getTaskAttemptID(), tezCounters,
-        inputSpec.getInputDescriptor().getUserPayload(), this,
+        tezUmbilical, taskSpec.getVertexName(),
+        inputSpec.getSourceVertexName(), taskSpec.getTaskAttemptID(),
+        tezCounters,
+        inputSpec.getInputDescriptor().getUserPayload() == null ? taskSpec
+            .getProcessorDescriptor().getUserPayload() : inputSpec
+            .getInputDescriptor().getUserPayload(), this,
         serviceConsumerMetadata);
     return inputContext;
   }
@@ -225,9 +228,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private TezOutputContext createOutputContext(OutputSpec outputSpec) {
     TezOutputContext outputContext = new TezOutputContextImpl(tezConf,
         tezUmbilical, taskSpec.getVertexName(),
-        outputSpec.getDestinationVertexName(),
-        taskSpec.getTaskAttemptID(), tezCounters,
-        outputSpec.getOutputDescriptor().getUserPayload(), this,
+        outputSpec.getDestinationVertexName(), taskSpec.getTaskAttemptID(),
+        tezCounters,
+        outputSpec.getOutputDescriptor().getUserPayload() == null ? taskSpec
+            .getProcessorDescriptor().getUserPayload() : outputSpec
+            .getOutputDescriptor().getUserPayload(), this,
         serviceConsumerMetadata);
     return outputContext;
   }
@@ -347,8 +352,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   @Override
   public synchronized void handleEvents(Collection<TezEvent> events) {
-    eventsToBeProcessed.addAll(events);
-    eventCounter.addAndGet(events.size());
+    if (!(events == null || events.size() == 0)) {
+      eventsToBeProcessed.addAll(events);
+      eventCounter.addAndGet(events.size());
+    }
   }
 
   private void startRouterThread() {

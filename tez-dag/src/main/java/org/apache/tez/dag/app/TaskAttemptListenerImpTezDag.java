@@ -594,6 +594,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     }
     synchronized (attemptInfo) {      
       if(attemptInfo.lastRequestId == requestId) {
+        LOG.warn("Old sequenceId received: " + requestId + ", Re-sending last response to client");
         return attemptInfo.lastReponse;
       }
       if(attemptInfo.lastRequestId+1 < requestId) {
