@@ -107,6 +107,7 @@ public class TezEvent implements Writable {
       return;
     }
     out.writeBoolean(true);
+    out.writeInt(eventType.ordinal());
     if (eventType.equals(EventType.TASK_STATUS_UPDATE_EVENT)) {
       // TODO NEWTEZ convert to PB
       TaskStatusUpdateEvent sEvt = (TaskStatusUpdateEvent) event;
@@ -154,7 +155,6 @@ public class TezEvent implements Writable {
         throw new TezUncheckedException("Unknown TezEvent"
            + ", type=" + eventType);
       }
-      out.writeInt(eventType.ordinal());
       out.writeInt(eventBytes.length);
       out.write(eventBytes);
     }
