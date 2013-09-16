@@ -86,10 +86,10 @@ import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
 import org.apache.tez.engine.runtime.RuntimeUtils;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
-import org.apache.tez.mapreduce.input.SimpleInput;
-import org.apache.tez.mapreduce.output.SimpleOutput;
-import org.apache.tez.mapreduce.processor.map.MapProcessor;
-import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
+import org.apache.tez.mapreduce.newinput.SimpleInput;
+import org.apache.tez.mapreduce.newoutput.SimpleOutput;
+import org.apache.tez.mapreduce.newprocessor.map.MapProcessor;
+import org.apache.tez.mapreduce.newprocessor.reduce.ReduceProcessor;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 

@@ -54,7 +54,7 @@ import org.apache.tez.engine.api.Task;
 import org.apache.tez.engine.runtime.RuntimeUtils;
 import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.processor.map.MapProcessor;
+import org.apache.tez.mapreduce.newprocessor.map.MapProcessor;
 
 public class MapUtils {
 

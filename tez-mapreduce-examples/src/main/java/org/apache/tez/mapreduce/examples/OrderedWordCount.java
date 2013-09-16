@@ -70,14 +70,14 @@ import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.engine.lib.oldinput.OldShuffledMergedInput;
-import org.apache.tez.engine.lib.oldoutput.OldOnFileSortedOutput;
+import org.apache.tez.engine.lib.output.OnFileSortedOutput;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
-import org.apache.tez.mapreduce.processor.map.MapProcessor;
-import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
+import org.apache.tez.mapreduce.newinput.ShuffledMergedInputLegacy;
+import org.apache.tez.mapreduce.newprocessor.map.MapProcessor;
+import org.apache.tez.mapreduce.newprocessor.reduce.ReduceProcessor;
 
 /**
  * An MRR job built on top of word count to return words sorted by
@@ -312,9 +312,9 @@ public class OrderedWordCount {
                 DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
                 SchedulingType.SEQUENTIAL, 
                 new OutputDescriptor(
-                    OldOnFileSortedOutput.class.getName()),
+                    OnFileSortedOutput.class.getName()),
                 new InputDescriptor(
-                    OldShuffledMergedInput.class.getName()))));
+                    ShuffledMergedInputLegacy.class.getName()))));
       }
     }
 

@@ -48,8 +48,8 @@ import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
-import org.apache.tez.mapreduce.input.SimpleInput;
-import org.apache.tez.mapreduce.output.SimpleOutput;
+import org.apache.tez.mapreduce.newinput.SimpleInputLegacy;
+import org.apache.tez.mapreduce.newoutput.SimpleOutput;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MapUtils;
 import org.junit.After;
@@ -120,7 +120,7 @@ public class TestReduceProcessor {
     MapUtils.runMapProcessor(localFs, workDir, mapConf, 0,
         new Path(workDir, "map0"), new TestUmbilicalProtocol(), mapVertexName,
         Collections.singletonList(new InputSpec("NullVertex", 0,
-            SimpleInput.class.getName())),
+            SimpleInputLegacy.class.getName())),
         Collections.singletonList(new OutputSpec("FakeVertex", 1,
             OldLocalOnFileSorterOutput.class.getName())));
 

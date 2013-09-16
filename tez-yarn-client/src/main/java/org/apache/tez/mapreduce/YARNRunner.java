@@ -95,15 +95,15 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.engine.lib.oldinput.OldShuffledMergedInput;
-import org.apache.tez.engine.lib.oldoutput.OldOnFileSortedOutput;
+import org.apache.tez.engine.lib.output.OnFileSortedOutput;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
-import org.apache.tez.mapreduce.processor.map.MapProcessor;
-import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
+import org.apache.tez.mapreduce.newinput.ShuffledMergedInputLegacy;
+import org.apache.tez.mapreduce.newprocessor.map.MapProcessor;
+import org.apache.tez.mapreduce.newprocessor.reduce.ReduceProcessor;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -463,8 +463,8 @@ public class YARNRunner implements ClientProtocol {
         EdgeProperty edgeProperty = new EdgeProperty(
             DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
             SchedulingType.SEQUENTIAL, 
-            new OutputDescriptor(OldOnFileSortedOutput.class.getName()),
-            new InputDescriptor(OldShuffledMergedInput.class.getName()));
+            new OutputDescriptor(OnFileSortedOutput.class.getName()),
+            new InputDescriptor(ShuffledMergedInputLegacy.class.getName()));
 
         Edge edge = null;
         edge = new Edge(vertices[i - 1], vertices[i], edgeProperty);
