@@ -23,12 +23,16 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
 import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.engine.api.Partitioner;
 
 public class TezEngineUtils {
 
+  private static final Log LOG = LogFactory
+      .getLog(TezEngineUtils.class);
+  
   public static String getTaskIdentifier(String vertexName, int taskIndex) {
     return String.format("%s_%06d", vertexName, taskIndex);
   }
@@ -48,8 +52,15 @@ public class TezEngineUtils {
   @SuppressWarnings("unchecked")
   public static Partitioner instantiatePartitioner(Configuration conf)
       throws IOException {
-    Class<? extends Partitioner> clazz = (Class<? extends Partitioner>) conf
-        .getClass(TezJobConfig.TEZ_ENGINE_PARTITIONER_CLASS, Partitioner.class);
+    Class<? extends Partitioner> clazz;
+    try {
+      clazz = (Class<? extends Partitioner>) conf
+          .getClassByName(conf.get(TezJobConfig.TEZ_ENGINE_PARTITIONER_CLASS));
+    } catch (ClassNotFoundException e) {
+      throw new IOException("Unable to find Partitioner class in config", e);
+    }
+
+    LOG.info("ZZZ: Using partitioner class: " + clazz.getName());
 
     Partitioner partitioner = null;
 

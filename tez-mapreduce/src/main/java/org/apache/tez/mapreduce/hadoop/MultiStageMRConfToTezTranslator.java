@@ -31,6 +31,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys.MultiStageKeys;
+import org.apache.tez.mapreduce.newpartition.MRPartitioner;
 
 import com.google.common.base.Preconditions;
 
@@ -218,6 +219,9 @@ public class MultiStageMRConfToTezTranslator {
     boolean hasFinalReduceStage = (conf.getInt(MRJobConfig.NUM_REDUCES, 0) > 0);
     // Assuming no 0 map jobs, and the first stage is always a map.
     int numStages = numIntermediateStages + (hasFinalReduceStage ? 2 : 1);
+
+    conf.set(TezJobConfig.TEZ_ENGINE_PARTITIONER_CLASS,
+        MRPartitioner.class.getName());
 
     Configuration confs[] = new Configuration[numStages];
     Configuration nonItermediateConf = MultiStageMRConfigUtil.extractStageConf(
