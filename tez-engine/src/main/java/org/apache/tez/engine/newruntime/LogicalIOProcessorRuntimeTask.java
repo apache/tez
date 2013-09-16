@@ -370,6 +370,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
             if (!stopped.get()) {
               LOG.warn("Event Router thread interrupted. Returning.");
             }
+            return;
           }
         }
       }

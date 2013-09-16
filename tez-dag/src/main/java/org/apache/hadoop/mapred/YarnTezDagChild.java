@@ -85,8 +85,8 @@ import org.apache.tez.engine.newapi.impl.TezHeartbeatResponse;
 import org.apache.tez.engine.newapi.impl.TezUmbilical;
 import org.apache.tez.engine.newapi.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.engine.newruntime.LogicalIOProcessorRuntimeTask;
-import org.apache.tez.mapreduce.input.SimpleInput;
-import org.apache.tez.mapreduce.output.SimpleOutput;
+import org.apache.tez.mapreduce.newinput.SimpleInputLegacy;
+import org.apache.tez.mapreduce.newoutput.SimpleOutput;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -111,24 +111,33 @@ public class YarnTezDagChild {
   private static TezTaskUmbilicalProtocol umbilical;
   private static ReentrantReadWriteLock taskLock = new ReentrantReadWriteLock();
   private static LogicalIOProcessorRuntimeTask currentTask = null;
+  private static AtomicBoolean heartbeatError = new AtomicBoolean(false);
+  private static Throwable heartbeatErrorException = null;
 
   private static Thread startHeartbeatThread() {
     Thread heartbeatThread = new Thread(new Runnable() {
       public void run() {
-        while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
+        while (!stopped.get() && !Thread.currentThread().isInterrupted()
+            && !heartbeatError.get()) {
           try {
             Thread.sleep(amPollInterval);
             try {
               heartbeat();
             } catch (TezException e) {
               LOG.error("Error communicating with AM: " + e.getMessage() , e);
-              // TODO TODONEWTEZ
+              heartbeatErrorException = e;
+              heartbeatError.set(true);
+              return;
             } catch (InvalidToken e) {
               LOG.error("Error in authenticating with AM: ", e);
-              // TODO TODONEWTEZ
+              heartbeatErrorException = e;
+              heartbeatError.set(true);
+              return;
             } catch (Exception e) {
               LOG.error("Error in heartbeating with AM. ", e);
-              // TODO TODONEWTEZ
+              heartbeatErrorException = e;
+              heartbeatError.set(true);
+              return;
             }
           } catch (InterruptedException e) {
             if (!stopped.get()) {
@@ -175,7 +184,9 @@ public class YarnTezDagChild {
     TezHeartbeatResponse response = umbilical.heartbeat(request);
     if (response.getLastRequestId() != reqId) {
       // TODO TODONEWTEZ
-      throw new TezException("AM and Task out of sync");
+      throw new TezException("AM and Task out of sync"
+          + ", responseReqId=" + response.getLastRequestId()
+          + ", expectedReqId=" + reqId);
     }
     try {
       taskLock.readLock().lock();
@@ -274,9 +285,10 @@ public class YarnTezDagChild {
         try {
           umbilical.taskAttemptFailed(taskAttemptID, taskAttemptFailedEvent);
         } catch (IOException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
-          // TODONEWTEZ System.exit ?
+          LOG.fatal("Failed to communicate task attempt failure to AM via"
+              + " umbilical", e);
+          heartbeatError.set(true);
+          heartbeatErrorException = e;
         }
       }
 
@@ -347,7 +359,7 @@ public class YarnTezDagChild {
           }
           lastVertexId = newVertexId;
           updateLoggers(currentTaskAttemptID);
-          currentTask = createLogicalTask(
+          currentTask = createLogicalTask(attemptNumber,
               taskSpec, defaultConf, tezUmbilical, jobToken);
         } finally {
           taskLock.writeLock().unlock();
@@ -368,29 +380,18 @@ public class YarnTezDagChild {
         childUGI.doAs(new PrivilegedExceptionAction<Object>() {
           @Override
           public Object run() throws Exception {
-            try {
-              currentTask.initialize();
-              if (!currentTask.hadFatalError()) {
-                currentTask.run();
-                currentTask.close();
-              }
-              // TODONEWTEZ check if task had a fatal error before
-              // sending completed event
-              if (!currentTask.hadFatalError()) {
-                TezEvent taskCompletedEvent =
-                    new TezEvent(new TaskAttemptCompletedEvent(), sourceInfo);
-                umbilical.taskAttemptCompleted(currentTaskAttemptID,
-                    taskCompletedEvent);
-              }
-            } catch (Throwable t) {
-              if (!currentTask.hadFatalError()) {
-                TezEvent taskAttemptFailedEvent =
-                    new TezEvent(new TaskAttemptFailedEvent(
-                        StringUtils.stringifyException(t)),
-                        sourceInfo);
-                umbilical.taskAttemptCompleted(currentTaskAttemptID,
-                    taskAttemptFailedEvent);
-              }
+            currentTask.initialize();
+            if (!currentTask.hadFatalError()) {
+              currentTask.run();
+              currentTask.close();
+            }
+            // TODONEWTEZ check if task had a fatal error before
+            // sending completed event
+            if (!currentTask.hadFatalError()) {
+              TezEvent taskCompletedEvent =
+                  new TezEvent(new TaskAttemptCompletedEvent(), sourceInfo);
+              umbilical.taskAttemptCompleted(currentTaskAttemptID,
+                  taskCompletedEvent);
             }
             try {
               taskLock.writeLock().lock();
@@ -407,6 +408,11 @@ public class YarnTezDagChild {
         });
         FileSystem.closeAllForUGI(childUGI);
         containerTask = null;
+        if (heartbeatError.get()) {
+          LOG.fatal("Breaking out of task loop, heartbeat error occurred",
+              heartbeatErrorException);
+          break;
+        }
       }
     } catch (FSError e) {
       LOG.fatal("FSError from child", e);
@@ -418,7 +424,7 @@ public class YarnTezDagChild {
     } catch (Throwable throwable) {
       String cause = StringUtils.stringifyException(throwable);
       LOG.fatal("Error running child : " + cause);
-      if (currentTaskAttemptID != null) {
+      if (currentTaskAttemptID != null && !currentTask.hadFatalError()) {
         TezEvent taskAttemptFailedEvent =
             new TezEvent(new TaskAttemptFailedEvent(cause),
                 currentSourceInfo);
@@ -491,20 +497,20 @@ public class YarnTezDagChild {
     conf.set(TezJobConfig.JOB_LOCAL_DIR, workDir.toString());
   }
 
-  private static LogicalIOProcessorRuntimeTask createLogicalTask(
+  private static LogicalIOProcessorRuntimeTask createLogicalTask(int attemptNum,
       TaskSpec taskSpec, Configuration conf, TezUmbilical tezUmbilical,
       Token<JobTokenIdentifier> jobToken) throws IOException {
 
     // FIXME TODONEWTEZ
-    // conf.setBoolean("ipc.client.tcpnodelay", true);
-    // conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, appAttemptId);
+    conf.setBoolean("ipc.client.tcpnodelay", true);
+    conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, attemptNum);
     configureLocalDirs(conf);
     FileSystem.get(conf).setWorkingDirectory(getWorkingDirectory(conf));
 
     // FIXME need Input/Output vertices else we have this hack
     if (taskSpec.getInputs().isEmpty()) {
       InputDescriptor simpleInputDesc =
-          new InputDescriptor(SimpleInput.class.getName());
+          new InputDescriptor(SimpleInputLegacy.class.getName());
       simpleInputDesc.setUserPayload(
           taskSpec.getProcessorDescriptor().getUserPayload());
       taskSpec.getInputs().add(
