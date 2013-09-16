@@ -25,18 +25,30 @@ import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.engine.newapi.events.TaskStatusUpdateEvent;
 
 public class TaskAttemptEventStatusUpdate extends TaskAttemptEvent {
+  
+  private TaskStatusUpdateEvent taskAttemptStatus;
+  
+  public TaskAttemptEventStatusUpdate(TezTaskAttemptID id, TaskStatusUpdateEvent statusEvent) {
+    super(id, TaskAttemptEventType.TA_STATUS_UPDATE);
+    this.taskAttemptStatus = statusEvent;
+  }
+  
+  public TaskStatusUpdateEvent getStatusEvent() {
+    return this.taskAttemptStatus;
+  }
 
-  private TaskAttemptStatus reportedTaskAttemptStatus;
+  private TaskAttemptStatusOld reportedTaskAttemptStatus;
 
   public TaskAttemptEventStatusUpdate(TezTaskAttemptID id,
-      TaskAttemptStatus taskAttemptStatus) {
+      TaskAttemptStatusOld taskAttemptStatus) {
     super(id, TaskAttemptEventType.TA_STATUS_UPDATE);
     this.reportedTaskAttemptStatus = taskAttemptStatus;
   }
 
-  public TaskAttemptStatus getReportedTaskAttemptStatus() {
+  public TaskAttemptStatusOld getReportedTaskAttemptStatus() {
     return reportedTaskAttemptStatus;
   }
 
@@ -44,7 +56,7 @@ public class TaskAttemptEventStatusUpdate extends TaskAttemptEvent {
    * The internal TaskAttemptStatus object corresponding to remote Task status.
    * 
    */
-  public static class TaskAttemptStatus {
+  public static class TaskAttemptStatusOld {
     
     private AtomicBoolean localitySet = new AtomicBoolean(false);
 

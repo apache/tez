@@ -77,11 +77,9 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputConsumable;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatus;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
-import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptFetchFailure;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.history.DAGHistoryEvent;
@@ -92,6 +90,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
+import org.apache.tez.engine.newapi.events.TaskStatusUpdateEvent;
 import org.apache.tez.engine.newapi.impl.TaskSpec;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -132,7 +131,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   private String nodeRackName;
 
   private TaskAttemptStatus reportedStatus;
-  private DAGCounter localityCounter;
 
   // Used to store locality information when
   Set<String> taskHosts = new HashSet<String>();
@@ -316,10 +314,10 @@ public class TaskAttemptImpl implements TaskAttempt,
       result.setProgress(reportedStatus.progress);
       result.setStartTime(launchTime);
       result.setFinishTime(finishTime);
-      result.setShuffleFinishTime(this.reportedStatus.shuffleFinishTime);
+      //result.setShuffleFinishTime(this.reportedStatus.shuffleFinishTime);
       result.setDiagnosticInfo(StringUtils.join(LINE_SEPARATOR, getDiagnostics()));
       //result.setPhase(reportedStatus.phase);
-      result.setStateString(reportedStatus.stateString);
+      //result.setStateString(reportedStatus.stateString);
       result.setCounters(getCounters());
       result.setContainerId(this.getAssignedContainerID());
       result.setNodeManagerHost(trackerName);
@@ -349,7 +347,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   public TezCounters getCounters() {
     readLock.lock();
     try {
-      reportedStatus.setLocalityCounter(localityCounter);
+      reportedStatus.setLocalityCounter(reportedStatus.localityCounter);
       TezCounters counters = reportedStatus.counters;
       if (counters == null) {
         counters = EMPTY_COUNTERS;
@@ -465,26 +463,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     readLock.lock();
     try {
       return finishTime;
-    } finally {
-      readLock.unlock();
-    }
-  }
-
-  @Override
-  public long getInputReadyTime() {
-    readLock.lock();
-    try {
-      return this.reportedStatus.shuffleFinishTime;
-    } finally {
-      readLock.unlock();
-    }
-  }
-
-  @Override
-  public long getOutputReadyTime() {
-    readLock.lock();
-    try {
-      return this.reportedStatus.sortFinishTime;
     } finally {
       readLock.unlock();
     }
@@ -980,15 +958,16 @@ public class TaskAttemptImpl implements TaskAttempt,
       // JobHistoryEvent
       ta.logJobHistoryAttemptStarted();
 
-      // Compute LOLCAITY counter for this task.
+      // TODO Remove after HDFS-5098
+      // Compute LOCALITY counter for this task.
       if (ta.taskHosts.contains(ta.containerNodeId.getHost())) {
-        ta.localityCounter = DAGCounter.DATA_LOCAL_TASKS;
+        ta.reportedStatus.localityCounter = DAGCounter.DATA_LOCAL_TASKS;
       } else if (ta.taskRacks.contains(ta.nodeRackName)) {
-        ta.localityCounter = DAGCounter.RACK_LOCAL_TASKS;
+        ta.reportedStatus.localityCounter = DAGCounter.RACK_LOCAL_TASKS;
       } else {
         // Not computing this if the task does not have locality information.
         if (ta.locationHint != null) {
-          ta.localityCounter = DAGCounter.OTHER_LOCAL_TASKS;
+          ta.reportedStatus.localityCounter = DAGCounter.OTHER_LOCAL_TASKS;
         }
       }
 
@@ -1076,22 +1055,24 @@ public class TaskAttemptImpl implements TaskAttempt,
       SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent> {
     @Override
     public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
-      TaskAttemptStatus newReportedStatus = ((TaskAttemptEventStatusUpdate) event)
-          .getReportedTaskAttemptStatus();
-      ta.reportedStatus = newReportedStatus;
-      ta.reportedStatus.taskState = ta.getState();
+      TaskStatusUpdateEvent statusEvent = ((TaskAttemptEventStatusUpdate) event)
+          .getStatusEvent();
+      ta.reportedStatus.state = ta.getState();
+      ta.reportedStatus.progress = statusEvent.getProgress();
+      ta.reportedStatus.counters = statusEvent.getCounters();
 
       // Inform speculator of status.
       //ta.sendEvent(new SpeculatorEvent(ta.reportedStatus, ta.clock.getTime()));
 
       ta.updateProgressSplits();
 
-      // Inform the job about fetch failures if they exist.
-      if (ta.reportedStatus.fetchFailedMaps != null
-          && ta.reportedStatus.fetchFailedMaps.size() > 0) {
-        ta.sendEvent(new VertexEventTaskAttemptFetchFailure(ta.attemptId,
-            ta.reportedStatus.fetchFailedMaps));
-      }
+      // TODO TEZ-431
+//      // Inform the job about fetch failures if they exist.
+//      if (ta.reportedStatus.fetchFailedMaps != null
+//          && ta.reportedStatus.fetchFailedMaps.size() > 0) {
+//        ta.sendEvent(new VertexEventTaskAttemptFetchFailure(ta.attemptId,
+//            ta.reportedStatus.fetchFailedMaps));
+//      }
       // TODO at some point. Nodes may be interested in FetchFailure info.
       // Can be used to blacklist nodes.
     }
@@ -1217,8 +1198,8 @@ public class TaskAttemptImpl implements TaskAttempt,
   private void initTaskAttemptStatus(TaskAttemptStatus result) {
     result.progress = 0.0f;
     // result.phase = Phase.STARTING;
-    result.stateString = "NEW";
-    result.taskState = TaskAttemptState.NEW;
+    //result.stateString = "NEW";
+    result.state = TaskAttemptState.NEW;
     //TezCounters counters = EMPTY_COUNTERS;
     //result.counters = counters;
   }

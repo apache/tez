@@ -43,7 +43,7 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatus;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatusOld;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -209,7 +209,7 @@ public class DefaultSpeculator extends AbstractService implements
   }
 
   @Override
-  public void handleAttempt(TaskAttemptStatus status) {
+  public void handleAttempt(TaskAttemptStatusOld status) {
     long timestamp = clock.getTime();
     statusUpdate(status, timestamp);
   }
@@ -287,7 +287,7 @@ public class DefaultSpeculator extends AbstractService implements
    * @param timestamp the time this status corresponds to.  This matters
    *        because statuses contain progress.
    */
-  protected void statusUpdate(TaskAttemptStatus reportedStatus, long timestamp) {
+  protected void statusUpdate(TaskAttemptStatusOld reportedStatus, long timestamp) {
 
     String stateString = reportedStatus.taskState.toString();
 

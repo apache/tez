@@ -27,7 +27,7 @@ import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatus;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatusOld;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 
@@ -39,7 +39,7 @@ public class LegacyTaskRuntimeEstimator extends StartEndTimesBase {
       = new ConcurrentHashMap<TaskAttempt, AtomicLong>();
 
   @Override
-  public void updateAttempt(TaskAttemptStatus status, long timestamp) {
+  public void updateAttempt(TaskAttemptStatusOld status, long timestamp) {
     super.updateAttempt(status, timestamp);
 
 

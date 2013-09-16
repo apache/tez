@@ -54,7 +54,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputConsumable;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatus;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatusOld;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerImpl;
 import org.apache.tez.dag.app.rm.container.AMContainerTask;
@@ -269,7 +269,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     }
     taskHeartbeatHandler.progressing(taskAttemptId);
     pingContainerHeartbeatHandler(taskAttemptId);
-    TaskAttemptStatus taskAttemptStatus = new TaskAttemptStatus();
+    TaskAttemptStatusOld taskAttemptStatus = new TaskAttemptStatusOld();
     taskAttemptStatus.id = taskAttemptId;
     // Task sends the updated progress to the TT.
     taskAttemptStatus.progress = taskStatus.getProgress();

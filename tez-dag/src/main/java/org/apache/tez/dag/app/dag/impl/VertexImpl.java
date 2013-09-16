@@ -84,6 +84,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
@@ -106,6 +107,7 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.newapi.events.DataMovementEvent;
 import org.apache.tez.engine.newapi.events.InputFailedEvent;
+import org.apache.tez.engine.newapi.events.TaskStatusUpdateEvent;
 import org.apache.tez.engine.newapi.impl.EventMetaData;
 import org.apache.tez.engine.newapi.impl.InputSpec;
 import org.apache.tez.engine.newapi.impl.OutputSpec;
@@ -1418,6 +1420,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private void addDiagnostic(String diag) {
     diagnostics.add(diag);
   }
+  
+  private static void checkEventSourceMetadata(Vertex vertex, EventMetaData sourceMeta) {
+    if (!sourceMeta.getTaskVertexName().equals(vertex.getName())) {
+      throw new TezUncheckedException(
+          "Bad routing of event. Event-vertex: "
+              + sourceMeta.getTaskVertexName() + " Expected: "
+              + vertex.getName());
+    }
+  }
 
   private static class RouteEventTransition  implements
   SingleArcTransition<VertexImpl, VertexEvent> {
@@ -1426,14 +1437,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       VertexEventRouteEvent rEvent = (VertexEventRouteEvent) event;
       List<TezEvent> tezEvents = rEvent.getEvents();
       for(TezEvent tezEvent : tezEvents) {
+        EventMetaData sourceMeta = tezEvent.getSourceInfo();
+        checkEventSourceMetadata(vertex, sourceMeta);
         switch(tezEvent.getEventType()) {
         case DATA_MOVEMENT_EVENT:
           {
-            EventMetaData sourceMeta = tezEvent.getSourceInfo();
             TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
             DataMovementEvent dmEvent = (DataMovementEvent) tezEvent.getEvent();
             dmEvent.setVersion(srcTaId.getId());
-            assert sourceMeta.getTaskVertexName().equals(vertex.getName());
             Edge destEdge = vertex.targetVertices.get(vertex.getDAG().getVertex(
                 sourceMeta.getEdgeVertexName()));
             destEdge.sendTezEventToDestinationTasks(tezEvent);
@@ -1441,11 +1452,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           break;
         case INPUT_FAILED_EVENT:
         {
-          EventMetaData sourceMeta = tezEvent.getSourceInfo();
           TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
           InputFailedEvent ifEvent = (InputFailedEvent) tezEvent.getEvent();
           ifEvent.setVersion(srcTaId.getId());
-          assert sourceMeta.getTaskVertexName().equals(vertex.getName());
           Edge destEdge = vertex.targetVertices.get(vertex.getDAG().getVertex(
               sourceMeta.getEdgeVertexName()));
           destEdge.sendTezEventToDestinationTasks(tezEvent);
@@ -1453,15 +1462,18 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         break;
         case INPUT_READ_ERROR_EVENT:
           {
-            EventMetaData sourceMeta = tezEvent.getSourceInfo();
-            assert sourceMeta.getTaskVertexName().equals(vertex.getName());
             Edge srcEdge = vertex.sourceVertices.get(vertex.getDAG().getVertex(
                 sourceMeta.getEdgeVertexName()));
             srcEdge.sendTezEventToSourceTasks(tezEvent);
           }
           break;
         case TASK_STATUS_UPDATE_EVENT:
-          // TODO NEWTEZ FIXME: Handle this event
+          {
+            TaskStatusUpdateEvent sEvent = (TaskStatusUpdateEvent) tezEvent.getEvent();
+            vertex.getEventHandler().handle(
+                new TaskAttemptEventStatusUpdate(sourceMeta.getTaskAttemptID(),
+                    sEvent));
+          }
           break;
         default:
           throw new TezUncheckedException("Unhandled tez event type: "
