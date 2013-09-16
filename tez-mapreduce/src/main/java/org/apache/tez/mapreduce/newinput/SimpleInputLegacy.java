@@ -29,6 +29,7 @@ public class SimpleInputLegacy extends SimpleInput {
   }  
   
   @SuppressWarnings("rawtypes")
+  @Private
   public RecordReader getOldRecordReader() {
     return this.oldRecordReader;
   }

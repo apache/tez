@@ -54,6 +54,8 @@ import org.apache.tez.mapreduce.common.Utils;
 import org.apache.tez.mapreduce.hadoop.newmapred.MRReporter;
 import org.apache.tez.mapreduce.hadoop.newmapreduce.TaskAttemptContextImpl;
 
+import com.google.common.base.Preconditions;
+
 /**
  * {@link SimpleInput} is an {@link Input} which provides key/values pairs
  * for the consumer.
@@ -71,6 +73,7 @@ public class SimpleInput implements LogicalInput {
   
   private JobConf jobConf;
   private Configuration incrementalConf;
+  private boolean recordReaderCreated = false;
   
   boolean useNewApi;
   
@@ -98,7 +101,7 @@ public class SimpleInput implements LogicalInput {
     Configuration conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
     this.jobConf = new JobConf(conf);
     
- // Read split information.
+    // Read split information.
     TaskSplitMetaInfo[] allMetaInfo = readSplits(conf);
     TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[inputContext.getTaskIndex()];
     this.splitMetaInfo = new TaskSplitIndex(thisTaskMetaInfo.getSplitLocation(),
@@ -163,63 +166,11 @@ public class SimpleInput implements LogicalInput {
 
   @Override
   public KVReader getReader() throws IOException {
-    return new KVReader() {
-      
-      Object key;
-      Object value;
-      
-      // Setup the values iterator once, and set value on the same object each time
-      // to prevent lots of objects being created.
-      private SimpleValueIterator valueIterator = new SimpleValueIterator();
-      private SimpleIterable valueIterable = new SimpleIterable(valueIterator);
-
-
-      private final boolean localNewApi = useNewApi;
-      
-      @SuppressWarnings("unchecked")
-      @Override
-      public boolean next() throws IOException {
-        boolean hasNext = false;
-        long bytesInPrev = getInputBytes();
-        if (localNewApi) {
-          try {
-            hasNext = newRecordReader.nextKeyValue();
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Interrupted while checking for next key-value", e);
-          }
-        } else {
-          hasNext = oldRecordReader.next(key, value);
-        }
-        long bytesInCurr = getInputBytes();
-        fileInputByteCounter.increment(bytesInCurr - bytesInPrev);
-        
-        if (hasNext) {
-          inputRecordCounter.increment(1);
-        }
-        
-        return hasNext;
-      }
-
-      @Override
-      public KVRecord getCurrentKV() throws IOException {
-        KVRecord kvRecord = null;
-        if (localNewApi) {
-          try {
-            valueIterator.setValue(newRecordReader.getCurrentValue());
-            kvRecord = new KVRecord(newRecordReader.getCurrentKey(), valueIterable);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Interrupted while fetching next key-value", e);
-          }
-          
-        } else {
-          valueIterator.setValue(value);
-          kvRecord = new KVRecord(key, valueIterable);
-        }
-        return kvRecord;
-      }
-    };
+    Preconditions
+        .checkState(recordReaderCreated == false,
+            "Only a single instance of record reader can be created for this input.");
+    recordReaderCreated = true;
+    return new MRInputKVReader();
   }
 
 
@@ -416,4 +367,71 @@ public class SimpleInput implements LogicalInput {
         FileSystem.getLocal(conf));
     return allTaskSplitMetaInfo;
   }
+  
+  private class MRInputKVReader implements KVReader {
+    
+    Object key;
+    Object value;
+
+    private SimpleValueIterator valueIterator = new SimpleValueIterator();
+    private SimpleIterable valueIterable = new SimpleIterable(valueIterator);
+
+    private final boolean localNewApi;
+    
+    MRInputKVReader() {
+      localNewApi = useNewApi;
+      if (!localNewApi) {
+        key = oldRecordReader.createKey();
+        value =oldRecordReader.createValue();
+      }
+    }
+    
+    // Setup the values iterator once, and set value on the same object each time
+    // to prevent lots of objects being created.
+
+    
+    @SuppressWarnings("unchecked")
+    @Override
+    public boolean next() throws IOException {
+      boolean hasNext = false;
+      long bytesInPrev = getInputBytes();
+      if (localNewApi) {
+        try {
+          hasNext = newRecordReader.nextKeyValue();
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IOException("Interrupted while checking for next key-value", e);
+        }
+      } else {
+        hasNext = oldRecordReader.next(key, value);
+      }
+      long bytesInCurr = getInputBytes();
+      fileInputByteCounter.increment(bytesInCurr - bytesInPrev);
+      
+      if (hasNext) {
+        inputRecordCounter.increment(1);
+      }
+      
+      return hasNext;
+    }
+
+    @Override
+    public KVRecord getCurrentKV() throws IOException {
+      KVRecord kvRecord = null;
+      if (localNewApi) {
+        try {
+          valueIterator.setValue(newRecordReader.getCurrentValue());
+          kvRecord = new KVRecord(newRecordReader.getCurrentKey(), valueIterable);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IOException("Interrupted while fetching next key-value", e);
+        }
+        
+      } else {
+        valueIterator.setValue(value);
+        kvRecord = new KVRecord(key, valueIterable);
+      }
+      return kvRecord;
+    }
+  };
 }
