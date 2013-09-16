@@ -586,20 +586,30 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   public TezHeartbeatResponse heartbeat(TezHeartbeatRequest request)
       throws IOException, TezException {
     long requestId = request.getRequestId();
+    LOG.info("Received request id " + requestId + " from child JVM");
     TezTaskAttemptID taskAttemptID = request.getCurrentTaskAttemptID();
+    if (taskAttemptID == null) {
+      TezHeartbeatResponse response = new TezHeartbeatResponse();
+      response.setLastRequestId(requestId);
+      return response;
+    }
     AttemptInfo attemptInfo = attemptToInfoMap.get(taskAttemptID);
     if(attemptInfo == null) {
       throw new TezException("Attempt " + taskAttemptID
           + " is not recognized for heartbeat");
     }
-    synchronized (attemptInfo) {      
+    synchronized (attemptInfo) {
       if(attemptInfo.lastRequestId == requestId) {
         LOG.warn("Old sequenceId received: " + requestId + ", Re-sending last response to client");
         return attemptInfo.lastReponse;
       }
-      if(attemptInfo.lastRequestId+1 < requestId) {
+      if(attemptInfo.lastRequestId != -1
+         && attemptInfo.lastRequestId+1 < requestId) {
+        // TODO NEWTEZ fix checking of last req id to ensure heartbeat works
+        // across attempts with container reuse
         throw new TezException("Attempt " + taskAttemptID
-            + " has invalid request id. Expected: " + attemptInfo.lastRequestId+1 
+            + " has invalid request id. Expected: "
+            + attemptInfo.lastRequestId+1
             + " and actual: " + requestId);
       }
       

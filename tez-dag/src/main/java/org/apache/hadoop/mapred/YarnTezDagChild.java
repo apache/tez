@@ -190,7 +190,11 @@ public class YarnTezDagChild {
     }
     try {
       taskLock.readLock().lock();
-      if (currentTask != null) {
+      if (taskAttemptID == null
+          || !taskAttemptID.equals(currentTaskAttemptID)) {
+        return;
+      }
+      if (currentTask != null && response.getEvents() != null) {
         currentTask.handleEvents(response.getEvents());
       }
     } finally {

@@ -43,6 +43,7 @@ public class TezHeartbeatRequest implements Writable {
   public TezHeartbeatRequest(long requestId, List<TezEvent> events,
       TezTaskAttemptID taskAttemptID,
       int startIndex, int maxEvents) {
+    this.requestId = requestId;
     this.events = Collections.unmodifiableList(events);
     this.startIndex = startIndex;
     this.maxEvents = maxEvents;
@@ -71,9 +72,14 @@ public class TezHeartbeatRequest implements Writable {
 
   @Override
   public void write(DataOutput out) throws IOException {
-    out.writeInt(events.size());
-    for (TezEvent e : events) {
-      e.write(out);
+    if (events != null) {
+      out.writeBoolean(true);
+      out.writeInt(events.size());
+      for (TezEvent e : events) {
+        e.write(out);
+      }
+    } else {
+      out.writeBoolean(false);
     }
     if (currentTaskAttemptID != null) {
       out.writeBoolean(true);
@@ -88,12 +94,14 @@ public class TezHeartbeatRequest implements Writable {
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    int eventsCount = in.readInt();
-    events = new ArrayList<TezEvent>(eventsCount);
-    for (int i = 0; i < eventsCount; ++i) {
-      TezEvent e = new TezEvent();
-      e.readFields(in);
-      events.add(e);
+    if (in.readBoolean()) {
+      int eventsCount = in.readInt();
+      events = new ArrayList<TezEvent>(eventsCount);
+      for (int i = 0; i < eventsCount; ++i) {
+        TezEvent e = new TezEvent();
+        e.readFields(in);
+        events.add(e);
+      }
     }
     if (in.readBoolean()) {
       currentTaskAttemptID = new TezTaskAttemptID();
