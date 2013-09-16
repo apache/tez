@@ -107,11 +107,13 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     SimpleInputLegacy input = (SimpleInputLegacy)in;
     
     boolean doingShuffle = true;
+    KVWriter kvWriter = null;
     if (!(out instanceof OnFileSortedOutput)) {
       doingShuffle = false;
+      kvWriter = ((SimpleOutput)out).getWriter();
+    } else {
+      kvWriter = ((OnFileSortedOutput)out).getWriter();
     }
-    
-    KVWriter kvWriter = ((OnFileSortedOutput)out).getWriter();
     
     if (out instanceof SimpleOutput) {
       initCommitter(jobConf, useNewApi, false);
