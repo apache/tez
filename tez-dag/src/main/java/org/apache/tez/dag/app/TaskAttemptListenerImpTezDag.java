@@ -20,9 +20,7 @@ package org.apache.tez.dag.app;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -91,22 +89,24 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   private InetSocketAddress address;
   private Server server;
 
-
-  class AttemptInfo {
-    AttemptInfo(ContainerId containerId) {
+  class ContainerInfo {
+    ContainerInfo(ContainerId containerId) {
       this.containerId = containerId;
       this.lastReponse = null;
       this.lastRequestId = -1;
+      this.currentAttemptId = null;
     }
     ContainerId containerId;
     long lastRequestId;
     TezHeartbeatResponse lastReponse;
+    TezTaskAttemptID currentAttemptId;
   }
-  private ConcurrentMap<TezTaskAttemptID, AttemptInfo> attemptToInfoMap =
-      new ConcurrentHashMap<TezTaskAttemptID, AttemptInfo>();
+  
+  private ConcurrentMap<TezTaskAttemptID, ContainerId> attemptToInfoMap =
+      new ConcurrentHashMap<TezTaskAttemptID, ContainerId>();
 
-  private Set<ContainerId> registeredContainers = Collections
-      .newSetFromMap(new ConcurrentHashMap<ContainerId, Boolean>());
+  private ConcurrentHashMap<ContainerId, ContainerInfo> registeredContainers = 
+      new ConcurrentHashMap<ContainerId, ContainerInfo>();
 
   public TaskAttemptListenerImpTezDag(AppContext context,
       TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh,
@@ -534,7 +534,22 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
   @Override
   public void unregisterTaskAttempt(TezTaskAttemptID attemptId) {
-    attemptToInfoMap.remove(attemptId);
+    ContainerId containerId = attemptToInfoMap.get(attemptId);
+    if(containerId == null) {
+      LOG.warn("Unregister task attempt: " + attemptId + " from unknown container");
+      return;
+    }
+    ContainerInfo containerInfo = registeredContainers.get(containerId);
+    if(containerInfo == null) {
+      LOG.warn("Unregister task attempt: " + attemptId + 
+          " from non-registered container: " + containerId);
+      return;
+    }
+    synchronized (containerInfo) {
+      containerInfo.currentAttemptId = null;
+      attemptToInfoMap.remove(attemptId);
+    }
+      
   }
 
   public AMContainerTask pullTaskAttemptContext(ContainerId containerId) {
@@ -549,14 +564,36 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       LOG.debug("ContainerId: " + containerId
           + " registered with TaskAttemptListener");
     }
-    registeredContainers.add(containerId);
+    ContainerInfo oldInfo = registeredContainers.put(containerId,
+        new ContainerInfo(containerId));
+    if(oldInfo != null) {
+      throw new TezUncheckedException(
+          "Multiple registrations for containerId: " + containerId);
+    }
   }
 
   @Override
   public void registerTaskAttempt(TezTaskAttemptID attemptId,
       ContainerId containerId) {
-    AttemptInfo attemptInfo = new AttemptInfo(containerId);
-    attemptToInfoMap.put(attemptId, attemptInfo);
+    ContainerInfo containerInfo = registeredContainers.get(containerId);
+    if(containerInfo == null) {
+      throw new TezUncheckedException("Registering task attempt: "
+          + attemptId + " to unknown container: " + containerId);
+    }
+    synchronized (containerInfo) {
+      if(containerInfo.currentAttemptId != null) {
+        throw new TezUncheckedException("Registering task attempt: "
+            + attemptId + " to container: " + containerId
+            + " with existing assignment to: " + containerInfo.currentAttemptId);
+      }
+      containerInfo.currentAttemptId = attemptId;
+      ContainerId containerIdFromMap = attemptToInfoMap.put(attemptId, containerId);
+      if(containerIdFromMap != null) {
+        throw new TezUncheckedException("Registering task attempt: "
+            + attemptId + " to container: " + containerId
+            + " when already assigned to: " + containerIdFromMap);
+      }
+    }
   }
 
   @Override
@@ -573,7 +610,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   }
 
   private void pingContainerHeartbeatHandler(TezTaskAttemptID taskAttemptId) {
-    ContainerId containerId = attemptToInfoMap.get(taskAttemptId).containerId;
+    ContainerId containerId = attemptToInfoMap.get(taskAttemptId);
     if (containerId != null) {
       containerHeartbeatHandler.pinged(containerId);
     } else {
@@ -585,54 +622,61 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   @Override
   public TezHeartbeatResponse heartbeat(TezHeartbeatRequest request)
       throws IOException, TezException {
+    ContainerId containerId = ConverterUtils.toContainerId(request
+        .getContainerIdentifier());
     long requestId = request.getRequestId();
-    LOG.info("Received request id " + requestId + " from child JVM");
-    TezTaskAttemptID taskAttemptID = request.getCurrentTaskAttemptID();
-    if (taskAttemptID == null) {
-      TezHeartbeatResponse response = new TezHeartbeatResponse();
-      response.setLastRequestId(requestId);
-      return response;
-    }
-    AttemptInfo attemptInfo = attemptToInfoMap.get(taskAttemptID);
-    if(attemptInfo == null) {
-      throw new TezException("Attempt " + taskAttemptID
+    LOG.info("Received request id " + requestId + 
+        " from child JVM : " + containerId.toString());
+    ContainerInfo containerInfo = registeredContainers.get(containerId);
+    if(containerInfo == null) {
+      throw new TezException("Container " + containerId.toString()
           + " is not recognized for heartbeat");
     }
-    synchronized (attemptInfo) {
-      if(attemptInfo.lastRequestId == requestId) {
-        LOG.warn("Old sequenceId received: " + requestId + ", Re-sending last response to client");
-        return attemptInfo.lastReponse;
+    
+    synchronized (containerInfo) {
+      pingContainerHeartbeatHandler(containerId);
+
+      if(containerInfo.lastRequestId == requestId) {
+        LOG.warn("Old sequenceId received: " + requestId
+            + ", Re-sending last response to client");
+        return containerInfo.lastReponse;
       }
-      if(attemptInfo.lastRequestId != -1
-         && attemptInfo.lastRequestId+1 < requestId) {
-        // TODO NEWTEZ fix checking of last req id to ensure heartbeat works
-        // across attempts with container reuse
-        throw new TezException("Attempt " + taskAttemptID
-            + " has invalid request id. Expected: "
-            + attemptInfo.lastRequestId+1
-            + " and actual: " + requestId);
-      }
-      
-      // not safe to multiple call from same task
-      LOG.info("Ping from " + taskAttemptID.toString());
-      List<TezEvent> inEvents = request.getEvents();
-      if(inEvents!=null && inEvents.size()>0) {    
-        TezVertexID vertexId = taskAttemptID.getTaskID().getVertexID();
-        context.getEventHandler().handle(new VertexEventRouteEvent(vertexId, inEvents));
-      }
-      taskHeartbeatHandler.pinged(taskAttemptID);
-      pingContainerHeartbeatHandler(taskAttemptID);
+
       TezHeartbeatResponse response = new TezHeartbeatResponse();
       response.setLastRequestId(requestId);
-      List<TezEvent> outEvents = context
-          .getCurrentDAG()
-          .getVertex(taskAttemptID.getTaskID().getVertexID())
-          .getTask(taskAttemptID.getTaskID())
-          .getTaskAttemptTezEvents(taskAttemptID, request.getStartIndex(),
-              request.getMaxEvents());
-      response.setEvents(outEvents);
-      attemptInfo.lastRequestId = requestId;
-      attemptInfo.lastReponse = response;
+
+      TezTaskAttemptID taskAttemptID = request.getCurrentTaskAttemptID();
+      if (taskAttemptID != null) {        
+        ContainerId containerIdFromMap = attemptToInfoMap.get(taskAttemptID);
+        if(containerIdFromMap == null || !containerIdFromMap.equals(containerId)) {
+          throw new TezException("Attempt " + taskAttemptID
+            + " is not recognized for heartbeat");
+        }
+      
+        if(containerInfo.lastRequestId+1 != requestId) {
+          throw new TezException("Container " + containerId
+              + " has invalid request id. Expected: "
+              + containerInfo.lastRequestId+1
+              + " and actual: " + requestId);
+        }
+        
+        LOG.info("Ping from " + taskAttemptID.toString());
+        List<TezEvent> inEvents = request.getEvents();
+        if(inEvents!=null && inEvents.size()>0) {    
+          TezVertexID vertexId = taskAttemptID.getTaskID().getVertexID();
+          context.getEventHandler().handle(new VertexEventRouteEvent(vertexId, inEvents));
+        }
+        taskHeartbeatHandler.pinged(taskAttemptID);
+        List<TezEvent> outEvents = context
+            .getCurrentDAG()
+            .getVertex(taskAttemptID.getTaskID().getVertexID())
+            .getTask(taskAttemptID.getTaskID())
+            .getTaskAttemptTezEvents(taskAttemptID, request.getStartIndex(),
+                request.getMaxEvents());
+        response.setEvents(outEvents);        
+      }
+      containerInfo.lastRequestId = requestId;
+      containerInfo.lastReponse = response;
       return response;
     }
   }

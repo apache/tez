@@ -178,7 +178,7 @@ public class YarnTezDagChild {
     eventsToSend.drainTo(events);
     long reqId = requestCounter.incrementAndGet();
     TezHeartbeatRequest request = new TezHeartbeatRequest(reqId, events,
-        taskAttemptID, eventCounter, eventsRange);
+        containerIdStr, taskAttemptID, eventCounter, eventsRange);
     TezHeartbeatResponse response = umbilical.heartbeat(request);
     if (response.getLastRequestId() != reqId) {
       // TODO TODONEWTEZ
@@ -229,6 +229,7 @@ public class YarnTezDagChild {
     }
     // FIXME fix initialize metrics in child runner
     DefaultMetricsSystem.initialize("VertexTask");
+    YarnTezDagChild.containerIdStr = containerIdentifier;
 
     ObjectRegistryImpl objectRegistry = new ObjectRegistryImpl();
     @SuppressWarnings("unused")

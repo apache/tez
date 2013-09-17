@@ -25,12 +25,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 
 public class TezHeartbeatRequest implements Writable {
 
+  private String containerIdentifier;
   private List<TezEvent> events;
   private TezTaskAttemptID currentTaskAttemptID;
   private int startIndex;
@@ -41,8 +43,9 @@ public class TezHeartbeatRequest implements Writable {
   }
 
   public TezHeartbeatRequest(long requestId, List<TezEvent> events,
-      TezTaskAttemptID taskAttemptID,
+      String containerIdentifier, TezTaskAttemptID taskAttemptID,
       int startIndex, int maxEvents) {
+    this.containerIdentifier = containerIdentifier;
     this.requestId = requestId;
     this.events = Collections.unmodifiableList(events);
     this.startIndex = startIndex;
@@ -50,6 +53,10 @@ public class TezHeartbeatRequest implements Writable {
     this.currentTaskAttemptID = taskAttemptID;
   }
 
+  public String getContainerIdentifier() {
+    return containerIdentifier;
+  }
+  
   public List<TezEvent> getEvents() {
     return events;
   }
@@ -90,6 +97,7 @@ public class TezHeartbeatRequest implements Writable {
     out.writeInt(startIndex);
     out.writeInt(maxEvents);
     out.writeLong(requestId);
+    Text.writeString(out, containerIdentifier);
   }
 
   @Override
@@ -112,6 +120,7 @@ public class TezHeartbeatRequest implements Writable {
     startIndex = in.readInt();
     maxEvents = in.readInt();
     requestId = in.readLong();
+    containerIdentifier = Text.readString(in);
   }
 
 }
