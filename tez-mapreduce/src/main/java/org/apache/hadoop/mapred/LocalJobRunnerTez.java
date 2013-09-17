@@ -557,31 +557,6 @@ public class LocalJobRunnerTez implements ClientProtocol {
       return null;
     }
 
-    @Override
-    public synchronized boolean statusUpdate(TezTaskAttemptID taskId,
-        TezTaskStatus taskStatus) throws IOException, InterruptedException {
-      LOG.info(taskStatus.getStateString());
-      int taskIndex = mapIds.indexOf(taskId);
-      if (taskIndex >= 0) {                       // mapping
-        float numTasks = (float) this.numMapTasks;
-
-        partialMapProgress[taskIndex] = taskStatus.getProgress();
-        mapCounters[taskIndex] = taskStatus.getCounters();
-
-        float partialProgress = 0.0f;
-        for (float f : partialMapProgress) {
-          partialProgress += f;
-        }
-        status.setMapProgress(partialProgress / numTasks);
-      } else {
-        reduceCounters = taskStatus.getCounters();
-        status.setReduceProgress(taskStatus.getProgress());
-      }
-
-      // ignore phase
-      return true;
-    }
-
     /** Return the current values of the counters for this job,
      * including tasks that are in progress.
      */
@@ -599,58 +574,9 @@ public class LocalJobRunnerTez implements ClientProtocol {
       return current;
     }
 
-    /**
-     * Task is reporting that it is in commit_pending
-     * and it is waiting for the commit Response
-     */
-    @Override
-    public void commitPending(TezTaskAttemptID taskid,
-                              TezTaskStatus taskStatus)
-    throws IOException, InterruptedException {
-      statusUpdate(taskid, taskStatus);
-    }
-
-    @Override
-    public void reportDiagnosticInfo(TezTaskAttemptID taskid, String trace) {
-      // Ignore for now
-    }
-
-    @Override
-    public boolean ping(TezTaskAttemptID taskid) throws IOException {
-      return true;
-    }
-
     @Override
     public boolean canCommit(TezTaskAttemptID taskid) throws IOException {
       return true;
-    }
-
-    @Override
-    public void done(TezTaskAttemptID taskId) throws IOException {
-      int taskIndex = mapIds.indexOf(taskId);
-      if (taskIndex >= 0) {                       // mapping
-        status.setMapProgress(1.0f);
-      } else {
-        status.setReduceProgress(1.0f);
-      }
-    }
-
-    @Override
-    public synchronized void fsError(TezTaskAttemptID taskId, String message)
-    throws IOException {
-      LOG.fatal("FSError: "+ message + "from task: " + taskId);
-    }
-
-    @Override
-    public void shuffleError(TezTaskAttemptID taskId, String message)
-        throws IOException {
-      LOG.fatal("shuffleError: "+ message + "from task: " + taskId);
-    }
-
-    @Override
-    public synchronized void fatalError(TezTaskAttemptID taskId, String msg)
-    throws IOException {
-      LOG.fatal("Fatal: "+ msg + "from task: " + taskId);
     }
 
     @Override
@@ -682,20 +608,13 @@ public class LocalJobRunnerTez implements ClientProtocol {
       return null;
     }
 
-
     @Override
-    public void taskAttemptFailed(TezTaskAttemptID attemptID,
-        TezEvent taskFailedEvent) throws IOException {
+    public void commitPending(TezTaskAttemptID taskId, TezTaskStatus taskStatus)
+        throws IOException, InterruptedException {
       // TODO Auto-generated method stub
       // TODO TODONEWTEZ
     }
 
-    @Override
-    public void taskAttemptCompleted(TezTaskAttemptID attemptID,
-        TezEvent taskAttemptCompletedEvent) throws IOException {
-      // TODO Auto-generated method stub
-      // TODO TODONEWTEZ
-    }
   }
 
   public LocalJobRunnerTez(Configuration conf) throws IOException {

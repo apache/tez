@@ -28,7 +28,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -84,7 +83,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private Map<String, LogicalInput> inputMap;
   private Map<String, LogicalOutput> outputMap;
 
-  private AtomicBoolean stopped;
   private LinkedBlockingQueue<TezEvent> eventsToBeProcessed;
   private Thread eventRouterThread = null;
 
@@ -104,7 +102,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
     this.serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,
         ShuffleUtils.convertJobTokenToBytes(jobToken));
-    this.stopped = new AtomicBoolean(false);
     this.eventsToBeProcessed = new LinkedBlockingQueue<TezEvent>();    
     this.state = State.NEW;
   }
@@ -174,7 +171,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
             destVertexName, taskSpec.getTaskAttemptID());
       }
     } finally {
-      stopped.set(true);
+      setTaskDone();
       if (eventRouterThread != null) {
         eventRouterThread.interrupt();
       }
@@ -361,7 +358,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private void startRouterThread() {
     eventRouterThread = new Thread(new Runnable() {
       public void run() {
-        while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
+        while (!isTaskDone() && !Thread.currentThread().isInterrupted()) {
           try {
             TezEvent e = eventsToBeProcessed.take();
             if (e == null) {
@@ -374,7 +371,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
               break;
             }
           } catch (InterruptedException e) {
-            if (!stopped.get()) {
+            if (!isTaskDone()) {
               LOG.warn("Event Router thread interrupted. Returning.");
             }
             return;
@@ -389,7 +386,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   public synchronized void cleanup() {
-    stopped.set(true);
+    setTaskDone();
     if (eventRouterThread != null) {
       eventRouterThread.interrupt();
     }

@@ -19,7 +19,6 @@ package org.apache.tez.dag.app;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -46,13 +45,10 @@ import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputConsumable;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatusOld;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerImpl;
 import org.apache.tez.dag.app.rm.container.AMContainerTask;
@@ -60,7 +56,6 @@ import org.apache.tez.dag.app.security.authorize.MRAMPolicyProvider;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
-import org.apache.tez.engine.newapi.events.TaskAttemptFailedEvent;
 import org.apache.tez.engine.newapi.impl.TezEvent;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatRequest;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatResponse;
@@ -260,6 +255,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     return task;
   }
 
+  /*
   @Override
   public boolean statusUpdate(TezTaskAttemptID taskAttemptId,
       TezTaskStatus taskStatus) throws IOException, InterruptedException {
@@ -348,46 +344,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
             taskAttemptStatus));
     return true;
   }
-
-  @Override
-  public void reportDiagnosticInfo(TezTaskAttemptID taskAttemptId, String trace)
-      throws IOException {
-    LOG.info("Diagnostics report from " + taskAttemptId.toString() + ": "
-        + trace);
-
-    taskHeartbeatHandler.progressing(taskAttemptId);
-    pingContainerHeartbeatHandler(taskAttemptId);
-
-    // This is mainly used for cases where we want to propagate exception traces
-    // of tasks that fail.
-
-    // This call exists as a hadoop mapreduce legacy wherein all changes in
-    // counters/progress/phase/output-size are reported through statusUpdate()
-    // call but not diagnosticInformation.
-    context.getEventHandler().handle(
-        new TaskAttemptEventDiagnosticsUpdate(taskAttemptId, trace));
-
-  }
-
-  @Override
-  public boolean ping(TezTaskAttemptID taskAttemptId) throws IOException {
-    LOG.info("Ping from " + taskAttemptId.toString());
-    taskHeartbeatHandler.pinged(taskAttemptId);
-    pingContainerHeartbeatHandler(taskAttemptId);
-    return true;
-  }
-
-  @Override
-  public void done(TezTaskAttemptID taskAttemptId) throws IOException {
-    LOG.info("Done acknowledgement from " + taskAttemptId.toString());
-
-    taskHeartbeatHandler.progressing(taskAttemptId);
-    pingContainerHeartbeatHandler(taskAttemptId);
-
-    context.getEventHandler().handle(
-        new TaskAttemptEvent(taskAttemptId, TaskAttemptEventType.TA_DONE));
-
-  }
+  */
 
   /**
    * TaskAttempt is reporting that it is in commit_pending and it is waiting for
@@ -441,34 +398,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
         job.getVertex(taskAttemptId.getTaskID().getVertexID()).
             getTask(taskAttemptId.getTaskID());
     return task.canCommit(taskAttemptId);
-  }
-
-  @Override
-  public void shuffleError(TezTaskAttemptID taskId, String message)
-      throws IOException {
-    // TODO: This isn't really used in any MR code. Ask for removal.
-  }
-
-  @Override
-  public void fsError(TezTaskAttemptID taskAttemptId, String message)
-      throws IOException {
-    // This happens only in Child.
-    LOG.fatal("Task: " + taskAttemptId + " - failed due to FSError: " + message);
-    reportDiagnosticInfo(taskAttemptId, "FSError: " + message);
-
-    context.getEventHandler().handle(
-        new TaskAttemptEvent(taskAttemptId, TaskAttemptEventType.TA_FAILED));
-  }
-
-  @Override
-  public void fatalError(TezTaskAttemptID taskAttemptId, String message)
-      throws IOException {
-    // This happens only in Child and in the Task.
-    LOG.fatal("Task: " + taskAttemptId + " - exited : " + message);
-    reportDiagnosticInfo(taskAttemptId, "Error: " + message);
-
-    context.getEventHandler().handle(
-        new TaskAttemptEvent(taskAttemptId, TaskAttemptEventType.TA_FAILED));
   }
 
   @Override
@@ -624,14 +553,12 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     ContainerId containerId = ConverterUtils.toContainerId(request
         .getContainerIdentifier());
     long requestId = request.getRequestId();
-    LOG.info("Received request id " + requestId + 
-        " from child JVM : " + containerId.toString());
     ContainerInfo containerInfo = registeredContainers.get(containerId);
     if(containerInfo == null) {
       throw new TezException("Container " + containerId.toString()
           + " is not recognized for heartbeat");
     }
-    
+
     synchronized (containerInfo) {
       pingContainerHeartbeatHandler(containerId);
 
@@ -658,13 +585,14 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
               + containerInfo.lastRequestId+1
               + " and actual: " + requestId);
         }
-        
+
         List<TezEvent> inEvents = request.getEvents();
         LOG.info("Ping from " + taskAttemptID.toString() +
-            " events: " + (inEvents!=null? inEvents.size():0));
-        if(inEvents!=null && inEvents.size()>0) {    
+            " events: " + (inEvents != null? inEvents.size() : -1));
+        if(inEvents!=null && !inEvents.isEmpty()) {
           TezVertexID vertexId = taskAttemptID.getTaskID().getVertexID();
-          context.getEventHandler().handle(new VertexEventRouteEvent(vertexId, inEvents));
+          context.getEventHandler().handle(
+              new VertexEventRouteEvent(vertexId, inEvents));
         }
         taskHeartbeatHandler.pinged(taskAttemptID);
         List<TezEvent> outEvents = context
@@ -679,35 +607,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       containerInfo.lastReponse = response;
       return response;
     }
-  }
-
-  @Override
-  public void taskAttemptFailed(TezTaskAttemptID taskAttemptId,
-      TezEvent tezAttemptFailedEvent) throws IOException {
-    TaskAttemptFailedEvent taskFailedEvent =
-        (TaskAttemptFailedEvent) tezAttemptFailedEvent.getEvent();
-    LOG.fatal("Task Attempt: " + taskAttemptId + " - failed : "
-        + taskFailedEvent.getDiagnostics());
-    reportDiagnosticInfo(taskAttemptId, "Error: "
-        + taskFailedEvent.getDiagnostics());
-
-    context.getEventHandler().handle(
-        new TaskAttemptEvent(taskAttemptId, TaskAttemptEventType.TA_FAILED));
-
-  }
-
-  @Override
-  public void taskAttemptCompleted(TezTaskAttemptID taskAttemptId,
-      TezEvent taskAttemptCompletedEvent) throws IOException {
-    LOG.info("Task attempt completed acknowledgement from "
-      + taskAttemptId.toString());
-
-    taskHeartbeatHandler.progressing(taskAttemptId);
-    pingContainerHeartbeatHandler(taskAttemptId);
-
-    context.getEventHandler().handle(
-        new TaskAttemptEvent(taskAttemptId, TaskAttemptEventType.TA_DONE));
-
   }
 
 }

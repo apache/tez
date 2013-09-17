@@ -159,14 +159,21 @@ class TezTaskReporterImpl
               taskProgress.get(),
               taskProgress.toString(), 
               this.mrTask.counters);
+
+          // broken code now due to tez engine changes
+          taskFound = false;
+          /*
           taskFound = 
               umbilical.statusUpdate(
                   this.mrTask.getTaskAttemptId(), this.mrTask.getStatus());
+           */
           this.mrTask.getStatus().clearStatus();
         }
         else {
           // send ping 
-          taskFound = umbilical.ping(this.mrTask.getTaskAttemptId());
+          taskFound = false;
+          // broken code now due to tez engine changes
+          //umbilical.ping(this.mrTask.getTaskAttemptId());
         }
 
         // if Task Tracker is not aware of our task ID (probably because it died and 
@@ -242,12 +249,14 @@ class TezTaskReporterImpl
     String cause = tCause == null 
                    ? StringUtils.stringifyException(throwable)
                    : StringUtils.stringifyException(tCause);
-    try {
+/*
+                   try {
       umbilical.fatalError(mrTask.getTaskAttemptId(), cause);
     } catch (IOException ioe) {
       LOG.fatal("Failed to contact the tasktracker", ioe);
       System.exit(-1);
     }
+    */
   }
 
   public TezTaskUmbilicalProtocol getUmbilical() {

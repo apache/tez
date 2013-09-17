@@ -40,6 +40,7 @@ public abstract class RuntimeTask {
   protected final Configuration tezConf;
   protected final TezUmbilical tezUmbilical;
   protected final AtomicInteger eventCounter;
+  private final AtomicBoolean taskDone;
 
   protected RuntimeTask(TaskSpec taskSpec, Configuration tezConf,
       TezUmbilical tezUmbilical) {
@@ -49,6 +50,7 @@ public abstract class RuntimeTask {
     this.tezCounters = new TezCounters();
     this.eventCounter = new AtomicInteger(0);
     this.progress = 0.0f;
+    this.taskDone = new AtomicBoolean(false);
   }
 
   protected enum State {
@@ -60,7 +62,7 @@ public abstract class RuntimeTask {
   public String getVertexName() {
     return taskSpec.getVertexName();
   }
-  
+
   public void setFatalError(Throwable t, String message) {
     hasFatalError.set(true);
     this.fatalError = t;
@@ -91,6 +93,14 @@ public abstract class RuntimeTask {
 
   public int getEventCounter() {
     return eventCounter.get();
+  }
+
+  public boolean isTaskDone() {
+    return taskDone.get();
+  }
+
+  protected void setTaskDone() {
+    taskDone.set(true);
   }
 
 }

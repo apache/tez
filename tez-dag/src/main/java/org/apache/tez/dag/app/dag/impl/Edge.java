@@ -133,7 +133,7 @@ public class Edge {
   }
   
   public void sendTezEventToSourceTasks(TezEvent tezEvent) {
-    if (bufferEvents.get()) {
+    if (!bufferEvents.get()) {
       switch (tezEvent.getEventType()) {
       case INPUT_READ_ERROR_EVENT:
         InputReadErrorEvent event = (InputReadErrorEvent) tezEvent.getEvent();
@@ -154,7 +154,7 @@ public class Edge {
   }
   
   public void sendTezEventToDestinationTasks(TezEvent tezEvent) {
-    if (bufferEvents.get()) {
+    if (!bufferEvents.get()) {
       List<Integer> destTaskIndices = new ArrayList<Integer>();
       switch (tezEvent.getEventType()) {
       case DATA_MOVEMENT_EVENT:

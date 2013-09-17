@@ -84,6 +84,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
@@ -107,6 +108,7 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.engine.newapi.events.DataMovementEvent;
 import org.apache.tez.engine.newapi.events.InputFailedEvent;
+import org.apache.tez.engine.newapi.events.TaskAttemptFailedEvent;
 import org.apache.tez.engine.newapi.events.TaskStatusUpdateEvent;
 import org.apache.tez.engine.newapi.impl.EventMetaData;
 import org.apache.tez.engine.newapi.impl.InputSpec;
@@ -1422,10 +1424,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   
   private static void checkEventSourceMetadata(Vertex vertex, EventMetaData sourceMeta) {
     if (!sourceMeta.getTaskVertexName().equals(vertex.getName())) {
-      throw new TezUncheckedException(
-          "Bad routing of event. Event-vertex: "
-              + sourceMeta.getTaskVertexName() + " Expected: "
-              + vertex.getName());
+      throw new TezUncheckedException("Bad routing of event"
+          + ", Event-vertex=" + sourceMeta.getTaskVertexName()
+          + ", Expected=" + vertex.getName());
     }
   }
 
@@ -1468,10 +1469,32 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           break;
         case TASK_STATUS_UPDATE_EVENT:
           {
-            TaskStatusUpdateEvent sEvent = (TaskStatusUpdateEvent) tezEvent.getEvent();
+            TaskStatusUpdateEvent sEvent =
+                (TaskStatusUpdateEvent) tezEvent.getEvent();
             vertex.getEventHandler().handle(
                 new TaskAttemptEventStatusUpdate(sourceMeta.getTaskAttemptID(),
                     sEvent));
+          }
+          break;
+        case TASK_ATTEMPT_COMPLETED_EVENT:
+          {
+            vertex.getEventHandler().handle(
+                new TaskAttemptEvent(sourceMeta.getTaskAttemptID(),
+                    TaskAttemptEventType.TA_DONE));
+          }
+          break;
+        case TASK_ATTEMPT_FAILED_EVENT:
+          {
+            TaskAttemptFailedEvent taskFailedEvent =
+                (TaskAttemptFailedEvent) tezEvent.getEvent();
+            // TODO NEWTEZ combine these 2 events
+            vertex.getEventHandler().handle(
+                new TaskAttemptEventDiagnosticsUpdate(
+                    sourceMeta.getTaskAttemptID(),
+                    "Error: " + taskFailedEvent.getDiagnostics()));
+            vertex.getEventHandler().handle(
+                new TaskAttemptEvent(sourceMeta.getTaskAttemptID(),
+                    TaskAttemptEventType.TA_FAILED));
           }
           break;
         default:

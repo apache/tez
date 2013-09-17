@@ -159,9 +159,11 @@ public class MRRuntimeTask extends RuntimeTask {
       }
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       exception.printStackTrace(new PrintStream(baos));
+      /* broken code due to engine re-factor
       if (taskContext.getTaskAttemptId() != null) {
         umbilical.fatalError(taskContext.getTaskAttemptId(), baos.toString());
       }
+      */
     }
   }
 

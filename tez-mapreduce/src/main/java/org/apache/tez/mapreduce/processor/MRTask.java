@@ -444,6 +444,7 @@ public abstract class MRTask extends RunningTaskContext {
    */
   public void statusUpdate() throws IOException, InterruptedException {
     int retries = MAX_RETRIES;
+    /* broken code due to engine re-factor
     while (true) {
       try {
         if (!getUmbilical().statusUpdate(taskAttemptId, status)) {
@@ -462,6 +463,7 @@ public abstract class MRTask extends RunningTaskContext {
         }
       }
     }
+     */
   }
 
   /**
@@ -533,6 +535,7 @@ public abstract class MRTask extends RunningTaskContext {
 
   private void sendDone(TezTaskUmbilicalProtocol umbilical) throws IOException {
     int retries = MAX_RETRIES;
+    /* broken code due to engine re-factor
     while (true) {
       try {
         umbilical.done(taskAttemptId);
@@ -546,6 +549,7 @@ public abstract class MRTask extends RunningTaskContext {
         }
       }
     }
+    */
   }
 
   public void updateCounters() {

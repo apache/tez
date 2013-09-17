@@ -27,7 +27,9 @@ import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -152,7 +154,13 @@ public class YarnTezDagChild {
     return heartbeatThread;
   }
 
-  private static void heartbeat() throws TezException, IOException {
+  private static synchronized void heartbeat() throws TezException, IOException {
+    heartbeat(null);
+  }
+
+  private static synchronized void heartbeat(
+      Collection<TezEvent> outOfBandEvents)
+      throws TezException, IOException {
     TezEvent updateEvent = null;
     int eventCounter = 0;
     int eventsRange = 0;
@@ -163,10 +171,12 @@ public class YarnTezDagChild {
         taskAttemptID = currentTaskAttemptID;
         eventCounter = currentTask.getEventCounter();
         eventsRange = maxEventsToGet;
-        updateEvent = new TezEvent(new TaskStatusUpdateEvent(
-            currentTask.getCounters(), currentTask.getProgress()),
-              new EventMetaData(EventProducerConsumerType.SYSTEM,
-                  currentTask.getVertexName(), "", taskAttemptID));
+        if (!currentTask.isTaskDone() && !currentTask.hadFatalError()) {
+          updateEvent = new TezEvent(new TaskStatusUpdateEvent(
+              currentTask.getCounters(), currentTask.getProgress()),
+                new EventMetaData(EventProducerConsumerType.SYSTEM,
+                    currentTask.getVertexName(), "", taskAttemptID));
+        }
       }
     } finally {
       taskLock.readLock().unlock();
@@ -176,6 +186,9 @@ public class YarnTezDagChild {
       events.add(updateEvent);
     }
     eventsToSend.drainTo(events);
+    if (outOfBandEvents != null && !outOfBandEvents.isEmpty()) {
+      events.addAll(outOfBandEvents);
+    }
     long reqId = requestCounter.incrementAndGet();
     TezHeartbeatRequest request = new TezHeartbeatRequest(reqId, events,
         containerIdStr, taskAttemptID, eventCounter, eventsRange);
@@ -286,12 +299,12 @@ public class YarnTezDagChild {
             new TezEvent(new TaskAttemptFailedEvent(diagnostics),
                 sourceInfo);
         try {
-          umbilical.taskAttemptFailed(taskAttemptID, taskAttemptFailedEvent);
-        } catch (IOException e) {
+          heartbeat(Collections.singletonList(taskAttemptFailedEvent));
+        } catch (Throwable t) {
           LOG.fatal("Failed to communicate task attempt failure to AM via"
-              + " umbilical", e);
+              + " umbilical", t);
           heartbeatError.set(true);
-          heartbeatErrorException = e;
+          heartbeatErrorException = t;
         }
       }
 
@@ -391,10 +404,15 @@ public class YarnTezDagChild {
             // TODONEWTEZ check if task had a fatal error before
             // sending completed event
             if (!currentTask.hadFatalError()) {
+              TezEvent statusUpdateEvent =
+                  new TezEvent(new TaskStatusUpdateEvent(
+                      currentTask.getCounters(), currentTask.getProgress()),
+                      new EventMetaData(EventProducerConsumerType.SYSTEM,
+                          currentTask.getVertexName(), "",
+                          currentTask.getTaskAttemptID()));
               TezEvent taskCompletedEvent =
                   new TezEvent(new TaskAttemptCompletedEvent(), sourceInfo);
-              umbilical.taskAttemptCompleted(currentTaskAttemptID,
-                  taskCompletedEvent);
+              heartbeat(Arrays.asList(statusUpdateEvent, taskCompletedEvent));
             }
             try {
               taskLock.writeLock().lock();
@@ -419,11 +437,12 @@ public class YarnTezDagChild {
       }
     } catch (FSError e) {
       LOG.fatal("FSError from child", e);
+      // TODO NEWTEZ this should be a container failed event?
       TezEvent taskAttemptFailedEvent =
           new TezEvent(new TaskAttemptFailedEvent(
               StringUtils.stringifyException(e)),
               currentSourceInfo);
-      umbilical.taskAttemptFailed(currentTaskAttemptID, taskAttemptFailedEvent);
+      heartbeat(Collections.singletonList(taskAttemptFailedEvent));
     } catch (Throwable throwable) {
       String cause = StringUtils.stringifyException(throwable);
       LOG.fatal("Error running child : " + cause);
@@ -431,8 +450,7 @@ public class YarnTezDagChild {
         TezEvent taskAttemptFailedEvent =
             new TezEvent(new TaskAttemptFailedEvent(cause),
                 currentSourceInfo);
-        umbilical.taskAttemptFailed(currentTaskAttemptID,
-            taskAttemptFailedEvent);
+        heartbeat(Collections.singletonList(taskAttemptFailedEvent));
       }
     } finally {
       stopped.set(true);

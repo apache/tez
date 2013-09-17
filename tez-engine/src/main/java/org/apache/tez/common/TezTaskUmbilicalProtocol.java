@@ -26,7 +26,6 @@ import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.api.Master;
-import org.apache.tez.engine.newapi.impl.TezEvent;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatRequest;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatResponse;
 import org.apache.tez.engine.records.OutputContext;
@@ -43,25 +42,10 @@ public interface TezTaskUmbilicalProtocol extends Master {
 
   ContainerTask getTask(ContainerContext containerContext) throws IOException;
 
-  boolean statusUpdate(TezTaskAttemptID taskId, TezTaskStatus taskStatus)
-  throws IOException, InterruptedException;
-
-  void reportDiagnosticInfo(TezTaskAttemptID taskid, String trace) throws IOException;
-
-  boolean ping(TezTaskAttemptID taskid) throws IOException;
-
-  void done(TezTaskAttemptID taskid) throws IOException;
-
   void commitPending(TezTaskAttemptID taskId, TezTaskStatus taskStatus)
   throws IOException, InterruptedException;
 
   boolean canCommit(TezTaskAttemptID taskid) throws IOException;
-
-  void shuffleError(TezTaskAttemptID taskId, String message) throws IOException;
-
-  void fsError(TezTaskAttemptID taskId, String message) throws IOException;
-
-  void fatalError(TezTaskAttemptID taskId, String message) throws IOException;
 
   // TODO TEZAM5 Can commitPending and outputReady be collapsed into a single
   // call.
@@ -87,9 +71,4 @@ public interface TezTaskUmbilicalProtocol extends Master {
   public TezHeartbeatResponse heartbeat(TezHeartbeatRequest request)
       throws IOException, TezException;
 
-  public void taskAttemptFailed(TezTaskAttemptID attemptID,
-      TezEvent taskFailedEvent) throws IOException;
-
-  public void taskAttemptCompleted(TezTaskAttemptID attemptID,
-      TezEvent taskAttemptCompletedEvent) throws IOException;
 }

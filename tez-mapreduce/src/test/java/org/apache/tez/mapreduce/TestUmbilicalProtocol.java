@@ -29,7 +29,6 @@ import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.engine.newapi.impl.TezEvent;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatRequest;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatResponse;
 import org.apache.tez.engine.records.OutputContext;
@@ -81,29 +80,6 @@ public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
     return null;
   }
 
-  @Override
-  public boolean statusUpdate(TezTaskAttemptID taskId, TezTaskStatus taskStatus)
-      throws IOException, InterruptedException {
-    LOG.info("Got 'status-update' from " + taskId + ": status=" + taskStatus);
-    return true;
-  }
-
-  @Override
-  public void reportDiagnosticInfo(TezTaskAttemptID taskid, String trace)
-      throws IOException {
-    LOG.info("Got 'diagnostic-info' from " + taskid + ": trace=" + trace);
-  }
-
-  @Override
-  public boolean ping(TezTaskAttemptID taskid) throws IOException {
-    LOG.info("Got 'ping' from " + taskid);
-    return true;
-  }
-
-  @Override
-  public void done(TezTaskAttemptID taskid) throws IOException {
-    LOG.info("Got 'done' from " + taskid);
-  }
 
   @Override
   public void commitPending(TezTaskAttemptID taskId, TezTaskStatus taskStatus)
@@ -115,24 +91,6 @@ public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
   public boolean canCommit(TezTaskAttemptID taskid) throws IOException {
     LOG.info("Got 'can-commit' from " + taskid);
     return true;
-  }
-
-  @Override
-  public void shuffleError(TezTaskAttemptID taskId, String message)
-      throws IOException {
-    LOG.info("Got 'shuffle-error' from " + taskId + ": message=" + message);
-  }
-
-  @Override
-  public void fsError(TezTaskAttemptID taskId, String message)
-      throws IOException {
-    LOG.info("Got 'fs-error' from " + taskId + ": message=" + message);
-  }
-
-  @Override
-  public void fatalError(TezTaskAttemptID taskId, String message)
-      throws IOException {
-    LOG.info("Got 'fatal-error' from " + taskId + ": message=" + message);
   }
 
   @Override
@@ -153,20 +111,6 @@ public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
     // TODO Auto-generated method stub
     // TODO TODONEWTEZ
     return null;
-  }
-
-  @Override
-  public void taskAttemptFailed(TezTaskAttemptID attemptID,
-      TezEvent taskFailedEvent) throws IOException {
-    // TODO Auto-generated method stub
-    // TODO TODONEWTEZ
-  }
-
-  @Override
-  public void taskAttemptCompleted(TezTaskAttemptID attemptID,
-      TezEvent taskAttemptCompletedEvent) throws IOException {
-    // TODO Auto-generated method stub
-    // TODO TODONEWTEZ
   }
 
 }
