@@ -247,8 +247,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
             context.getEventHandler().handle(
                 new TaskAttemptEventStartedRemotely(taskContext.getTask()
                     .getTaskAttemptID(), containerId, context
-                    .getApplicationACLs(), context.getAllContainers()
-                    .get(containerId).getShufflePort()));
+                    .getApplicationACLs()));
             LOG.info("Container with id: " + containerId + " given task: "
                 + taskContext.getTask().getTaskAttemptID());
           }
@@ -660,8 +659,9 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
               + " and actual: " + requestId);
         }
         
-        LOG.info("Ping from " + taskAttemptID.toString());
         List<TezEvent> inEvents = request.getEvents();
+        LOG.info("Ping from " + taskAttemptID.toString() +
+            " events: " + (inEvents!=null? inEvents.size():0));
         if(inEvents!=null && inEvents.size()>0) {    
           TezVertexID vertexId = taskAttemptID.getTaskID().getVertexID();
           context.getEventHandler().handle(new VertexEventRouteEvent(vertexId, inEvents));

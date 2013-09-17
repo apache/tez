@@ -43,8 +43,6 @@ public class TezDependentTaskCompletionEvent implements Writable {
   static public enum Status {FAILED, KILLED, SUCCEEDED, OBSOLETE, TIPFAILED};
     
   private int eventId;
-  // TODO EVENTUALLY - rename.
-  private String taskTrackerHttp;
   private int taskRunTime; // using int since runtime is the time difference
   private TezTaskAttemptID taskAttemptId;
   private long dataSize;
@@ -72,7 +70,6 @@ public class TezDependentTaskCompletionEvent implements Writable {
                              TezTaskAttemptID taskAttemptId,
 //                             boolean isMap,
                              Status status, 
-                             String taskTrackerHttp,
                              int runTime,
                              long dataSize){
       
@@ -80,14 +77,13 @@ public class TezDependentTaskCompletionEvent implements Writable {
 //    this.isMap = isMap;
     this.eventId = eventId; 
     this.status =status; 
-    this.taskTrackerHttp = taskTrackerHttp;
     this.taskRunTime = runTime;
     this.dataSize = dataSize;
   }
   
   public TezDependentTaskCompletionEvent clone() {
     TezDependentTaskCompletionEvent clone = new TezDependentTaskCompletionEvent(
-        this.eventId, this.taskAttemptId, this.status, this.taskTrackerHttp,
+        this.eventId, this.taskAttemptId, this.status, 
         this.taskRunTime, this.dataSize);
     
     return clone;
@@ -116,14 +112,7 @@ public class TezDependentTaskCompletionEvent implements Writable {
   public Status getStatus() {
     return status;
   }
-  /**
-   * http location of the tasktracker where this task ran. 
-   * @return http location of tasktracker user logs
-   */
-  public String getTaskTrackerHttp() {
-    return taskTrackerHttp;
-  }
-
+  
   /**
    * Returns time (in millisec) the task took to complete. 
    */
@@ -178,14 +167,6 @@ public class TezDependentTaskCompletionEvent implements Writable {
   }
   
   /**
-   * Set task tracker http location. 
-   * @param taskTrackerHttp
-   */
-  public void setTaskTrackerHttp(String taskTrackerHttp) {
-    this.taskTrackerHttp = taskTrackerHttp;
-  }
-  
-  /**
    * Set the user payload
    * @param userPayload
    */
@@ -214,8 +195,7 @@ public class TezDependentTaskCompletionEvent implements Writable {
              && this.status.equals(event.getStatus())
              && this.taskAttemptId.equals(event.getTaskAttemptID()) 
              && this.taskRunTime == event.getTaskRunTime()
-             && this.dataSize == event.getDataSize()
-             && this.taskTrackerHttp.equals(event.getTaskTrackerHttp());
+             && this.dataSize == event.getDataSize();
     }
     return false;
   }
@@ -230,7 +210,6 @@ public class TezDependentTaskCompletionEvent implements Writable {
     taskAttemptId.write(out);
 //    out.writeBoolean(isMap);
     WritableUtils.writeEnum(out, status);
-    WritableUtils.writeString(out, taskTrackerHttp);
     WritableUtils.writeVInt(out, taskRunTime);
     WritableUtils.writeVInt(out, eventId);
     WritableUtils.writeCompressedByteArray(out, userPayload);
@@ -241,7 +220,6 @@ public class TezDependentTaskCompletionEvent implements Writable {
     taskAttemptId.readFields(in);
 //    isMap = in.readBoolean();
     status = WritableUtils.readEnum(in, Status.class);
-    taskTrackerHttp = WritableUtils.readString(in);
     taskRunTime = WritableUtils.readVInt(in);
     eventId = WritableUtils.readVInt(in);
     userPayload = WritableUtils.readCompressedByteArray(in);

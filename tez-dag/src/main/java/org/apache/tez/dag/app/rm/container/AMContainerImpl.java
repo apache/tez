@@ -79,7 +79,6 @@ public class AMContainerImpl implements AMContainer {
 
   // TODO ?? Convert to list and hash.
 
-  private int shufflePort;
   private long idleTimeBetweenTasks = 0;
   private long lastTaskFinishTime;
 
@@ -259,16 +258,6 @@ public class AMContainerImpl implements AMContainer {
     readLock.lock();
     try {
       return this.runningAttempt;
-    } finally {
-      readLock.unlock();
-    }
-  }
-
-  @Override
-  public int getShufflePort() {
-    readLock.lock();
-    try {
-      return this.shufflePort;
     } finally {
       readLock.unlock();
     }
@@ -465,8 +454,6 @@ public class AMContainerImpl implements AMContainer {
       SingleArcTransition<AMContainerImpl, AMContainerEvent> {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
-      AMContainerEventLaunched event = (AMContainerEventLaunched) cEvent;
-      container.shufflePort = event.getShufflePort();
       container.registerWithContainerListener();
     }
   }

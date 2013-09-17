@@ -989,22 +989,22 @@ public class TestVertexImpl {
 
     TezDependentTaskCompletionEvent cEvt1 =
         new TezDependentTaskCompletionEvent(1, ta1_t1_v4,
-            Status.FAILED, "", 3, 0);
+            Status.FAILED, 3, 0);
     TezDependentTaskCompletionEvent cEvt2 =
         new TezDependentTaskCompletionEvent(2, ta2_t1_v4,
-            Status.SUCCEEDED, "", 4, 1);
+            Status.SUCCEEDED, 4, 1);
     TezDependentTaskCompletionEvent cEvt3 =
         new TezDependentTaskCompletionEvent(2, ta1_t2_v4,
-            Status.SUCCEEDED, "", 5, 2);
+            Status.SUCCEEDED, 5, 2);
     TezDependentTaskCompletionEvent cEvt4 =
         new TezDependentTaskCompletionEvent(2, ta1_t1_v5,
-            Status.SUCCEEDED, "", 5, 3);
+            Status.SUCCEEDED, 5, 3);
     TezDependentTaskCompletionEvent cEvt5 =
         new TezDependentTaskCompletionEvent(1, ta1_t2_v5,
-            Status.FAILED, "", 3, 4);
+            Status.FAILED, 3, 4);
     TezDependentTaskCompletionEvent cEvt6 =
         new TezDependentTaskCompletionEvent(2, ta2_t2_v5,
-            Status.SUCCEEDED, "", 4, 5);
+            Status.SUCCEEDED, 4, 5);
 
     v4.handle(new VertexEventTaskAttemptCompleted(cEvt1));
     v4.handle(new VertexEventTaskAttemptCompleted(cEvt2));

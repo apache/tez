@@ -914,7 +914,7 @@ public class TestAMContainer {
 
     public void containerLaunched() {
       reset(eventHandler);
-      amContainer.handle(new AMContainerEventLaunched(containerID, 3000));
+      amContainer.handle(new AMContainerEventLaunched(containerID));
     }
 
     public void taskAttemptSucceeded(TezTaskAttemptID taID) {

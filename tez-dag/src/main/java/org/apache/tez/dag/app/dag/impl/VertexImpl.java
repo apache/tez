@@ -1270,8 +1270,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           ((VertexEventSourceTaskAttemptCompleted) event).getCompletionEvent();
       if(LOG.isDebugEnabled()) {
         LOG.debug("Adding completion event to vertex: " + vertex.getName()
-            + " attempt: " + tce.getTaskAttemptID() + " url: "
-            + tce.getTaskTrackerHttp());
+            + " attempt: " + tce.getTaskAttemptID());
       }
       // Add the TaskAttemptCompletionEvent
       //eventId is equal to index in the arraylist

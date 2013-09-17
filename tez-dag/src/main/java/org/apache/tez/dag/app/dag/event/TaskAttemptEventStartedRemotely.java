@@ -29,14 +29,12 @@ public class TaskAttemptEventStartedRemotely extends TaskAttemptEvent {
   private final ContainerId containerId;
   // TODO Can appAcls be handled elsewhere ?
   private final Map<ApplicationAccessType, String> applicationACLs;
-  private final int shufflePort;
 
   public TaskAttemptEventStartedRemotely(TezTaskAttemptID id, ContainerId containerId,
-      Map<ApplicationAccessType, String> appAcls, int shufflePort) {
+      Map<ApplicationAccessType, String> appAcls) {
     super(id, TaskAttemptEventType.TA_STARTED_REMOTELY);
     this.containerId = containerId;
     this.applicationACLs = appAcls;
-    this.shufflePort = shufflePort;
   }
 
   public ContainerId getContainerId() {
@@ -47,7 +45,4 @@ public class TaskAttemptEventStartedRemotely extends TaskAttemptEvent {
     return applicationACLs;
   }
 
-  public int getShufflePort() {
-    return shufflePort;
-  }
 }

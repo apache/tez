@@ -73,7 +73,6 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminating;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventNodeFailed;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputConsumable;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
@@ -119,8 +118,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final TaskHeartbeatHandler taskHeartbeatHandler;
   private long launchTime = 0;
   private long finishTime = 0;
-  // TEZ-347 remove this and getShufflePort()
-  private int shufflePort = -1;
   private String trackerName;
   private int httpPort;
 
@@ -463,16 +460,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     readLock.lock();
     try {
       return finishTime;
-    } finally {
-      readLock.unlock();
-    }
-  }
-
-  @Override
-  public int getShufflePort() {
-    readLock.lock();
-    try {
-      return shufflePort;
     } finally {
       readLock.unlock();
     }
@@ -942,7 +929,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           .getNetworkLocation();
 
       ta.launchTime = ta.clock.getTime();
-      ta.shufflePort = event.getShufflePort();
 
       // TODO Resolve to host / IP in case of a local address.
       InetSocketAddress nodeHttpInetAddr = NetUtils
@@ -1083,8 +1069,8 @@ public class TaskAttemptImpl implements TaskAttempt,
 
     @Override
     public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
-      TaskAttemptEventOutputConsumable orEvent = (TaskAttemptEventOutputConsumable) event;
-      ta.shufflePort = orEvent.getOutputContext().getShufflePort();
+      //TaskAttemptEventOutputConsumable orEvent = (TaskAttemptEventOutputConsumable) event;
+      //ta.shufflePort = orEvent.getOutputContext().getShufflePort();
       ta.sendEvent(new TaskEventTAUpdate(ta.attemptId,
           TaskEventType.T_ATTEMPT_OUTPUT_CONSUMABLE));
     }

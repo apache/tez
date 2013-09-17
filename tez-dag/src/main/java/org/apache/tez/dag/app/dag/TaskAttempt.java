@@ -114,12 +114,6 @@ public interface TaskAttempt {
    */
   long getFinishTime();
   
-  // TODO TEZDAG - remove all references to ShufflePort
-  /**
-   * @return the port shuffle is on.
-   */
-  public int getShufflePort();
-  
   public Task getTask();
   
   public boolean getIsRescheduled();

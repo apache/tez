@@ -56,7 +56,6 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
-import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
@@ -391,7 +390,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
-        null, -1));
+        null));
     assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
         TaskAttemptState.RUNNING);
 
@@ -480,7 +479,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
-        null, -1));
+        null));
     assertEquals("Task attempt is not in running state", taImpl.getState(),
         TaskAttemptState.RUNNING);
     taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID, "Terminated"));
@@ -541,7 +540,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
-        null, -1));
+        null));
     assertEquals("Task attempt is not in running state", taImpl.getState(),
         TaskAttemptState.RUNNING);
     taImpl.handle(new TaskAttemptEvent(taskAttemptID,
@@ -606,7 +605,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
-        null, -1));
+        null));
     assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
         TaskAttemptState.RUNNING);
 
@@ -693,7 +692,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
-        null, -1));
+        null));
     taImpl.handle(new TaskAttemptEvent(taskAttemptID,
         TaskAttemptEventType.TA_DONE));
     assertEquals("Task attempt is not in succeeded state", taImpl.getState(),

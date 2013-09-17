@@ -104,7 +104,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private final ContainerContext containerContext;
   private long scheduledTime;
 
-  protected boolean encryptedShuffle;
   protected TaskLocationHint locationHint;
   
   private List<TezEvent> tezEventsForTaskAttempts = new ArrayList<TezEvent>();
@@ -311,7 +310,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.taskHeartbeatHandler = thh;
     this.eventHandler = eventHandler;
     this.appContext = appContext;
-    this.encryptedShuffle = false;
 
     this.leafVertex = leafVertex;
     this.locationHint = locationHint;
@@ -728,13 +726,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
     if (attempt.getNodeHttpAddress() != null) {
 
-      String scheme = (encryptedShuffle) ? "https://" : "http://";
-      String url = scheme
-          + attempt.getNodeHttpAddress().split(":")[0] + ":"
-          + attempt.getShufflePort();
-
-
-
       int runTime = 0;
       if (attempt.getFinishTime() != 0 && attempt.getLaunchTime() != 0)
         runTime = (int) (attempt.getFinishTime() - attempt.getLaunchTime());
@@ -742,7 +733,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // TODO TEZ-347. Get this event from Task instead of generating here
       long dataSize = getCounters().findCounter(TaskCounter.MAP_OUTPUT_BYTES).getValue();
       TezDependentTaskCompletionEvent tce = new TezDependentTaskCompletionEvent(
-          -1, attemptId, status, url, runTime, dataSize);
+          -1, attemptId, status, runTime, dataSize);
 
       // raise the event to job so that it adds the completion event to its
       // data structures

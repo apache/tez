@@ -21,15 +21,8 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 
 public class AMContainerEventLaunched extends AMContainerEvent {
 
-  private final int shufflePort;
-
-  public AMContainerEventLaunched(ContainerId containerId, int shufflePort) {
+  public AMContainerEventLaunched(ContainerId containerId) {
     super(containerId, AMContainerEventType.C_LAUNCHED);
-    this.shufflePort = shufflePort;
-  }
-
-  public int getShufflePort() {
-    return this.shufflePort;
   }
 
 }

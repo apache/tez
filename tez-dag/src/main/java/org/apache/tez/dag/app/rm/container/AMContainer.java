@@ -34,8 +34,6 @@ public interface AMContainer extends EventHandler<AMContainerEvent>{
   public TezTaskAttemptID getRunningTaskAttempt();
   public List<TezTaskAttemptID> getQueuedTaskAttempts();
   
-  public int getShufflePort();
-  
   // TODO Add a method to get the containers capabilities - to match taskAttempts.
 
 }
