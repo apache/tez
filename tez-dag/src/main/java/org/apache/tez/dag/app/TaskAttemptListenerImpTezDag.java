@@ -221,7 +221,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       if (LOG.isDebugEnabled()) {
         LOG.debug("Container with id: " + containerId + " asked for a task");
       }
-      if (!registeredContainers.contains(containerId)) {
+      if (!registeredContainers.containsKey(containerId)) {
         if(context.getAllContainers().get(containerId) == null)
           LOG.info("Container with id: " + containerId
               + " is invalid and will be killed");
