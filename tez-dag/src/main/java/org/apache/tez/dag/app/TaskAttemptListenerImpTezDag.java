@@ -93,7 +93,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     ContainerInfo(ContainerId containerId) {
       this.containerId = containerId;
       this.lastReponse = null;
-      this.lastRequestId = -1;
+      this.lastRequestId = 0;
       this.currentAttemptId = null;
     }
     ContainerId containerId;
