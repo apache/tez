@@ -106,10 +106,8 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     }
     SimpleInputLegacy input = (SimpleInputLegacy)in;
     
-    boolean doingShuffle = true;
     KVWriter kvWriter = null;
     if (!(out instanceof OnFileSortedOutput)) {
-      doingShuffle = false;
       kvWriter = ((SimpleOutput)out).getWriter();
     } else {
       kvWriter = ((OnFileSortedOutput)out).getWriter();
@@ -122,9 +120,9 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     }
 
     if (useNewApi) {
-      runNewMapper(jobConf, mrReporter, input, kvWriter, doingShuffle);
+      runNewMapper(jobConf, mrReporter, input, kvWriter);
     } else {
-      runOldMapper(jobConf, mrReporter, input, kvWriter, doingShuffle);
+      runOldMapper(jobConf, mrReporter, input, kvWriter);
     }
 
     done();    
@@ -134,8 +132,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
       final JobConf job,
       final MRTaskReporter reporter,
       final SimpleInputLegacy input,
-      final KVWriter output,
-      final boolean doingShuffle
+      final KVWriter output
       ) throws IOException, InterruptedException {
     
     // Initialize input in-line since it sets parameters which may be used by the processor.
@@ -158,8 +155,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
   private void runNewMapper(final JobConf job,
       MRTaskReporter reporter,
       final SimpleInputLegacy in,
-      KVWriter out,
-      final boolean doingShuffle
+      KVWriter out
       ) throws IOException, InterruptedException {
 
     // Initialize input in-line since it sets parameters which may be used by the processor.

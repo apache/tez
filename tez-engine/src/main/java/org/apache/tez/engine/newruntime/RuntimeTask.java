@@ -57,6 +57,10 @@ public abstract class RuntimeTask {
 
   protected State state;
 
+  public String getVertexName() {
+    return taskSpec.getVertexName();
+  }
+  
   public void setFatalError(Throwable t, String message) {
     hasFatalError.set(true);
     this.fatalError = t;

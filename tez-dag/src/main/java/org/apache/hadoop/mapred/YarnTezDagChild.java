@@ -166,7 +166,7 @@ public class YarnTezDagChild {
         updateEvent = new TezEvent(new TaskStatusUpdateEvent(
             currentTask.getCounters(), currentTask.getProgress()),
               new EventMetaData(EventProducerConsumerType.SYSTEM,
-                  "", "", taskAttemptID));
+                  currentTask.getVertexName(), "", taskAttemptID));
       }
     } finally {
       taskLock.readLock().unlock();
