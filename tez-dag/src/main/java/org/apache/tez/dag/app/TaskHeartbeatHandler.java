@@ -20,8 +20,7 @@ package org.apache.tez.dag.app;
 
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -59,10 +58,8 @@ public class TaskHeartbeatHandler extends HeartbeatHandlerBase<TezTaskAttemptID>
 
   @Override
   protected void handleTimeOut(TezTaskAttemptID attemptId) {
-    eventHandler.handle(new TaskAttemptEventDiagnosticsUpdate(attemptId,
-        "AttemptID:" + attemptId.toString()
+    eventHandler.handle(new TaskAttemptEventAttemptFailed(attemptId,
+        TaskAttemptEventType.TA_TIMED_OUT, "AttemptID:" + attemptId.toString()
         + " Timed out after " + timeOut / 1000 + " secs"));
-    eventHandler.handle(new TaskAttemptEvent(attemptId,
-        TaskAttemptEventType.TA_TIMED_OUT));
   }
 }

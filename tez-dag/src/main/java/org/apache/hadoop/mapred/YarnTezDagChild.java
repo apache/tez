@@ -122,7 +122,9 @@ public class YarnTezDagChild {
           try {
             Thread.sleep(amPollInterval);
             try {
-              heartbeat();
+              if(!heartbeat()) {
+                return;
+              }
             } catch (TezException e) {
               LOG.error("Error communicating with AM: " + e.getMessage() , e);
               heartbeatErrorException = e;
@@ -154,11 +156,11 @@ public class YarnTezDagChild {
     return heartbeatThread;
   }
 
-  private static synchronized void heartbeat() throws TezException, IOException {
-    heartbeat(null);
+  private static synchronized boolean heartbeat() throws TezException, IOException {
+    return heartbeat(null);
   }
 
-  private static synchronized void heartbeat(
+  private static synchronized boolean heartbeat(
       Collection<TezEvent> outOfBandEvents)
       throws TezException, IOException {
     TezEvent updateEvent = null;
@@ -193,8 +195,10 @@ public class YarnTezDagChild {
     TezHeartbeatRequest request = new TezHeartbeatRequest(reqId, events,
         containerIdStr, taskAttemptID, eventCounter, eventsRange);
     TezHeartbeatResponse response = umbilical.heartbeat(request);
+    if(response.shouldDie()) {
+      return false;
+    }
     if (response.getLastRequestId() != reqId) {
-      // TODO TODONEWTEZ
       throw new TezException("AM and Task out of sync"
           + ", responseReqId=" + response.getLastRequestId()
           + ", expectedReqId=" + reqId);
@@ -203,7 +207,7 @@ public class YarnTezDagChild {
       taskLock.readLock().lock();
       if (taskAttemptID == null
           || !taskAttemptID.equals(currentTaskAttemptID)) {
-        return;
+        return true;
       }
       if (currentTask != null && response.getEvents() != null) {
         currentTask.handleEvents(response.getEvents());
@@ -211,6 +215,7 @@ public class YarnTezDagChild {
     } finally {
       taskLock.readLock().unlock();
     }
+    return true;
   }
 
   public static void main(String[] args) throws Throwable {

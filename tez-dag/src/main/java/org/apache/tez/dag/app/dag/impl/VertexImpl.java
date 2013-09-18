@@ -84,7 +84,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
@@ -1437,6 +1437,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       VertexEventRouteEvent rEvent = (VertexEventRouteEvent) event;
       List<TezEvent> tezEvents = rEvent.getEvents();
       for(TezEvent tezEvent : tezEvents) {
+        LOG.info("Vertex: " + vertex.getName() + " routing event: "
+            + tezEvent.getEventType());
         EventMetaData sourceMeta = tezEvent.getSourceInfo();
         checkEventSourceMetadata(vertex, sourceMeta);
         switch(tezEvent.getEventType()) {
@@ -1487,14 +1489,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           {
             TaskAttemptFailedEvent taskFailedEvent =
                 (TaskAttemptFailedEvent) tezEvent.getEvent();
-            // TODO NEWTEZ combine these 2 events
             vertex.getEventHandler().handle(
-                new TaskAttemptEventDiagnosticsUpdate(
-                    sourceMeta.getTaskAttemptID(),
+                new TaskAttemptEventAttemptFailed(sourceMeta.getTaskAttemptID(),
+                    TaskAttemptEventType.TA_FAILED,
                     "Error: " + taskFailedEvent.getDiagnostics()));
-            vertex.getEventHandler().handle(
-                new TaskAttemptEvent(sourceMeta.getTaskAttemptID(),
-                    TaskAttemptEventType.TA_FAILED));
           }
           break;
         default:

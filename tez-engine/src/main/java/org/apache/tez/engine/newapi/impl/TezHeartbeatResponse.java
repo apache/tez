@@ -30,6 +30,7 @@ import org.apache.hadoop.io.Writable;
 public class TezHeartbeatResponse implements Writable {
 
   private long lastRequestId;
+  private boolean shouldDie = false;
   private List<TezEvent> events;
 
   public TezHeartbeatResponse() {
@@ -41,6 +42,10 @@ public class TezHeartbeatResponse implements Writable {
 
   public List<TezEvent> getEvents() {
     return events;
+  }
+  
+  public boolean shouldDie() {
+    return shouldDie;
   }
 
   public long getLastRequestId() {
@@ -54,10 +59,15 @@ public class TezHeartbeatResponse implements Writable {
   public void setLastRequestId(long lastRequestId ) {
     this.lastRequestId = lastRequestId;
   }
+  
+  public void setShouldDie() {
+    this.shouldDie = true;
+  }
 
   @Override
   public void write(DataOutput out) throws IOException {
     out.writeLong(lastRequestId);
+    out.writeBoolean(shouldDie);
     if(events != null) {
       out.writeBoolean(true);
       out.writeInt(events.size());
@@ -72,6 +82,7 @@ public class TezHeartbeatResponse implements Writable {
   @Override
   public void readFields(DataInput in) throws IOException {
     lastRequestId = in.readLong();
+    shouldDie = in.readBoolean();
     if(in.readBoolean()) {
       int eventCount = in.readInt();
       events = new ArrayList<TezEvent>(eventCount);

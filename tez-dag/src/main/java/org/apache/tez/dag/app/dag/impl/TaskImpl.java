@@ -44,6 +44,7 @@ import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskReport;
@@ -446,12 +447,21 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       int fromEventId, int maxEvents) {
     List<TezEvent> events = EMPTY_TASK_ATTEMPT_TEZ_EVENTS;
     readLock.lock();
+
+    if (!attempts.containsKey(attemptID)) {
+      throw new TezUncheckedException("Unknown TA: " + attemptID
+          + " asking for events from task:" + getTaskId());
+    }
+
     try {
       if (tezEventsForTaskAttempts.size() > fromEventId) {
         int actualMax = Math.min(maxEvents,
             (tezEventsForTaskAttempts.size() - fromEventId));
+        int toEventId = actualMax + fromEventId;
         events = Collections.unmodifiableList(tezEventsForTaskAttempts.subList(
-            fromEventId, actualMax + fromEventId));
+            fromEventId, toEventId));
+        LOG.info("TaskAttempt:" + attemptID + " sent events: (" + fromEventId
+            + "-" + toEventId + ")"); 
         // currently not modifying the events so that we dont have to create 
         // copies of events. e.g. if we have to set taskAttemptId into the TezEvent
         // destination metadata then we will need to create a copy of the TezEvent

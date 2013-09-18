@@ -555,8 +555,10 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     long requestId = request.getRequestId();
     ContainerInfo containerInfo = registeredContainers.get(containerId);
     if(containerInfo == null) {
-      throw new TezException("Container " + containerId.toString()
-          + " is not recognized for heartbeat");
+      TezHeartbeatResponse response = new TezHeartbeatResponse();
+      response.setLastRequestId(requestId);
+      response.setShouldDie();
+      return response;
     }
 
     synchronized (containerInfo) {
