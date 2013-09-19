@@ -44,9 +44,10 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   protected final RuntimeTask runtimeTask;
   protected final TezUmbilical tezUmbilical;
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
+  private final int appAttemptNumber;
 
   @Private
-  public TezTaskContextImpl(Configuration conf,
+  public TezTaskContextImpl(Configuration conf, int appAttemptNumber,
       String taskVertexName, TezTaskAttemptID taskAttemptID,
       TezCounters counters, RuntimeTask runtimeTask,
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata) {
@@ -60,6 +61,8 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     this.runtimeTask = runtimeTask;
     this.tezUmbilical = tezUmbilical;
     this.serviceConsumerMetadata = serviceConsumerMetadata;
+    // TODO NEWTEZ at some point dag attempt should not map to app attempt
+    this.appAttemptNumber = appAttemptNumber;
   }
 
   @Override
@@ -74,7 +77,12 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   }
 
   @Override
-  public int getAttemptNumber() {
+  public int getDAGAttemptNumber() {
+    return appAttemptNumber;
+  }
+
+  @Override
+  public int getTaskAttemptNumber() {
     return taskAttemptID.getId();
   }
 

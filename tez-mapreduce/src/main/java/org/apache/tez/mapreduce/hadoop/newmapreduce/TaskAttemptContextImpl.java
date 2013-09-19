@@ -34,7 +34,7 @@ import org.apache.tez.mapreduce.common.Utils;
 @InterfaceStability.Unstable
 public class TaskAttemptContextImpl
        extends org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl {
-  
+
   private TezTaskContext taskContext;
 
   // FIXME we need to use DAG Id but we are using App Id
@@ -46,14 +46,14 @@ public class TaskAttemptContextImpl
             .getClusterTimestamp()), taskContext.getApplicationId().getId(),
             isMap ? TaskType.MAP : TaskType.REDUCE,
             taskContext.getTaskIndex()),
-            taskContext.getAttemptNumber()), taskContext);
+            taskContext.getTaskAttemptNumber()), taskContext);
   }
-  
+
   public TaskAttemptContextImpl(Configuration conf, TaskAttemptID taId, TezTaskContext context) {
     super(conf, taId);
     this.taskContext = context;
   }
-  
+
   @Override
   public float getProgress() {
     // TODO NEWTEZ Will this break anything ?

@@ -39,7 +39,6 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
-import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -96,11 +95,11 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     TezHeartbeatResponse lastReponse;
     TezTaskAttemptID currentAttemptId;
   }
-  
+
   private ConcurrentMap<TezTaskAttemptID, ContainerId> attemptToInfoMap =
       new ConcurrentHashMap<TezTaskAttemptID, ContainerId>();
 
-  private ConcurrentHashMap<ContainerId, ContainerInfo> registeredContainers = 
+  private ConcurrentHashMap<ContainerId, ContainerInfo> registeredContainers =
       new ConcurrentHashMap<ContainerId, ContainerInfo>();
 
   public TaskAttemptListenerImpTezDag(AppContext context,
@@ -358,7 +357,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
    * a legacy from the centralized commit protocol handling by the JobTracker.
    */
   @Override
-  public void commitPending(TezTaskAttemptID taskAttemptId, TezTaskStatus taskStatus)
+  public void commitPending(TezTaskAttemptID taskAttemptId)
       throws IOException, InterruptedException {
     LOG.info("Commit-pending state update from " + taskAttemptId.toString());
     // An attempt is asking if it can commit its output. This can be decided
@@ -469,7 +468,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     }
     ContainerInfo containerInfo = registeredContainers.get(containerId);
     if(containerInfo == null) {
-      LOG.warn("Unregister task attempt: " + attemptId + 
+      LOG.warn("Unregister task attempt: " + attemptId +
           " from non-registered container: " + containerId);
       return;
     }
@@ -477,7 +476,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       containerInfo.currentAttemptId = null;
       attemptToInfoMap.remove(attemptId);
     }
-      
+
   }
 
   public AMContainerTask pullTaskAttemptContext(ContainerId containerId) {
@@ -574,13 +573,13 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       response.setLastRequestId(requestId);
 
       TezTaskAttemptID taskAttemptID = request.getCurrentTaskAttemptID();
-      if (taskAttemptID != null) {        
+      if (taskAttemptID != null) {
         ContainerId containerIdFromMap = attemptToInfoMap.get(taskAttemptID);
         if(containerIdFromMap == null || !containerIdFromMap.equals(containerId)) {
           throw new TezException("Attempt " + taskAttemptID
             + " is not recognized for heartbeat");
         }
-      
+
         if(containerInfo.lastRequestId+1 != requestId) {
           throw new TezException("Container " + containerId
               + " has invalid request id. Expected: "
@@ -603,7 +602,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
             .getTask(taskAttemptID.getTaskID())
             .getTaskAttemptTezEvents(taskAttemptID, request.getStartIndex(),
                 request.getMaxEvents());
-        response.setEvents(outEvents);        
+        response.setEvents(outEvents);
       }
       containerInfo.lastRequestId = requestId;
       containerInfo.lastReponse = response;

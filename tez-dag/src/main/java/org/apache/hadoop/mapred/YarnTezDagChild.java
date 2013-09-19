@@ -318,6 +318,12 @@ public class YarnTezDagChild {
           throws IOException {
         return umbilical.canCommit(taskAttemptID);
       }
+
+      @Override
+      public void commitPending(TezTaskAttemptID taskAttemptID)
+          throws IOException, InterruptedException {
+        umbilical.commitPending(taskAttemptID);
+      }
     };
 
     // report non-pid to application master
@@ -380,8 +386,8 @@ public class YarnTezDagChild {
           }
           lastVertexId = newVertexId;
           updateLoggers(currentTaskAttemptID);
-          currentTask = createLogicalTask(attemptNumber,
-              taskSpec, defaultConf, tezUmbilical, jobToken);
+          currentTask = createLogicalTask(attemptNumber, taskSpec,
+              defaultConf, tezUmbilical, jobToken);
         } finally {
           taskLock.writeLock().unlock();
         }
@@ -475,7 +481,6 @@ public class YarnTezDagChild {
 
     // FIXME TODONEWTEZ
     conf.setBoolean("ipc.client.tcpnodelay", true);
-    conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, attemptNum);
     FileSystem.get(conf).setWorkingDirectory(getWorkingDirectory(conf));
 
     // FIXME need Input/Output vertices else we have this hack
@@ -498,7 +503,7 @@ public class YarnTezDagChild {
     String [] localDirs = StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
     conf.setStrings(TezJobConfig.LOCAL_DIRS, localDirs);
     LOG.info("LocalDirs for child: " + localDirs);
-    return new LogicalIOProcessorRuntimeTask(taskSpec, conf,
+    return new LogicalIOProcessorRuntimeTask(taskSpec, attemptNum, conf,
         tezUmbilical, jobToken);
   }
 

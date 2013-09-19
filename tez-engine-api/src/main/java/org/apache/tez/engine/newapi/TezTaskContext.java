@@ -40,7 +40,13 @@ public interface TezTaskContext {
    * @return the {@link ApplicationId}
    */
   public ApplicationId getApplicationId();
-  
+
+  /**
+   * Get the current DAG Attempt Number
+   * @return DAG Attempt Number
+   */
+  public int getDAGAttemptNumber();
+
   /**
    * Get the index of this Task
    * @return Task Index
@@ -49,16 +55,16 @@ public interface TezTaskContext {
 
   /**
    * Get the current Task Attempt Number
-   * @return Attempt Number
+   * @return Task Attempt Number
    */
-  public int getAttemptNumber();
+  public int getTaskAttemptNumber();
 
   /**
    * Get the name of the DAG
    * @return the DAG name
    */
   public String getDAGName();
-  
+
   /**
    * Get the name of the Vertex in which the task is running
    * @return Vertex Name
@@ -88,23 +94,23 @@ public interface TezTaskContext {
   /**
    * Returns an identifier which is unique to the specific Input, Processor or
    * Output
-   * 
+   *
    * @return
    */
   public String getUniqueIdentifier();
-  
+
   /**
    * Report a fatal error to the framework. This will cause the entire task to
    * fail and should not be used for reporting temporary or recoverable errors
-   * 
+   *
    * @param exception an exception representing the error
    */
   public void fatalError(Throwable exception, String message);
-  
+
   /**
    * Returns meta-data for the specified service. As an example, when the MR
    * ShuffleHandler is used - this would return the jobToken serialized as bytes
-   * 
+   *
    * @param serviceName
    *          the name of the service for which meta-data is required
    * @return a ByteBuffer representing the meta-data
@@ -115,7 +121,7 @@ public interface TezTaskContext {
    * Return Provider meta-data for the specified service As an example, when the
    * MR ShuffleHandler is used - this would return the shuffle port serialized
    * as bytes
-   * 
+   *
    * @param serviceName
    *          the name of the service for which provider meta-data is required
    * @return a ByteBuffer representing the meta-data

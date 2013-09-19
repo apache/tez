@@ -67,7 +67,6 @@ import org.apache.tez.common.InputSpec;
 import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.records.ProceedToCompletionResponse;
@@ -78,7 +77,6 @@ import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 import org.apache.tez.engine.lib.oldinput.LocalMergedInput;
 import org.apache.tez.engine.lib.oldoutput.OldLocalOnFileSorterOutput;
-import org.apache.tez.engine.newapi.impl.TezEvent;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatRequest;
 import org.apache.tez.engine.newapi.impl.TezHeartbeatResponse;
 import org.apache.tez.engine.records.OutputContext;
@@ -609,7 +607,7 @@ public class LocalJobRunnerTez implements ClientProtocol {
     }
 
     @Override
-    public void commitPending(TezTaskAttemptID taskId, TezTaskStatus taskStatus)
+    public void commitPending(TezTaskAttemptID taskId)
         throws IOException, InterruptedException {
       // TODO Auto-generated method stub
       // TODO TODONEWTEZ

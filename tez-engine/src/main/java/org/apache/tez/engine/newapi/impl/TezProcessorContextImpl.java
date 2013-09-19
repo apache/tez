@@ -38,19 +38,19 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
   private final byte[] userPayload;
   private final EventMetaData sourceInfo;
 
-  public TezProcessorContextImpl(Configuration tezConf,
+  public TezProcessorContextImpl(Configuration conf, int appAttemptNumber,
       TezUmbilical tezUmbilical, String vertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters,
       byte[] userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata) {
-    super(tezConf, vertexName, taskAttemptID, counters, runtimeTask,
-        tezUmbilical, serviceConsumerMetadata);
+    super(conf, appAttemptNumber, vertexName, taskAttemptID,
+        counters, runtimeTask, tezUmbilical, serviceConsumerMetadata);
     this.userPayload = userPayload;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.PROCESSOR,
         taskVertexName, "", taskAttemptID);
     this.uniqueIdentifier = String.format("%s_%s_%06d_%02d", taskAttemptID
         .getTaskID().getVertexID().getDAGId().toString(), taskVertexName,
-        getTaskIndex(), getAttemptNumber());
+        getTaskIndex(), getTaskAttemptNumber());
   }
 
   @Override
@@ -72,7 +72,7 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
   public void setProgress(float progress) {
     runtimeTask.setProgress(progress);
   }
-  
+
   @Override
   public void fatalError(Throwable exception, String message) {
     super.signalFatalError(exception, message, sourceInfo);
@@ -81,6 +81,11 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
   @Override
   public boolean canCommit() throws IOException {
     return tezUmbilical.canCommit(this.taskAttemptID);
+  }
+
+  @Override
+  public void commitPending() throws IOException, InterruptedException {
+    tezUmbilical.commitPending(this.taskAttemptID);
   }
 
 }

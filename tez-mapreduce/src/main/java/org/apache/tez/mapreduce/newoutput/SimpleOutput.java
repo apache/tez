@@ -3,16 +3,26 @@ package org.apache.tez.mapreduce.newoutput;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileSystem.Statistics;
+import org.apache.hadoop.mapred.FileOutputCommitter;
+import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.TaskAttemptID;
+import org.apache.hadoop.mapred.TaskID;
+import org.apache.hadoop.mapreduce.OutputCommitter;
+import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormatCounter;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -22,8 +32,10 @@ import org.apache.tez.engine.newapi.LogicalOutput;
 import org.apache.tez.engine.newapi.TezOutputContext;
 import org.apache.tez.mapreduce.common.Utils;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.newmapred.MRReporter;
 import org.apache.tez.mapreduce.hadoop.newmapreduce.TaskAttemptContextImpl;
+import org.apache.tez.mapreduce.newprocessor.MRTaskReporter;
 
 public class SimpleOutput implements LogicalOutput {
 
@@ -36,10 +48,9 @@ public class SimpleOutput implements LogicalOutput {
   }
 
   private TezOutputContext outputContext;
-
   private JobConf jobConf;
-
   boolean useNewApi;
+  private AtomicBoolean closed = new AtomicBoolean(false);
 
   @SuppressWarnings("rawtypes")
   org.apache.hadoop.mapreduce.OutputFormat newOutputFormat;
@@ -55,13 +66,16 @@ public class SimpleOutput implements LogicalOutput {
   private TezCounter fileOutputByteCounter;
   private List<Statistics> fsStats;
 
-  private org.apache.hadoop.mapreduce.TaskAttemptContext taskAttemptContext;
+  private TaskAttemptContext newApiTaskAttemptContext;
+  private org.apache.hadoop.mapred.TaskAttemptContext oldApiTaskAttemptContext;
 
   private boolean isMapperOutput;
 
+  private OutputCommitter committer;
+
   @Override
   public List<Event> initialize(TezOutputContext outputContext)
-      throws IOException {
+      throws IOException, InterruptedException {
     LOG.info("Initializing Simple Output");
     this.outputContext = outputContext;
     Configuration conf = TezUtils.createConfFromUserPayload(
@@ -70,6 +84,10 @@ public class SimpleOutput implements LogicalOutput {
     this.useNewApi = this.jobConf.getUseNewMapper();
     this.isMapperOutput = jobConf.getBoolean(MRConfig.IS_MAP_PROCESSOR,
         false);
+    jobConf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID,
+        outputContext.getDAGAttemptNumber());
+    jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
+        outputContext.getDAGAttemptNumber());
 
     outputRecordCounter = outputContext.getCounters().findCounter(
         TaskCounter.MAP_OUTPUT_RECORDS);
@@ -77,11 +95,11 @@ public class SimpleOutput implements LogicalOutput {
         FileOutputFormatCounter.BYTES_WRITTEN);
 
     if (useNewApi) {
-      taskAttemptContext = createTaskAttemptContext();
+      newApiTaskAttemptContext = createTaskAttemptContext();
       try {
         newOutputFormat =
             ReflectionUtils.newInstance(
-                taskAttemptContext.getOutputFormatClass(), jobConf);
+                newApiTaskAttemptContext.getOutputFormatClass(), jobConf);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException(cnfe);
       }
@@ -92,7 +110,7 @@ public class SimpleOutput implements LogicalOutput {
         matchedStats =
             Utils.getFsStatistics(
                 org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
-                    .getOutputPath(taskAttemptContext),
+                    .getOutputPath(newApiTaskAttemptContext),
                 jobConf);
       }
       fsStats = matchedStats;
@@ -100,13 +118,24 @@ public class SimpleOutput implements LogicalOutput {
       long bytesOutPrev = getOutputBytes();
       try {
         newRecordWriter =
-            newOutputFormat.getRecordWriter(taskAttemptContext);
+            newOutputFormat.getRecordWriter(newApiTaskAttemptContext);
       } catch (InterruptedException e) {
         throw new IOException("Interrupted while creating record writer", e);
       }
       long bytesOutCurr = getOutputBytes();
       fileOutputByteCounter.increment(bytesOutCurr - bytesOutPrev);
     } else {
+      TaskAttemptID taskAttemptId = new TaskAttemptID(new TaskID(Long.toString(
+          outputContext.getApplicationId().getClusterTimestamp()),
+          outputContext.getApplicationId().getId(),
+          (isMapperOutput ? TaskType.MAP : TaskType.REDUCE),
+          outputContext.getTaskIndex()),
+          outputContext.getTaskAttemptNumber());
+
+      oldApiTaskAttemptContext =
+          new org.apache.tez.mapreduce.hadoop.newmapred.TaskAttemptContextImpl(
+              jobConf, taskAttemptId,
+              new MRTaskReporter(outputContext));
       oldOutputFormat = jobConf.getOutputFormat();
 
       List<Statistics> matchedStats = null;
@@ -129,10 +158,49 @@ public class SimpleOutput implements LogicalOutput {
       long bytesOutCurr = getOutputBytes();
       fileOutputByteCounter.increment(bytesOutCurr - bytesOutPrev);
     }
+    initCommitter(jobConf, useNewApi);
 
     LOG.info("Initialized Simple Output"
         + ", using_new_api" + useNewApi);
     return null;
+  }
+
+  public void initCommitter(JobConf job, boolean useNewApi)
+      throws IOException, InterruptedException {
+
+    if (useNewApi) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("using new api for output committer");
+      }
+
+      OutputFormat<?, ?> outputFormat = null;
+      try {
+        outputFormat = ReflectionUtils.newInstance(
+            newApiTaskAttemptContext.getOutputFormatClass(), job);
+      } catch (ClassNotFoundException cnfe) {
+        throw new IOException("Unknown OutputFormat", cnfe);
+      }
+      this.committer = outputFormat.getOutputCommitter(
+          newApiTaskAttemptContext);
+    } else {
+      this.committer = job.getOutputCommitter();
+    }
+
+    Path outputPath = FileOutputFormat.getOutputPath(job);
+    if (outputPath != null) {
+      if ((this.committer instanceof FileOutputCommitter)) {
+        FileOutputFormat.setWorkOutputPath(job,
+            ((FileOutputCommitter) this.committer).getTaskAttemptPath(
+                oldApiTaskAttemptContext));
+      } else {
+        FileOutputFormat.setWorkOutputPath(job, outputPath);
+      }
+    }
+    this.committer.setupTask(newApiTaskAttemptContext);
+  }
+
+  public boolean isCommitRequired() throws IOException {
+    return committer.needsTaskCommit(newApiTaskAttemptContext);
   }
 
   private TaskAttemptContext createTaskAttemptContext() {
@@ -186,12 +254,16 @@ public class SimpleOutput implements LogicalOutput {
   }
 
   @Override
-  public List<Event> close() throws IOException {
+  public synchronized List<Event> close() throws IOException {
+    if (closed.getAndSet(true)) {
+      return null;
+    }
+
     LOG.info("Closing Simple Output");
     long bytesOutPrev = getOutputBytes();
     if (useNewApi) {
       try {
-        newRecordWriter.close(taskAttemptContext);
+        newRecordWriter.close(newApiTaskAttemptContext);
       } catch (InterruptedException e) {
         throw new IOException("Interrupted while closing record writer", e);
       }
@@ -207,6 +279,35 @@ public class SimpleOutput implements LogicalOutput {
   @Override
   public void setNumPhysicalOutputs(int numOutputs) {
     // Nothing to do for now
+  }
+
+  /**
+   * SimpleOutput expects that a Processor call commit prior to the
+   * Processor's completion
+   * @throws IOException
+   */
+  public void commit() throws IOException {
+    close();
+    if (useNewApi) {
+      committer.commitTask(newApiTaskAttemptContext);
+    } else {
+      committer.commitTask(oldApiTaskAttemptContext);
+    }
+  }
+
+
+  /**
+   * SimpleOutput expects that a Processor call abort in case of any error
+   * ( including an error during commit ) prior to the Processor's completion
+   * @throws IOException
+   */
+  public void abort() throws IOException {
+    close();
+    if (useNewApi) {
+      committer.abortTask(newApiTaskAttemptContext);
+    } else {
+      committer.abortTask(oldApiTaskAttemptContext);
+    }
   }
 
 }

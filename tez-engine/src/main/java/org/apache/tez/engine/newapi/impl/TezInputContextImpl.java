@@ -40,13 +40,13 @@ public class TezInputContextImpl extends TezTaskContextImpl
   private final EventMetaData sourceInfo;
 
   @Private
-  public TezInputContextImpl(Configuration conf,
+  public TezInputContextImpl(Configuration conf, int appAttemptNumber,
       TezUmbilical tezUmbilical, String taskVertexName,
       String sourceVertexName, TezTaskAttemptID taskAttemptID,
       TezCounters counters, byte[] userPayload,
       RuntimeTask runtimeTask, Map<String, ByteBuffer> serviceConsumerMetadata) {
-    super(conf, taskVertexName, taskAttemptID, counters, runtimeTask,
-        tezUmbilical, serviceConsumerMetadata);
+    super(conf, appAttemptNumber, taskVertexName, taskAttemptID,
+        counters, runtimeTask, tezUmbilical, serviceConsumerMetadata);
     this.userPayload = userPayload;
     this.sourceVertexName = sourceVertexName;
     this.sourceInfo = new EventMetaData(
@@ -54,7 +54,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
         taskAttemptID);
     this.uniqueIdentifier = String.format("%s_%s_%06d_%02d_%s", taskAttemptID
         .getTaskID().getVertexID().getDAGId().toString(), taskVertexName,
-        getTaskIndex(), getAttemptNumber(), sourceVertexName);
+        getTaskIndex(), getTaskAttemptNumber(), sourceVertexName);
   }
 
   @Override

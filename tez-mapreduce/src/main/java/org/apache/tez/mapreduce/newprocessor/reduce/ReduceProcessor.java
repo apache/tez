@@ -41,13 +41,11 @@ import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.engine.lib.output.OnFileSortedOutput;
 import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.Input;
 import org.apache.tez.engine.newapi.KVReader;
 import org.apache.tez.engine.newapi.KVWriter;
 import org.apache.tez.engine.newapi.LogicalIOProcessor;
 import org.apache.tez.engine.newapi.LogicalInput;
 import org.apache.tez.engine.newapi.LogicalOutput;
-import org.apache.tez.engine.newapi.Output;
 import org.apache.tez.engine.newapi.TezProcessorContext;
 import org.apache.tez.mapreduce.newinput.ShuffledMergedInputLegacy;
 import org.apache.tez.mapreduce.newoutput.SimpleOutput;
@@ -61,14 +59,14 @@ extends MRTask
 implements LogicalIOProcessor {
 
   private static final Log LOG = LogFactory.getLog(ReduceProcessor.class);
-  
+
   private Counter reduceInputKeyCounter;
   private Counter reduceInputValueCounter;
 
   public ReduceProcessor() {
     super(false);
   }
-  
+
   @Override
   public void initialize(TezProcessorContext processorContext)
       throws IOException {
@@ -83,63 +81,57 @@ implements LogicalIOProcessor {
   @Override
   public void handleEvents(List<Event> processorEvents) {
     // TODO Auto-generated method stub
-    
+
   }
 
   public void close() throws IOException {
     // TODO Auto-generated method stub
 
   }
-  
+
   @Override
   public void run(Map<String, LogicalInput> inputs,
       Map<String, LogicalOutput> outputs) throws Exception {
 
     LOG.info("Running reduce: " + processorContext.getUniqueIdentifier());
-    
+
     initTask();
-    
+
     if (outputs.size() <= 0 || outputs.size() > 1) {
       throw new IOException("Invalid number of outputs"
           + ", outputCount=" + outputs.size());
     }
-    
+
     if (inputs.size() <= 0 || inputs.size() > 1) {
       throw new IOException("Invalid number of inputs"
           + ", inputCount=" + inputs.size());
     }
 
-    Input in = inputs.values().iterator().next();
-    Output out = outputs.values().iterator().next();
-    
-    if (out instanceof SimpleOutput) {
-      initCommitter(jobConf, useNewApi, false);
-    } else {
-      initCommitter(jobConf, useNewApi, true);
-    }
+    LogicalInput in = inputs.values().iterator().next();
+    LogicalOutput out = outputs.values().iterator().next();
 
     this.statusUpdate();
-    
+
     Class keyClass = ConfigUtils.getIntermediateInputKeyClass(jobConf);
     Class valueClass = ConfigUtils.getIntermediateInputValueClass(jobConf);
     LOG.info("Using keyClass: " + keyClass);
     LOG.info("Using valueClass: " + valueClass);
-    RawComparator comparator = 
+    RawComparator comparator =
         ConfigUtils.getInputKeySecondaryGroupingComparator(jobConf);
     LOG.info("Using comparator: " + comparator);
 
-    reduceInputKeyCounter = 
+    reduceInputKeyCounter =
         mrReporter.getCounter(TaskCounter.REDUCE_INPUT_GROUPS);
-    reduceInputValueCounter = 
+    reduceInputValueCounter =
         mrReporter.getCounter(TaskCounter.REDUCE_INPUT_RECORDS);
-        
+
     // Sanity check
     if (!(in instanceof ShuffledMergedInputLegacy)) {
       throw new IOException("Illegal input to reduce: " + in.getClass());
     }
     ShuffledMergedInputLegacy shuffleInput = (ShuffledMergedInputLegacy)in;
     KVReader kvReader = shuffleInput.getReader();
-    
+
     KVWriter kvWriter = null;
     if((out instanceof SimpleOutput)) {
       kvWriter = ((SimpleOutput) out).getWriter();
@@ -152,20 +144,20 @@ implements LogicalIOProcessor {
     if (useNewApi) {
       try {
         runNewReducer(
-            jobConf, 
-            mrReporter, 
-            shuffleInput, comparator,  keyClass, valueClass, 
+            jobConf,
+            mrReporter,
+            shuffleInput, comparator,  keyClass, valueClass,
             kvWriter);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException(cnfe);
       }
     } else {
       runOldReducer(
-          jobConf, mrReporter, 
+          jobConf, mrReporter,
           kvReader, comparator, keyClass, valueClass, kvWriter);
     }
-    
-    done();
+
+    done(out);
   }
 
   void runOldReducer(JobConf job,
@@ -175,13 +167,13 @@ implements LogicalIOProcessor {
       Class keyClass,
       Class valueClass,
       final KVWriter output) throws IOException, InterruptedException {
-    
-    Reducer reducer = 
+
+    Reducer reducer =
         ReflectionUtils.newInstance(job.getReducerClass(), job);
 
     // make output collector
 
-    OutputCollector collector = 
+    OutputCollector collector =
         new OutputCollector() {
       public void collect(Object key, Object value)
           throws IOException {
@@ -191,10 +183,10 @@ implements LogicalIOProcessor {
 
     // apply reduce function
     try {
-      ReduceValuesIterator values = 
+      ReduceValuesIterator values =
           new ReduceValuesIterator(
               input, reporter, reduceInputValueCounter);
-      
+
       values.informReduceProgress();
       while (values.more()) {
         reduceInputKeyCounter.increment(1);
@@ -214,8 +206,8 @@ implements LogicalIOProcessor {
       throw ioe;
     }
   }
-  
-  private static class ReduceValuesIterator<KEY,VALUE> 
+
+  private static class ReduceValuesIterator<KEY,VALUE>
   implements Iterator<VALUE> {
     private Counter reduceInputValueCounter;
     private KVReader in;
@@ -243,15 +235,15 @@ implements LogicalIOProcessor {
       }
       return more;
     }
-    
+
     public KEY getKey() throws IOException {
       return (KEY) currentKey;
     }
-    
+
     public void informReduceProgress() {
       reporter.progress();
     }
-    
+
     @Override
     public boolean hasNext() {
       return currentValues.hasNext();
@@ -277,12 +269,12 @@ implements LogicalIOProcessor {
       Class keyClass,
       Class valueClass,
       final KVWriter out
-      ) throws IOException,InterruptedException, 
+      ) throws IOException,InterruptedException,
       ClassNotFoundException {
-    
+
     // make a task context so we can get the classes
     org.apache.hadoop.mapreduce.TaskAttemptContext taskContext = getTaskAttemptContext();
-    
+
     // make a reducer
     org.apache.hadoop.mapreduce.Reducer reducer =
         (org.apache.hadoop.mapreduce.Reducer)
@@ -310,7 +302,7 @@ implements LogicalIOProcessor {
       }
     };
 
-    org.apache.hadoop.mapreduce.RecordWriter trackedRW = 
+    org.apache.hadoop.mapreduce.RecordWriter trackedRW =
         new org.apache.hadoop.mapreduce.RecordWriter() {
 
       @Override
@@ -325,24 +317,24 @@ implements LogicalIOProcessor {
       }
     };
 
-    org.apache.hadoop.mapreduce.Reducer.Context reducerContext = 
+    org.apache.hadoop.mapreduce.Reducer.Context reducerContext =
         createReduceContext(
             reducer, job, taskAttemptId,
-            rIter, reduceInputKeyCounter, 
-            reduceInputValueCounter, 
+            rIter, reduceInputKeyCounter,
+            reduceInputValueCounter,
             trackedRW,
             committer,
             reporter, comparator, keyClass,
             valueClass);
-    
-    
-    
+
+
+
     reducer.run(reducerContext);
     trackedRW.close(reducerContext);
   }
 
   @Override
-  public void localizeConfiguration(JobConf jobConf) 
+  public void localizeConfiguration(JobConf jobConf)
       throws IOException, InterruptedException {
     super.localizeConfiguration(jobConf);
     jobConf.setBoolean(JobContext.TASK_ISMAP, false);

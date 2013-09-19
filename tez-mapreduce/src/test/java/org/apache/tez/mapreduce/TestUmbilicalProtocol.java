@@ -25,7 +25,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
-import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -82,9 +81,9 @@ public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
 
 
   @Override
-  public void commitPending(TezTaskAttemptID taskId, TezTaskStatus taskStatus)
+  public void commitPending(TezTaskAttemptID taskId)
       throws IOException, InterruptedException {
-    LOG.info("Got 'commit-pending' from " + taskId + ": status=" + taskStatus);
+    LOG.info("Got 'commit-pending' from " + taskId);
   }
 
   @Override

@@ -42,7 +42,6 @@ import org.apache.tez.engine.newapi.KVWriter;
 import org.apache.tez.engine.newapi.LogicalIOProcessor;
 import org.apache.tez.engine.newapi.LogicalInput;
 import org.apache.tez.engine.newapi.LogicalOutput;
-import org.apache.tez.engine.newapi.Output;
 import org.apache.tez.engine.newapi.TezProcessorContext;
 import org.apache.tez.mapreduce.hadoop.newmapreduce.MapContextImpl;
 import org.apache.tez.mapreduce.newinput.SimpleInput;
@@ -59,7 +58,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
   public MapProcessor(){
     super(true);
   }
-  
+
   @Override
   public void initialize(TezProcessorContext processorContext)
       throws IOException {
@@ -74,7 +73,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
   @Override
   public void handleEvents(List<Event> processorEvents) {
     // TODO Auto-generated method stub
-    
+
   }
 
   public void close() throws IOException {
@@ -87,7 +86,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
       Map<String, LogicalOutput> outputs) throws Exception {
 
     LOG.info("Running map: " + processorContext.getUniqueIdentifier());
-    
+
     initTask();
 
     if (inputs.size() != 1
@@ -97,26 +96,20 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
           + ", outputCount=" + outputs.size());
     }
     LogicalInput in = inputs.values().iterator().next();
-    Output out = outputs.values().iterator().next();
-    
+    LogicalOutput out = outputs.values().iterator().next();
+
     // Sanity check
     if (!(in instanceof SimpleInputLegacy)) {
       throw new IOException(new TezException(
           "Only Simple Input supported. Input: " + in.getClass()));
     }
     SimpleInputLegacy input = (SimpleInputLegacy)in;
-    
+
     KVWriter kvWriter = null;
     if (!(out instanceof OnFileSortedOutput)) {
       kvWriter = ((SimpleOutput)out).getWriter();
     } else {
       kvWriter = ((OnFileSortedOutput)out).getWriter();
-    }
-    
-    if (out instanceof SimpleOutput) {
-      initCommitter(jobConf, useNewApi, false);
-    } else { // Assuming no other output needs commit.
-      initCommitter(jobConf, useNewApi, true);
     }
 
     if (useNewApi) {
@@ -125,7 +118,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
       runOldMapper(jobConf, mrReporter, input, kvWriter);
     }
 
-    done();    
+    done(out);
   }
 
   void runOldMapper(
@@ -134,14 +127,14 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
       final SimpleInputLegacy input,
       final KVWriter output
       ) throws IOException, InterruptedException {
-    
+
     // Initialize input in-line since it sets parameters which may be used by the processor.
     // Done only for SimpleInput.
     // TODO use new method in SimpleInput to get required info
     //input.initialize(job, master);
-    
+
     RecordReader in = new OldRecordReader(input);
-        
+
     OutputCollector collector = new OldOutputCollector(output);
 
     MapRunnable runner =
@@ -162,9 +155,9 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     // Done only for SimpleInput.
     // TODO use new method in SimpleInput to get required info
     //in.initialize(job, master);
-    
+
     // make a task context so we can get the classes
-    org.apache.hadoop.mapreduce.TaskAttemptContext taskContext = 
+    org.apache.hadoop.mapreduce.TaskAttemptContext taskContext =
         getTaskAttemptContext();
 
     // make a mapper
@@ -179,20 +172,20 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     org.apache.hadoop.mapreduce.RecordReader input =
         new NewRecordReader(in);
 
-    org.apache.hadoop.mapreduce.RecordWriter output = 
+    org.apache.hadoop.mapreduce.RecordWriter output =
         new NewOutputCollector(out);
 
     org.apache.hadoop.mapreduce.InputSplit split = in.getNewInputSplit();
-    
-    org.apache.hadoop.mapreduce.MapContext 
-    mapContext = 
+
+    org.apache.hadoop.mapreduce.MapContext
+    mapContext =
     new MapContextImpl(
-        job, taskAttemptId, 
-        input, output, 
-        getCommitter(), 
+        job, taskAttemptId,
+        input, output,
+        getCommitter(),
         processorContext, split);
 
-    org.apache.hadoop.mapreduce.Mapper.Context mapperContext = 
+    org.apache.hadoop.mapreduce.Mapper.Context mapperContext =
         new WrappedMapper().getMapContext(mapContext);
 
     input.initialize(split, mapperContext);
@@ -296,10 +289,10 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     }
   }
 
-  private static class OldOutputCollector 
+  private static class OldOutputCollector
   implements OutputCollector {
     private final KVWriter output;
-    
+
     OldOutputCollector(KVWriter output) {
       this.output = output;
     }
@@ -329,12 +322,12 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
   }
 
   @Override
-  public void localizeConfiguration(JobConf jobConf) 
+  public void localizeConfiguration(JobConf jobConf)
       throws IOException, InterruptedException {
     super.localizeConfiguration(jobConf);
     jobConf.setBoolean(JobContext.TASK_ISMAP, true);
   }
-  
+
   @Override
   public TezCounter getOutputRecordsCounter() {
     return processorContext.getCounters().findCounter(TaskCounter.MAP_OUTPUT_RECORDS);

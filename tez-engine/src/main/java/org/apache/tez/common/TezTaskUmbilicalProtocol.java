@@ -42,8 +42,8 @@ public interface TezTaskUmbilicalProtocol extends Master {
 
   ContainerTask getTask(ContainerContext containerContext) throws IOException;
 
-  void commitPending(TezTaskAttemptID taskId, TezTaskStatus taskStatus)
-  throws IOException, InterruptedException;
+  void commitPending(TezTaskAttemptID taskId)
+      throws IOException, InterruptedException;
 
   boolean canCommit(TezTaskAttemptID taskid) throws IOException;
 

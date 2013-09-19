@@ -86,7 +86,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private LinkedBlockingQueue<TezEvent> eventsToBeProcessed;
   private Thread eventRouterThread = null;
 
-  public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec,
+  private final int appAttemptNumber;
+
+  public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, TezUmbilical tezUmbilical,
       Token<JobTokenIdentifier> jobToken) throws IOException {
     // TODO Remove jobToken from here post TEZ-421
@@ -102,8 +104,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
     this.serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,
         ShuffleUtils.convertJobTokenToBytes(jobToken));
-    this.eventsToBeProcessed = new LinkedBlockingQueue<TezEvent>();    
+    this.eventsToBeProcessed = new LinkedBlockingQueue<TezEvent>();
     this.state = State.NEW;
+    this.appAttemptNumber = appAttemptNumber;
   }
 
   public void initialize() throws Exception {
@@ -212,7 +215,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   private TezInputContext createInputContext(InputSpec inputSpec) {
     TezInputContext inputContext = new TezInputContextImpl(tezConf,
-        tezUmbilical, taskSpec.getVertexName(),
+        appAttemptNumber, tezUmbilical, taskSpec.getVertexName(),
         inputSpec.getSourceVertexName(), taskSpec.getTaskAttemptID(),
         tezCounters,
         inputSpec.getInputDescriptor().getUserPayload() == null ? taskSpec
@@ -224,7 +227,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   private TezOutputContext createOutputContext(OutputSpec outputSpec) {
     TezOutputContext outputContext = new TezOutputContextImpl(tezConf,
-        tezUmbilical, taskSpec.getVertexName(),
+        appAttemptNumber, tezUmbilical, taskSpec.getVertexName(),
         outputSpec.getDestinationVertexName(), taskSpec.getTaskAttemptID(),
         tezCounters,
         outputSpec.getOutputDescriptor().getUserPayload() == null ? taskSpec
@@ -236,7 +239,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   private TezProcessorContext createProcessorContext() {
     TezProcessorContext processorContext = new TezProcessorContextImpl(tezConf,
-        tezUmbilical, taskSpec.getVertexName(), taskSpec.getTaskAttemptID(),
+        appAttemptNumber, tezUmbilical, taskSpec.getVertexName(), taskSpec.getTaskAttemptID(),
         tezCounters, processorDescriptor.getUserPayload(), this,
         serviceConsumerMetadata);
     return processorContext;

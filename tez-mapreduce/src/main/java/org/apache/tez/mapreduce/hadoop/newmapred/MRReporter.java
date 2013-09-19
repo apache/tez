@@ -28,7 +28,7 @@ public class MRReporter implements Reporter {
   
   @Override
   public void progress() {
-    //TODO
+    //TODO NEWTEZ
   }
 
   @Override

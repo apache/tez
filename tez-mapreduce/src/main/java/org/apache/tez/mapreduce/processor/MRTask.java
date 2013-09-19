@@ -213,7 +213,7 @@ public abstract class MRTask extends RunningTaskContext {
     partitioner = new MRPartitioner(this);
     ((MRPartitioner) partitioner).initialize(job, getTaskReporter());
   }
-  
+
   public void initCommitter(JobConf job, boolean useNewApi,
       boolean useNullCommitter) throws IOException, InterruptedException {
     if (useNullCommitter) {
@@ -248,7 +248,7 @@ public abstract class MRTask extends RunningTaskContext {
     }
     getCommitter().setupTask(taskAttemptContext);
   }
-  
+
   public MRTaskReporter getMRReporter() {
     return mrReporter;
   }
@@ -406,7 +406,7 @@ public abstract class MRTask extends RunningTaskContext {
       // TODO TEZAM2 - Why is the commitRequired check missing ?
       while (true) {
         try {
-          umbilical.commitPending(taskAttemptId, status);
+          umbilical.commitPending(taskAttemptId);
           break;
         } catch (InterruptedException ie) {
           // ignore
@@ -749,7 +749,7 @@ public abstract class MRTask extends RunningTaskContext {
   public TezEngineTaskContext getTezEngineTaskContext() {
     return tezEngineTaskContext;
   }
-  
+
   protected FutureTask<Void> initInputAsync(Input input) {
     FutureTask<Void> initInputFuture = new FutureTask<Void>(
         new InitInputCallable(input));
@@ -776,7 +776,7 @@ public abstract class MRTask extends RunningTaskContext {
       return null;
     }
   }
-  
+
   protected class InitOutputCallable implements Callable<Void> {
     Output output;
     InitOutputCallable(Output output) {
@@ -789,7 +789,7 @@ public abstract class MRTask extends RunningTaskContext {
       return null;
     }
   }
-  
+
   private void waitForIOInitialization(FutureTask<Void> future)
       throws InterruptedException, IOException {
     try {
@@ -810,7 +810,7 @@ public abstract class MRTask extends RunningTaskContext {
       throws InterruptedException, IOException {
     waitForIOInitialization(future);
   }
-  
+
   protected void waitForOutputInitialization(FutureTask<Void> future)
       throws InterruptedException, IOException {
     waitForIOInitialization(future);
