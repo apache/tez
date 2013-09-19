@@ -487,6 +487,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         if(taskIndex == i) {
           return entry.getValue();
         }
+        ++i;
       }
       return null;
     } finally {
@@ -1629,7 +1630,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount());
       for (Entry<Vertex, Edge> entry : this.getOutputVertices().entrySet()) {
         OutputSpec outputSpec = entry.getValue().getSourceSpec(taskIndex);
-        // TODO DAGAM This should be based on the edge type.
         outputSpecList.add(outputSpec);
       }
     }

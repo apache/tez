@@ -22,8 +22,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.Partitioner;
-import org.apache.hadoop.mapred.lib.HashPartitioner;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -37,7 +35,7 @@ public class MRPartitioner implements org.apache.tez.engine.api.Partitioner {
   private int partitions = 1;
 
   private org.apache.hadoop.mapreduce.Partitioner newPartitioner;
-  Partitioner oldPartitioner;
+  private org.apache.hadoop.mapred.Partitioner oldPartitioner;
 
   public MRPartitioner(Configuration conf) {
     this.useNewApi = conf.getBoolean("mapred.mapper.new-api", false);
@@ -49,7 +47,7 @@ public class MRPartitioner implements org.apache.tez.engine.api.Partitioner {
             .newInstance(
                 (Class<? extends org.apache.hadoop.mapreduce.Partitioner<?, ?>>) conf
                     .getClass(MRJobConfig.PARTITIONER_CLASS_ATTR,
-                        HashPartitioner.class), conf);
+                        org.apache.hadoop.mapreduce.lib.partition.HashPartitioner.class), conf);
       } else {
         newPartitioner = new org.apache.hadoop.mapreduce.Partitioner() {
           @Override
@@ -60,11 +58,11 @@ public class MRPartitioner implements org.apache.tez.engine.api.Partitioner {
       }
     } else {
       if (partitions > 1) {
-        oldPartitioner = (Partitioner) ReflectionUtils.newInstance(
-            (Class<? extends Partitioner>) conf.getClass(
-                "mapred.partitioner.class", HashPartitioner.class), conf);
+        oldPartitioner = (org.apache.hadoop.mapred.Partitioner) ReflectionUtils.newInstance(
+            (Class<? extends org.apache.hadoop.mapred.Partitioner>) conf.getClass(
+                "mapred.partitioner.class", org.apache.hadoop.mapred.lib.HashPartitioner.class), conf);
       } else {
-        oldPartitioner = new Partitioner() {
+        oldPartitioner = new org.apache.hadoop.mapred.Partitioner() {
           @Override
           public void configure(JobConf job) {
           }

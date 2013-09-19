@@ -26,6 +26,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.dag.EdgeManager;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -170,7 +171,8 @@ public class Edge {
               null); // will be filled by Task when sending the event. Is it needed?
           destMeta.setIndex(dmEvent.getTargetIndex());
           tezEvent.setDestinationInfo(destMeta);
-          TezTaskID destTaskId = destinationVertex.getTask(destTaskIndex).getTaskId();
+          Task destTask = destinationVertex.getTask(destTaskIndex);
+          TezTaskID destTaskId = destTask.getTaskId();
           sendEventToTask(destTaskId, tezEvent);
         }        
         break;

@@ -225,7 +225,7 @@ public class OrderedWordCount {
         null);
 
     Configuration iReduceStageConf = new JobConf(conf);
-    iReduceStageConf.setInt(MRJobConfig.NUM_REDUCES, 2);
+    iReduceStageConf.setInt(MRJobConfig.NUM_REDUCES, 2); // TODO NEWTEZ - NOT NEEDED NOW???
     iReduceStageConf.set(MRJobConfig.REDUCE_CLASS_ATTR,
         IntSumReducer.class.getName());
     iReduceStageConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
