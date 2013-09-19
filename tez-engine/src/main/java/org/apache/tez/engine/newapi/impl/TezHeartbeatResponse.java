@@ -43,7 +43,7 @@ public class TezHeartbeatResponse implements Writable {
   public List<TezEvent> getEvents() {
     return events;
   }
-  
+
   public boolean shouldDie() {
     return shouldDie;
   }
@@ -53,13 +53,13 @@ public class TezHeartbeatResponse implements Writable {
   }
 
   public void setEvents(List<TezEvent> events) {
-    this.events = events;
+    this.events = Collections.unmodifiableList(events);
   }
 
   public void setLastRequestId(long lastRequestId ) {
     this.lastRequestId = lastRequestId;
   }
-  
+
   public void setShouldDie() {
     this.shouldDie = true;
   }
@@ -94,4 +94,12 @@ public class TezHeartbeatResponse implements Writable {
     }
   }
 
+  @Override
+  public String toString() {
+    return "{ "
+        + " lastRequestId=" + lastRequestId
+        + ", shouldDie=" + shouldDie
+        + ", eventCount=" + (events != null ? events.size() : 0)
+        + " }";
+  }
 }

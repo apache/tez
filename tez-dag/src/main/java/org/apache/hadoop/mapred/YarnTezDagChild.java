@@ -125,18 +125,13 @@ public class YarnTezDagChild {
               if(!heartbeat()) {
                 return;
               }
-            } catch (TezException e) {
-              LOG.error("Error communicating with AM: " + e.getMessage() , e);
-              heartbeatErrorException = e;
-              heartbeatError.set(true);
-              return;
             } catch (InvalidToken e) {
-              LOG.error("Error in authenticating with AM: ", e);
+              LOG.error("Heartbeat error in authenticating with AM: ", e);
               heartbeatErrorException = e;
               heartbeatError.set(true);
               return;
-            } catch (Exception e) {
-              LOG.error("Error in heartbeating with AM. ", e);
+            } catch (Throwable e) {
+              LOG.error("Heartbeat error in communicating with AM. ", e);
               heartbeatErrorException = e;
               heartbeatError.set(true);
               return;
@@ -194,8 +189,17 @@ public class YarnTezDagChild {
     long reqId = requestCounter.incrementAndGet();
     TezHeartbeatRequest request = new TezHeartbeatRequest(reqId, events,
         containerIdStr, taskAttemptID, eventCounter, eventsRange);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Sending heartbeat to AM"
+          + ", request=" + request.toString());
+    }
     TezHeartbeatResponse response = umbilical.heartbeat(request);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Received heartbeat response from AM"
+          + ", response=" + response);
+    }
     if(response.shouldDie()) {
+      LOG.info("Received should die response from AM");
       return false;
     }
     if (response.getLastRequestId() != reqId) {
@@ -207,9 +211,20 @@ public class YarnTezDagChild {
       taskLock.readLock().lock();
       if (taskAttemptID == null
           || !taskAttemptID.equals(currentTaskAttemptID)) {
+        if (response.getEvents() != null
+            && !response.getEvents().isEmpty()) {
+          LOG.warn("No current assigned task, ignoring all events in"
+              + " heartbeat response, eventCount="
+              + response.getEvents().size());
+        }
         return true;
       }
       if (currentTask != null && response.getEvents() != null) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Routing events from heartbeat response to task"
+              + ", currentTaskAttemptId=" + currentTaskAttemptID
+              + ", eventCount=" + response.getEvents().size());
+        }
         currentTask.handleEvents(response.getEvents());
       }
     } finally {

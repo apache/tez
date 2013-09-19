@@ -84,8 +84,6 @@ public class SimpleOutput implements LogicalOutput {
     this.useNewApi = this.jobConf.getUseNewMapper();
     this.isMapperOutput = jobConf.getBoolean(MRConfig.IS_MAP_PROCESSOR,
         false);
-    jobConf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID,
-        outputContext.getDAGAttemptNumber());
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         outputContext.getDAGAttemptNumber());
 

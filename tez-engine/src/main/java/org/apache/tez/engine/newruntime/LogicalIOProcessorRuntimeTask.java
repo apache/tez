@@ -110,6 +110,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   public void initialize() throws Exception {
+    LOG.info("Initializing LogicalProcessorIORuntimeTask");
     Preconditions.checkState(this.state == State.NEW, "Already initialized");
     this.state = State.INITED;
     inputMap = new LinkedHashMap<String, LogicalInput>(inputs.size());
@@ -188,6 +189,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       ((LogicalInput) input).setNumPhysicalInputs(inputSpec
           .getPhysicalEdgeCount());
     }
+    LOG.info("Initializing Input using InputSpec: " + inputSpec);
     List<Event> events = input.initialize(tezInputContext);
     sendTaskGeneratedEvents(events, EventProducerConsumerType.INPUT,
         tezInputContext.getTaskVertexName(),
@@ -201,6 +203,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       ((LogicalOutput) output).setNumPhysicalOutputs(outputSpec
           .getPhysicalEdgeCount());
     }
+    LOG.info("Initializing Output using OutputSpec: " + outputSpec);
     List<Event> events = output.initialize(tezOutputContext);
     sendTaskGeneratedEvents(events, EventProducerConsumerType.OUTPUT,
         tezOutputContext.getTaskVertexName(),
@@ -209,6 +212,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private void initializeLogicalIOProcessor() throws Exception {
+    LOG.info("Initializing processor"
+        + ", processorClassName=" + processorDescriptor.getClassName());
     TezProcessorContext processorContext = createProcessorContext();
     processor.initialize(processorContext);
   }
@@ -248,6 +253,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private List<LogicalInput> createInputs(List<InputSpec> inputSpecs) {
     List<LogicalInput> inputs = new ArrayList<LogicalInput>(inputSpecs.size());
     for (InputSpec inputSpec : inputSpecs) {
+      LOG.info("Creating Input from InputSpec: "
+          + inputSpec);
       Input input = RuntimeUtils.createClazzInstance(inputSpec
           .getInputDescriptor().getClassName());
 
@@ -266,6 +273,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     List<LogicalOutput> outputs = new ArrayList<LogicalOutput>(
         outputSpecs.size());
     for (OutputSpec outputSpec : outputSpecs) {
+      LOG.info("Creating Output from OutputSpec"
+          + outputSpec);
       Output output = RuntimeUtils.createClazzInstance(outputSpec
           .getOutputDescriptor().getClassName());
       if (output instanceof LogicalOutput) {
@@ -294,19 +303,34 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private void sendTaskGeneratedEvents(List<Event> events,
       EventProducerConsumerType generator, String taskVertexName,
       String edgeVertexName, TezTaskAttemptID taskAttemptID) {
-    if (events != null && events.size() > 0) {
-      EventMetaData eventMetaData = new EventMetaData(generator,
-          taskVertexName, edgeVertexName, taskAttemptID);
-      List<TezEvent> tezEvents = new ArrayList<TezEvent>(events.size());
-      for (Event e : events) {
-        TezEvent te = new TezEvent(e, eventMetaData);
-        tezEvents.add(te);
-      }
-      tezUmbilical.addEvents(tezEvents);
+    if (events == null || events.isEmpty()) {
+      return;
     }
+    EventMetaData eventMetaData = new EventMetaData(generator,
+        taskVertexName, edgeVertexName, taskAttemptID);
+    List<TezEvent> tezEvents = new ArrayList<TezEvent>(events.size());
+    for (Event e : events) {
+      TezEvent te = new TezEvent(e, eventMetaData);
+      tezEvents.add(te);
+    }
+    if (LOG.isDebugEnabled()) {
+      for (TezEvent e : tezEvents) {
+        LOG.debug("Generated event info"
+            + ", eventMetaData=" + eventMetaData.toString()
+            + ", eventType=" + e.getEventType());
+      }
+    }
+    tezUmbilical.addEvents(tezEvents);
   }
 
   private boolean handleEvent(TezEvent e) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Handling TezEvent in task"
+          + ", taskAttemptId=" + taskSpec.getTaskAttemptID()
+          + ", eventType=" + e.getEventType()
+          + ", eventSourceInfo=" + e.getSourceInfo()
+          + ", eventDestinationInfo=" + e.getDestinationInfo());
+    }
     try {
       switch (e.getDestinationInfo().getEventGenerator()) {
       case INPUT:
@@ -352,10 +376,17 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   @Override
   public synchronized void handleEvents(Collection<TezEvent> events) {
-    if (!(events == null || events.size() == 0)) {
-      eventsToBeProcessed.addAll(events);
-      eventCounter.addAndGet(events.size());
+    if (events == null || events.isEmpty()) {
+      return;
     }
+    eventCounter.addAndGet(events.size());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Received events to be processed by task"
+          + ", taskAttemptId=" + taskSpec.getTaskAttemptID()
+          + ", eventCount=" + events.size()
+          + ", newEventCounter=" + eventCounter.get());
+    }
+    eventsToBeProcessed.addAll(events);
   }
 
   private void startRouterThread() {
@@ -371,7 +402,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
             if (!handleEvent(e)) {
               LOG.warn("Stopping Event Router thread as failed to handle"
                   + " event: " + e);
-              break;
+              return;
             }
           } catch (InterruptedException e) {
             if (!isTaskDone()) {

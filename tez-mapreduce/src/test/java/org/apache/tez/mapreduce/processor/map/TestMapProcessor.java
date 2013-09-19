@@ -40,6 +40,7 @@ import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
 import org.apache.tez.engine.lib.oldoutput.OldLocalOnFileSorterOutput;
 import org.apache.tez.mapreduce.TestUmbilicalProtocol;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.hadoop.mapreduce.TezNullOutputCommitter;
@@ -100,7 +101,7 @@ public class TestMapProcessor {
     mapOutputs.setConf(jobConf);
 
     Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
-    conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, 0);
+    conf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
 
     Configuration stageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
         vertexName);

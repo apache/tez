@@ -56,7 +56,7 @@ public class TezHeartbeatRequest implements Writable {
   public String getContainerIdentifier() {
     return containerIdentifier;
   }
-  
+
   public List<TezEvent> getEvents() {
     return events;
   }
@@ -123,4 +123,15 @@ public class TezHeartbeatRequest implements Writable {
     containerIdentifier = Text.readString(in);
   }
 
+  @Override
+  public String toString() {
+    return "{ "
+        + " containerId=" + containerIdentifier
+        + ", requestId=" + requestId
+        + ", startIndex=" + startIndex
+        + ", maxEventsToGet=" + maxEvents
+        + ", taskAttemptId" + currentTaskAttemptID
+        + ", eventCount=" + (events != null ? events.size() : 0)
+        + " }";
+  }
 }

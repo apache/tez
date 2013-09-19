@@ -306,7 +306,4 @@ public class TezJobConfig {
    */
   public static final String DAG_CREDENTIALS_BINARY =  "tez.dag.credentials.binary";
   
-  
-  public static final String APPLICATION_ATTEMPT_ID =
-      "tez.job.application.attempt.id";
 }

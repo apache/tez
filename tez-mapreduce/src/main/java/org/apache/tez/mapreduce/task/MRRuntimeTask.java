@@ -185,7 +185,7 @@ public class MRRuntimeTask extends RuntimeTask {
     // Containers.
     // Set it in conf, so as to be able to be used the the OutputCommitter.
     job.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
-        job.getInt(TezJobConfig.APPLICATION_ATTEMPT_ID, -1));
+        job.getInt(MRJobConfig.APPLICATION_ATTEMPT_ID, -1));
 
     job.setClass(MRConfig.TASK_LOCAL_OUTPUT_CLASS, YarnOutputFiles.class,
         MapOutputFile.class); // MR

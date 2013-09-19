@@ -78,4 +78,11 @@ public class InputSpec implements Writable {
             TezEntityDescriptorProto.parseFrom(inputDescBytes));
   }
 
+  public String toString() {
+    return "{ sourceVertexName=" + sourceVertexName
+        + ", physicalEdgeCount" + physicalEdgeCount
+        + ", inputClassName=" + inputDescriptor.getClassName()
+        + " }";
+  }
+
 }

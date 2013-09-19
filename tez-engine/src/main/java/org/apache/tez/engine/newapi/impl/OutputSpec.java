@@ -30,7 +30,7 @@ import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 public class OutputSpec implements Writable {
 
   private String destinationVertexName;
-  private OutputDescriptor inputDescriptor;
+  private OutputDescriptor outputDescriptor;
   private int physicalEdgeCount;
 
   public OutputSpec() {
@@ -39,7 +39,7 @@ public class OutputSpec implements Writable {
   public OutputSpec(String destinationVertexName,
       OutputDescriptor inputDescriptor, int physicalEdgeCount) {
     this.destinationVertexName = destinationVertexName;
-    this.inputDescriptor = inputDescriptor;
+    this.outputDescriptor = inputDescriptor;
     this.physicalEdgeCount = physicalEdgeCount;
   }
 
@@ -48,7 +48,7 @@ public class OutputSpec implements Writable {
   }
 
   public OutputDescriptor getOutputDescriptor() {
-    return inputDescriptor;
+    return outputDescriptor;
   }
 
   public int getPhysicalEdgeCount() {
@@ -61,7 +61,7 @@ public class OutputSpec implements Writable {
     out.writeUTF(destinationVertexName);
     out.writeInt(physicalEdgeCount);
     byte[] inputDescBytes =
-        DagTypeConverters.convertToDAGPlan(inputDescriptor).toByteArray();
+        DagTypeConverters.convertToDAGPlan(outputDescriptor).toByteArray();
     out.writeInt(inputDescBytes.length);
     out.write(inputDescBytes);
   }
@@ -73,9 +73,15 @@ public class OutputSpec implements Writable {
     int inputDescLen = in.readInt();
     byte[] inputDescBytes = new byte[inputDescLen];
     in.readFully(inputDescBytes);
-    inputDescriptor =
+    outputDescriptor =
         DagTypeConverters.convertOutputDescriptorFromDAGPlan(
             TezEntityDescriptorProto.parseFrom(inputDescBytes));
   }
 
+  public String toString() {
+    return "{ destinationVertexName=" + destinationVertexName
+        + ", physicalEdgeCount" + physicalEdgeCount
+        + ", outputClassName=" + outputDescriptor.getClassName()
+        + " }";
+  }
 }

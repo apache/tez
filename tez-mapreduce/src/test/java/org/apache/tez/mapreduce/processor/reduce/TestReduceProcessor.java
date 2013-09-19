@@ -46,6 +46,7 @@ import org.apache.tez.engine.runtime.RuntimeUtils;
 import org.apache.tez.mapreduce.TestUmbilicalProtocol;
 import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.newinput.SimpleInputLegacy;
@@ -106,7 +107,7 @@ public class TestReduceProcessor {
     mapOutputs.setConf(jobConf);
     
     Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
-    conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, 0);
+    conf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
     Configuration mapStageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
         mapVertexName);
     
