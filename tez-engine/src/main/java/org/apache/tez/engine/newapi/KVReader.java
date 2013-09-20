@@ -50,9 +50,10 @@ public interface KVReader extends Reader {
    */
   public KVRecord getCurrentKV() throws IOException;
   
+  // TODO NEWTEZ Move this to getCurrentKey and getCurrentValue independently. Otherwise usage pattern seems to be getCurrentKV.getKey, getCurrentKV.getValue
   
-
-  
+  // TODO NEWTEZ KVRecord which does not need to return a list!
+  // TODO NEWTEZ Parameterize this
   /**
    * Represents a key and an associated set of values
    *

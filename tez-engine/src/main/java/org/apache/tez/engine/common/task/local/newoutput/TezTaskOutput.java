@@ -24,7 +24,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.tez.engine.common.shuffle.impl.TaskAttemptIdentifier;
+import org.apache.tez.engine.common.InputAttemptIdentifier;
 
 /**
  * Manipulate the working area for the transient store for maps and reduces.
@@ -64,6 +64,15 @@ public abstract class TezTaskOutput {
    */
   public abstract Path getOutputFileForWrite(long size) throws IOException;
 
+  /**
+   * Create a local output file name. This method is meant to be used *only* if
+   * the size of the file is not know up front.
+   * 
+   * @return path
+   * @throws IOException
+   */
+  public abstract Path getOutputFileForWrite() throws IOException;
+  
   /**
    * Create a local map output file name on the same volume.
    */
@@ -138,7 +147,7 @@ public abstract class TezTaskOutput {
    * @return path
    * @throws IOException
    */
-  public abstract Path getInputFile(TaskAttemptIdentifier attemptIdentifier) throws IOException;
+  public abstract Path getInputFile(InputAttemptIdentifier attemptIdentifier) throws IOException;
 
   /**
    * Create a local reduce input file name.

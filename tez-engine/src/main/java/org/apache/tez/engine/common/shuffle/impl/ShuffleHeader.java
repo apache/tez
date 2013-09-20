@@ -62,6 +62,14 @@ public class ShuffleHeader implements Writable {
     this.forReduce = forReduce;
   }
   
+  public String getMapId() {
+    return this.mapId;
+  }
+  
+  public int getPartition() {
+    return this.forReduce;
+  }
+  
   public long getUncompressedLength() {
     return uncompressedLength;
   }

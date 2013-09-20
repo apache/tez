@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.engine.common.InputAttemptIdentifier;
 import org.apache.tez.engine.common.shuffle.newimpl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.engine.common.shuffle.newimpl.ShuffleUserPayloads.InputInformationEventPayloadProto;
 import org.apache.tez.engine.newapi.Event;
@@ -95,7 +96,7 @@ public class ShuffleInputEventHandler {
     int partitionId = dmEvent.getSourceIndex();
     URI baseUri = getBaseURI(shufflePayload.getHost(), shufflePayload.getPort(), partitionId);
 
-    TaskAttemptIdentifier srcAttemptIdentifier = new TaskAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion(), shufflePayload.getPathComponent());
+    InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion(), shufflePayload.getPathComponent());
     scheduler.addKnownMapOutput(shufflePayload.getHost(), partitionId, baseUri.toString(), srcAttemptIdentifier);
     
     // TODO NEWTEZ See if this duration hack can be removed.
@@ -107,7 +108,7 @@ public class ShuffleInputEventHandler {
   }
   
   private void processTaskFailedEvent(InputFailedEvent ifEvent) {
-    TaskAttemptIdentifier taIdentifier = new TaskAttemptIdentifier(ifEvent.getSourceIndex(), ifEvent.getVersion());
+    InputAttemptIdentifier taIdentifier = new InputAttemptIdentifier(ifEvent.getSourceIndex(), ifEvent.getVersion());
     scheduler.obsoleteMapOutput(taIdentifier);
     LOG.info("Obsoleting output of src-task: " + taIdentifier);
   }

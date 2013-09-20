@@ -106,12 +106,12 @@ public class OnFileSortedOutput implements LogicalOutput {
     payloadBuilder.setPathComponent(outputContext.getUniqueIdentifier());
     payloadBuilder.setRunDuration((int) ((endTime - startTime) / 1000));
     DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
+    byte[] payloadBytes = payloadProto.toByteArray();
 
     List<Event> events = Lists.newArrayListWithCapacity(numOutputs);
 
     for (int i = 0; i < numOutputs; i++) {
-      DataMovementEvent event = new DataMovementEvent(i,
-          payloadProto.toByteArray());
+      DataMovementEvent event = new DataMovementEvent(i, payloadBytes);
       events.add(event);
     }
     return events;

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.common.shuffle.impl;
+package org.apache.tez.engine.common;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
@@ -24,25 +24,28 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
  * Container for a task number and an attempt number for the task.
  */
 @Private
-public class TaskAttemptIdentifier {
+public class InputAttemptIdentifier {
 
-  private final int taskIndex;
+  private final InputIdentifier inputIdentifier;
   private final int attemptNumber;
   private String pathComponent;
   
-  public TaskAttemptIdentifier(int taskIndex, int attemptNumber) {
-    this.taskIndex = taskIndex;
-    this.attemptNumber = attemptNumber;
+  public InputAttemptIdentifier(int taskIndex, int attemptNumber) {
+    this(new InputIdentifier(taskIndex), attemptNumber, null);
   }
   
-  public TaskAttemptIdentifier(int taskIndex, int attemptNumber, String pathComponent) {
-    this.taskIndex = taskIndex;
+  public InputAttemptIdentifier(InputIdentifier inputIdentifier, int attemptNumber, String pathComponent) {
+    this.inputIdentifier = inputIdentifier;
     this.attemptNumber = attemptNumber;
     this.pathComponent = pathComponent;
   }
+  
+  public InputAttemptIdentifier(int taskIndex, int attemptNumber, String pathComponent) {
+    this(new InputIdentifier(taskIndex), attemptNumber, pathComponent);
+  }
 
-  public int getTaskIndex() {
-    return taskIndex;
+  public InputIdentifier getInputIdentifier() {
+    return this.inputIdentifier;
   }
 
   public int getAttemptNumber() {
@@ -53,14 +56,14 @@ public class TaskAttemptIdentifier {
     return pathComponent;
   }
 
+  // PathComponent does not need to be part of the hashCode and equals computation.
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + attemptNumber;
     result = prime * result
-        + ((pathComponent == null) ? 0 : pathComponent.hashCode());
-    result = prime * result + taskIndex;
+        + ((inputIdentifier == null) ? 0 : inputIdentifier.hashCode());
     return result;
   }
 
@@ -72,24 +75,21 @@ public class TaskAttemptIdentifier {
       return false;
     if (getClass() != obj.getClass())
       return false;
-    TaskAttemptIdentifier other = (TaskAttemptIdentifier) obj;
+    InputAttemptIdentifier other = (InputAttemptIdentifier) obj;
     if (attemptNumber != other.attemptNumber)
       return false;
-    if (pathComponent == null) {
-      if (other.pathComponent != null)
+    if (inputIdentifier == null) {
+      if (other.inputIdentifier != null)
         return false;
-    } else if (!pathComponent.equals(other.pathComponent))
-      return false;
-    if (taskIndex != other.taskIndex)
+    } else if (!inputIdentifier.equals(other.inputIdentifier))
       return false;
     return true;
   }
 
   @Override
   public String toString() {
-    return "TaskAttemptIdentifier [taskIndex=" + taskIndex + ", attemptNumber="
-        + attemptNumber + ", pathComponent=" + pathComponent + "]";
+    return "InputAttemptIdentifier [inputIdentifier=" + inputIdentifier
+        + ", attemptNumber=" + attemptNumber + ", pathComponent="
+        + pathComponent + "]";
   }
-
-
 }

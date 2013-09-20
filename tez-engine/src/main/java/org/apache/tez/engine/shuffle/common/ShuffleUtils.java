@@ -26,6 +26,7 @@ import javax.crypto.SecretKey;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
 
@@ -61,5 +62,20 @@ public class ShuffleUtils {
     } finally {
       in.close();
     }
+  }
+  
+  // TODO NEWTEZ handle ssl shuffle
+  public static StringBuilder constructBaseURIForShuffleHandler(String host, int port, int partition, ApplicationId appId) {
+    StringBuilder sb = new StringBuilder("http://");
+    sb.append(host);
+    sb.append(":");
+    sb.append(String.valueOf(port));
+    sb.append("/");
+    sb.append("mapOutput?job=");
+    sb.append(appId.toString().replace("application", "job"));
+    sb.append("&reduce=");
+    sb.append(String.valueOf(partition));
+    sb.append("&map=");
+    return sb;
   }
 }

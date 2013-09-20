@@ -181,6 +181,7 @@ public class Shuffle implements ExceptionReporter {
   private class RunShuffleCallable implements Callable<TezRawKeyValueIterator> {
     @Override
     public TezRawKeyValueIterator call() throws IOException, InterruptedException {
+      // TODO NEWTEZ Limit # fetchers to number of inputs
       final int numFetchers = 
           conf.getInt(
               TezJobConfig.TEZ_ENGINE_SHUFFLE_PARALLEL_COPIES, 

@@ -16,18 +16,41 @@
  * limitations under the License.
  */
 
-option java_package = "org.apache.tez.engine.common.shuffle.newimpl";
-option java_outer_classname = "ShuffleUserPayloads";
-option java_generate_equals_and_hash = true;
+package org.apache.tez.engine.common;
 
-message DataMovementEventPayloadProto {
-  optional bool output_generated = 1;
-  optional string host = 2;
-  optional int32 port = 3;
-  optional string path_component = 4;
-  optional int32 run_duration = 5;
-} 
+public class InputIdentifier {
 
-message InputInformationEventPayloadProto {
-  optional int32 partition_range = 1;
+  private final int srcTaskIndex;
+  
+  public InputIdentifier(int srcTaskIndex) {
+    this.srcTaskIndex = srcTaskIndex;
+  }
+
+  public int getSrcTaskIndex() {
+    return this.srcTaskIndex;
+  }
+
+  @Override
+  public int hashCode() {
+    return srcTaskIndex;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    InputIdentifier other = (InputIdentifier) obj;
+    if (srcTaskIndex != other.srcTaskIndex)
+      return false;
+    return true;
+  }
+
+  @Override
+  public String toString() {
+    return "InputIdentifier [srcTaskIndex=" + srcTaskIndex + "]";
+  }
 }

@@ -47,6 +47,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.engine.common.ConfigUtils;
+import org.apache.tez.engine.common.InputAttemptIdentifier;
 import org.apache.tez.engine.common.security.SecureShuffleUtils;
 import org.apache.tez.engine.common.shuffle.impl.MapOutput.Type;
 import org.apache.tez.engine.common.sort.impl.IFileInputStream;
@@ -217,7 +218,7 @@ class Fetcher extends Thread {
   @VisibleForTesting
   protected void copyFromHost(MapHost host) throws IOException {
     // Get completed maps on 'host'
-    List<TaskAttemptIdentifier> srcAttempts = scheduler.getMapsForHost(host);
+    List<InputAttemptIdentifier> srcAttempts = scheduler.getMapsForHost(host);
     
     // Sanity check to catch hosts with only 'OBSOLETE' maps, 
     // especially at the tail of large jobs
@@ -231,7 +232,7 @@ class Fetcher extends Thread {
     }
     
     // List of maps to be fetched yet
-    Set<TaskAttemptIdentifier> remaining = new HashSet<TaskAttemptIdentifier>(srcAttempts);
+    Set<InputAttemptIdentifier> remaining = new HashSet<InputAttemptIdentifier>(srcAttempts);
     
     // Construct the url and connect
     DataInputStream input;
@@ -290,19 +291,20 @@ class Fetcher extends Thread {
       // If connect did not succeed, just mark all the maps as failed,
       // indirectly penalizing the host
       if (!connectSucceeded) {
-        for(TaskAttemptIdentifier left: remaining) {
+        for(InputAttemptIdentifier left: remaining) {
           scheduler.copyFailed(left, host, connectSucceeded);
         }
       } else {
         // If we got a read error at this stage, it implies there was a problem
         // with the first map, typically lost map. So, penalize only that map
         // and add the rest
-        TaskAttemptIdentifier firstMap = srcAttempts.get(0);
+        InputAttemptIdentifier firstMap = srcAttempts.get(0);
         scheduler.copyFailed(firstMap, host, connectSucceeded);
       }
       
       // Add back all the remaining maps, WITHOUT marking them as failed
-      for(TaskAttemptIdentifier left: remaining) {
+      for(InputAttemptIdentifier left: remaining) {
+        // TODO Should the first one be skipped ?
         scheduler.putBackKnownMapOutput(host, left);
       }
       
@@ -314,14 +316,14 @@ class Fetcher extends Thread {
       // On any error, faildTasks is not null and we exit
       // after putting back the remaining maps to the 
       // yet_to_be_fetched list and marking the failed tasks.
-      TaskAttemptIdentifier[] failedTasks = null;
+      InputAttemptIdentifier[] failedTasks = null;
       while (!remaining.isEmpty() && failedTasks == null) {
         failedTasks = copyMapOutput(host, input, remaining);
       }
       
       if(failedTasks != null && failedTasks.length > 0) {
         LOG.warn("copyMapOutput failed for tasks "+Arrays.toString(failedTasks));
-        for(TaskAttemptIdentifier left: failedTasks) {
+        for(InputAttemptIdentifier left: failedTasks) {
           scheduler.copyFailed(left, host, true);
         }
       }
@@ -334,19 +336,19 @@ class Fetcher extends Thread {
             + remaining.size() + " left.");
       }
     } finally {
-      for (TaskAttemptIdentifier left : remaining) {
+      for (InputAttemptIdentifier left : remaining) {
         scheduler.putBackKnownMapOutput(host, left);
       }
     }
   }
   
-  private static TaskAttemptIdentifier[] EMPTY_ATTEMPT_ID_ARRAY = new TaskAttemptIdentifier[0];
+  private static InputAttemptIdentifier[] EMPTY_ATTEMPT_ID_ARRAY = new InputAttemptIdentifier[0];
   
-  private TaskAttemptIdentifier[] copyMapOutput(MapHost host,
+  private InputAttemptIdentifier[] copyMapOutput(MapHost host,
                                 DataInputStream input,
-                                Set<TaskAttemptIdentifier> remaining) {
+                                Set<InputAttemptIdentifier> remaining) {
     MapOutput mapOutput = null;
-    TaskAttemptIdentifier srcAttemptId = null;
+    InputAttemptIdentifier srcAttemptId = null;
     long decompressedLength = -1;
     long compressedLength = -1;
     
@@ -366,14 +368,14 @@ class Fetcher extends Thread {
         badIdErrs.increment(1);
         LOG.warn("Invalid map id ", e);
         //Don't know which one was bad, so consider all of them as bad
-        return remaining.toArray(new TaskAttemptIdentifier[remaining.size()]);
+        return remaining.toArray(new InputAttemptIdentifier[remaining.size()]);
       }
 
  
       // Do some basic sanity verification
       if (!verifySanity(compressedLength, decompressedLength, forReduce,
           remaining, srcAttemptId)) {
-        return new TaskAttemptIdentifier[] {srcAttemptId};
+        return new InputAttemptIdentifier[] {srcAttemptId};
       }
       
       if(LOG.isDebugEnabled()) {
@@ -418,9 +420,9 @@ class Fetcher extends Thread {
                  srcAttemptId + " decomp: " + 
                  decompressedLength + ", " + compressedLength, ioe);
         if(srcAttemptId == null) {
-          return remaining.toArray(new TaskAttemptIdentifier[remaining.size()]);
+          return remaining.toArray(new InputAttemptIdentifier[remaining.size()]);
         } else {
-          return new TaskAttemptIdentifier[] {srcAttemptId};
+          return new InputAttemptIdentifier[] {srcAttemptId};
         }
       }
       
@@ -430,7 +432,7 @@ class Fetcher extends Thread {
       // Inform the shuffle-scheduler
       mapOutput.abort();
       metrics.failedFetch();
-      return new TaskAttemptIdentifier[] {srcAttemptId};
+      return new InputAttemptIdentifier[] {srcAttemptId};
     }
 
   }
@@ -445,7 +447,7 @@ class Fetcher extends Thread {
    * @return true/false, based on if the verification succeeded or not
    */
   private boolean verifySanity(long compressedLength, long decompressedLength,
-      int forReduce, Set<TaskAttemptIdentifier> remaining, TaskAttemptIdentifier srcAttemptId) {
+      int forReduce, Set<InputAttemptIdentifier> remaining, InputAttemptIdentifier srcAttemptId) {
     if (compressedLength < 0 || decompressedLength < 0) {
       wrongLengthErrs.increment(1);
       LOG.warn(getName() + " invalid lengths in map output header: id: " +
@@ -482,13 +484,13 @@ class Fetcher extends Thread {
    * @return
    * @throws MalformedURLException
    */
-  private URL getMapOutputURL(MapHost host, List<TaskAttemptIdentifier> srcAttempts
+  private URL getMapOutputURL(MapHost host, List<InputAttemptIdentifier> srcAttempts
                               )  throws MalformedURLException {
     // Get the base url
     StringBuffer url = new StringBuffer(host.getBaseUrl());
     
     boolean first = true;
-    for (TaskAttemptIdentifier mapId : srcAttempts) {
+    for (InputAttemptIdentifier mapId : srcAttempts) {
       if (!first) {
         url.append(",");
       }

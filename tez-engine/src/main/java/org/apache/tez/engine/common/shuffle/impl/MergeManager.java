@@ -47,6 +47,7 @@ import org.apache.tez.common.Constants;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.engine.common.ConfigUtils;
+import org.apache.tez.engine.common.InputAttemptIdentifier;
 import org.apache.tez.engine.common.sort.impl.IFile;
 import org.apache.tez.engine.common.sort.impl.TezMerger;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
@@ -232,7 +233,7 @@ public class MergeManager {
 
   final private MapOutput stallShuffle = new MapOutput(null);
 
-  public synchronized MapOutput reserve(TaskAttemptIdentifier srcAttemptIdentifier, 
+  public synchronized MapOutput reserve(InputAttemptIdentifier srcAttemptIdentifier, 
                                              long requestedSize,
                                              int fetcher
                                              ) throws IOException {
@@ -279,7 +280,7 @@ public class MergeManager {
    * @return
    */
   private synchronized MapOutput unconditionalReserve(
-      TaskAttemptIdentifier srcAttemptIdentifier, long requestedSize, boolean primaryMapOutput) {
+      InputAttemptIdentifier srcAttemptIdentifier, long requestedSize, boolean primaryMapOutput) {
     usedMemory += requestedSize;
     return new MapOutput(srcAttemptIdentifier, this, (int)requestedSize, 
         primaryMapOutput);
@@ -409,7 +410,7 @@ public class MergeManager {
         return;
       }
 
-      TaskAttemptIdentifier dummyMapId = inputs.get(0).getAttemptIdentifier(); 
+      InputAttemptIdentifier dummyMapId = inputs.get(0).getAttemptIdentifier(); 
       List<Segment> inMemorySegments = new ArrayList<Segment>();
       long mergeOutputSize = 
         createInMemorySegments(inputs, inMemorySegments, 0);
@@ -468,17 +469,16 @@ public class MergeManager {
       //in the merge method)
 
       //figure out the mapId 
-      TaskAttemptIdentifier srcTaskIdentifier = inputs.get(0).getAttemptIdentifier();
+      InputAttemptIdentifier srcTaskIdentifier = inputs.get(0).getAttemptIdentifier();
 
       List<Segment> inMemorySegments = new ArrayList<Segment>();
       long mergeOutputSize = 
         createInMemorySegments(inputs, inMemorySegments,0);
       int noInMemorySegments = inMemorySegments.size();
 
-      Path outputPath = 
-        mapOutputFile.getInputFileForWrite(srcTaskIdentifier.getTaskIndex(),
-                                           mergeOutputSize).suffix(
-                                               Constants.MERGED_OUTPUT_PREFIX);
+      Path outputPath = mapOutputFile.getInputFileForWrite(
+          srcTaskIdentifier.getInputIdentifier().getSrcTaskIndex(),
+          mergeOutputSize).suffix(Constants.MERGED_OUTPUT_PREFIX);
 
       Writer writer = null;
       try {
@@ -696,7 +696,7 @@ public class MergeManager {
     long inMemToDiskBytes = 0;
     boolean mergePhaseFinished = false;
     if (inMemoryMapOutputs.size() > 0) {
-      int srcTaskId = inMemoryMapOutputs.get(0).getAttemptIdentifier().getTaskIndex();
+      int srcTaskId = inMemoryMapOutputs.get(0).getAttemptIdentifier().getInputIdentifier().getSrcTaskIndex();
       inMemToDiskBytes = createInMemorySegments(inMemoryMapOutputs, 
                                                 memDiskSegments,
                                                 maxInMemReduce);

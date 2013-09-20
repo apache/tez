@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
+import org.apache.tez.engine.common.InputAttemptIdentifier;
 import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutputFiles;
 
 
@@ -42,7 +43,7 @@ class MapOutput {
     DISK
   }
   
-  private TaskAttemptIdentifier attemptIdentifier;
+  private InputAttemptIdentifier attemptIdentifier;
   private final int id;
   
   private final MergeManager merger;
@@ -61,7 +62,7 @@ class MapOutput {
   
   private final boolean primaryMapOutput;
   
-  MapOutput(TaskAttemptIdentifier attemptIdentifier, MergeManager merger, long size, 
+  MapOutput(InputAttemptIdentifier attemptIdentifier, MergeManager merger, long size, 
             Configuration conf, LocalDirAllocator localDirAllocator,
             int fetcher, boolean primaryMapOutput, 
             TezTaskOutputFiles mapOutputFile)
@@ -79,7 +80,7 @@ class MapOutput {
     
     this.localFS = FileSystem.getLocal(conf);
     outputPath =
-      mapOutputFile.getInputFileForWrite(this.attemptIdentifier.getTaskIndex(), size);
+      mapOutputFile.getInputFileForWrite(this.attemptIdentifier.getInputIdentifier().getSrcTaskIndex(), size);
     tmpOutputPath = outputPath.suffix(String.valueOf(fetcher));
 
     disk = localFS.create(tmpOutputPath);
@@ -87,7 +88,7 @@ class MapOutput {
     this.primaryMapOutput = primaryMapOutput;
   }
   
-  MapOutput(TaskAttemptIdentifier attemptIdentifier, MergeManager merger, int size, 
+  MapOutput(InputAttemptIdentifier attemptIdentifier, MergeManager merger, int size, 
             boolean primaryMapOutput) {
     this.id = ID.incrementAndGet();
     this.attemptIdentifier = attemptIdentifier;
@@ -107,7 +108,7 @@ class MapOutput {
     this.primaryMapOutput = primaryMapOutput;
   }
 
-  public MapOutput(TaskAttemptIdentifier attemptIdentifier) {
+  public MapOutput(InputAttemptIdentifier attemptIdentifier) {
     this.id = ID.incrementAndGet();
     this.attemptIdentifier = attemptIdentifier;
 
@@ -159,7 +160,7 @@ class MapOutput {
     return disk;
   }
 
-  public TaskAttemptIdentifier getAttemptIdentifier() {
+  public InputAttemptIdentifier getAttemptIdentifier() {
     return this.attemptIdentifier;
   }
 

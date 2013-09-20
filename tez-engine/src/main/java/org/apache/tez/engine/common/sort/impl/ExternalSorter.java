@@ -21,7 +21,6 @@ package org.apache.tez.engine.common.sort.impl;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Constructor;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,22 +39,19 @@ import org.apache.hadoop.util.IndexedSorter;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.QuickSort;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.Constants;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.engine.api.Partitioner;
 import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.TezEngineUtils;
 import org.apache.tez.engine.common.shuffle.impl.ShuffleHeader;
+import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutput;
-import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutputFiles;
 import org.apache.tez.engine.hadoop.compat.NullProgressable;
 import org.apache.tez.engine.newapi.TezOutputContext;
 import org.apache.tez.engine.records.OutputContext;
-import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public abstract class ExternalSorter {
@@ -138,7 +134,7 @@ public abstract class ExternalSorter {
     }
 
     // Task outputs
-    mapOutputFile = instantiateTaskOutputManager(this.conf, outputContext);
+    mapOutputFile = TezEngineUtils.instantiateTaskOutputManager(conf, outputContext);
     
     LOG.info("Instantiating Partitioner: [" + conf.get(TezJobConfig.TEZ_ENGINE_PARTITIONER_CLASS) + "]");
     this.conf.setInt(TezJobConfig.TEZ_ENGINE_NUM_EXPECTED_PARTITIONS, this.partitions);
@@ -223,23 +219,5 @@ public abstract class ExternalSorter {
 
   public OutputContext getOutputContext() {
     return null;
-  }
-  
-  
-
-  private TezTaskOutput instantiateTaskOutputManager(Configuration conf, TezOutputContext outputContext) {
-    Class<?> clazz = conf.getClass(Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER,
-        TezTaskOutputFiles.class);
-    try {
-      Constructor<?> ctor = clazz.getConstructor(Configuration.class, String.class);
-      ctor.setAccessible(true);
-      TezTaskOutput instance = (TezTaskOutput) ctor.newInstance(conf, outputContext.getUniqueIdentifier());
-      return instance;
-    } catch (Exception e) {
-      throw new TezUncheckedException(
-          "Unable to instantiate configured TezOutputFileManager: "
-              + conf.get(Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER,
-                  TezTaskOutputFiles.class.getName()), e);
-    }
   }
 }

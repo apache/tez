@@ -40,6 +40,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.engine.common.InputAttemptIdentifier;
 import org.apache.tez.engine.common.TezEngineUtils;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.TezInputContext;
@@ -63,17 +64,17 @@ class ShuffleScheduler {
   private final Map<Integer, MutableInt> finishedMaps;
   private final int numInputs;
   private int remainingMaps;
-  private Map<TaskAttemptIdentifier, MapHost> mapLocations = new HashMap<TaskAttemptIdentifier, MapHost>();
+  private Map<InputAttemptIdentifier, MapHost> mapLocations = new HashMap<InputAttemptIdentifier, MapHost>();
   //TODO NEWTEZ Clean this and other maps at some point
-  private ConcurrentMap<String, TaskAttemptIdentifier> pathToIdentifierMap = new ConcurrentHashMap<String, TaskAttemptIdentifier>(); 
+  private ConcurrentMap<String, InputAttemptIdentifier> pathToIdentifierMap = new ConcurrentHashMap<String, InputAttemptIdentifier>(); 
   private Set<MapHost> pendingHosts = new HashSet<MapHost>();
-  private Set<TaskAttemptIdentifier> obsoleteMaps = new HashSet<TaskAttemptIdentifier>();
+  private Set<InputAttemptIdentifier> obsoleteMaps = new HashSet<InputAttemptIdentifier>();
   
   private final Random random = new Random(System.currentTimeMillis());
   private final DelayQueue<Penalty> penalties = new DelayQueue<Penalty>();
   private final Referee referee = new Referee();
-  private final Map<TaskAttemptIdentifier, IntWritable> failureCounts =
-    new HashMap<TaskAttemptIdentifier,IntWritable>(); 
+  private final Map<InputAttemptIdentifier, IntWritable> failureCounts =
+    new HashMap<InputAttemptIdentifier,IntWritable>(); 
   private final Map<String,IntWritable> hostFailures = 
     new HashMap<String,IntWritable>();
   private final TezInputContext inputContext;
@@ -127,19 +128,19 @@ class ShuffleScheduler {
             TezJobConfig.DEFAULT_TEZ_ENGINE_SHUFFLE_NOTIFY_READERROR);
   }
 
-  public synchronized void copySucceeded(TaskAttemptIdentifier srcAttemptIdentifier, 
+  public synchronized void copySucceeded(InputAttemptIdentifier srcAttemptIdentifier, 
                                          MapHost host,
                                          long bytes,
                                          long milis,
                                          MapOutput output
                                          ) throws IOException {
-    String taskIdentifier = TezEngineUtils.getTaskAttemptIdentifier(srcAttemptIdentifier.getTaskIndex(), srcAttemptIdentifier.getAttemptNumber());
+    String taskIdentifier = TezEngineUtils.getTaskAttemptIdentifier(srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex(), srcAttemptIdentifier.getAttemptNumber());
     failureCounts.remove(taskIdentifier);
     hostFailures.remove(host.getHostName());
     
-    if (!isFinishedTaskTrue(srcAttemptIdentifier.getTaskIndex())) {
+    if (!isFinishedTaskTrue(srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex())) {
       output.commit();
-      if(incrementTaskCopyAndCheckCompletion(srcAttemptIdentifier.getTaskIndex())) {
+      if(incrementTaskCopyAndCheckCompletion(srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex())) {
         shuffledMapsCounter.increment(1);
         if (--remainingMaps == 0) {
           notifyAll();
@@ -154,10 +155,11 @@ class ShuffleScheduler {
       if (LOG.isDebugEnabled()) {
         LOG.debug("src task: "
             + TezEngineUtils.getTaskAttemptIdentifier(
-                inputContext.getSourceVertexName(), srcAttemptIdentifier.getTaskIndex(),
+                inputContext.getSourceVertexName(), srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex(),
                 srcAttemptIdentifier.getAttemptNumber()) + " done");
       }
     }
+    // TODO NEWTEZ Should this be releasing the output, if not committed ? Possible memory leak in case of speculation.
   }
 
   private void logProgress() {
@@ -170,7 +172,7 @@ class ShuffleScheduler {
         + mbpsFormat.format(transferRate) + " MB/s)");
   }
 
-  public synchronized void copyFailed(TaskAttemptIdentifier srcAttempt,
+  public synchronized void copyFailed(InputAttemptIdentifier srcAttempt,
                                       MapHost host,
                                       boolean readError) {
     host.penalize();
@@ -194,7 +196,7 @@ class ShuffleScheduler {
         throw new IOException(failures
             + " failures downloading "
             + TezEngineUtils.getTaskAttemptIdentifier(
-                inputContext.getSourceVertexName(), srcAttempt.getTaskIndex(),
+                inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getSrcTaskIndex(),
                 srcAttempt.getAttemptNumber()));
       } catch (IOException ie) {
         shuffle.reportException(ie);
@@ -217,20 +219,20 @@ class ShuffleScheduler {
   // after every read error, if 'reportReadErrorImmediately' is true or
   // after every 'maxFetchFailuresBeforeReporting' failures
   private void checkAndInformJobTracker(
-      int failures, TaskAttemptIdentifier srcAttempt, boolean readError) {
+      int failures, InputAttemptIdentifier srcAttempt, boolean readError) {
     if ((reportReadErrorImmediately && readError)
         || ((failures % maxFetchFailuresBeforeReporting) == 0)) {
       LOG.info("Reporting fetch failure for "
           + TezEngineUtils.getTaskAttemptIdentifier(
-              inputContext.getSourceVertexName(), srcAttempt.getTaskIndex(),
+              inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getSrcTaskIndex(),
               srcAttempt.getAttemptNumber()) + " to jobtracker.");
 
       List<Event> failedEvents = Lists.newArrayListWithCapacity(1);
       failedEvents.add(new InputReadErrorEvent("Fetch failure for "
           + TezEngineUtils.getTaskAttemptIdentifier(
-              inputContext.getSourceVertexName(), srcAttempt.getTaskIndex(),
-              srcAttempt.getAttemptNumber()) + " to jobtracker.", srcAttempt
-          .getTaskIndex(), srcAttempt.getAttemptNumber()));
+              inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getSrcTaskIndex(),
+              srcAttempt.getAttemptNumber()) + " to jobtracker.", srcAttempt.getInputIdentifier()
+          .getSrcTaskIndex(), srcAttempt.getAttemptNumber()));
 
       inputContext.sendEvents(failedEvents);      
       //status.addFailedDependency(mapId);
@@ -299,7 +301,7 @@ class ShuffleScheduler {
   public synchronized void addKnownMapOutput(String hostName,
                                              int partitionId,
                                              String hostUrl,
-                                             TaskAttemptIdentifier srcAttempt) {
+                                             InputAttemptIdentifier srcAttempt) {
     String identifier = MapHost.createIdentifier(hostName, partitionId);
     MapHost host = mapLocations.get(identifier);
     if (host == null) {
@@ -317,13 +319,13 @@ class ShuffleScheduler {
     }
   }
   
-  public synchronized void obsoleteMapOutput(TaskAttemptIdentifier srcAttempt) {
+  public synchronized void obsoleteMapOutput(InputAttemptIdentifier srcAttempt) {
     // The incoming srcAttempt does not contain a path component.
     obsoleteMaps.add(srcAttempt);
   }
   
   public synchronized void putBackKnownMapOutput(MapHost host,
-                                                 TaskAttemptIdentifier srcAttempt) {
+                                                 InputAttemptIdentifier srcAttempt) {
     host.addKnownMap(srcAttempt);
   }
 
@@ -349,20 +351,20 @@ class ShuffleScheduler {
       return host;
   }
   
-  public TaskAttemptIdentifier getIdentifierForPathComponent(String pathComponent) {
+  public InputAttemptIdentifier getIdentifierForPathComponent(String pathComponent) {
     return pathToIdentifierMap.get(pathComponent);
   }
   
-  public synchronized List<TaskAttemptIdentifier> getMapsForHost(MapHost host) {
-    List<TaskAttemptIdentifier> list = host.getAndClearKnownMaps();
-    Iterator<TaskAttemptIdentifier> itr = list.iterator();
-    List<TaskAttemptIdentifier> result = new ArrayList<TaskAttemptIdentifier>();
+  public synchronized List<InputAttemptIdentifier> getMapsForHost(MapHost host) {
+    List<InputAttemptIdentifier> list = host.getAndClearKnownMaps();
+    Iterator<InputAttemptIdentifier> itr = list.iterator();
+    List<InputAttemptIdentifier> result = new ArrayList<InputAttemptIdentifier>();
     int includedMaps = 0;
     int totalSize = list.size();
     // find the maps that we still need, up to the limit
     while (itr.hasNext()) {
-      TaskAttemptIdentifier id = itr.next();
-      if (!obsoleteMaps.contains(id) && !isFinishedTaskTrue(id.getTaskIndex())) {
+      InputAttemptIdentifier id = itr.next();
+      if (!obsoleteMaps.contains(id) && !isFinishedTaskTrue(id.getInputIdentifier().getSrcTaskIndex())) {
         result.add(id);
         if (++includedMaps >= MAX_MAPS_AT_ONCE) {
           break;
@@ -371,8 +373,8 @@ class ShuffleScheduler {
     }
     // put back the maps left after the limit
     while (itr.hasNext()) {
-      TaskAttemptIdentifier id = itr.next();
-      if (!obsoleteMaps.contains(id) && !isFinishedTaskTrue(id.getTaskIndex())) {
+      InputAttemptIdentifier id = itr.next();
+      if (!obsoleteMaps.contains(id) && !isFinishedTaskTrue(id.getInputIdentifier().getSrcTaskIndex())) {
         host.addKnownMap(id);
       }
     }

@@ -16,18 +16,14 @@
  * limitations under the License.
  */
 
-option java_package = "org.apache.tez.engine.common.shuffle.newimpl";
-option java_outer_classname = "ShuffleUserPayloads";
-option java_generate_equals_and_hash = true;
+package org.apache.tez.engine.shuffle.common;
 
-message DataMovementEventPayloadProto {
-  optional bool output_generated = 1;
-  optional string host = 2;
-  optional int32 port = 3;
-  optional string path_component = 4;
-  optional int32 run_duration = 5;
-} 
-
-message InputInformationEventPayloadProto {
-  optional int32 partition_range = 1;
+public interface FetchedInputCallback {
+  
+  public void fetchComplete(FetchedInput fetchedInput);
+  
+  public void fetchFailed(FetchedInput fetchedInput);
+  
+  public void freeResources(FetchedInput fetchedInput);
+  
 }

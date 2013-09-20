@@ -398,7 +398,7 @@ public class IFile {
      * @param readsCounter Counter for records read from disk
      * @throws IOException
      */
-    public Reader(Configuration conf, FSDataInputStream in, long length, 
+    public Reader(Configuration conf, InputStream in, long length, 
                   CompressionCodec codec,
                   TezCounter readsCounter) throws IOException {
       readRecordsCounter = readsCounter;
