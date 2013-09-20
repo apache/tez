@@ -44,9 +44,7 @@ import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputConsumable;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerImpl;
@@ -344,34 +342,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     return true;
   }
   */
-
-  /**
-   * TaskAttempt is reporting that it is in commit_pending and it is waiting for
-   * the commit Response
-   *
-   * <br/>
-   * Commit it a two-phased protocol. First the attempt informs the
-   * ApplicationMaster that it is
-   * {@link #commitPending(TaskAttemptID, TaskStatus)}. Then it repeatedly polls
-   * the ApplicationMaster whether it {@link #canCommit(TaskAttemptID)} This is
-   * a legacy from the centralized commit protocol handling by the JobTracker.
-   */
-  @Override
-  public void commitPending(TezTaskAttemptID taskAttemptId)
-      throws IOException, InterruptedException {
-    LOG.info("Commit-pending state update from " + taskAttemptId.toString());
-    // An attempt is asking if it can commit its output. This can be decided
-    // only by the task which is managing the multiple attempts. So redirect the
-    // request there.
-    taskHeartbeatHandler.progressing(taskAttemptId);
-    pingContainerHeartbeatHandler(taskAttemptId);
-    //Ignorable TaskStatus? - since a task will send a LastStatusUpdate
-    context.getEventHandler().handle(
-        new TaskAttemptEvent(
-            taskAttemptId,
-            TaskAttemptEventType.TA_COMMIT_PENDING)
-        );
-  }
 
   /**
    * Child checking whether it can commit.

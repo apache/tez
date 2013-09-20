@@ -70,6 +70,7 @@ public interface TaskAttempt {
   TezCounters getCounters();
   float getProgress();
   TaskAttemptState getState();
+  TaskAttemptState getStateNoLock();
 
   /** 
    * Has attempt reached the final state or not.

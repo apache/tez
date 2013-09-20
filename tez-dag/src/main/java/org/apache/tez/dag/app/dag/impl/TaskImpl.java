@@ -167,9 +167,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         TaskEventType.T_ATTEMPT_OUTPUT_CONSUMABLE,
         new AttemptProcessingCompleteTransition())
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.RUNNING,
-        TaskEventType.T_ATTEMPT_COMMIT_PENDING,
-        new AttemptCommitPendingTransition())
-    .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.RUNNING,
         TaskEventType.T_ADD_SPEC_ATTEMPT, new RedundantScheduleTransition())
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.SUCCEEDED,
         TaskEventType.T_ATTEMPT_SUCCEEDED,
@@ -203,7 +200,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             TaskEventType.T_TERMINATE,
             TaskEventType.T_ATTEMPT_LAUNCHED,
             TaskEventType.T_ATTEMPT_OUTPUT_CONSUMABLE,
-            TaskEventType.T_ATTEMPT_COMMIT_PENDING,
             TaskEventType.T_ATTEMPT_FAILED,
             TaskEventType.T_ATTEMPT_SUCCEEDED,
             TaskEventType.T_ADD_SPEC_ATTEMPT))
@@ -584,17 +580,50 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   @Override
   public boolean canCommit(TezTaskAttemptID taskAttemptID) {
-    readLock.lock();
-    boolean canCommit = false;
+    writeLock.lock();
     try {
-      if (commitAttempt != null) {
-        canCommit = taskAttemptID.equals(commitAttempt);
-        LOG.info("Result of canCommit for " + taskAttemptID + ":" + canCommit);
+      if (getState() != TaskState.RUNNING) {
+        LOG.info("Task not running. Issuing kill to bad commit attempt " + taskAttemptID);
+        eventHandler.handle(new TaskAttemptEventKillRequest(taskAttemptID
+            , "Task not running. Bad attempt."));
+        return false;
       }
+      if (commitAttempt == null) {
+        TaskAttempt ta = getAttempt(taskAttemptID);
+        if (ta == null) {
+          throw new TezUncheckedException("Unknown task for commit: " + taskAttemptID);
+        }
+        // Its ok to get a non-locked state snapshot since we handle changes of 
+        // state in the task attempt. Dont want to deadlock here.
+        TaskAttemptState taState = ta.getStateNoLock();
+        if (taState == TaskAttemptState.RUNNING) {
+          commitAttempt = taskAttemptID;
+          LOG.info(taskAttemptID + " given a go for committing the task output.");
+          return true;
+        } else {
+          LOG.info(taskAttemptID + " with state: " + taState + 
+              " given a no-go for commit because its not running.");
+          return false;
+        }
+      } else {
+        if (commitAttempt.equals(taskAttemptID)) {
+          LOG.info(taskAttemptID + " given a go for committing the task output.");
+          return true;
+        }
+        // Don't think this can be a pluggable decision, so simply raise an
+        // event for the TaskAttempt to delete its output.
+        // Wait for commit attempt to succeed. Dont kill this. If commit
+        // attempt fails then choose a different committer. When commit attempt 
+        // succeeds then this and others will be killed
+        LOG.info(commitAttempt
+            + " is current committer. Commit waiting for:  "
+            + taskAttemptID);
+        return false;
+      }
+    
     } finally {
-      readLock.unlock();
+      writeLock.unlock();
     }
-    return canCommit;
   }
 
   // TODO remove hacky name lookup
@@ -887,50 +916,34 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  private static class AttemptCommitPendingTransition implements
-      SingleArcTransition<TaskImpl, TaskEvent> {
-    @Override
-    public void transition(TaskImpl task, TaskEvent event) {
-      TaskEventTAUpdate ev = (TaskEventTAUpdate) event;
-      // The nextAttemptNumber is commit pending, decide on set the
-      // commitAttempt
-      TezTaskAttemptID attemptID = ev.getTaskAttemptID();
-      if (task.commitAttempt == null) {
-        // TODO: validate attemptID
-        task.commitAttempt = attemptID;
-        LOG.info(attemptID + " given a go for committing the task output.");
-      } else {
-        // Don't think this can be a pluggable decision, so simply raise an
-        // event for the TaskAttempt to delete its output.
-        // TODO . Wait for commit attempt to succeed. Dont kill this. If commit
-        // attempt fails then choose a different committer.
-        LOG.info(task.commitAttempt
-            + " already given a go for committing the task output, so killing "
-            + attemptID);
-        task.eventHandler.handle(new TaskAttemptEventKillRequest(attemptID,
-            "Output being committed by alternate attemptId."));
-      }
-    }
-  }
-
   private static class AttemptSucceededTransition
       implements SingleArcTransition<TaskImpl, TaskEvent> {
     @Override
     public void transition(TaskImpl task, TaskEvent event) {
-      task.handleTaskAttemptCompletion(
-          ((TaskEventTAUpdate) event).getTaskAttemptID(),
+      TezTaskAttemptID successTaId = ((TaskEventTAUpdate) event).getTaskAttemptID();
+      
+      if (task.commitAttempt != null && 
+          !task.commitAttempt.equals(successTaId)) {
+        // The succeeded attempt is not the one that was selected to commit
+        // This is impossible and has to be a bug
+        throw new TezUncheckedException("TA: " + successTaId 
+            + " succeeded but TA: " + task.commitAttempt 
+            + " was expected to commit and succeed");
+      }
+      
+      task.handleTaskAttemptCompletion(successTaId, 
           TezDependentTaskCompletionEvent.Status.SUCCEEDED);
       task.finishedAttempts++;
       --task.numberUncompletedAttempts;
-      task.successfulAttempt = ((TaskEventTAUpdate) event).getTaskAttemptID();
+      task.successfulAttempt = successTaId;
       task.eventHandler.handle(new VertexEventTaskCompleted(
           task.taskId, TaskState.SUCCEEDED));
       LOG.info("Task succeeded with attempt " + task.successfulAttempt);
-      // issue kill to all other attempts
       if (task.historyTaskStartGenerated) {
         task.logJobHistoryTaskFinishedEvent();
       }
 
+      // issue kill to all other attempts
       for (TaskAttempt attempt : task.attempts.values()) {
         if (attempt.getID() != task.successfulAttempt &&
             // This is okay because it can only talk us out of sending a
@@ -954,12 +967,18 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       SingleArcTransition<TaskImpl, TaskEvent> {
     @Override
     public void transition(TaskImpl task, TaskEvent event) {
+      TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
+      if (task.commitAttempt !=null && 
+          castEvent.getTaskAttemptID().equals(task.commitAttempt)) {
+        task.commitAttempt = null;
+      }
       task.handleTaskAttemptCompletion(
-          ((TaskEventTAUpdate) event).getTaskAttemptID(),
+          castEvent.getTaskAttemptID(),
           TezDependentTaskCompletionEvent.Status.KILLED);
       task.finishedAttempts++;
-      --task.numberUncompletedAttempts;
-      if (task.successfulAttempt == null) {
+      // we don't need a new event if we already have a spare
+      if (--task.numberUncompletedAttempts == 0
+          && task.successfulAttempt == null) {
         task.addAndScheduleAttempt();
       }
     }
@@ -1001,7 +1020,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
       task.failedAttempts++;
       TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
-      if (castEvent.getTaskAttemptID().equals(task.commitAttempt)) {
+      if (task.commitAttempt != null && 
+          castEvent.getTaskAttemptID().equals(task.commitAttempt)) {
         task.commitAttempt = null;
       }
       if (castEvent.getTaskAttemptID().equals(task.outputConsumableAttempt)) {
@@ -1143,6 +1163,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   private void killUnfinishedAttempt(TaskAttempt attempt, String logMsg) {
+    if (commitAttempt != null && commitAttempt.equals(attempt)) {
+      LOG.info("Removing commit attempt: " + commitAttempt);
+      commitAttempt = null;
+    }
     if (attempt != null && !attempt.isFinished()) {
       eventHandler.handle(new TaskAttemptEventKillRequest(attempt.getID(),
           logMsg));

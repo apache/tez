@@ -400,24 +400,6 @@ public abstract class MRTask extends RunningTaskContext {
     TezTaskUmbilicalProtocol umbilical = getUmbilical();
     // TODO TEZ Interaciton between Commit and OutputReady. Merge ?
     if (isCommitRequired()) {
-      int retries = MAX_RETRIES;
-      setState(TezTaskStatus.State.COMMIT_PENDING);
-      // say the task tracker that task is commit pending
-      // TODO TEZAM2 - Why is the commitRequired check missing ?
-      while (true) {
-        try {
-          umbilical.commitPending(taskAttemptId);
-          break;
-        } catch (InterruptedException ie) {
-          // ignore
-        } catch (IOException ie) {
-          LOG.warn("Failure sending commit pending: " +
-              StringUtils.stringifyException(ie));
-          if (--retries == 0) {
-            System.exit(67);
-          }
-        }
-      }
       //wait for commit approval and commit
       // TODO EVENTUALLY - Commit is not required for map tasks. skip a couple of RPCs before exiting.
       commit(umbilical, reporter, committer);

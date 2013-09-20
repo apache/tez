@@ -493,68 +493,6 @@ public class TestTaskAttempt {
   }
 
   @Test
-  // Ensure ContainerTerminated is handled correctly by the TaskAttempt
-  public void testContainerTerminatedWhileCommitting() throws Exception {
-    ApplicationId appId = ApplicationId.newInstance(1, 2);
-    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
-        appId, 0);
-    TezDAGID dagID = new TezDAGID(appId, 1);
-    TezVertexID vertexID = new TezVertexID(dagID, 1);
-    TezTaskID taskID = new TezTaskID(vertexID, 1);
-    TezTaskAttemptID taskAttemptID = new TezTaskAttemptID(taskID, 0);
-
-    MockEventHandler eventHandler = new MockEventHandler();
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    when(taListener.getAddress()).thenReturn(
-        new InetSocketAddress("localhost", 0));
-
-    Configuration taskConf = new Configuration();
-    taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
-    taskConf.setBoolean("fs.file.impl.disable.cache", true);
-
-    TaskLocationHint locationHint = new TaskLocationHint(
-        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
-    Resource resource = Resource.newInstance(1024, 1);
-
-    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
-    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
-    Container container = mock(Container.class);
-    when(container.getId()).thenReturn(contId);
-    when(container.getNodeId()).thenReturn(nid);
-    when(container.getNodeHttpAddress()).thenReturn("localhost:0");
-
-    AppContext appCtx = mock(AppContext.class);
-    AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
-        appCtx);
-    containers.addContainerIfNew(container);
-
-    doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
-    doReturn(containers).when(appCtx).getAllContainers();
-
-    TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, taskConf, new SystemClock(),
-        mock(TaskHeartbeatHandler.class), appCtx, locationHint, false,
-        resource, createFakeContainerContext());
-
-    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
-    // At state STARTING.
-    taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
-        null));
-    assertEquals("Task attempt is not in running state", taImpl.getState(),
-        TaskAttemptState.RUNNING);
-    taImpl.handle(new TaskAttemptEvent(taskAttemptID,
-        TaskAttemptEventType.TA_COMMIT_PENDING));
-    assertEquals("Task attempt is not in commit pending state",
-        taImpl.getState(), TaskAttemptState.COMMIT_PENDING);
-    taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID, null));
-    assertFalse(
-        "InternalError occurred trying to handle TA_CONTAINER_TERMINATED",
-        eventHandler.internalError);
-    // TODO Verify diagnostics
-  }
-
-  @Test
   // Ensure ContainerTerminating and ContainerTerminated is handled correctly by
   // the TaskAttempt
   public void testContainerTerminatedAfterSuccess() throws Exception {

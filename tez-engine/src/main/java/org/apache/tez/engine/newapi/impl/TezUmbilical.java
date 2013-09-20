@@ -33,7 +33,4 @@ public interface TezUmbilical {
 
   public boolean canCommit(TezTaskAttemptID taskAttemptID) throws IOException;
 
-  public void commitPending(TezTaskAttemptID taskAttemptID)
-      throws IOException, InterruptedException;
-
 }

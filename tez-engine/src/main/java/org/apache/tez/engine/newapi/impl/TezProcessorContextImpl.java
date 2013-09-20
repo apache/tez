@@ -83,9 +83,4 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
     return tezUmbilical.canCommit(this.taskAttemptID);
   }
 
-  @Override
-  public void commitPending() throws IOException, InterruptedException {
-    tezUmbilical.commitPending(this.taskAttemptID);
-  }
-
 }

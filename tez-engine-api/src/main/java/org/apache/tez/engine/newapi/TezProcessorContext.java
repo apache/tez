@@ -38,11 +38,4 @@ public interface TezProcessorContext extends TezTaskContext {
    */
   public boolean canCommit() throws IOException;
 
-  /**
-   * Tell the AM that this processor has a pending commit
-   * @throws IOException
-   * @throws InterruptedException
-   */
-  public void commitPending() throws IOException, InterruptedException;
-
 }

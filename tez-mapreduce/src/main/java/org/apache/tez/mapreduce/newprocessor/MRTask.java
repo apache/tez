@@ -464,26 +464,6 @@ public abstract class MRTask {
     if (output instanceof SimpleOutput) {
       SimpleOutput sOut = (SimpleOutput)output;
       if (sOut.isCommitRequired()) {
-        processorContext.commitPending();
-        // TODO NEWTEZ TEZ-439
-  //      int retries = MAX_RETRIES;
-  //      setState(TezTaskStatus.State.COMMIT_PENDING);
-  //      //say the task tracker that task is commit pending
-  //      // TODO TEZAM2 - Why is the commitRequired check missing ?
-  //      while (true) {
-  //        try {
-  //          umbilical.commitPending(taskAttemptId, status);
-  //          break;
-  //        } catch (InterruptedException ie) {
-  //          // ignore
-  //        } catch (IOException ie) {
-  //          LOG.warn("Failure sending commit pending: " +
-  //              StringUtils.stringifyException(ie));
-  //          if (--retries == 0) {
-  //            System.exit(67);
-  //          }
-  //        }
-  //      }
         //wait for commit approval and commit
         // TODO EVENTUALLY - Commit is not required for map tasks.
         // skip a couple of RPCs before exiting.
@@ -517,14 +497,24 @@ public abstract class MRTask {
   }
 
   private void commit(SimpleOutput output) throws IOException {
-    while (!processorContext.canCommit()) {
+    int retries = 3;
+    while (true) {
       // This will loop till the AM asks for the task to be killed. As
       // against, the AM sending a signal to the task to kill itself
       // gracefully.
       try {
+        if (processorContext.canCommit()) {
+          break;
+        }
         Thread.sleep(1000);
       } catch(InterruptedException ie) {
         //ignore
+      } catch (IOException ie) {
+        LOG.warn("Failure sending canCommit: "
+            + StringUtils.stringifyException(ie));
+        if (--retries == 0) {
+          throw ie;
+        }
       }
     }
 

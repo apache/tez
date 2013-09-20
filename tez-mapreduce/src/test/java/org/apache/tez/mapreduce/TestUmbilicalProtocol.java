@@ -79,13 +79,6 @@ public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
     return null;
   }
 
-
-  @Override
-  public void commitPending(TezTaskAttemptID taskId)
-      throws IOException, InterruptedException {
-    LOG.info("Got 'commit-pending' from " + taskId);
-  }
-
   @Override
   public boolean canCommit(TezTaskAttemptID taskid) throws IOException {
     LOG.info("Got 'can-commit' from " + taskid);

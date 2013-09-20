@@ -606,13 +606,6 @@ public class LocalJobRunnerTez implements ClientProtocol {
       return null;
     }
 
-    @Override
-    public void commitPending(TezTaskAttemptID taskId)
-        throws IOException, InterruptedException {
-      // TODO Auto-generated method stub
-      // TODO TODONEWTEZ
-    }
-
   }
 
   public LocalJobRunnerTez(Configuration conf) throws IOException {

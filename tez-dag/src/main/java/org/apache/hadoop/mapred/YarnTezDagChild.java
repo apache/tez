@@ -333,12 +333,6 @@ public class YarnTezDagChild {
           throws IOException {
         return umbilical.canCommit(taskAttemptID);
       }
-
-      @Override
-      public void commitPending(TezTaskAttemptID taskAttemptID)
-          throws IOException, InterruptedException {
-        umbilical.commitPending(taskAttemptID);
-      }
     };
 
     // report non-pid to application master
