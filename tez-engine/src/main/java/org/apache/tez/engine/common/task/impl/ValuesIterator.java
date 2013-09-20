@@ -30,7 +30,14 @@ import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.util.Progressable;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
 
-/** Iterates values while keys match in sorted input. */
+
+/**
+ * Iterates values while keys match in sorted input.
+ *
+ * Usage: Call moveToNext to move to the next k, v pair. This returns true if another exists,
+ * followed by getKey() and getValues() to get the current key and list of values.
+ * 
+ */
 public class ValuesIterator<KEY,VALUE> implements Iterator<VALUE> {
   protected TezRawKeyValueIterator in; //input iterator
   private KEY key;               // current key

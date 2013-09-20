@@ -140,5 +140,9 @@ public class ConfigUtils {
 
     return ReflectionUtils.newInstance(theClass, conf);
   }
+  
+  public static boolean useNewApi(Configuration conf) {
+    return conf.getBoolean("mapred.mapper.new-api", false);
+  }
 
 }

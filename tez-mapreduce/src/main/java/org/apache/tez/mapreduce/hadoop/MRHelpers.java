@@ -59,6 +59,7 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.mapreduce.newcombine.MRCombiner;
 import org.apache.tez.mapreduce.newpartition.MRPartitioner;
 
 
@@ -367,6 +368,18 @@ public class MRHelpers {
 
     // TODO eventually ACLs
     conf.set(TezJobConfig.TEZ_ENGINE_PARTITIONER_CLASS, MRPartitioner.class.getName());
+    
+    boolean useNewApi = conf.getBoolean("mapred.mapper.new-api", false);
+    if (useNewApi) {
+      if (conf.get(MRJobConfig.COMBINE_CLASS_ATTR) != null) {
+        conf.set(TezJobConfig.TEZ_ENGINE_COMBINER_CLASS, MRCombiner.class.getName());
+      }
+    } else {
+      if (conf.get("mapred.combiner.class") != null) {
+        conf.set(TezJobConfig.TEZ_ENGINE_COMBINER_CLASS, MRCombiner.class.getName());
+      }
+    }
+    
     setWorkingDirectory(conf);
   }
 

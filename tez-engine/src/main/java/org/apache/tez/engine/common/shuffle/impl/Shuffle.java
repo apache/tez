@@ -38,6 +38,8 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.engine.common.TezEngineUtils;
+import org.apache.tez.engine.common.combine.Combiner;
 import org.apache.tez.engine.common.shuffle.server.ShuffleHandler;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.engine.newapi.Event;
@@ -67,11 +69,10 @@ public class Shuffle implements ExceptionReporter {
   private final SecretKey jobTokenSecret;
   private AtomicInteger reduceRange = new AtomicInteger(
       TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE_DEFAULT);
-  
+
   private FutureTask<TezRawKeyValueIterator> runShuffleFuture;
 
   public Shuffle(TezInputContext inputContext, Configuration conf, int numInputs) throws IOException {
-    // TODO NEWTEZ Handle Combiner
     this.inputContext = inputContext;
     this.conf = conf;
     this.metrics = new ShuffleClientMetrics(inputContext.getDAGName(),
@@ -83,6 +84,8 @@ public class Shuffle implements ExceptionReporter {
     this.jobTokenSecret = ShuffleUtils
         .getJobTokenSecretFromTokenBytes(inputContext
             .getServiceConsumerMetaData(ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID));
+    
+    Combiner combiner = TezEngineUtils.instantiateCombiner(conf, inputContext);
     
     FileSystem localFS = FileSystem.getLocal(this.conf);
     LocalDirAllocator localDirAllocator = 
@@ -123,7 +126,7 @@ public class Shuffle implements ExceptionReporter {
           localFS,
           localDirAllocator,
           inputContext,
-          null, // TODO NEWTEZ Fix Combiner
+          combiner,
           spilledRecordsCounter,
           reduceCombineInputCounter,
           mergedMapOutputsCounter,
@@ -272,5 +275,4 @@ public class Shuffle implements ExceptionReporter {
       throw e; 
     }
   }
-
 }

@@ -45,10 +45,9 @@ import org.apache.hadoop.util.IndexedSorter;
 import org.apache.hadoop.util.Progress;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.engine.common.ConfigUtils;
-import org.apache.tez.engine.newapi.TezOutputContext;
-import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 import org.apache.tez.engine.common.sort.impl.TezMerger.Segment;
+import org.apache.tez.engine.newapi.TezOutputContext;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class PipelinedSorter extends ExternalSorter {
@@ -270,7 +269,7 @@ public class PipelinedSorter extends ExternalSorter {
           new Writer(conf, out, keyClass, valClass, codec,
               spilledRecordsCounter);
         writer.setRLE(merger.needsRLE());
-        if (combineProcessor == null) {
+        if (combiner == null) {
           while(kvIter.next()) {
             writer.append(kvIter.getKey(), kvIter.getValue());
           }
@@ -380,10 +379,10 @@ public class PipelinedSorter extends ExternalSorter {
           new Writer(conf, finalOut, keyClass, valClass, codec,
                            spilledRecordsCounter);
       writer.setRLE(merger.needsRLE());
-      if (combineProcessor == null || numSpills < minSpillsForCombine) {
+      if (combiner == null || numSpills < minSpillsForCombine) {
         TezMerger.writeFile(kvIter, writer, nullProgressable, conf);
       } else {
-    	runCombineProcessor(kvIter, writer);
+        runCombineProcessor(kvIter, writer);
       }
 
       //close
@@ -930,10 +929,4 @@ public class PipelinedSorter extends ExternalSorter {
     }
 
   }
-
-  @Override
-  public OutputContext getOutputContext() {
-    return null;
-  }
-
 }

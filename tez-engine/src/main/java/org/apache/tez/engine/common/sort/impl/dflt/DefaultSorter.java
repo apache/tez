@@ -752,7 +752,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
           long segmentStart = out.getPos();
           writer = new Writer(conf, out, keyClass, valClass, codec,
                                     spilledRecordsCounter);
-          if (combineProcessor == null) {
+          if (combiner == null) {
             // spill directly
             DataInputBuffer key = new DataInputBuffer();
             while (spindex < mend &&
@@ -1082,7 +1082,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         Writer writer =
             new Writer(conf, finalOut, keyClass, valClass, codec,
                 spilledRecordsCounter);
-        if (combineProcessor == null || numSpills < minSpillsForCombine) {
+        if (combiner == null || numSpills < minSpillsForCombine) {
           TezMerger.writeFile(kvIter, writer,
               nullProgressable, conf);
         } else {

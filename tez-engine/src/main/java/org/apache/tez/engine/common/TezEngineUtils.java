@@ -29,9 +29,11 @@ import org.apache.tez.common.Constants;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.engine.api.Partitioner;
+import org.apache.tez.engine.common.combine.Combiner;
 import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutput;
 import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutputFiles;
 import org.apache.tez.engine.newapi.TezOutputContext;
+import org.apache.tez.engine.newapi.TezTaskContext;
 
 public class TezEngineUtils {
 
@@ -54,6 +56,43 @@ public class TezEngineUtils {
         taskAttemptNumber);
   }
 
+  @SuppressWarnings("unchecked")
+  public static Combiner instantiateCombiner(Configuration conf, TezTaskContext taskContext) throws IOException {
+    Class<? extends Combiner> clazz;
+    String className = conf.get(TezJobConfig.TEZ_ENGINE_COMBINER_CLASS);
+    if (className == null) {
+      LOG.info("No combiner specified via " + TezJobConfig.TEZ_ENGINE_COMBINER_CLASS + ". Combiner will not be used");
+      return null;
+    }
+    LOG.info("Using Combiner class: " + className);
+    try {
+      clazz = (Class<? extends Combiner>) conf.getClassByName(className);
+    } catch (ClassNotFoundException e) {
+      throw new IOException("Unable to load combiner class: " + className);
+    }
+    
+    Combiner combiner = null;
+    
+      Constructor<? extends Combiner> ctor;
+      try {
+        ctor = clazz.getConstructor(TezTaskContext.class);
+        combiner = ctor.newInstance(taskContext);
+      } catch (SecurityException e) {
+        throw new IOException(e);
+      } catch (NoSuchMethodException e) {
+        throw new IOException(e);
+      } catch (IllegalArgumentException e) {
+        throw new IOException(e);
+      } catch (InstantiationException e) {
+        throw new IOException(e);
+      } catch (IllegalAccessException e) {
+        throw new IOException(e);
+      } catch (InvocationTargetException e) {
+        throw new IOException(e);
+      }
+      return combiner;
+  }
+  
   @SuppressWarnings("unchecked")
   public static Partitioner instantiatePartitioner(Configuration conf)
       throws IOException {

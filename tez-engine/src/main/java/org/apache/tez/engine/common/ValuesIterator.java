@@ -101,6 +101,8 @@ public class ValuesIterator<KEY,VALUE> {
     return key; 
   }
   
+  // TODO NEWTEZ Maybe add another method which returns an iterator instead of iterable
+  
   public Iterable<VALUE> getValues() {
     return new Iterable<VALUE>() {
 

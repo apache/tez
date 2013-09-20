@@ -18,7 +18,6 @@
 
 package org.apache.tez.mapreduce.hadoop;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -31,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys.MultiStageKeys;
+import org.apache.tez.mapreduce.newcombine.MRCombiner;
 import org.apache.tez.mapreduce.newpartition.MRPartitioner;
 
 import com.google.common.base.Preconditions;
@@ -220,22 +220,39 @@ public class MultiStageMRConfToTezTranslator {
     // Assuming no 0 map jobs, and the first stage is always a map.
     int numStages = numIntermediateStages + (hasFinalReduceStage ? 2 : 1);
 
+    // Setup Tez partitioner class
     conf.set(TezJobConfig.TEZ_ENGINE_PARTITIONER_CLASS,
         MRPartitioner.class.getName());
+    
+    // Setup Tez Combiner class if required.
+    // This would already have been set since the call is via JobClient
+    boolean useNewApi = conf.getBoolean("mapred.mapper.new-api", false);
+    if (useNewApi) {
+      if (conf.get(MRJobConfig.COMBINE_CLASS_ATTR) != null) {
+        conf.set(TezJobConfig.TEZ_ENGINE_COMBINER_CLASS, MRCombiner.class.getName());
+      }
+    } else {
+      if (conf.get("mapred.combiner.class") != null) {
+        conf.set(TezJobConfig.TEZ_ENGINE_COMBINER_CLASS, MRCombiner.class.getName());
+      }
+    }
 
     Configuration confs[] = new Configuration[numStages];
     Configuration nonItermediateConf = MultiStageMRConfigUtil.extractStageConf(
         conf, "");
+    confs[0].setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
     if (numStages == 1) {
       confs[0] = nonItermediateConf;
     } else {
       confs[0] = nonItermediateConf;
       confs[numStages - 1] = new Configuration(nonItermediateConf);
+      confs[numStages -1].setBoolean(MRConfig.IS_MAP_PROCESSOR, false);
     }
     if (numStages > 2) {
       for (int i = 1; i < numStages - 1; i++) {
         confs[i] = MultiStageMRConfigUtil.extractStageConf(conf,
             MultiStageMRConfigUtil.getPropertyNameForIntermediateStage(i, ""));
+        confs[i].setBoolean(MRConfig.IS_MAP_PROCESSOR, false);
       }
     }
     return confs;

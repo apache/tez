@@ -43,15 +43,14 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.engine.api.Partitioner;
-import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.TezEngineUtils;
+import org.apache.tez.engine.common.combine.Combiner;
 import org.apache.tez.engine.common.shuffle.impl.ShuffleHeader;
 import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutput;
 import org.apache.tez.engine.hadoop.compat.NullProgressable;
 import org.apache.tez.engine.newapi.TezOutputContext;
-import org.apache.tez.engine.records.OutputContext;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public abstract class ExternalSorter {
@@ -66,7 +65,7 @@ public abstract class ExternalSorter {
 
   protected Progressable nullProgressable = new NullProgressable();
   protected TezOutputContext outputContext;
-  protected Processor combineProcessor;
+  protected Combiner combiner;
   protected Partitioner partitioner;
   protected Configuration conf;
   protected FileSystem rfs;
@@ -83,9 +82,6 @@ public abstract class ExternalSorter {
 
   // Compression for map-outputs
   protected CompressionCodec codec;
-
-  // TODO NEWTEZ Setup CombineProcessor
-  // TODO NEWTEZ Setup Partitioner in SimpleOutput
 
   // Counters
   // TODO TEZ Rename all counter variables [Mapping of counter to MR for compatibility in the MR layer]
@@ -139,12 +135,7 @@ public abstract class ExternalSorter {
     LOG.info("Instantiating Partitioner: [" + conf.get(TezJobConfig.TEZ_ENGINE_PARTITIONER_CLASS) + "]");
     this.conf.setInt(TezJobConfig.TEZ_ENGINE_NUM_EXPECTED_PARTITIONS, this.partitions);
     this.partitioner = TezEngineUtils.instantiatePartitioner(this.conf);
-  }
-
-  // TODO NEWTEZ Add an interface (! Processor) for CombineProcessor, which MR tasks can initialize and set.
-  // Alternately add a config key with a classname, which is easy to initialize.
-  public void setCombiner(Processor combineProcessor) {
-    this.combineProcessor = combineProcessor;
+    this.combiner = TezEngineUtils.instantiateCombiner(this.conf, outputContext);
   }
 
   /**
@@ -165,27 +156,11 @@ public abstract class ExternalSorter {
 
   protected void runCombineProcessor(TezRawKeyValueIterator kvIter,
       Writer writer) throws IOException {
-
-    // TODO NEWTEZ Fix Combiner.
-//    CombineInput combineIn = new CombineInput(kvIter);
-//    combineIn.initialize(job, runningTaskContext.getTaskReporter());
-//
-//    CombineOutput combineOut = new CombineOutput(writer);
-//    combineOut.initialize(job, runningTaskContext.getTaskReporter());
-//
-//    try {
-//      combineProcessor.process(new Input[] {combineIn},
-//          new Output[] {combineOut});
-//    } catch (IOException ioe) {
-//      try {
-//        combineProcessor.close();
-//      } catch (IOException ignored) {}
-//
-//      // Do not close output here as the sorter should close the combine output
-//
-//      throw ioe;
-//    }
-
+    try {
+      combiner.combine(kvIter, writer);
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
   }
 
   /**
@@ -215,9 +190,5 @@ public abstract class ExternalSorter {
 
   public ShuffleHeader getShuffleHeader(int reduce) {
     throw new UnsupportedOperationException("getShuffleHeader isn't supported!");
-  }
-
-  public OutputContext getOutputContext() {
-    return null;
   }
 }

@@ -128,6 +128,11 @@ public class TezJobConfig {
    */
   public static final String TEZ_ENGINE_PARTITIONER_CLASS = "tez.engine.partitioner.class";
   
+  /**
+   * Specifies a combiner class (primarily for Shuffle)
+   */
+  public static final String TEZ_ENGINE_COMBINER_CLASS = "tez.engine.combiner.class";
+  
   public static final String TEZ_ENGINE_NUM_EXPECTED_PARTITIONS = "tez.engine.num.expected.partitions";
   
   /**

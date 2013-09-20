@@ -165,7 +165,6 @@ public class ShuffledMergedInput implements LogicalInput {
 
   }
 
-
   // This functionality is currently broken. If there's inputs which need to be
   // written to disk, there's a possibility that inputs from the different
   // sources could clobber each others' output. Also the current structures do

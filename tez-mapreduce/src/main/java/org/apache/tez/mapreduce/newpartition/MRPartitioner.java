@@ -24,6 +24,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -38,7 +39,7 @@ public class MRPartitioner implements org.apache.tez.engine.api.Partitioner {
   private org.apache.hadoop.mapred.Partitioner oldPartitioner;
 
   public MRPartitioner(Configuration conf) {
-    this.useNewApi = conf.getBoolean("mapred.mapper.new-api", false);
+    this.useNewApi = ConfigUtils.useNewApi(conf);
     this.partitions = conf.getInt(TezJobConfig.TEZ_ENGINE_NUM_EXPECTED_PARTITIONS, 1);
 
     if (useNewApi) {

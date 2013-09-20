@@ -48,6 +48,7 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.InputAttemptIdentifier;
+import org.apache.tez.engine.common.combine.Combiner;
 import org.apache.tez.engine.common.sort.impl.IFile;
 import org.apache.tez.engine.common.sort.impl.TezMerger;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
@@ -55,7 +56,6 @@ import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 import org.apache.tez.engine.common.sort.impl.TezMerger.Segment;
 import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutputFiles;
 import org.apache.tez.engine.hadoop.compat.NullProgressable;
-import org.apache.tez.engine.newapi.Processor;
 import org.apache.tez.engine.newapi.TezInputContext;
 
 @InterfaceAudience.Private
@@ -72,7 +72,7 @@ public class MergeManager {
   
   private final  TezTaskOutputFiles mapOutputFile;
   private final Progressable nullProgressable = new NullProgressable();
-  private final Processor combineProcessor = null; // TODO NEWTEZ Fix CombineProcessor  
+  private final Combiner combiner;  
   
   Set<MapOutput> inMemoryMergedMapOutputs = 
     new TreeSet<MapOutput>(new MapOutput.MapOutputComparator());
@@ -98,12 +98,6 @@ public class MergeManager {
   private final ExceptionReporter exceptionReporter;
   
   private final TezInputContext inputContext;
-  
-  /**
-   * Combiner processor to run during in-memory merge, if defined.
-   */
-  // TODO NEWTEZ Fix Combiner
-  //private final Processor combineProcessor;
 
   private final TezCounter spilledRecordsCounter;
 
@@ -119,18 +113,18 @@ public class MergeManager {
                       FileSystem localFS,
                       LocalDirAllocator localDirAllocator,  
                       TezInputContext inputContext,
-                      Processor combineProcessor,
+                      Combiner combiner,
                       TezCounter spilledRecordsCounter,
                       TezCounter reduceCombineInputCounter,
                       TezCounter mergedMapOutputsCounter,
                       ExceptionReporter exceptionReporter) {
-    // TODO NEWTEZ Change to include Combiner
     this.inputContext = inputContext;
     this.conf = conf;
     this.localDirAllocator = localDirAllocator;
     this.exceptionReporter = exceptionReporter;
     
-    //this.combineProcessor = combineProcessor;
+    this.combiner = combiner;
+
     this.reduceCombineInputCounter = reduceCombineInputCounter;
     this.spilledRecordsCounter = spilledRecordsCounter;
     this.mergedMapOutputsCounter = mergedMapOutputsCounter;
@@ -370,27 +364,8 @@ public class MergeManager {
   }
    
   void runCombineProcessor(TezRawKeyValueIterator kvIter, Writer writer)
-  throws IOException, InterruptedException {
-
-    // TODO NEWTEZ Fix CombineProcessor
-    
-//    CombineInput combineIn = new CombineInput(kvIter);
-//    combineIn.initialize(conf, reporter);
-//    
-//    CombineOutput combineOut = new CombineOutput(writer);
-//    combineOut.initialize(conf, reporter);
-//
-//    try {
-//      combineProcessor.process(new Input[] {combineIn},
-//          new Output[] {combineOut});
-//    } catch (IOException ioe) {
-//      try {
-//        combineProcessor.close();
-//      } catch (IOException ignoredException) {}
-//
-//      throw ioe;
-//    }
-  
+      throws IOException, InterruptedException {
+    combiner.combine(kvIter, writer);
   }
 
   private class IntermediateMemoryToMemoryMerger 
@@ -500,7 +475,7 @@ public class MergeManager {
             (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
             nullProgressable, spilledRecordsCounter, null, null);
 
-        if (null == combineProcessor) {
+        if (null == combiner) {
           TezMerger.writeFile(rIter, writer, nullProgressable, conf);
         } else {
           runCombineProcessor(rIter, writer);
