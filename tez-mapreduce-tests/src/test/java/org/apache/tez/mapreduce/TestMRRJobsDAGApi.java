@@ -300,8 +300,6 @@ public class TestMRRJobsDAGApi {
         .valueOf(new Random().nextInt(100000))));
     InputSplitInfo inputSplitInfo = MRHelpers.generateInputSplits(stage1Conf,
         remoteStagingDir);
-    InputSplitInfo inputSplitInfo1 = MRHelpers.generateInputSplits(stage1Conf,
-        remoteStagingDir);
 
     DAG dag = new DAG("testMRRSleepJobDagSubmit");
     Vertex stage1Vertex = new Vertex("map", new ProcessorDescriptor(
@@ -312,14 +310,6 @@ public class TestMRRJobsDAGApi {
         ReduceProcessor.class.getName()).setUserPayload(
         MRHelpers.createUserPayloadFromConf(stage2Conf)),
         1, Resource.newInstance(256, 1));
-    Vertex stage11Vertex = new Vertex("map1", new ProcessorDescriptor(
-        MapProcessor.class.getName()).setUserPayload(
-        MRHelpers.createUserPayloadFromConf(stage1Conf)),
-        inputSplitInfo1.getNumTasks(),  Resource.newInstance(256, 1));
-    Vertex stage22Vertex = new Vertex("ireduce1", new ProcessorDescriptor(
-        ReduceProcessor.class.getName()).setUserPayload(
-        MRHelpers.createUserPayloadFromConf(stage22Conf)),
-        2, Resource.newInstance(256, 1));
     Vertex stage3Vertex = new Vertex("reduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName()).setUserPayload(
         MRHelpers.createUserPayloadFromConf(stage3Conf)),
@@ -353,53 +343,27 @@ public class TestMRRJobsDAGApi {
             LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
     stage1LocalResources.putAll(commonLocalResources);
 
-    Map<String, LocalResource> stage11LocalResources = new HashMap<String, LocalResource>();
-    stage11LocalResources.put(
-        inputSplitInfo1.getSplitsFile().getName(),
-        createLocalResource(remoteFs, inputSplitInfo1.getSplitsFile(),
-            LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
-    stage11LocalResources.put(
-        inputSplitInfo1.getSplitsMetaInfoFile().getName(),
-        createLocalResource(remoteFs, inputSplitInfo1.getSplitsMetaInfoFile(),
-            LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
-    stage11LocalResources.putAll(commonLocalResources);
-
     stage1Vertex.setJavaOpts(MRHelpers.getMapJavaOpts(stage1Conf));
     stage1Vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
     stage1Vertex.setTaskLocalResources(stage1LocalResources);
     stage1Vertex.setTaskEnvironment(commonEnv);
 
-    stage11Vertex.setJavaOpts(MRHelpers.getMapJavaOpts(stage1Conf));
-    stage11Vertex.setTaskLocationsHint(inputSplitInfo1.getTaskLocationHints());
-    stage11Vertex.setTaskLocalResources(stage11LocalResources);
-    stage11Vertex.setTaskEnvironment(commonEnv);
     // TODO env, resources
 
     stage2Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage2Conf));
     stage2Vertex.setTaskLocalResources(commonLocalResources);
     stage2Vertex.setTaskEnvironment(commonEnv);
 
-    stage22Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage22Conf));
-    stage22Vertex.setTaskLocalResources(commonLocalResources);
-    stage22Vertex.setTaskEnvironment(commonEnv);
-
     stage3Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage3Conf));
     stage3Vertex.setTaskLocalResources(commonLocalResources);
     stage3Vertex.setTaskEnvironment(commonEnv);
 
     dag.addVertex(stage1Vertex);
-    dag.addVertex(stage11Vertex);
     dag.addVertex(stage2Vertex);
-    dag.addVertex(stage22Vertex);
     dag.addVertex(stage3Vertex);
 
     Edge edge1 = new Edge(stage1Vertex, stage2Vertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
-        SchedulingType.SEQUENTIAL, new OutputDescriptor(
-        OnFileSortedOutput.class.getName()), new InputDescriptor(
-                ShuffledMergedInputLegacy.class.getName())));
-    Edge edge11 = new Edge(stage11Vertex, stage22Vertex, new EdgeProperty(
-        DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, 
         SchedulingType.SEQUENTIAL, new OutputDescriptor(
         OnFileSortedOutput.class.getName()), new InputDescriptor(
                 ShuffledMergedInputLegacy.class.getName())));
@@ -408,16 +372,9 @@ public class TestMRRJobsDAGApi {
         SchedulingType.SEQUENTIAL, new OutputDescriptor(
         OnFileSortedOutput.class.getName()), new InputDescriptor(
                 ShuffledMergedInputLegacy.class.getName())));
-    Edge edge3 = new Edge(stage22Vertex, stage3Vertex, new EdgeProperty(
-        DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, 
-        SchedulingType.SEQUENTIAL, new OutputDescriptor(
-        OnFileSortedOutput.class.getName()), new InputDescriptor(
-                ShuffledMergedInputLegacy.class.getName())));
 
     dag.addEdge(edge1);
-    dag.addEdge(edge11);
     dag.addEdge(edge2);
-    dag.addEdge(edge3);
 
     Map<String, LocalResource> amLocalResources =
         new HashMap<String, LocalResource>();

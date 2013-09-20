@@ -421,6 +421,9 @@ public class YarnTezDagChild {
               currentTask.run();
               currentTask.close();
             }
+            LOG.info("Task completed"
+                + ", taskAttemptId=" + currentTaskAttemptID
+                + ", fatalErrorOccurred=" + currentTask.hadFatalError());
             // TODONEWTEZ check if task had a fatal error before
             // sending completed event
             if (!currentTask.hadFatalError()) {
