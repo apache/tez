@@ -122,7 +122,7 @@ public class ShuffledMergedInput implements LogicalInput {
    */
   @Override
   public KVReader getReader() throws IOException {
-    if (rawIter != null) {
+    if (rawIter == null) {
       try {
         waitForInputReady();
       } catch (InterruptedException e) {

@@ -41,6 +41,9 @@ public class ExampleDriver {
     try {
       pgd.addClass("wordcount", WordCount.class,
           "A map/reduce program that counts the words in the input files.");
+      pgd.addClass("mapredwordcount", MapredWordCount.class,
+          "A map/reduce program that counts the words in the input files"
+         + " using the mapred apis.");
       pgd.addClass("wordcountmrrtest", WordCountMRRTest.class,
           "A map/reduce program that counts the words in the input files."
           + " Map splits on spaces. First reduce splits on \".\"");

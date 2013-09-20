@@ -14,6 +14,7 @@ import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.mapred.FileOutputCommitter;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.OutputCommitter;
@@ -22,7 +23,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormatCounter;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -129,6 +129,12 @@ public class SimpleOutput implements LogicalOutput {
           (isMapperOutput ? TaskType.MAP : TaskType.REDUCE),
           outputContext.getTaskIndex()),
           outputContext.getTaskAttemptNumber());
+      jobConf.set(JobContext.TASK_ATTEMPT_ID, taskAttemptId.toString());
+      jobConf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString());
+      jobConf.setBoolean(JobContext.TASK_ISMAP, isMapperOutput);
+      jobConf.setInt(JobContext.TASK_PARTITION,
+          taskAttemptId.getTaskID().getId());
+      jobConf.set(JobContext.ID, taskAttemptId.getJobID().toString());
 
       oldApiTaskAttemptContext =
           new org.apache.tez.mapreduce.hadoop.newmapred.TaskAttemptContextImpl(
@@ -137,7 +143,8 @@ public class SimpleOutput implements LogicalOutput {
       oldOutputFormat = jobConf.getOutputFormat();
 
       List<Statistics> matchedStats = null;
-      if (oldOutputFormat instanceof org.apache.hadoop.mapred.FileOutputFormat) {
+      if (oldOutputFormat
+          instanceof org.apache.hadoop.mapred.FileOutputFormat) {
         matchedStats =
             Utils.getFsStatistics(
                 org.apache.hadoop.mapred.FileOutputFormat.getOutputPath(
@@ -194,11 +201,19 @@ public class SimpleOutput implements LogicalOutput {
         FileOutputFormat.setWorkOutputPath(job, outputPath);
       }
     }
-    this.committer.setupTask(newApiTaskAttemptContext);
+    if (useNewApi) {
+      this.committer.setupTask(newApiTaskAttemptContext);
+    } else {
+      this.committer.setupTask(oldApiTaskAttemptContext);
+    }
   }
 
   public boolean isCommitRequired() throws IOException {
-    return committer.needsTaskCommit(newApiTaskAttemptContext);
+    if (useNewApi) {
+      return committer.needsTaskCommit(newApiTaskAttemptContext);
+    } else {
+      return committer.needsTaskCommit(oldApiTaskAttemptContext);
+    }
   }
 
   private TaskAttemptContext createTaskAttemptContext() {
