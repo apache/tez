@@ -49,7 +49,7 @@ import org.apache.tez.engine.common.sort.impl.IFile.Writer;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.engine.newapi.TezInputContext;
 import org.apache.tez.engine.newapi.TezOutputContext;
-import org.apache.tez.engine.newapi.impl.TezTaskContextImpl;
+import org.apache.tez.engine.newapi.TezTaskContext;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
@@ -72,13 +72,13 @@ public class MRCombiner implements Combiner {
   private final MRTaskReporter reporter;
   private final TaskAttemptID mrTaskAttemptID;
 
-  public MRCombiner(TezTaskContextImpl taskContext) throws IOException {
+  public MRCombiner(TezTaskContext taskContext) throws IOException {
     this.conf = TezUtils.createConfFromUserPayload(taskContext.getUserPayload());
 
     assert(taskContext instanceof TezInputContext || taskContext instanceof TezOutputContext);
     if (taskContext instanceof TezOutputContext) {
       this.keyClass = ConfigUtils.getIntermediateOutputKeyClass(conf);
-      this.valClass = ConfigUtils.getIntermediateOutputKeyClass(conf);
+      this.valClass = ConfigUtils.getIntermediateOutputValueClass(conf);
       this.comparator = ConfigUtils.getIntermediateOutputKeyComparator(conf);
       this.reporter = new MRTaskReporter((TezOutputContext)taskContext);
     } else {

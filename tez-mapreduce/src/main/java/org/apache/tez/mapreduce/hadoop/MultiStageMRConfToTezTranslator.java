@@ -240,9 +240,9 @@ public class MultiStageMRConfToTezTranslator {
     Configuration confs[] = new Configuration[numStages];
     Configuration nonItermediateConf = MultiStageMRConfigUtil.extractStageConf(
         conf, "");
-    confs[0].setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
     if (numStages == 1) {
       confs[0] = nonItermediateConf;
+      confs[0].setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
     } else {
       confs[0] = nonItermediateConf;
       confs[numStages - 1] = new Configuration(nonItermediateConf);

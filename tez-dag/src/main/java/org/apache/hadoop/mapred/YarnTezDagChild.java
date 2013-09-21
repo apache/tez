@@ -514,7 +514,7 @@ public class YarnTezDagChild {
     }
     String [] localDirs = StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
     conf.setStrings(TezJobConfig.LOCAL_DIRS, localDirs);
-    LOG.info("LocalDirs for child: " + localDirs);
+    LOG.info("LocalDirs for child: " + Arrays.toString(localDirs));
     return new LogicalIOProcessorRuntimeTask(taskSpec, attemptNum, conf,
         tezUmbilical, jobToken);
   }

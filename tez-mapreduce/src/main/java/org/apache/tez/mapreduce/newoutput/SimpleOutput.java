@@ -166,7 +166,7 @@ public class SimpleOutput implements LogicalOutput {
     initCommitter(jobConf, useNewApi);
 
     LOG.info("Initialized Simple Output"
-        + ", using_new_api" + useNewApi);
+        + ", using_new_api: " + useNewApi);
     return null;
   }
 
