@@ -1,4 +1,4 @@
-package org.apache.tez.mapreduce.hadoop.newmapred;
+package org.apache.tez.mapreduce.hadoop.mapred;
 
 import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.hadoop.mapred.InputSplit;

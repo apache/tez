@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.mapreduce.newinput;
+package org.apache.tez.mapreduce.input;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.mapred.RecordReader;

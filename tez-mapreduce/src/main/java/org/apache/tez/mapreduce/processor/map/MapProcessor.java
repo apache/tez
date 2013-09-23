@@ -18,11 +18,11 @@
 package org.apache.tez.mapreduce.processor.map;
 
 import java.io.IOException;
-import java.util.concurrent.FutureTask;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.MapRunnable;
@@ -31,162 +31,134 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.map.WrappedMapper;
-import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.TezEngineTaskContext;
-import org.apache.tez.common.TezTaskStatus;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.engine.api.Input;
-import org.apache.tez.engine.api.Master;
-import org.apache.tez.engine.api.Output;
-import org.apache.tez.engine.api.Processor;
-import org.apache.tez.engine.common.sort.SortingOutput;
-import org.apache.tez.mapreduce.hadoop.IDConverter;
-import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
+import org.apache.tez.dag.api.TezException;
+import org.apache.tez.engine.lib.output.OnFileSortedOutput;
+import org.apache.tez.engine.newapi.Event;
+import org.apache.tez.engine.newapi.KVReader;
+import org.apache.tez.engine.newapi.KVWriter;
+import org.apache.tez.engine.newapi.LogicalIOProcessor;
+import org.apache.tez.engine.newapi.LogicalInput;
+import org.apache.tez.engine.newapi.LogicalOutput;
+import org.apache.tez.engine.newapi.TezProcessorContext;
+import org.apache.tez.mapreduce.hadoop.mapreduce.MapContextImpl;
 import org.apache.tez.mapreduce.input.SimpleInput;
+import org.apache.tez.mapreduce.input.SimpleInputLegacy;
 import org.apache.tez.mapreduce.output.SimpleOutput;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class MapProcessor extends MRTask implements Processor {
+public class MapProcessor extends MRTask implements LogicalIOProcessor {
 
   private static final Log LOG = LogFactory.getLog(MapProcessor.class);
 
-  private Progress mapPhase;
-
-  public MapProcessor(TezEngineTaskContext context) throws IOException {
-    super(context);
-  }
-  
-
-
-  @Override
-  public void initialize(Configuration conf, Master master) throws IOException,
-  InterruptedException {
-    super.initialize(conf, master);
+  public MapProcessor(){
+    super(true);
   }
 
   @Override
-  public void process(
-      final Input[] ins,
-      final Output[] outs)
-          throws IOException, InterruptedException {
-
-    MRTaskReporter reporter = new MRTaskReporter(getTaskReporter());
-    boolean useNewApi = jobConf.getUseNewMapper();
-    initTask(jobConf, taskAttemptId.getTaskID().getVertexID().getDAGId(),
-        reporter, useNewApi);
-
-    if (ins.length != 1
-        || outs.length != 1) {
-      throw new IOException("Cannot handle multiple inputs or outputs"
-          + ", inputCount=" + ins.length
-          + ", outputCount=" + outs.length);
+  public void initialize(TezProcessorContext processorContext)
+      throws IOException {
+    try {
+      super.initialize(processorContext);
+    } catch (InterruptedException e) {
+      throw new IOException(e);
     }
-    Input in = ins[0];
-    Output out = outs[0];
-    
-    // Sanity check
-    if (!(in instanceof SimpleInput)) {
-      throw new IOException("Unknown input! - " + in.getClass());
-    }
-    SimpleInput input = (SimpleInput)in;
-    input.setTask(this);
-
-    if (out instanceof SimpleOutput) {
-      initCommitter(jobConf, useNewApi, false);
-      ((SimpleOutput)out).setTask(this);
-    } else if (out instanceof SortingOutput) {
-      initCommitter(jobConf, useNewApi, true);
-      initPartitioner(jobConf);
-      ((SortingOutput)out).setTask(this);
-    }
-
-    // If there are no reducers then there won't be any sort. Hence the map 
-    // phase will govern the entire attempt's progress.
-    if (tezEngineTaskContext.getOutputSpecList().get(0).getNumOutputs() == 0) {
-      mapPhase = getProgress().addPhase("map");
-    } else {
-      // If there are reducers then the entire attempt's progress will be 
-      // split between the map phase (67%) and the sort phase (33%).
-      mapPhase = getProgress().addPhase("map");
-    }
-
-
-    if (useNewApi) {
-      runNewMapper(jobConf, reporter, input, out, getTaskReporter());
-    } else {
-      runOldMapper(jobConf, reporter, input, out, getTaskReporter());
-    }
-
-    done(out.getOutputContext(), reporter);
   }
 
-  public void close() throws IOException, InterruptedException {
+
+  @Override
+  public void handleEvents(List<Event> processorEvents) {
     // TODO Auto-generated method stub
 
   }
-  
+
+  public void close() throws IOException {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void run(Map<String, LogicalInput> inputs,
+      Map<String, LogicalOutput> outputs) throws Exception {
+
+    LOG.info("Running map: " + processorContext.getUniqueIdentifier());
+
+    initTask();
+
+    if (inputs.size() != 1
+        || outputs.size() != 1) {
+      throw new IOException("Cannot handle multiple inputs or outputs"
+          + ", inputCount=" + inputs.size()
+          + ", outputCount=" + outputs.size());
+    }
+    LogicalInput in = inputs.values().iterator().next();
+    LogicalOutput out = outputs.values().iterator().next();
+
+    // Sanity check
+    if (!(in instanceof SimpleInputLegacy)) {
+      throw new IOException(new TezException(
+          "Only Simple Input supported. Input: " + in.getClass()));
+    }
+    SimpleInputLegacy input = (SimpleInputLegacy)in;
+
+    KVWriter kvWriter = null;
+    if (!(out instanceof OnFileSortedOutput)) {
+      kvWriter = ((SimpleOutput)out).getWriter();
+    } else {
+      kvWriter = ((OnFileSortedOutput)out).getWriter();
+    }
+
+    if (useNewApi) {
+      runNewMapper(jobConf, mrReporter, input, kvWriter);
+    } else {
+      runOldMapper(jobConf, mrReporter, input, kvWriter);
+    }
+
+    done(out);
+  }
+
   void runOldMapper(
       final JobConf job,
       final MRTaskReporter reporter,
-      final SimpleInput input,
-      final Output output,
-      final Master master
+      final SimpleInputLegacy input,
+      final KVWriter output
       ) throws IOException, InterruptedException {
-    
+
     // Initialize input in-line since it sets parameters which may be used by the processor.
     // Done only for SimpleInput.
-    input.initialize(job, master);
-    FutureTask<Void> initOutputFuture = initOutputAsync(output);
-    
+    // TODO use new method in SimpleInput to get required info
+    //input.initialize(job, master);
+
     RecordReader in = new OldRecordReader(input);
-        
-    int numReduceTasks = tezEngineTaskContext.getOutputSpecList().get(0)
-        .getNumOutputs();
-    LOG.info("numReduceTasks: " + numReduceTasks);
 
     OutputCollector collector = new OldOutputCollector(output);
 
     MapRunnable runner =
         (MapRunnable)ReflectionUtils.newInstance(job.getMapRunnerClass(), job);
 
-    // Wait for output to be initialized before starting processing.
-    LOG.info("Waiting on output initialization");
-    waitForOutputInitialization(initOutputFuture);
-
-    try {
-      runner.run(in, collector, (Reporter)reporter);
-      mapPhase.complete();
-      // start the sort phase only if there are reducers
-      if (numReduceTasks > 0) {
-        setPhase(TezTaskStatus.Phase.SORT);
-      }
-      this.statusUpdate();
-    } finally {
-      //close
-      in.close();                               // close input
-      output.close();
-    }
+    runner.run(in, collector, (Reporter)reporter);
+    // start the sort phase only if there are reducers
+    this.statusUpdate();
   }
 
   private void runNewMapper(final JobConf job,
       MRTaskReporter reporter,
-      final SimpleInput in,
-      Output out,
-      final Master master
+      final SimpleInputLegacy in,
+      KVWriter out
       ) throws IOException, InterruptedException {
 
     // Initialize input in-line since it sets parameters which may be used by the processor.
     // Done only for SimpleInput.
-    in.initialize(job, master);
-    FutureTask<Void> initOutputFuture = initOutputAsync(out);
-    
+    // TODO use new method in SimpleInput to get required info
+    //in.initialize(job, master);
+
     // make a task context so we can get the classes
     org.apache.hadoop.mapreduce.TaskAttemptContext taskContext =
-        new TaskAttemptContextImpl(job, taskAttemptId, reporter);
+        getTaskAttemptContext();
 
     // make a mapper
     org.apache.hadoop.mapreduce.Mapper mapper;
@@ -197,37 +169,27 @@ public class MapProcessor extends MRTask implements Processor {
       throw new IOException(cnfe);
     }
 
-    if (!(in instanceof SimpleInput)) {
-      throw new IOException("Unknown input! - " + in.getClass());
-    }
-
     org.apache.hadoop.mapreduce.RecordReader input =
         new NewRecordReader(in);
 
-    org.apache.hadoop.mapreduce.RecordWriter output = 
+    org.apache.hadoop.mapreduce.RecordWriter output =
         new NewOutputCollector(out);
 
-    // Wait for output to be initialized before starting processing.
-    LOG.info("Waiting on output initialization");
-    waitForOutputInitialization(initOutputFuture);
-
     org.apache.hadoop.mapreduce.InputSplit split = in.getNewInputSplit();
-    
-    org.apache.hadoop.mapreduce.MapContext 
-    mapContext = 
-    new org.apache.tez.mapreduce.hadoop.mapreduce.MapContextImpl(
-        job, IDConverter.toMRTaskAttemptId(taskAttemptId), 
-        input, output, 
-        getCommitter(), 
-        reporter, split);
 
-    org.apache.hadoop.mapreduce.Mapper.Context mapperContext = 
+    org.apache.hadoop.mapreduce.MapContext
+    mapContext =
+    new MapContextImpl(
+        job, taskAttemptId,
+        input, output,
+        getCommitter(),
+        processorContext, split);
+
+    org.apache.hadoop.mapreduce.Mapper.Context mapperContext =
         new WrappedMapper().getMapContext(mapContext);
 
     input.initialize(split, mapperContext);
     mapper.run(mapperContext);
-    mapPhase.complete();
-    setPhase(TezTaskStatus.Phase.SORT);
     this.statusUpdate();
     input.close();
     output.close(mapperContext);
@@ -236,34 +198,36 @@ public class MapProcessor extends MRTask implements Processor {
   private static class NewRecordReader extends
       org.apache.hadoop.mapreduce.RecordReader {
     private final SimpleInput in;
+    private KVReader reader;
 
-    private NewRecordReader(SimpleInput in) {
+    private NewRecordReader(SimpleInput in) throws IOException {
       this.in = in;
+      this.reader = in.getReader();
     }
 
     @Override
     public void initialize(org.apache.hadoop.mapreduce.InputSplit split,
         TaskAttemptContext context) throws IOException,
         InterruptedException {
-      in.initializeNewRecordReader(split, context);
+      //in.initializeNewRecordReader(split, context);
     }
 
     @Override
     public boolean nextKeyValue() throws IOException,
         InterruptedException {
-      return in.hasNext();
+      return reader.next();
     }
 
     @Override
     public Object getCurrentKey() throws IOException,
         InterruptedException {
-      return in.getNextKey();
+      return reader.getCurrentKV().getKey();
     }
 
     @Override
     public Object getCurrentValue() throws IOException,
         InterruptedException {
-      return in.getNextValues().iterator().next();
+      return reader.getCurrentKV().getValues().iterator().next();
     }
 
     @Override
@@ -273,26 +237,27 @@ public class MapProcessor extends MRTask implements Processor {
 
     @Override
     public void close() throws IOException {
-      in.close();
     }
   }
 
   private static class OldRecordReader implements RecordReader {
-    private final SimpleInput simpleInput;
+    private final SimpleInputLegacy simpleInput;
 
-    private OldRecordReader(SimpleInput simpleInput) {
+    private OldRecordReader(SimpleInputLegacy simpleInput) {
       this.simpleInput = simpleInput;
     }
 
     @Override
     public boolean next(Object key, Object value) throws IOException {
-      simpleInput.setKey(key);
-      simpleInput.setValue(value);
-      try {
-        return simpleInput.hasNext();
-      } catch (InterruptedException ie) {
-        throw new IOException(ie);
-      }
+      // TODO broken
+//      simpleInput.setKey(key);
+//      simpleInput.setValue(value);
+//      try {
+//        return simpleInput.hasNext();
+//      } catch (InterruptedException ie) {
+//        throw new IOException(ie);
+//      }
+      return simpleInput.getOldRecordReader().next(key, value);
     }
 
     @Override
@@ -312,7 +277,6 @@ public class MapProcessor extends MRTask implements Processor {
 
     @Override
     public void close() throws IOException {
-      simpleInput.close();
     }
 
     @Override
@@ -325,29 +289,24 @@ public class MapProcessor extends MRTask implements Processor {
     }
   }
 
-  private static class OldOutputCollector 
+  private static class OldOutputCollector
   implements OutputCollector {
-    private final Output output;
-    
-    OldOutputCollector(Output output) {
+    private final KVWriter output;
+
+    OldOutputCollector(KVWriter output) {
       this.output = output;
     }
 
     public void collect(Object key, Object value) throws IOException {
-      try {
         output.write(key, value);
-      } catch (InterruptedException ie) {
-        Thread.currentThread().interrupt();
-        throw new IOException("interrupt exception", ie);
-      }
     }
   }
 
   private class NewOutputCollector
     extends org.apache.hadoop.mapreduce.RecordWriter {
-    private final Output out;
+    private final KVWriter out;
 
-    NewOutputCollector(Output out) throws IOException {
+    NewOutputCollector(KVWriter out) throws IOException {
       this.out = out;
     }
 
@@ -359,25 +318,24 @@ public class MapProcessor extends MRTask implements Processor {
     @Override
     public void close(TaskAttemptContext context
                       ) throws IOException, InterruptedException {
-      out.close();
     }
   }
 
   @Override
-  public void localizeConfiguration(JobConf jobConf) 
+  public void localizeConfiguration(JobConf jobConf)
       throws IOException, InterruptedException {
     super.localizeConfiguration(jobConf);
     jobConf.setBoolean(JobContext.TASK_ISMAP, true);
   }
-  
+
   @Override
   public TezCounter getOutputRecordsCounter() {
-    return reporter.getCounter(TaskCounter.MAP_OUTPUT_RECORDS);
+    return processorContext.getCounters().findCounter(TaskCounter.MAP_OUTPUT_RECORDS);
   }
 
   @Override
   public TezCounter getInputRecordsCounter() {
-    return reporter.getCounter(TaskCounter.MAP_INPUT_RECORDS);
-
+    return processorContext.getCounters().findCounter(TaskCounter.MAP_INPUT_RECORDS);
   }
+
 }

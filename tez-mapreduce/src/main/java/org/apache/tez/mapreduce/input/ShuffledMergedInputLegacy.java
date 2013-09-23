@@ -10,7 +10,7 @@
  * 
  */
 
-package org.apache.tez.mapreduce.newinput;
+package org.apache.tez.mapreduce.input;
 
 import java.io.IOException;
 

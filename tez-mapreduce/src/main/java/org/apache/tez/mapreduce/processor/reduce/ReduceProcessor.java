@@ -18,12 +18,12 @@
 package org.apache.tez.mapreduce.processor.reduce;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.FutureTask;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.mapred.Counters.Counter;
@@ -35,294 +35,250 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.InputSpec;
-import org.apache.tez.common.TezEngineTaskContext;
-import org.apache.tez.common.TezTaskStatus;
-import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.engine.api.Input;
-import org.apache.tez.engine.api.Master;
-import org.apache.tez.engine.api.Output;
-import org.apache.tez.engine.api.Processor;
 import org.apache.tez.engine.common.ConfigUtils;
-import org.apache.tez.engine.common.sort.SortingOutput;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
-import org.apache.tez.engine.lib.oldinput.OldShuffledMergedInput;
-import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
-import org.apache.tez.mapreduce.input.SimpleInput;
+import org.apache.tez.engine.lib.output.OnFileSortedOutput;
+import org.apache.tez.engine.newapi.Event;
+import org.apache.tez.engine.newapi.KVReader;
+import org.apache.tez.engine.newapi.KVWriter;
+import org.apache.tez.engine.newapi.LogicalIOProcessor;
+import org.apache.tez.engine.newapi.LogicalInput;
+import org.apache.tez.engine.newapi.LogicalOutput;
+import org.apache.tez.engine.newapi.TezProcessorContext;
+import org.apache.tez.mapreduce.input.ShuffledMergedInputLegacy;
 import org.apache.tez.mapreduce.output.SimpleOutput;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 
-import com.google.common.base.Preconditions;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class ReduceProcessor
 extends MRTask
-implements Processor {
+implements LogicalIOProcessor {
 
   private static final Log LOG = LogFactory.getLog(ReduceProcessor.class);
-  
-  private Progress sortPhase;
-  private Progress reducePhase;
 
   private Counter reduceInputKeyCounter;
   private Counter reduceInputValueCounter;
 
-  public ReduceProcessor(TezEngineTaskContext context) {
-    super(context);
-    TezEngineTaskContext tezEngineContext = (TezEngineTaskContext) context;
-    Preconditions.checkNotNull(tezEngineContext.getInputSpecList(),
-        "InputSpecList should not be null");
-  }
-  
-  @Override
-  public void initialize(Configuration conf, Master master) throws IOException,
-      InterruptedException {
-    super.initialize(conf, master);
+  public ReduceProcessor() {
+    super(false);
   }
 
   @Override
-  public void process(Input[] ins, Output[] outs)
-      throws IOException, InterruptedException {
-    MRTaskReporter reporter = new MRTaskReporter(getTaskReporter());
-    boolean useNewApi = jobConf.getUseNewReducer();
-    initTask(jobConf, taskAttemptId.getTaskID().getVertexID().getDAGId(),
-        reporter, useNewApi);
+  public void initialize(TezProcessorContext processorContext)
+      throws IOException {
+    try {
+      super.initialize(processorContext);
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
+  }
 
-    if (outs.length <= 0 || outs.length > 1) {
+
+  @Override
+  public void handleEvents(List<Event> processorEvents) {
+    // TODO Auto-generated method stub
+
+  }
+
+  public void close() throws IOException {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void run(Map<String, LogicalInput> inputs,
+      Map<String, LogicalOutput> outputs) throws Exception {
+
+    LOG.info("Running reduce: " + processorContext.getUniqueIdentifier());
+
+    initTask();
+
+    if (outputs.size() <= 0 || outputs.size() > 1) {
       throw new IOException("Invalid number of outputs"
-          + ", outputCount=" + outs.length);
+          + ", outputCount=" + outputs.size());
     }
-    
-    if (ins.length <= 0) {
+
+    if (inputs.size() <= 0 || inputs.size() > 1) {
       throw new IOException("Invalid number of inputs"
-          + ", inputCount=" + ins.length);
+          + ", inputCount=" + inputs.size());
     }
 
-    Input in = ins[0];
-    Output out = outs[0];
-
-    List<InputSpec> inputs = getTezEngineTaskContext().getInputSpecList();
-
-    if (in instanceof SimpleInput) {
-      ((SimpleInput)in).setTask(this);
-    } else if (in instanceof OldShuffledMergedInput) {
-      ((OldShuffledMergedInput)in).setTask(this);
-    }
-    
-    if(ins.length > 1) {
-      if (!(in instanceof OldShuffledMergedInput)) {
-        throw new IOException(
-            "Only ShuffledMergedInput can support multiple inputs"
-                + ". inputCount=" + ins.length);
-      }      
-      if(ins.length != inputs.size()) {
-        throw new IOException(
-            "Mismatch in input size passed and context inputspec size. Passed: "
-                + ins.length + " From contex:" + inputs.size());
-      }
-      // initialize and merge the remaining
-      OldShuffledMergedInput s0 = ((OldShuffledMergedInput)in);
-      for(int i=1; i<ins.length; ++i) {
-        Input inputi = ins[i];
-        if (!(inputi instanceof OldShuffledMergedInput)) {
-          throw new IOException(
-              "Only ShuffledMergedInput can support multiple inputs"
-                  + ". inputCount=" + ins.length);
-        }      
-        OldShuffledMergedInput si = ((OldShuffledMergedInput)inputi);
-        s0.mergeWith(si);
-      }
-    }
-    
-    if (out instanceof SimpleOutput) {
-      initCommitter(jobConf, useNewApi, false);
-      ((SimpleOutput)out).setTask(this);
-    } else if (out instanceof SortingOutput) {
-      initCommitter(jobConf, useNewApi, true);
-      initPartitioner(jobConf);
-      ((SortingOutput)out).setTask(this);
-    }
+    LogicalInput in = inputs.values().iterator().next();
+    LogicalOutput out = outputs.values().iterator().next();
 
     this.statusUpdate();
-    
+
     Class keyClass = ConfigUtils.getIntermediateInputKeyClass(jobConf);
     Class valueClass = ConfigUtils.getIntermediateInputValueClass(jobConf);
     LOG.info("Using keyClass: " + keyClass);
     LOG.info("Using valueClass: " + valueClass);
-    RawComparator comparator = 
+    RawComparator comparator =
         ConfigUtils.getInputKeySecondaryGroupingComparator(jobConf);
     LOG.info("Using comparator: " + comparator);
 
-    reduceInputKeyCounter = 
-        reporter.getCounter(TaskCounter.REDUCE_INPUT_GROUPS);
-    reduceInputValueCounter = 
-        reporter.getCounter(TaskCounter.REDUCE_INPUT_RECORDS);
-        
+    reduceInputKeyCounter =
+        mrReporter.getCounter(TaskCounter.REDUCE_INPUT_GROUPS);
+    reduceInputValueCounter =
+        mrReporter.getCounter(TaskCounter.REDUCE_INPUT_RECORDS);
+
     // Sanity check
-    if (!(in instanceof OldShuffledMergedInput)) {
+    if (!(in instanceof ShuffledMergedInputLegacy)) {
       throw new IOException("Illegal input to reduce: " + in.getClass());
     }
-    OldShuffledMergedInput shuffleInput = (OldShuffledMergedInput)in;
+    ShuffledMergedInputLegacy shuffleInput = (ShuffledMergedInputLegacy)in;
+    KVReader kvReader = shuffleInput.getReader();
+
+    KVWriter kvWriter = null;
+    if((out instanceof SimpleOutput)) {
+      kvWriter = ((SimpleOutput) out).getWriter();
+    } else if ((out instanceof OnFileSortedOutput)) {
+      kvWriter = ((OnFileSortedOutput) out).getWriter();
+    } else {
+      throw new IOException("Illegal input to reduce: " + in.getClass());
+    }
 
     if (useNewApi) {
       try {
         runNewReducer(
-            jobConf, 
-            (TezTaskUmbilicalProtocol)getUmbilical(), reporter, 
-            shuffleInput, comparator,  keyClass, valueClass, 
-            out);
+            jobConf,
+            mrReporter,
+            shuffleInput, comparator,  keyClass, valueClass,
+            kvWriter);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException(cnfe);
       }
     } else {
       runOldReducer(
-          jobConf, (TezTaskUmbilicalProtocol)getUmbilical(), reporter, 
-          shuffleInput, comparator, keyClass, valueClass, out);
+          jobConf, mrReporter,
+          kvReader, comparator, keyClass, valueClass, kvWriter);
     }
-    
-    done(out.getOutputContext(), reporter);
-  }
 
-  public void close() throws IOException, InterruptedException {
-    // TODO Auto-generated method stub
-    
+    done(out);
   }
 
   void runOldReducer(JobConf job,
-      TezTaskUmbilicalProtocol umbilical,
       final MRTaskReporter reporter,
-      OldShuffledMergedInput input,
+      KVReader input,
       RawComparator comparator,
       Class keyClass,
       Class valueClass,
-      final Output output) throws IOException, InterruptedException {
-    
-    FutureTask<Void> initInputFuture = initInputAsync(input);
-    FutureTask<Void> initOutputFuture = initOutputAsync(output);
+      final KVWriter output) throws IOException, InterruptedException {
 
-    Reducer reducer = 
+    Reducer reducer =
         ReflectionUtils.newInstance(job.getReducerClass(), job);
 
     // make output collector
 
-    OutputCollector collector = 
+    OutputCollector collector =
         new OutputCollector() {
       public void collect(Object key, Object value)
           throws IOException {
-        try {
-          output.write(key, value);
-        } catch (InterruptedException ie) {
-          throw new IOException(ie);
-        }
+        output.write(key, value);
       }
     };
 
-    // Wait for input/output to be initialized before starting processing.
-    LOG.info("Waiting on input initialization");
-    waitForInputInitialization(initInputFuture);
-
-    LOG.info("Waiting on output initialization");
-    waitForOutputInitialization(initOutputFuture);
-
     // apply reduce function
     try {
-      ReduceValuesIterator values = 
+      ReduceValuesIterator values =
           new ReduceValuesIterator(
-              input, 
-              job.getOutputValueGroupingComparator(), keyClass, valueClass, 
-              job, reporter, reduceInputValueCounter, reducePhase);
-      
+              input, reporter, reduceInputValueCounter);
+
       values.informReduceProgress();
       while (values.more()) {
         reduceInputKeyCounter.increment(1);
         reducer.reduce(values.getKey(), values, collector, reporter);
-        values.nextKey();
         values.informReduceProgress();
       }
 
       //Clean up: repeated in catch block below
       reducer.close();
-      output.close();
       //End of clean up.
     } catch (IOException ioe) {
       try {
         reducer.close();
-      } catch (IOException ignored) {}
-
-      try {
-        output.close();
-      } catch (IOException ignored) {}
+      } catch (IOException ignored) {
+      }
 
       throw ioe;
     }
   }
-  
-  private static class ReduceValuesIterator<KEY,VALUE> 
-  extends org.apache.tez.engine.common.task.impl.ValuesIterator<KEY,VALUE> {
-    private Counter reduceInputValueCounter;
-    private Progress reducePhase;
 
-    public ReduceValuesIterator (OldShuffledMergedInput in,
-        RawComparator<KEY> comparator, 
-        Class<KEY> keyClass,
-        Class<VALUE> valClass,
-        Configuration conf, Progressable reporter,
-        Counter reduceInputValueCounter,
-        Progress reducePhase)
+  private static class ReduceValuesIterator<KEY,VALUE>
+  implements Iterator<VALUE> {
+    private Counter reduceInputValueCounter;
+    private KVReader in;
+    private Progressable reporter;
+    private Object currentKey;
+    private Iterator<Object> currentValues;
+
+    public ReduceValuesIterator (KVReader in,
+        Progressable reporter,
+        Counter reduceInputValueCounter)
             throws IOException {
-      super(in.getIterator(), comparator, keyClass, valClass, conf, reporter);
       this.reduceInputValueCounter = reduceInputValueCounter;
-      this.reducePhase = reducePhase;
+      this.in = in;
+      this.reporter = reporter;
+    }
+
+    public boolean more() throws IOException {
+      boolean more = in.next();
+      if(more) {
+        currentKey = in.getCurrentKV().getKey();
+        currentValues = in.getCurrentKV().getValues().iterator();
+      } else {
+        currentKey = null;
+        currentValues = null;
+      }
+      return more;
+    }
+
+    public KEY getKey() throws IOException {
+      return (KEY) currentKey;
+    }
+
+    public void informReduceProgress() {
+      reporter.progress();
+    }
+
+    @Override
+    public boolean hasNext() {
+      return currentValues.hasNext();
     }
 
     @Override
     public VALUE next() {
       reduceInputValueCounter.increment(1);
-      return moveToNext();
+      return (VALUE) currentValues.next();
     }
 
-    protected VALUE moveToNext() {
-      return super.next();
+    @Override
+    public void remove() {
+      throw new UnsupportedOperationException();
     }
 
-    public void informReduceProgress() {
-      reducePhase.set(super.in.getProgress().getProgress()); // update progress
-      reporter.progress();
-    }
   }
 
   void runNewReducer(JobConf job,
-      final TezTaskUmbilicalProtocol umbilical,
       final MRTaskReporter reporter,
-      OldShuffledMergedInput input,
+      ShuffledMergedInputLegacy input,
       RawComparator comparator,
       Class keyClass,
       Class valueClass,
-      final Output out
-      ) throws IOException,InterruptedException, 
+      final KVWriter out
+      ) throws IOException,InterruptedException,
       ClassNotFoundException {
-    
-    FutureTask<Void> initInputFuture = initInputAsync(input);
-    FutureTask<Void> initOutputFuture = initOutputAsync(out);
-    
+
     // make a task context so we can get the classes
-    org.apache.hadoop.mapreduce.TaskAttemptContext taskContext =
-        new TaskAttemptContextImpl(job, taskAttemptId, reporter);
-    
+    org.apache.hadoop.mapreduce.TaskAttemptContext taskContext = getTaskAttemptContext();
+
     // make a reducer
     org.apache.hadoop.mapreduce.Reducer reducer =
         (org.apache.hadoop.mapreduce.Reducer)
         ReflectionUtils.newInstance(taskContext.getReducerClass(), job);
-
-    // Wait for input/output to be initialized before starting processing.
-    LOG.info("Waiting on input initialization");
-    waitForInputInitialization(initInputFuture);
-
-    LOG.info("Waiting on output initialization");
-    waitForOutputInitialization(initOutputFuture);
 
     // wrap value iterator to report progress.
     final TezRawKeyValueIterator rawIter = input.getIterator();
@@ -346,7 +302,7 @@ implements Processor {
       }
     };
 
-    org.apache.hadoop.mapreduce.RecordWriter trackedRW = 
+    org.apache.hadoop.mapreduce.RecordWriter trackedRW =
         new org.apache.hadoop.mapreduce.RecordWriter() {
 
       @Override
@@ -358,28 +314,27 @@ implements Processor {
       @Override
       public void close(TaskAttemptContext context) throws IOException,
       InterruptedException {
-        out.close();
       }
     };
 
-    org.apache.hadoop.mapreduce.Reducer.Context reducerContext = 
+    org.apache.hadoop.mapreduce.Reducer.Context reducerContext =
         createReduceContext(
             reducer, job, taskAttemptId,
-            rIter, reduceInputKeyCounter, 
-            reduceInputValueCounter, 
+            rIter, reduceInputKeyCounter,
+            reduceInputValueCounter,
             trackedRW,
             committer,
             reporter, comparator, keyClass,
             valueClass);
-    
-    
-    
+
+
+
     reducer.run(reducerContext);
     trackedRW.close(reducerContext);
   }
 
   @Override
-  public void localizeConfiguration(JobConf jobConf) 
+  public void localizeConfiguration(JobConf jobConf)
       throws IOException, InterruptedException {
     super.localizeConfiguration(jobConf);
     jobConf.setBoolean(JobContext.TASK_ISMAP, false);
@@ -387,21 +342,12 @@ implements Processor {
 
   @Override
   public TezCounter getOutputRecordsCounter() {
-    return reporter.getCounter(TaskCounter.REDUCE_OUTPUT_RECORDS);
+    return processorContext.getCounters().findCounter(TaskCounter.REDUCE_OUTPUT_RECORDS);
   }
 
   @Override
   public TezCounter getInputRecordsCounter() {
-    return reporter.getCounter(TaskCounter.REDUCE_INPUT_GROUPS);
+    return processorContext.getCounters().findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
   }
 
-  @Override
-  protected void waitForInputInitialization(FutureTask<Void> future)
-      throws InterruptedException, IOException {
-    super.waitForInputInitialization(future);
-    sortPhase = getProgress().addPhase("sort");
-    reducePhase = getProgress().addPhase("reduce");
-    sortPhase.complete(); // sort is complete
-    setPhase(TezTaskStatus.Phase.REDUCE);
-  }
 }

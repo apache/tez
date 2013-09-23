@@ -23,89 +23,100 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.Reporter;
-import org.apache.tez.common.TezTaskReporter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.engine.newapi.TezInputContext;
+import org.apache.tez.engine.newapi.TezOutputContext;
+import org.apache.tez.engine.newapi.TezProcessorContext;
+import org.apache.tez.engine.newapi.TezTaskContext;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
+import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
 
 @InterfaceAudience.Private
-@InterfaceStability.Unstable 
-public class MRTaskReporter 
+@InterfaceStability.Unstable
+public class MRTaskReporter
     extends org.apache.hadoop.mapreduce.StatusReporter
     implements Reporter {
 
-  private final TezTaskReporterImpl reporter;
-  
+  private final TezTaskContext context;
+  private final boolean isProcessorContext;
+  private final Reporter reporter;
+
   private InputSplit split = null;
 
-  public MRTaskReporter(TezTaskReporter reporter) {
-    this.reporter =  (TezTaskReporterImpl)reporter;
+  public MRTaskReporter(TezProcessorContext context) {
+    this.context = context;
+    this.reporter = new MRReporter(context);
+    this.isProcessorContext = true;
   }
 
-  // getters and setters for flag
-  void setProgressFlag() {
-    reporter.setProgressFlag();
+  public MRTaskReporter(TezOutputContext context) {
+    this.context = context;
+    this.reporter = new MRReporter(context);
+    this.isProcessorContext = false;
   }
-  boolean resetProgressFlag() {
-    return reporter.resetProgressFlag();
+  
+  public MRTaskReporter(TezInputContext context) {
+    this.context= context;
+    this.reporter = new MRReporter(context);
+    this.isProcessorContext = false;
   }
+
+  public void setProgress(float progress) {
+    if (isProcessorContext) {
+      ((TezProcessorContext)context).setProgress(progress);
+    } else {
+      // TODO FIXME NEWTEZ - will simpleoutput's reporter use this api?
+    }
+  }
+
   public void setStatus(String status) {
     reporter.setStatus(status);
   }
-  public void setProgress(float progress) {
-    reporter.setProgress(progress);
-  }
-  
+
   public float getProgress() {
     return reporter.getProgress();
   };
-  
+
   public void progress() {
     reporter.progress();
   }
-  
+
   public Counters.Counter getCounter(String group, String name) {
-    TezCounter counter = reporter.getCounter(group, name);
+    TezCounter counter = context.getCounters().findCounter(group, name);
     MRCounters.MRCounter mrCounter = null;
     if (counter != null) {
       mrCounter = new MRCounters.MRCounter(counter);
     }
     return mrCounter;
   }
-  
+
   public Counters.Counter getCounter(Enum<?> name) {
-    TezCounter counter = reporter.getCounter(name);
+    TezCounter counter = context.getCounters().findCounter(name);
     MRCounters.MRCounter mrCounter = null;
     if (counter != null) {
       mrCounter = new MRCounters.MRCounter(counter);
     }
     return mrCounter;
   }
-  
+
   public void incrCounter(Enum<?> key, long amount) {
     reporter.incrCounter(key, amount);
   }
-  
+
   public void incrCounter(String group, String counter, long amount) {
     reporter.incrCounter(group, counter, amount);
   }
-  
+
   public void setInputSplit(InputSplit split) {
     this.split = split;
   }
-  
+
   public InputSplit getInputSplit() throws UnsupportedOperationException {
     if (split == null) {
       throw new UnsupportedOperationException("Input only available on map");
     } else {
       return split;
     }
-  }  
-  
-  public void startCommunicationThread() {
-    reporter.startCommunicationThread();
   }
-  
-  public void stopCommunicationThread() throws InterruptedException {
-    reporter.stopCommunicationThread();
-  }
+
 }

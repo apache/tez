@@ -59,8 +59,8 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
-import org.apache.tez.mapreduce.newcombine.MRCombiner;
-import org.apache.tez.mapreduce.newpartition.MRPartitioner;
+import org.apache.tez.mapreduce.combine.MRCombiner;
+import org.apache.tez.mapreduce.partition.MRPartitioner;
 
 
 public class MRHelpers {

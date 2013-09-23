@@ -29,9 +29,9 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys.MultiStageKeys;
-import org.apache.tez.mapreduce.newcombine.MRCombiner;
-import org.apache.tez.mapreduce.newpartition.MRPartitioner;
+import org.apache.tez.mapreduce.partition.MRPartitioner;
 
 import com.google.common.base.Preconditions;
 
