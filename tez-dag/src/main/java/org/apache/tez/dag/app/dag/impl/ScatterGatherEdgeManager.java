@@ -22,9 +22,9 @@ import java.util.List;
 
 import org.apache.tez.dag.app.dag.EdgeManager;
 import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.engine.newapi.events.DataMovementEvent;
-import org.apache.tez.engine.newapi.events.InputReadErrorEvent;
-import org.apache.tez.engine.newapi.events.InputFailedEvent;
+import org.apache.tez.engine.api.events.DataMovementEvent;
+import org.apache.tez.engine.api.events.InputFailedEvent;
+import org.apache.tez.engine.api.events.InputReadErrorEvent;
 
 public class ScatterGatherEdgeManager extends EdgeManager {
 

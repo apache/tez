@@ -30,7 +30,7 @@ import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.engine.newapi.TezTaskContext;
+import org.apache.tez.engine.api.TezTaskContext;
 import org.apache.tez.engine.newruntime.RuntimeTask;
 
 public abstract class TezTaskContextImpl implements TezTaskContext {

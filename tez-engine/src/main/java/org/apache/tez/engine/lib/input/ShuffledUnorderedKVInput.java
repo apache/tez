@@ -23,11 +23,11 @@ import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.engine.api.Event;
+import org.apache.tez.engine.api.LogicalInput;
+import org.apache.tez.engine.api.Reader;
+import org.apache.tez.engine.api.TezInputContext;
 import org.apache.tez.engine.broadcast.input.BroadcastShuffleManager;
-import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.LogicalInput;
-import org.apache.tez.engine.newapi.Reader;
-import org.apache.tez.engine.newapi.TezInputContext;
 
 import com.google.common.base.Preconditions;
 

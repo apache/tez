@@ -18,7 +18,7 @@
 
 package org.apache.tez.engine.api.events;
 
-import org.apache.tez.engine.newapi.Event;
+import org.apache.tez.engine.api.Event;
 
 public class TaskAttemptFailedEvent extends Event {
 

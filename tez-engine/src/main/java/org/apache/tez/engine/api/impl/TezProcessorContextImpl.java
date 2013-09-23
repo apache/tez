@@ -27,9 +27,9 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.engine.api.Event;
+import org.apache.tez.engine.api.TezProcessorContext;
 import org.apache.tez.engine.api.impl.EventMetaData.EventProducerConsumerType;
-import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.TezProcessorContext;
 import org.apache.tez.engine.newruntime.RuntimeTask;
 
 public class TezProcessorContextImpl extends TezTaskContextImpl

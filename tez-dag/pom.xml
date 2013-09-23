@@ -29,6 +29,10 @@
   <dependencies>
     <dependency>
       <groupId>org.apache.tez</groupId>
+      <artifactId>tez-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tez</groupId>
       <artifactId>tez-common</artifactId>
     </dependency>
     <dependency>
@@ -53,14 +57,6 @@
       <groupId>org.mockito</groupId>
       <artifactId>mockito-all</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.tez</groupId>
-      <artifactId>tez-dag-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.tez</groupId>
-      <artifactId>tez-engine-api</artifactId>
     </dependency>
     <dependency>
       <groupId>junit</groupId>

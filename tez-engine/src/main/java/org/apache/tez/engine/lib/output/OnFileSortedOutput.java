@@ -26,14 +26,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.engine.api.Event;
 import org.apache.tez.engine.api.KVWriter;
+import org.apache.tez.engine.api.LogicalOutput;
+import org.apache.tez.engine.api.TezOutputContext;
+import org.apache.tez.engine.api.events.DataMovementEvent;
 import org.apache.tez.engine.common.shuffle.newimpl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.engine.common.sort.impl.ExternalSorter;
 import org.apache.tez.engine.common.sort.impl.dflt.DefaultSorter;
-import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.LogicalOutput;
-import org.apache.tez.engine.newapi.TezOutputContext;
-import org.apache.tez.engine.newapi.events.DataMovementEvent;
 import org.apache.tez.engine.shuffle.common.ShuffleUtils;
 
 import com.google.common.collect.Lists;

@@ -22,10 +22,10 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.engine.api.Event;
+import org.apache.tez.engine.api.LogicalInput;
+import org.apache.tez.engine.api.TezInputContext;
 import org.apache.tez.engine.common.localshuffle.LocalShuffle;
-import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.LogicalInput;
-import org.apache.tez.engine.newapi.TezInputContext;
 
 /**
  * <code>LocalMergedInput</code> in an {@link LogicalInput} which shuffles intermediate

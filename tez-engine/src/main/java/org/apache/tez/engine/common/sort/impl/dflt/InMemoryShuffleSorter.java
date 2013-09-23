@@ -29,10 +29,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.util.DataChecksum;
+import org.apache.tez.engine.api.TezOutputContext;
 import org.apache.tez.engine.common.shuffle.impl.ShuffleHeader;
 import org.apache.tez.engine.common.shuffle.server.ShuffleHandler;
 import org.apache.tez.engine.common.sort.impl.IFile;
-import org.apache.tez.engine.newapi.TezOutputContext;
 
 public class InMemoryShuffleSorter extends DefaultSorter {
 

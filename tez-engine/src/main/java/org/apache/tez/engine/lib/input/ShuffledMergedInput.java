@@ -29,14 +29,14 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.engine.api.Event;
 import org.apache.tez.engine.api.KVReader;
+import org.apache.tez.engine.api.LogicalInput;
+import org.apache.tez.engine.api.TezInputContext;
 import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.engine.common.ValuesIterator;
 import org.apache.tez.engine.common.shuffle.impl.Shuffle;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
-import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.LogicalInput;
-import org.apache.tez.engine.newapi.TezInputContext;
 
 /**
  * <code>ShuffleMergedInput</code> in a {@link LogicalInput} which shuffles

@@ -90,12 +90,7 @@
     <dependencies>
       <dependency>
         <groupId>org.apache.tez</groupId>
-        <artifactId>tez-dag-api</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.tez</groupId>
-        <artifactId>tez-engine-api</artifactId>
+        <artifactId>tez-api</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -250,8 +245,7 @@
   </dependencyManagement>
 
   <modules>
-    <module>tez-dag-api</module>
-    <module>tez-engine-api</module>
+    <module>tez-api</module>
     <module>tez-common</module>
     <module>tez-engine</module>
     <module>tez-yarn-client</module>

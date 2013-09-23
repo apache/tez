@@ -30,8 +30,6 @@ import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.api.impl.TezHeartbeatRequest;
 import org.apache.tez.engine.api.impl.TezHeartbeatResponse;
-import org.apache.tez.engine.records.OutputContext;
-import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
 
 public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
 
@@ -65,14 +63,6 @@ public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
   }
 
   @Override
-  public TezTaskDependencyCompletionEventsUpdate getDependentTasksCompletionEvents(
-      int fromEventIdx, int maxEventsToFetch,
-      TezTaskAttemptID reduce) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
   public ContainerTask getTask(ContainerContext containerContext)
       throws IOException {
     // TODO Auto-generated method stub
@@ -83,13 +73,6 @@ public class TestUmbilicalProtocol implements TezTaskUmbilicalProtocol {
   public boolean canCommit(TezTaskAttemptID taskid) throws IOException {
     LOG.info("Got 'can-commit' from " + taskid);
     return true;
-  }
-
-  @Override
-  public void outputReady(TezTaskAttemptID taskAttemptId,
-      OutputContext outputContext) throws IOException {
-    // TODO Auto-generated method stub
-
   }
 
   @Override

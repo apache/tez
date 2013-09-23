@@ -22,13 +22,13 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.engine.api.Event;
 import org.apache.tez.engine.api.KVWriter;
+import org.apache.tez.engine.api.LogicalOutput;
+import org.apache.tez.engine.api.Output;
+import org.apache.tez.engine.api.TezOutputContext;
+import org.apache.tez.engine.api.Writer;
 import org.apache.tez.engine.common.sort.impl.dflt.InMemoryShuffleSorter;
-import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.LogicalOutput;
-import org.apache.tez.engine.newapi.Output;
-import org.apache.tez.engine.newapi.TezOutputContext;
-import org.apache.tez.engine.newapi.Writer;
 
 /**
  * {@link InMemorySortedOutput} is an {@link Output} which sorts key/value pairs 

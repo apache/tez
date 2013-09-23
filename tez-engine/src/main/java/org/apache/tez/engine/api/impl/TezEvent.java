@@ -24,6 +24,11 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.engine.api.Event;
+import org.apache.tez.engine.api.events.DataMovementEvent;
+import org.apache.tez.engine.api.events.InputFailedEvent;
+import org.apache.tez.engine.api.events.InputInformationEvent;
+import org.apache.tez.engine.api.events.InputReadErrorEvent;
 import org.apache.tez.engine.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.engine.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.engine.api.events.TaskStatusUpdateEvent;
@@ -33,11 +38,6 @@ import org.apache.tez.engine.api.events.EventProtos.InputInformationEventProto;
 import org.apache.tez.engine.api.events.EventProtos.InputReadErrorEventProto;
 import org.apache.tez.engine.api.events.SystemEventProtos.TaskAttemptCompletedEventProto;
 import org.apache.tez.engine.api.events.SystemEventProtos.TaskAttemptFailedEventProto;
-import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.events.DataMovementEvent;
-import org.apache.tez.engine.newapi.events.InputFailedEvent;
-import org.apache.tez.engine.newapi.events.InputInformationEvent;
-import org.apache.tez.engine.newapi.events.InputReadErrorEvent;
 
 import com.google.protobuf.ByteString;
 

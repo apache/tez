@@ -24,7 +24,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.engine.newapi.Event;
+import org.apache.tez.engine.api.Event;
 
 public class TaskStatusUpdateEvent extends Event implements Writable {
 

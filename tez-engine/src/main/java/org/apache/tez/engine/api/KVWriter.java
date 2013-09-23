@@ -20,7 +20,7 @@ package org.apache.tez.engine.api;
 
 import java.io.IOException;
 
-import org.apache.tez.engine.newapi.Writer;
+import org.apache.tez.engine.api.Writer;
 
 /**
  * A key/value(s) pair based {@link Writer}

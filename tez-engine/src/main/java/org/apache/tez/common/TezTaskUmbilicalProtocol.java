@@ -29,8 +29,6 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.engine.api.impl.TezHeartbeatRequest;
 import org.apache.tez.engine.api.impl.TezHeartbeatResponse;
-import org.apache.tez.engine.records.OutputContext;
-import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
 
 /** Protocol that task child process uses to contact its parent process.  The
  * parent is a daemon which which polls the central master for a new map or
@@ -47,21 +45,6 @@ public interface TezTaskUmbilicalProtocol extends VersionedProtocol {
 
   boolean canCommit(TezTaskAttemptID taskid) throws IOException;
 
-  // TODO TEZAM5 Can commitPending and outputReady be collapsed into a single
-  // call.
-  // IAC outputReady followed by commit is a little confusing - since the output
-  // isn't really in place till a commit is called. Maybe rename to
-  // processingComplete or some such.
-
-  // TODO EVENTUALLY This is not the most useful API. Once there's some kind of
-  // support for the Task handing output over to the Container, this won't rally
-  // be required. i.e. InMemShuffle running as a service in the Container, or
-  // the second task in getTask(). ContainerUmbilical would include getTask and
-  // getServices...
-
-  void outputReady(TezTaskAttemptID taskAttemptId, OutputContext outputContext)
-      throws IOException;
-
   ProceedToCompletionResponse
       proceedToCompletion(TezTaskAttemptID taskAttemptId) throws IOException;
 
@@ -71,7 +54,4 @@ public interface TezTaskUmbilicalProtocol extends VersionedProtocol {
   public TezHeartbeatResponse heartbeat(TezHeartbeatRequest request)
       throws IOException, TezException;
 
-  public TezTaskDependencyCompletionEventsUpdate getDependentTasksCompletionEvents(
-      int fromEventIdx, int maxEventsToFetch,
-      TezTaskAttemptID taskAttemptId);
 }

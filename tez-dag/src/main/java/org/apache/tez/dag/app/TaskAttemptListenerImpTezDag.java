@@ -44,7 +44,6 @@ import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputConsumable;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerImpl;
@@ -56,9 +55,6 @@ import org.apache.tez.engine.api.impl.TezEvent;
 import org.apache.tez.engine.api.impl.TezHeartbeatRequest;
 import org.apache.tez.engine.api.impl.TezHeartbeatResponse;
 import org.apache.tez.engine.common.security.JobTokenSecretManager;
-import org.apache.tez.engine.records.OutputContext;
-import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
-import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
 
 @SuppressWarnings("unchecked")
 public class TaskAttemptListenerImpTezDag extends AbstractService implements
@@ -173,29 +169,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       long clientVersion, int clientMethodsHash) throws IOException {
     return ProtocolSignature.getProtocolSignature(this, protocol,
         clientVersion, clientMethodsHash);
-  }
-
-  @Override
-  public TezTaskDependencyCompletionEventsUpdate getDependentTasksCompletionEvents(
-      int fromEventIdx, int maxEvents,
-      TezTaskAttemptID taskAttemptID) {
-
-    LOG.info("Dependency Completion Events request from " + taskAttemptID
-        + ". fromEventID " + fromEventIdx + " maxEvents " + maxEvents);
-
-    // TODO: shouldReset is never used. See TT. Ask for Removal.
-    boolean shouldReset = false;
-    TezDependentTaskCompletionEvent[] events =
-        context.getCurrentDAG().
-            getVertex(taskAttemptID.getTaskID().getVertexID()).
-                getTaskAttemptCompletionEvents(taskAttemptID, fromEventIdx, maxEvents);
-
-    taskHeartbeatHandler.progressing(taskAttemptID);
-    pingContainerHeartbeatHandler(taskAttemptID);
-
-    // No filters for now. Only required events stored in a vertex.
-
-    return new TezTaskDependencyCompletionEventsUpdate(events,shouldReset);
   }
 
   @Override
@@ -367,17 +340,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
         job.getVertex(taskAttemptId.getTaskID().getVertexID()).
             getTask(taskAttemptId.getTaskID());
     return task.canCommit(taskAttemptId);
-  }
-
-  @Override
-  public void outputReady(TezTaskAttemptID taskAttemptId,
-      OutputContext outputContext) throws IOException {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("AttemptId: " + taskAttemptId + " reported output context: "
-          + outputContext);
-    }
-    context.getEventHandler().handle(
-        new TaskAttemptEventOutputConsumable(taskAttemptId, outputContext));
   }
 
   @Override

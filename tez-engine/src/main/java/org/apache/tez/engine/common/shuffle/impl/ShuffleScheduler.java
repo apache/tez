@@ -40,11 +40,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.engine.api.Event;
+import org.apache.tez.engine.api.TezInputContext;
+import org.apache.tez.engine.api.events.InputReadErrorEvent;
 import org.apache.tez.engine.common.InputAttemptIdentifier;
 import org.apache.tez.engine.common.TezEngineUtils;
-import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.TezInputContext;
-import org.apache.tez.engine.newapi.events.InputReadErrorEvent;
 
 import com.google.common.collect.Lists;
 

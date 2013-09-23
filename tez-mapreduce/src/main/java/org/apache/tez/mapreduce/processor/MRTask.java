@@ -71,12 +71,11 @@ import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.engine.api.LogicalOutput;
+import org.apache.tez.engine.api.TezProcessorContext;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.TokenCache;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
-import org.apache.tez.engine.newapi.LogicalOutput;
-import org.apache.tez.engine.newapi.TezProcessorContext;
-import org.apache.tez.engine.records.OutputContext;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
@@ -420,14 +419,6 @@ public abstract class MRTask {
 
   public void waitBeforeCompletion(MRTaskReporter reporter) throws IOException,
       InterruptedException {
-  }
-
-  public void outputReady(MRTaskReporter reporter, OutputContext outputContext)
-      throws IOException,
-      InterruptedException {
-    LOG.info("Task: " + taskAttemptId + " reporting outputReady");
-    updateCounters();
-    statusUpdate();
   }
 
   public void done(LogicalOutput output) throws IOException, InterruptedException {

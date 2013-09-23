@@ -35,11 +35,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
-      <artifactId>tez-dag-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.tez</groupId>
-      <artifactId>tez-engine-api</artifactId>
+      <artifactId>tez-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>

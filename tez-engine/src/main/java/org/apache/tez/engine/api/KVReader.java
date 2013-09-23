@@ -20,7 +20,7 @@ package org.apache.tez.engine.api;
 
 import java.io.IOException;
 
-import org.apache.tez.engine.newapi.Reader;
+import org.apache.tez.engine.api.Reader;
 
 /**
  * A key/value(s) pair based {@link Reader}.

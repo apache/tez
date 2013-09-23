@@ -38,12 +38,12 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.engine.api.Event;
+import org.apache.tez.engine.api.TezInputContext;
 import org.apache.tez.engine.common.TezEngineUtils;
 import org.apache.tez.engine.common.combine.Combiner;
 import org.apache.tez.engine.common.shuffle.server.ShuffleHandler;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
-import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.TezInputContext;
 import org.apache.tez.engine.shuffle.common.ShuffleUtils;
 
 import com.google.common.base.Preconditions;
