@@ -32,18 +32,19 @@ import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.SequenceFileOutputFormat;
 import org.apache.tez.common.Constants;
-import org.apache.tez.common.InputSpec;
-import org.apache.tez.common.OutputSpec;
-import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.engine.api.Task;
+import org.apache.tez.engine.api.impl.InputSpec;
+import org.apache.tez.engine.api.impl.OutputSpec;
+import org.apache.tez.engine.api.impl.TaskSpec;
+import org.apache.tez.engine.api.impl.TezUmbilical;
 import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
-import org.apache.tez.engine.lib.oldinput.LocalMergedInput;
-import org.apache.tez.engine.lib.oldoutput.OldLocalOnFileSorterOutput;
-import org.apache.tez.engine.runtime.RuntimeUtils;
-import org.apache.tez.mapreduce.TestUmbilicalProtocol;
+import org.apache.tez.engine.lib.input.LocalMergedInput;
+import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
+import org.apache.tez.engine.newruntime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -51,7 +52,6 @@ import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.input.SimpleInputLegacy;
 import org.apache.tez.mapreduce.output.SimpleOutput;
-import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MapUtils;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.junit.After;
@@ -104,8 +104,7 @@ public class TestReduceProcessor {
     String reduceVertexName = MultiStageMRConfigUtil.getFinalReduceVertexName();
     JobConf jobConf = new JobConf(defaultConf);
     setUpJobConf(jobConf);
-    TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles();
-    mapOutputs.setConf(jobConf);
+    TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles(jobConf, "TODONEWTEZ_uniqueId");
     
     Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
     conf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
@@ -117,14 +116,16 @@ public class TestReduceProcessor {
     mapConf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
     
-    
+    InputSpec mapInputSpec = new InputSpec("NullSrcVertex", new InputDescriptor(
+        SimpleInputLegacy.class.getName()), 0);
+    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", new OutputDescriptor(
+        LocalOnFileSorterOutput.class.getName()), 1);
     // Run a map
+    // TODO NEWTEZ FIX Umbilical creation
     MapUtils.runMapProcessor(localFs, workDir, mapConf, 0,
-        new Path(workDir, "map0"), new TestUmbilicalProtocol(), mapVertexName,
-        Collections.singletonList(new InputSpec("NullVertex", 0,
-            SimpleInputLegacy.class.getName())),
-        Collections.singletonList(new OutputSpec("FakeVertex", 1,
-            OldLocalOnFileSorterOutput.class.getName())));
+        new Path(workDir, "map0"), (TezUmbilical) null, mapVertexName,
+        Collections.singletonList(mapInputSpec),
+        Collections.singletonList(mapOutputSpec));
 
     LOG.info("Starting reduce...");
     
@@ -138,28 +139,43 @@ public class TestReduceProcessor {
     FileOutputFormat.setOutputPath(reduceConf, new Path(workDir, "output"));
     ProcessorDescriptor reduceProcessorDesc = new ProcessorDescriptor(
         ReduceProcessor.class.getName());
-    // Now run a reduce
-    TezEngineTaskContext taskContext = new TezEngineTaskContext(
-        TezTestUtils.getMockTaskAttemptId(0, 1, 0, 0), "testUser",
-        "testJob", reduceVertexName, reduceProcessorDesc,
-        Collections.singletonList(new InputSpec(mapVertexName, 1,
-            LocalMergedInput.class.getName())),
-        Collections.singletonList(new OutputSpec("", 1,
-                SimpleOutput.class.getName())));
     
-    Task t = RuntimeUtils.createRuntimeTask(taskContext);
-    t.initialize(reduceConf, null, new TestUmbilicalProtocol());
-    t.run();
-    MRTask mrTask = (MRTask)t.getProcessor();
+    InputSpec reduceInputSpec = new InputSpec(mapVertexName, new InputDescriptor(LocalMergedInput.class.getName()), 1);
+    OutputSpec reduceOutputSpec = new OutputSpec("NullDestinationVertex", new OutputDescriptor(SimpleOutput.class.getName()), 1);
+    
+    // Now run a reduce
+    TaskSpec taskSpec = new TaskSpec(
+        TezTestUtils.getMockTaskAttemptId(0, 1, 0, 0),
+        "testUser",
+        reduceVertexName,
+        reduceProcessorDesc,
+        Collections.singletonList(reduceInputSpec),
+        Collections.singletonList(reduceOutputSpec));
+    
+    // TODO NEWTEZ FIXME Umbilical and jobToken
+    LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
+        taskSpec,
+        1,
+        reduceConf,
+        (TezUmbilical) null,
+        null);
+    
+    task.initialize();
+    task.run();
+    
+//    MRTask mrTask = (MRTask)t.getProcessor();
 //    TODO NEWTEZ Verify the partitioner has been created
 //    Assert.assertNull(mrTask.getPartitioner());
-    t.close();
+    task.close();
     
     // Can this be done via some utility class ? MapOutputFile derivative, or
     // instantiating the OutputCommitter
+    
+
+    // TODO NEWTEZ FIXME uniqueId generation and event generation (mockTaskId will not work here)
     Path reduceOutputDir = new Path(new Path(workDir, "output"),
         "_temporary/0/" + IDConverter
-            .toMRTaskId(taskContext.getTaskAttemptId().getTaskID()));
+            .toMRTaskId(TezTestUtils.getMockTaskId(0, 1, 0)));
     Path reduceOutputFile = new Path(reduceOutputDir, "part-00000");
 
     SequenceFile.Reader reader = new SequenceFile.Reader(localFs,

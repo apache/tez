@@ -16,9 +16,11 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi;
+package org.apache.tez.engine.api;
 
 import java.io.IOException;
+
+import org.apache.tez.engine.newapi.Reader;
 
 /**
  * A key/value(s) pair based {@link Reader}.

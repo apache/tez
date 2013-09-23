@@ -24,10 +24,10 @@ import java.util.List;
 
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.engine.api.KVWriter;
 import org.apache.tez.engine.broadcast.output.FileBasedKVWriter;
 import org.apache.tez.engine.common.shuffle.newimpl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.KVWriter;
 import org.apache.tez.engine.newapi.LogicalOutput;
 import org.apache.tez.engine.newapi.TezOutputContext;
 import org.apache.tez.engine.newapi.events.DataMovementEvent;

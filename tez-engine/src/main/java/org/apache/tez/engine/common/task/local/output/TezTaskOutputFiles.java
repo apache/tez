@@ -29,7 +29,7 @@ import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.common.Constants;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.engine.common.InputAttemptIdentifier;
 
 /**
  * Manipulate the working area for the transient store for maps and reduces.
@@ -40,32 +40,35 @@ import org.apache.tez.dag.records.TezTaskID;
  * taskTracker/jobCache/jobId/attemptId
  * This class should not be used from TaskTracker space.
  */
+
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class TezTaskOutputFiles extends TezTaskOutput {
+  
+  public TezTaskOutputFiles(Configuration conf, String uniqueId) {
+    super(conf, uniqueId);
+  }
 
   private static final Log LOG = LogFactory.getLog(TezTaskOutputFiles.class);
-  private Configuration conf;
 
   private static final String SPILL_FILE_PATTERN = "%s_spill_%d.out";
   private static final String SPILL_INDEX_FILE_PATTERN = SPILL_FILE_PATTERN
       + ".index";
 
-  public TezTaskOutputFiles() {
-  }
+  
 
   // assume configured to $localdir/usercache/$user/appcache/$appId
   private LocalDirAllocator lDirAlloc =
     new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
+  
 
   private Path getAttemptOutputDir() {
     if (LOG.isDebugEnabled()) {
       LOG.debug("getAttemptOutputDir: "
           + Constants.TASK_OUTPUT_DIR + "/"
-          + conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
+          + uniqueId);
     }
-    return new Path(Constants.TASK_OUTPUT_DIR,
-        conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
+    return new Path(Constants.TASK_OUTPUT_DIR, uniqueId);
   }
 
   /**
@@ -94,12 +97,25 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   /**
+   * Create a local map output file name. This should *only* be used if the size
+   * of the file is not known. Otherwise use the equivalent which accepts a size
+   * parameter.
+   * 
+   * @return path
+   * @throws IOException
+   */
+  public Path getOutputFileForWrite() throws IOException {
+    Path attemptOutput =
+      new Path(getAttemptOutputDir(), Constants.TEZ_ENGINE_TASK_OUTPUT_FILENAME_STRING);
+    return lDirAlloc.getLocalPathForWrite(attemptOutput.toString(), conf);
+  }
+
+  /**
    * Create a local map output file name on the same volume.
    */
   public Path getOutputFileForWriteInVolume(Path existing) {
     Path outputDir = new Path(existing.getParent(), Constants.TASK_OUTPUT_DIR);
-    Path attemptOutputDir = new Path(outputDir,
-        conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
+    Path attemptOutputDir = new Path(outputDir, uniqueId);
     return new Path(attemptOutputDir, Constants.TEZ_ENGINE_TASK_OUTPUT_FILENAME_STRING);
   }
 
@@ -136,8 +152,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
    */
   public Path getOutputIndexFileForWriteInVolume(Path existing) {
     Path outputDir = new Path(existing.getParent(), Constants.TASK_OUTPUT_DIR);
-    Path attemptOutputDir = new Path(outputDir,
-        conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID));
+    Path attemptOutputDir = new Path(outputDir, uniqueId);
     return new Path(attemptOutputDir, Constants.TEZ_ENGINE_TASK_OUTPUT_FILENAME_STRING +
                                       Constants.TEZ_ENGINE_TASK_OUTPUT_INDEX_SUFFIX_STRING);
   }
@@ -152,7 +167,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   public Path getSpillFile(int spillNumber) throws IOException {
     return lDirAlloc.getLocalPathToRead(
         String.format(SPILL_FILE_PATTERN,
-            conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID), spillNumber), conf);
+            uniqueId, spillNumber), conf);
   }
 
   /**
@@ -167,7 +182,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
       throws IOException {
     return lDirAlloc.getLocalPathForWrite(
         String.format(String.format(SPILL_FILE_PATTERN,
-            conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID), spillNumber)), size, conf);
+            uniqueId, spillNumber)), size, conf);
   }
 
   /**
@@ -180,7 +195,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   public Path getSpillIndexFile(int spillNumber) throws IOException {
     return lDirAlloc.getLocalPathToRead(
         String.format(SPILL_INDEX_FILE_PATTERN,
-            conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID), spillNumber), conf);
+            uniqueId, spillNumber), conf);
   }
 
   /**
@@ -195,33 +210,32 @@ public class TezTaskOutputFiles extends TezTaskOutput {
       throws IOException {
     return lDirAlloc.getLocalPathForWrite(
         String.format(SPILL_INDEX_FILE_PATTERN,
-            conf.get(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID), spillNumber), size, conf);
+            uniqueId, spillNumber), size, conf);
   }
 
   /**
    * Return a local reduce input file created earlier
    *
-   * @param mapId a map task id
+   * @param attemptIdentifier an identifier for a task. The attempt information is ignored.
    * @return path
    * @throws IOException
    */
-  public Path getInputFile(int mapId) throws IOException {
+  public Path getInputFile(InputAttemptIdentifier attemptIdentifier) throws IOException {
     throw new UnsupportedOperationException("Incompatible with LocalRunner");
   }
 
   /**
    * Create a local reduce input file name.
    *
-   * @param mapId a map task id
+   * @param attemptIdentifier an identifier for a task. The attempt information is ignored.
    * @param size the size of the file
    * @return path
    * @throws IOException
    */
-  public Path getInputFileForWrite(TezTaskID mapId,
+  public Path getInputFileForWrite(int srcTaskId,
       long size) throws IOException {
     return lDirAlloc.getLocalPathForWrite(String.format(
-        Constants.TEZ_ENGINE_TASK_INPUT_FILE_FORMAT_STRING,
-        getAttemptOutputDir().toString(), mapId.getId()),
+        uniqueId, getAttemptOutputDir().toString(), srcTaskId),
         size, conf);
   }
 
@@ -229,13 +243,4 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   public void removeAll() throws IOException {
     throw new UnsupportedOperationException("Incompatible with LocalRunner");
   }
-
-  public void setConf(Configuration conf) {
-    this.conf = conf;
-  }
-
-  public Configuration getConf() {
-    return conf;
-  }
-
 }

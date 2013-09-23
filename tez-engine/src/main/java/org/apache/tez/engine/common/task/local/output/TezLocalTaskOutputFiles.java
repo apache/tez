@@ -28,7 +28,7 @@ import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.common.Constants;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.engine.common.InputAttemptIdentifier;
 
 /**
  * Manipulate the working area for the transient store for maps and reduces.
@@ -41,11 +41,13 @@ import org.apache.tez.dag.records.TezTaskID;
 @InterfaceStability.Unstable
 public class TezLocalTaskOutputFiles extends TezTaskOutput {
 
+  public TezLocalTaskOutputFiles(Configuration conf, String uniqueId) {
+    super(conf, uniqueId);
+  }
+
   private LocalDirAllocator lDirAlloc =
     new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
 
-  public TezLocalTaskOutputFiles() {
-  }
 
   /**
    * Return the path to local map output file created earlier
@@ -57,7 +59,7 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
   public Path getOutputFile()
       throws IOException {
     return lDirAlloc.getLocalPathToRead(Constants.TASK_OUTPUT_DIR + Path.SEPARATOR
-        + Constants.TEZ_ENGINE_TASK_OUTPUT_FILENAME_STRING, getConf());
+        + Constants.TEZ_ENGINE_TASK_OUTPUT_FILENAME_STRING, conf);
   }
 
   /**
@@ -71,7 +73,22 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
   public Path getOutputFileForWrite(long size)
       throws IOException {
     return lDirAlloc.getLocalPathForWrite(Constants.TASK_OUTPUT_DIR + Path.SEPARATOR
-        + Constants.TEZ_ENGINE_TASK_OUTPUT_FILENAME_STRING, size, getConf());
+        + Constants.TEZ_ENGINE_TASK_OUTPUT_FILENAME_STRING, size, conf);
+  }
+  
+  /**
+   * Create a local map output file name. This should *only* be used if the size
+   * of the file is not known. Otherwise use the equivalent which accepts a size
+   * parameter.
+   * 
+   * @return path
+   * @throws IOException
+   */
+  @Override
+  public Path getOutputFileForWrite() throws IOException {
+    return lDirAlloc.getLocalPathForWrite(Constants.TASK_OUTPUT_DIR
+        + Path.SEPARATOR + Constants.TEZ_ENGINE_TASK_OUTPUT_FILENAME_STRING,
+        conf);
   }
 
   /**
@@ -93,7 +110,7 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
       throws IOException {
     return lDirAlloc.getLocalPathToRead(Constants.TASK_OUTPUT_DIR + Path.SEPARATOR
         + Constants.TEZ_ENGINE_TASK_OUTPUT_FILENAME_STRING + Constants.TEZ_ENGINE_TASK_OUTPUT_INDEX_SUFFIX_STRING,
-        getConf());
+        conf);
   }
 
   /**
@@ -108,7 +125,7 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
       throws IOException {
     return lDirAlloc.getLocalPathForWrite(Constants.TASK_OUTPUT_DIR + Path.SEPARATOR
         + Constants.TEZ_ENGINE_TASK_OUTPUT_FILENAME_STRING + Constants.TEZ_ENGINE_TASK_OUTPUT_INDEX_SUFFIX_STRING,
-        size, getConf());
+        size, conf);
   }
 
   /**
@@ -131,7 +148,7 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
   public Path getSpillFile(int spillNumber)
       throws IOException {
     return lDirAlloc.getLocalPathToRead(Constants.TASK_OUTPUT_DIR + "/spill"
-        + spillNumber + ".out", getConf());
+        + spillNumber + ".out", conf);
   }
 
   /**
@@ -146,7 +163,7 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
   public Path getSpillFileForWrite(int spillNumber, long size)
       throws IOException {
     return lDirAlloc.getLocalPathForWrite(Constants.TASK_OUTPUT_DIR + "/spill"
-        + spillNumber + ".out", size, getConf());
+        + spillNumber + ".out", size, conf);
   }
 
   /**
@@ -160,7 +177,7 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
   public Path getSpillIndexFile(int spillNumber)
       throws IOException {
     return lDirAlloc.getLocalPathToRead(Constants.TASK_OUTPUT_DIR + "/spill"
-        + spillNumber + ".out.index", getConf());
+        + spillNumber + ".out.index", conf);
   }
 
   /**
@@ -175,7 +192,7 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
   public Path getSpillIndexFileForWrite(int spillNumber, long size)
       throws IOException {
     return lDirAlloc.getLocalPathForWrite(Constants.TASK_OUTPUT_DIR + "/spill"
-        + spillNumber + ".out.index", size, getConf());
+        + spillNumber + ".out.index", size, conf);
   }
 
   /**
@@ -186,11 +203,11 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
    * @throws IOException
    */
   @Override
-  public Path getInputFile(int mapId)
+  public Path getInputFile(InputAttemptIdentifier mapId)
       throws IOException {
     return lDirAlloc.getLocalPathToRead(String.format(
         Constants.TEZ_ENGINE_TASK_INPUT_FILE_FORMAT_STRING, 
-        Constants.TASK_OUTPUT_DIR, Integer.valueOf(mapId)), getConf());
+        Constants.TASK_OUTPUT_DIR, Integer.valueOf(mapId.getInputIdentifier().getSrcTaskIndex())), conf);
   }
 
   /**
@@ -202,12 +219,12 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
    * @throws IOException
    */
   @Override
-  public Path getInputFileForWrite(TezTaskID mapId,
+  public Path getInputFileForWrite(int taskId,
                                    long size)
       throws IOException {
     return lDirAlloc.getLocalPathForWrite(String.format(
-        Constants.TEZ_ENGINE_TASK_INPUT_FILE_FORMAT_STRING, Constants.TASK_OUTPUT_DIR, mapId.getId()),
-        size, getConf());
+        Constants.TEZ_ENGINE_TASK_INPUT_FILE_FORMAT_STRING, Constants.TASK_OUTPUT_DIR, taskId),
+        size, conf);
   }
 
   /** Removes all of the files related to a task. */
@@ -217,20 +234,15 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
     deleteLocalFiles(Constants.TASK_OUTPUT_DIR);
   }
 
-  @Override
-  public void setConf(Configuration conf) {
-    super.setConf(conf);
-  }
-
   private String[] getLocalDirs() throws IOException {
-    return getConf().getStrings(TezJobConfig.LOCAL_DIRS);
+    return conf.getStrings(TezJobConfig.LOCAL_DIRS);
   }
 
   @SuppressWarnings("deprecation")
   private void deleteLocalFiles(String subdir) throws IOException {
     String[] localDirs = getLocalDirs();
     for (int i = 0; i < localDirs.length; i++) {
-      FileSystem.getLocal(getConf()).delete(new Path(localDirs[i], subdir));
+      FileSystem.getLocal(conf).delete(new Path(localDirs[i], subdir));
     }
   }
 

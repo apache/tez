@@ -15,18 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.engine.common.sort;
 
-import org.apache.tez.common.RunningTaskContext;
-import org.apache.tez.engine.api.Output;
+package org.apache.tez.engine.api;
+
+import java.io.IOException;
+
+import org.apache.tez.engine.newapi.Writer;
 
 /**
- * {@link SortingOutput} is an {@link Output} which sorts incoming key/value
- * pairs.
+ * A key/value(s) pair based {@link Writer}
  */
-public interface SortingOutput extends Output {
-  
-  // TODO PreCommit rename
-  public void setTask(RunningTaskContext runningTaskContext);
-  
+public interface KVWriter extends Writer {
+  /**
+   * Writes a key/value pair.
+   * 
+   * @param key
+   *          the key to write
+   * @param value
+   *          the value to write
+   * @throws IOException
+   *           if an error occurs
+   */
+  public void write(Object key, Object value) throws IOException;
 }

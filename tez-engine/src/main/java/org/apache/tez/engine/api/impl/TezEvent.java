@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi.impl;
+package org.apache.tez.engine.api.impl;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -24,6 +24,9 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.engine.api.events.TaskAttemptCompletedEvent;
+import org.apache.tez.engine.api.events.TaskAttemptFailedEvent;
+import org.apache.tez.engine.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.engine.api.events.EventProtos.DataMovementEventProto;
 import org.apache.tez.engine.api.events.EventProtos.InputFailedEventProto;
 import org.apache.tez.engine.api.events.EventProtos.InputInformationEventProto;
@@ -35,9 +38,6 @@ import org.apache.tez.engine.newapi.events.DataMovementEvent;
 import org.apache.tez.engine.newapi.events.InputFailedEvent;
 import org.apache.tez.engine.newapi.events.InputInformationEvent;
 import org.apache.tez.engine.newapi.events.InputReadErrorEvent;
-import org.apache.tez.engine.newapi.events.TaskAttemptCompletedEvent;
-import org.apache.tez.engine.newapi.events.TaskAttemptFailedEvent;
-import org.apache.tez.engine.newapi.events.TaskStatusUpdateEvent;
 
 import com.google.protobuf.ByteString;
 

@@ -26,7 +26,7 @@ import org.apache.tez.common.Constants;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.engine.common.InputAttemptIdentifier;
-import org.apache.tez.engine.common.task.local.newoutput.TezTaskOutputFiles;
+import org.apache.tez.engine.common.task.local.output.TezTaskOutputFiles;
 import org.apache.tez.engine.newapi.TezInputContext;
 import org.apache.tez.engine.shuffle.common.DiskFetchedInput;
 import org.apache.tez.engine.shuffle.common.FetchedInput;

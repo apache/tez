@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi.events;
+package org.apache.tez.engine.api.events;
 
 import java.io.DataInput;
 import java.io.DataOutput;

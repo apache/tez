@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi.impl;
+package org.apache.tez.engine.api.impl;
 
 import java.nio.ByteBuffer;
 import java.io.IOException;
@@ -27,9 +27,9 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.engine.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.engine.newapi.Event;
 import org.apache.tez.engine.newapi.TezProcessorContext;
-import org.apache.tez.engine.newapi.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.engine.newruntime.RuntimeTask;
 
 public class TezProcessorContextImpl extends TezTaskContextImpl

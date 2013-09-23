@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi.impl;
+package org.apache.tez.engine.api.impl;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -37,9 +37,9 @@ public class OutputSpec implements Writable {
   }
 
   public OutputSpec(String destinationVertexName,
-      OutputDescriptor inputDescriptor, int physicalEdgeCount) {
+      OutputDescriptor outputDescriptor, int physicalEdgeCount) {
     this.destinationVertexName = destinationVertexName;
-    this.outputDescriptor = inputDescriptor;
+    this.outputDescriptor = outputDescriptor;
     this.physicalEdgeCount = physicalEdgeCount;
   }
 

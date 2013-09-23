@@ -44,14 +44,13 @@ import org.apache.hadoop.mapreduce.split.JobSplit;
 import org.apache.hadoop.mapreduce.split.JobSplit.SplitMetaInfo;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
-import org.apache.tez.common.InputSpec;
-import org.apache.tez.common.OutputSpec;
-import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.engine.api.Task;
-import org.apache.tez.engine.runtime.RuntimeUtils;
+import org.apache.tez.engine.api.impl.InputSpec;
+import org.apache.tez.engine.api.impl.OutputSpec;
+import org.apache.tez.engine.api.impl.TaskSpec;
+import org.apache.tez.engine.api.impl.TezUmbilical;
+import org.apache.tez.engine.newruntime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
@@ -174,9 +173,9 @@ public class MapUtils {
     outMeta.close();
   }
 
-  public static Task runMapProcessor(FileSystem fs, Path workDir,
+  public static LogicalIOProcessorRuntimeTask runMapProcessor(FileSystem fs, Path workDir,
       JobConf jobConf, int mapId, Path mapInput,
-      TezTaskUmbilicalProtocol umbilical,
+      TezUmbilical umbilical,
       String vertexName, List<InputSpec> inputSpecs,
       List<OutputSpec> outputSpecs) throws Exception {
     jobConf.setInputFormat(SequenceFileInputFormat.class);
@@ -185,14 +184,24 @@ public class MapUtils {
     ProcessorDescriptor mapProcessorDesc = new ProcessorDescriptor(
         MapProcessor.class.getName());
     writeSplitFiles(fs, jobConf, split);
-    TezEngineTaskContext taskContext = new TezEngineTaskContext(
-        TezTestUtils.getMockTaskAttemptId(0, 0, mapId, 0), "testuser",
-        "testJob", vertexName, mapProcessorDesc,
-        inputSpecs, outputSpecs);
 
-    Task t = RuntimeUtils.createRuntimeTask(taskContext);
-    t.initialize(jobConf, null, umbilical);
-    t.getProcessor().process(t.getInputs(), t.getOutputs());
-    return t;
+    TaskSpec taskSpec = new TaskSpec(
+        TezTestUtils.getMockTaskAttemptId(0, 0, mapId, 0),
+        "testuser",
+        vertexName,
+        mapProcessorDesc,
+        inputSpecs,
+        outputSpecs);
+    
+    // TODO NEWTEZ Fix umbilical access
+    LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
+        taskSpec,
+        1,
+        jobConf,
+        umbilical,
+        null);
+    task.initialize();
+    task.run();
+    return task;
   }
 }

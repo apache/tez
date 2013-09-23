@@ -22,9 +22,9 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.engine.api.KVWriter;
 import org.apache.tez.engine.common.sort.impl.dflt.InMemoryShuffleSorter;
 import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.KVWriter;
 import org.apache.tez.engine.newapi.LogicalOutput;
 import org.apache.tez.engine.newapi.Output;
 import org.apache.tez.engine.newapi.TezOutputContext;

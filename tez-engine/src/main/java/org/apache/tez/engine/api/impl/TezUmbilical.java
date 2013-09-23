@@ -16,14 +16,21 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi.impl;
+package org.apache.tez.engine.api.impl;
 
-public enum EventType {
-  TASK_ATTEMPT_COMPLETED_EVENT,
-  TASK_ATTEMPT_FAILED_EVENT,
-  DATA_MOVEMENT_EVENT,
-  INPUT_READ_ERROR_EVENT,
-  INPUT_FAILED_EVENT,
-  INTPUT_INFORMATION_EVENT,
-  TASK_STATUS_UPDATE_EVENT
+import java.io.IOException;
+import java.util.Collection;
+
+import org.apache.tez.dag.records.TezTaskAttemptID;
+
+public interface TezUmbilical {
+
+  public void addEvents(Collection<TezEvent> events);
+
+  public void signalFatalError(TezTaskAttemptID taskAttemptID,
+      String diagnostics,
+      EventMetaData sourceInfo);
+
+  public boolean canCommit(TezTaskAttemptID taskAttemptID) throws IOException;
+
 }

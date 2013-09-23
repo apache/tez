@@ -21,7 +21,7 @@ package org.apache.tez.dag.app.dag.event;
 import java.util.List;
 
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.newapi.impl.TezEvent;
+import org.apache.tez.engine.api.impl.TezEvent;
 
 public class VertexEventRouteEvent extends VertexEvent {
   

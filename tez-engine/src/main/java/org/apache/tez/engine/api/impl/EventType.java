@@ -16,20 +16,14 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi.events;
+package org.apache.tez.engine.api.impl;
 
-import org.apache.tez.engine.newapi.Event;
-
-public class TaskAttemptFailedEvent extends Event {
-
-  private final String diagnostics;
-
-  public TaskAttemptFailedEvent(String diagnostics) {
-    this.diagnostics = diagnostics;
-  }
-
-  public String getDiagnostics() {
-    return diagnostics;
-  }
-
+public enum EventType {
+  TASK_ATTEMPT_COMPLETED_EVENT,
+  TASK_ATTEMPT_FAILED_EVENT,
+  DATA_MOVEMENT_EVENT,
+  INPUT_READ_ERROR_EVENT,
+  INPUT_FAILED_EVENT,
+  INTPUT_INFORMATION_EVENT,
+  TASK_STATUS_UPDATE_EVENT
 }

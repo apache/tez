@@ -16,21 +16,13 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi.impl;
+package org.apache.tez.engine.api.events;
 
-import java.io.IOException;
-import java.util.Collection;
+import org.apache.tez.engine.newapi.Event;
 
-import org.apache.tez.dag.records.TezTaskAttemptID;
+public class TaskAttemptCompletedEvent extends Event {
 
-public interface TezUmbilical {
-
-  public void addEvents(Collection<TezEvent> events);
-
-  public void signalFatalError(TezTaskAttemptID taskAttemptID,
-      String diagnostics,
-      EventMetaData sourceInfo);
-
-  public boolean canCommit(TezTaskAttemptID taskAttemptID) throws IOException;
+  public TaskAttemptCompletedEvent() {
+  }
 
 }

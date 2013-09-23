@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.engine.newapi.impl;
+package org.apache.tez.engine.api.impl;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -27,34 +27,34 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.engine.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.engine.newapi.Event;
-import org.apache.tez.engine.newapi.TezOutputContext;
-import org.apache.tez.engine.newapi.impl.EventMetaData.EventProducerConsumerType;
+import org.apache.tez.engine.newapi.TezInputContext;
 import org.apache.tez.engine.newruntime.RuntimeTask;
 
-public class TezOutputContextImpl extends TezTaskContextImpl
-    implements TezOutputContext {
+public class TezInputContextImpl extends TezTaskContextImpl
+    implements TezInputContext {
 
   private final byte[] userPayload;
-  private final String destinationVertexName;
+  private final String sourceVertexName;
   private final EventMetaData sourceInfo;
 
   @Private
-  public TezOutputContextImpl(Configuration conf, int appAttemptNumber,
+  public TezInputContextImpl(Configuration conf, int appAttemptNumber,
       TezUmbilical tezUmbilical, String taskVertexName,
-      String destinationVertexName,
-      TezTaskAttemptID taskAttemptID, TezCounters counters,
-      byte[] userPayload, RuntimeTask runtimeTask,
-      Map<String, ByteBuffer> serviceConsumerMetadata) {
+      String sourceVertexName, TezTaskAttemptID taskAttemptID,
+      TezCounters counters, byte[] userPayload,
+      RuntimeTask runtimeTask, Map<String, ByteBuffer> serviceConsumerMetadata) {
     super(conf, appAttemptNumber, taskVertexName, taskAttemptID,
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata);
     this.userPayload = userPayload;
-    this.destinationVertexName = destinationVertexName;
-    this.sourceInfo = new EventMetaData(EventProducerConsumerType.OUTPUT,
-        taskVertexName, destinationVertexName, taskAttemptID);
+    this.sourceVertexName = sourceVertexName;
+    this.sourceInfo = new EventMetaData(
+        EventProducerConsumerType.INPUT, taskVertexName, sourceVertexName,
+        taskAttemptID);
     this.uniqueIdentifier = String.format("%s_%s_%06d_%02d_%s", taskAttemptID
         .getTaskID().getVertexID().getDAGId().toString(), taskVertexName,
-        getTaskIndex(), getTaskAttemptNumber(), destinationVertexName);
+        getTaskIndex(), getTaskAttemptNumber(), sourceVertexName);
   }
 
   @Override
@@ -73,13 +73,12 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   }
 
   @Override
-  public String getDestinationVertexName() {
-    return destinationVertexName;
+  public String getSourceVertexName() {
+    return sourceVertexName;
   }
 
   @Override
   public void fatalError(Throwable exception, String message) {
     super.signalFatalError(exception, message, sourceInfo);
   }
-
 }
