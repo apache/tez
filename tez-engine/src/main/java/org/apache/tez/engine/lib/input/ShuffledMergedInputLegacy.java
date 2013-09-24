@@ -10,14 +10,15 @@
  * 
  */
 
-package org.apache.tez.mapreduce.input;
+package org.apache.tez.engine.lib.input;
 
 import java.io.IOException;
 
+import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
-import org.apache.tez.engine.lib.input.ShuffledMergedInput;
 
+@LimitedPrivate("mapreduce")
 public class ShuffledMergedInputLegacy extends ShuffledMergedInput {
 
   @Private

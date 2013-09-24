@@ -44,7 +44,6 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
-import org.apache.hadoop.mapred.MapOutputFile;
 import org.apache.hadoop.mapred.RawKeyValueIterator;
 import org.apache.hadoop.mapred.TaskAttemptContext;
 import org.apache.hadoop.mapred.TaskAttemptID;
@@ -83,7 +82,6 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.hadoop.mapreduce.JobContextImpl;
 import org.apache.tez.mapreduce.output.SimpleOutput;
-import org.apache.tez.mapreduce.task.impl.YarnOutputFiles;
 
 @SuppressWarnings("deprecation")
 public abstract class MRTask {
@@ -203,9 +201,6 @@ public abstract class MRTask {
     // TODO This could be fetched from the env if YARN is setting it for all
     // Containers.
     // Set it in conf, so as to be able to be used the the OutputCommitter.
-
-    jobConf.setClass(MRConfig.TASK_LOCAL_OUTPUT_CLASS, YarnOutputFiles.class,
-        MapOutputFile.class); // MR
 
     // Not needed. This is probably being set via the source/consumer meta
     Token<JobTokenIdentifier> jobToken = TokenCache.getJobToken(credentials);

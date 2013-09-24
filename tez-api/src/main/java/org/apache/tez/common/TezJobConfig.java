@@ -64,6 +64,7 @@ public class TezJobConfig {
   /**
    * List of directories avialble to the engine. 
    */
+  @Private
   public static final String LOCAL_DIRS = "tez.engine.local.dirs";
   public static final String DEFAULT_LOCAL_DIRS = "/tmp";
 

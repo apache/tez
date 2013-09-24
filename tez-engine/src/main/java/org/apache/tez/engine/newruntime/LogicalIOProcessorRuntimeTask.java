@@ -61,6 +61,7 @@ import org.apache.tez.engine.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.shuffle.common.ShuffleUtils;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 @Private
@@ -75,6 +76,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final List<OutputSpec> outputSpecs;
   private final List<LogicalOutput> outputs;
 
+  private List<TezInputContext> inputContexts;
+  private List<TezOutputContext> outputContexts;
+  private TezProcessorContext processorContext;
+  
   private final ProcessorDescriptor processorDescriptor;
   private final LogicalIOProcessor processor;
 
@@ -95,6 +100,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     super(taskSpec, tezConf, tezUmbilical);
     LOG.info("Initializing LogicalIOProcessorRuntimeTask with TaskSpec: "
         + taskSpec);
+    this.inputContexts = new ArrayList<TezInputContext>(taskSpec.getInputs().size());
+    this.outputContexts = new ArrayList<TezOutputContext>(taskSpec.getOutputs().size());
     this.inputSpecs = taskSpec.getInputs();
     this.inputs = createInputs(inputSpecs);
     this.outputSpecs = taskSpec.getOutputs();
@@ -185,6 +192,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private void initializeInput(Input input, InputSpec inputSpec)
       throws Exception {
     TezInputContext tezInputContext = createInputContext(inputSpec);
+    inputContexts.add(tezInputContext);
     if (input instanceof LogicalInput) {
       ((LogicalInput) input).setNumPhysicalInputs(inputSpec
           .getPhysicalEdgeCount());
@@ -199,6 +207,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private void initializeOutput(Output output, OutputSpec outputSpec)
       throws Exception {
     TezOutputContext tezOutputContext = createOutputContext(outputSpec);
+    outputContexts.add(tezOutputContext);
     if (output instanceof LogicalOutput) {
       ((LogicalOutput) output).setNumPhysicalOutputs(outputSpec
           .getPhysicalEdgeCount());
@@ -215,6 +224,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     LOG.info("Initializing processor"
         + ", processorClassName=" + processorDescriptor.getClassName());
     TezProcessorContext processorContext = createProcessorContext();
+    this.processorContext = processorContext;
     processor.initialize(processorContext);
   }
 
@@ -425,5 +435,41 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       eventRouterThread.interrupt();
     }
   }
+  
+  @Private
+  @VisibleForTesting
+  public List<TezInputContext> getInputContexts() {
+    return this.inputContexts;
+  }
+  
+  @Private
+  @VisibleForTesting
+  public List<TezOutputContext> getOutputContexts() {
+    return this.outputContexts;
+  }
 
+  @Private
+  @VisibleForTesting
+  public TezProcessorContext getProcessorContext() {
+    return this.processorContext;
+  }
+  
+  @Private
+  @VisibleForTesting
+  public Map<String, LogicalInput> getInputs() {
+    return this.inputMap;
+  }
+  
+  @Private
+  @VisibleForTesting
+  public Map<String, LogicalOutput> getOutputs() {
+    return this.outputMap;
+  }
+  
+  @Private
+  @VisibleForTesting
+  public LogicalIOProcessor getProcessor() {
+    return this.processor;
+  }
+  
 }

@@ -93,6 +93,10 @@ public class OnFileSortedOutput implements LogicalOutput {
     sorter.close();
     this.endTime = System.nanoTime();
 
+   return generateDataMovementEventsOnClose();
+  }
+  
+  protected List<Event> generateDataMovementEventsOnClose() throws IOException {
     String host = System.getenv(ApplicationConstants.Environment.NM_HOST
         .toString());
     ByteBuffer shuffleMetadata = outputContext

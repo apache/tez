@@ -156,7 +156,7 @@ public class ShuffledMergedInput implements LogicalInput {
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  private void createValuesIterator()
+  protected void createValuesIterator()
       throws IOException {
     vIter = new ValuesIterator(rawIter,
         (RawComparator) ConfigUtils.getIntermediateInputKeyComparator(conf),

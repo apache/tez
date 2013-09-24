@@ -31,11 +31,7 @@ import org.apache.tez.engine.common.localshuffle.LocalShuffle;
  * <code>LocalMergedInput</code> in an {@link LogicalInput} which shuffles intermediate
  * sorted data, merges them and provides key/<values> to the consumer. 
  */
-public class LocalMergedInput extends ShuffledMergedInput {
-
-
-  // TODO NEWTEZ Fix CombineProcessor
-  //private CombineInput raw;
+public class LocalMergedInput extends ShuffledMergedInputLegacy {
 
   @Override
   public List<Event> initialize(TezInputContext inputContext) throws IOException {
@@ -43,8 +39,8 @@ public class LocalMergedInput extends ShuffledMergedInput {
     this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
 
     LocalShuffle localShuffle = new LocalShuffle(inputContext, conf, numInputs);
-    // TODO NEWTEZ async run and checkIfComplete methods
     rawIter = localShuffle.run();
+    createValuesIterator();
     return Collections.emptyList();
   }
 

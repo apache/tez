@@ -43,13 +43,16 @@ import org.apache.hadoop.mapred.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.split.JobSplit;
 import org.apache.hadoop.mapreduce.split.JobSplit.SplitMetaInfo;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.engine.api.impl.InputSpec;
 import org.apache.tez.engine.api.impl.OutputSpec;
 import org.apache.tez.engine.api.impl.TaskSpec;
 import org.apache.tez.engine.api.impl.TezUmbilical;
+import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.newruntime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -108,6 +111,7 @@ public class MapUtils {
       throws IOException {
     FileInputFormat.setInputPaths(job, workDir);
 
+    LOG.info("Generating data at path: " + file);
     // create a file with length entries
     @SuppressWarnings("deprecation")
     SequenceFile.Writer writer = 
@@ -147,6 +151,7 @@ public class MapUtils {
       InputSplit split) throws IOException {
     Path jobSplitFile = new Path(conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR,
         TezJobConfig.DEFAULT_TASK_LOCAL_RESOURCE_DIR), MRJobConfig.JOB_SPLIT);
+    LOG.info("Writing split to: " + jobSplitFile);
     FSDataOutputStream out = FileSystem.create(fs, jobSplitFile,
         new FsPermission(JOB_FILE_PERMISSION));
 
@@ -173,17 +178,23 @@ public class MapUtils {
     outMeta.close();
   }
 
-  public static LogicalIOProcessorRuntimeTask runMapProcessor(FileSystem fs, Path workDir,
+  public static void generateInputSplit(FileSystem fs, Path workDir, JobConf jobConf, Path mapInput) throws IOException {
+    jobConf.setInputFormat(SequenceFileInputFormat.class);
+    InputSplit split = createInputSplit(fs, workDir, jobConf, mapInput);
+    writeSplitFiles(fs, jobConf, split);
+  }
+  
+  public static LogicalIOProcessorRuntimeTask createLogicalTask(FileSystem fs, Path workDir,
       JobConf jobConf, int mapId, Path mapInput,
       TezUmbilical umbilical,
       String vertexName, List<InputSpec> inputSpecs,
       List<OutputSpec> outputSpecs) throws Exception {
     jobConf.setInputFormat(SequenceFileInputFormat.class);
-    InputSplit split = createInputSplit(fs, workDir, jobConf, mapInput);
 
     ProcessorDescriptor mapProcessorDesc = new ProcessorDescriptor(
-        MapProcessor.class.getName());
-    writeSplitFiles(fs, jobConf, split);
+        MapProcessor.class.getName()).setUserPayload(TezUtils.createUserPayloadFromConf(jobConf));
+    
+    Token<JobTokenIdentifier> shuffleToken = new Token<JobTokenIdentifier>();
 
     TaskSpec taskSpec = new TaskSpec(
         TezTestUtils.getMockTaskAttemptId(0, 0, mapId, 0),
@@ -192,16 +203,13 @@ public class MapUtils {
         mapProcessorDesc,
         inputSpecs,
         outputSpecs);
-    
-    // TODO NEWTEZ Fix umbilical access
+
     LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
         taskSpec,
-        1,
+        0,
         jobConf,
         umbilical,
-        null);
-    task.initialize();
-    task.run();
+        shuffleToken);
     return task;
   }
 }

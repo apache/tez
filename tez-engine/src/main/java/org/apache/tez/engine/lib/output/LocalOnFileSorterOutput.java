@@ -48,11 +48,16 @@ public class LocalOnFileSorterOutput extends OnFileSortedOutput {
             outputContext.getTaskIndex(),
             localFs.getFileStatus(src).getLen());
 
+    LOG.info("Renaming src = " + src + ", dst = " + dst);
     if (LOG.isDebugEnabled()) {
       LOG.debug("Renaming src = " + src + ", dst = " + dst);
     }
     localFs.rename(src, dst);
-    // TODO NEWTEZ Event generation.
+    return null;
+  }
+  
+  @Override
+  protected List<Event> generateDataMovementEventsOnClose() throws IOException {
     return null;
   }
 }
