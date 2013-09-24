@@ -367,16 +367,16 @@ public class MRHelpers {
     // the AM anyway.
 
     // TODO eventually ACLs
-    conf.set(TezJobConfig.TEZ_ENGINE_PARTITIONER_CLASS, MRPartitioner.class.getName());
+    conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, MRPartitioner.class.getName());
     
     boolean useNewApi = conf.getBoolean("mapred.mapper.new-api", false);
     if (useNewApi) {
       if (conf.get(MRJobConfig.COMBINE_CLASS_ATTR) != null) {
-        conf.set(TezJobConfig.TEZ_ENGINE_COMBINER_CLASS, MRCombiner.class.getName());
+        conf.set(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS, MRCombiner.class.getName());
       }
     } else {
       if (conf.get("mapred.combiner.class") != null) {
-        conf.set(TezJobConfig.TEZ_ENGINE_COMBINER_CLASS, MRCombiner.class.getName());
+        conf.set(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS, MRCombiner.class.getName());
       }
     }
     

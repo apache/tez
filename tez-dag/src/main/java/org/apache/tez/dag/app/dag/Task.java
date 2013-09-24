@@ -26,7 +26,7 @@ import org.apache.tez.dag.api.oldrecords.TaskReport;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
-import org.apache.tez.engine.api.impl.TezEvent;
+import org.apache.tez.runtime.api.impl.TezEvent;
 
 /**
  * Read only view of Task.

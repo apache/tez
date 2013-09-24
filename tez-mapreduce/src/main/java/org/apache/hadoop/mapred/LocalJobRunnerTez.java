@@ -853,7 +853,7 @@
 //    LOG.info(TezJobConfig.LOCAL_DIRS + " for child : " + taskAttemptID +
 //        " is " + childMapredLocalDir);
 //    conf.set(TezJobConfig.LOCAL_DIRS, childMapredLocalDir.toString());
-//    conf.setClass(Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER,
+//    conf.setClass(Constants.TEZ_RUNTIME_TASK_OUTPUT_MANAGER,
 //        TezLocalTaskOutputFiles.class, TezTaskOutput.class);
 //  }
 //

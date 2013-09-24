@@ -221,7 +221,7 @@ public class MultiStageMRConfToTezTranslator {
     int numStages = numIntermediateStages + (hasFinalReduceStage ? 2 : 1);
 
     // Setup Tez partitioner class
-    conf.set(TezJobConfig.TEZ_ENGINE_PARTITIONER_CLASS,
+    conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS,
         MRPartitioner.class.getName());
     
     // Setup Tez Combiner class if required.
@@ -229,11 +229,11 @@ public class MultiStageMRConfToTezTranslator {
     boolean useNewApi = conf.getBoolean("mapred.mapper.new-api", false);
     if (useNewApi) {
       if (conf.get(MRJobConfig.COMBINE_CLASS_ATTR) != null) {
-        conf.set(TezJobConfig.TEZ_ENGINE_COMBINER_CLASS, MRCombiner.class.getName());
+        conf.set(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS, MRCombiner.class.getName());
       }
     } else {
       if (conf.get("mapred.combiner.class") != null) {
-        conf.set(TezJobConfig.TEZ_ENGINE_COMBINER_CLASS, MRCombiner.class.getName());
+        conf.set(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS, MRCombiner.class.getName());
       }
     }
 
@@ -259,7 +259,7 @@ public class MultiStageMRConfToTezTranslator {
   }
 
   private static void processDirectConversion(Configuration conf) {
-    for (Entry<String, String> dep : DeprecatedKeys.getMRToEngineParamMap()
+    for (Entry<String, String> dep : DeprecatedKeys.getMRToTezRuntimeParamMap()
         .entrySet()) {
       if (conf.get(dep.getKey()) != null) {
         // TODO Deprecation reason does not seem to reflect in the config ?
@@ -336,7 +336,7 @@ public class MultiStageMRConfToTezTranslator {
       Configuration baseConf, String stage) {
     JobConf jobConf = new JobConf(baseConf);
     // Don't clobber explicit tez config.
-    if (conf.get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_KEY_CLASS) == null) {
+    if (conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS) == null) {
       // If this is set, but the comparator is not set, and their types differ -
       // the job will break.
       if (conf.get(MRJobConfig.MAP_OUTPUT_KEY_CLASS) == null) {
@@ -352,7 +352,7 @@ public class MultiStageMRConfToTezTranslator {
       }
     }
 
-    if (conf.get(TezJobConfig.TEZ_ENGINE_INTERMEDIATE_OUTPUT_VALUE_CLASS) == null) {
+    if (conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS) == null) {
       if (conf.get(MRJobConfig.MAP_OUTPUT_VALUE_CLASS) == null) {
         conf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS, jobConf
             .getMapOutputValueClass().getName());

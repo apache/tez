@@ -39,11 +39,11 @@ import org.apache.tez.dag.app.dag.VertexScheduler;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.api.events.DataMovementEvent;
-import org.apache.tez.engine.api.events.InputFailedEvent;
-import org.apache.tez.engine.api.events.InputReadErrorEvent;
-import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.InputFailedEvent;
+import org.apache.tez.runtime.api.events.InputReadErrorEvent;
+import org.apache.tez.runtime.records.TezDependentTaskCompletionEvent;
 
 /**
  * Starts scheduling tasks when number of completed source tasks crosses 
@@ -264,14 +264,14 @@ public class ShuffleVertexManager implements VertexScheduler {
       List<byte[]> taskConfs = new ArrayList<byte[]>(finalTaskParallelism);
       try {
         Configuration taskConf = new Configuration(false);
-        taskConf.setInt(TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE,
+        taskConf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARTITION_RANGE,
             basePartitionRange);
         // create event user payload to inform the task
         for (int i = 0; i < numShufflersWithBaseRange; ++i) {
           taskConfs.add(MRHelpers.createUserPayloadFromConf(taskConf));
         }
         if(finalTaskParallelism > numShufflersWithBaseRange) {
-          taskConf.setInt(TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE,
+          taskConf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARTITION_RANGE,
               remainderRangeForLastShuffler);
           taskConfs.add(MRHelpers.createUserPayloadFromConf(taskConf));
         }

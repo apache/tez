@@ -29,7 +29,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.tez.engine.common.ConfigUtils;
+import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.junit.Test;
 
 public class TestConfigTranslationMRToTez {

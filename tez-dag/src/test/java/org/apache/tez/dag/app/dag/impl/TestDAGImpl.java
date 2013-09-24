@@ -70,7 +70,7 @@ import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.common.security.JobTokenSecretManager;
+import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

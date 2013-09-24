@@ -19,7 +19,7 @@
 package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.dag.records.TezTaskID;
-import org.apache.tez.engine.api.impl.TezEvent;
+import org.apache.tez.runtime.api.impl.TezEvent;
 
 public class TaskEventAddTezEvent extends TaskEvent {
 

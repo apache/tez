@@ -41,7 +41,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
-      <artifactId>tez-engine</artifactId>
+      <artifactId>tez-runtime-internals</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>

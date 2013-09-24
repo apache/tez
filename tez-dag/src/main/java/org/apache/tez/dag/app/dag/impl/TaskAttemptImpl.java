@@ -89,8 +89,8 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
-import org.apache.tez.engine.api.events.TaskStatusUpdateEvent;
-import org.apache.tez.engine.api.impl.TaskSpec;
+import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
+import org.apache.tez.runtime.api.impl.TaskSpec;
 
 import com.google.common.annotations.VisibleForTesting;
 

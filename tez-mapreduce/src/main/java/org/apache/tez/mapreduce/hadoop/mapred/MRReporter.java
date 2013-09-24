@@ -3,9 +3,9 @@ package org.apache.tez.mapreduce.hadoop.mapred;
 import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.Reporter;
-import org.apache.tez.engine.api.TezProcessorContext;
-import org.apache.tez.engine.api.TezTaskContext;
 import org.apache.tez.mapreduce.common.Utils;
+import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.TezTaskContext;
 
 public class MRReporter implements Reporter {
 

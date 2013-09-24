@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
+import org.apache.tez.runtime.records.TezDependentTaskCompletionEvent;
 
 public class VertexEventTaskAttemptCompleted extends VertexEvent {
 

@@ -100,7 +100,12 @@
       </dependency>
       <dependency>
         <groupId>org.apache.tez</groupId>
-        <artifactId>tez-engine</artifactId>
+        <artifactId>tez-runtime-internals</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tez</groupId>
+        <artifactId>tez-runtime-library</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -247,7 +252,8 @@
   <modules>
     <module>tez-api</module>
     <module>tez-common</module>
-    <module>tez-engine</module>
+    <module>tez-runtime-library</module>
+    <module>tez-runtime-internals</module>
     <module>tez-yarn-client</module>
     <module>tez-mapreduce</module>
     <module>tez-mapreduce-examples</module>

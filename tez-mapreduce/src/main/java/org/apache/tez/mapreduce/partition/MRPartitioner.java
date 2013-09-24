@@ -24,11 +24,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.engine.common.ConfigUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+import org.apache.tez.runtime.library.common.ConfigUtils;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
-public class MRPartitioner implements org.apache.tez.engine.api.Partitioner {
+public class MRPartitioner implements org.apache.tez.runtime.library.api.Partitioner {
 
   static final Log LOG = LogFactory.getLog(MRPartitioner.class);
 
@@ -40,7 +40,7 @@ public class MRPartitioner implements org.apache.tez.engine.api.Partitioner {
 
   public MRPartitioner(Configuration conf) {
     this.useNewApi = ConfigUtils.useNewApi(conf);
-    this.partitions = conf.getInt(TezJobConfig.TEZ_ENGINE_NUM_EXPECTED_PARTITIONS, 1);
+    this.partitions = conf.getInt(TezJobConfig.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS, 1);
 
     if (useNewApi) {
       if (partitions > 1) {

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-option java_package = "org.apache.tez.engine.api.events";
+option java_package = "org.apache.tez.runtime.api.events";
 option java_outer_classname = "EventProtos";
 option java_generate_equals_and_hash = true;
 

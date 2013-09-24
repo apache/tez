@@ -29,7 +29,7 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.TaskInputOutputContext;
-import org.apache.tez.engine.api.TezTaskContext;
+import org.apache.tez.runtime.api.TezTaskContext;
 
 /**
  * A context object that allows input and output from the task. It is only
