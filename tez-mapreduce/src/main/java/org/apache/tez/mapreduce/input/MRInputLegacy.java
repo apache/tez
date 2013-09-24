@@ -21,7 +21,7 @@ package org.apache.tez.mapreduce.input;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.mapred.RecordReader;
 
-public class SimpleInputLegacy extends SimpleInput {
+public class MRInputLegacy extends MRInput {
 
   @Private
   public org.apache.hadoop.mapreduce.InputSplit getNewInputSplit() {

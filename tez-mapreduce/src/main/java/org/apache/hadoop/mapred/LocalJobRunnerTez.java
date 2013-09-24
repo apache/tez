@@ -83,8 +83,8 @@
 //import org.apache.tez.engine.records.TezTaskDependencyCompletionEventsUpdate;
 //import org.apache.tez.mapreduce.hadoop.IDConverter;
 //import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
-//import org.apache.tez.mapreduce.input.SimpleInput;
-//import org.apache.tez.mapreduce.output.SimpleOutput;
+//import org.apache.tez.mapreduce.input.MRInput;
+//import org.apache.tez.mapreduce.output.MROutput;
 //import org.apache.tez.mapreduce.processor.map.MapProcessor;
 //import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 //
@@ -252,7 +252,7 @@
 //                  tezMapId, user, localConf.getJobName(), "TODO_vertexName",
 //                  mapProcessorDesc,
 //                  Collections.singletonList(new InputSpec("srcVertex", 0,
-//                      SimpleInput.class.getName())),
+//                      MRInput.class.getName())),
 //                  Collections.singletonList(new OutputSpec("tgtVertex", 0,
 //                      LocalOnFileSorterOutput.class.getName())));
 //
@@ -458,7 +458,7 @@
 //                Collections.singletonList(new InputSpec("TODO_srcVertexName",
 //                    mapIds.size(), LocalMergedInput.class.getName())),
 //                Collections.singletonList(new OutputSpec("TODO_targetVertex",
-//                    0, SimpleOutput.class.getName())));
+//                    0, MROutput.class.getName())));
 //
 //            // move map output to reduce input
 //            for (int i = 0; i < mapIds.size(); i++) {

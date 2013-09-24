@@ -65,7 +65,7 @@ public class MRTaskReporter
     if (isProcessorContext) {
       ((TezProcessorContext)context).setProgress(progress);
     } else {
-      // TODO FIXME NEWTEZ - will simpleoutput's reporter use this api?
+      // TODO FIXME NEWTEZ - will MROutput's reporter use this api?
     }
   }
 

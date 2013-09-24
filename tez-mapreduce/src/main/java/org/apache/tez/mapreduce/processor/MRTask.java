@@ -81,7 +81,7 @@ import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.hadoop.mapreduce.JobContextImpl;
-import org.apache.tez.mapreduce.output.SimpleOutput;
+import org.apache.tez.mapreduce.output.MROutput;
 
 @SuppressWarnings("deprecation")
 public abstract class MRTask {
@@ -423,8 +423,8 @@ public abstract class MRTask {
         + " And is in the process of committing");
     // TODO change this to use the new context
     // TODO TEZ Interaciton between Commit and OutputReady. Merge ?
-    if (output instanceof SimpleOutput) {
-      SimpleOutput sOut = (SimpleOutput)output;
+    if (output instanceof MROutput) {
+      MROutput sOut = (MROutput)output;
       if (sOut.isCommitRequired()) {
         //wait for commit approval and commit
         // TODO EVENTUALLY - Commit is not required for map tasks.
@@ -458,7 +458,7 @@ public abstract class MRTask {
     statusUpdate();
   }
 
-  private void commit(SimpleOutput output) throws IOException {
+  private void commit(MROutput output) throws IOException {
     int retries = 3;
     while (true) {
       // This will loop till the AM asks for the task to be killed. As
@@ -495,7 +495,7 @@ public abstract class MRTask {
   }
 
   private
-  void discardOutput(SimpleOutput output) {
+  void discardOutput(MROutput output) {
     try {
       output.abort();
     } catch (IOException ioe)  {

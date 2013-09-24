@@ -187,7 +187,7 @@ public class BroadcastKVReader<K, V> implements KVReader {
 
   
   
-  // TODO NEWTEZ Move this into a common class. Also used in SImpleInput
+  // TODO NEWTEZ Move this into a common class. Also used in MRInput
   private class SimpleValueIterator implements Iterator<V> {
 
     private V value;

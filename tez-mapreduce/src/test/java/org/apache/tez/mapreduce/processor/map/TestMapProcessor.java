@@ -48,7 +48,7 @@ import org.apache.tez.mapreduce.TestUmbilical;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
-import org.apache.tez.mapreduce.input.SimpleInputLegacy;
+import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.MapUtils;
 import org.junit.After;
@@ -120,7 +120,7 @@ public class TestMapProcessor {
     
     MapUtils.generateInputSplit(localFs, workDir, job, mapInput);
     
-    InputSpec mapInputSpec = new InputSpec("NullSrcVertex", new InputDescriptor(SimpleInputLegacy.class.getName()), 0);
+    InputSpec mapInputSpec = new InputSpec("NullSrcVertex", new InputDescriptor(MRInputLegacy.class.getName()), 0);
     OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", new OutputDescriptor(LocalOnFileSorterOutput.class.getName()), 1);
 
     LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask(localFs, workDir, job, 0,
@@ -191,7 +191,7 @@ public class TestMapProcessor {
 //            localFs, workDir, job, 0, new Path(workDir, "map0"), 
 //            new TestUmbilicalProtocol(true), vertexName, 
 //            Collections.singletonList(new InputSpec("NullVertex", 0,
-//                SimpleInput.class.getName())),
+//                MRInput.class.getName())),
 //            Collections.singletonList(new OutputSpec("FakeVertex", 1,
 //                OldInMemorySortedOutput.class.getName()))
 //            );

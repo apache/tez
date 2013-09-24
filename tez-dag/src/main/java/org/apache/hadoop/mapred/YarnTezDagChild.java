@@ -85,8 +85,8 @@ import org.apache.tez.engine.common.objectregistry.ObjectRegistryModule;
 import org.apache.tez.engine.common.security.JobTokenIdentifier;
 import org.apache.tez.engine.common.security.TokenCache;
 import org.apache.tez.engine.newruntime.LogicalIOProcessorRuntimeTask;
-import org.apache.tez.mapreduce.input.SimpleInputLegacy;
-import org.apache.tez.mapreduce.output.SimpleOutput;
+import org.apache.tez.mapreduce.input.MRInputLegacy;
+import org.apache.tez.mapreduce.output.MROutput;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -497,20 +497,20 @@ public class YarnTezDagChild {
 
     // FIXME need Input/Output vertices else we have this hack
     if (taskSpec.getInputs().isEmpty()) {
-      InputDescriptor simpleInputDesc =
-          new InputDescriptor(SimpleInputLegacy.class.getName());
-      simpleInputDesc.setUserPayload(
+      InputDescriptor mrInputDesc =
+          new InputDescriptor(MRInputLegacy.class.getName());
+      mrInputDesc.setUserPayload(
           taskSpec.getProcessorDescriptor().getUserPayload());
       taskSpec.getInputs().add(
-          new InputSpec("null", simpleInputDesc, 0));
+          new InputSpec("null", mrInputDesc, 0));
     }
     if (taskSpec.getOutputs().isEmpty()) {
-      OutputDescriptor simpleOutputDesc =
-          new OutputDescriptor(SimpleOutput.class.getName());
-      simpleOutputDesc.setUserPayload(
+      OutputDescriptor mrOutputDesc =
+          new OutputDescriptor(MROutput.class.getName());
+      mrOutputDesc.setUserPayload(
           taskSpec.getProcessorDescriptor().getUserPayload());
       taskSpec.getOutputs().add(
-          new OutputSpec("null", simpleOutputDesc, 0));
+          new OutputSpec("null", mrOutputDesc, 0));
     }
     String [] localDirs = StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
     conf.setStrings(TezJobConfig.LOCAL_DIRS, localDirs);

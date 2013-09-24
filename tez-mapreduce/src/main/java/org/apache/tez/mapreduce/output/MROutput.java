@@ -37,9 +37,9 @@ import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
 import org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 
-public class SimpleOutput implements LogicalOutput {
+public class MROutput implements LogicalOutput {
 
-  private static final Log LOG = LogFactory.getLog(SimpleOutput.class);
+  private static final Log LOG = LogFactory.getLog(MROutput.class);
 
   private static final NumberFormat NUMBER_FORMAT = NumberFormat.getInstance();
   static {
@@ -295,7 +295,7 @@ public class SimpleOutput implements LogicalOutput {
   }
 
   /**
-   * SimpleOutput expects that a Processor call commit prior to the
+   * MROutput expects that a Processor call commit prior to the
    * Processor's completion
    * @throws IOException
    */
@@ -310,7 +310,7 @@ public class SimpleOutput implements LogicalOutput {
 
 
   /**
-   * SimpleOutput expects that a Processor call abort in case of any error
+   * MROutput expects that a Processor call abort in case of any error
    * ( including an error during commit ) prior to the Processor's completion
    * @throws IOException
    */

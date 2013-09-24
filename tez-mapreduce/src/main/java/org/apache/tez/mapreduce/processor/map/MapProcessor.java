@@ -44,9 +44,9 @@ import org.apache.tez.engine.api.LogicalOutput;
 import org.apache.tez.engine.api.TezProcessorContext;
 import org.apache.tez.engine.lib.output.OnFileSortedOutput;
 import org.apache.tez.mapreduce.hadoop.mapreduce.MapContextImpl;
-import org.apache.tez.mapreduce.input.SimpleInput;
-import org.apache.tez.mapreduce.input.SimpleInputLegacy;
-import org.apache.tez.mapreduce.output.SimpleOutput;
+import org.apache.tez.mapreduce.input.MRInput;
+import org.apache.tez.mapreduce.input.MRInputLegacy;
+import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 
@@ -99,15 +99,15 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     LogicalOutput out = outputs.values().iterator().next();
 
     // Sanity check
-    if (!(in instanceof SimpleInputLegacy)) {
+    if (!(in instanceof MRInputLegacy)) {
       throw new IOException(new TezException(
           "Only Simple Input supported. Input: " + in.getClass()));
     }
-    SimpleInputLegacy input = (SimpleInputLegacy)in;
+    MRInputLegacy input = (MRInputLegacy)in;
 
     KVWriter kvWriter = null;
     if (!(out instanceof OnFileSortedOutput)) {
-      kvWriter = ((SimpleOutput)out).getWriter();
+      kvWriter = ((MROutput)out).getWriter();
     } else {
       kvWriter = ((OnFileSortedOutput)out).getWriter();
     }
@@ -124,13 +124,13 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
   void runOldMapper(
       final JobConf job,
       final MRTaskReporter reporter,
-      final SimpleInputLegacy input,
+      final MRInputLegacy input,
       final KVWriter output
       ) throws IOException, InterruptedException {
 
     // Initialize input in-line since it sets parameters which may be used by the processor.
-    // Done only for SimpleInput.
-    // TODO use new method in SimpleInput to get required info
+    // Done only for MRInput.
+    // TODO use new method in MRInput to get required info
     //input.initialize(job, master);
 
     RecordReader in = new OldRecordReader(input);
@@ -147,13 +147,13 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
 
   private void runNewMapper(final JobConf job,
       MRTaskReporter reporter,
-      final SimpleInputLegacy in,
+      final MRInputLegacy in,
       KVWriter out
       ) throws IOException, InterruptedException {
 
     // Initialize input in-line since it sets parameters which may be used by the processor.
-    // Done only for SimpleInput.
-    // TODO use new method in SimpleInput to get required info
+    // Done only for MRInput.
+    // TODO use new method in MRInput to get required info
     //in.initialize(job, master);
 
     // make a task context so we can get the classes
@@ -197,10 +197,10 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
 
   private static class NewRecordReader extends
       org.apache.hadoop.mapreduce.RecordReader {
-    private final SimpleInput in;
+    private final MRInput in;
     private KVReader reader;
 
-    private NewRecordReader(SimpleInput in) throws IOException {
+    private NewRecordReader(MRInput in) throws IOException {
       this.in = in;
       this.reader = in.getReader();
     }
@@ -241,38 +241,38 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
   }
 
   private static class OldRecordReader implements RecordReader {
-    private final SimpleInputLegacy simpleInput;
+    private final MRInputLegacy mrInput;
 
-    private OldRecordReader(SimpleInputLegacy simpleInput) {
-      this.simpleInput = simpleInput;
+    private OldRecordReader(MRInputLegacy mrInput) {
+      this.mrInput = mrInput;
     }
 
     @Override
     public boolean next(Object key, Object value) throws IOException {
       // TODO broken
-//      simpleInput.setKey(key);
-//      simpleInput.setValue(value);
+//      mrInput.setKey(key);
+//      mrInput.setValue(value);
 //      try {
-//        return simpleInput.hasNext();
+//        return mrInput.hasNext();
 //      } catch (InterruptedException ie) {
 //        throw new IOException(ie);
 //      }
-      return simpleInput.getOldRecordReader().next(key, value);
+      return mrInput.getOldRecordReader().next(key, value);
     }
 
     @Override
     public Object createKey() {
-      return simpleInput.getOldRecordReader().createKey();
+      return mrInput.getOldRecordReader().createKey();
     }
 
     @Override
     public Object createValue() {
-      return simpleInput.getOldRecordReader().createValue();
+      return mrInput.getOldRecordReader().createValue();
     }
 
     @Override
     public long getPos() throws IOException {
-      return simpleInput.getOldRecordReader().getPos();
+      return mrInput.getOldRecordReader().getPos();
     }
 
     @Override
@@ -282,7 +282,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     @Override
     public float getProgress() throws IOException {
       try {
-        return simpleInput.getProgress();
+        return mrInput.getProgress();
       } catch (InterruptedException ie) {
         throw new IOException(ie);
       }

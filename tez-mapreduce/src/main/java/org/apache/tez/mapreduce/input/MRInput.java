@@ -57,16 +57,16 @@ import org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl;
 import com.google.common.base.Preconditions;
 
 /**
- * {@link SimpleInput} is an {@link Input} which provides key/values pairs
+ * {@link MRInput} is an {@link Input} which provides key/values pairs
  * for the consumer.
  *
  * It is compatible with all standard Apache Hadoop MapReduce 
  * {@link InputFormat} implementations.
  */
 
-public class SimpleInput implements LogicalInput {
+public class MRInput implements LogicalInput {
 
-  private static final Log LOG = LogFactory.getLog(SimpleInput.class);
+  private static final Log LOG = LogFactory.getLog(MRInput.class);
   
   
   private TezInputContext inputContext;
@@ -108,7 +108,7 @@ public class SimpleInput implements LogicalInput {
     this.splitMetaInfo = new TaskSplitIndex(thisTaskMetaInfo.getSplitLocation(),
         thisTaskMetaInfo.getStartOffset());
     
-    // TODO NEWTEZ Rename this to be specific to SimpleInput. This Input, in
+    // TODO NEWTEZ Rename this to be specific to MRInput. This Input, in
     // theory, can be used by the MapProcessor, ReduceProcessor or a custom
     // processor. (The processor could provide the counter though)
     this.inputRecordCounter = inputContext.getCounters().findCounter(TaskCounter.MAP_INPUT_RECORDS);
@@ -201,11 +201,11 @@ public class SimpleInput implements LogicalInput {
   }
 
   /**
-   * SimpleInputs sets some additional parameters like split location when using
+   * {@link MRInput} sets some additional parameters like split location when using
    * the new API. This methods returns the list of additional updates, and
-   * should be used by Processors using the old MapReduce API with SimpleInput.
+   * should be used by Processors using the old MapReduce API with {@link MRInput}.
    * 
-   * @return the additional fields set by SimpleInput
+   * @return the additional fields set by {@link MRInput}
    */
   public Configuration getConfigUpdates() {
     return new Configuration(incrementalConf);
