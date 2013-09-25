@@ -32,7 +32,7 @@ import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
 
 public class ShuffleUtils {
 
-  public static String SHUFFLE_HANDLER_SERVICE_ID = "mapreduce.shuffle";
+  public static String SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
 
   public static SecretKey getJobTokenSecretFromTokenBytes(ByteBuffer meta)
       throws IOException {

@@ -120,7 +120,7 @@ public class ShuffleHandler extends AuxiliaryService {
   private int sslFileBufferSize;
 
   public static final String MAPREDUCE_SHUFFLE_SERVICEID =
-      "mapreduce.shuffle";
+      "mapreduce_shuffle";
 
   private static final Map<String,String> userRsrc =
     new ConcurrentHashMap<String,String>();
