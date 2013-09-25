@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,8 +37,8 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.hadoop.yarn.event.InlineDispatcher;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -54,10 +55,12 @@ import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
+import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,8 +70,6 @@ public class TestTaskImpl {
 
   private int taskCounter = 0;
   private final int partition = 1;
-
-  private InlineDispatcher dispatcher;
 
   private Configuration conf;
   private TaskAttemptListener taskAttemptListener;
@@ -89,10 +90,19 @@ public class TestTaskImpl {
   private ContainerContext containerContext;
 
   private MockTaskImpl mockTask;
+  
+  @SuppressWarnings("rawtypes")
+  class TestEventHandler implements EventHandler<Event> {
+    List<Event> events = new ArrayList<Event>();
+    @Override
+    public void handle(Event event) {
+      events.add(event);
+    }
+  }
+  private TestEventHandler eventHandler;
 
   @Before
   public void setup() {
-    dispatcher = new InlineDispatcher();
     conf = new Configuration();
     taskAttemptListener = mock(TaskAttemptListener.class);
     taskHeartbeatHandler = mock(TaskHeartbeatHandler.class);
@@ -112,9 +122,9 @@ public class TestTaskImpl {
     containerContext = new ContainerContext(localResources, credentials,
         environment, javaOpts);
     Vertex vertex = mock(Vertex.class);
-
+    eventHandler = new TestEventHandler();
     mockTask = new MockTaskImpl(vertexId, partition,
-        dispatcher.getEventHandler(), conf, taskAttemptListener, clock,
+        eventHandler, conf, taskAttemptListener, clock,
         taskHeartbeatHandler, appContext, leafVertex, locationHint,
         taskResource, containerContext, vertex);
   }
@@ -395,6 +405,30 @@ public class TestTaskImpl {
     // The task should still be in the succeeded state
     assertTaskSucceededState();
 
+  }
+  
+  @SuppressWarnings("rawtypes")
+  @Test
+  public void testTaskSucceedAndRetroActiveFailure() {
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
+
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
+        TaskEventType.T_ATTEMPT_SUCCEEDED));
+
+    // The task should now have succeeded
+    assertTaskSucceededState();
+
+    // Now fail the attempt after it has succeeded
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt()
+        .getID(), TaskEventType.T_ATTEMPT_FAILED));
+
+    // The task should still be in the scheduled state
+    assertTaskScheduledState();
+    Event event = eventHandler.events.get(eventHandler.events.size()-1);
+    Assert.assertEquals(VertexEventType.V_TASK_RESCHEDULED, event.getType());
   }
 
   // TODO Add test to validate the correct commit attempt.

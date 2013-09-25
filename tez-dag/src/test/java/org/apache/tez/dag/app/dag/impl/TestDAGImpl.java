@@ -64,6 +64,7 @@ import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
+import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
@@ -600,6 +601,42 @@ public class TestDAGImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, dag.getSuccessfulVertices());
   }
+  
+  @SuppressWarnings("unchecked")
+  @Test
+  public void testVertexReRunning() {
+    initDAG(dag);
+    startDAG(dag);
+    dispatcher.await();
+
+    TezVertexID vId = new TezVertexID(dagId, 1);
+    Vertex v = dag.getVertex(vId);
+    dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
+        new TezTaskID(vId, 0), TaskState.SUCCEEDED));
+    dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
+        new TezTaskID(vId, 1), TaskState.SUCCEEDED));
+    dispatcher.await();
+
+    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+    Assert.assertEquals(1, dag.getSuccessfulVertices());
+    Assert.assertEquals(1, dag.numCompletedVertices);
+    
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskReschedule(new TezTaskID(vId, 0)));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, v.getState());
+    Assert.assertEquals(0, dag.getSuccessfulVertices());
+    Assert.assertEquals(0, dag.numCompletedVertices);
+    
+    dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
+        new TezTaskID(vId, 0), TaskState.SUCCEEDED));
+          dispatcher.await();
+
+    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+    Assert.assertEquals(1, dag.getSuccessfulVertices());
+    Assert.assertEquals(1, dag.numCompletedVertices);
+
+  }
 
   @SuppressWarnings("unchecked")
   public void testKillStartedDAG() {
@@ -665,7 +702,7 @@ public class TestDAGImpl {
 
   @SuppressWarnings("unchecked")
   @Test
-  @Ignore
+  @Ignore // Duplicate completions from a vertex would be a bug. Invalid test.
   public void testVertexSuccessfulCompletionUpdates() {
     initDAG(dag);
     startDAG(dag);

@@ -645,12 +645,30 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventsTillSucceeded)).handle(arg.capture());
     verifyEventType(arg.getAllValues(), TaskEventTAUpdate.class, 2);
 
-    InputReadErrorEvent reEvent = new InputReadErrorEvent("", 0, 1);
+    InputReadErrorEvent mockReEvent = new InputReadErrorEvent("", 0, 1);
     EventMetaData mockMeta = mock(EventMetaData.class);
-    TezTaskAttemptID mockDestId = mock(TezTaskAttemptID.class);
-    when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId);
-    TezEvent tzEvent = new TezEvent(reEvent, mockMeta);
-    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 1));
+    TezTaskAttemptID mockDestId1 = mock(TezTaskAttemptID.class);
+    when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId1);
+    TezEvent tzEvent = new TezEvent(mockReEvent, mockMeta);
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 3));
+    
+    // failure threshold not met. state is SUCCEEDED
+    assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
+        TaskAttemptState.SUCCEEDED);
+    
+    // sending same error again doesnt change anything
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 3));
+    assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
+        TaskAttemptState.SUCCEEDED);
+
+    // different destination attempt reports error. now threshold crossed
+    TezTaskAttemptID mockDestId2 = mock(TezTaskAttemptID.class);
+    when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId2);    
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 3));
+    
+    assertEquals("Task attempt is not in FAILED state", taImpl.getState(),
+        TaskAttemptState.FAILED);
+
     int expectedEventsAfterFetchFailure = expectedEventsTillSucceeded + 2;
     arg.getAllValues().clear();
     verify(eventHandler, times(expectedEventsAfterFetchFailure)).handle(arg.capture());
@@ -658,8 +676,6 @@ public class TestTaskAttempt {
         arg.getAllValues().subList(expectedEventsTillSucceeded,
             expectedEventsAfterFetchFailure), TaskEventTAUpdate.class, 1);
 
-    assertEquals("Task attempt is not in FAILED state", taImpl.getState(),
-        TaskAttemptState.FAILED);
     taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 1));
     assertEquals("Task attempt is not in FAILED state, still",
         taImpl.getState(), TaskAttemptState.FAILED);

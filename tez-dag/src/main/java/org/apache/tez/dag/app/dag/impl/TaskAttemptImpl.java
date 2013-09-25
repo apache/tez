@@ -135,7 +135,8 @@ public class TaskAttemptImpl implements TaskAttempt,
   Set<String> taskHosts = new HashSet<String>();
   Set<String> taskRacks = new HashSet<String>();
   
-  private Set<String> uniquefailedOutputReports = new HashSet<String>();
+  private Set<TezTaskAttemptID> uniquefailedOutputReports = 
+      new HashSet<TezTaskAttemptID>();
   private static final double MAX_ALLOWED_OUTPUT_FAILURES_FRACTION = 0.5;
 
   protected final TaskLocationHint locationHint;
@@ -1172,13 +1173,13 @@ public class TaskAttemptImpl implements TaskAttempt,
       LOG.info(attempt.getID()
             + " blamed for read error from " + failedDestTaId
             + " at inputIndex " + failedInputIndexOnDestTa);
-      String failedReportId = failedDestTaId + "_" + failedInputIndexOnDestTa;
-      attempt.uniquefailedOutputReports.add(failedReportId);
+      attempt.uniquefailedOutputReports.add(failedDestTaId);
       float failureFraction = ((float) attempt.uniquefailedOutputReports.size())
           / outputFailedEvent.getConsumerTaskNumber();
       
       // If needed we can also use the absolute number of reported output errors
       // If needed we can launch a background task without failing this task
+      // If needed we can consider only running consumer tasks
       // to generate a copy of the output just in case.
       if (failureFraction <= MAX_ALLOWED_OUTPUT_FAILURES_FRACTION) {
         return attempt.getInternalState();

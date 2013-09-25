@@ -1063,6 +1063,84 @@ public class TestVertexImpl {
     Assert.assertEquals(1, committer.commitCounter);
 
   }
+  
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testVertexSuccessToRunningAfterTaskScheduler() {
+    // For downstream failures
+    initAllVertices();
+
+    VertexImpl v = vertices.get("vertex2");
+
+    v.setVertexOutputCommitter(new NullVertexOutputCommitter());
+
+    startVertex(v);
+
+    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
+    TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+    Assert.assertEquals(1,
+        dagEventDispatcher.eventCount.get(
+            DAGEventType.DAG_VERTEX_COMPLETED).intValue());
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskReschedule(t1));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, v.getState());
+
+    Assert.assertEquals(1,
+        dagEventDispatcher.eventCount.get(
+            DAGEventType.DAG_VERTEX_RERUNNING).intValue());
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+    Assert.assertEquals(2,
+        dagEventDispatcher.eventCount.get(
+            DAGEventType.DAG_VERTEX_COMPLETED).intValue());
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testVertexSuccessToFailedAfterTaskScheduler() {
+    // For downstream failures
+    initAllVertices();
+
+    VertexImpl v = vertices.get("vertex2");
+
+    v.setVertexOutputCommitter(new CountingVertexOutputCommitter());
+
+    startVertex(v);
+
+    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
+    TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+    Assert.assertEquals(1,
+        dagEventDispatcher.eventCount.get(
+            DAGEventType.DAG_VERTEX_COMPLETED).intValue());
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskReschedule(t1));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.FAILED, v.getState());
+
+    Assert.assertEquals(1,
+        dagEventDispatcher.eventCount.get(
+            DAGEventType.INTERNAL_ERROR).intValue());
+  }
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
@@ -1103,11 +1181,6 @@ public class TestVertexImpl {
   @Test(timeout = 5000)
   public void testCommitterInitAndSetup() {
     // FIXME need to add a test for this
-  }
-
-  @Test(timeout = 5000)
-  public void testTaskAttemptFetchFailureHandling() {
-    // FIXME needs testing
   }
 
   @SuppressWarnings("unchecked")

@@ -303,8 +303,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final StateMachine<DAGState, DAGEventType, DAGEvent> stateMachine;
 
   //changing fields while the job is running
+  @VisibleForTesting
+  int numCompletedVertices = 0;
   private int numVertices;
-  private int numCompletedVertices = 0;
   private int numSuccessfulVertices = 0;
   private int numFailedVertices = 0;
   private int numKilledVertices = 0;

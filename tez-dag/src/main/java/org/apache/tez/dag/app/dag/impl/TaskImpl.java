@@ -158,6 +158,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(TaskStateInternal.SCHEDULED, TaskStateInternal.SCHEDULED,
         TaskEventType.T_ADD_TEZ_EVENT, ADD_TEZ_EVENT_TRANSITION)
 
+    // When current attempt fails/killed and new attempt launched then 
+    // TODO Task should go back to SCHEDULED state TEZ-495 
     // Transitions from RUNNING state
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.RUNNING,
         TaskEventType.T_ATTEMPT_LAUNCHED) //more attempts may start later
@@ -219,6 +221,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         TaskStateInternal.SUCCEEDED, TaskStateInternal.SUCCEEDED,
         EnumSet.of(TaskEventType.T_ADD_SPEC_ATTEMPT,
             TaskEventType.T_TERMINATE,
+            TaskEventType.T_ATTEMPT_SUCCEEDED, // Maybe track and reuse later
             TaskEventType.T_ATTEMPT_LAUNCHED))
 
     // Transitions from FAILED state
@@ -1068,8 +1071,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         return TaskStateInternal.SUCCEEDED;
       }
 
-      // tell the job about the rescheduling
-      task.eventHandler.handle(new VertexEventTaskReschedule(task.taskId));
       // super.transition is mostly coded for the case where an
       //  UNcompleted task failed.  When a COMPLETED task retroactively
       //  fails, we have to let AttemptFailedTransition.transition
@@ -1079,7 +1080,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // fake values for code for super.transition
       ++task.numberUncompletedAttempts;
       task.finishedAttempts--;
-      return super.transition(task, event);
+      TaskStateInternal returnState = super.transition(task, event);      
+      
+      if (returnState == TaskStateInternal.SCHEDULED) {
+        // tell the dag about the rescheduling
+        task.eventHandler.handle(new VertexEventTaskReschedule(task.taskId));        
+      }
+      
+      return returnState;
     }
 
     @Override
