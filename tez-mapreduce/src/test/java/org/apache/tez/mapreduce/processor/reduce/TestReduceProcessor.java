@@ -18,7 +18,10 @@
 package org.apache.tez.mapreduce.processor.reduce;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -58,6 +61,7 @@ import org.apache.tez.runtime.library.common.task.local.output.TezLocalTaskOutpu
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.apache.tez.runtime.library.input.LocalMergedInput;
 import org.apache.tez.runtime.library.output.LocalOnFileSorterOutput;
+import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -163,12 +167,16 @@ public class TestReduceProcessor {
         Collections.singletonList(reduceInputSpec),
         Collections.singletonList(reduceOutputSpec));
 
+    Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
+    serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,
+        ShuffleUtils.convertJobTokenToBytes(shuffleToken));
+    
     LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
         taskSpec,
         0,
         reduceConf,
         new TestUmbilical(),
-        shuffleToken);
+        serviceConsumerMetadata);
     
     task.initialize();
     task.run();

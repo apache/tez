@@ -19,7 +19,10 @@
 package org.apache.tez.mapreduce.processor;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.apache.commons.logging.Log;
@@ -57,6 +60,7 @@ import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.library.common.security.JobTokenIdentifier;
+import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 
 public class MapUtils {
 
@@ -204,12 +208,16 @@ public class MapUtils {
         inputSpecs,
         outputSpecs);
 
+    Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
+    serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,
+        ShuffleUtils.convertJobTokenToBytes(shuffleToken));
+    
     LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
         taskSpec,
         0,
         jobConf,
         umbilical,
-        shuffleToken);
+        serviceConsumerMetadata);
     return task;
   }
 }

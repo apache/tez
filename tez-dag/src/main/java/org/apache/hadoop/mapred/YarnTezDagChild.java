@@ -25,12 +25,15 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -87,6 +90,7 @@ import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryModule;
 import org.apache.tez.runtime.library.common.security.JobTokenIdentifier;
 import org.apache.tez.runtime.library.common.security.TokenCache;
+import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -294,6 +298,11 @@ public class YarnTezDagChild {
     Token<JobTokenIdentifier> jobToken = TokenCache.getJobToken(credentials);
     SecurityUtil.setTokenService(jobToken, address);
     taskOwner.addToken(jobToken);
+    // Will jobToken change across DAGs ?
+    Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
+    serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,
+        ShuffleUtils.convertJobTokenToBytes(jobToken));
+
     umbilical =
       taskOwner.doAs(new PrivilegedExceptionAction<TezTaskUmbilicalProtocol>() {
       @Override
@@ -395,8 +404,9 @@ public class YarnTezDagChild {
           }
           lastVertexId = newVertexId;
           updateLoggers(currentTaskAttemptID);
+          
           currentTask = createLogicalTask(attemptNumber, taskSpec,
-              defaultConf, tezUmbilical, jobToken);
+              defaultConf, tezUmbilical, serviceConsumerMetadata);
         } finally {
           taskLock.writeLock().unlock();
         }
@@ -489,7 +499,7 @@ public class YarnTezDagChild {
 
   private static LogicalIOProcessorRuntimeTask createLogicalTask(int attemptNum,
       TaskSpec taskSpec, Configuration conf, TezUmbilical tezUmbilical,
-      Token<JobTokenIdentifier> jobToken) throws IOException {
+      Map<String, ByteBuffer> serviceConsumerMetadata) throws IOException {
 
     // FIXME TODONEWTEZ
     conf.setBoolean("ipc.client.tcpnodelay", true);
@@ -515,8 +525,9 @@ public class YarnTezDagChild {
     String [] localDirs = StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
     conf.setStrings(TezJobConfig.LOCAL_DIRS, localDirs);
     LOG.info("LocalDirs for child: " + Arrays.toString(localDirs));
+    
     return new LogicalIOProcessorRuntimeTask(taskSpec, attemptNum, conf,
-        tezUmbilical, jobToken);
+        tezUmbilical, serviceConsumerMetadata);
   }
 
 
