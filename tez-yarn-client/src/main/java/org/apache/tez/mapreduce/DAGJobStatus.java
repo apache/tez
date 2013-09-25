@@ -42,14 +42,14 @@ public class DAGJobStatus extends JobStatus {
   private final String jobFile;
   private final DAGStatus dagStatus;
   private final ApplicationReport report;
-  
+
   public DAGJobStatus(ApplicationReport report, DAGStatus dagStatus, String jobFile) {
     super();
     this.dagStatus = dagStatus;
     this.jobFile = jobFile;
     this.report = report;
   }
-  
+
   @Override
   protected synchronized void setMapProgress(float p) {
     throw new UnsupportedOperationException();
@@ -149,7 +149,7 @@ public class DAGJobStatus extends JobStatus {
   @Override
   public synchronized float getCleanupProgress() {
     if (dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
-        dagStatus.getState() == DAGStatus.State.FAILED || 
+        dagStatus.getState() == DAGStatus.State.FAILED ||
         dagStatus.getState() == DAGStatus.State.KILLED ||
         dagStatus.getState() == DAGStatus.State.ERROR) {
       return 1.0f;
@@ -237,7 +237,7 @@ public class DAGJobStatus extends JobStatus {
   @Override
   public synchronized boolean isJobComplete() {
     return (dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
-        dagStatus.getState() == DAGStatus.State.FAILED || 
+        dagStatus.getState() == DAGStatus.State.FAILED ||
         dagStatus.getState() == DAGStatus.State.KILLED ||
         dagStatus.getState() == DAGStatus.State.ERROR);
   }
@@ -369,7 +369,7 @@ public class DAGJobStatus extends JobStatus {
     buffer.append("needed-mem" + getNeededMem());
     return buffer.toString();
   }
-  
+
   private float getProgress(String vertexName) {
     Progress progress = dagStatus.getVertexProgress().get(vertexName);
     if(progress == null) {
@@ -380,7 +380,7 @@ public class DAGJobStatus extends JobStatus {
     if(totalTasks != 0) {
       return progress.getSucceededTaskCount()/totalTasks;
     }
-    return 1;
+    return 0;
   }
 
 }

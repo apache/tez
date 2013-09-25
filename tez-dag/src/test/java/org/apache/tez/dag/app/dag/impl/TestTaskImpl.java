@@ -146,12 +146,6 @@ public class TestTaskImpl {
     assertTaskRunningState();
   }
 
-  private void commitTaskAttempt(TezTaskAttemptID attemptId) {
-    mockTask.handle(new TaskEventTAUpdate(attemptId,
-        TaskEventType.T_ATTEMPT_COMMIT_PENDING));
-    assertTaskRunningState();
-  }
-
   private void updateAttemptProgress(MockTaskAttemptImpl attempt, float p) {
     attempt.setProgress(p);
   }
@@ -315,9 +309,9 @@ public class TestTaskImpl {
     TezTaskID taskId = getNewTaskID();
     scheduleTaskAttempt(taskId);
     launchTaskAttempt(mockTask.getLastAttempt().getID());
-    updateAttemptState(mockTask.getLastAttempt(),
-        TaskAttemptState.COMMIT_PENDING);
-    commitTaskAttempt(mockTask.getLastAttempt().getID());
+    updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
+    assertTrue("First attempt should commit",
+        mockTask.canCommit(mockTask.getLastAttempt().getID()));
 
     // During the task attempt commit there is an exception which causes
     // the attempt to fail
@@ -325,15 +319,54 @@ public class TestTaskImpl {
     failRunningTaskAttempt(mockTask.getLastAttempt().getID());
 
     assertEquals(2, mockTask.getAttemptList().size());
+    
+    assertFalse("First attempt should not commit",
+        mockTask.canCommit(mockTask.getAttemptList().get(0).getID()));
+    updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
+    assertTrue("Second attempt should commit",
+        mockTask.canCommit(mockTask.getLastAttempt().getID()));
+
     updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.SUCCEEDED);
-    commitTaskAttempt(mockTask.getLastAttempt().getID());
     mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
         TaskEventType.T_ATTEMPT_SUCCEEDED));
 
+    assertTaskSucceededState();
+  }
+
+
+  @Test
+  public void testChangeCommitTaskAttempt() {
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
+    
+    // Add a speculative task attempt that succeeds
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
+        TaskEventType.T_ADD_SPEC_ATTEMPT));
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
+    
+    assertTrue("Second attempt should commit",
+        mockTask.canCommit(mockTask.getAttemptList().get(1).getID()));
     assertFalse("First attempt should not commit",
         mockTask.canCommit(mockTask.getAttemptList().get(0).getID()));
-    assertTrue("Second attempt should commit",
-        mockTask.canCommit(mockTask.getLastAttempt().getID()));
+
+    // During the task attempt commit there is an exception which causes
+    // the second attempt to fail
+    updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.FAILED);
+    failRunningTaskAttempt(mockTask.getLastAttempt().getID());
+
+    assertEquals(2, mockTask.getAttemptList().size());
+    
+    assertFalse("Second attempt should not commit",
+        mockTask.canCommit(mockTask.getAttemptList().get(1).getID()));
+    assertTrue("First attempt should commit",
+        mockTask.canCommit(mockTask.getAttemptList().get(0).getID()));
+
+    updateAttemptState(mockTask.getAttemptList().get(0), TaskAttemptState.SUCCEEDED);
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getAttemptList().get(0).getID(),
+        TaskEventType.T_ATTEMPT_SUCCEEDED));
 
     assertTaskSucceededState();
   }
@@ -349,7 +382,6 @@ public class TestTaskImpl {
     mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
         TaskEventType.T_ADD_SPEC_ATTEMPT));
     launchTaskAttempt(mockTask.getLastAttempt().getID());
-    commitTaskAttempt(mockTask.getLastAttempt().getID());
     mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
         TaskEventType.T_ATTEMPT_SUCCEEDED));
 
@@ -454,6 +486,11 @@ public class TestTaskImpl {
 
     @Override
     public TaskAttemptState getState() {
+      return state;
+    }
+    
+    @Override
+    public TaskAttemptState getStateNoLock() {
       return state;
     }
   }

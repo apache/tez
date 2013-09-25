@@ -31,11 +31,13 @@ public enum TaskEventType {
 
   //Producer:Speculator
   T_ADD_SPEC_ATTEMPT,
+  
+  //Producer:Edge
+  T_ADD_TEZ_EVENT,
 
   //Producer:TaskAttempt
   T_ATTEMPT_LAUNCHED,
   T_ATTEMPT_OUTPUT_CONSUMABLE,
-  T_ATTEMPT_COMMIT_PENDING,
   T_ATTEMPT_FAILED,
   T_ATTEMPT_SUCCEEDED,
   T_ATTEMPT_KILLED

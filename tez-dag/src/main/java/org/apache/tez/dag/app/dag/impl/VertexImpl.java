@@ -22,12 +22,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -50,11 +51,8 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
-import org.apache.tez.common.InputSpec;
-import org.apache.tez.common.OutputSpec;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -73,7 +71,9 @@ import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.EdgeManager;
 import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexScheduler;
@@ -83,17 +83,21 @@ import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
+import org.apache.tez.dag.app.dag.event.DAGEventVertexReRunning;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
+import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventSourceTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventSourceVertexStarted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
-import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptFetchFailure;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
+import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
@@ -103,10 +107,16 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.InputFailedEvent;
+import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
+import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
+import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.InputSpec;
+import org.apache.tez.runtime.api.impl.OutputSpec;
+import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 
@@ -120,17 +130,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private static final String LINE_SEPARATOR = System
       .getProperty("line.separator");
-  private static final TezDependentTaskCompletionEvent[]
-      EMPTY_TASK_ATTEMPT_COMPLETION_EVENTS =
-      new TezDependentTaskCompletionEvent[0];
 
   private static final Log LOG = LogFactory.getLog(VertexImpl.class);
-
-  //The maximum fraction of fetch failures allowed for a map
-  private static final double MAX_ALLOWED_FETCH_FAILURES_FRACTION = 0.5;
-
-  // Maximum no. of fetch-failure notifications after which map task is failed
-  private static final int MAX_FETCH_FAILURES_NOTIFICATIONS = 3;
 
   //final fields
   private final Clock clock;
@@ -150,7 +151,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private boolean lazyTasksCopyNeeded = false;
   // must be a linked map for ordering
   volatile LinkedHashMap<TezTaskID, Task> tasks = new LinkedHashMap<TezTaskID, Task>();
-  private List<byte[]> taskUserPayloads = null;
   private Object fullCountersLock = new Object();
   private TezCounters fullCounters = null;
   private Resource taskResource;
@@ -162,21 +162,19 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private int numStartedSourceVertices = 0;
   private int distanceFromRoot = 0;
 
-  private List<TezDependentTaskCompletionEvent> sourceTaskAttemptCompletionEvents;
   private final List<String> diagnostics = new ArrayList<String>();
 
   //task/attempt related datastructures
   @VisibleForTesting
-  final Map<TezTaskID, Integer> successSourceAttemptCompletionEventNoMap =
-    new HashMap<TezTaskID, Integer>();
-  private final Map<TezTaskAttemptID, Integer> fetchFailuresMapping =
-    new HashMap<TezTaskAttemptID, Integer>();
+  int numSuccessSourceAttemptCompletions = 0;
 
   List<InputSpec> inputSpecList;
   List<OutputSpec> outputSpecList;
 
   private static final InternalErrorTransition
       INTERNAL_ERROR_TRANSITION = new InternalErrorTransition();
+  private static final RouteEventTransition
+      ROUTE_EVENT_TRANSITION = new RouteEventTransition();
   private static final TaskAttemptCompletedEventTransition
       TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION =
           new TaskAttemptCompletedEventTransition();
@@ -200,7 +198,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexEventType.V_TERMINATE,
               new TerminateNewVertexTransition())
           .addTransition(VertexState.NEW, VertexState.ERROR,
-              VertexEventType.INTERNAL_ERROR,
+              VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
 
           // Transitions from INITED state
@@ -215,7 +213,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexEventType.V_TERMINATE,
               new TerminateInitedVertexTransition())
           .addTransition(VertexState.INITED, VertexState.ERROR,
-              VertexEventType.INTERNAL_ERROR,
+              VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
 
           // Transitions from RUNNING state
@@ -237,13 +235,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.RUNNING, VertexState.RUNNING,
               VertexEventType.V_TASK_RESCHEDULED,
               new TaskRescheduledTransition())
-          .addTransition(VertexState.RUNNING, VertexState.RUNNING,
-              VertexEventType.V_TASK_ATTEMPT_FETCH_FAILURE,
-              new TaskAttemptFetchFailureTransition())
           .addTransition(
               VertexState.RUNNING,
-              VertexState.ERROR, VertexEventType.INTERNAL_ERROR,
+              VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
+          .addTransition(
+              VertexState.RUNNING,
+              VertexState.RUNNING, VertexEventType.V_ROUTE_EVENT,
+              ROUTE_EVENT_TRANSITION)
 
           // Transitions from TERMINATING state.
           .addTransition
@@ -259,48 +258,49 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
           .addTransition(
               VertexState.TERMINATING,
-              VertexState.ERROR, VertexEventType.INTERNAL_ERROR,
+              VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
           // Ignore-able events
           .addTransition(VertexState.TERMINATING, VertexState.TERMINATING,
               EnumSet.of(VertexEventType.V_TERMINATE,
-                  VertexEventType.V_TASK_RESCHEDULED,
-                  VertexEventType.V_TASK_ATTEMPT_FETCH_FAILURE))
+                  VertexEventType.V_TASK_RESCHEDULED))
 
           // Transitions from SUCCEEDED state
           .addTransition(
               VertexState.SUCCEEDED,
-              VertexState.ERROR, VertexEventType.INTERNAL_ERROR,
+              VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
+          .addTransition(VertexState.SUCCEEDED, 
+              EnumSet.of(VertexState.RUNNING, VertexState.FAILED), 
+              VertexEventType.V_TASK_RESCHEDULED,
+              new TaskRescheduledAfterVertexSuccessTransition())
+
           // Ignore-able events
           .addTransition(VertexState.SUCCEEDED, VertexState.SUCCEEDED,
               EnumSet.of(VertexEventType.V_TERMINATE,
-                  VertexEventType.V_TASK_ATTEMPT_FETCH_FAILURE,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED))
 
           // Transitions from FAILED state
           .addTransition(
               VertexState.FAILED,
-              VertexState.ERROR, VertexEventType.INTERNAL_ERROR,
+              VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
           // Ignore-able events
           .addTransition(VertexState.FAILED, VertexState.FAILED,
               EnumSet.of(VertexEventType.V_TERMINATE,
-                  VertexEventType.V_TASK_ATTEMPT_FETCH_FAILURE,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED))
 
           // Transitions from KILLED state
           .addTransition(
               VertexState.KILLED,
-              VertexState.ERROR, VertexEventType.INTERNAL_ERROR,
+              VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
           // Ignore-able events
           .addTransition(VertexState.KILLED, VertexState.KILLED,
               EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_START,
-                  VertexEventType.V_TASK_ATTEMPT_FETCH_FAILURE,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED))
 
@@ -314,8 +314,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_RESCHEDULED,
                   VertexEventType.V_DIAGNOSTIC_UPDATE,
-                  VertexEventType.V_TASK_ATTEMPT_FETCH_FAILURE,
-                  VertexEventType.INTERNAL_ERROR))
+                  VertexEventType.V_INTERNAL_ERROR))
           // create the topology tables
           .installTopology();
 
@@ -345,8 +344,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   // For committer
   private final VertexContext vertexContext;
 
-  private Map<Vertex, EdgeProperty> sourceVertices;
-  private Map<Vertex, EdgeProperty> targetVertices;
+  @VisibleForTesting
+  Map<Vertex, Edge> sourceVertices;
+  private Map<Vertex, Edge> targetVertices;
 
   private VertexScheduler vertexScheduler;
 
@@ -457,6 +457,28 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   @Override
+  public Task getTask(int taskIndex) {
+    readLock.lock();
+    try {
+      // does it matter to create a duplicate list for efficiency
+      // instead of traversing the map
+      // local assign to LinkedHashMap to ensure that sequential traversal 
+      // assumption is satisfied
+      LinkedHashMap<TezTaskID, Task> taskList = tasks;
+      int i=0; 
+      for(Map.Entry<TezTaskID, Task> entry : taskList.entrySet()) {
+        if(taskIndex == i) {
+          return entry.getValue();
+        }
+        ++i;
+      }
+      return null;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
   public int getTotalTasks() {
     return numTasks;
   }
@@ -523,32 +545,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       counters.incrAllCounters(task.getCounters());
     }
     return counters;
-  }
-
-  @Override
-  public TezDependentTaskCompletionEvent[] getTaskAttemptCompletionEvents(
-      TezTaskAttemptID attemptID, int fromEventId, int maxEvents) {
-    TezDependentTaskCompletionEvent[] events = EMPTY_TASK_ATTEMPT_COMPLETION_EVENTS;
-    readLock.lock();
-    try {
-      if (sourceTaskAttemptCompletionEvents.size() > fromEventId) {
-        int actualMax = Math.min(maxEvents,
-            (sourceTaskAttemptCompletionEvents.size() - fromEventId));
-        events = sourceTaskAttemptCompletionEvents.subList(fromEventId,
-            actualMax + fromEventId).toArray(events);
-        // create a copy if user payload is different per task
-        if(taskUserPayloads != null && events.length > 0) {
-          int taskId = attemptID.getTaskID().getId();
-          byte[] userPayload = taskUserPayloads.get(taskId);
-          TezDependentTaskCompletionEvent event = events[0].clone();
-          event.setUserPayload(userPayload);
-          events[0] = event;
-        }
-      }
-      return events;
-    } finally {
-      readLock.unlock();
-    }
   }
 
   @Override
@@ -659,6 +655,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
 
+  // TODO Create InputReadyVertexManager that schedules when there is something 
+  // to read and use that as default instead of ImmediateStart.TEZ-480
   @Override
   public void scheduleTasks(Collection<TezTaskID> taskIDs) {
     readLock.lock();
@@ -671,14 +669,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       readLock.unlock();
     }
   }
-  
+
   @Override
-  public void setParallelism(int parallelism, List<byte[]> taskUserPayloads) {
+  public void setParallelism(int parallelism,
+      Map<Vertex, EdgeManager> sourceEdgeManagers) {
     writeLock.lock();
     try {
-      Preconditions.checkArgument(
-          taskUserPayloads == null || taskUserPayloads.size() == parallelism,
-          "Userpayload must be set for all tasks or set to null");
       if (parallelism >= numTasks) {
         // not that hard to support perhaps. but checking right now since there
         // is no use case for it and checking may catch other bugs.
@@ -689,7 +685,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info("Ingoring setParallelism to current value: " + parallelism);
         return;
       }
-
+      
+      // start buffering incoming events so that we can re-route existing events
+      for (Edge edge : sourceVertices.values()) {
+        edge.startEventBuffering();
+      }
+      
+      // Use a set since the same event may have been sent to multiple tasks
+      // and we want to avoid duplicates
+      Set<TezEvent> pendingEvents = new HashSet<TezEvent>();
+      
       LOG.info("Vertex " + getVertexId() + " parallelism set to " + parallelism);
       // assign to local variable of LinkedHashMap to make sure that changing
       // type of task causes compile error. We depend on LinkedHashMap for order
@@ -706,6 +711,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               "All tasks must be in initial state when changing parallelism"
                   + " for vertex: " + getVertexId() + " name: " + getName());
         }
+        pendingEvents.addAll(task.getAndClearTaskTezEvents());
         if (i <= parallelism) {
           continue;
         }
@@ -713,13 +719,44 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         iter.remove();
       }
       this.numTasks = parallelism;
-      if (taskUserPayloads != null) {
-        this.taskUserPayloads = new ArrayList<byte[]>(taskUserPayloads);
-      }
       assert tasks.size() == numTasks;
+
+      // set new edge managers
+      if(sourceEdgeManagers != null) {
+        for(Map.Entry<Vertex, EdgeManager> entry : sourceEdgeManagers.entrySet()) {
+          Vertex sourceVertex = entry.getKey();
+          EdgeManager edgeManager = entry.getValue();
+          Edge edge = sourceVertices.get(sourceVertex);
+          LOG.info("Replacing edge manager for source:" 
+              + sourceVertex.getVertexId() + " destination: " + getVertexId());
+          edge.setEdgeManager(edgeManager);
+        }
+      }
+      
+      // Re-route all existing TezEvents according to new routing table
+      // At this point only events attributed to source task attempts can be 
+      // re-routed. e.g. DataMovement or InputFailed events.  
+      // This assumption is fine for now since these tasks haven't been started.
+      // So they can only get events generated from source task attempts that 
+      // have already been started.
+      DAG dag = getDAG();
+      for(TezEvent event : pendingEvents) {
+        TezVertexID sourceVertexId = event.getSourceInfo().getTaskAttemptID()
+            .getTaskID().getVertexID(); 
+        Vertex sourceVertex = dag.getVertex(sourceVertexId);
+        Edge sourceEdge = sourceVertices.get(sourceVertex);
+        sourceEdge.sendTezEventToDestinationTasks(event);
+      }
+      
+      // stop buffering events
+      for (Edge edge : sourceVertices.values()) {
+        edge.stopEventBuffering();
+      }
+
     } finally {
       writeLock.unlock();
     }
+    
   }
 
   @Override
@@ -745,7 +782,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.error("Can't handle " + message, e);
         addDiagnostic(message);
         eventHandler.handle(new VertexEvent(this.vertexId,
-            VertexEventType.INTERNAL_ERROR));
+            VertexEventType.V_INTERNAL_ERROR));
       }
 
       if (oldState != getInternalState()) {
@@ -965,17 +1002,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
         checkTaskLimits();
 
-        // TODO should depend on source num tasks
-        vertex.sourceTaskAttemptCompletionEvents =
-            new ArrayList<TezDependentTaskCompletionEvent>(vertex.numTasks + 10);
-
         // create the Tasks but don't start them yet
         createTasks(vertex);
 
+        // TODO get this from API
         boolean hasBipartite = false;
         if (vertex.sourceVertices != null) {
-          for (EdgeProperty edgeProperty : vertex.sourceVertices.values()) {
-            if (edgeProperty.getDataMovementType() == DataMovementType.SCATTER_GATHER) {
+          for (Edge edge : vertex.sourceVertices.values()) {
+            if (edge.getEdgeProperty().getDataMovementType() == 
+                      DataMovementType.SCATTER_GATHER) {
               hasBipartite = true;
               break;
             }
@@ -1204,94 +1239,38 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   SingleArcTransition<VertexImpl, VertexEvent> {
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
-      TezDependentTaskCompletionEvent tce =
+      VertexEventTaskAttemptCompleted completionEvent =
           ((VertexEventSourceTaskAttemptCompleted) event).getCompletionEvent();
-      if(LOG.isDebugEnabled()) {
-        LOG.debug("Adding completion event to vertex: " + vertex.getName()
-            + " attempt: " + tce.getTaskAttemptID() + " url: "
-            + tce.getTaskTrackerHttp());
-      }
-      // Add the TaskAttemptCompletionEvent
-      //eventId is equal to index in the arraylist
-      tce.setEventId(vertex.sourceTaskAttemptCompletionEvents.size());
-      vertex.sourceTaskAttemptCompletionEvents.add(tce);
-      // TODO this needs to be ordered/grouped by source vertices or else
-      // my tasks will not know which events are for which vertices' tasks. This
-      // differentiation was not needed for MR because there was only 1 M stage.
-      // if the tce is sent to the task then a solution could be to add vertex
-      // name to the tce
-      // need to send vertex name and task index in that vertex
-
-      TezTaskAttemptID attemptId = tce.getTaskAttemptID();
-      TezTaskID taskId = attemptId.getTaskID();
-      //make the previous completion event as obsolete if it exists
-      if (TezDependentTaskCompletionEvent.Status.SUCCEEDED.equals(tce.getStatus())) {
-        vertex.vertexScheduler.onSourceTaskCompleted(attemptId, tce);
-        Object successEventNo =
-            vertex.successSourceAttemptCompletionEventNoMap.remove(taskId);
-        if (successEventNo != null) {
-          TezDependentTaskCompletionEvent successEvent =
-              vertex.sourceTaskAttemptCompletionEvents.get((Integer) successEventNo);
-          successEvent.setTaskStatus(TezDependentTaskCompletionEvent.Status.OBSOLETE);
-        }
-        vertex.successSourceAttemptCompletionEventNoMap.put(taskId, tce.getEventId());
+      LOG.info("Source task attempt completed for vertex: " + vertex.getVertexId()
+            + " attempt: " + completionEvent.getTaskAttemptId()
+            + " with state: " + completionEvent.getTaskAttemptState());
+      
+      if (TaskAttemptStateInternal.SUCCEEDED.equals(completionEvent
+          .getTaskAttemptState())) {
+        vertex.numSuccessSourceAttemptCompletions++;
+        vertex.vertexScheduler.onSourceTaskCompleted(completionEvent
+            .getTaskAttemptId());
       }
 
     }
   }
 
-  // TODO Why is TA event coming directly to Vertex instead of TA -> Task -> Vertex
   private static class TaskAttemptCompletedEventTransition implements
       SingleArcTransition<VertexImpl, VertexEvent> {
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
-      TezDependentTaskCompletionEvent tce =
-        ((VertexEventTaskAttemptCompleted) event).getCompletionEvent();
+      VertexEventTaskAttemptCompleted completionEvent =
+        ((VertexEventTaskAttemptCompleted) event);
 
-      // TODO this should only be sent for successful events? looks like all
-      // need to be sent in the existing shuffle code
+      // If different tasks were connected to different destination vertices
+      // then this would need to be sent via the edges
       // Notify all target vertices
       if (vertex.targetVertices != null) {
         for (Vertex targetVertex : vertex.targetVertices.keySet()) {
           vertex.eventHandler.handle(
               new VertexEventSourceTaskAttemptCompleted(
-                  targetVertex.getVertexId(), tce)
+                  targetVertex.getVertexId(), completionEvent)
               );
-        }
-      }
-    }
-  }
-
-  private static class TaskAttemptFetchFailureTransition implements
-      SingleArcTransition<VertexImpl, VertexEvent> {
-    @Override
-    public void transition(VertexImpl vertex, VertexEvent event) {
-      VertexEventTaskAttemptFetchFailure fetchfailureEvent =
-          (VertexEventTaskAttemptFetchFailure) event;
-      for (TezTaskAttemptID mapId : fetchfailureEvent.getSources()) {
-        Integer fetchFailures = vertex.fetchFailuresMapping.get(mapId);
-        fetchFailures = (fetchFailures == null) ? 1 : (fetchFailures+1);
-        vertex.fetchFailuresMapping.put(mapId, fetchFailures);
-
-        //get number of running reduces
-        int runningReduceTasks = 0;
-        for (TezTaskID taskId : vertex.tasks.keySet()) {
-          if (TaskState.RUNNING.equals(vertex.tasks.get(taskId).getState())) {
-            runningReduceTasks++;
-          }
-        }
-
-        float failureRate = runningReduceTasks == 0 ? 1.0f :
-          (float) fetchFailures / runningReduceTasks;
-        // declare faulty if fetch-failures >= max-allowed-failures
-        boolean isMapFaulty =
-            (failureRate >= MAX_ALLOWED_FETCH_FAILURES_FRACTION);
-        if (fetchFailures >= MAX_FETCH_FAILURES_NOTIFICATIONS && isMapFaulty) {
-          LOG.info("Too many fetch-failures for output of task attempt: " +
-              mapId + " ... raising fetch failure to source");
-          vertex.eventHandler.handle(new TaskAttemptEvent(mapId,
-              TaskAttemptEventType.TA_TOO_MANY_FETCH_FAILURES));
-          vertex.fetchFailuresMapping.remove(mapId);
         }
       }
     }
@@ -1349,16 +1328,124 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       SingleArcTransition<VertexImpl, VertexEvent> {
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
-      //succeeded map task is restarted back
+      //succeeded task is restarted back
       vertex.completedTaskCount--;
       vertex.succeededTaskCount--;
     }
   }
+  
+  private static class TaskRescheduledAfterVertexSuccessTransition implements
+    MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
 
+    @Override
+    public VertexState transition(VertexImpl vertex, VertexEvent event) {
+      if (vertex.committer instanceof NullVertexOutputCommitter) {
+        LOG.info(vertex.getVertexId() + " back to running due to rescheduling "
+            + ((VertexEventTaskReschedule)event).getTaskID());
+        (new TaskRescheduledTransition()).transition(vertex, event);
+        // inform the DAG that we are re-running
+        vertex.eventHandler.handle(new DAGEventVertexReRunning(vertex.getVertexId()));
+        return VertexState.RUNNING;
+      }
+      
+      LOG.info(vertex.getVertexId() + " failed due to post-commit rescheduling of "
+          + ((VertexEventTaskReschedule)event).getTaskID());
+      // terminate any running tasks
+      vertex.enactKill(VertexTerminationCause.OWN_TASK_FAILURE,
+          TaskTerminationCause.OWN_TASK_FAILURE);
+      // since the DAG thinks this vertex is completed it must be notified of 
+      // an error
+      vertex.eventHandler.handle(new DAGEvent(vertex.getDAGId(),
+          DAGEventType.INTERNAL_ERROR));
+      return VertexState.FAILED;
+    }
+  }
+  
   private void addDiagnostic(String diag) {
     diagnostics.add(diag);
   }
+  
+  private static void checkEventSourceMetadata(Vertex vertex, EventMetaData sourceMeta) {
+    if (!sourceMeta.getTaskVertexName().equals(vertex.getName())) {
+      throw new TezUncheckedException("Bad routing of event"
+          + ", Event-vertex=" + sourceMeta.getTaskVertexName()
+          + ", Expected=" + vertex.getName());
+    }
+  }
 
+  private static class RouteEventTransition  implements
+  SingleArcTransition<VertexImpl, VertexEvent> {
+    @Override
+    public void transition(VertexImpl vertex, VertexEvent event) {
+      VertexEventRouteEvent rEvent = (VertexEventRouteEvent) event;
+      List<TezEvent> tezEvents = rEvent.getEvents();
+      for(TezEvent tezEvent : tezEvents) {
+        LOG.info("Vertex: " + vertex.getName() + " routing event: "
+            + tezEvent.getEventType());
+        EventMetaData sourceMeta = tezEvent.getSourceInfo();
+        checkEventSourceMetadata(vertex, sourceMeta);
+        switch(tezEvent.getEventType()) {
+        case DATA_MOVEMENT_EVENT:
+          {
+            TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
+            DataMovementEvent dmEvent = (DataMovementEvent) tezEvent.getEvent();
+            dmEvent.setVersion(srcTaId.getId());
+            Edge destEdge = vertex.targetVertices.get(vertex.getDAG().getVertex(
+                sourceMeta.getEdgeVertexName()));
+            destEdge.sendTezEventToDestinationTasks(tezEvent);
+          }
+          break;
+        case INPUT_FAILED_EVENT:
+        {
+          TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
+          InputFailedEvent ifEvent = (InputFailedEvent) tezEvent.getEvent();
+          ifEvent.setVersion(srcTaId.getId());
+          Edge destEdge = vertex.targetVertices.get(vertex.getDAG().getVertex(
+              sourceMeta.getEdgeVertexName()));
+          destEdge.sendTezEventToDestinationTasks(tezEvent);
+        }
+        break;
+        case INPUT_READ_ERROR_EVENT:
+          {
+            Edge srcEdge = vertex.sourceVertices.get(vertex.getDAG().getVertex(
+                sourceMeta.getEdgeVertexName()));
+            srcEdge.sendTezEventToSourceTasks(tezEvent);
+          }
+          break;
+        case TASK_STATUS_UPDATE_EVENT:
+          {
+            TaskStatusUpdateEvent sEvent =
+                (TaskStatusUpdateEvent) tezEvent.getEvent();
+            vertex.getEventHandler().handle(
+                new TaskAttemptEventStatusUpdate(sourceMeta.getTaskAttemptID(),
+                    sEvent));
+          }
+          break;
+        case TASK_ATTEMPT_COMPLETED_EVENT:
+          {
+            vertex.getEventHandler().handle(
+                new TaskAttemptEvent(sourceMeta.getTaskAttemptID(),
+                    TaskAttemptEventType.TA_DONE));
+          }
+          break;
+        case TASK_ATTEMPT_FAILED_EVENT:
+          {
+            TaskAttemptFailedEvent taskFailedEvent =
+                (TaskAttemptFailedEvent) tezEvent.getEvent();
+            vertex.getEventHandler().handle(
+                new TaskAttemptEventAttemptFailed(sourceMeta.getTaskAttemptID(),
+                    TaskAttemptEventType.TA_FAILED,
+                    "Error: " + taskFailedEvent.getDiagnostics()));
+          }
+          break;
+        default:
+          throw new TezUncheckedException("Unhandled tez event type: "
+              + tezEvent.getEventType());
+        }
+      }
+    }
+  }
+  
   private static class InternalErrorTransition implements
       SingleArcTransition<VertexImpl, VertexEvent> {
     @Override
@@ -1374,12 +1461,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   @Override
-  public void setInputVertices(Map<Vertex, EdgeProperty> inVertices) {
+  public void setInputVertices(Map<Vertex, Edge> inVertices) {
     this.sourceVertices = inVertices;
   }
 
   @Override
-  public void setOutputVertices(Map<Vertex, EdgeProperty> outVertices) {
+  public void setOutputVertices(Map<Vertex, Edge> outVertices) {
     this.targetVertices = outVertices;
   }
 
@@ -1410,12 +1497,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   @Override
-  public Map<Vertex, EdgeProperty> getInputVertices() {
+  public Map<Vertex, Edge> getInputVertices() {
     return Collections.unmodifiableMap(this.sourceVertices);
   }
 
   @Override
-  public Map<Vertex, EdgeProperty> getOutputVertices() {
+  public Map<Vertex, Edge> getOutputVertices() {
     return Collections.unmodifiableMap(this.targetVertices);
   }
 
@@ -1428,7 +1515,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public int getOutputVerticesCount() {
     return this.targetVertices.size();
   }
-  
+
   @Override
   public ProcessorDescriptor getProcessorDescriptor() {
     return processorDescriptor;
@@ -1463,13 +1550,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   // TODO Eventually remove synchronization.
   @Override
-  public synchronized List<InputSpec> getInputSpecList() {
+  public synchronized List<InputSpec> getInputSpecList(int taskIndex) {
     inputSpecList = new ArrayList<InputSpec>(
         this.getInputVerticesCount());
-    for (Entry<Vertex, EdgeProperty> entry : this.getInputVertices().entrySet()) {
-      InputSpec inputSpec = new InputSpec(entry.getKey().getName(),
-          entry.getKey().getTotalTasks(),
-          entry.getValue().getEdgeDestination().getClassName());
+    for (Entry<Vertex, Edge> entry : this.getInputVertices().entrySet()) {
+      InputSpec inputSpec = entry.getValue().getDestinationSpec(taskIndex);
       if (LOG.isDebugEnabled()) {
         LOG.debug("For vertex : " + this.getName()
             + ", Using InputSpec : " + inputSpec);
@@ -1482,18 +1567,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   // TODO Eventually remove synchronization.
   @Override
-  public synchronized List<OutputSpec> getOutputSpecList() {
+  public synchronized List<OutputSpec> getOutputSpecList(int taskIndex) {
     if (this.outputSpecList == null) {
       outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount());
-      for (Entry<Vertex, EdgeProperty> entry : this.getOutputVertices().entrySet()) {
-        OutputSpec outputSpec = new OutputSpec(entry.getKey().getName(),
-            entry.getKey().getTotalTasks(),
-            entry.getValue().getEdgeSource().getClassName());
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("For vertex : " + this.getName()
-              + ", Using OutputSpec : " + outputSpec);
-        }
-        // TODO DAGAM This should be based on the edge type.
+      for (Entry<Vertex, Edge> entry : this.getOutputVertices().entrySet()) {
+        OutputSpec outputSpec = entry.getValue().getSourceSpec(taskIndex);
         outputSpecList.add(outputSpec);
       }
     }
@@ -1515,7 +1593,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   VertexScheduler getVertexScheduler() {
     return this.vertexScheduler;
   }
-  
+
   private static void logLocationHints(VertexLocationHint locationHint) {
     Multiset<String> hosts = HashMultiset.create();
     Multiset<String> racks = HashMultiset.create();

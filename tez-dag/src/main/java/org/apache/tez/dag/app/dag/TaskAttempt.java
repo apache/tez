@@ -19,9 +19,11 @@
 package org.apache.tez.dag.app.dag;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -34,6 +36,30 @@ import org.apache.tez.dag.records.TezVertexID;
  * Read only view of TaskAttempt.
  */
 public interface TaskAttempt {
+  
+  public static class TaskAttemptStatus {
+    public TaskAttemptState state;
+    public DAGCounter localityCounter;
+    public float progress;
+    public TezCounters counters;
+
+    // insert these counters till they come natively from the task itself.
+    // HDFS-5098
+    private AtomicBoolean localitySet = new AtomicBoolean(false);
+    public void setLocalityCounter(DAGCounter localityCounter) {
+      if (!localitySet.get()) {
+        localitySet.set(true);
+        if (counters == null) {
+          counters = new TezCounters();
+        }
+        if (localityCounter != null) {
+          counters.findCounter(localityCounter).increment(1);
+          // TODO Maybe validate that the correct value is being set.
+        }
+      }
+    }
+  }
+  
   TezTaskAttemptID getID();
   TezTaskID getTaskID();
   TezVertexID getVertexID();
@@ -44,6 +70,7 @@ public interface TaskAttempt {
   TezCounters getCounters();
   float getProgress();
   TaskAttemptState getState();
+  TaskAttemptState getStateNoLock();
 
   /** 
    * Has attempt reached the final state or not.
@@ -87,24 +114,6 @@ public interface TaskAttempt {
    *  yet, returns 0.
    */
   long getFinishTime();
-  
-  /**
-   * @return The attempt's input ready time. If
-   * attempt's input is not ready yet, returns 0.
-   */
-  long getInputReadyTime();
-
-  /**
-   * @return The attempt's output ready time. If attempt's output is not 
-   * ready yet, returns 0.
-   */
-  long getOutputReadyTime();
-
-  // TODO TEZDAG - remove all references to ShufflePort
-  /**
-   * @return the port shuffle is on.
-   */
-  public int getShufflePort();
   
   public Task getTask();
   

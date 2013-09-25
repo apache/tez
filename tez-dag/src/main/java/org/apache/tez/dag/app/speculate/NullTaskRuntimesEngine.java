@@ -20,7 +20,7 @@ package org.apache.tez.dag.app.speculate;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatus;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatusOld;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 
@@ -31,7 +31,7 @@ import org.apache.tez.dag.records.TezTaskID;
  */
 public class NullTaskRuntimesEngine implements TaskRuntimeEstimator {
   @Override
-  public void enrollAttempt(TaskAttemptStatus status, long timestamp) {
+  public void enrollAttempt(TaskAttemptStatusOld status, long timestamp) {
     // no code
   }
 
@@ -41,7 +41,7 @@ public class NullTaskRuntimesEngine implements TaskRuntimeEstimator {
   }
 
   @Override
-  public void updateAttempt(TaskAttemptStatus status, long timestamp) {
+  public void updateAttempt(TaskAttemptStatusOld status, long timestamp) {
     // no code
   }
 

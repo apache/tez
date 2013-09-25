@@ -22,7 +22,6 @@ import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.TypeConverter;
-import org.apache.hadoop.mapreduce.v2.api.records.TaskAttemptCompletionEventStatus;
 import org.apache.hadoop.mapreduce.v2.api.records.TaskAttemptId;
 import org.apache.tez.common.TezTaskStatus.Phase;
 import org.apache.tez.common.counters.CounterGroup;
@@ -30,7 +29,6 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
 public class TezTypeConverters {
 
@@ -66,13 +64,6 @@ public class TezTypeConverters {
     return tezTaskAttemptId;
   }
 
-  public static TezDependentTaskCompletionEvent.Status toTez(
-      TaskAttemptCompletionEventStatus status) {
-    return TezDependentTaskCompletionEvent.Status.valueOf(status.toString());
-  }
-
-  
-  
   public static Counters fromTez(TezCounters tezCounters) {
     if (tezCounters == null) {
       return null;

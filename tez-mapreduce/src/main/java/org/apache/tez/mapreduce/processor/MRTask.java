@@ -19,69 +19,72 @@
 package org.apache.tez.mapreduce.processor;
 
 import java.io.IOException;
+import java.net.URI;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.crypto.SecretKey;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.RawComparator;
-import org.apache.hadoop.mapred.FileOutputCommitter;
-import org.apache.hadoop.mapred.FileOutputFormat;
+import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.RawKeyValueIterator;
 import org.apache.hadoop.mapred.TaskAttemptContext;
+import org.apache.hadoop.mapred.TaskAttemptID;
+import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.OutputCommitter;
-import org.apache.hadoop.mapreduce.OutputFormat;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormatCounter;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormatCounter;
+import org.apache.hadoop.mapreduce.TaskType;
+import org.apache.hadoop.mapreduce.filecache.DistributedCache;
 import org.apache.hadoop.mapreduce.lib.reduce.WrappedReducer;
+import org.apache.hadoop.mapreduce.security.token.JobTokenSecretManager;
 import org.apache.hadoop.mapreduce.task.ReduceContextImpl;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.Progress;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.util.DiskChecker.DiskErrorException;
+import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
-import org.apache.tez.common.Constants;
-import org.apache.tez.common.RunningTaskContext;
-import org.apache.tez.common.TezEngineTaskContext;
-import org.apache.tez.common.TezTaskStatus;
-import org.apache.tez.common.TezTaskUmbilicalProtocol;
-import org.apache.tez.common.TezTaskStatus.Phase;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskStatus.State;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.engine.api.Input;
-import org.apache.tez.engine.api.Master;
-import org.apache.tez.engine.api.Output;
-import org.apache.tez.engine.common.sort.impl.TezRawKeyValueIterator;
-import org.apache.tez.engine.records.OutputContext;
-import org.apache.tez.mapreduce.combine.MRCombiner;
+import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
-import org.apache.tez.mapreduce.hadoop.MRTaskStatus;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.hadoop.mapreduce.JobContextImpl;
-import org.apache.tez.mapreduce.hadoop.mapreduce.TezNullOutputCommitter;
-import org.apache.tez.mapreduce.partition.MRPartitioner;
+import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.library.common.Constants;
+import org.apache.tez.runtime.library.common.security.JobTokenIdentifier;
+import org.apache.tez.runtime.library.common.security.TokenCache;
+import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
-public abstract class MRTask extends RunningTaskContext {
+@SuppressWarnings("deprecation")
+public abstract class MRTask {
 
   static final Log LOG = LogFactory.getLog(MRTask.class);
 
@@ -91,12 +94,16 @@ public abstract class MRTask extends RunningTaskContext {
   protected OutputCommitter committer;
 
   // Current counters
-  transient TezCounters counters = new TezCounters();
+  transient TezCounters counters;
   protected GcTimeUpdater gcUpdater;
   private ResourceCalculatorProcessTree pTree;
   private long initCpuCumulativeTime = 0;
-  protected TezEngineTaskContext tezEngineTaskContext;
-  protected TezTaskAttemptID taskAttemptId;
+  protected TezProcessorContext processorContext;
+  protected TaskAttemptID taskAttemptId;
+  protected Progress progress = new Progress();
+  protected SecretKey jobTokenSecret;
+
+  boolean isMap;
 
   /* flag to track whether task is done */
   AtomicBoolean taskDone = new AtomicBoolean(false);
@@ -109,12 +116,8 @@ public abstract class MRTask extends RunningTaskContext {
     NUMBER_FORMAT.setGroupingUsed(false);
   }
 
-  private final static int MAX_RETRIES = 10;
-
-  /** The number of milliseconds between progress reports. */
-  public static final int PROGRESS_INTERVAL = 3000;
-
-  private MRTaskReporter mrReporter;
+  protected MRTaskReporter mrReporter;
+  protected boolean useNewApi;
 
   /**
    * A Map where Key-> URIScheme and value->FileSystemStatisticUpdater
@@ -122,40 +125,198 @@ public abstract class MRTask extends RunningTaskContext {
   private Map<String, FileSystemStatisticUpdater> statisticUpdaters =
      new HashMap<String, FileSystemStatisticUpdater>();
 
-  public MRTask(TezEngineTaskContext context) {
-    tezEngineTaskContext = context;
-    this.taskAttemptId = context.getTaskAttemptId();
-    // TODO TEZAM4 Figure out initialization / run sequence of Input, Process,
-    // Output. Phase is MR specific.
-    status =
-        new MRTaskStatus(
-            taskAttemptId,
-            counters,
-            (taskAttemptId.getTaskID().getVertexID().getId() == 0 ?
-                Phase.MAP : Phase.SHUFFLE)
-        );
-    gcUpdater = new GcTimeUpdater(counters);
+  public MRTask(boolean isMap) {
+    this.isMap = isMap;
   }
 
-  public void initialize(Configuration conf, Master master) throws IOException,
+  // TODO how to update progress
+  public void initialize(TezProcessorContext context) throws IOException,
   InterruptedException {
 
+    DeprecatedKeys.init();
+
+    processorContext = context;
+    counters = context.getCounters();
+    this.taskAttemptId = new TaskAttemptID(
+        new TaskID(
+            Long.toString(context.getApplicationId().getClusterTimestamp()),
+            context.getApplicationId().getId(),
+            (isMap ? TaskType.MAP : TaskType.REDUCE),
+            context.getTaskIndex()),
+          context.getTaskAttemptNumber());
+    // TODO TEZAM4 Figure out initialization / run sequence of Input, Process,
+    // Output. Phase is MR specific.
+    gcUpdater = new GcTimeUpdater(counters);
+
+    byte[] userPayload = context.getUserPayload();
+    Configuration conf = TezUtils.createConfFromUserPayload(userPayload);
     if (conf instanceof JobConf) {
       this.jobConf = (JobConf)conf;
     } else {
       this.jobConf = new JobConf(conf);
     }
-    reporter =
-        new TezTaskReporterImpl(this, (TezTaskUmbilicalProtocol)master);
-    ((TezTaskReporterImpl)reporter).startCommunicationThread();
-
-    jobConf.set(Constants.TEZ_ENGINE_TASK_ATTEMPT_ID,
+    jobConf.set(Constants.TEZ_RUNTIME_TASK_ATTEMPT_ID,
         taskAttemptId.toString());
+    jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
+        context.getDAGAttemptNumber());
 
     initResourceCalculatorPlugin();
 
     LOG.info("MRTask.inited: taskAttemptId = " + taskAttemptId.toString());
+
+    // TODO Post MRR
+    // A single file per vertex will likely be a better solution. Does not
+    // require translation - client can take care of this. Will work independent
+    // of whether the configuration is for intermediate tasks or not. Has the
+    // overhead of localizing multiple files per job - i.e. the client would
+    // need to write these files to hdfs, add them as local resources per
+    // vertex. A solution like this may be more practical once it's possible to
+    // submit configuration parameters to the AM and effectively tasks via RPC.
+
+    jobConf.set(MRJobConfig.VERTEX_NAME, processorContext.getTaskVertexName());
+
+    if (LOG.isDebugEnabled() && userPayload != null) {
+      Iterator<Entry<String, String>> iter = jobConf.iterator();
+      String taskIdStr = taskAttemptId.getTaskID().toString();
+      while (iter.hasNext()) {
+        Entry<String, String> confEntry = iter.next();
+        LOG.debug("TaskConf Entry"
+            + ", taskId=" + taskIdStr
+            + ", key=" + confEntry.getKey()
+            + ", value=" + confEntry.getValue());
+      }
+    }
+
+    configureMRTask();
   }
+
+  private void configureMRTask()
+      throws IOException, InterruptedException {
+
+    Credentials credentials = UserGroupInformation.getCurrentUser()
+        .getCredentials();
+    jobConf.setCredentials(credentials);
+    // TODO Can this be avoided all together. Have the MRTezOutputCommitter use
+    // the Tez parameter.
+    // TODO This could be fetched from the env if YARN is setting it for all
+    // Containers.
+    // Set it in conf, so as to be able to be used the the OutputCommitter.
+
+    // Not needed. This is probably being set via the source/consumer meta
+    Token<JobTokenIdentifier> jobToken = TokenCache.getJobToken(credentials);
+    if (jobToken != null) {
+      // Will MR ever run without a job token.
+      SecretKey sk = JobTokenSecretManager.createSecretKey(jobToken
+          .getPassword());
+      this.jobTokenSecret = sk;
+    } else {
+      LOG.warn("No job token set");
+    }
+
+    configureLocalDirs();
+
+    if (jobConf.get(TezJobConfig.DAG_CREDENTIALS_BINARY) != null) {
+      jobConf.set(MRJobConfig.MAPREDUCE_JOB_CREDENTIALS_BINARY,
+          jobConf.get(TezJobConfig.DAG_CREDENTIALS_BINARY));
+    }
+
+    // Set up the DistributedCache related configs
+    setupDistributedCacheConfig(jobConf);
+  }
+
+  private void configureLocalDirs() throws IOException {
+    // TODO NEWTEZ Is most of this functionality required ?
+    jobConf.setStrings(TezJobConfig.LOCAL_DIRS, processorContext.getWorkDirs());
+    jobConf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, System.getenv(Environment.PWD.name()));
+
+    jobConf.setStrings(MRConfig.LOCAL_DIR, processorContext.getWorkDirs());
+
+    LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
+    Path workDir = null;
+    // First, try to find the JOB_LOCAL_DIR on this host.
+    try {
+      workDir = lDirAlloc.getLocalPathToRead("work", jobConf);
+    } catch (DiskErrorException e) {
+      // DiskErrorException means dir not found. If not found, it will
+      // be created below.
+    }
+    if (workDir == null) {
+      // JOB_LOCAL_DIR doesn't exist on this host -- Create it.
+      workDir = lDirAlloc.getLocalPathForWrite("work", jobConf);
+      FileSystem lfs = FileSystem.getLocal(jobConf).getRaw();
+      boolean madeDir = false;
+      try {
+        madeDir = lfs.mkdirs(workDir);
+      } catch (FileAlreadyExistsException e) {
+        // Since all tasks will be running in their own JVM, the race condition
+        // exists where multiple tasks could be trying to create this directory
+        // at the same time. If this task loses the race, it's okay because
+        // the directory already exists.
+        madeDir = true;
+        workDir = lDirAlloc.getLocalPathToRead("work", jobConf);
+      }
+      if (!madeDir) {
+          throw new IOException("Mkdirs failed to create "
+              + workDir.toString());
+      }
+    }
+    // TODO NEWTEZ Is this required ?
+    jobConf.set(TezJobConfig.JOB_LOCAL_DIR, workDir.toString());
+    jobConf.set(MRJobConfig.JOB_LOCAL_DIR, workDir.toString());
+  }
+
+  /**
+   * Set up the DistributedCache related configs to make
+   * {@link DistributedCache#getLocalCacheFiles(Configuration)} and
+   * {@link DistributedCache#getLocalCacheArchives(Configuration)} working.
+   *
+   * @param job
+   * @throws IOException
+   */
+  private static void setupDistributedCacheConfig(final JobConf job)
+      throws IOException {
+
+    String localWorkDir = (job.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR));
+    // ^ ^ all symlinks are created in the current work-dir
+
+    // Update the configuration object with localized archives.
+    URI[] cacheArchives = DistributedCache.getCacheArchives(job);
+    if (cacheArchives != null) {
+      List<String> localArchives = new ArrayList<String>();
+      for (int i = 0; i < cacheArchives.length; ++i) {
+        URI u = cacheArchives[i];
+        Path p = new Path(u);
+        Path name = new Path((null == u.getFragment()) ? p.getName()
+            : u.getFragment());
+        String linkName = name.toUri().getPath();
+        localArchives.add(new Path(localWorkDir, linkName).toUri().getPath());
+      }
+      if (!localArchives.isEmpty()) {
+        job.set(MRJobConfig.CACHE_LOCALARCHIVES, StringUtils
+            .arrayToString(localArchives.toArray(new String[localArchives
+                .size()])));
+      }
+    }
+
+    // Update the configuration object with localized files.
+    URI[] cacheFiles = DistributedCache.getCacheFiles(job);
+    if (cacheFiles != null) {
+      List<String> localFiles = new ArrayList<String>();
+      for (int i = 0; i < cacheFiles.length; ++i) {
+        URI u = cacheFiles[i];
+        Path p = new Path(u);
+        Path name = new Path((null == u.getFragment()) ? p.getName()
+            : u.getFragment());
+        String linkName = name.toUri().getPath();
+        localFiles.add(new Path(localWorkDir, linkName).toUri().getPath());
+      }
+      if (!localFiles.isEmpty()) {
+        job.set(MRJobConfig.CACHE_LOCALFILES, StringUtils
+            .arrayToString(localFiles.toArray(new String[localFiles.size()])));
+      }
+    }
+  }
+
 
   private void initResourceCalculatorPlugin() {
     Class<? extends ResourceCalculatorProcessTree> clazz =
@@ -170,85 +331,28 @@ public abstract class MRTask extends RunningTaskContext {
     }
   }
 
-  public TezTaskUmbilicalProtocol getUmbilical() {
-    return ((TezTaskReporterImpl)reporter).getUmbilical();
+  public TezProcessorContext getUmbilical() {
+    return this.processorContext;
   }
 
-  public void initTask(JobConf job, TezDAGID dagId,
-      MRTaskReporter mrReporter,
-      boolean useNewApi) throws IOException,
+  public void initTask() throws IOException,
                                 InterruptedException {
-    this.jobConf = job;
-    this.jobContext = new JobContextImpl(job, dagId, mrReporter);
+    this.mrReporter = new MRTaskReporter(processorContext);
+    this.useNewApi = jobConf.getUseNewMapper();
+    TezDAGID dagId = IDConverter.fromMRTaskAttemptId(taskAttemptId).getTaskID()
+        .getVertexID().getDAGId();
+
+    this.jobContext = new JobContextImpl(jobConf, dagId, mrReporter);
     this.taskAttemptContext =
-        new TaskAttemptContextImpl(job, taskAttemptId, mrReporter);
-    this.mrReporter = mrReporter;
+        new TaskAttemptContextImpl(jobConf, taskAttemptId, mrReporter);
 
     if (getState() == State.UNASSIGNED) {
       setState(State.RUNNING);
     }
 
-    boolean useCombiner = false;
-    combineProcessor = null;
-    if (useNewApi) {
-      try {
-        useCombiner = (taskAttemptContext.getCombinerClass() != null);
-      } catch (ClassNotFoundException e) {
-        throw new IOException("Could not find combiner class", e);
-      }
-    } else {
-      useCombiner = (job.getCombinerClass() != null);
-    }
-    if (useCombiner) {
-      combineProcessor = new MRCombiner(this);
-      combineProcessor.initialize(job, getTaskReporter());
-    } else {
-    }
-
     localizeConfiguration(jobConf);
   }
 
-  public void initPartitioner(JobConf job) throws IOException,
-      InterruptedException {
-    partitioner = new MRPartitioner(this);
-    ((MRPartitioner) partitioner).initialize(job, getTaskReporter());
-  }
-  
-  public void initCommitter(JobConf job, boolean useNewApi,
-      boolean useNullCommitter) throws IOException, InterruptedException {
-    if (useNullCommitter) {
-      setCommitter(new TezNullOutputCommitter());
-      return;
-    }
-    if (useNewApi) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("using new api for output committer");
-      }
-      OutputFormat<?, ?> outputFormat = null;
-      try {
-        outputFormat = ReflectionUtils.newInstance(
-            taskAttemptContext.getOutputFormatClass(), job);
-      } catch (ClassNotFoundException cnfe) {
-        throw new IOException("Unknown OutputFormat", cnfe);
-      }
-      setCommitter(outputFormat.getOutputCommitter(taskAttemptContext));
-    } else {
-      setCommitter(job.getOutputCommitter());
-    }
-
-    Path outputPath = FileOutputFormat.getOutputPath(job);
-    if (outputPath != null) {
-      if ((getCommitter() instanceof FileOutputCommitter)) {
-        FileOutputFormat.setWorkOutputPath(job,
-            ((FileOutputCommitter) getCommitter())
-                .getTaskAttemptPath(taskAttemptContext));
-      } else {
-        FileOutputFormat.setWorkOutputPath(job, outputPath);
-      }
-    }
-    getCommitter().setupTask(taskAttemptContext);
-  }
-  
   public MRTaskReporter getMRReporter() {
     return mrReporter;
   }
@@ -272,23 +376,6 @@ public abstract class MRTask extends RunningTaskContext {
   }
 
   public TezCounters getCounters() { return counters; }
-
-  /**
-   * Return current phase of the task.
-   * needs to be synchronized as communication thread sends the phase every second
-   * @return the curent phase of the task
-   */
-  public synchronized TezTaskStatus.Phase getPhase(){
-    return status.getPhase();
-  }
-
-  /**
-   * Set current phase of the task.
-   * @param phase task phase
-   */
-  protected synchronized void setPhase(TezTaskStatus.Phase phase){
-    status.setPhase(phase);
-  }
 
   public void setConf(JobConf jobConf) {
     this.jobConf = jobConf;
@@ -327,114 +414,31 @@ public abstract class MRTask extends RunningTaskContext {
 
   public void waitBeforeCompletion(MRTaskReporter reporter) throws IOException,
       InterruptedException {
-    TezTaskUmbilicalProtocol umbilical = getUmbilical();
-    int retries = MAX_RETRIES;
-    boolean readyToProceed = false;
-    while (!readyToProceed) {
-      try {
-        ProceedToCompletionResponse response =
-            umbilical.proceedToCompletion(taskAttemptId);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Got readyToProceed: " + response);
-        }
-        if (response.shouldDie()) {
-          throw new IOException("Task was asked to die by the AM");
-          // TODO EVENTUALLY Figure out a good way for a graceful exit, instead
-          // of an exit via an Exception. This isn' necessarily an error.
-        }
-        readyToProceed = response.readyToProceed();
-      } catch (IOException ie) {
-        LOG.warn("Failure waiting for exit signal: " +
-            StringUtils.stringifyException(ie));
-        if (--retries == 0) {
-          throw ie;
-        }
-      }
-      synchronized(this) {
-        wait(1000l); // Check if ready to exit every second.
-      }
-    }
   }
 
-  public void outputReady(MRTaskReporter reporter, OutputContext outputContext)
-      throws IOException,
-      InterruptedException {
-    LOG.info("Task: " + taskAttemptId + " reporting outputReady");
+  public void done(LogicalOutput output) throws IOException, InterruptedException {
     updateCounters();
-    statusUpdate();
-
-    TezTaskUmbilicalProtocol umbilical = getUmbilical();
-    int retries = MAX_RETRIES;
-    while (true) {
-      try {
-        umbilical.outputReady(taskAttemptId, outputContext);
-        LOG.info("Task '" + taskAttemptId + "' reported outputReady.");
-        return;
-      } catch (IOException ie) {
-        LOG.warn("Failure signalling outputReady: " +
-            StringUtils.stringifyException(ie));
-        if (--retries == 0) {
-          throw ie;
-        }
-      }
-    }
-  }
-
-  public void done(
-      OutputContext outputContext,
-      MRTaskReporter reporter
-      ) throws IOException, InterruptedException {
-    updateCounters();
-    if (outputContext != null) {
-      LOG.info("Task: "
-          + taskAttemptId
-          + " is done."
-          + " And is in the process of sending output-context with shuffle port: "
-          + outputContext.getShufflePort());
-      outputReady(reporter, outputContext);
-      waitBeforeCompletion(reporter);
-    }
 
     LOG.info("Task:" + taskAttemptId + " is done."
         + " And is in the process of committing");
-    TezTaskUmbilicalProtocol umbilical = getUmbilical();
+    // TODO change this to use the new context
     // TODO TEZ Interaciton between Commit and OutputReady. Merge ?
-    if (isCommitRequired()) {
-      int retries = MAX_RETRIES;
-      setState(TezTaskStatus.State.COMMIT_PENDING);
-      // say the task tracker that task is commit pending
-      // TODO TEZAM2 - Why is the commitRequired check missing ?
-      while (true) {
-        try {
-          umbilical.commitPending(taskAttemptId, status);
-          break;
-        } catch (InterruptedException ie) {
-          // ignore
-        } catch (IOException ie) {
-          LOG.warn("Failure sending commit pending: " +
-              StringUtils.stringifyException(ie));
-          if (--retries == 0) {
-            System.exit(67);
-          }
-        }
+    if (output instanceof MROutput) {
+      MROutput sOut = (MROutput)output;
+      if (sOut.isCommitRequired()) {
+        //wait for commit approval and commit
+        // TODO EVENTUALLY - Commit is not required for map tasks.
+        // skip a couple of RPCs before exiting.
+        commit(sOut);
       }
-      //wait for commit approval and commit
-      // TODO EVENTUALLY - Commit is not required for map tasks. skip a couple of RPCs before exiting.
-      commit(umbilical, reporter, committer);
     }
     taskDone.set(true);
-    reporter.stopCommunicationThread();
     // Make sure we send at least one set of counter increments. It's
     // ok to call updateCounters() in this thread after comm thread stopped.
     updateCounters();
     sendLastUpdate();
     //signal the tasktracker that we are done
-    sendDone(umbilical);
-  }
-
-
-  private boolean isCommitRequired() throws IOException {
-    return committer.needsTaskCommit(taskAttemptContext);
+    //sendDone(umbilical);
   }
 
   /**
@@ -443,25 +447,7 @@ public abstract class MRTask extends RunningTaskContext {
    * @throws IOException
    */
   public void statusUpdate() throws IOException, InterruptedException {
-    int retries = MAX_RETRIES;
-    while (true) {
-      try {
-        if (!getUmbilical().statusUpdate(taskAttemptId, status)) {
-          LOG.warn("Parent died.  Exiting " + taskAttemptId);
-          System.exit(66);
-        }
-        status.clearStatus();
-        return;
-      } catch (InterruptedException ie) {
-        Thread.currentThread().interrupt(); // interrupt ourself
-      } catch (IOException ie) {
-        LOG.warn("Failure sending status update: " +
-            StringUtils.stringifyException(ie));
-        if (--retries == 0) {
-          throw ie;
-        }
-      }
-    }
+    // TODO call progress update here if not being called within Map/Reduce
   }
 
   /**
@@ -469,39 +455,27 @@ public abstract class MRTask extends RunningTaskContext {
    */
   private void sendLastUpdate()
       throws IOException, InterruptedException {
-    status.setOutputSize(-1l);
-    // send a final status report
-    status.statusUpdate(
-        getProgress().get(), getProgress().toString(), counters);
     statusUpdate();
   }
 
-  private void commit(TezTaskUmbilicalProtocol umbilical,
-      MRTaskReporter reporter,
-      org.apache.hadoop.mapreduce.OutputCommitter committer
-      ) throws IOException {
-    int retries = MAX_RETRIES;
+  private void commit(MROutput output) throws IOException {
+    int retries = 3;
     while (true) {
+      // This will loop till the AM asks for the task to be killed. As
+      // against, the AM sending a signal to the task to kill itself
+      // gracefully.
       try {
-        while (!umbilical.canCommit(taskAttemptId)) {
-          // This will loop till the AM asks for the task to be killed. As
-          // against, the AM sending a signal to the task to kill itself
-          // gracefully.
-          try {
-            Thread.sleep(1000);
-          } catch(InterruptedException ie) {
-            //ignore
-          }
-          reporter.setProgressFlag();
+        if (processorContext.canCommit()) {
+          break;
         }
-        break;
+        Thread.sleep(1000);
+      } catch(InterruptedException ie) {
+        //ignore
       } catch (IOException ie) {
-        LOG.warn("Failure asking whether task can commit: " +
-            StringUtils.stringifyException(ie));
+        LOG.warn("Failure sending canCommit: "
+            + StringUtils.stringifyException(ie));
         if (--retries == 0) {
-          //if it couldn't query successfully then delete the output
-          discardOutput(taskAttemptContext);
-          System.exit(68);
+          throw ie;
         }
       }
     }
@@ -509,44 +483,27 @@ public abstract class MRTask extends RunningTaskContext {
     // task can Commit now
     try {
       LOG.info("Task " + taskAttemptId + " is allowed to commit now");
-      committer.commitTask(taskAttemptContext);
+      output.commit();
       return;
     } catch (IOException iee) {
       LOG.warn("Failure committing: " +
           StringUtils.stringifyException(iee));
       //if it couldn't commit a successfully then delete the output
-      discardOutput(taskAttemptContext);
+      discardOutput(output);
       throw iee;
     }
   }
 
   private
-  void discardOutput(TaskAttemptContext taskContext) {
+  void discardOutput(MROutput output) {
     try {
-      committer.abortTask(taskContext);
+      output.abort();
     } catch (IOException ioe)  {
       LOG.warn("Failure cleaning up: " +
                StringUtils.stringifyException(ioe));
     }
   }
 
-
-  private void sendDone(TezTaskUmbilicalProtocol umbilical) throws IOException {
-    int retries = MAX_RETRIES;
-    while (true) {
-      try {
-        umbilical.done(taskAttemptId);
-        LOG.info("Task '" + taskAttemptId + "' done.");
-        return;
-      } catch (IOException ie) {
-        LOG.warn("Failure signalling completion: " +
-                 StringUtils.stringifyException(ie));
-        if (--retries == 0) {
-          throw ie;
-        }
-      }
-    }
-  }
 
   public void updateCounters() {
     // TODO Auto-generated method stub
@@ -631,7 +588,7 @@ public abstract class MRTask extends RunningTaskContext {
   createReduceContext(org.apache.hadoop.mapreduce.Reducer
                         <INKEY,INVALUE,OUTKEY,OUTVALUE> reducer,
                       Configuration job,
-                      TezTaskAttemptID taskId,
+                      TaskAttemptID taskId,
                       final TezRawKeyValueIterator rIter,
                       org.apache.hadoop.mapreduce.Counter inputKeyCounter,
                       org.apache.hadoop.mapreduce.Counter inputValueCounter,
@@ -673,7 +630,7 @@ public abstract class MRTask extends RunningTaskContext {
     reduceContext =
       new ReduceContextImpl<INKEY, INVALUE, OUTKEY, OUTVALUE>(
           job,
-          IDConverter.toMRTaskAttemptId(taskId),
+          taskId,
           r,
           inputKeyCounter,
           inputValueCounter,
@@ -696,11 +653,9 @@ public abstract class MRTask extends RunningTaskContext {
     return reducerContext;
   }
 
-  public void taskCleanup(TezTaskUmbilicalProtocol umbilical)
+  public void taskCleanup()
       throws IOException, InterruptedException {
     // set phase for this task
-    setPhase(TezTaskStatus.Phase.CLEANUP);
-    getProgress().setStatus("cleanup");
     statusUpdate();
     LOG.info("Runnning cleanup for the task");
     // do the cleanup
@@ -709,106 +664,27 @@ public abstract class MRTask extends RunningTaskContext {
 
   public void localizeConfiguration(JobConf jobConf)
       throws IOException, InterruptedException {
-    jobConf.set(JobContext.TASK_ID, IDConverter
-        .toMRTaskAttemptId(taskAttemptId).toString());
-    jobConf.set(JobContext.TASK_ATTEMPT_ID,
-        IDConverter.toMRTaskAttemptId(taskAttemptId).toString());
+    jobConf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString());
+    jobConf.set(JobContext.TASK_ATTEMPT_ID, taskAttemptId.toString());
     jobConf.setInt(JobContext.TASK_PARTITION,
         taskAttemptId.getTaskID().getId());
-    jobConf.set(JobContext.ID, taskAttemptId.getTaskID().getVertexID().getDAGId().toString());
+    jobConf.set(JobContext.ID, taskAttemptId.getJobID().toString());
   }
 
   public abstract TezCounter getOutputRecordsCounter();
 
   public abstract TezCounter getInputRecordsCounter();
 
-  public TezCounter getFileOutputBytesCounter() {
-    return reporter.getCounter(FileOutputFormatCounter.BYTES_WRITTEN);
-  }
-
   public org.apache.hadoop.mapreduce.TaskAttemptContext getTaskAttemptContext() {
     return taskAttemptContext;
-  }
-
-  public TezCounter getFileInputBytesCounter() {
-    return reporter.getCounter(FileInputFormatCounter.BYTES_READ);
   }
 
   public JobContext getJobContext() {
     return jobContext;
   }
 
-  public TezTaskAttemptID getTaskAttemptId() {
+  public TaskAttemptID getTaskAttemptId() {
     return taskAttemptId;
   }
 
-  public TezEngineTaskContext getTezEngineTaskContext() {
-    return tezEngineTaskContext;
-  }
-  
-  protected FutureTask<Void> initInputAsync(Input input) {
-    FutureTask<Void> initInputFuture = new FutureTask<Void>(
-        new InitInputCallable(input));
-    new Thread(initInputFuture, "InitInputThread").start();
-    return initInputFuture;
-  }
-
-  protected FutureTask<Void> initOutputAsync(Output output) {
-    FutureTask<Void> initOutputFuture = new FutureTask<Void>(
-        new InitOutputCallable(output));
-    new Thread(initOutputFuture, "InitOutputThread").start();
-    return initOutputFuture;
-  }
-
-  protected class InitInputCallable implements Callable<Void> {
-    Input input;
-    InitInputCallable(Input input) {
-      this.input = input;
-    }
-    @Override
-    public Void call() throws IOException, InterruptedException {
-      input.initialize(jobConf, getTaskReporter());
-      LOG.info("Input initialized");
-      return null;
-    }
-  }
-  
-  protected class InitOutputCallable implements Callable<Void> {
-    Output output;
-    InitOutputCallable(Output output) {
-      this.output = output;
-    }
-    @Override
-    public Void call() throws IOException, InterruptedException {
-      output.initialize(jobConf, getTaskReporter());
-      LOG.info("Output initialized");
-      return null;
-    }
-  }
-  
-  private void waitForIOInitialization(FutureTask<Void> future)
-      throws InterruptedException, IOException {
-    try {
-      future.get();
-    } catch (ExecutionException e) {
-      if (e.getCause() instanceof InterruptedException) {
-        throw (InterruptedException) e.getCause();
-      } else if (e.getCause() instanceof IOException) {
-        throw (IOException) e.getCause();
-      } else {
-        throw new RuntimeException("UnknownException from I/O initialization",
-            e.getCause());
-      }
-    }
-  }
-
-  protected void waitForInputInitialization(FutureTask<Void> future)
-      throws InterruptedException, IOException {
-    waitForIOInitialization(future);
-  }
-  
-  protected void waitForOutputInitialization(FutureTask<Void> future)
-      throws InterruptedException, IOException {
-    waitForIOInitialization(future);
-  }
 }

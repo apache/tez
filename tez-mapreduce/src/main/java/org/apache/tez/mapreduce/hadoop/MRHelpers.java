@@ -55,9 +55,12 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.mapreduce.combine.MRCombiner;
+import org.apache.tez.mapreduce.partition.MRPartitioner;
 
 
 public class MRHelpers {
@@ -364,6 +367,19 @@ public class MRHelpers {
     // the AM anyway.
 
     // TODO eventually ACLs
+    conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, MRPartitioner.class.getName());
+    
+    boolean useNewApi = conf.getBoolean("mapred.mapper.new-api", false);
+    if (useNewApi) {
+      if (conf.get(MRJobConfig.COMBINE_CLASS_ATTR) != null) {
+        conf.set(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS, MRCombiner.class.getName());
+      }
+    } else {
+      if (conf.get("mapred.combiner.class") != null) {
+        conf.set(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS, MRCombiner.class.getName());
+      }
+    }
+    
     setWorkingDirectory(conf);
   }
 

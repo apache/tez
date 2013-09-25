@@ -22,11 +22,8 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.TaskAttemptContext;
 import org.apache.hadoop.mapred.TaskAttemptID;
-import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.Counter;
-import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.util.Progressable;
-import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 
 @InterfaceAudience.Private
@@ -36,24 +33,10 @@ public class TaskAttemptContextImpl
        implements TaskAttemptContext {
   private MRTaskReporter reporter;
 
-  public TaskAttemptContextImpl(JobConf conf, TezTaskAttemptID taskid) {
-    this(conf, taskid, null);
-  }
-  
   // FIXME we need to use DAG Id but we are using App Id
-  public TaskAttemptContextImpl(JobConf conf, TezTaskAttemptID taskAttemptId,
+  public TaskAttemptContextImpl(JobConf conf, TaskAttemptID taskAttemptId,
                          MRTaskReporter reporter) {
-    super(conf, 
-        new TaskAttemptID(
-            new TaskID(
-                Long.toString(taskAttemptId.getTaskID().getVertexID().
-                    getDAGId().getApplicationId().getClusterTimestamp()),
-                taskAttemptId.getTaskID().getVertexID().getDAGId().
-                    getApplicationId().getId(),
-                (taskAttemptId.getTaskID().getVertexID().getId() == 0 ?
-                    TaskType.MAP : TaskType.REDUCE),
-                taskAttemptId.getTaskID().getId()),
-              taskAttemptId.getId()));
+    super(conf, taskAttemptId);
     this.reporter = reporter;
   }
   

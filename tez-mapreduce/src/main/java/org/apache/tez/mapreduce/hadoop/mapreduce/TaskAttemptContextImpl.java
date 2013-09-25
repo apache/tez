@@ -1,5 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
+/* Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
@@ -21,98 +20,71 @@ package org.apache.tez.mapreduce.hadoop.mapreduce;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.Task;
 import org.apache.hadoop.mapreduce.Counter;
-import org.apache.hadoop.mapreduce.Counters;
-import org.apache.hadoop.mapreduce.StatusReporter;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
-import org.apache.tez.mapreduce.hadoop.IDConverter;
-import org.apache.tez.mapreduce.processor.MRTaskReporter;
+import org.apache.hadoop.mapreduce.TaskID;
+import org.apache.hadoop.mapreduce.TaskType;
+import org.apache.tez.mapreduce.common.Utils;
+import org.apache.tez.runtime.api.TezTaskContext;
 
-/**
- * The context for task attempts.
- */
+// NOTE: NEWTEZ: This is a copy of org.apache.tez.mapreduce.hadoop.mapred (not mapreduce). mapred likely does not need it's own copy of this class.
+// Meant for use by the "mapreduce" API
+
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public class TaskAttemptContextImpl extends JobContextImpl 
-    implements TaskAttemptContext {
-  private final TaskAttemptID taskId;
-  private String status = "";
-  private MRTaskReporter reporter;
+public class TaskAttemptContextImpl
+       extends org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl {
 
-  public TaskAttemptContextImpl(Configuration conf, 
-                                TaskAttemptID taskId) {
-    this(conf, taskId, null);
-  }
+  private TezTaskContext taskContext;
 
+  // FIXME we need to use DAG Id but we are using App Id
   public TaskAttemptContextImpl(Configuration conf,
-      TaskAttemptID taskId, MRTaskReporter reporter) {
-    super(conf, IDConverter.fromMRJobId(taskId.getJobID()));
-    this.taskId = taskId;
-    this.reporter = reporter;
+      TezTaskContext taskContext, boolean isMap) {
+    // TODO NEWTEZ Can the jt Identifier string be taskContext.getUniqueId ?
+    this(conf, new TaskAttemptID(
+        new TaskID(String.valueOf(taskContext.getApplicationId()
+            .getClusterTimestamp()), taskContext.getApplicationId().getId(),
+            isMap ? TaskType.MAP : TaskType.REDUCE,
+            taskContext.getTaskIndex()),
+            taskContext.getTaskAttemptNumber()), taskContext);
   }
 
-  /**
-   * Get the unique name for this task attempt.
-   */
-  public TaskAttemptID getTaskAttemptID() {
-    return taskId;
+  public TaskAttemptContextImpl(Configuration conf, TaskAttemptID taId, TezTaskContext context) {
+    super(conf, taId);
+    this.taskContext = context;
   }
 
-  /**
-   * Get the last set status message.
-   * @return the current status message
-   */
-  public String getStatus() {
-    return status;
+  @Override
+  public float getProgress() {
+    // TODO NEWTEZ Will this break anything ?
+    return 0.0f;
   }
 
+  @Override
   public Counter getCounter(Enum<?> counterName) {
-    return (Counter) reporter.getCounter(counterName);
+    return Utils.getMRCounter(taskContext.getCounters().findCounter(counterName));
   }
 
+  @Override
   public Counter getCounter(String groupName, String counterName) {
-    return (Counter) reporter.getCounter(groupName, counterName);
+    return Utils.getMRCounter(taskContext.getCounters().findCounter(groupName, counterName));
   }
 
   /**
    * Report progress.
    */
+  @Override
   public void progress() {
-    reporter.progress();
-  }
-
-  protected void setStatusString(String status) {
-    this.status = status;
+    // Nothing to do.
   }
 
   /**
    * Set the current status of the task to the given string.
    */
+  @Override
   public void setStatus(String status) {
-    String normalizedStatus = Task.normalizeStatus(status, conf);
-    setStatusString(normalizedStatus);
-    reporter.setStatus(normalizedStatus);
-  }
-
-  public static class DummyReporter extends StatusReporter {
-    public void setStatus(String s) {
-    }
-    public void progress() {
-    }
-    public Counter getCounter(Enum<?> name) {
-      return new Counters().findCounter(name);
-    }
-    public Counter getCounter(String group, String name) {
-      return new Counters().findCounter(group, name);
-    }
-    public float getProgress() {
-      return 0f;
-    }
-  }
-  
-  public float getProgress() {
-    return reporter.getProgress();
+    setStatusString(status);
+    // Nothing to do until InputContext supports some kind of custom string
+    // diagnostics.
   }
 }

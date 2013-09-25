@@ -19,7 +19,7 @@
 package org.apache.tez.dag.app.speculate;
 
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatus;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatusOld;
 
 /**
  * Speculator component. Task Attempts' status updates are sent to this
@@ -41,5 +41,5 @@ public interface Speculator
 
   // This will be implemented if we go to a model where the events are
   //  processed within the TaskAttempts' state transitions' code.
-  public void handleAttempt(TaskAttemptStatus status);
+  public void handleAttempt(TaskAttemptStatusOld status);
 }

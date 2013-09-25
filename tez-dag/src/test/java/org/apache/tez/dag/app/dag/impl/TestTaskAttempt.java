@@ -56,7 +56,6 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
-import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
@@ -72,6 +71,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminating;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
@@ -83,6 +83,10 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.events.InputReadErrorEvent;
+import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -175,7 +179,7 @@ public class TestTaskAttempt {
         new SystemClock(), mock(TaskHeartbeatHandler.class),
         mock(AppContext.class), locationHint, false, Resource.newInstance(1024,
             1), createFakeContainerContext());
-        
+
     TaskAttemptImpl spyTa = spy(taImpl);
     when(spyTa.resolveHosts(hosts)).thenReturn(
         resolved.toArray(new String[3]));
@@ -390,7 +394,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
-        null, -1));
+        null));
     assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
         TaskAttemptState.RUNNING);
 
@@ -479,7 +483,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
-        null, -1));
+        null));
     assertEquals("Task attempt is not in running state", taImpl.getState(),
         TaskAttemptState.RUNNING);
     taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID, "Terminated"));
@@ -490,68 +494,6 @@ public class TestTaskAttempt {
     assertEquals("Terminated", taImpl.getDiagnostics().get(0));
 
     // TODO Ensure TA_TERMINATING after this is ingored.
-  }
-
-  @Test
-  // Ensure ContainerTerminated is handled correctly by the TaskAttempt
-  public void testContainerTerminatedWhileCommitting() throws Exception {
-    ApplicationId appId = ApplicationId.newInstance(1, 2);
-    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
-        appId, 0);
-    TezDAGID dagID = new TezDAGID(appId, 1);
-    TezVertexID vertexID = new TezVertexID(dagID, 1);
-    TezTaskID taskID = new TezTaskID(vertexID, 1);
-    TezTaskAttemptID taskAttemptID = new TezTaskAttemptID(taskID, 0);
-
-    MockEventHandler eventHandler = new MockEventHandler();
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    when(taListener.getAddress()).thenReturn(
-        new InetSocketAddress("localhost", 0));
-
-    Configuration taskConf = new Configuration();
-    taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
-    taskConf.setBoolean("fs.file.impl.disable.cache", true);
-
-    TaskLocationHint locationHint = new TaskLocationHint(
-        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
-    Resource resource = Resource.newInstance(1024, 1);
-
-    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
-    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
-    Container container = mock(Container.class);
-    when(container.getId()).thenReturn(contId);
-    when(container.getNodeId()).thenReturn(nid);
-    when(container.getNodeHttpAddress()).thenReturn("localhost:0");
-
-    AppContext appCtx = mock(AppContext.class);
-    AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
-        appCtx);
-    containers.addContainerIfNew(container);
-
-    doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
-    doReturn(containers).when(appCtx).getAllContainers();
-
-    TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        taListener, taskConf, new SystemClock(),
-        mock(TaskHeartbeatHandler.class), appCtx, locationHint, false,
-        resource, createFakeContainerContext());
-
-    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
-    // At state STARTING.
-    taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
-        null, -1));
-    assertEquals("Task attempt is not in running state", taImpl.getState(),
-        TaskAttemptState.RUNNING);
-    taImpl.handle(new TaskAttemptEvent(taskAttemptID,
-        TaskAttemptEventType.TA_COMMIT_PENDING));
-    assertEquals("Task attempt is not in commit pending state",
-        taImpl.getState(), TaskAttemptState.COMMIT_PENDING);
-    taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID, null));
-    assertFalse(
-        "InternalError occurred trying to handle TA_CONTAINER_TERMINATED",
-        eventHandler.internalError);
-    // TODO Verify diagnostics
   }
 
   @Test
@@ -605,7 +547,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
-        null, -1));
+        null));
     assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
         TaskAttemptState.RUNNING);
 
@@ -645,7 +587,7 @@ public class TestTaskAttempt {
   @Test
   // Verifies that multiple TooManyFetchFailures are handled correctly by the
   // TaskAttempt.
-  public void testMultipleTooManyFetchFailures() throws Exception {
+  public void testMultipleOutputFailed() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
@@ -692,7 +634,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
-        null, -1));
+        null));
     taImpl.handle(new TaskAttemptEvent(taskAttemptID,
         TaskAttemptEventType.TA_DONE));
     assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
@@ -703,9 +645,14 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventsTillSucceeded)).handle(arg.capture());
     verifyEventType(arg.getAllValues(), TaskEventTAUpdate.class, 2);
 
-    taImpl.handle(new TaskAttemptEvent(taskAttemptID,
-        TaskAttemptEventType.TA_TOO_MANY_FETCH_FAILURES));
-    int expectedEventsAfterFetchFailure = expectedEventsTillSucceeded + 3;
+    InputReadErrorEvent reEvent = new InputReadErrorEvent("", 0, 1);
+    EventMetaData mockMeta = mock(EventMetaData.class);
+    TezTaskAttemptID mockDestId = mock(TezTaskAttemptID.class);
+    when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId);
+    TezEvent tzEvent = new TezEvent(reEvent, mockMeta);
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 1));
+    int expectedEventsAfterFetchFailure = expectedEventsTillSucceeded + 2;
+    arg.getAllValues().clear();
     verify(eventHandler, times(expectedEventsAfterFetchFailure)).handle(arg.capture());
     verifyEventType(
         arg.getAllValues().subList(expectedEventsTillSucceeded,
@@ -713,8 +660,7 @@ public class TestTaskAttempt {
 
     assertEquals("Task attempt is not in FAILED state", taImpl.getState(),
         TaskAttemptState.FAILED);
-    taImpl.handle(new TaskAttemptEvent(taskAttemptID,
-        TaskAttemptEventType.TA_TOO_MANY_FETCH_FAILURES));
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 1));
     assertEquals("Task attempt is not in FAILED state, still",
         taImpl.getState(), TaskAttemptState.FAILED);
     assertFalse(
@@ -766,7 +712,7 @@ public class TestTaskAttempt {
     }
 
     @Override
-    protected TezTaskContext createRemoteTask() {
+    protected TaskSpec createRemoteTaskSpec() {
       // FIXME
       return null;
     }
@@ -786,7 +732,7 @@ public class TestTaskAttempt {
         TaskAttemptState state) {
     }
   }
-  
+
   private static ContainerContext createFakeContainerContext() {
     return new ContainerContext(new HashMap<String, LocalResource>(),
         new Credentials(), new HashMap<String, String>(), "");

@@ -24,8 +24,7 @@
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
       <includes>
-        <include>org.apache.tez:tez-dag-api</include>
-        <include>org.apache.tez:tez-engine-api</include>
+        <include>org.apache.tez:tez-api</include>
       </includes>
       <binaries>
         <outputDirectory>/</outputDirectory>
@@ -40,8 +39,7 @@
       <outputDirectory>/lib</outputDirectory>
       <!-- Exclude hadoop artifacts. They will be found via HADOOP* env -->
       <excludes>
-        <exclude>org.apache.tez:tez-dag-api</exclude>
-        <exclude>org.apache.tez:tez-engine-api</exclude>
+        <exclude>org.apache.tez:tez-api</exclude>
         <exclude>*:*:test-jar</exclude>
         <exclude>org.apache.hadoop:hadoop-common</exclude>
         <exclude>org.apache.hadoop:hadoop-auth</exclude>

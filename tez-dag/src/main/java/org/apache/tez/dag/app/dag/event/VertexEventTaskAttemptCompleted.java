@@ -18,20 +18,27 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
+import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class VertexEventTaskAttemptCompleted extends VertexEvent {
 
-  private TezDependentTaskCompletionEvent completionEvent;
-
-  public VertexEventTaskAttemptCompleted(
-      TezDependentTaskCompletionEvent completionEvent) {
-    super(completionEvent.getTaskAttemptID().getTaskID().getVertexID(), 
+  private TezTaskAttemptID attemptId;
+  private TaskAttemptStateInternal attempState;
+  
+  public VertexEventTaskAttemptCompleted(TezTaskAttemptID taskAttemptId,
+      TaskAttemptStateInternal state) {
+    super(taskAttemptId.getTaskID().getVertexID(), 
         VertexEventType.V_TASK_ATTEMPT_COMPLETED);
-    this.completionEvent = completionEvent;
+    this.attemptId = taskAttemptId;
+    this.attempState = state;
   }
 
-  public TezDependentTaskCompletionEvent getCompletionEvent() {
-    return completionEvent;
+  public TezTaskAttemptID getTaskAttemptId() {
+    return attemptId;
+  }
+  
+  public TaskAttemptStateInternal getTaskAttemptState() {
+    return attempState;
   }
 }

@@ -31,27 +31,33 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.SequenceFileOutputFormat;
-import org.apache.tez.common.Constants;
-import org.apache.tez.common.InputSpec;
-import org.apache.tez.common.OutputSpec;
-import org.apache.tez.common.TezEngineTaskContext;
+import org.apache.hadoop.mapreduce.MRConfig;
+import org.apache.hadoop.security.token.Token;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.engine.api.Task;
-import org.apache.tez.engine.common.task.local.output.TezLocalTaskOutputFiles;
-import org.apache.tez.engine.common.task.local.output.TezTaskOutput;
-import org.apache.tez.engine.lib.input.LocalMergedInput;
-import org.apache.tez.engine.lib.output.LocalOnFileSorterOutput;
-import org.apache.tez.engine.runtime.RuntimeUtils;
-import org.apache.tez.mapreduce.TestUmbilicalProtocol;
+import org.apache.tez.mapreduce.TestUmbilical;
 import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
-import org.apache.tez.mapreduce.input.SimpleInput;
-import org.apache.tez.mapreduce.output.SimpleOutput;
-import org.apache.tez.mapreduce.processor.MRTask;
+import org.apache.tez.mapreduce.input.MRInputLegacy;
+import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.MapUtils;
+import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
+import org.apache.tez.runtime.api.impl.InputSpec;
+import org.apache.tez.runtime.api.impl.OutputSpec;
+import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.runtime.library.common.Constants;
+import org.apache.tez.runtime.library.common.security.JobTokenIdentifier;
+import org.apache.tez.runtime.library.common.task.local.output.TezLocalTaskOutputFiles;
+import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
+import org.apache.tez.runtime.library.input.LocalMergedInput;
+import org.apache.tez.runtime.library.output.LocalOnFileSorterOutput;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -73,7 +79,7 @@ public class TestReduceProcessor {
       workDir =
           new Path(new Path(System.getProperty("test.build.data", "/tmp")),
                    "TestReduceProcessor").makeQualified(localFs);
-      
+      LOG.info("Using workDir: " + workDir);
       MapUtils.configureLocalDirs(defaultConf, workDir.toString());
     } catch (IOException e) {
       throw new RuntimeException("init failure", e);
@@ -82,10 +88,12 @@ public class TestReduceProcessor {
 
   public void setUpJobConf(JobConf job) {
     job.set(TezJobConfig.LOCAL_DIRS, workDir.toString());
+    job.set(MRConfig.LOCAL_DIR, workDir.toString());
     job.setClass(
-        Constants.TEZ_ENGINE_TASK_OUTPUT_MANAGER,
+        Constants.TEZ_RUNTIME_TASK_OUTPUT_MANAGER,
         TezLocalTaskOutputFiles.class, 
         TezTaskOutput.class);
+    job.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, MRPartitioner.class.getName());
     job.setNumReduceTasks(1);
   }
 
@@ -102,11 +110,10 @@ public class TestReduceProcessor {
     String reduceVertexName = MultiStageMRConfigUtil.getFinalReduceVertexName();
     JobConf jobConf = new JobConf(defaultConf);
     setUpJobConf(jobConf);
-    TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles();
-    mapOutputs.setConf(jobConf);
     
     Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
-    conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, 0);
+    conf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
+    
     Configuration mapStageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
         mapVertexName);
     
@@ -115,17 +122,24 @@ public class TestReduceProcessor {
     mapConf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
     
+    Path mapInput = new Path(workDir, "map0");
+    MapUtils.generateInputSplit(localFs, workDir, mapConf, mapInput);
     
+    InputSpec mapInputSpec = new InputSpec("NullSrcVertex", new InputDescriptor(MRInputLegacy.class.getName()), 0);
+    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", new OutputDescriptor(LocalOnFileSorterOutput.class.getName()), 1);
     // Run a map
-    MapUtils.runMapProcessor(localFs, workDir, mapConf, 0,
-        new Path(workDir, "map0"), new TestUmbilicalProtocol(), mapVertexName,
-        Collections.singletonList(new InputSpec("NullVertex", 0,
-            SimpleInput.class.getName())),
-        Collections.singletonList(new OutputSpec("FakeVertex", 1,
-            LocalOnFileSorterOutput.class.getName())));
+    LogicalIOProcessorRuntimeTask mapTask = MapUtils.createLogicalTask(localFs, workDir, mapConf, 0,
+        mapInput, new TestUmbilical(), mapVertexName,
+        Collections.singletonList(mapInputSpec),
+        Collections.singletonList(mapOutputSpec));
 
+    mapTask.initialize();
+    mapTask.run();
+    mapTask.close();
+    
     LOG.info("Starting reduce...");
     
+    Token<JobTokenIdentifier> shuffleToken = new Token<JobTokenIdentifier>();
     
     Configuration reduceStageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
         reduceVertexName);
@@ -135,28 +149,42 @@ public class TestReduceProcessor {
         "localized-resources").toUri().toString());
     FileOutputFormat.setOutputPath(reduceConf, new Path(workDir, "output"));
     ProcessorDescriptor reduceProcessorDesc = new ProcessorDescriptor(
-        ReduceProcessor.class.getName());
+        ReduceProcessor.class.getName()).setUserPayload(TezUtils.createUserPayloadFromConf(reduceConf));
+    
+    InputSpec reduceInputSpec = new InputSpec(mapVertexName, new InputDescriptor(LocalMergedInput.class.getName()), 1);
+    OutputSpec reduceOutputSpec = new OutputSpec("NullDestinationVertex", new OutputDescriptor(MROutput.class.getName()), 1);
+    
     // Now run a reduce
-    TezEngineTaskContext taskContext = new TezEngineTaskContext(
-        TezTestUtils.getMockTaskAttemptId(0, 1, 0, 0), "testUser",
-        "testJob", reduceVertexName, reduceProcessorDesc,
-        Collections.singletonList(new InputSpec(mapVertexName, 1,
-            LocalMergedInput.class.getName())),
-        Collections.singletonList(new OutputSpec("", 1,
-                SimpleOutput.class.getName())));
+    TaskSpec taskSpec = new TaskSpec(
+        TezTestUtils.getMockTaskAttemptId(0, 1, 0, 0),
+        "testUser",
+        reduceVertexName,
+        reduceProcessorDesc,
+        Collections.singletonList(reduceInputSpec),
+        Collections.singletonList(reduceOutputSpec));
+
+    LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
+        taskSpec,
+        0,
+        reduceConf,
+        new TestUmbilical(),
+        shuffleToken);
     
-    Task t = RuntimeUtils.createRuntimeTask(taskContext);
-    t.initialize(reduceConf, null, new TestUmbilicalProtocol());
-    t.run();
-    MRTask mrTask = (MRTask)t.getProcessor();
-    Assert.assertNull(mrTask.getPartitioner());
-    t.close();
+    task.initialize();
+    task.run();
+    task.close();
     
-    // Can this be done via some utility class ? MapOutputFile derivative, or
-    // instantiating the OutputCommitter
+    // MRTask mrTask = (MRTask)t.getProcessor();
+    // TODO NEWTEZ Verify the partitioner has not been created
+    // Likely not applicable anymore.
+    // Assert.assertNull(mrTask.getPartitioner());
+
+
+
+    // Only a task commit happens, hence the data is still in the temporary directory.
     Path reduceOutputDir = new Path(new Path(workDir, "output"),
         "_temporary/0/" + IDConverter
-            .toMRTaskId(taskContext.getTaskAttemptId().getTaskID()));
+            .toMRTaskId(TezTestUtils.getMockTaskId(0, 1, 0)));
     Path reduceOutputFile = new Path(reduceOutputDir, "part-00000");
 
     SequenceFile.Reader reader = new SequenceFile.Reader(localFs,

@@ -52,7 +52,6 @@ import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.ContainerContext;
@@ -66,8 +65,9 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.common.security.JobTokenIdentifier;
-import org.apache.tez.engine.common.security.TokenCache;
+import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.runtime.library.common.security.JobTokenIdentifier;
+import org.apache.tez.runtime.library.common.security.TokenCache;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -109,8 +109,8 @@ public class TestAMContainer {
     wc.verifyState(AMContainerState.RUNNING);
     wc.verifyNoOutgoingEvents();
     assertFalse(pulledTask.shouldDie());
-    assertEquals(wc.tezTaskContext.getTaskAttemptId(), pulledTask.getTask()
-        .getTaskAttemptId());
+    assertEquals(wc.taskSpec.getTaskAttemptID(), pulledTask.getTask()
+        .getTaskAttemptID());
     assertEquals(wc.taskAttemptID, wc.amContainer.getRunningTaskAttempt());
     assertEquals(0, wc.amContainer.getQueuedTaskAttempts().size());
 
@@ -165,8 +165,8 @@ public class TestAMContainer {
     wc.verifyState(AMContainerState.RUNNING);
     wc.verifyNoOutgoingEvents();
     assertFalse(pulledTask.shouldDie());
-    assertEquals(wc.tezTaskContext.getTaskAttemptId(), pulledTask.getTask()
-        .getTaskAttemptId());
+    assertEquals(wc.taskSpec.getTaskAttemptID(), pulledTask.getTask()
+        .getTaskAttemptID());
     assertEquals(wc.taskAttemptID, wc.amContainer.getRunningTaskAttempt());
     assertEquals(0, wc.amContainer.getQueuedTaskAttempts().size());
 
@@ -824,7 +824,7 @@ public class TestAMContainer {
     TezTaskID taskID;
     TezTaskAttemptID taskAttemptID;
 
-    TezTaskContext tezTaskContext;
+    TaskSpec taskSpec;
 
     public AMContainerImpl amContainer;
 
@@ -859,8 +859,8 @@ public class TestAMContainer {
       taskID = new TezTaskID(vertexID, 1);
       taskAttemptID = new TezTaskAttemptID(taskID, 1);
 
-      tezTaskContext = mock(TezTaskContext.class);
-      doReturn(taskAttemptID).when(tezTaskContext).getTaskAttemptId();
+      taskSpec = mock(TaskSpec.class);
+      doReturn(taskAttemptID).when(taskSpec).getTaskAttemptID();
 
       amContainer = new AMContainerImpl(container, chh, tal,
           appContext);
@@ -904,7 +904,7 @@ public class TestAMContainer {
     public void assignTaskAttempt(TezTaskAttemptID taID) {
       reset(eventHandler);
       amContainer.handle(new AMContainerEventAssignTA(containerID, taID,
-          tezTaskContext));
+          taskSpec));
     }
 
     public AMContainerTask pullTaskToRun() {
@@ -914,7 +914,7 @@ public class TestAMContainer {
 
     public void containerLaunched() {
       reset(eventHandler);
-      amContainer.handle(new AMContainerEventLaunched(containerID, 3000));
+      amContainer.handle(new AMContainerEventLaunched(containerID));
     }
 
     public void taskAttemptSucceeded(TezTaskAttemptID taID) {

@@ -19,10 +19,10 @@ package org.apache.tez.dag.app.rm;
 
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.common.TezTaskContext;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.api.impl.TaskSpec;
 
 public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
 
@@ -35,19 +35,18 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   private final Priority priority;
   private final Resource capability;
   private final ContainerContext containerContext;
-  
 
-  private final TezTaskContext remoteTaskContext;
+  private final TaskSpec remoteTaskSpec;
   private final TaskAttempt taskAttempt;
 
   public AMSchedulerEventTALaunchRequest(TezTaskAttemptID attemptId,
       Resource capability,
-      TezTaskContext remoteTaskContext, TaskAttempt ta,
+      TaskSpec remoteTaskSpec, TaskAttempt ta,
       String[] hosts, String[] racks, Priority priority, ContainerContext containerContext) {
     super(AMSchedulerEventType.S_TA_LAUNCH_REQUEST);
     this.attemptId = attemptId;
     this.capability = capability;
-    this.remoteTaskContext = remoteTaskContext;
+    this.remoteTaskSpec = remoteTaskSpec;
     this.taskAttempt = ta;
     this.hosts = hosts;
     this.racks = racks;
@@ -75,8 +74,8 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
     return priority;
   }
 
-  public TezTaskContext getRemoteTaskContext() {
-    return remoteTaskContext;
+  public TaskSpec getRemoteTaskSpec() {
+    return remoteTaskSpec;
   }
 
   public TaskAttempt getTaskAttempt() {

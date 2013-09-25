@@ -30,7 +30,6 @@ public enum TaskAttemptStateInternal {
   START_WAIT,
   RUNNING,
   OUTPUT_CONSUMABLE, 
-  COMMIT_PENDING,
   KILL_IN_PROGRESS, 
   FAIL_IN_PROGRESS,
   KILLED,

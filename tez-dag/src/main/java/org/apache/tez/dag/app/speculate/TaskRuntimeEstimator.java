@@ -20,18 +20,18 @@ package org.apache.tez.dag.app.speculate;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatus;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatusOld;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 
 
 
 public interface TaskRuntimeEstimator {
-  public void enrollAttempt(TaskAttemptStatus reportedStatus, long timestamp);
+  public void enrollAttempt(TaskAttemptStatusOld reportedStatus, long timestamp);
 
   public long attemptEnrolledTime(TezTaskAttemptID attemptID);
 
-  public void updateAttempt(TaskAttemptStatus reportedStatus, long timestamp);
+  public void updateAttempt(TaskAttemptStatusOld reportedStatus, long timestamp);
 
   public void contextualize(Configuration conf, AppContext context);
 

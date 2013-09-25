@@ -30,17 +30,19 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.app.dag.EdgeManager;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexScheduler;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.InputFailedEvent;
+import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
 /**
  * Starts scheduling tasks when number of completed source tasks crosses 
@@ -72,9 +74,10 @@ public class ShuffleVertexManager implements VertexScheduler {
   
   public ShuffleVertexManager(Vertex managedVertex) {
     this.managedVertex = managedVertex;
-    Map<Vertex, EdgeProperty> inputs = managedVertex.getInputVertices();
-    for(Map.Entry<Vertex, EdgeProperty> entry : inputs.entrySet()) {
-      if(entry.getValue().getDataMovementType() == DataMovementType.SCATTER_GATHER) {
+    Map<Vertex, Edge> inputs = managedVertex.getInputVertices();
+    for(Map.Entry<Vertex, Edge> entry : inputs.entrySet()) {
+      if (entry.getValue().getEdgeProperty().getDataMovementType() == 
+          DataMovementType.SCATTER_GATHER) {
         Vertex vertex = entry.getKey();
         bipartiteSources.put(vertex.getVertexId(), vertex);
       }
@@ -85,6 +88,88 @@ public class ShuffleVertexManager implements VertexScheduler {
     // dont track the source tasks here since those tasks may themselves be
     // dynamically changed as the DAG progresses.
   }
+  
+  
+  public class CustomShuffleEdgeManager extends EdgeManager {
+    int numSourceTaskOutputs;
+    int numDestinationTasks;
+    int basePartitionRange;
+    int remainderRangeForLastShuffler;
+    
+    CustomShuffleEdgeManager(int numSourceTaskOutputs, int numDestinationTasks,
+        int basePartitionRange, int remainderPartitionForLastShuffler) {
+      this.numSourceTaskOutputs = numSourceTaskOutputs;
+      this.numDestinationTasks = numDestinationTasks;
+      this.basePartitionRange = basePartitionRange;
+      this.remainderRangeForLastShuffler = remainderPartitionForLastShuffler;
+    }
+
+    @Override
+    public int getNumDestinationTaskInputs(int numSourceTasks, 
+        int destinationTaskIndex) {
+      int partitionRange = 1;
+      if(destinationTaskIndex < numDestinationTasks-1) {
+        partitionRange = basePartitionRange;
+      } else {
+        partitionRange = remainderRangeForLastShuffler;
+      }
+      return numSourceTasks * partitionRange;
+    }
+
+    @Override
+    public int getNumSourceTaskOutputs(int numDestinationTasks, 
+        int sourceTaskIndex) {
+      return numSourceTaskOutputs;
+    }
+    
+    @Override
+    public void routeEventToDestinationTasks(DataMovementEvent event,
+        int sourceTaskIndex, int numDestinationTasks, List<Integer> taskIndices) {
+      int sourceIndex = event.getSourceIndex();
+      int destinationTaskIndex = sourceIndex/basePartitionRange;
+      
+      // all inputs from a source task are next to each other in original order
+      int targetIndex = 
+          sourceTaskIndex * basePartitionRange 
+          + sourceIndex % basePartitionRange;
+      
+      event.setTargetIndex(targetIndex);
+      taskIndices.add(new Integer(destinationTaskIndex));
+    }
+
+    @Override
+    public void routeEventToDestinationTasks(InputFailedEvent event,
+        int sourceTaskIndex, int numDestinationTasks, List<Integer> taskIndices) {
+      int sourceIndex = event.getSourceIndex();
+      int destinationTaskIndex = sourceIndex/basePartitionRange;
+      
+      int targetIndex = 
+          sourceTaskIndex * basePartitionRange 
+          + sourceIndex % basePartitionRange;
+      
+      event.setTargetIndex(targetIndex);
+      taskIndices.add(new Integer(destinationTaskIndex));
+    }
+
+    @Override
+    public int routeEventToSourceTasks(int destinationTaskIndex,
+        InputReadErrorEvent event) {
+      int partitionRange = 1;
+      if(destinationTaskIndex < numDestinationTasks-1) {
+        partitionRange = basePartitionRange;
+      } else {
+        partitionRange = remainderRangeForLastShuffler;
+      }
+      return event.getIndex()/partitionRange;
+    }
+
+    @Override
+    public int getDestinationConsumerTaskNumber(int sourceTaskIndex,
+        int numDestTasks) {
+      return numDestTasks;
+    }
+  }
+
   
   @Override
   public void onVertexStarted() {
@@ -102,8 +187,7 @@ public class ShuffleVertexManager implements VertexScheduler {
   }
 
   @Override
-  public void onSourceTaskCompleted(TezTaskAttemptID srcAttemptId, 
-      TezDependentTaskCompletionEvent event) {
+  public void onSourceTaskCompleted(TezTaskAttemptID srcAttemptId) {
     updateSourceTaskCount();
     TezTaskID srcTaskId = srcAttemptId.getTaskID();
     TezVertexID srcVertexId = srcTaskId.getVertexID();
@@ -114,9 +198,10 @@ public class ShuffleVertexManager implements VertexScheduler {
         ++numSourceTasksCompleted;
         if (enableAutoParallelism) {
           // save output size
-          long sourceTaskOutputSize = event.getDataSize();
+          // TODO TEZ-481
+          long sourceTaskOutputSize = 100000000l;//sourceTaskAttempt.getDataSize();
           if (LOG.isDebugEnabled()) {
-            LOG.debug("Source task: " + event.getTaskAttemptID()
+            LOG.debug("Source task: " + srcAttemptId
                 + " finished with output size: " + sourceTaskOutputSize);
           }
           completedSourceTasksOutputSize += sourceTaskOutputSize;
@@ -140,7 +225,7 @@ public class ShuffleVertexManager implements VertexScheduler {
     }
     numSourceTasks = numSrcTasks;
   }
-  
+
   void determineParallelismAndApply() {
     if(numSourceTasksCompleted == 0) {
       return;
@@ -184,14 +269,14 @@ public class ShuffleVertexManager implements VertexScheduler {
       List<byte[]> taskConfs = new ArrayList<byte[]>(finalTaskParallelism);
       try {
         Configuration taskConf = new Configuration(false);
-        taskConf.setInt(TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE,
+        taskConf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARTITION_RANGE,
             basePartitionRange);
         // create event user payload to inform the task
         for (int i = 0; i < numShufflersWithBaseRange; ++i) {
           taskConfs.add(MRHelpers.createUserPayloadFromConf(taskConf));
         }
         if(finalTaskParallelism > numShufflersWithBaseRange) {
-          taskConf.setInt(TezJobConfig.TEZ_ENGINE_SHUFFLE_PARTITION_RANGE,
+          taskConf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARTITION_RANGE,
               remainderRangeForLastShuffler);
           taskConfs.add(MRHelpers.createUserPayloadFromConf(taskConf));
         }
@@ -199,7 +284,17 @@ public class ShuffleVertexManager implements VertexScheduler {
         throw new TezUncheckedException(e);
       }
       
-      managedVertex.setParallelism(finalTaskParallelism, taskConfs);
+      Map<Vertex, EdgeManager> edgeManagers = new HashMap<Vertex, EdgeManager>(
+          bipartiteSources.size());
+      for(Vertex vertex : bipartiteSources.values()) {
+        // use currentParallelism for numSourceTasks to maintain original state
+        // for the source tasks
+        edgeManagers.put(vertex, new CustomShuffleEdgeManager(currentParallelism,
+            finalTaskParallelism, basePartitionRange,
+            remainderRangeForLastShuffler));
+      }
+      
+      managedVertex.setParallelism(finalTaskParallelism, edgeManagers);
       updatePendingTasks();      
     }
   }

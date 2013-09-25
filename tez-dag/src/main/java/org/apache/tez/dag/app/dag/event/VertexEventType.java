@@ -49,12 +49,11 @@ public enum VertexEventType {
   V_TASK_SUCCEEDED,
   V_ATTEMPT_KILLED,
   
-  //Producer:TaskAttemptListener
-  V_TASK_ATTEMPT_FETCH_FAILURE,
-
   //Producer:Any component
   V_DIAGNOSTIC_UPDATE,
-  INTERNAL_ERROR,
+  V_INTERNAL_ERROR,
   V_COUNTER_UPDATE,
+  
+  V_ROUTE_EVENT,
   
 }

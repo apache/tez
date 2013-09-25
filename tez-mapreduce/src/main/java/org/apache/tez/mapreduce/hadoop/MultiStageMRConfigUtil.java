@@ -57,7 +57,7 @@ public class MultiStageMRConfigUtil {
   public static Configuration getAndRemoveBasicNonIntermediateStageConf(
       Configuration baseConf) {
     Configuration newConf = new Configuration(false);
-    for (String key : DeprecatedKeys.getMRToEngineParamMap().keySet()) {
+    for (String key : DeprecatedKeys.getMRToTezRuntimeParamMap().keySet()) {
       if (baseConf.get(key) != null) {
         newConf.set(key, baseConf.get(key));
         baseConf.unset(key);

@@ -19,7 +19,7 @@
 package org.apache.tez.dag.app.speculate;
 
 import org.apache.hadoop.yarn.event.AbstractEvent;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatus;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate.TaskAttemptStatusOld;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -27,7 +27,7 @@ import org.apache.tez.dag.records.TezTaskID;
 public class SpeculatorEvent extends AbstractEvent<Speculator.EventType> {
 
   // valid for ATTEMPT_STATUS_UPDATE
-  private TaskAttemptStatus reportedStatus;
+  private TaskAttemptStatusOld reportedStatus;
 
   // valid for TASK_CONTAINER_NEED_UPDATE
   private TezTaskID taskID;
@@ -41,14 +41,14 @@ public class SpeculatorEvent extends AbstractEvent<Speculator.EventType> {
     this.dagId = dagId;
   }
 
-  public SpeculatorEvent(TaskAttemptStatus reportedStatus, long timestamp) {
+  public SpeculatorEvent(TaskAttemptStatusOld reportedStatus, long timestamp) {
     super(Speculator.EventType.ATTEMPT_STATUS_UPDATE, timestamp);
     this.reportedStatus = reportedStatus;
   }
 
   public SpeculatorEvent(TezTaskAttemptID attemptID, boolean flag, long timestamp) {
     super(Speculator.EventType.ATTEMPT_START, timestamp);
-    this.reportedStatus = new TaskAttemptStatus();
+    this.reportedStatus = new TaskAttemptStatusOld();
     this.reportedStatus.id = attemptID;
     this.taskID = attemptID.getTaskID();
   }
@@ -68,7 +68,7 @@ public class SpeculatorEvent extends AbstractEvent<Speculator.EventType> {
     this.containersNeededChange = containersNeededChange;
   }
 
-  public TaskAttemptStatus getReportedStatus() {
+  public TaskAttemptStatusOld getReportedStatus() {
     return reportedStatus;
   }
 

@@ -19,21 +19,20 @@
 package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.records.TezDependentTaskCompletionEvent;
 
 public class VertexEventSourceTaskAttemptCompleted extends VertexEvent {
 
-  private TezDependentTaskCompletionEvent completionEvent;
+  private VertexEventTaskAttemptCompleted completionEvent;
 
   public VertexEventSourceTaskAttemptCompleted(
       TezVertexID targetVertexId,
-      TezDependentTaskCompletionEvent completionEvent) {
+      VertexEventTaskAttemptCompleted completionEvent) {
     super(targetVertexId, 
         VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED);
     this.completionEvent = completionEvent;
   }
 
-  public TezDependentTaskCompletionEvent getCompletionEvent() {
+  public VertexEventTaskAttemptCompleted getCompletionEvent() {
     return completionEvent;
   }
 }

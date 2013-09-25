@@ -19,7 +19,6 @@
 package org.apache.tez.dag.app.launcher;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,7 +32,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
-import org.apache.hadoop.mapred.ShuffleHandler;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest;
@@ -169,25 +167,10 @@ public class ContainerLauncherImpl extends AbstractService implements
           throw response.getFailedRequests().get(containerID).deSerialize();
         }
 
-        ByteBuffer portInfo = response.getAllServicesMetaData().get(
-            ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID);
-        int port = -1;
-        if(portInfo != null) {
-          port = ShuffleHandler.deserializeMetaData(portInfo);
-        }
-        LOG.info("Shuffle port returned by ContainerManager for "
-            + containerID + " : " + port);
-
-        if(port < 0) {
-          this.state = ContainerState.FAILED;
-          throw new IllegalStateException("Invalid shuffle port number "
-              + port + " returned for " + containerID);
-        }
-
         // after launching, send launched event to task attempt to move
         // it from ASSIGNED to RUNNING state
         context.getEventHandler().handle(
-            new AMContainerEventLaunched(containerID, port));
+            new AMContainerEventLaunched(containerID));
         ContainerLaunchedEvent lEvt = new ContainerLaunchedEvent(
             containerID, clock.getTime());
         context.getEventHandler().handle(new DAGHistoryEvent(lEvt));

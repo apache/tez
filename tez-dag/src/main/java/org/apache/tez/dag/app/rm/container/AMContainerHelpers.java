@@ -44,9 +44,9 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
-import org.apache.tez.dag.utils.TezEngineChildJVM;
-import org.apache.tez.engine.common.security.TokenCache;
-import org.apache.tez.engine.common.shuffle.server.ShuffleHandler;
+import org.apache.tez.dag.utils.TezRuntimeChildJVM;
+import org.apache.tez.runtime.library.common.security.TokenCache;
+import org.apache.tez.runtime.library.common.shuffle.server.ShuffleHandler;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -163,7 +163,7 @@ public class AMContainerHelpers {
     myEnv.putAll(vertexEnv);
 
     // Set up the launch command
-    List<String> commands = TezEngineChildJVM.getVMCommand(
+    List<String> commands = TezRuntimeChildJVM.getVMCommand(
         taskAttemptListener.getAddress(), containerId.toString(),
         appContext.getApplicationID().toString(),
         appContext.getApplicationAttemptId().getAttemptId(),

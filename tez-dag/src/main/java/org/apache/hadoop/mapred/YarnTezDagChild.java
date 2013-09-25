@@ -26,11 +26,19 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
@@ -38,8 +46,8 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -49,26 +57,36 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
-import org.apache.tez.common.InputSpec;
-import org.apache.tez.common.OutputSpec;
-import org.apache.tez.common.TezEngineTaskContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.Limits;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.engine.api.Task;
-import org.apache.tez.engine.common.objectregistry.ObjectLifeCycle;
-import org.apache.tez.engine.common.objectregistry.ObjectRegistryImpl;
-import org.apache.tez.engine.common.objectregistry.ObjectRegistryModule;
-import org.apache.tez.engine.common.security.JobTokenIdentifier;
-import org.apache.tez.engine.common.security.TokenCache;
-import org.apache.tez.engine.runtime.RuntimeUtils;
-import org.apache.tez.engine.task.RuntimeTask;
-import org.apache.tez.mapreduce.input.SimpleInput;
-import org.apache.tez.mapreduce.output.SimpleOutput;
+import org.apache.tez.mapreduce.input.MRInputLegacy;
+import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
+import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
+import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
+import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
+import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.InputSpec;
+import org.apache.tez.runtime.api.impl.OutputSpec;
+import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.runtime.api.impl.TezEvent;
+import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
+import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
+import org.apache.tez.runtime.api.impl.TezUmbilical;
+import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
+import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
+import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
+import org.apache.tez.runtime.common.objectregistry.ObjectRegistryModule;
+import org.apache.tez.runtime.library.common.security.JobTokenIdentifier;
+import org.apache.tez.runtime.library.common.security.TokenCache;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -81,16 +99,151 @@ public class YarnTezDagChild {
 
   private static final Logger LOG = Logger.getLogger(YarnTezDagChild.class);
 
+  private static AtomicBoolean stopped = new AtomicBoolean(false);
+
+  private static String containerIdStr;
+  private static int maxEventsToGet = 0;
+  private static LinkedBlockingQueue<TezEvent> eventsToSend =
+      new LinkedBlockingQueue<TezEvent>();
+  private static AtomicLong requestCounter = new AtomicLong(0);
+  private static TezTaskAttemptID currentTaskAttemptID;
+  private static long amPollInterval;
+  private static TezTaskUmbilicalProtocol umbilical;
+  private static ReentrantReadWriteLock taskLock = new ReentrantReadWriteLock();
+  private static LogicalIOProcessorRuntimeTask currentTask = null;
+  private static AtomicBoolean heartbeatError = new AtomicBoolean(false);
+  private static Throwable heartbeatErrorException = null;
+
+  private static Thread startHeartbeatThread() {
+    Thread heartbeatThread = new Thread(new Runnable() {
+      public void run() {
+        while (!stopped.get() && !Thread.currentThread().isInterrupted()
+            && !heartbeatError.get()) {
+          try {
+            Thread.sleep(amPollInterval);
+            try {
+              if(!heartbeat()) {
+                return;
+              }
+            } catch (InvalidToken e) {
+              LOG.error("Heartbeat error in authenticating with AM: ", e);
+              heartbeatErrorException = e;
+              heartbeatError.set(true);
+              return;
+            } catch (Throwable e) {
+              LOG.error("Heartbeat error in communicating with AM. ", e);
+              heartbeatErrorException = e;
+              heartbeatError.set(true);
+              return;
+            }
+          } catch (InterruptedException e) {
+            if (!stopped.get()) {
+              LOG.warn("Heartbeat thread interrupted. Returning.");
+            }
+            return;
+          }
+        }
+      }
+    });
+    heartbeatThread.setName("Tez Container Heartbeat Thread ["
+        + containerIdStr + "]");
+    heartbeatThread.start();
+    return heartbeatThread;
+  }
+
+  private static synchronized boolean heartbeat() throws TezException, IOException {
+    return heartbeat(null);
+  }
+
+  private static synchronized boolean heartbeat(
+      Collection<TezEvent> outOfBandEvents)
+      throws TezException, IOException {
+    TezEvent updateEvent = null;
+    int eventCounter = 0;
+    int eventsRange = 0;
+    TezTaskAttemptID taskAttemptID = null;
+    try {
+      taskLock.readLock().lock();
+      if (currentTask != null) {
+        taskAttemptID = currentTaskAttemptID;
+        eventCounter = currentTask.getEventCounter();
+        eventsRange = maxEventsToGet;
+        if (!currentTask.isTaskDone() && !currentTask.hadFatalError()) {
+          updateEvent = new TezEvent(new TaskStatusUpdateEvent(
+              currentTask.getCounters(), currentTask.getProgress()),
+                new EventMetaData(EventProducerConsumerType.SYSTEM,
+                    currentTask.getVertexName(), "", taskAttemptID));
+        }
+      }
+    } finally {
+      taskLock.readLock().unlock();
+    }
+    List<TezEvent> events = new ArrayList<TezEvent>();
+    if (updateEvent != null) {
+      events.add(updateEvent);
+    }
+    eventsToSend.drainTo(events);
+    if (outOfBandEvents != null && !outOfBandEvents.isEmpty()) {
+      events.addAll(outOfBandEvents);
+    }
+    long reqId = requestCounter.incrementAndGet();
+    TezHeartbeatRequest request = new TezHeartbeatRequest(reqId, events,
+        containerIdStr, taskAttemptID, eventCounter, eventsRange);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Sending heartbeat to AM"
+          + ", request=" + request.toString());
+    }
+    TezHeartbeatResponse response = umbilical.heartbeat(request);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Received heartbeat response from AM"
+          + ", response=" + response);
+    }
+    if(response.shouldDie()) {
+      LOG.info("Received should die response from AM");
+      return false;
+    }
+    if (response.getLastRequestId() != reqId) {
+      throw new TezException("AM and Task out of sync"
+          + ", responseReqId=" + response.getLastRequestId()
+          + ", expectedReqId=" + reqId);
+    }
+    try {
+      taskLock.readLock().lock();
+      if (taskAttemptID == null
+          || !taskAttemptID.equals(currentTaskAttemptID)) {
+        if (response.getEvents() != null
+            && !response.getEvents().isEmpty()) {
+          LOG.warn("No current assigned task, ignoring all events in"
+              + " heartbeat response, eventCount="
+              + response.getEvents().size());
+        }
+        return true;
+      }
+      if (currentTask != null && response.getEvents() != null) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Routing events from heartbeat response to task"
+              + ", currentTaskAttemptId=" + currentTaskAttemptID
+              + ", eventCount=" + response.getEvents().size());
+        }
+        currentTask.handleEvents(response.getEvents());
+      }
+    } finally {
+      taskLock.readLock().unlock();
+    }
+    return true;
+  }
+
   public static void main(String[] args) throws Throwable {
-    Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
+    Thread.setDefaultUncaughtExceptionHandler(
+        new YarnUncaughtExceptionHandler());
     if (LOG.isDebugEnabled()) {
       LOG.debug("Child starting");
     }
 
     final Configuration defaultConf = new Configuration();
     TezUtils.addUserSpecifiedTezConfiguration(defaultConf);
-    // Security settings will be loaded based on core-site and core-default. Don't
-    // depend on the jobConf for this.
+    // Security settings will be loaded based on core-site and core-default.
+    // Don't depend on the jobConf for this.
     UserGroupInformation.setConfiguration(defaultConf);
     Limits.setConfiguration(defaultConf);
 
@@ -109,6 +262,7 @@ public class YarnTezDagChild {
     }
     // FIXME fix initialize metrics in child runner
     DefaultMetricsSystem.initialize("VertexTask");
+    YarnTezDagChild.containerIdStr = containerIdentifier;
 
     ObjectRegistryImpl objectRegistry = new ObjectRegistryImpl();
     @SuppressWarnings("unused")
@@ -126,6 +280,13 @@ public class YarnTezDagChild {
       }
     }
 
+    amPollInterval = defaultConf.getLong(
+        TezConfiguration.TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS,
+        TezConfiguration.TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS_DEFAULT);
+    maxEventsToGet = defaultConf.getInt(
+        TezConfiguration.TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT,
+        TezConfiguration.TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT);
+
     // Create TaskUmbilicalProtocol as actual task owner.
     UserGroupInformation taskOwner =
       UserGroupInformation.createRemoteUser(tokenIdentifier);
@@ -133,7 +294,7 @@ public class YarnTezDagChild {
     Token<JobTokenIdentifier> jobToken = TokenCache.getJobToken(credentials);
     SecurityUtil.setTokenService(jobToken, address);
     taskOwner.addToken(jobToken);
-    final TezTaskUmbilicalProtocol umbilical =
+    umbilical =
       taskOwner.doAs(new PrivilegedExceptionAction<TezTaskUmbilicalProtocol>() {
       @Override
       public TezTaskUmbilicalProtocol run() throws Exception {
@@ -142,21 +303,53 @@ public class YarnTezDagChild {
       }
     });
 
+    Thread heartbeatThread = startHeartbeatThread();
+
+    TezUmbilical tezUmbilical = new TezUmbilical() {
+      @Override
+      public void addEvents(Collection<TezEvent> events) {
+        eventsToSend.addAll(events);
+      }
+
+      @Override
+      public void signalFatalError(TezTaskAttemptID taskAttemptID,
+          String diagnostics,
+          EventMetaData sourceInfo) {
+        TezEvent taskAttemptFailedEvent =
+            new TezEvent(new TaskAttemptFailedEvent(diagnostics),
+                sourceInfo);
+        try {
+          heartbeat(Collections.singletonList(taskAttemptFailedEvent));
+        } catch (Throwable t) {
+          LOG.fatal("Failed to communicate task attempt failure to AM via"
+              + " umbilical", t);
+          heartbeatError.set(true);
+          heartbeatErrorException = t;
+        }
+      }
+
+      @Override
+      public boolean canCommit(TezTaskAttemptID taskAttemptID)
+          throws IOException {
+        return umbilical.canCommit(taskAttemptID);
+      }
+    };
+
     // report non-pid to application master
     String pid = System.getenv().get("JVM_PID");
     if (LOG.isDebugEnabled()) {
       LOG.debug("PID, containerId: " + pid + ", " + containerIdentifier);
     }
-    TezEngineTaskContext taskContext = null;
     ContainerTask containerTask = null;
     UserGroupInformation childUGI = null;
-    TezTaskAttemptID taskAttemptId = null;
-    ContainerContext containerContext = new ContainerContext(containerIdentifier, pid);
+    ContainerContext containerContext = new ContainerContext(
+        containerIdentifier, pid);
     int getTaskMaxSleepTime = defaultConf.getInt(
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT);
     int taskCount = 0;
-    TezVertexID currentVertexId = null;
+    TezVertexID lastVertexId = null;
+    EventMetaData currentSourceInfo = null;
     try {
       while (true) {
         // poll for new task
@@ -172,38 +365,46 @@ public class YarnTezDagChild {
         }
         LOG.info("TaskInfo: shouldDie: "
             + containerTask.shouldDie()
-            + (containerTask.shouldDie() == true ? "" : ", taskAttemptId: "
-                + containerTask.getTezEngineTaskContext().getTaskAttemptId()));
+            + (containerTask.shouldDie() == true ?
+                "" : ", currentTaskAttemptId: "
+                  + containerTask.getTaskSpec().getTaskAttemptID()));
 
         if (containerTask.shouldDie()) {
           return;
         }
         taskCount++;
-        taskContext = (TezEngineTaskContext) containerTask
-            .getTezEngineTaskContext();
+        final TaskSpec taskSpec = containerTask.getTaskSpec();
         if (LOG.isDebugEnabled()) {
           LOG.debug("New container task context:"
-              + taskContext.toString());
+              + taskSpec.toString());
         }
-        taskAttemptId = taskContext.getTaskAttemptId();
-        TezVertexID newVertexId = taskAttemptId.getTaskID().getVertexID();
 
-        if (currentVertexId != null) {
-          if (!currentVertexId.equals(newVertexId)) {
-            objectRegistry.clearCache(ObjectLifeCycle.VERTEX);
+        try {
+          taskLock.writeLock().lock();
+          currentTaskAttemptID = taskSpec.getTaskAttemptID();
+          TezVertexID newVertexId =
+              currentTaskAttemptID.getTaskID().getVertexID();
+
+          if (lastVertexId != null) {
+            if (!lastVertexId.equals(newVertexId)) {
+              objectRegistry.clearCache(ObjectLifeCycle.VERTEX);
+            }
+            if (!lastVertexId.getDAGId().equals(newVertexId.getDAGId())) {
+              objectRegistry.clearCache(ObjectLifeCycle.DAG);
+            }
           }
-          if (!currentVertexId.getDAGId().equals(newVertexId.getDAGId())) {
-            objectRegistry.clearCache(ObjectLifeCycle.DAG);
-          }
+          lastVertexId = newVertexId;
+          updateLoggers(currentTaskAttemptID);
+          currentTask = createLogicalTask(attemptNumber, taskSpec,
+              defaultConf, tezUmbilical, jobToken);
+        } finally {
+          taskLock.writeLock().unlock();
         }
-        currentVertexId = newVertexId;
 
-        updateLoggers(taskAttemptId);
-
-        final Task t = createAndConfigureTezTask(taskContext, umbilical,
-            credentials, jobToken, attemptNumber);
-
-        final Configuration conf = ((RuntimeTask)t).getConfiguration();
+        final EventMetaData sourceInfo = new EventMetaData(
+            EventProducerConsumerType.SYSTEM,
+            taskSpec.getVertexName(), "", currentTaskAttemptID);
+        currentSourceInfo = sourceInfo;
 
         // TODO Initiate Java VM metrics
         // JvmMetrics.initSingleton(containerId.toString(), job.getSessionId());
@@ -215,24 +416,68 @@ public class YarnTezDagChild {
         childUGI.doAs(new PrivilegedExceptionAction<Object>() {
           @Override
           public Object run() throws Exception {
-            runTezTask(t, umbilical, conf); // run the task
+            currentTask.initialize();
+            if (!currentTask.hadFatalError()) {
+              currentTask.run();
+              currentTask.close();
+            }
+            LOG.info("Task completed"
+                + ", taskAttemptId=" + currentTaskAttemptID
+                + ", fatalErrorOccurred=" + currentTask.hadFatalError());
+            // TODONEWTEZ check if task had a fatal error before
+            // sending completed event
+            if (!currentTask.hadFatalError()) {
+              TezEvent statusUpdateEvent =
+                  new TezEvent(new TaskStatusUpdateEvent(
+                      currentTask.getCounters(), currentTask.getProgress()),
+                      new EventMetaData(EventProducerConsumerType.SYSTEM,
+                          currentTask.getVertexName(), "",
+                          currentTask.getTaskAttemptID()));
+              TezEvent taskCompletedEvent =
+                  new TezEvent(new TaskAttemptCompletedEvent(), sourceInfo);
+              heartbeat(Arrays.asList(statusUpdateEvent, taskCompletedEvent));
+            }
+            try {
+              taskLock.writeLock().lock();
+              if (currentTask != null) {
+                currentTask.cleanup();
+              }
+              currentTask = null;
+              currentTaskAttemptID = null;
+            } finally {
+              taskLock.writeLock().unlock();
+            }
             return null;
           }
         });
         FileSystem.closeAllForUGI(childUGI);
         containerTask = null;
+        if (heartbeatError.get()) {
+          LOG.fatal("Breaking out of task loop, heartbeat error occurred",
+              heartbeatErrorException);
+          break;
+        }
       }
     } catch (FSError e) {
       LOG.fatal("FSError from child", e);
-      umbilical.fsError(taskAttemptId, e.getMessage());
+      // TODO NEWTEZ this should be a container failed event?
+      TezEvent taskAttemptFailedEvent =
+          new TezEvent(new TaskAttemptFailedEvent(
+              StringUtils.stringifyException(e)),
+              currentSourceInfo);
+      heartbeat(Collections.singletonList(taskAttemptFailedEvent));
     } catch (Throwable throwable) {
-      LOG.fatal("Error running child : "
-    	        + StringUtils.stringifyException(throwable));
-      if (taskAttemptId != null) {
-        String cause = StringUtils.stringifyException(throwable);
-        umbilical.fatalError(taskAttemptId, cause);
+      String cause = StringUtils.stringifyException(throwable);
+      LOG.fatal("Error running child : " + cause);
+      if (currentTaskAttemptID != null && !currentTask.hadFatalError()) {
+        TezEvent taskAttemptFailedEvent =
+            new TezEvent(new TaskAttemptFailedEvent(cause),
+                currentSourceInfo);
+        heartbeat(Collections.singletonList(taskAttemptFailedEvent));
       }
     } finally {
+      stopped.set(true);
+      heartbeatThread.interrupt();
       RPC.stopProxy(umbilical);
       DefaultMetricsSystem.shutdown();
       // Shutting down log4j of the child-vm...
@@ -242,102 +487,38 @@ public class YarnTezDagChild {
     }
   }
 
-  /**
-   * Configure mapred-local dirs. This config is used by the task for finding
-   * out an output directory.
-   * @throws IOException
-   */
-  /**
-   * Configure tez-local-dirs, tez-localized-file-dir, etc. Also create these
-   * dirs.
-   */
+  private static LogicalIOProcessorRuntimeTask createLogicalTask(int attemptNum,
+      TaskSpec taskSpec, Configuration conf, TezUmbilical tezUmbilical,
+      Token<JobTokenIdentifier> jobToken) throws IOException {
 
-  private static void configureLocalDirs(Configuration conf) throws IOException {
-    String[] localSysDirs = StringUtils.getTrimmedStrings(
-        System.getenv(Environment.LOCAL_DIRS.name()));
-    conf.setStrings(TezJobConfig.LOCAL_DIRS, localSysDirs);
-    conf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR,
-        System.getenv(Environment.PWD.name()));
-
-    LOG.info(TezJobConfig.LOCAL_DIRS + " for child: " +
-        conf.get(TezJobConfig.LOCAL_DIRS));
-    LOG.info(TezJobConfig.TASK_LOCAL_RESOURCE_DIR + " for child: "
-        + conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR));
-
-    LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
-    Path workDir = null;
-    // First, try to find the JOB_LOCAL_DIR on this host.
-    try {
-      workDir = lDirAlloc.getLocalPathToRead("work", conf);
-    } catch (DiskErrorException e) {
-      // DiskErrorException means dir not found. If not found, it will
-      // be created below.
-    }
-    if (workDir == null) {
-      // JOB_LOCAL_DIR doesn't exist on this host -- Create it.
-      workDir = lDirAlloc.getLocalPathForWrite("work", conf);
-      FileSystem lfs = FileSystem.getLocal(conf).getRaw();
-      boolean madeDir = false;
-      try {
-        madeDir = lfs.mkdirs(workDir);
-      } catch (FileAlreadyExistsException e) {
-        // Since all tasks will be running in their own JVM, the race condition
-        // exists where multiple tasks could be trying to create this directory
-        // at the same time. If this task loses the race, it's okay because
-        // the directory already exists.
-        madeDir = true;
-        workDir = lDirAlloc.getLocalPathToRead("work", conf);
-      }
-      if (!madeDir) {
-          throw new IOException("Mkdirs failed to create "
-              + workDir.toString());
-      }
-    }
-    conf.set(TezJobConfig.JOB_LOCAL_DIR, workDir.toString());
-  }
-
-  private static Task createAndConfigureTezTask(
-      TezEngineTaskContext taskContext, TezTaskUmbilicalProtocol master,
-      Credentials cxredentials, Token<JobTokenIdentifier> jobToken,
-      int appAttemptId) throws IOException, InterruptedException {
-
-    Configuration conf = new Configuration(false);
-    // set tcp nodelay
+    // FIXME TODONEWTEZ
     conf.setBoolean("ipc.client.tcpnodelay", true);
-    conf.setInt(TezJobConfig.APPLICATION_ATTEMPT_ID, appAttemptId);
-
-    configureLocalDirs(conf);
-
-
-    // FIXME need Input/Output vertices else we have this hack
-    if (taskContext.getInputSpecList().isEmpty()) {
-      taskContext.getInputSpecList().add(
-          new InputSpec("null", 0, SimpleInput.class.getName()));
-    }
-    if (taskContext.getOutputSpecList().isEmpty()) {
-      taskContext.getOutputSpecList().add(
-          new OutputSpec("null", 0, SimpleOutput.class.getName()));
-    }
-    Task t = RuntimeUtils.createRuntimeTask(taskContext);
-    
-    t.initialize(conf, taskContext.getProcessorUserPayload(), master);
-
-    // FIXME wrapper should initialize all of processor, inputs and outputs
-    // Currently, processor is inited via task init
-    // and processor then inits inputs and outputs
-    return t;
-  }
-
-  private static void runTezTask(
-      Task t, TezTaskUmbilicalProtocol master, Configuration conf)
-  throws IOException, InterruptedException {
-    // use job-specified working directory
     FileSystem.get(conf).setWorkingDirectory(getWorkingDirectory(conf));
 
-    // Run!
-    t.run();
-    t.close();
+    // FIXME need Input/Output vertices else we have this hack
+    if (taskSpec.getInputs().isEmpty()) {
+      InputDescriptor mrInputDesc =
+          new InputDescriptor(MRInputLegacy.class.getName());
+      mrInputDesc.setUserPayload(
+          taskSpec.getProcessorDescriptor().getUserPayload());
+      taskSpec.getInputs().add(
+          new InputSpec("null", mrInputDesc, 0));
+    }
+    if (taskSpec.getOutputs().isEmpty()) {
+      OutputDescriptor mrOutputDesc =
+          new OutputDescriptor(MROutput.class.getName());
+      mrOutputDesc.setUserPayload(
+          taskSpec.getProcessorDescriptor().getUserPayload());
+      taskSpec.getOutputs().add(
+          new OutputSpec("null", mrOutputDesc, 0));
+    }
+    String [] localDirs = StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
+    conf.setStrings(TezJobConfig.LOCAL_DIRS, localDirs);
+    LOG.info("LocalDirs for child: " + Arrays.toString(localDirs));
+    return new LogicalIOProcessorRuntimeTask(taskSpec, attemptNum, conf,
+        tezUmbilical, jobToken);
   }
+
 
   private static Path getWorkingDirectory(Configuration conf) {
     String name = conf.get(JobContext.WORKING_DIR);
@@ -353,13 +534,13 @@ public class YarnTezDagChild {
       }
     }
   }
-  
+
   private static void updateLoggers(TezTaskAttemptID tezTaskAttemptID)
       throws FileNotFoundException {
     String containerLogDir = null;
 
     LOG.info("Redirecting log files based on TaskAttemptId: " + tezTaskAttemptID);
-    
+
     Appender appender = Logger.getRootLogger().getAppender(
         TezConfiguration.TEZ_CONTAINER_LOGGER_NAME);
     if (appender != null) {

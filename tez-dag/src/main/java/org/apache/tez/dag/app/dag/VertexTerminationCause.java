@@ -39,5 +39,7 @@ public enum VertexTerminationCause {
   ZERO_TASKS, 
 
   /** This vertex failed during init. */
-  INIT_FAILURE
+  INIT_FAILURE,
+  
+  INTERNAL_ERROR
 }
