@@ -26,10 +26,10 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
 public abstract class EdgeManager {
   
-  public abstract int getNumDestinationTaskInputs(Vertex sourceVertex,
+  public abstract int getNumDestinationTaskInputs(int numSourceTasks, 
       int destinationTaskIndex);
 
-  public abstract int getNumSourceTaskOutputs(Vertex destinationVertex,
+  public abstract int getNumSourceTaskOutputs(int numDestinationTasks, 
       int sourceTaskIndex);
   
   /**
@@ -41,6 +41,7 @@ public abstract class EdgeManager {
   public abstract void routeEventToDestinationTasks(InputFailedEvent event,
       int sourceTaskIndex, int numDestinationTasks, List<Integer> taskIndices);
 
+  public abstract int getDestinationConsumerTaskNumber(int sourceTaskIndex, int numDestTasks);
   
   /**
    * Return the source task index to which to send the event

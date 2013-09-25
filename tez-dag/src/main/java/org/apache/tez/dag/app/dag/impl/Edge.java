@@ -28,6 +28,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.dag.EdgeManager;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -97,23 +98,25 @@ public class Edge {
   }
 
   public void setDestinationVertex(Vertex destinationVertex) {
-    if (this.destinationVertex != null && this.destinationVertex != destinationVertex) {
+    if (this.destinationVertex != null
+        && this.destinationVertex != destinationVertex) {
       throw new TezUncheckedException("Destination vertex exists: "
           + destinationVertex.getName());
     }
     this.destinationVertex = destinationVertex;
   }
-  
+
   public InputSpec getDestinationSpec(int destinationTaskIndex) {
     return new InputSpec(sourceVertex.getName(),
         edgeProperty.getEdgeDestination(),
-        edgeManager.getNumDestinationTaskInputs(sourceVertex, destinationTaskIndex));
- }
-  
+        edgeManager.getNumDestinationTaskInputs(sourceVertex.getTotalTasks(),
+            destinationTaskIndex));
+  }
+
   public OutputSpec getSourceSpec(int sourceTaskIndex) {
     return new OutputSpec(destinationVertex.getName(),
-        edgeProperty.getEdgeSource(), 
-        edgeManager.getNumSourceTaskOutputs(destinationVertex, sourceTaskIndex));
+        edgeProperty.getEdgeSource(), edgeManager.getNumSourceTaskOutputs(
+            destinationVertex.getTotalTasks(), sourceTaskIndex));
   }
   
   public void startEventBuffering() {
@@ -133,17 +136,25 @@ public class Edge {
     sourceEventBuffer.clear();
   }
   
+  @SuppressWarnings("unchecked")
   public void sendTezEventToSourceTasks(TezEvent tezEvent) {
     if (!bufferEvents.get()) {
       switch (tezEvent.getEventType()) {
       case INPUT_READ_ERROR_EVENT:
         InputReadErrorEvent event = (InputReadErrorEvent) tezEvent.getEvent();
-        TezTaskAttemptID destAttemptId = tezEvent.getSourceInfo().getTaskAttemptID();
+        TezTaskAttemptID destAttemptId = tezEvent.getSourceInfo()
+            .getTaskAttemptID();
         int destTaskIndex = destAttemptId.getTaskID().getId();
-        int srcTaskIndex = edgeManager.routeEventToSourceTasks(destTaskIndex, event);
-        // TODO this is BROKEN. TEZ-431
-//        TezTaskID srcTaskId = sourceVertex.getTask(srcTaskIndex).getTaskId();
-//        sendEventToTask(srcTaskId, tezEvent);
+        int srcTaskIndex = edgeManager.routeEventToSourceTasks(destTaskIndex,
+            event);
+        int numConsumers = edgeManager.getDestinationConsumerTaskNumber(
+            srcTaskIndex, destinationVertex.getTotalTasks());
+        TezTaskID srcTaskId = sourceVertex.getTask(srcTaskIndex).getTaskId();
+        int taskAttemptIndex = event.getVersion();
+        TezTaskAttemptID srcTaskAttemptId = new TezTaskAttemptID(srcTaskId,
+            taskAttemptIndex);
+        eventHandler.handle(new TaskAttemptEventOutputFailed(srcTaskAttemptId,
+            tezEvent, numConsumers));
         break;
       default:
         throw new TezUncheckedException("Unhandled tez event type: "
@@ -198,13 +209,6 @@ public class Edge {
       }
     } else {
       destinationEventBuffer.add(tezEvent);
-    }
-  }
-  
-  private void sendEventToDestination(List<Integer> destTaskIndeces, TezEvent tezEvent) {
-    for(Integer destTaskIndex : destTaskIndeces) {
-      TezTaskID destTaskId = destinationVertex.getTask(destTaskIndex).getTaskId();
-      sendEventToTask(destTaskId, tezEvent);
     }
   }
   

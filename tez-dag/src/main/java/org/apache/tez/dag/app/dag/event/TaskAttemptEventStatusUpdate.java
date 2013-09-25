@@ -31,7 +31,8 @@ public class TaskAttemptEventStatusUpdate extends TaskAttemptEvent {
   
   private TaskStatusUpdateEvent taskAttemptStatus;
   
-  public TaskAttemptEventStatusUpdate(TezTaskAttemptID id, TaskStatusUpdateEvent statusEvent) {
+  public TaskAttemptEventStatusUpdate(TezTaskAttemptID id,
+      TaskStatusUpdateEvent statusEvent) {
     super(id, TaskAttemptEventType.TA_STATUS_UPDATE);
     this.taskAttemptStatus = statusEvent;
   }

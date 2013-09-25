@@ -21,21 +21,20 @@ package org.apache.tez.dag.app.dag.impl;
 import java.util.List;
 
 import org.apache.tez.dag.app.dag.EdgeManager;
-import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
-import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
+import org.apache.tez.runtime.api.events.InputFailedEvent;
 
 public class OneToOneEdgeManager extends EdgeManager {
 
   @Override
-  public int getNumDestinationTaskInputs(Vertex sourceVertex,
+  public int getNumDestinationTaskInputs(int numDestinationTasks, 
       int destinationTaskIndex) {
     return 1;
   }
   
   @Override
-  public int getNumSourceTaskOutputs(Vertex destinationVertex,
+  public int getNumSourceTaskOutputs(int numDestinationTasks, 
       int sourceTaskIndex) {
     return 1;
   }
@@ -62,5 +61,10 @@ public class OneToOneEdgeManager extends EdgeManager {
   
   void addDestinationTaskIndex(int sourceTaskIndex, List<Integer> taskIndeces) {
     taskIndeces.add(new Integer(sourceTaskIndex));
+  }
+
+  @Override
+  public int getDestinationConsumerTaskNumber(int sourceTaskIndex, int numDestTasks) {
+    return 1;
   }
 }

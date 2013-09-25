@@ -55,6 +55,7 @@ public enum TaskAttemptEventType {
   // The node running the task attempt failed.
   TA_NODE_FAILED,
   
-//Producer: Job
-  TA_TOO_MANY_FETCH_FAILURES,
+  // Producer: consumer destination vertex
+  TA_OUTPUT_FAILED,
+  
 }

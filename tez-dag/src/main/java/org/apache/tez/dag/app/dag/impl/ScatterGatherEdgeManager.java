@@ -21,35 +21,21 @@ package org.apache.tez.dag.app.dag.impl;
 import java.util.List;
 
 import org.apache.tez.dag.app.dag.EdgeManager;
-import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
-import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
+import org.apache.tez.runtime.api.events.InputFailedEvent;
 
 public class ScatterGatherEdgeManager extends EdgeManager {
 
-  private int initialDestinationTaskNumber = -1;
-
   @Override
-  public int getNumDestinationTaskInputs(Vertex sourceVertex,
+  public int getNumDestinationTaskInputs(int numSourceTasks,
       int destinationTaskIndex) {
-    return sourceVertex.getTotalTasks();
+    return numSourceTasks;
   }
   
   @Override
-  public int getNumSourceTaskOutputs(Vertex destinationVertex,
-      int sourceTaskIndex) {
-    if(initialDestinationTaskNumber == -1) {
-      // the downstream vertex may not have started and so its number of tasks
-      // may change. So save this initial count and provide a consistent view 
-      // to all source tasks, including late starters and retries.
-      // When the number of destination tasks change then the routing will have 
-      // to be updated too.
-      // This value may be obtained from config too if destination task initial 
-      // parallelism is not specified.
-      initialDestinationTaskNumber = destinationVertex.getTotalTasks();
-    }
-    return initialDestinationTaskNumber;
+  public int getNumSourceTaskOutputs(int numDestinationTasks, int sourceTaskIndex) {
+    return numDestinationTasks;
   }
 
   @Override
@@ -72,6 +58,11 @@ public class ScatterGatherEdgeManager extends EdgeManager {
   public int routeEventToSourceTasks(int destinationTaskIndex,
       InputReadErrorEvent event) {
     return event.getIndex();
+  }
+
+  @Override
+  public int getDestinationConsumerTaskNumber(int sourceTaskIndex, int numDestTasks) {
+    return numDestTasks;
   }
   
 }

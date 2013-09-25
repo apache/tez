@@ -34,5 +34,7 @@ public enum DAGTerminationCause {
   ZERO_VERTICES, 
   
   /** DAG failed during init. */
-  INIT_FAILURE,   
+  INIT_FAILURE,
+  
+  INTERNAL_ERROR
 }

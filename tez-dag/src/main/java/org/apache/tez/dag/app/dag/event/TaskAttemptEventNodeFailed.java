@@ -19,7 +19,8 @@ package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
-public class TaskAttemptEventNodeFailed extends TaskAttemptEvent {
+public class TaskAttemptEventNodeFailed extends TaskAttemptEvent 
+  implements DiagnosableEvent{
 
   private final String message;
 
@@ -29,6 +30,7 @@ public class TaskAttemptEventNodeFailed extends TaskAttemptEvent {
     this.message = diagMessage;
   }
 
+  @Override
   public String getDiagnosticInfo() {
     return this.message;
   }

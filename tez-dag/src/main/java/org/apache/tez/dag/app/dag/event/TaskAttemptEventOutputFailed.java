@@ -16,14 +16,29 @@
 * limitations under the License.
 */
 
-package org.apache.tez.dag.app.dag;
+package org.apache.tez.dag.app.dag.event;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.api.impl.TezEvent;
 
-// Rename to VertexManager TEZ-364 and move to DAG API. Make abstract class.
-public interface VertexScheduler {
-  void initialize(Configuration conf);
-  void onVertexStarted();
-  void onSourceTaskCompleted(TezTaskAttemptID attemptId);
+public class TaskAttemptEventOutputFailed extends TaskAttemptEvent {
+  
+  private TezEvent inputFailedEvent;
+  private int consumerTaskNumber;
+  
+  public TaskAttemptEventOutputFailed(TezTaskAttemptID attemptId,
+      TezEvent tezEvent, int numConsumers) {
+    super(attemptId, TaskAttemptEventType.TA_OUTPUT_FAILED);
+    this.inputFailedEvent = tezEvent;
+    this.consumerTaskNumber = numConsumers;
+  }
+  
+  public TezEvent getInputFailedEvent() {
+    return inputFailedEvent;
+  }
+  
+  public int getConsumerTaskNumber() {
+    return consumerTaskNumber;
+  }
+  
 }

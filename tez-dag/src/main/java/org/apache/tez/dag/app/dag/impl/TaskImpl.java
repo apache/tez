@@ -40,7 +40,6 @@ import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.Records;
-import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -55,6 +54,7 @@ import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.TaskStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
@@ -76,7 +76,6 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.impl.TezEvent;
-import org.apache.tez.runtime.records.TezDependentTaskCompletionEvent;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -209,16 +208,17 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // the stages. i.e. Task would only SUCCEED after all output consumed.
     .addTransition(TaskStateInternal.SUCCEEDED, //only possible for map tasks
         EnumSet.of(TaskStateInternal.SCHEDULED, TaskStateInternal.SUCCEEDED, TaskStateInternal.FAILED),
-        TaskEventType.T_ATTEMPT_FAILED, new MapRetroactiveFailureTransition())
+        TaskEventType.T_ATTEMPT_FAILED, new TaskRetroactiveFailureTransition())
     .addTransition(TaskStateInternal.SUCCEEDED, //only possible for map tasks
         EnumSet.of(TaskStateInternal.SCHEDULED, TaskStateInternal.SUCCEEDED),
-        TaskEventType.T_ATTEMPT_KILLED, new MapRetroactiveKilledTransition())
+        TaskEventType.T_ATTEMPT_KILLED, new TaskRetroactiveKilledTransition())
     .addTransition(TaskStateInternal.SUCCEEDED, TaskStateInternal.SUCCEEDED,
         TaskEventType.T_ADD_TEZ_EVENT, ADD_TEZ_EVENT_TRANSITION)
     // Ignore-able transitions.
     .addTransition(
         TaskStateInternal.SUCCEEDED, TaskStateInternal.SUCCEEDED,
         EnumSet.of(TaskEventType.T_ADD_SPEC_ATTEMPT,
+            TaskEventType.T_TERMINATE,
             TaskEventType.T_ATTEMPT_LAUNCHED))
 
     // Transitions from FAILED state
@@ -749,41 +749,26 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   private void sendTaskAttemptCompletionEvent(TezTaskAttemptID attemptId,
-      TezDependentTaskCompletionEvent.Status status) {
-    TaskAttempt attempt = attempts.get(attemptId);
+      TaskAttemptStateInternal attemptState) {
     // raise the completion event only if the container is assigned
     // to nextAttemptNumber
     if (needsWaitAfterOutputConsumable()) {
       // An event may have been sent out during the OUTPUT_READY state itself.
       // Make sure the same event is not being sent out again.
       if (attemptId == outputConsumableAttempt
-          && status == TezDependentTaskCompletionEvent.Status.SUCCEEDED) {
+          && attemptState == TaskAttemptStateInternal.SUCCEEDED) {
         if (outputConsumableAttemptSuccessSent) {
           return;
         }
       }
     }
-    if (attempt.getNodeHttpAddress() != null) {
-
-      int runTime = 0;
-      if (attempt.getFinishTime() != 0 && attempt.getLaunchTime() != 0)
-        runTime = (int) (attempt.getFinishTime() - attempt.getLaunchTime());
-
-      // TODO TEZ-347. Get this event from Task instead of generating here
-      long dataSize = getCounters().findCounter(TaskCounter.MAP_OUTPUT_BYTES).getValue();
-      TezDependentTaskCompletionEvent tce = new TezDependentTaskCompletionEvent(
-          -1, attemptId, status, runTime, dataSize);
-
-      // raise the event to job so that it adds the completion event to its
-      // data structures
-      eventHandler.handle(new VertexEventTaskAttemptCompleted(tce));
-    }
+    eventHandler.handle(new VertexEventTaskAttemptCompleted(attemptId, attemptState));
   }
 
   // always called inside a transition, in turn inside the Write Lock
   private void handleTaskAttemptCompletion(TezTaskAttemptID attemptId,
-      TezDependentTaskCompletionEvent.Status status) {
-    this.sendTaskAttemptCompletionEvent(attemptId, status);
+      TaskAttemptStateInternal attemptState) {
+    this.sendTaskAttemptCompletionEvent(attemptId, attemptState);
   }
 
   // TODO: Recovery
@@ -893,7 +878,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
       if (task.outputConsumableAttempt == null) {
         task.sendTaskAttemptCompletionEvent(attemptId,
-            TezDependentTaskCompletionEvent.Status.SUCCEEDED);
+            TaskAttemptStateInternal.SUCCEEDED);
         task.outputConsumableAttempt = attemptId;
         task.outputConsumableAttemptSuccessSent = true;
         if (LOG.isDebugEnabled()) {
@@ -932,7 +917,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       }
       
       task.handleTaskAttemptCompletion(successTaId, 
-          TezDependentTaskCompletionEvent.Status.SUCCEEDED);
+          TaskAttemptStateInternal.SUCCEEDED);
       task.finishedAttempts++;
       --task.numberUncompletedAttempts;
       task.successfulAttempt = successTaId;
@@ -974,7 +959,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       }
       task.handleTaskAttemptCompletion(
           castEvent.getTaskAttemptID(),
-          TezDependentTaskCompletionEvent.Status.KILLED);
+          TaskAttemptStateInternal.KILLED);
       task.finishedAttempts++;
       // we don't need a new event if we already have a spare
       if (--task.numberUncompletedAttempts == 0
@@ -994,7 +979,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
       task.handleTaskAttemptCompletion(
           ((TaskEventTAUpdate) event).getTaskAttemptID(),
-          TezDependentTaskCompletionEvent.Status.KILLED);
+          TaskAttemptStateInternal.KILLED);
       task.finishedAttempts++;
       // check whether all attempts are finished
       if (task.finishedAttempts == task.attempts.size()) {
@@ -1027,7 +1012,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       if (castEvent.getTaskAttemptID().equals(task.outputConsumableAttempt)) {
         task.outputConsumableAttempt = null;
         task.handleTaskAttemptCompletion(castEvent.getTaskAttemptID(),
-            TezDependentTaskCompletionEvent.Status.FAILED);
+            TaskAttemptStateInternal.FAILED);
       }
 
       // The attempt would have informed the scheduler about it's failure
@@ -1036,7 +1021,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       if (task.failedAttempts < task.maxAttempts) {
         task.handleTaskAttemptCompletion(
             ((TaskEventTAUpdate) event).getTaskAttemptID(),
-            TezDependentTaskCompletionEvent.Status.FAILED);
+            TaskAttemptStateInternal.FAILED);
         // we don't need a new event if we already have a spare
         if (--task.numberUncompletedAttempts == 0
             && task.successfulAttempt == null) {
@@ -1045,7 +1030,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       } else {
         task.handleTaskAttemptCompletion(
             ((TaskEventTAUpdate) event).getTaskAttemptID(),
-            TezDependentTaskCompletionEvent.Status.TIPFAILED);
+            TaskAttemptStateInternal.FAILED);
 
         if (task.historyTaskStartGenerated) {
           task.logJobHistoryTaskFailedEvent(TaskState.FAILED);
@@ -1065,36 +1050,35 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  private static class MapRetroactiveFailureTransition
+  private static class TaskRetroactiveFailureTransition
       extends AttemptFailedTransition {
 
     @Override
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
-      if (event instanceof TaskEventTAUpdate) {
-        TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
-        if (task.getInternalState() == TaskStateInternal.SUCCEEDED &&
-            !castEvent.getTaskAttemptID().equals(task.successfulAttempt)) {
-          // don't allow a different task attempt to override a previous
-          // succeeded state
-          return TaskStateInternal.SUCCEEDED;
-        }
-      }
-
       if (task.leafVertex) {
         LOG.error("Unexpected event for task of leaf vertex " + event.getType());
         task.internalError(event.getType());
       }
 
+      TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
+      if (task.getInternalState() == TaskStateInternal.SUCCEEDED &&
+          !castEvent.getTaskAttemptID().equals(task.successfulAttempt)) {
+        // don't allow a different task attempt to override a previous
+        // succeeded state
+        return TaskStateInternal.SUCCEEDED;
+      }
+
       // tell the job about the rescheduling
-      task.eventHandler.handle(
-          new VertexEventTaskReschedule(task.taskId));
+      task.eventHandler.handle(new VertexEventTaskReschedule(task.taskId));
       // super.transition is mostly coded for the case where an
       //  UNcompleted task failed.  When a COMPLETED task retroactively
       //  fails, we have to let AttemptFailedTransition.transition
       //  believe that there's no redundancy.
       unSucceed(task);
-      // fake increase in Uncomplete attempts for super.transition
+      
+      // fake values for code for super.transition
       ++task.numberUncompletedAttempts;
+      task.finishedAttempts--;
       return super.transition(task, event);
     }
 
@@ -1104,7 +1088,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  private static class MapRetroactiveKilledTransition implements
+  private static class TaskRetroactiveKilledTransition implements
     MultipleArcTransition<TaskImpl, TaskEvent, TaskStateInternal> {
 
     @Override
@@ -1124,7 +1108,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         unSucceed(task);
         task.handleTaskAttemptCompletion(
             attemptId,
-            TezDependentTaskCompletionEvent.Status.KILLED);
+            TaskAttemptStateInternal.KILLED);
         task.eventHandler.handle(new VertexEventTaskReschedule(task.taskId));
         // typically we are here because this map task was run on a bad node and
         // we want to reschedule it on a different node.

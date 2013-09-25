@@ -18,8 +18,6 @@
 
 package org.apache.tez.dag.app.dag;
 
-import org.apache.tez.dag.app.dag.event.TaskEventType;
-
 /**
  * Represents proximate cause of a Task transition to FAILED or KILLED.
  */
@@ -31,6 +29,9 @@ public enum TaskTerminationCause {
   /** Other vertex failed causing DAG to fail thus killing the parent vertex  */
   OTHER_VERTEX_FAILURE,
   
-  /** One of the tasks for the parent vertex failed.  */
+  /** One of the tasks for the source/destination vertex failed.  */
   OTHER_TASK_FAILURE, 
+  
+  /** One of the tasks of the destination vertex failed. */
+  OWN_TASK_FAILURE
 }

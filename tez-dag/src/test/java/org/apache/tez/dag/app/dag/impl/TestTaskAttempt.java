@@ -71,6 +71,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminating;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
@@ -82,7 +83,10 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.events.InputReadErrorEvent;
+import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -583,7 +587,7 @@ public class TestTaskAttempt {
   @Test
   // Verifies that multiple TooManyFetchFailures are handled correctly by the
   // TaskAttempt.
-  public void testMultipleTooManyFetchFailures() throws Exception {
+  public void testMultipleOutputFailed() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
@@ -641,9 +645,14 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventsTillSucceeded)).handle(arg.capture());
     verifyEventType(arg.getAllValues(), TaskEventTAUpdate.class, 2);
 
-    taImpl.handle(new TaskAttemptEvent(taskAttemptID,
-        TaskAttemptEventType.TA_TOO_MANY_FETCH_FAILURES));
-    int expectedEventsAfterFetchFailure = expectedEventsTillSucceeded + 3;
+    InputReadErrorEvent reEvent = new InputReadErrorEvent("", 0, 1);
+    EventMetaData mockMeta = mock(EventMetaData.class);
+    TezTaskAttemptID mockDestId = mock(TezTaskAttemptID.class);
+    when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId);
+    TezEvent tzEvent = new TezEvent(reEvent, mockMeta);
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 1));
+    int expectedEventsAfterFetchFailure = expectedEventsTillSucceeded + 2;
+    arg.getAllValues().clear();
     verify(eventHandler, times(expectedEventsAfterFetchFailure)).handle(arg.capture());
     verifyEventType(
         arg.getAllValues().subList(expectedEventsTillSucceeded,
@@ -651,8 +660,7 @@ public class TestTaskAttempt {
 
     assertEquals("Task attempt is not in FAILED state", taImpl.getState(),
         TaskAttemptState.FAILED);
-    taImpl.handle(new TaskAttemptEvent(taskAttemptID,
-        TaskAttemptEventType.TA_TOO_MANY_FETCH_FAILURES));
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 1));
     assertEquals("Task attempt is not in FAILED state, still",
         taImpl.getState(), TaskAttemptState.FAILED);
     assertFalse(

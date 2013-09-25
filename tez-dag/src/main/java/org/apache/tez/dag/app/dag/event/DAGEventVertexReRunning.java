@@ -15,32 +15,23 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+
 package org.apache.tez.dag.app.dag.event;
 
-import java.util.List;
+import org.apache.tez.dag.records.TezVertexID;
 
-import org.apache.tez.dag.records.TezTaskAttemptID;
+public class DAGEventVertexReRunning extends DAGEvent {
 
-public class VertexEventTaskAttemptFetchFailure extends VertexEvent {
+  private TezVertexID vertexId;
 
-  private final TezTaskAttemptID target;
-  private final List<TezTaskAttemptID> sources;
-
-  public VertexEventTaskAttemptFetchFailure(TezTaskAttemptID reduce, 
-      List<TezTaskAttemptID> maps) {
-    super(
-        reduce.getTaskID().getVertexID(), 
-        VertexEventType.V_TASK_ATTEMPT_FETCH_FAILURE);
-    this.target = reduce;
-    this.sources = maps;
+  public DAGEventVertexReRunning(TezVertexID vertexId) {
+    super(vertexId.getDAGId(), DAGEventType.DAG_VERTEX_RERUNNING);
+    this.vertexId = vertexId;
   }
 
-  public List<TezTaskAttemptID> getSources() {
-    return sources;
-  }
-
-  public TezTaskAttemptID getTarget() {
-    return target;
+  public TezVertexID getVertexId() {
+    return vertexId;
   }
 
 }
+

@@ -29,12 +29,10 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.app.dag.impl.Edge;
-import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
-import org.apache.tez.runtime.records.TezDependentTaskCompletionEvent;
 
 
 /**
@@ -68,9 +66,6 @@ public interface Vertex extends Comparable<Vertex> {
 
   void setParallelism(int parallelism,Map<Vertex, EdgeManager> sourceEdgeManagers);
 
-  TezDependentTaskCompletionEvent[] getTaskAttemptCompletionEvents(
-      TezTaskAttemptID attemptId, int fromEventId, int maxEvents);
-  
   // CHANGE THESE TO LISTS AND MAINTAIN ORDER?
   void setInputVertices(Map<Vertex, Edge> inVertices);
   void setOutputVertices(Map<Vertex, Edge> outVertices);

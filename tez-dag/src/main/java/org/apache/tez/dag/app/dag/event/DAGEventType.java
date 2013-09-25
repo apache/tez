@@ -32,6 +32,7 @@ public enum DAGEventType {
 
   //Producer: Vertex
   DAG_VERTEX_COMPLETED,
+  DAG_VERTEX_RERUNNING,
 
   //Producer: TaskImpl
   DAG_SCHEDULER_UPDATE,

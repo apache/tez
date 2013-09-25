@@ -63,6 +63,7 @@ import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.EdgeManager;
 import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
@@ -82,8 +83,6 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.runtime.records.TezDependentTaskCompletionEvent;
-import org.apache.tez.runtime.records.TezDependentTaskCompletionEvent.Status;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -977,7 +976,6 @@ public class TestVertexImpl {
     TezTaskID t2_v4 = new TezTaskID(v4.getVertexId(), 1);
     TezTaskID t1_v5 = new TezTaskID(v5.getVertexId(), 0);
     TezTaskID t2_v5 = new TezTaskID(v5.getVertexId(), 1);
-    TezTaskID t1_v6 = new TezTaskID(v6.getVertexId(), 0);
 
     TezTaskAttemptID ta1_t1_v4 = new TezTaskAttemptID(t1_v4, 0);
     TezTaskAttemptID ta2_t1_v4 = new TezTaskAttemptID(t1_v4, 0);
@@ -985,33 +983,13 @@ public class TestVertexImpl {
     TezTaskAttemptID ta1_t1_v5 = new TezTaskAttemptID(t1_v5, 0);
     TezTaskAttemptID ta1_t2_v5 = new TezTaskAttemptID(t2_v5, 0);
     TezTaskAttemptID ta2_t2_v5 = new TezTaskAttemptID(t2_v5, 0);
-    TezTaskAttemptID ta1_t1_v6 = new TezTaskAttemptID(t1_v6, 0);
 
-    TezDependentTaskCompletionEvent cEvt1 =
-        new TezDependentTaskCompletionEvent(1, ta1_t1_v4,
-            Status.FAILED, 3, 0);
-    TezDependentTaskCompletionEvent cEvt2 =
-        new TezDependentTaskCompletionEvent(2, ta2_t1_v4,
-            Status.SUCCEEDED, 4, 1);
-    TezDependentTaskCompletionEvent cEvt3 =
-        new TezDependentTaskCompletionEvent(2, ta1_t2_v4,
-            Status.SUCCEEDED, 5, 2);
-    TezDependentTaskCompletionEvent cEvt4 =
-        new TezDependentTaskCompletionEvent(2, ta1_t1_v5,
-            Status.SUCCEEDED, 5, 3);
-    TezDependentTaskCompletionEvent cEvt5 =
-        new TezDependentTaskCompletionEvent(1, ta1_t2_v5,
-            Status.FAILED, 3, 4);
-    TezDependentTaskCompletionEvent cEvt6 =
-        new TezDependentTaskCompletionEvent(2, ta2_t2_v5,
-            Status.SUCCEEDED, 4, 5);
-
-    v4.handle(new VertexEventTaskAttemptCompleted(cEvt1));
-    v4.handle(new VertexEventTaskAttemptCompleted(cEvt2));
-    v4.handle(new VertexEventTaskAttemptCompleted(cEvt3));
-    v5.handle(new VertexEventTaskAttemptCompleted(cEvt4));
-    v5.handle(new VertexEventTaskAttemptCompleted(cEvt5));
-    v5.handle(new VertexEventTaskAttemptCompleted(cEvt6));
+    v4.handle(new VertexEventTaskAttemptCompleted(ta1_t1_v4, TaskAttemptStateInternal.FAILED));
+    v4.handle(new VertexEventTaskAttemptCompleted(ta2_t1_v4, TaskAttemptStateInternal.SUCCEEDED));
+    v4.handle(new VertexEventTaskAttemptCompleted(ta1_t2_v4, TaskAttemptStateInternal.SUCCEEDED));
+    v5.handle(new VertexEventTaskAttemptCompleted(ta1_t1_v5, TaskAttemptStateInternal.SUCCEEDED));
+    v5.handle(new VertexEventTaskAttemptCompleted(ta1_t2_v5, TaskAttemptStateInternal.FAILED));
+    v5.handle(new VertexEventTaskAttemptCompleted(ta2_t2_v5, TaskAttemptStateInternal.SUCCEEDED));
 
     v4.handle(new VertexEventTaskCompleted(t1_v4, TaskState.SUCCEEDED));
     v4.handle(new VertexEventTaskCompleted(t2_v4, TaskState.SUCCEEDED));
@@ -1023,9 +1001,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v5.getState());
 
     Assert.assertEquals(VertexState.RUNNING, v6.getState());
-    Assert.assertEquals(4, v6.successSourceAttemptCompletionEventNoMap.size());
-    Assert.assertEquals(6,
-        v6.getTaskAttemptCompletionEvents(ta1_t1_v6, 0, 100).length);
+    Assert.assertEquals(4, v6.numSuccessSourceAttemptCompletions);
 
   }
 
