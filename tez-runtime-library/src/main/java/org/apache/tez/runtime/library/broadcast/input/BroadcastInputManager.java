@@ -20,11 +20,12 @@ package org.apache.tez.runtime.library.broadcast.input;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
@@ -37,6 +38,8 @@ import org.apache.tez.runtime.library.shuffle.common.MemoryFetchedInput;
 public class BroadcastInputManager implements FetchedInputAllocator,
     FetchedInputCallback {
 
+  private static final Log LOG = LogFactory.getLog(BroadcastInputManager.class);
+  
   private final Configuration conf;
 
   private final TezTaskOutputFiles fileNameAllocator;
@@ -46,13 +49,13 @@ public class BroadcastInputManager implements FetchedInputAllocator,
   private final long memoryLimit;
   private final long maxSingleShuffleLimit;
 
-  private long usedMemory = 0;
+  private volatile long usedMemory = 0;
 
-  public BroadcastInputManager(TezInputContext inputContext, Configuration conf) {
+  public BroadcastInputManager(String uniqueIdentifier, Configuration conf) {
     this.conf = conf;
 
     this.fileNameAllocator = new TezTaskOutputFiles(conf,
-        inputContext.getUniqueIdentifier());
+        uniqueIdentifier);
     this.localDirAllocator = new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
 
     // Setup configuration
@@ -80,6 +83,8 @@ public class BroadcastInputManager implements FetchedInputAllocator,
     }
 
     this.maxSingleShuffleLimit = (long) (memoryLimit * singleShuffleMemoryLimitPercent);
+    
+    LOG.info("BroadcastInputManager -> " + "MemoryLimit: " + this.memoryLimit + ", maxSingleMemLimit: " + this.maxSingleShuffleLimit);
   }
 
   @Override
@@ -91,12 +96,13 @@ public class BroadcastInputManager implements FetchedInputAllocator,
           localDirAllocator, fileNameAllocator);
     } else {
       this.usedMemory += size;
+      LOG.info("Used memory after allocating " + size  + " : " + usedMemory);
       return new MemoryFetchedInput(size, inputAttemptIdentifier, this);
     }
   }
 
   @Override
-  public void fetchComplete(FetchedInput fetchedInput) {
+  public synchronized void fetchComplete(FetchedInput fetchedInput) {
     switch (fetchedInput.getType()) {
     // Not tracking anything here.
     case DISK:
@@ -109,12 +115,12 @@ public class BroadcastInputManager implements FetchedInputAllocator,
   }
 
   @Override
-  public void fetchFailed(FetchedInput fetchedInput) {
+  public synchronized void fetchFailed(FetchedInput fetchedInput) {
     cleanup(fetchedInput);
   }
 
   @Override
-  public void freeResources(FetchedInput fetchedInput) {
+  public synchronized void freeResources(FetchedInput fetchedInput) {
     cleanup(fetchedInput);
   }
 
@@ -133,6 +139,7 @@ public class BroadcastInputManager implements FetchedInputAllocator,
 
   private synchronized void unreserve(long size) {
     this.usedMemory -= size;
+    LOG.info("Used memory after freeing " + size  + " : " + usedMemory);
   }
 
 }

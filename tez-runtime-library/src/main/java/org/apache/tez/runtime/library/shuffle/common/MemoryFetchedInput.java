@@ -73,7 +73,7 @@ public class MemoryFetchedInput extends FetchedInput {
     Preconditions.checkState(
         state == State.COMMITTED || state == State.ABORTED,
         "FetchedInput can only be freed after it is committed or aborted");
-    if (state == State.COMMITTED) {
+    if (state == State.COMMITTED) { // ABORTED would have already called cleanup
       state = State.FREED;
       this.byteStream = null;
       notifyFreedResource();

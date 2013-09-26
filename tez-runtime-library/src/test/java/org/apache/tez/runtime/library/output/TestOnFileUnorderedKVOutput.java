@@ -1,0 +1,155 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.tez.runtime.library.output;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
+import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.RuntimeTask;
+import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.impl.TezOutputContextImpl;
+import org.apache.tez.runtime.api.impl.TezUmbilical;
+import org.apache.tez.runtime.library.api.KVWriter;
+import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
+import org.apache.tez.runtime.library.testutils.KVDataGen;
+import org.apache.tez.runtime.library.testutils.KVDataGen.KVPair;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+public class TestOnFileUnorderedKVOutput {
+
+  private static final Log LOG = LogFactory.getLog(TestOnFileUnorderedKVOutput.class);
+
+  private static Configuration defaultConf = new Configuration();
+  private static FileSystem localFs = null;
+  private static Path workDir = null;
+
+  static {
+    defaultConf.set("fs.defaultFS", "file:///");
+    try {
+      localFs = FileSystem.getLocal(defaultConf);
+      workDir = new Path(
+          new Path(System.getProperty("test.build.data", "/tmp")), TestOnFileUnorderedKVOutput.class.getName())
+          .makeQualified(localFs.getUri(), localFs.getWorkingDirectory());
+      LOG.info("Using workDir: " + workDir);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Before
+  @After
+  public void cleanup() throws Exception {
+    localFs.delete(workDir, true);
+  }
+
+  @Test
+  public void testGeneratedDataMovementEvent() throws Exception {
+
+    OnFileUnorderedKVOutput kvOutput = new OnFileUnorderedKVOutputForTest();
+
+    Configuration conf = new Configuration();
+    conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, Text.class.getName());
+    conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, IntWritable.class.getName());
+
+    conf.setStrings(TezJobConfig.LOCAL_DIRS, workDir.toString());
+
+    int appAttemptNumber = 1;
+    TezUmbilical tezUmbilical = null; // ZZZ TestUmbilical from mapreduce
+    String taskVertexName = "currentVertex";
+    String destinationVertexName = "destinationVertex";
+    TezDAGID dagID = new TezDAGID("2000", 1, 1);
+    TezVertexID vertexID = new TezVertexID(dagID, 1);
+    TezTaskID taskID = new TezTaskID(vertexID, 1);
+    TezTaskAttemptID taskAttemptID = new TezTaskAttemptID(taskID, 1);
+    TezCounters counters = new TezCounters();
+    byte[] userPayload = TezUtils.createUserPayloadFromConf(conf);
+    RuntimeTask runtimeTask = null;
+    
+    int shufflePort = 2112;
+    Map<String, String> auxEnv = new HashMap<String, String>();
+    ByteBuffer bb = ByteBuffer.allocate(4);
+    bb.putInt(shufflePort);
+    bb.position(0);
+    AuxiliaryServiceHelper.setServiceDataIntoEnv(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, bb, auxEnv);
+
+    
+    TezOutputContext outputContext = new TezOutputContextImpl(conf,
+        appAttemptNumber, tezUmbilical, taskVertexName, destinationVertexName,
+        taskAttemptID, counters, userPayload, runtimeTask,
+        null, auxEnv);
+
+    List<Event> events = null;
+
+    events = kvOutput.initialize(outputContext);
+    assertTrue(events != null && events.size() == 0);
+
+    KVWriter kvWriter = kvOutput.getWriter();
+    List<KVPair> data = KVDataGen.generateTestData(true);
+    for (KVPair kvp : data) {
+      kvWriter.write(kvp.getKey(), kvp.getvalue());
+    }
+
+    events = kvOutput.close();
+    assertTrue(events != null && events.size() == 1);
+    DataMovementEvent dmEvent = (DataMovementEvent)events.get(0);
+
+    assertEquals("Invalid source index", 0, dmEvent.getSourceIndex());
+
+    DataMovementEventPayloadProto shufflePayload = DataMovementEventPayloadProto
+        .parseFrom(dmEvent.getUserPayload());
+
+    assertTrue(shufflePayload.getOutputGenerated());
+    assertEquals(outputContext.getUniqueIdentifier(), shufflePayload.getPathComponent());
+    assertEquals(shufflePort, shufflePayload.getPort());
+    assertEquals("host", shufflePayload.getHost());
+  }
+
+  private static class OnFileUnorderedKVOutputForTest extends OnFileUnorderedKVOutput {
+    @Override
+    String getHost() {
+      return "host";
+    }
+  }
+}

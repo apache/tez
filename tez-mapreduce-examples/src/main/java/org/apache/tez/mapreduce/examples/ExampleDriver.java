@@ -74,6 +74,8 @@ public class ExampleDriver {
           "MRR Sleep Job");
       pgd.addClass("orderedwordcount", OrderedWordCount.class,
           "Word Count with words sorted on frequency");
+      pgd.addClass("filterLinesByWord", FilterLinesByWord.class,
+          "Filters lines by the specified word");
       exitCode = pgd.run(argv);
     }
     catch(Throwable e){

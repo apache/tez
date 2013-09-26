@@ -20,6 +20,8 @@ package org.apache.tez.runtime.library.broadcast.output;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
@@ -40,6 +42,8 @@ import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 
 public class FileBasedKVWriter implements KVWriter {
 
+  private static final Log LOG = LogFactory.getLog(FileBasedKVWriter.class);
+  
   public static final int INDEX_RECORD_LENGTH = 24;
 
   private final Configuration conf;

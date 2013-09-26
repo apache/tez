@@ -62,9 +62,10 @@ public class BroadcastKVReader<K, V> implements KVReader {
   private FetchedInput currentFetchedInput;
   private IFile.Reader currentReader;
   
+  private int numRecordsRead = 0;
   
   public BroadcastKVReader(BroadcastShuffleManager shuffleManager,
-      Configuration conf) {
+      Configuration conf) throws IOException {
     this.shuffleManager = shuffleManager;
     this.conf = conf;
 
@@ -77,15 +78,17 @@ public class BroadcastKVReader<K, V> implements KVReader {
     }
 
     this.keyClass = ConfigUtils.getIntermediateInputKeyClass(conf);
-    this.valClass = ConfigUtils.getIntermediateInputKeyClass(conf);
+    this.valClass = ConfigUtils.getIntermediateInputValueClass(conf);
 
     this.keyIn = new DataInputBuffer();
     this.valIn = new DataInputBuffer();
 
     SerializationFactory serializationFactory = new SerializationFactory(conf);
 
-    this.keyDeserializer = serializationFactory.getDeserializer(keyClass); 
+    this.keyDeserializer = serializationFactory.getDeserializer(keyClass);
+    this.keyDeserializer.open(keyIn);
     this.valDeserializer = serializationFactory.getDeserializer(valClass);
+    this.valDeserializer.open(valIn);
     
     this.valueIterator = new SimpleValueIterator();
     this.valueIterable = new SimpleIterable(this.valueIterator);
@@ -104,15 +107,18 @@ public class BroadcastKVReader<K, V> implements KVReader {
   @Override  
   public boolean next() throws IOException {
     if (readNextFromCurrentReader()) {
+      numRecordsRead++;
       return true;
     } else {
       boolean nextInputExists = moveToNextInput();
       while (nextInputExists) {
         if(readNextFromCurrentReader()) {
+          numRecordsRead++;
           return true;
         }
         nextInputExists = moveToNextInput();
       }
+      LOG.info("Num Records read: " + numRecordsRead);
       return false;
     }
   }

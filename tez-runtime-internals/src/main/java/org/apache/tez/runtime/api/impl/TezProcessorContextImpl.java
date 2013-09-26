@@ -42,9 +42,11 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
       TezUmbilical tezUmbilical, String vertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters,
       byte[] userPayload, RuntimeTask runtimeTask,
-      Map<String, ByteBuffer> serviceConsumerMetadata) {
+      Map<String, ByteBuffer> serviceConsumerMetadata,
+      Map<String, String> auxServiceEnv) {
     super(conf, appAttemptNumber, vertexName, taskAttemptID,
-        counters, runtimeTask, tezUmbilical, serviceConsumerMetadata);
+        counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
+        auxServiceEnv);
     this.userPayload = userPayload;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.PROCESSOR,
         taskVertexName, "", taskAttemptID);

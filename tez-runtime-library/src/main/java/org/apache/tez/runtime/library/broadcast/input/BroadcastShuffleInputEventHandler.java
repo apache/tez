@@ -34,6 +34,7 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovem
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.TextFormat;
 
 public class BroadcastShuffleInputEventHandler {
 
@@ -72,6 +73,10 @@ public class BroadcastShuffleInputEventHandler {
     } catch (InvalidProtocolBufferException e) {
       throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
     }
+    LOG.info("Processing data moveement event with srcIndex: "
+        + dme.getSourceIndex() + ", targetIndex: " + dme.getTargetIndex()
+        + ", attemptNum: " + dme.getVersion() + ", payload: "
+        + TextFormat.shortDebugString(shufflePayload));
     if (shufflePayload.getOutputGenerated()) {
       InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dme.getTargetIndex(), dme.getVersion(), shufflePayload.getPathComponent());
       shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(), srcAttemptIdentifier, 0);

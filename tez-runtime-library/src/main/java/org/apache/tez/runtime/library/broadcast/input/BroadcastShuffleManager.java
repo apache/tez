@@ -90,7 +90,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
 
   private final BlockingQueue<FetchedInput> completedInputs;
   private final Set<InputIdentifier> completedInputSet;
-  private final Set<InputIdentifier> pendingInputs;
+//  private final Set<InputIdentifier> pendingInputs;
   private final ConcurrentMap<String, InputHost> knownSrcHosts;
   private final Set<InputHost> pendingHosts;
   private final Set<InputAttemptIdentifier> obsoletedInputs;
@@ -128,9 +128,8 @@ public class BroadcastShuffleManager implements FetcherCallback {
     this.numInputs = numInputs;
     
     this.inputEventHandler = new BroadcastShuffleInputEventHandler(inputContext, this);
-    this.inputManager = new BroadcastInputManager(inputContext, conf);
+    this.inputManager = new BroadcastInputManager(inputContext.getUniqueIdentifier(), conf);
 
-    pendingInputs = Collections.newSetFromMap(new ConcurrentHashMap<InputIdentifier, Boolean>(numInputs));
     completedInputSet = Collections.newSetFromMap(new ConcurrentHashMap<InputIdentifier, Boolean>(numInputs));
     completedInputs = new LinkedBlockingQueue<FetchedInput>(numInputs);
     knownSrcHosts = new ConcurrentHashMap<String, InputHost>();
@@ -172,12 +171,17 @@ public class BroadcastShuffleManager implements FetcherCallback {
       codec = null;
       decompressor = null;
     }
+    LOG.info("BroadcastShuffleManager -> numInputs: " + numInputs
+        + " compressionCodec: " + (codec == null ? null : codec.getClass()
+        .getName()) + ", numFetchers: " + numFetchers);
   }
   
   public void run() {
     RunBroadcastShuffleCallable callable = new RunBroadcastShuffleCallable();
     runShuffleFuture = new FutureTask<Void>(callable);
-    new Thread(runShuffleFuture, "ShuffleRunner");
+    Thread runThread = new Thread(runShuffleFuture, "ShuffleRunner");
+    runThread.setDaemon(true);
+    runThread.start();
   }
   
   private class RunBroadcastShuffleCallable implements Callable<Void> {
@@ -186,8 +190,11 @@ public class BroadcastShuffleManager implements FetcherCallback {
     public Void call() throws Exception {
       while (numCompletedInputs.get() < numInputs) {
         if (numRunningFetchers.get() >= numFetchers || pendingHosts.size() == 0) {
-          synchronized(lock) {
+          lock.lock();
+          try {
             wakeLoop.await();
+          } finally {
+            lock.unlock();
           }
           if (shuffleError != null) {
             // InputContext has already been informed of a fatal error.
@@ -195,8 +202,12 @@ public class BroadcastShuffleManager implements FetcherCallback {
             break;
           }
           
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("NumCompletedInputs: " + numCompletedInputs);
+          }
           if (numCompletedInputs.get() < numInputs) {
-            synchronized (lock) {
+            lock.lock();
+            try {
               int numFetchersToRun = Math.min(pendingHosts.size(), numFetchers - numRunningFetchers.get());
               int count = 0;
               for (Iterator<InputHost> inputHostIter = pendingHosts.iterator() ; inputHostIter.hasNext() ; ) {
@@ -204,6 +215,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
                 inputHostIter.remove();
                 if (inputHost.getNumPendingInputs() > 0) {
                   Fetcher fetcher = constructFetcherForHost(inputHost);
+                  LOG.info("Scheduling fetch for inputHost: " + inputHost);
                   numRunningFetchers.incrementAndGet();
                   ListenableFuture<FetchResult> future = fetcherExecutor
                       .submit(fetcher);
@@ -213,6 +225,8 @@ public class BroadcastShuffleManager implements FetcherCallback {
                   }
                 }
               }
+            } finally {
+              lock.unlock();
             }
           }
         }
@@ -252,7 +266,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
     // TODO NEWTEZ Maybe limit the number of inputs being given to a single
     // fetcher, especially in the case where #hosts < #fetchers
     fetcherBuilder.assignWork(inputHost.getHost(), inputHost.getPort(), 0,
-        inputHost.clearAndGetPendingInputs());
+        pendingInputsForHost);
     return fetcherBuilder.build();
   }
   
@@ -269,9 +283,12 @@ public class BroadcastShuffleManager implements FetcherCallback {
       }
     }
     host.addKnownInput(srcAttemptIdentifier);
-    synchronized(lock) {
+    lock.lock();
+    try {
       pendingHosts.add(host);
       wakeLoop.signal();
+    } finally {
+      lock.unlock();
     }
   }
 
@@ -279,16 +296,24 @@ public class BroadcastShuffleManager implements FetcherCallback {
       InputAttemptIdentifier srcAttemptIdentifier) {
     InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
     LOG.info("No input data exists for SrcTask: " + inputIdentifier + ". Marking as complete.");
-    if (pendingInputs.remove(inputIdentifier)) {
-      completedInputSet.add(inputIdentifier);
-      completedInputs.add(new NullFetchedInput(srcAttemptIdentifier));
-      numCompletedInputs.incrementAndGet();
+    
+    if (!completedInputSet.contains(inputIdentifier)) {
+      synchronized (completedInputSet) {
+        if (!completedInputSet.contains(inputIdentifier)) {
+          completedInputSet.add(inputIdentifier);
+          completedInputs.add(new NullFetchedInput(srcAttemptIdentifier));
+          numCompletedInputs.incrementAndGet();
+        }
+      }
     }
 
     // Awake the loop to check for termination.
-    synchronized (lock) {
+    lock.lock();
+    try {
       wakeLoop.signal();
-    } 
+    } finally {
+      lock.unlock();
+    }
   }
 
   public synchronized void obsoleteKnownInput(InputAttemptIdentifier srcAttemptIdentifier) {
@@ -308,14 +333,16 @@ public class BroadcastShuffleManager implements FetcherCallback {
   public void fetchSucceeded(String host,
       InputAttemptIdentifier srcAttemptIdentifier, FetchedInput fetchedInput, long fetchedBytes,
       long copyDuration) throws IOException {
-    InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Complete fetch for attempt: " + srcAttemptIdentifier + " to " + fetchedInput.getType());
-    }
-    
+    InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();    
+
+    LOG.info("Complete fetch for attempt: " + srcAttemptIdentifier + " to " + fetchedInput.getType());
+
     // Count irrespective of whether this is a copy of an already fetched input
-    synchronized(lock) {
+    lock.lock();
+    try {
       lastProgressTime = System.currentTimeMillis();
+    } finally {
+      lock.unlock();
     }
     
     boolean committed = false;
@@ -324,7 +351,6 @@ public class BroadcastShuffleManager implements FetcherCallback {
         if (!completedInputSet.contains(inputIdentifier)) {
           fetchedInput.commit();
           committed = true;
-          pendingInputs.remove(inputIdentifier);
           completedInputSet.add(inputIdentifier);
           completedInputs.add(fetchedInput);
           numCompletedInputs.incrementAndGet();
@@ -334,9 +360,12 @@ public class BroadcastShuffleManager implements FetcherCallback {
     if (!committed) {
       fetchedInput.abort(); // If this fails, the fetcher may attempt another abort.
     } else {
-      synchronized(lock) {
+      lock.lock();
+      try {
         // Signal the wakeLoop to check for termination.
         wakeLoop.signal();
+      } finally {
+        lock.unlock();
       }
     }
     // TODO NEWTEZ Maybe inform fetchers, in case they have an alternate attempt of the same task in their queue.
@@ -347,6 +376,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
       InputAttemptIdentifier srcAttemptIdentifier, boolean connectFailed) {
     // TODO NEWTEZ. Implement logic to report fetch failures after a threshold.
     // For now, reporting immediately.
+    LOG.info("Fetch failed for src: " + srcAttemptIdentifier + ", connectFailed: " + connectFailed);
     InputReadErrorEvent readError = new InputReadErrorEvent(
         "Fetch failure while fetching from "
             + TezRuntimeUtils.getTaskAttemptIdentifier(
@@ -459,8 +489,11 @@ public class BroadcastShuffleManager implements FetcherCallback {
 
     private void doBookKeepingForFetcherComplete() {
       numRunningFetchers.decrementAndGet();
-      synchronized(lock) {
+      lock.lock();
+      try {
         wakeLoop.signal();
+      } finally {
+        lock.unlock();
       }
     }
     
@@ -482,7 +515,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
     public void onFailure(Throwable t) {
       LOG.error("Fetcher failed with error: " + t);
       shuffleError = t;
-      inputContext.fatalError(t, "Fetched failed");
+      inputContext.fatalError(t, "Fetch failed");
       doBookKeepingForFetcherComplete();
     }
   }

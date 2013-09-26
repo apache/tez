@@ -20,28 +20,36 @@ package org.apache.tez.runtime.library.input;
 
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.library.api.KVReader;
+import org.apache.tez.runtime.library.broadcast.input.BroadcastKVReader;
 import org.apache.tez.runtime.library.broadcast.input.BroadcastShuffleManager;
 
 import com.google.common.base.Preconditions;
 
 public class ShuffledUnorderedKVInput implements LogicalInput {
 
+  private static final Log LOG = LogFactory.getLog(ShuffledUnorderedKVInput.class);
+  
   private Configuration conf;
   private int numInputs = -1;
   private BroadcastShuffleManager shuffleManager;
+  @SuppressWarnings("rawtypes")
+  private BroadcastKVReader kvReader;
   
   
   
   public ShuffledUnorderedKVInput() {
   }
 
+  @SuppressWarnings("rawtypes")
   @Override
   public List<Event> initialize(TezInputContext inputContext) throws Exception {
     Preconditions.checkArgument(numInputs != -1, "Number of Inputs has not been set");
@@ -49,13 +57,14 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS, inputContext.getWorkDirs());
     
     this.shuffleManager = new BroadcastShuffleManager(inputContext, conf, numInputs);
+    this.shuffleManager.run();
+    this.kvReader = new BroadcastKVReader(shuffleManager, conf);
     return null;
   }
 
   @Override
-  public Reader getReader() throws Exception {
-    // TODO Auto-generated method stub
-    return null;
+  public KVReader getReader() throws Exception {
+    return this.kvReader;
   }
 
   @Override

@@ -45,9 +45,11 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       String destinationVertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters,
       byte[] userPayload, RuntimeTask runtimeTask,
-      Map<String, ByteBuffer> serviceConsumerMetadata) {
+      Map<String, ByteBuffer> serviceConsumerMetadata,
+      Map<String, String> auxServiceEnv) {
     super(conf, appAttemptNumber, taskVertexName, taskAttemptID,
-        counters, runtimeTask, tezUmbilical, serviceConsumerMetadata);
+        counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
+        auxServiceEnv);
     this.userPayload = userPayload;
     this.destinationVertexName = destinationVertexName;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.OUTPUT,

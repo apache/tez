@@ -1,0 +1,127 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.tez.processor;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.mapreduce.examples.FilterLinesByWord;
+import org.apache.tez.mapreduce.examples.FilterLinesByWord.TextLongPair;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+import org.apache.tez.mapreduce.input.MRInput;
+import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.LogicalIOProcessor;
+import org.apache.tez.runtime.api.LogicalInput;
+import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.library.api.KVReader;
+import org.apache.tez.runtime.library.api.KVReader.KVRecord;
+import org.apache.tez.runtime.library.api.KVWriter;
+import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
+
+public class FilterByWordInputProcessor implements LogicalIOProcessor {
+
+  private static final Log LOG = LogFactory.getLog(FilterByWordInputProcessor.class);
+
+  private String filterWord;
+
+  public FilterByWordInputProcessor() {
+  }
+
+  @Override
+  public void initialize(TezProcessorContext processorContext) throws Exception {
+    Configuration conf = TezUtils.createConfFromUserPayload(processorContext.getUserPayload());
+    filterWord = conf.get(FilterLinesByWord.FILTER_PARAM_NAME);
+    if (filterWord == null) {
+      processorContext.fatalError(null, "No filter word specified");
+    }
+  }
+
+  @Override
+  public void handleEvents(List<Event> processorEvents) {
+    throw new UnsupportedOperationException("Not expecting any events to the broadcast processor");
+
+  }
+
+  @Override
+  public void close() throws Exception {
+    LOG.info("Broadcast Processor closing. Nothing to do");
+  }
+
+  @Override
+  public void run(Map<String, LogicalInput> inputs,
+      Map<String, LogicalOutput> outputs) throws Exception {
+
+    if (inputs.size() != 1) {
+      throw new IllegalStateException("TestBroadcast processor can only work with a single input");
+    }
+
+    if (outputs.size() != 1) {
+      throw new IllegalStateException("TestBroadcast processor can only work with a single output");
+    }
+
+    LogicalInput li = inputs.values().iterator().next();
+    if (! (li instanceof MRInput)) {
+      throw new IllegalStateException("TestBroadcast processor can only work with MRInput");
+    }
+
+    LogicalOutput lo = outputs.values().iterator().next();
+    if (! (lo instanceof OnFileUnorderedKVOutput)) {
+      throw new IllegalStateException("TestBroadcast processor can only work with OnFileUnorderedKVOutput");
+    }
+
+    
+    
+    MRInput mrInput = (MRInput) li;
+    OnFileUnorderedKVOutput kvOutput = (OnFileUnorderedKVOutput) lo;
+
+    Configuration updatedConf = mrInput.getConfigUpdates();
+    String fileName = updatedConf.get(MRJobConfig.MAP_INPUT_FILE);
+    LOG.info("Processing file: " + fileName);
+    Text srcFile = new Text();
+    if (fileName == null) {
+      srcFile.set("UNKNOWN_FILENAME_IN_PROCESSOR");
+    } else {
+      srcFile.set(fileName);
+    }
+
+    KVReader kvReader = mrInput.getReader();
+    KVWriter kvWriter = kvOutput.getWriter();
+
+    while (kvReader.next()) {
+      KVRecord kvRecord = kvReader.getCurrentKV();
+      Object key = kvRecord.getKey();
+      Object val = kvRecord.getValues().iterator().next();
+
+      Text valText = (Text) val;
+      String readVal = valText.toString();
+      if (readVal.contains(filterWord)) {
+        LongWritable lineNum = (LongWritable) key;
+        TextLongPair outVal = new TextLongPair(srcFile, lineNum);
+        kvWriter.write(valText, outVal);
+      }
+    }
+  }
+}

@@ -28,6 +28,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -93,7 +94,7 @@ public class Fetcher implements Callable<FetchResult> {
   private int partition;
 
   // Maps from the pathComponents (unique per srcTaskId) to the specific taskId
-  private Map<String, InputAttemptIdentifier> pathToAttemptMap;
+  private final Map<String, InputAttemptIdentifier> pathToAttemptMap;
   private Set<InputAttemptIdentifier> remaining;
 
   private URL url;
@@ -108,6 +109,7 @@ public class Fetcher implements Callable<FetchResult> {
     this.shuffleSecret = shuffleSecret;
     this.appId = appId;
     this.conf = conf;
+    this.pathToAttemptMap = new HashMap<String, InputAttemptIdentifier>();
 
     this.fetcherIdentifier = fetcherIdGen.getAndIncrement();
     

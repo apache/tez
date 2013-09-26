@@ -171,11 +171,6 @@ public class DAG { // FIXME rename to Topology
     if(restricted){
       for(Edge e : edges){
         vertexMap.get(e.getInputVertex().getVertexName()).outDegree++;
-        if (e.getEdgeProperty().getDataMovementType() !=
-            DataMovementType.SCATTER_GATHER) {
-          throw new IllegalStateException(
-              "Unsupported connection pattern on edge. " + e);
-        }
         if (e.getEdgeProperty().getDataSourceType() !=
             DataSourceType.PERSISTED) {
           throw new IllegalStateException(

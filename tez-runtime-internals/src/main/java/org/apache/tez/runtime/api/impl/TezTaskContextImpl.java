@@ -45,12 +45,14 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   protected final TezUmbilical tezUmbilical;
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
   private final int appAttemptNumber;
+  private final Map<String, String> auxServiceEnv;
 
   @Private
   public TezTaskContextImpl(Configuration conf, int appAttemptNumber,
       String taskVertexName, TezTaskAttemptID taskAttemptID,
       TezCounters counters, RuntimeTask runtimeTask,
-      TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata) {
+      TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
+      Map<String, String> auxServiceEnv) {
     this.conf = conf;
     this.taskVertexName = taskVertexName;
     this.taskAttemptID = taskAttemptID;
@@ -63,6 +65,7 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     this.serviceConsumerMetadata = serviceConsumerMetadata;
     // TODO NEWTEZ at some point dag attempt should not map to app attempt
     this.appAttemptNumber = appAttemptNumber;
+    this.auxServiceEnv = auxServiceEnv;
   }
 
   @Override
@@ -123,7 +126,7 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   @Override
   public ByteBuffer getServiceProviderMetaData(String serviceName) {
     return AuxiliaryServiceHelper.getServiceDataFromEnv(
-        serviceName, System.getenv());
+        serviceName, auxServiceEnv);
   }
 
   protected void signalFatalError(Throwable t, String message,

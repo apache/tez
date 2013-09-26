@@ -1,0 +1,102 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.tez.processor;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.mapreduce.processor.map.MapProcessor;
+import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.LogicalIOProcessor;
+import org.apache.tez.runtime.api.LogicalInput;
+import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.library.api.KVReader;
+import org.apache.tez.runtime.library.api.KVReader.KVRecord;
+import org.apache.tez.runtime.library.api.KVWriter;
+import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
+
+
+public class FilterByWordOutputProcessor implements LogicalIOProcessor {
+
+  private static final Log LOG = LogFactory.getLog(MapProcessor.class);
+  private TezProcessorContext processorContext;
+
+  public FilterByWordOutputProcessor() {
+  }
+
+  @Override
+  public void initialize(TezProcessorContext processorContext) throws Exception {
+    this.processorContext = processorContext;
+  }
+
+  @Override
+  public void handleEvents(List<Event> processorEvents) {
+    throw new UnsupportedOperationException("Not expecting any events to the broadcast output processor");
+  }
+
+  @Override
+  public void close() throws Exception {
+    LOG.info("Broadcast Output Processor closing. Nothing to do");
+  }
+
+  @Override
+  public void run(Map<String, LogicalInput> inputs,
+      Map<String, LogicalOutput> outputs) throws Exception {
+
+    if (inputs.size() != 1) {
+      throw new IllegalStateException("TestBroadcast processor can only work with a single input");
+    }
+
+    if (outputs.size() != 1) {
+      throw new IllegalStateException("TestBroadcast processor can only work with a single output");
+    }
+
+    LogicalInput li = inputs.values().iterator().next();
+    if (! (li instanceof ShuffledUnorderedKVInput)) {
+      throw new IllegalStateException("TestBroadcast processor can only work with ShuffledUnorderedKVInput");
+    }
+
+    LogicalOutput lo = outputs.values().iterator().next();
+    if (! (lo instanceof MROutput)) {
+      throw new IllegalStateException("TestBroadcast processor can only work with MROutput");
+    }
+
+    ShuffledUnorderedKVInput kvInput = (ShuffledUnorderedKVInput) li;
+    MROutput mrOutput = (MROutput) lo;
+
+    KVReader kvReader = kvInput.getReader();
+    KVWriter kvWriter = mrOutput.getWriter();
+    while (kvReader.next()) {
+      KVRecord kvRecord = kvReader.getCurrentKV();
+      Object key = kvRecord.getKey();
+      Object value = kvRecord.getValues().iterator().next();
+
+      kvWriter.write(key, value);
+    }
+    if (processorContext.canCommit()) {
+      mrOutput.commit();
+    } else {
+      mrOutput.abort();
+    }
+  }
+}

@@ -87,4 +87,11 @@ public class InputHost {
       return false;
     return true;
   }
+
+  @Override
+  public String toString() {
+    return "InputHost [host=" + host + ", port=" + port + ", inputs=" + inputs
+        + "]";
+  }
+
 }

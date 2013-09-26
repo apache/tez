@@ -230,7 +230,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         inputSpec.getInputDescriptor().getUserPayload() == null ? taskSpec
             .getProcessorDescriptor().getUserPayload() : inputSpec
             .getInputDescriptor().getUserPayload(), this,
-        serviceConsumerMetadata);
+        serviceConsumerMetadata, System.getenv());
     return inputContext;
   }
 
@@ -242,7 +242,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         outputSpec.getOutputDescriptor().getUserPayload() == null ? taskSpec
             .getProcessorDescriptor().getUserPayload() : outputSpec
             .getOutputDescriptor().getUserPayload(), this,
-        serviceConsumerMetadata);
+        serviceConsumerMetadata, System.getenv());
     return outputContext;
   }
 
@@ -250,7 +250,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     TezProcessorContext processorContext = new TezProcessorContextImpl(tezConf,
         appAttemptNumber, tezUmbilical, taskSpec.getVertexName(), taskSpec.getTaskAttemptID(),
         tezCounters, processorDescriptor.getUserPayload(), this,
-        serviceConsumerMetadata);
+        serviceConsumerMetadata, System.getenv());
     return processorContext;
   }
 

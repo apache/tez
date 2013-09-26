@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
@@ -33,6 +34,7 @@ import org.apache.tez.runtime.library.broadcast.output.FileBasedKVWriter;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -68,8 +70,7 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
         .newBuilder();
 
-    String host = System.getenv(ApplicationConstants.Environment.NM_HOST
-        .toString());
+    String host = getHost();
     ByteBuffer shuffleMetadata = outputContext
         .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
     int shufflePort = ShuffleUtils
@@ -93,6 +94,12 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
   public void setNumPhysicalOutputs(int numOutputs) {
     Preconditions.checkArgument(numOutputs == 1,
         "Number of outputs can only be 1 for " + this.getClass().getName());
+  }
+  
+  @VisibleForTesting
+  @Private
+  String getHost() {
+    return System.getenv(ApplicationConstants.Environment.NM_HOST.toString());
   }
 
 }

@@ -64,7 +64,7 @@ class ShuffleScheduler {
   private final Map<Integer, MutableInt> finishedMaps;
   private final int numInputs;
   private int remainingMaps;
-  private Map<InputAttemptIdentifier, MapHost> mapLocations = new HashMap<InputAttemptIdentifier, MapHost>();
+  private Map<String, MapHost> mapLocations = new HashMap<String, MapHost>();
   //TODO NEWTEZ Clean this and other maps at some point
   private ConcurrentMap<String, InputAttemptIdentifier> pathToIdentifierMap = new ConcurrentHashMap<String, InputAttemptIdentifier>(); 
   private Set<MapHost> pendingHosts = new HashSet<MapHost>();
@@ -307,7 +307,7 @@ class ShuffleScheduler {
     if (host == null) {
       host = new MapHost(partitionId, hostName, hostUrl);
       assert identifier.equals(host.getIdentifier());
-      mapLocations.put(srcAttempt, host);
+      mapLocations.put(identifier, host);
     }
     host.addKnownMap(srcAttempt);
     pathToIdentifierMap.put(srcAttempt.getPathComponent(), srcAttempt);

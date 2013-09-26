@@ -30,7 +30,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -222,7 +221,7 @@ public class IFile {
                               " for " + key);
       }     
       
-      if(keyLength == previous.getLength()) {
+      if(rle && keyLength == previous.getLength()) {
         sameKey = (BufferUtils.compare(previous, buffer) == 0);       
       }
       
@@ -238,7 +237,7 @@ public class IFile {
                               valueLength + " for " + value);
       }
       
-      if(sameKey) {        
+      if(rle && sameKey) {        
         WritableUtils.writeVInt(out, RLE_MARKER);                   // Same key as previous
         WritableUtils.writeVInt(out, valueLength);                  // value length
         out.write(buffer.getData(), keyLength, buffer.getLength()); // only the value

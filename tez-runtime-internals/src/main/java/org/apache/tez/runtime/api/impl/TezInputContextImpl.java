@@ -44,9 +44,11 @@ public class TezInputContextImpl extends TezTaskContextImpl
       TezUmbilical tezUmbilical, String taskVertexName,
       String sourceVertexName, TezTaskAttemptID taskAttemptID,
       TezCounters counters, byte[] userPayload,
-      RuntimeTask runtimeTask, Map<String, ByteBuffer> serviceConsumerMetadata) {
+      RuntimeTask runtimeTask, Map<String, ByteBuffer> serviceConsumerMetadata,
+      Map<String, String> auxServiceEnv) {
     super(conf, appAttemptNumber, taskVertexName, taskAttemptID,
-        counters, runtimeTask, tezUmbilical, serviceConsumerMetadata);
+        counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
+        auxServiceEnv);
     this.userPayload = userPayload;
     this.sourceVertexName = sourceVertexName;
     this.sourceInfo = new EventMetaData(

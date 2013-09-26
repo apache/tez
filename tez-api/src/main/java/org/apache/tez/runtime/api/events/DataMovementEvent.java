@@ -106,4 +106,9 @@ public final class DataMovementEvent extends Event {
     this.version = version;
   }
 
+  @Override
+  public String toString() {
+    return "DataMovementEvent [sourceIndex=" + sourceIndex + ", targetIndex="
+        + targetIndex + ", version=" + version + "]";
+  }
 }
