@@ -37,7 +37,7 @@ public class TestDAGVerify {
   //    |
   //    v2
   @Test
-  public void testVerify1() {
+  public void testVerifyScatterGather() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor(dummyProcessorClassName),
         dummyTaskCount, dummyTaskResource);
@@ -56,8 +56,8 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test(expected = IllegalStateException.class)  
-  public void testVerify2() {
+  @Test  
+  public void testVerifyOneToOne() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor(dummyProcessorClassName),
         dummyTaskCount, dummyTaskResource);
@@ -66,6 +66,26 @@ public class TestDAGVerify {
         dummyTaskCount, dummyTaskResource);
     Edge e1 = new Edge(v1, v2,
         new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addEdge(e1);
+    dag.verify();
+  }
+  
+  @Test  
+  public void testVerifyBroadcast() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Edge e1 = new Edge(v1, v2,
+        new EdgeProperty(DataMovementType.BROADCAST, 
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
             new OutputDescriptor(dummyOutputClassName),
             new InputDescriptor(dummyInputClassName)));
@@ -257,49 +277,6 @@ public class TestDAGVerify {
     Assert.assertNotNull(ex);
     System.out.println(ex.getMessage());
     Assert.assertTrue(ex.getMessage().startsWith("DAG contains multiple vertices with name"));
-  }
-
-  //  v1  v2
-  //   |  |
-  //    v3
-  @Test
-  public void BinaryInputDisallowed() {
-    IllegalStateException ex=null;
-    try {
-      Vertex v1 = new Vertex("v1",
-          new ProcessorDescriptor("MapProcessor"),
-          dummyTaskCount, dummyTaskResource);
-      Vertex v2 = new Vertex("v2",
-          new ProcessorDescriptor("MapProcessor"),
-          dummyTaskCount, dummyTaskResource);
-      Vertex v3 = new Vertex("v3",
-          new ProcessorDescriptor("ReduceProcessor"),
-          dummyTaskCount, dummyTaskResource);
-      Edge e1 = new Edge(v1, v3,
-          new EdgeProperty(DataMovementType.ONE_TO_ONE, 
-              DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
-              new OutputDescriptor("dummy output class"),
-              new InputDescriptor("dummy input class")));
-      Edge e2 = new Edge(v2, v3,
-          new EdgeProperty(DataMovementType.SCATTER_GATHER, 
-              DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
-              new OutputDescriptor("dummy output class"),
-              new InputDescriptor("dummy input class")));
-      DAG dag = new DAG("testDag");
-      dag.addVertex(v1);
-      dag.addVertex(v2);
-      dag.addVertex(v3);
-      dag.addEdge(e1);
-      dag.addEdge(e2);
-      dag.verify();
-    }
-    catch (IllegalStateException e){
-      ex = e;
-    }
-    Assert.assertNotNull(ex);
-    System.out.println(ex.getMessage());
-    Assert.assertTrue(ex.getMessage().startsWith(
-        "Unsupported connection pattern on edge"));
   }
 
   //  v1  v2
