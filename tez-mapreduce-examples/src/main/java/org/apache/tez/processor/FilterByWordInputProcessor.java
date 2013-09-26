@@ -98,13 +98,14 @@ public class FilterByWordInputProcessor implements LogicalIOProcessor {
     OnFileUnorderedKVOutput kvOutput = (OnFileUnorderedKVOutput) lo;
 
     Configuration updatedConf = mrInput.getConfigUpdates();
-    String fileName = updatedConf.get(MRJobConfig.MAP_INPUT_FILE);
-    LOG.info("Processing file: " + fileName);
     Text srcFile = new Text();
-    if (fileName == null) {
-      srcFile.set("UNKNOWN_FILENAME_IN_PROCESSOR");
-    } else {
-      srcFile.set(fileName);
+    srcFile.set("UNKNOWN_FILENAME_IN_PROCESSOR");
+    if (updatedConf != null) {
+      String fileName = updatedConf.get(MRJobConfig.MAP_INPUT_FILE);
+      if (fileName != null) {
+        LOG.info("Processing file: " + fileName);
+        srcFile.set(fileName);
+      }
     }
 
     KVReader kvReader = mrInput.getReader();

@@ -209,7 +209,7 @@ public class MRInput implements LogicalInput {
    * @return the additional fields set by {@link MRInput}
    */
   public Configuration getConfigUpdates() {
-    return new Configuration(incrementalConf);
+    return incrementalConf;
   }
 
   public float getProgress() throws IOException, InterruptedException {
