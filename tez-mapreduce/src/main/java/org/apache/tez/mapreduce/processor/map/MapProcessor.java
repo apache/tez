@@ -20,9 +20,11 @@ package org.apache.tez.mapreduce.processor.map;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.MapRunnable;
@@ -104,6 +106,12 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
           "Only Simple Input supported. Input: " + in.getClass()));
     }
     MRInputLegacy input = (MRInputLegacy)in;
+    Configuration incrementalConf = input.getConfigUpdates();
+    if (incrementalConf != null) {
+      for (Entry<String, String> entry : incrementalConf) {
+        jobConf.set(entry.getKey(), entry.getValue());
+      }
+    }
 
     KVWriter kvWriter = null;
     if (!(out instanceof OnFileSortedOutput)) {
