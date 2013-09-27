@@ -21,6 +21,7 @@ package org.apache.tez.dag.app;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -612,6 +613,21 @@ public class DAGAppMaster extends AbstractService {
       // RPC server runs in the context of the job user as it was started in
       // the job user's UGI context
       LOG.info("Starting DAG submitted via RPC");
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Writing DAG plan to: " + TezConfiguration.TEZ_PB_PLAN_TEXT_NAME);
+        
+        File outFile = new File(TezConfiguration.TEZ_PB_PLAN_TEXT_NAME);
+        try {
+          PrintWriter printWriter = new PrintWriter(outFile);
+          String dagPbString = dagPlan.toString();
+          printWriter.println(dagPbString);
+          printWriter.close();
+        } catch (IOException e) {
+          throw new TezException("Failed to write TEZ_PLAN to " + outFile.toString(), e);
+        }
+        
+        
+      }
       startDAG(dagPlan);
       return currentDAG.getID().toString();
     }
