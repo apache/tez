@@ -39,6 +39,7 @@ message InputFailedEventProto {
   optional int32 version = 4;
 }
 
-message InputInformationEventProto {
-  optional bytes user_payload = 1;
+message VertexManagerEventProto {
+  optional string target_vertex_name = 1;
+  optional bytes user_payload = 2;
 }

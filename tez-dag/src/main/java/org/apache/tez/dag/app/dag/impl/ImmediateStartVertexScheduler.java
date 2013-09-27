@@ -22,6 +22,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexScheduler;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 /**
  * Starts all tasks immediately on vertex start
@@ -44,6 +45,10 @@ public class ImmediateStartVertexScheduler implements VertexScheduler {
 
   @Override
   public void initialize(Configuration conf) {    
+  }
+
+  @Override
+  public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
   }
 
 }

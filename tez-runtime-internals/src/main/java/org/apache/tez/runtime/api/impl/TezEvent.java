@@ -28,14 +28,14 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.EventProtos.DataMovementEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.InputFailedEventProto;
-import org.apache.tez.runtime.api.events.EventProtos.InputInformationEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.InputReadErrorEventProto;
+import org.apache.tez.runtime.api.events.EventProtos.VertexManagerEventProto;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
-import org.apache.tez.runtime.api.events.InputInformationEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptCompletedEventProto;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptFailedEventProto;
 
@@ -59,14 +59,14 @@ public class TezEvent implements Writable {
     this.setSourceInfo(sourceInfo);
     if (event instanceof DataMovementEvent) {
       eventType = EventType.DATA_MOVEMENT_EVENT;
+    } else if (event instanceof VertexManagerEvent) {
+      eventType = EventType.VERTEX_MANAGER_EVENT;
     } else if (event instanceof InputReadErrorEvent) {
       eventType = EventType.INPUT_READ_ERROR_EVENT;
     } else if (event instanceof TaskAttemptFailedEvent) {
       eventType = EventType.TASK_ATTEMPT_FAILED_EVENT;
     } else if (event instanceof TaskAttemptCompletedEvent) {
       eventType = EventType.TASK_ATTEMPT_COMPLETED_EVENT;
-    } else if (event instanceof InputInformationEvent) {
-      eventType = EventType.INTPUT_INFORMATION_EVENT;
     } else if (event instanceof InputFailedEvent) {
       eventType = EventType.INPUT_FAILED_EVENT;
     } else if (event instanceof TaskStatusUpdateEvent) {
@@ -123,6 +123,13 @@ public class TezEvent implements Writable {
           .setUserPayload(ByteString.copyFrom(dmEvt.getUserPayload()))
           .build().toByteArray();
         break;
+      case VERTEX_MANAGER_EVENT:
+        VertexManagerEvent vmEvt = (VertexManagerEvent) event;
+        eventBytes = VertexManagerEventProto.newBuilder()
+          .setTargetVertexName(vmEvt.getTargetVertexName())
+          .setUserPayload(ByteString.copyFrom(vmEvt.getUserPayload()))
+          .build().toByteArray();
+        break;
       case INPUT_READ_ERROR_EVENT:
         InputReadErrorEvent ideEvt = (InputReadErrorEvent) event;
         eventBytes = InputReadErrorEventProto.newBuilder()
@@ -146,11 +153,7 @@ public class TezEvent implements Writable {
             .setSourceIndex(ifEvt.getSourceIndex())
             .setTargetIndex(ifEvt.getTargetIndex())
             .setVersion(ifEvt.getVersion()).build().toByteArray();
-      case INTPUT_INFORMATION_EVENT:
-        InputInformationEvent iEvt = (InputInformationEvent) event;
-        eventBytes = InputInformationEventProto.newBuilder()
-            .setUserPayload(ByteString.copyFrom(iEvt.getUserPayload()))
-            .build().toByteArray();
+        break;
       default:
         throw new TezUncheckedException("Unknown TezEvent"
            + ", type=" + eventType);
@@ -182,6 +185,12 @@ public class TezEvent implements Writable {
             dmProto.getTargetIndex(),
             dmProto.getUserPayload().toByteArray());
         break;
+      case VERTEX_MANAGER_EVENT:
+        VertexManagerEventProto vmProto =
+            VertexManagerEventProto.parseFrom(eventBytes);
+        event = new VertexManagerEvent(vmProto.getTargetVertexName(),
+            vmProto.getUserPayload().toByteArray());
+        break;
       case INPUT_READ_ERROR_EVENT:
         InputReadErrorEventProto ideProto =
             InputReadErrorEventProto.parseFrom(eventBytes);
@@ -201,12 +210,6 @@ public class TezEvent implements Writable {
             InputFailedEventProto.parseFrom(eventBytes);
         event = new InputFailedEvent(ifProto.getSourceIndex(),
             ifProto.getTargetIndex(), ifProto.getVersion());
-        break;
-      case INTPUT_INFORMATION_EVENT:
-        InputInformationEventProto infoProto =
-            InputInformationEventProto.parseFrom(eventBytes);
-        event = new InputInformationEvent(
-            infoProto.getUserPayload().toByteArray());
         break;
       default:
         throw new TezUncheckedException("Unknown TezEvent"

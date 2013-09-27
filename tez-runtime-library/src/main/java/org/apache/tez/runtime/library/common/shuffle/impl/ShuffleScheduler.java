@@ -33,7 +33,6 @@ import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -61,7 +60,7 @@ class ShuffleScheduler {
   private static final float PENALTY_GROWTH_RATE = 1.3f;
   
   // TODO NEWTEZ May need to be a string if attempting to fetch from multiple inputs.
-  private final Map<Integer, MutableInt> finishedMaps;
+  private boolean[] finishedMaps;
   private final int numInputs;
   private int remainingMaps;
   private Map<String, MapHost> mapLocations = new HashMap<String, MapHost>();
@@ -98,17 +97,16 @@ class ShuffleScheduler {
   
   public ShuffleScheduler(TezInputContext inputContext,
                           Configuration conf,
-                          int tasksInDegree,
+                          int numberOfInputs,
                           Shuffle shuffle,
                           TezCounter shuffledMapsCounter,
                           TezCounter reduceShuffleBytes,
                           TezCounter failedShuffleCounter) {
     this.inputContext = inputContext;
-    this.numInputs = tasksInDegree;
-    abortFailureLimit = Math.max(30, tasksInDegree / 10);
-    remainingMaps = tasksInDegree;
-  //TODO NEWTEZ May need to be a string or a more usable construct if attempting to fetch from multiple inputs. Define a taskId / taskAttemptId pair
-    finishedMaps = new HashMap<Integer, MutableInt>(remainingMaps);
+    this.numInputs = numberOfInputs;
+    abortFailureLimit = Math.max(30, numberOfInputs / 10);
+    remainingMaps = numberOfInputs;
+    finishedMaps = new boolean[remainingMaps]; // default init to false
     this.shuffle = shuffle;
     this.shuffledMapsCounter = shuffledMapsCounter;
     this.reduceShuffleBytes = reduceShuffleBytes;
@@ -116,7 +114,7 @@ class ShuffleScheduler {
     this.startTime = System.currentTimeMillis();
     this.lastProgressTime = startTime;
     referee.start();
-    this.maxFailedUniqueFetches = Math.min(tasksInDegree,
+    this.maxFailedUniqueFetches = Math.min(numberOfInputs,
         this.maxFailedUniqueFetches);
     this.maxFetchFailuresBeforeReporting = 
         conf.getInt(
@@ -138,13 +136,12 @@ class ShuffleScheduler {
     failureCounts.remove(taskIdentifier);
     hostFailures.remove(host.getHostName());
     
-    if (!isFinishedTaskTrue(srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex())) {
+    if (!isInputFinished(srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex())) {
       output.commit();
-      if(incrementTaskCopyAndCheckCompletion(srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex())) {
-        shuffledMapsCounter.increment(1);
-        if (--remainingMaps == 0) {
-          notifyAll();
-        }
+      setInputFinished(srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex());
+      shuffledMapsCounter.increment(1);
+      if (--remainingMaps == 0) {
+        notifyAll();
       }
 
       // update the status
@@ -288,16 +285,6 @@ class ShuffleScheduler {
 
   }
   
-  public synchronized void tipFailed(int srcTaskIndex) {
-    if (!isFinishedTaskTrue(srcTaskIndex)) {
-      setFinishedTaskTrue(srcTaskIndex);
-      if (--remainingMaps == 0) {
-        notifyAll();
-      }
-      logProgress();
-    }
-  }
-  
   public synchronized void addKnownMapOutput(String hostName,
                                              int partitionId,
                                              String hostUrl,
@@ -310,7 +297,8 @@ class ShuffleScheduler {
       mapLocations.put(identifier, host);
     }
     host.addKnownMap(srcAttempt);
-    pathToIdentifierMap.put(srcAttempt.getPathComponent(), srcAttempt);
+    pathToIdentifierMap.put(
+        getIdentifierFromPathAndReduceId(srcAttempt.getPathComponent(), partitionId), srcAttempt);
 
     // Mark the host as pending
     if (host.getState() == MapHost.State.PENDING) {
@@ -351,8 +339,9 @@ class ShuffleScheduler {
       return host;
   }
   
-  public InputAttemptIdentifier getIdentifierForPathComponent(String pathComponent) {
-    return pathToIdentifierMap.get(pathComponent);
+  public InputAttemptIdentifier getIdentifierForFetchedOutput(
+      String path, int reduceId) {
+    return pathToIdentifierMap.get(getIdentifierFromPathAndReduceId(path, reduceId));
   }
   
   public synchronized List<InputAttemptIdentifier> getMapsForHost(MapHost host) {
@@ -364,7 +353,7 @@ class ShuffleScheduler {
     // find the maps that we still need, up to the limit
     while (itr.hasNext()) {
       InputAttemptIdentifier id = itr.next();
-      if (!obsoleteMaps.contains(id) && !isFinishedTaskTrue(id.getInputIdentifier().getSrcTaskIndex())) {
+      if (!obsoleteMaps.contains(id) && !isInputFinished(id.getInputIdentifier().getSrcTaskIndex())) {
         result.add(id);
         if (++includedMaps >= MAX_MAPS_AT_ONCE) {
           break;
@@ -374,7 +363,7 @@ class ShuffleScheduler {
     // put back the maps left after the limit
     while (itr.hasNext()) {
       InputAttemptIdentifier id = itr.next();
-      if (!obsoleteMaps.contains(id) && !isFinishedTaskTrue(id.getInputIdentifier().getSrcTaskIndex())) {
+      if (!obsoleteMaps.contains(id) && !isInputFinished(id.getInputIdentifier().getSrcTaskIndex())) {
         host.addKnownMap(id);
       }
     }
@@ -448,6 +437,10 @@ class ShuffleScheduler {
     
   }
   
+  private String getIdentifierFromPathAndReduceId(String path, int reduceId) {
+    return path + "_" + reduceId;
+  }
+  
   /**
    * A thread that takes hosts off of the penalty list when the timer expires.
    */
@@ -488,34 +481,15 @@ class ShuffleScheduler {
     }
   }
   
-  void setFinishedTaskTrue(int srcTaskIndex) {
+  void setInputFinished(int inputIndex) {
     synchronized(finishedMaps) {
-      finishedMaps.put(srcTaskIndex, new MutableInt(shuffle.getReduceRange()));
+      finishedMaps[inputIndex] = true;
     }
   }
   
-  boolean incrementTaskCopyAndCheckCompletion(int srcTaskIndex) {
-    synchronized(finishedMaps) {
-      MutableInt result = finishedMaps.get(srcTaskIndex);
-      if(result == null) {
-        result = new MutableInt(0);
-        finishedMaps.put(srcTaskIndex, result);
-      }
-      result.increment();
-      return isFinishedTaskTrue(srcTaskIndex);
-    }
-  }
-  
-  boolean isFinishedTaskTrue(int srcTaskIndex) {
+  boolean isInputFinished(int inputIndex) {
     synchronized (finishedMaps) {
-      MutableInt result = finishedMaps.get(srcTaskIndex);
-      if(result == null) {
-        return false;
-      }
-      if (result.intValue() == shuffle.getReduceRange()) {
-        return true;
-      }
-      return false;      
+      return finishedMaps[inputIndex];      
     }
   }
 }

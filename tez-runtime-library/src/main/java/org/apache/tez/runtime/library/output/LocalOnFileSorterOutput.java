@@ -57,7 +57,7 @@ public class LocalOnFileSorterOutput extends OnFileSortedOutput {
   }
   
   @Override
-  protected List<Event> generateDataMovementEventsOnClose() throws IOException {
+  protected List<Event> generateEventsOnClose() throws IOException {
     return null;
   }
 }

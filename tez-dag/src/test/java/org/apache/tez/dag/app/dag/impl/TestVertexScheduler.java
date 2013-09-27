@@ -29,7 +29,6 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
-import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
@@ -40,9 +39,9 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -53,7 +52,6 @@ public class TestVertexScheduler {
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
   @Test(timeout = 5000)
-  @Ignore // TODO TEZ-481
   public void testShuffleVertexManagerAutoParallelism() throws IOException {
     Configuration conf = new Configuration();
     conf.setBoolean(
@@ -97,7 +95,6 @@ public class TestVertexScheduler {
     TezVertexID mockManagedVertexId = new TezVertexID(dagId, 4);
     when(mockManagedVertex.getVertexId()).thenReturn(mockManagedVertexId);
     when(mockManagedVertex.getInputVertices()).thenReturn(mockInputVertices);
-    
     
     mockInputVertices.put(mockSrcVertex1, new Edge(eProp1, mockEventHandler));
     mockInputVertices.put(mockSrcVertex2, new Edge(eProp2, mockEventHandler));
@@ -162,27 +159,29 @@ public class TestVertexScheduler {
     TezTaskAttemptID mockSrcAttemptId31 = 
         new TezTaskAttemptID(new TezTaskID(mockSrcVertexId3, 0), 0);
 
+    byte[] payload =
+        VertexManagerEventPayloadProto.newBuilder().setOutputSize(5000L).build().toByteArray();
+    VertexManagerEvent vmEvent = new VertexManagerEvent("Vertex", payload);
     // parallelism not change due to large data size
-    //when(mockEvent.getDataSize()).thenReturn(5000L);
     scheduler = createScheduler(conf, mockManagedVertex, 0.1f, 0.1f);
     scheduler.onVertexStarted();
     Assert.assertTrue(scheduler.pendingTasks.size() == 4); // no tasks scheduled
     Assert.assertTrue(scheduler.numSourceTasks == 4);
+    scheduler.onVertexManagerEventReceived(vmEvent);
     scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
     // managedVertex tasks reduced
     verify(mockManagedVertex, times(0)).setParallelism(anyInt(), anyMap());
     Assert.assertEquals(0, scheduler.pendingTasks.size()); // all tasks scheduled
     Assert.assertEquals(4, scheduledTasks.size());
-    Assert.assertEquals(1, scheduler.numSourceTasksCompleted);
+    Assert.assertEquals(1, scheduler.numSourceTasksCompleted); // TODO
     Assert.assertEquals(5000L, scheduler.completedSourceTasksOutputSize);
     
+    
     // parallelism changed due to small data size
-    //when(mockEvent.getDataSize()).thenReturn(500L);
     scheduledTasks.clear();
-    Configuration procConf = new Configuration();
-    ProcessorDescriptor procDesc = new ProcessorDescriptor("REDUCE");
-    procDesc.setUserPayload(MRHelpers.createUserPayloadFromConf(procConf));
-    when(mockManagedVertex.getProcessorDescriptor()).thenReturn(procDesc);
+    payload =
+        VertexManagerEventPayloadProto.newBuilder().setOutputSize(500L).build().toByteArray();
+    vmEvent = new VertexManagerEvent("Vertex", payload);
     
     scheduler = createScheduler(conf, mockManagedVertex, 0.5f, 0.5f);
     scheduler.onVertexStarted();
@@ -193,10 +192,12 @@ public class TestVertexScheduler {
     Assert.assertEquals(4, scheduler.pendingTasks.size()); // no tasks scheduled
     Assert.assertEquals(4, scheduler.numSourceTasks);
     Assert.assertEquals(0, scheduler.numSourceTasksCompleted);
+    scheduler.onVertexManagerEventReceived(vmEvent);
     scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
     Assert.assertEquals(4, scheduler.pendingTasks.size());
     Assert.assertEquals(0, scheduledTasks.size()); // no tasks scheduled
     Assert.assertEquals(1, scheduler.numSourceTasksCompleted);
+    Assert.assertEquals(1, scheduler.numVertexManagerEventsReceived);
     Assert.assertEquals(500L, scheduler.completedSourceTasksOutputSize);
     // ignore duplicate completion
     scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
@@ -205,6 +206,7 @@ public class TestVertexScheduler {
     Assert.assertEquals(1, scheduler.numSourceTasksCompleted);
     Assert.assertEquals(500L, scheduler.completedSourceTasksOutputSize);
     
+    scheduler.onVertexManagerEventReceived(vmEvent);
     scheduler.onSourceTaskCompleted(mockSrcAttemptId12);
     // managedVertex tasks reduced
     verify(mockManagedVertex).setParallelism(eq(2), anyMap());
@@ -215,6 +217,7 @@ public class TestVertexScheduler {
     Assert.assertTrue(scheduledTasks.contains(mockTaskId1));
     Assert.assertTrue(scheduledTasks.contains(mockTaskId2));
     Assert.assertEquals(2, scheduler.numSourceTasksCompleted);
+    Assert.assertEquals(2, scheduler.numVertexManagerEventsReceived);
     Assert.assertEquals(1000L, scheduler.completedSourceTasksOutputSize);
     
     // more completions dont cause recalculation of parallelism

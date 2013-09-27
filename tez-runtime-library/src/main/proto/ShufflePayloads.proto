@@ -31,3 +31,7 @@ message DataMovementEventPayloadProto {
 message InputInformationEventPayloadProto {
   optional int32 partition_range = 1;
 }
+
+message VertexManagerEventPayloadProto {
+  optional int64 output_size = 1;
+}

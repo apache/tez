@@ -359,8 +359,8 @@ class Fetcher extends Thread {
       try {
         ShuffleHeader header = new ShuffleHeader();
         header.readFields(input);
-        String pathComponent = header.mapId;
-        srcAttemptId = scheduler.getIdentifierForPathComponent(pathComponent);
+        srcAttemptId = 
+            scheduler.getIdentifierForFetchedOutput(header.mapId, header.forReduce);
         compressedLength = header.compressedLength;
         decompressedLength = header.uncompressedLength;
         forReduce = header.forReduce;
@@ -456,15 +456,13 @@ class Fetcher extends Thread {
       return false;
     }
     
-    int reduceStartId = shuffle.getReduceStartId();
-    int reduceRange = shuffle.getReduceRange();
-    if (forReduce < reduceStartId || forReduce >= reduceStartId+reduceRange) {
-      wrongReduceErrs.increment(1);
-      LOG.warn(getName() + " data for the wrong reduce map: " +
-               srcAttemptId + " len: " + compressedLength + " decomp len: " +
-               decompressedLength + " for reduce " + forReduce);
-      return false;
-    }
+//    if (forReduce < reduceStartId || forReduce >= reduceStartId+reduceRange) {
+//      wrongReduceErrs.increment(1);
+//      LOG.warn(getName() + " data for the wrong reduce map: " +
+//               srcAttemptId + " len: " + compressedLength + " decomp len: " +
+//               decompressedLength + " for reduce " + forReduce);
+//      return false;
+//    }
 
     // Sanity check
     if (!remaining.contains(srcAttemptId)) {

@@ -28,12 +28,9 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
-import org.apache.tez.runtime.api.events.InputInformationEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
-import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.InputInformationEventPayloadProto;
 
-import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 public class ShuffleInputEventHandler {
@@ -42,15 +39,12 @@ public class ShuffleInputEventHandler {
 
   private final ShuffleScheduler scheduler;
   private final TezInputContext inputContext;
-  private final Shuffle shuffle;
 
   private int maxMapRuntime = 0;
-  private boolean shuffleRangeSet = false;
   
   public ShuffleInputEventHandler(TezInputContext inputContext,
-      Shuffle shuffle, ShuffleScheduler scheduler) {
+      ShuffleScheduler scheduler) {
     this.inputContext = inputContext;
-    this.shuffle = shuffle;
     this.scheduler = scheduler;
   }
 
@@ -62,26 +56,11 @@ public class ShuffleInputEventHandler {
   
   
   private void handleEvent(Event event) {
-    if (event instanceof InputInformationEvent) {
-      processInputInformationEvent((InputInformationEvent) event);
-    }
-    else if (event instanceof DataMovementEvent) {
+    if (event instanceof DataMovementEvent) {
       processDataMovementEvent((DataMovementEvent) event);      
     } else if (event instanceof InputFailedEvent) {
       processTaskFailedEvent((InputFailedEvent) event);
     }
-  }
-
-  private void processInputInformationEvent(InputInformationEvent iiEvent) {
-    InputInformationEventPayloadProto inputInfoPayload;
-    try {
-      inputInfoPayload = InputInformationEventPayloadProto.parseFrom(iiEvent.getUserPayload());
-    } catch (InvalidProtocolBufferException e) {
-      throw new TezUncheckedException("Unable to parse InputInformationEvent payload", e);
-    }
-    int partitionRange = inputInfoPayload.getPartitionRange();
-    shuffle.setPartitionRange(partitionRange);
-    this.shuffleRangeSet = true;
   }
 
   private void processDataMovementEvent(DataMovementEvent dmEvent) {
@@ -95,6 +74,7 @@ public class ShuffleInputEventHandler {
     } 
     int partitionId = dmEvent.getSourceIndex();
     URI baseUri = getBaseURI(shufflePayload.getHost(), shufflePayload.getPort(), partitionId);
+    LOG.info("Data movement event baseUri:" + baseUri);
 
     InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion(), shufflePayload.getPathComponent());
     scheduler.addKnownMapOutput(shufflePayload.getHost(), partitionId, baseUri.toString(), srcAttemptIdentifier);

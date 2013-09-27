@@ -23,8 +23,8 @@ import org.apache.tez.dag.records.TezVertexID;
 
 public class DAGEventVertexCompleted extends DAGEvent {
 
-  private TezVertexID vertexId;
-  private VertexState vertexState;
+  private final TezVertexID vertexId;
+  private final VertexState vertexState;
 
   public DAGEventVertexCompleted(TezVertexID vertexId, VertexState vertexState) {
     super(vertexId.getDAGId(), DAGEventType.DAG_VERTEX_COMPLETED);

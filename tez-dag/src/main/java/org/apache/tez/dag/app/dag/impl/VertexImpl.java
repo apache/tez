@@ -114,6 +114,7 @@ import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
@@ -211,6 +212,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.INITED, VertexState.RUNNING,
               VertexEventType.V_START,
               new StartTransition())
+          .addTransition(VertexState.INITED,
+              VertexState.INITED, VertexEventType.V_ROUTE_EVENT,
+              ROUTE_EVENT_TRANSITION)
+
 
           .addTransition(VertexState.INITED, VertexState.KILLED,
               VertexEventType.V_TERMINATE,
@@ -260,6 +265,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.TERMINATING, VertexState.TERMINATING,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_RESCHEDULED))
@@ -278,6 +284,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.SUCCEEDED, VertexState.SUCCEEDED,
               EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
+                  VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_TASK_COMPLETED))
 
           // Transitions from FAILED state
@@ -289,6 +296,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.FAILED, VertexState.FAILED,
               EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_TASK_RESCHEDULED,
+                  VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED))
 
@@ -302,6 +310,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_START,
+                  VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_TASK_RESCHEDULED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED))
@@ -313,6 +322,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               EnumSet.of(VertexEventType.V_INIT,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_START,
+                  VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_TERMINATE,
                   VertexEventType.V_TASK_COMPLETED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
@@ -1391,10 +1401,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info("Vertex: " + vertex.getName() + " routing event: "
             + tezEvent.getEventType());
         EventMetaData sourceMeta = tezEvent.getSourceInfo();
-        checkEventSourceMetadata(vertex, sourceMeta);
         switch(tezEvent.getEventType()) {
         case DATA_MOVEMENT_EVENT:
           {
+            checkEventSourceMetadata(vertex, sourceMeta);
             TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
             DataMovementEvent dmEvent = (DataMovementEvent) tezEvent.getEvent();
             dmEvent.setVersion(srcTaId.getId());
@@ -1403,8 +1413,21 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             destEdge.sendTezEventToDestinationTasks(tezEvent);
           }
           break;
+        case VERTEX_MANAGER_EVENT:
+        {
+          VertexManagerEvent vmEvent = (VertexManagerEvent) tezEvent.getEvent();
+          Vertex target = vertex.getDAG().getVertex(vmEvent.getTargetVertexName());
+          if (target == vertex) {
+            vertex.vertexScheduler.onVertexManagerEventReceived(vmEvent);
+          } else {
+            vertex.eventHandler.handle(new VertexEventRouteEvent(target
+                .getVertexId(), Collections.singletonList(tezEvent)));
+          }
+        }
+          break;
         case INPUT_FAILED_EVENT:
         {
+          checkEventSourceMetadata(vertex, sourceMeta);
           TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
           InputFailedEvent ifEvent = (InputFailedEvent) tezEvent.getEvent();
           ifEvent.setVersion(srcTaId.getId());
@@ -1415,6 +1438,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         break;
         case INPUT_READ_ERROR_EVENT:
           {
+            checkEventSourceMetadata(vertex, sourceMeta);
             Edge srcEdge = vertex.sourceVertices.get(vertex.getDAG().getVertex(
                 sourceMeta.getEdgeVertexName()));
             srcEdge.sendTezEventToSourceTasks(tezEvent);
@@ -1422,6 +1446,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           break;
         case TASK_STATUS_UPDATE_EVENT:
           {
+            checkEventSourceMetadata(vertex, sourceMeta);
             TaskStatusUpdateEvent sEvent =
                 (TaskStatusUpdateEvent) tezEvent.getEvent();
             vertex.getEventHandler().handle(
@@ -1431,6 +1456,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           break;
         case TASK_ATTEMPT_COMPLETED_EVENT:
           {
+            checkEventSourceMetadata(vertex, sourceMeta);
             vertex.getEventHandler().handle(
                 new TaskAttemptEvent(sourceMeta.getTaskAttemptID(),
                     TaskAttemptEventType.TA_DONE));
@@ -1438,6 +1464,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           break;
         case TASK_ATTEMPT_FAILED_EVENT:
           {
+            checkEventSourceMetadata(vertex, sourceMeta);
             TaskAttemptFailedEvent taskFailedEvent =
                 (TaskAttemptFailedEvent) tezEvent.getEvent();
             vertex.getEventHandler().handle(

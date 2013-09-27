@@ -20,10 +20,12 @@ package org.apache.tez.dag.app.dag;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 // Rename to VertexManager TEZ-364 and move to DAG API. Make abstract class.
 public interface VertexScheduler {
   void initialize(Configuration conf);
   void onVertexStarted();
   void onSourceTaskCompleted(TezTaskAttemptID attemptId);
+  void onVertexManagerEventReceived(VertexManagerEvent vmEvent);
 }

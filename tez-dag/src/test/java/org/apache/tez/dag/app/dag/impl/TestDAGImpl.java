@@ -18,8 +18,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -46,6 +45,7 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
+import org.apache.tez.dag.app.dag.DAGScheduler;
 import org.apache.tez.dag.app.dag.DAGTerminationCause;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Task;
@@ -526,7 +526,7 @@ public class TestDAGImpl {
     dispatcher.init(conf);
     dispatcher.start();
   }
-
+  
   @After
   public void teardown() {
     dispatcher.await();
@@ -606,6 +606,7 @@ public class TestDAGImpl {
   @Test
   public void testVertexReRunning() {
     initDAG(dag);
+    dag.dagScheduler = mock(DAGScheduler.class);
     startDAG(dag);
     dispatcher.await();
 
@@ -620,6 +621,7 @@ public class TestDAGImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, dag.getSuccessfulVertices());
     Assert.assertEquals(1, dag.numCompletedVertices);
+    verify(dag.dagScheduler, times(1)).vertexCompleted(v);
     
     dispatcher.getEventHandler().handle(
         new VertexEventTaskReschedule(new TezTaskID(vId, 0)));
@@ -635,6 +637,9 @@ public class TestDAGImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, dag.getSuccessfulVertices());
     Assert.assertEquals(1, dag.numCompletedVertices);
+    
+    // re-completion is not notified again
+    verify(dag.dagScheduler, times(1)).vertexCompleted(v);
 
   }
 

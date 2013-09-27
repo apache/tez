@@ -20,22 +20,42 @@ package org.apache.tez.runtime.api.events;
 
 import org.apache.tez.runtime.api.Event;
 
+import com.google.common.base.Preconditions;
+
 /**
- * Event used to send user specific data from the user 
- * code in the AM to the task input
+ * Event used to send information from a Task to the VertexManager for a vertex.
+ * This may be used to send statistics like samples etc to the VertexManager for
+ * automatic plan recofigurations based on observed statistics
  */
-public class InputInformationEvent extends Event {
+public class VertexManagerEvent extends Event {
 
   /**
-   * User Payload for this Event
+   * Vertex to which the event should be sent 
+   */
+  private final String targetVertexName;
+  
+  /**
+   * User payload to be sent
    */
   private final byte[] userPayload;
-  public InputInformationEvent(byte[] userPayload) {
+  
+  /**
+   * Create a new VertexManagerEvent
+   * @param vertexName
+   * @param userPayload This should not be modified since a reference is kept
+   */
+  public VertexManagerEvent(String vertexName, byte[] userPayload) {
+    Preconditions.checkArgument(vertexName != null);
+    Preconditions.checkArgument(userPayload != null);
+    this.targetVertexName = vertexName;
     this.userPayload = userPayload;
   }
-
+  
+  public String getTargetVertexName() {
+    return targetVertexName;
+  }
+  
   public byte[] getUserPayload() {
     return userPayload;
   }
-
 }

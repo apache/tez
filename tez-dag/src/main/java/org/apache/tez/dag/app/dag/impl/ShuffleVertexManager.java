@@ -18,7 +18,6 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,7 +28,6 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -39,10 +37,13 @@ import org.apache.tez.dag.app.dag.VertexScheduler;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
+
+import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * Starts scheduling tasks when number of completed source tasks crosses 
@@ -64,6 +65,7 @@ public class ShuffleVertexManager implements VertexScheduler {
   
   int numSourceTasks = 0;
   int numSourceTasksCompleted = 0;
+  int numVertexManagerEventsReceived = 0;
   ArrayList<TezTaskID> pendingTasks;
   int totalTasksToSchedule = 0;
   HashMap<TezVertexID, Vertex> bipartiteSources = 
@@ -196,19 +198,32 @@ public class ShuffleVertexManager implements VertexScheduler {
       if (completedSourceTasks.add(srcTaskId)) {
         // source task has completed
         ++numSourceTasksCompleted;
-        if (enableAutoParallelism) {
-          // save output size
-          // TODO TEZ-481
-          long sourceTaskOutputSize = 100000000l;//sourceTaskAttempt.getDataSize();
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Source task: " + srcAttemptId
-                + " finished with output size: " + sourceTaskOutputSize);
-          }
-          completedSourceTasksOutputSize += sourceTaskOutputSize;
-        }
       }
       schedulePendingTasks();
     }
+  }
+  
+  @Override
+  public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
+    // TODO handle duplicates from retries
+    if (enableAutoParallelism) {
+      // save output size
+      VertexManagerEventPayloadProto proto;
+      try {
+        proto = VertexManagerEventPayloadProto.parseFrom(vmEvent.getUserPayload());
+      } catch (InvalidProtocolBufferException e) {
+        throw new TezUncheckedException(e);
+      }
+      long sourceTaskOutputSize = proto.getOutputSize();
+      numVertexManagerEventsReceived++;
+      completedSourceTasksOutputSize += sourceTaskOutputSize;
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Received info of output size: " + sourceTaskOutputSize 
+            + " numInfoReceived: " + numVertexManagerEventsReceived
+            + " total output size: " + completedSourceTasksOutputSize);
+      }
+    }
+    
   }
   
   void updatePendingTasks() {
@@ -230,9 +245,14 @@ public class ShuffleVertexManager implements VertexScheduler {
     if(numSourceTasksCompleted == 0) {
       return;
     }
+    
+    if(numVertexManagerEventsReceived == 0) {
+      return;
+    }
+    
     int currentParallelism = pendingTasks.size();
     long expectedTotalSourceTasksOutputSize = 
-        (numSourceTasks*completedSourceTasksOutputSize)/numSourceTasksCompleted;
+        (numSourceTasks*completedSourceTasksOutputSize)/numVertexManagerEventsReceived;
     int desiredTaskParallelism = 
         (int)(expectedTotalSourceTasksOutputSize/desiredTaskInputDataSize);
     if(desiredTaskParallelism < minTaskParallelism) {
@@ -256,42 +276,25 @@ public class ShuffleVertexManager implements VertexScheduler {
     
     int finalTaskParallelism = (remainderRangeForLastShuffler > 0) ?
           (numShufflersWithBaseRange + 1) : (numShufflersWithBaseRange);
-    
+
     if(finalTaskParallelism < currentParallelism) {
       // final parallelism is less than actual parallelism
       LOG.info("Reducing parallelism for vertex: " + managedVertex.getVertexId() 
           + " to " + finalTaskParallelism + " from " + pendingTasks.size() 
           + " . Expected output: " + expectedTotalSourceTasksOutputSize 
           + " based on actual output: " + completedSourceTasksOutputSize
-          + " from " + numSourceTasksCompleted + " completed source tasks. "
+          + " from " + numVertexManagerEventsReceived + " vertex manager events. "
           + " desiredTaskInputSize: " + desiredTaskInputDataSize);
-
-      List<byte[]> taskConfs = new ArrayList<byte[]>(finalTaskParallelism);
-      try {
-        Configuration taskConf = new Configuration(false);
-        taskConf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARTITION_RANGE,
-            basePartitionRange);
-        // create event user payload to inform the task
-        for (int i = 0; i < numShufflersWithBaseRange; ++i) {
-          taskConfs.add(MRHelpers.createUserPayloadFromConf(taskConf));
-        }
-        if(finalTaskParallelism > numShufflersWithBaseRange) {
-          taskConf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARTITION_RANGE,
-              remainderRangeForLastShuffler);
-          taskConfs.add(MRHelpers.createUserPayloadFromConf(taskConf));
-        }
-      } catch (IOException e) {
-        throw new TezUncheckedException(e);
-      }
       
       Map<Vertex, EdgeManager> edgeManagers = new HashMap<Vertex, EdgeManager>(
           bipartiteSources.size());
       for(Vertex vertex : bipartiteSources.values()) {
         // use currentParallelism for numSourceTasks to maintain original state
         // for the source tasks
-        edgeManagers.put(vertex, new CustomShuffleEdgeManager(currentParallelism,
-            finalTaskParallelism, basePartitionRange,
-            remainderRangeForLastShuffler));
+        edgeManagers.put(vertex, new CustomShuffleEdgeManager(
+            currentParallelism, finalTaskParallelism, basePartitionRange,
+            ((remainderRangeForLastShuffler > 0) ?
+                remainderRangeForLastShuffler : basePartitionRange)));
       }
       
       managedVertex.setParallelism(finalTaskParallelism, edgeManagers);

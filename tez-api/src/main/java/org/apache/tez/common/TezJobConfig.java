@@ -171,12 +171,6 @@ public class TezJobConfig {
       "tez.runtime.shuffle.use.in-memory";
   public static final boolean DEFAULT_TEZ_RUNTIME_SHUFFLE_USE_IN_MEMORY = false;
 
-  // TODO NEWTEZ Remove these config parameters. Will be part of an event.
-  @Private
-  public static final String TEZ_RUNTIME_SHUFFLE_PARTITION_RANGE = 
-      "tez.runtime.shuffle.partition-range";
-  public static int TEZ_RUNTIME_SHUFFLE_PARTITION_RANGE_DEFAULT = 1;
-
   /**
    * 
    */

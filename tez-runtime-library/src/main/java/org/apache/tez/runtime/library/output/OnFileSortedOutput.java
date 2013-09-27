@@ -26,15 +26,18 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
 import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 
 import com.google.common.collect.Lists;
 
@@ -93,10 +96,10 @@ public class OnFileSortedOutput implements LogicalOutput {
     sorter.close();
     this.endTime = System.nanoTime();
 
-   return generateDataMovementEventsOnClose();
+   return generateEventsOnClose();
   }
   
-  protected List<Event> generateDataMovementEventsOnClose() throws IOException {
+  protected List<Event> generateEventsOnClose() throws IOException {
     String host = System.getenv(ApplicationConstants.Environment.NM_HOST
         .toString());
     ByteBuffer shuffleMetadata = outputContext
@@ -112,8 +115,17 @@ public class OnFileSortedOutput implements LogicalOutput {
     DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
     byte[] payloadBytes = payloadProto.toByteArray();
 
-    List<Event> events = Lists.newArrayListWithCapacity(numOutputs);
+    long outputSize = outputContext.getCounters()
+        .findCounter(TaskCounter.MAP_OUTPUT_BYTES).getValue();
+    VertexManagerEventPayloadProto.Builder vmBuilder = VertexManagerEventPayloadProto
+        .newBuilder();
+    vmBuilder.setOutputSize(outputSize);
+    VertexManagerEvent vmEvent = new VertexManagerEvent(
+        outputContext.getDestinationVertexName(), vmBuilder.build().toByteArray());    
 
+    List<Event> events = Lists.newArrayListWithCapacity(numOutputs+1);
+    events.add(vmEvent);
+    
     for (int i = 0; i < numOutputs; i++) {
       DataMovementEvent event = new DataMovementEvent(i, payloadBytes);
       events.add(event);

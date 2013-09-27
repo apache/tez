@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.crypto.SecretKey;
 
@@ -65,10 +64,7 @@ public class Shuffle implements ExceptionReporter {
   private Throwable throwable = null;
   private String throwingThreadName = null;
   private final int numInputs;
-  private final AtomicInteger reduceStartId;
   private final SecretKey jobTokenSecret;
-  private AtomicInteger reduceRange = new AtomicInteger(
-      TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARTITION_RANGE_DEFAULT);
 
   private FutureTask<TezRawKeyValueIterator> runShuffleFuture;
 
@@ -105,9 +101,7 @@ public class Shuffle implements ExceptionReporter {
     TezCounter mergedMapOutputsCounter =
         inputContext.getCounters().findCounter(TaskCounter.MERGED_MAP_OUTPUTS);
     
-    reduceStartId = new AtomicInteger(inputContext.getTaskIndex());
-    LOG.info("Shuffle assigned reduce start id: " + reduceStartId.get()
-        + " with default reduce range: " + reduceRange.get());
+    LOG.info("Shuffle assigned with " + numInputs + " inputs");
 
     scheduler = new ShuffleScheduler(
           this.inputContext,
@@ -119,7 +113,6 @@ public class Shuffle implements ExceptionReporter {
           failedShuffleCounter);
     eventHandler= new ShuffleInputEventHandler(
           inputContext,
-          this,
           scheduler);
     merger = new MergeManager(
           this.conf,
@@ -233,14 +226,6 @@ public class Shuffle implements ExceptionReporter {
     }
   }
   
-  public int getReduceStartId() {
-    return reduceStartId.get();
-  }
-  
-  public int getReduceRange() {
-    return reduceRange.get();
-  }
-  
   public synchronized void reportException(Throwable t) {
     if (throwable == null) {
       throwable = t;
@@ -261,18 +246,4 @@ public class Shuffle implements ExceptionReporter {
     }
   }
 
-  public void setPartitionRange(int range) {
-    if (range == reduceRange.get()) {
-      return;
-    }
-    if (reduceRange.compareAndSet(
-        TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARTITION_RANGE_DEFAULT, range)) {
-      LOG.info("Reduce range set to: " + range);
-    } else {
-      TezUncheckedException e = 
-          new TezUncheckedException("Reduce range can be set only once.");
-      reportException(e);
-      throw e; 
-    }
-  }
 }

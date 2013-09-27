@@ -24,8 +24,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -136,6 +138,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private TezCounters dagCounters = new TezCounters();
   private Object fullCountersLock = new Object();
   private TezCounters fullCounters = null;
+  private Set<TezVertexID> reRunningVertices = new HashSet<TezVertexID>();
 
   public final Configuration conf;
   private final DAGPlan jobPlan;
@@ -1132,8 +1135,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       Vertex vertex = job.vertices.get(vertexEvent.getVertexId());
       job.numCompletedVertices++;
       if (vertexEvent.getVertexState() == VertexState.SUCCEEDED) {
+        if (!job.reRunningVertices.contains(vertex.getVertexId())) {
+          // vertex succeeded for the first time 
+          job.dagScheduler.vertexCompleted(vertex);
+        }
         job.vertexSucceeded(vertex);
-        job.dagScheduler.vertexCompleted(vertex);
       }
       else if (vertexEvent.getVertexState() == VertexState.FAILED) {
         job.enactKill(DAGTerminationCause.VERTEX_FAILURE, VertexTerminationCause.OTHER_VERTEX_FAILURE);
@@ -1144,6 +1150,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         job.vertexKilled(vertex);
         forceTransitionToKillWait = true;
       }
+      
+      job.reRunningVertices.remove(vertex.getVertexId());
 
       LOG.info("Vertex " + vertex.getVertexId() + " completed."
           + ", numCompletedVertices=" + job.numCompletedVertices
@@ -1190,6 +1198,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private void vertexReRunning(Vertex vertex) {
+    reRunningVertices.add(vertex.getVertexId());
     numSuccessfulVertices--;
     addDiagnostic("Vertex re-running " + vertex.getVertexId());
     // TODO: Metrics
