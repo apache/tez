@@ -21,6 +21,7 @@ package org.apache.tez.runtime.api.impl;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
@@ -35,12 +36,14 @@ import org.apache.tez.runtime.api.TezTaskContext;
 
 public abstract class TezTaskContextImpl implements TezTaskContext {
 
+  private static final AtomicInteger ID_GEN = new AtomicInteger(10000);
+  
   private final Configuration conf;
   protected final String taskVertexName;
   protected final TezTaskAttemptID taskAttemptID;
   private final TezCounters counters;
   private String[] workDirs;
-  protected String uniqueIdentifier;
+  private String uniqueIdentifier;
   protected final RuntimeTask runtimeTask;
   protected final TezUmbilical tezUmbilical;
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
@@ -66,6 +69,8 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     // TODO NEWTEZ at some point dag attempt should not map to app attempt
     this.appAttemptNumber = appAttemptNumber;
     this.auxServiceEnv = auxServiceEnv;
+    this.uniqueIdentifier = String.format("%s_%05d", taskAttemptID.toString(),
+        generateId());
   }
 
   @Override
@@ -144,5 +149,9 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
           : " errorMessage=" + message;
     }
     tezUmbilical.signalFatalError(taskAttemptID, diagnostics, sourceInfo);
+  }
+  
+  private int generateId() {
+    return ID_GEN.incrementAndGet();
   }
 }
