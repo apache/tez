@@ -387,19 +387,22 @@ public class TestMRRJobsDAGApi {
     InputSplitInfo inputSplitInfo = MRHelpers.generateInputSplits(stage1Conf,
         remoteStagingDir);
 
+    byte[] stage1Payload = MRHelpers.createUserPayloadFromConf(stage1Conf);
+    byte[] stage3Payload = MRHelpers.createUserPayloadFromConf(stage3Conf);
+    
     DAG dag = new DAG("testMRRSleepJobDagSubmit");
     Vertex stage1Vertex = new Vertex("map", new ProcessorDescriptor(
-        MapProcessor.class.getName()).setUserPayload(
-        MRHelpers.createUserPayloadFromConf(stage1Conf)),
+        MapProcessor.class.getName()).setUserPayload(stage1Payload),
         inputSplitInfo.getNumTasks(), Resource.newInstance(256, 1));
+    MRHelpers.addMRInput(stage1Vertex, stage1Payload);
     Vertex stage2Vertex = new Vertex("ireduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName()).setUserPayload(
         MRHelpers.createUserPayloadFromConf(stage2Conf)),
         1, Resource.newInstance(256, 1));
     Vertex stage3Vertex = new Vertex("reduce", new ProcessorDescriptor(
-        ReduceProcessor.class.getName()).setUserPayload(
-        MRHelpers.createUserPayloadFromConf(stage3Conf)),
+        ReduceProcessor.class.getName()).setUserPayload(stage3Payload),
         1, Resource.newInstance(256, 1));
+    MRHelpers.addMROutput(stage3Vertex, stage3Payload);
 
     LocalResource appJarLr = createLocalResource(remoteFs,
         remoteFs.makeQualified(APP_JAR_HDFS), LocalResourceType.FILE,

@@ -67,6 +67,8 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
+import org.apache.tez.mapreduce.input.MRInputLegacy;
+import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.processor.FilterByWordInputProcessor;
 import org.apache.tez.processor.FilterByWordOutputProcessor;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
@@ -166,6 +168,11 @@ public class FilterLinesByWord {
     Map<String, String> stage1Env = new HashMap<String, String>();
     MRHelpers.updateEnvironmentForMRTasks(stage1Conf, stage1Env, true);
     stage1Vertex.setTaskEnvironment(stage1Env);
+    
+    // Configure the Input for stage1
+    stage1Vertex.addInput("MRInput",
+        new InputDescriptor(MRInputLegacy.class.getName()).setUserPayload(MRHelpers
+            .createUserPayloadFromConf(stage1Conf)));
 
     // Setup stage2 Vertex
     Vertex stage2Vertex = new Vertex("stage2", new ProcessorDescriptor(
@@ -176,6 +183,11 @@ public class FilterLinesByWord {
     Map<String, String> stage2Env = new HashMap<String, String>();
     MRHelpers.updateEnvironmentForMRTasks(stage2Conf, stage2Env, false);
     stage2Vertex.setTaskEnvironment(stage2Env);
+    
+    // Configure the Output for stage2
+    stage2Vertex.addOutput("MROutput",
+        new OutputDescriptor(MROutput.class.getName()).setUserPayload(MRHelpers
+            .createUserPayloadFromConf(stage2Conf)));
 
     DAG dag = new DAG("FilterLinesByWord");
     Edge edge = new Edge(stage1Vertex, stage2Vertex, new EdgeProperty(

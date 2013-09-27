@@ -550,11 +550,10 @@ public class MRRSleepJob extends Configured implements Tool {
 
     List<Vertex> vertices = new ArrayList<Vertex>();
 
+    byte[] mapUserPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
     Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
-        MapProcessor.class.getName()).setUserPayload(
-        MRHelpers.createUserPayloadFromConf(mapStageConf)),
-        numMapper,
-        MRHelpers.getMapResource(mapStageConf));
+        MapProcessor.class.getName()).setUserPayload(mapUserPayload),
+        numMapper, MRHelpers.getMapResource(mapStageConf));
     mapVertex.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
     mapVertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
     Map<String, LocalResource> mapLocalResources =
@@ -566,17 +565,20 @@ public class MRRSleepJob extends Configured implements Tool {
     Map<String, String> mapEnv = new HashMap<String, String>();
     MRHelpers.updateEnvironmentForMRTasks(mapStageConf, mapEnv, true);
     mapVertex.setTaskEnvironment(mapEnv);
+    MRHelpers.addMRInput(mapVertex, mapUserPayload);
     vertices.add(mapVertex);
+    
+    
 
     if (iReduceStagesCount > 0
         && numIReducer > 0) {
       for (int i = 0; i < iReduceStagesCount; ++i) {
         Configuration iconf =
             intermediateReduceStageConfs[i];
+        byte[] iReduceUserPayload = MRHelpers.createUserPayloadFromConf(iconf);
         Vertex ivertex = new Vertex("ireduce" + (i+1),
                 new ProcessorDescriptor(ReduceProcessor.class.getName()).
-                setUserPayload(MRHelpers.createUserPayloadFromConf(iconf)),
-                numIReducer,
+                setUserPayload(iReduceUserPayload), numIReducer,
                 MRHelpers.getReduceResource(iconf));
         ivertex.setJavaOpts(MRHelpers.getReduceJavaOpts(iconf));
         ivertex.setTaskLocalResources(commonLocalResources);
@@ -589,18 +591,21 @@ public class MRRSleepJob extends Configured implements Tool {
 
     Vertex finalReduceVertex = null;
     if (numReducer > 0) {
+      byte[] reducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
       finalReduceVertex = new Vertex("reduce", new ProcessorDescriptor(
-          ReduceProcessor.class.getName()).setUserPayload(
-          MRHelpers.createUserPayloadFromConf(finalReduceConf)),
-          numReducer,
-          MRHelpers.getReduceResource(finalReduceConf));
+          ReduceProcessor.class.getName()).setUserPayload(reducePayload),
+          numReducer, MRHelpers.getReduceResource(finalReduceConf));
       finalReduceVertex.setJavaOpts(
           MRHelpers.getReduceJavaOpts(finalReduceConf));
       finalReduceVertex.setTaskLocalResources(commonLocalResources);
       Map<String, String> reduceEnv = new HashMap<String, String>();
       MRHelpers.updateEnvironmentForMRTasks(finalReduceConf, reduceEnv, false);
       finalReduceVertex.setTaskEnvironment(reduceEnv);
+      MRHelpers.addMROutput(finalReduceVertex, reducePayload);
       vertices.add(finalReduceVertex);
+    } else {
+      // Map only job
+      MRHelpers.addMROutput(mapVertex, mapUserPayload);
     }
 
     for (int i = 0; i < vertices.size(); ++i) {

@@ -930,12 +930,19 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       VertexLocationHint vertexLocationHint = DagTypeConverters
           .convertFromDAGPlan(vertexPlan.getTaskLocationHintList());
 
-      return new VertexImpl(
+      VertexImpl v = new VertexImpl(
           vertexId, vertexPlan, vertexName, dag.conf,
           dag.eventHandler, dag.taskAttemptListener,
           dag.credentials, dag.clock,
           dag.taskHeartbeatHandler, dag.appContext,
           vertexLocationHint);
+      if (vertexPlan.getInputsCount() > 0) {
+        v.setAdditionalInputs(vertexPlan.getInputsList());
+      }
+      if (vertexPlan.getOutputsCount() > 0) {
+        v.setAdditionalOutputs(vertexPlan.getOutputsList());
+      }
+      return v;
     }
 
     // hooks up this VertexImpl to input and output EdgeProperties

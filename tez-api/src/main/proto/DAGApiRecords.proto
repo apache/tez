@@ -102,6 +102,11 @@ message TezEntityDescriptorProto {
   optional bytes user_payload = 2;
 }
 
+message NamedDescriptorProto {
+  optional string name = 1;
+  optional TezEntityDescriptorProto entity_descriptor= 2;
+}
+
 message VertexPlan {
   required string name = 1;
   required PlanVertexType type = 2;
@@ -110,6 +115,8 @@ message VertexPlan {
   repeated PlanTaskLocationHint taskLocationHint = 7;
   repeated string inEdgeId = 8;
   repeated string outEdgeId = 9;
+  repeated NamedDescriptorProto inputs = 10;
+  repeated NamedDescriptorProto outputs = 11;
 }
 
 message EdgePlan {

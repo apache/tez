@@ -52,7 +52,7 @@ public class Edge {
   private List<TezEvent> sourceEventBuffer = new ArrayList<TezEvent>();
   private Vertex sourceVertex;
   private Vertex destinationVertex; // this may end up being a list for shared edge
-  
+
   @SuppressWarnings("rawtypes")
   public Edge(EdgeProperty edgeProperty, EventHandler eventHandler) {
     this.edgeProperty = edgeProperty;

@@ -75,21 +75,21 @@ public class FilterByWordInputProcessor implements LogicalIOProcessor {
       Map<String, LogicalOutput> outputs) throws Exception {
 
     if (inputs.size() != 1) {
-      throw new IllegalStateException("TestBroadcast processor can only work with a single input");
+      throw new IllegalStateException("FilterByWordInputProcessor processor can only work with a single input");
     }
 
     if (outputs.size() != 1) {
-      throw new IllegalStateException("TestBroadcast processor can only work with a single output");
+      throw new IllegalStateException("FilterByWordInputProcessor processor can only work with a single output");
     }
 
     LogicalInput li = inputs.values().iterator().next();
     if (! (li instanceof MRInput)) {
-      throw new IllegalStateException("TestBroadcast processor can only work with MRInput");
+      throw new IllegalStateException("FilterByWordInputProcessor processor can only work with MRInput");
     }
 
     LogicalOutput lo = outputs.values().iterator().next();
     if (! (lo instanceof OnFileUnorderedKVOutput)) {
-      throw new IllegalStateException("TestBroadcast processor can only work with OnFileUnorderedKVOutput");
+      throw new IllegalStateException("FilterByWordInputProcessor processor can only work with OnFileUnorderedKVOutput");
     }
 
     

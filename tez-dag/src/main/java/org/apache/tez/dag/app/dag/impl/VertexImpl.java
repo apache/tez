@@ -54,6 +54,8 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -65,6 +67,7 @@ import org.apache.tez.dag.api.committer.NullVertexOutputCommitter;
 import org.apache.tez.dag.api.committer.VertexContext;
 import org.apache.tez.dag.api.committer.VertexOutputCommitter;
 import org.apache.tez.dag.api.oldrecords.TaskState;
+import org.apache.tez.dag.api.records.DAGProtos.NamedDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
@@ -348,6 +351,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @VisibleForTesting
   Map<Vertex, Edge> sourceVertices;
   private Map<Vertex, Edge> targetVertices;
+
+  private final List<InputSpec> additionalInputSpecs = new ArrayList<InputSpec>();
+  private final List<OutputSpec> additionalOutputSpecs = new ArrayList<OutputSpec>();
 
   private VertexScheduler vertexScheduler;
 
@@ -1034,6 +1040,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         // Answer: Do commit for every vertex
         // for now, only for leaf vertices
         // TODO TEZ-41 make commmitter type configurable per vertex
+        
         if (vertex.targetVertices.isEmpty()) {
           vertex.committer = new MRVertexOutputCommitter();
         }
@@ -1470,6 +1477,29 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public void setOutputVertices(Map<Vertex, Edge> outVertices) {
     this.targetVertices = outVertices;
   }
+  
+  @Override
+  public void setAdditionalInputs(List<NamedDescriptorProto> inputs) {
+    for (NamedDescriptorProto input : inputs) {
+      InputDescriptor id = DagTypeConverters
+          .convertInputDescriptorFromDAGPlan(input.getEntityDescriptor());
+      
+      InputSpec inputSpec = new InputSpec(input.getName(), id, 0);
+      additionalInputSpecs.add(inputSpec);
+    }
+    
+  }
+
+  @Override
+  public void setAdditionalOutputs(List<NamedDescriptorProto> outputs) {
+    for (NamedDescriptorProto output : outputs) {
+      OutputDescriptor od = DagTypeConverters
+          .convertOutputDescriptorFromDAGPlan(output.getEntityDescriptor());
+      
+      OutputSpec outputSpec = new OutputSpec(output.getName(), od, 0);
+      additionalOutputSpecs.add(outputSpec);
+    }
+  }
 
   @Override
   public int compareTo(Vertex other) {
@@ -1553,7 +1583,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @Override
   public synchronized List<InputSpec> getInputSpecList(int taskIndex) {
     inputSpecList = new ArrayList<InputSpec>(
-        this.getInputVerticesCount());
+        this.getInputVerticesCount() + additionalInputSpecs.size());
+    inputSpecList.addAll(additionalInputSpecs);
     for (Entry<Vertex, Edge> entry : this.getInputVertices().entrySet()) {
       InputSpec inputSpec = entry.getValue().getDestinationSpec(taskIndex);
       if (LOG.isDebugEnabled()) {
@@ -1570,7 +1601,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @Override
   public synchronized List<OutputSpec> getOutputSpecList(int taskIndex) {
     if (this.outputSpecList == null) {
-      outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount());
+      outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount()
+          + this.additionalOutputSpecs.size());
+      outputSpecList.addAll(additionalOutputSpecs);
       for (Entry<Vertex, Edge> entry : this.getOutputVertices().entrySet()) {
         OutputSpec outputSpec = entry.getValue().getSourceSpec(taskIndex);
         outputSpecList.add(outputSpec);

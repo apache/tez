@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.records.DAGProtos.NamedDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
@@ -71,6 +72,9 @@ public interface Vertex extends Comparable<Vertex> {
   void setInputVertices(Map<Vertex, Edge> inVertices);
   void setOutputVertices(Map<Vertex, Edge> outVertices);
 
+  void setAdditionalInputs(List<NamedDescriptorProto> inputs);
+  void setAdditionalOutputs(List<NamedDescriptorProto> outputs);
+  
   Map<Vertex, Edge> getInputVertices();
   Map<Vertex, Edge> getOutputVertices();
   

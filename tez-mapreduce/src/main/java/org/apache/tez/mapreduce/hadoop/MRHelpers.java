@@ -57,9 +57,14 @@ import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.mapreduce.combine.MRCombiner;
+import org.apache.tez.mapreduce.input.MRInputLegacy;
+import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 
 
@@ -661,4 +666,35 @@ public class MRHelpers {
     return mrAppMasterAdminOptions.trim()
         + " " + mrAppMasterUserOptions.trim();
   }
+  
+  /**
+   * Convenience method to add an MR Input to the specified vertex. The name of
+   * the Input is "MRInput" </p>
+   * 
+   * This should only be called for one vertex in a DAG
+   * 
+   * @param vertex
+   * @param userPayload
+   */
+  public static void addMRInput(Vertex vertex, byte[] userPayload) {
+    InputDescriptor id = new InputDescriptor(MRInputLegacy.class.getName())
+        .setUserPayload(userPayload);
+    vertex.addInput("MRInput", id);
+  }
+
+  /**
+   * Convenience method to add an MR Output to the specified vertex. The name of
+   * the Output is "MROutput" </p>
+   * 
+   * This should only be called for one vertex in a DAG
+   * 
+   * @param vertex
+   * @param userPayload
+   */
+  public static void addMROutput(Vertex vertex, byte[] userPayload) {
+    OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
+        .setUserPayload(userPayload);
+    vertex.addOutput("MROutput", od);
+  }
+
 }

@@ -20,10 +20,12 @@ package org.apache.tez.dag.api;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.Stack;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -31,7 +33,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -93,7 +94,7 @@ public class DAG { // FIXME rename to Topology
     edges.add(edge);
     return this;
   }
-
+  
   public String getName() {
     return this.name;
   }
@@ -166,6 +167,37 @@ public class DAG { // FIXME rename to Topology
       vertexMap.put(v.getVertexName(), new AnnotatedVertex(v));
     }
 
+    // Verify Input/Output names don't collide amongs themselves as well as with vertexNames
+    Set<String> namedIOs = new HashSet<String>();
+    for (Vertex v : vertices) {
+      for (NamedDescriptor<InputDescriptor> in : v.getInputs()) {
+        if (vertexMap.containsKey(in.getName())) {
+          throw new IllegalStateException(
+              "DAG contains a vertex and an Input to a vertex with the same name: "
+                  + in.getName());
+        }
+        if (namedIOs.contains(in.getName())) {
+          throw new IllegalStateException(
+              "DAG contains an Input or an Output with a repeated name: " + in.getName());
+        } else {
+          namedIOs.add(in.getName());
+        }
+      }
+      for (NamedDescriptor<OutputDescriptor> out : v.getOutputs()) {
+        if (vertexMap.containsKey(out.getName())) {
+          throw new IllegalStateException(
+              "DAG contains a vertex and an Output from a vertex with the same name: "
+                  + out.getName());
+        }
+        if (namedIOs.contains(out.getName())) {
+          throw new IllegalStateException(
+              "DAG contains an Input or an Output with a repeated name: " + out.getName());
+        } else {
+          namedIOs.add(out.getName());
+        }
+      }
+    }
+    
     detectCycles(edgeMap, vertexMap);
 
     if(restricted){
@@ -268,6 +300,16 @@ public class DAG { // FIXME rename to Topology
       vertexBuilder.setType(PlanVertexType.NORMAL); // vertex type is implicitly NORMAL until  TEZ-46.
       vertexBuilder.setProcessorDescriptor(DagTypeConverters
           .convertToDAGPlan(vertex.getProcessorDescriptor()));
+      if (vertex.getInputs().size() > 0) {
+        for (NamedDescriptor<InputDescriptor> input : vertex.getInputs()) {
+          vertexBuilder.addInputs(DagTypeConverters.convertToDAGPlan(input));
+        }
+      }
+      if (vertex.getOutputs().size() > 0) {
+        for (NamedDescriptor<OutputDescriptor> output : vertex.getOutputs()) {
+          vertexBuilder.addOutputs(DagTypeConverters.convertToDAGPlan(output));
+        }
+      }
 
       //task config
       PlanTaskConfiguration.Builder taskConfigBuilder = PlanTaskConfiguration.newBuilder();

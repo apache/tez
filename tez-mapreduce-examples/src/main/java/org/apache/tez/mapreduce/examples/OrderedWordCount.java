@@ -200,11 +200,10 @@ public class OrderedWordCount {
 
     List<Vertex> vertices = new ArrayList<Vertex>();
 
+    byte[] mapPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
     Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
-        MapProcessor.class.getName()).setUserPayload(
-        MRHelpers.createUserPayloadFromConf(mapStageConf)),
-        inputSplitInfo.getNumTasks(),
-        MRHelpers.getMapResource(mapStageConf));
+        MapProcessor.class.getName()).setUserPayload(mapPayload),
+        inputSplitInfo.getNumTasks(), MRHelpers.getMapResource(mapStageConf));
     mapVertex.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
     mapVertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
     Map<String, LocalResource> mapLocalResources =
@@ -216,6 +215,7 @@ public class OrderedWordCount {
     Map<String, String> mapEnv = new HashMap<String, String>();
     MRHelpers.updateEnvironmentForMRTasks(mapStageConf, mapEnv, true);
     mapVertex.setTaskEnvironment(mapEnv);
+    MRHelpers.addMRInput(mapVertex, mapPayload);
     vertices.add(mapVertex);
 
     Vertex ivertex = new Vertex("ivertex1", new ProcessorDescriptor(
@@ -230,18 +230,18 @@ public class OrderedWordCount {
     ivertex.setTaskEnvironment(ireduceEnv);
     vertices.add(ivertex);
 
+    byte[] finalReducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
     Vertex finalReduceVertex = new Vertex("finalreduce",
         new ProcessorDescriptor(
-            ReduceProcessor.class.getName()).setUserPayload(
-                MRHelpers.createUserPayloadFromConf(finalReduceConf)),
-                1,
-                MRHelpers.getReduceResource(finalReduceConf));
+            ReduceProcessor.class.getName()).setUserPayload(finalReducePayload),
+                1, MRHelpers.getReduceResource(finalReduceConf));
     finalReduceVertex.setJavaOpts(
         MRHelpers.getReduceJavaOpts(finalReduceConf));
     finalReduceVertex.setTaskLocalResources(commonLocalResources);
     Map<String, String> reduceEnv = new HashMap<String, String>();
     MRHelpers.updateEnvironmentForMRTasks(finalReduceConf, reduceEnv, false);
     finalReduceVertex.setTaskEnvironment(reduceEnv);
+    MRHelpers.addMROutput(finalReduceVertex, finalReducePayload);
     vertices.add(finalReduceVertex);
 
     DAG dag = new DAG("OrderedWordCount" + dagIndex);

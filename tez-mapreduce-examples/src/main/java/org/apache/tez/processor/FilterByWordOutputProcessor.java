@@ -64,21 +64,21 @@ public class FilterByWordOutputProcessor implements LogicalIOProcessor {
       Map<String, LogicalOutput> outputs) throws Exception {
 
     if (inputs.size() != 1) {
-      throw new IllegalStateException("TestBroadcast processor can only work with a single input");
+      throw new IllegalStateException("FilterByWordOutputProcessor processor can only work with a single input");
     }
 
     if (outputs.size() != 1) {
-      throw new IllegalStateException("TestBroadcast processor can only work with a single output");
+      throw new IllegalStateException("FilterByWordOutputProcessor processor can only work with a single output");
     }
 
     LogicalInput li = inputs.values().iterator().next();
     if (! (li instanceof ShuffledUnorderedKVInput)) {
-      throw new IllegalStateException("TestBroadcast processor can only work with ShuffledUnorderedKVInput");
+      throw new IllegalStateException("FilterByWordOutputProcessor processor can only work with ShuffledUnorderedKVInput");
     }
 
     LogicalOutput lo = outputs.values().iterator().next();
     if (! (lo instanceof MROutput)) {
-      throw new IllegalStateException("TestBroadcast processor can only work with MROutput");
+      throw new IllegalStateException("FilterByWordOutputProcessor processor can only work with MROutput");
     }
 
     ShuffledUnorderedKVInput kvInput = (ShuffledUnorderedKVInput) li;

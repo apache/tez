@@ -37,6 +37,7 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
+import org.apache.tez.dag.api.records.DAGProtos.NamedDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataMovementType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataSourceType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSchedulingType;
@@ -243,6 +244,14 @@ public class DagTypeConverters {
       builder
           .setUserPayload(ByteString.copyFrom(descriptor.getUserPayload()));
     }
+    return builder.build();
+  }
+  
+  public static NamedDescriptorProto convertToDAGPlan(
+      NamedDescriptor<? extends TezEntityDescriptor> descriptor) {
+    NamedDescriptorProto.Builder builder = NamedDescriptorProto.newBuilder();
+    builder.setName(descriptor.getName());
+    builder.setEntityDescriptor(convertToDAGPlan(descriptor.getDescriptor()));
     return builder.build();
   }
 

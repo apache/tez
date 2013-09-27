@@ -64,27 +64,21 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.Limits;
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.mapreduce.input.MRInputLegacy;
-import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
-import org.apache.tez.runtime.api.impl.InputSpec;
-import org.apache.tez.runtime.api.impl.OutputSpec;
+import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
-import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryModule;
@@ -511,23 +505,6 @@ public class YarnTezDagChild {
     conf.setBoolean("ipc.client.tcpnodelay", true);
     FileSystem.get(conf).setWorkingDirectory(getWorkingDirectory(conf));
 
-    // FIXME need Input/Output vertices else we have this hack
-    if (taskSpec.getInputs().isEmpty()) {
-      InputDescriptor mrInputDesc =
-          new InputDescriptor(MRInputLegacy.class.getName());
-      mrInputDesc.setUserPayload(
-          taskSpec.getProcessorDescriptor().getUserPayload());
-      taskSpec.getInputs().add(
-          new InputSpec("null", mrInputDesc, 0));
-    }
-    if (taskSpec.getOutputs().isEmpty()) {
-      OutputDescriptor mrOutputDesc =
-          new OutputDescriptor(MROutput.class.getName());
-      mrOutputDesc.setUserPayload(
-          taskSpec.getProcessorDescriptor().getUserPayload());
-      taskSpec.getOutputs().add(
-          new OutputSpec("null", mrOutputDesc, 0));
-    }
     String [] localDirs = StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
     conf.setStrings(TezJobConfig.LOCAL_DIRS, localDirs);
     LOG.info("LocalDirs for child: " + Arrays.toString(localDirs));
