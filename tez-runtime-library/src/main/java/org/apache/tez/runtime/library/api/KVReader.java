@@ -28,9 +28,8 @@ import org.apache.tez.runtime.api.Reader;
  * Example usage
  * <code>
  * while (kvReader.next()) {
- *   KVRecord kvRecord = getCurrentKV();
- *   Object key =  kvRecord.getKey();
- *   Iterable values = kvRecord.getValues();
+ *   Object key =  kvReader.getKey();
+ *   Iterable<Object> values = kvReader.getValues();
  * </code>
  *
  */
@@ -45,37 +44,16 @@ public interface KVReader extends Reader {
    */
   public boolean next() throws IOException;
 
+  
   /**
-   * Return the current key/value(s) pair. Use moveToNext() to advance.
+   * Returns the current key
    * @return
-   * @throws IOException
    */
-  public KVRecord getCurrentKV() throws IOException;
+  public Object getCurrentKey() throws IOException;
   
-  // TODO NEWTEZ Move this to getCurrentKey and getCurrentValue independently. Otherwise usage pattern seems to be getCurrentKV.getKey, getCurrentKV.getValue
-  
-  // TODO NEWTEZ KVRecord which does not need to return a list!
-  // TODO NEWTEZ Parameterize this
   /**
-   * Represents a key and an associated set of values
-   *
+   * Returns an Iterable view of the values associated with the current key
+   * @return
    */
-  public static class KVRecord {
-
-    private Object key;
-    private Iterable<Object> values;
-
-    public KVRecord(Object key, Iterable<Object> values) {
-      this.key = key;
-      this.values = values;
-    }
-
-    public Object getKey() {
-      return this.key;
-    }
-
-    public Iterable<Object> getValues() {
-      return this.values;
-    }
-  }
+  public Iterable<Object> getCurrentValues() throws IOException;
 }

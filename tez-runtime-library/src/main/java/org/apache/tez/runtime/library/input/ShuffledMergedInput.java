@@ -137,10 +137,13 @@ public class ShuffledMergedInput implements LogicalInput {
         return vIter.moveToNext();
       }
 
+      public Object getCurrentKey() throws IOException {
+        return vIter.getKey();
+      }
+      
       @SuppressWarnings("unchecked")
-      @Override
-      public KVRecord getCurrentKV() {
-        return new KVRecord(vIter.getKey(), vIter.getValues());
+      public Iterable<Object> getCurrentValues() throws IOException {
+        return vIter.getValues();
       }
     };
   }

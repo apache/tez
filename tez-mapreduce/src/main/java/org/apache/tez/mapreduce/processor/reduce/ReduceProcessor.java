@@ -227,8 +227,8 @@ implements LogicalIOProcessor {
     public boolean more() throws IOException {
       boolean more = in.next();
       if(more) {
-        currentKey = in.getCurrentKV().getKey();
-        currentValues = in.getCurrentKV().getValues().iterator();
+        currentKey = in.getCurrentKey();
+        currentValues = in.getCurrentValues().iterator();
       } else {
         currentKey = null;
         currentValues = null;

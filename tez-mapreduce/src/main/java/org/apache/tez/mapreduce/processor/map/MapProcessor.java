@@ -229,13 +229,13 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     @Override
     public Object getCurrentKey() throws IOException,
         InterruptedException {
-      return reader.getCurrentKV().getKey();
+      return reader.getCurrentKey();
     }
 
     @Override
     public Object getCurrentValue() throws IOException,
         InterruptedException {
-      return reader.getCurrentKV().getValues().iterator().next();
+      return reader.getCurrentValues().iterator().next();
     }
 
     @Override

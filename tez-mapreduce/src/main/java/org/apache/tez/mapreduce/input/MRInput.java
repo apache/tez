@@ -421,22 +421,30 @@ public class MRInput implements LogicalInput {
     }
 
     @Override
-    public KVRecord getCurrentKV() throws IOException {
-      KVRecord kvRecord = null;
+    public Object getCurrentKey() throws IOException {
+      if (localNewApi) {
+        try {
+          return newRecordReader.getCurrentKey();
+        } catch (InterruptedException e) {
+          throw new IOException("Interrupted while fetching next key", e);
+        }
+      } else {
+        return key;
+      }
+    }
+    
+    @Override
+    public Iterable<Object> getCurrentValues() throws IOException {
       if (localNewApi) {
         try {
           valueIterator.setValue(newRecordReader.getCurrentValue());
-          kvRecord = new KVRecord(newRecordReader.getCurrentKey(), valueIterable);
         } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new IOException("Interrupted while fetching next key-value", e);
+          throw new IOException("Interrupted while fetching next value(s)", e);
         }
-        
       } else {
         valueIterator.setValue(value);
-        kvRecord = new KVRecord(key, valueIterable);
       }
-      return kvRecord;
+      return valueIterable;
     }
   };
 }

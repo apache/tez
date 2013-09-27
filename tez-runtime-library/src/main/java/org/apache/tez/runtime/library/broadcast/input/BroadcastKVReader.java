@@ -123,11 +123,15 @@ public class BroadcastKVReader<K, V> implements KVReader {
     }
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public KVRecord getCurrentKV() throws IOException {
+  public Object getCurrentKey() throws IOException {
+    return (Object) key;
+  }
+  
+  @SuppressWarnings("unchecked")
+  public Iterable<Object> getCurrentValues() throws IOException {
     this.valueIterator.setValue(value);
-    return new KVRecord((Object)key, (Iterable<Object>)this.valueIterable);
+    return (Iterable<Object>) this.valueIterable;
   }
 
   /**
