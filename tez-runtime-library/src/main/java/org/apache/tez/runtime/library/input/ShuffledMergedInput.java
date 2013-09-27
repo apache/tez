@@ -32,7 +32,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.library.api.KVReader;
+import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.ValuesIterator;
 import org.apache.tez.runtime.library.common.shuffle.impl.Shuffle;
@@ -121,7 +121,7 @@ public class ShuffledMergedInput implements LogicalInput {
    * @return a KVReader over the sorted input.
    */
   @Override
-  public KVReader getReader() throws IOException {
+  public KeyValuesReader getReader() throws IOException {
     if (rawIter == null) {
       try {
         waitForInputReady();
@@ -130,7 +130,7 @@ public class ShuffledMergedInput implements LogicalInput {
         throw new IOException("Interrupted while waiting for input ready", e);
       }
     }
-    return new KVReader() {
+    return new KeyValuesReader() {
 
       @Override
       public boolean next() throws IOException {

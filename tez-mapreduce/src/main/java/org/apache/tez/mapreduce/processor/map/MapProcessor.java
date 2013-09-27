@@ -48,8 +48,8 @@ import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
-import org.apache.tez.runtime.library.api.KVReader;
-import org.apache.tez.runtime.library.api.KVWriter;
+import org.apache.tez.runtime.library.api.KeyValueReader;
+import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -113,7 +113,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
       }
     }
 
-    KVWriter kvWriter = null;
+    KeyValueWriter kvWriter = null;
     if (!(out instanceof OnFileSortedOutput)) {
       kvWriter = ((MROutput)out).getWriter();
     } else {
@@ -133,7 +133,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
       final JobConf job,
       final MRTaskReporter reporter,
       final MRInputLegacy input,
-      final KVWriter output
+      final KeyValueWriter output
       ) throws IOException, InterruptedException {
 
     // Initialize input in-line since it sets parameters which may be used by the processor.
@@ -156,7 +156,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
   private void runNewMapper(final JobConf job,
       MRTaskReporter reporter,
       final MRInputLegacy in,
-      KVWriter out
+      KeyValueWriter out
       ) throws IOException, InterruptedException {
 
     // Initialize input in-line since it sets parameters which may be used by the processor.
@@ -206,7 +206,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
   private static class NewRecordReader extends
       org.apache.hadoop.mapreduce.RecordReader {
     private final MRInput in;
-    private KVReader reader;
+    private KeyValueReader reader;
 
     private NewRecordReader(MRInput in) throws IOException {
       this.in = in;
@@ -235,7 +235,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     @Override
     public Object getCurrentValue() throws IOException,
         InterruptedException {
-      return reader.getCurrentValues().iterator().next();
+      return reader.getCurrentValue();
     }
 
     @Override
@@ -299,9 +299,9 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
 
   private static class OldOutputCollector
   implements OutputCollector {
-    private final KVWriter output;
+    private final KeyValueWriter output;
 
-    OldOutputCollector(KVWriter output) {
+    OldOutputCollector(KeyValueWriter output) {
       this.output = output;
     }
 
@@ -312,9 +312,9 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
 
   private class NewOutputCollector
     extends org.apache.hadoop.mapreduce.RecordWriter {
-    private final KVWriter out;
+    private final KeyValueWriter out;
 
-    NewOutputCollector(KVWriter out) throws IOException {
+    NewOutputCollector(KeyValueWriter out) throws IOException {
       this.out = out;
     }
 

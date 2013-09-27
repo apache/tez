@@ -20,40 +20,21 @@ package org.apache.tez.runtime.library.api;
 
 import java.io.IOException;
 
-import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.Writer;
 
 /**
- * A key/value(s) pair based {@link Reader}.
- * 
- * Example usage
- * <code>
- * while (kvReader.next()) {
- *   Object key =  kvReader.getKey();
- *   Iterable<Object> values = kvReader.getValues();
- * </code>
- *
+ * A key/value(s) pair based {@link Writer}
  */
-public interface KVReader extends Reader {
-
+public interface KeyValueWriter extends Writer {
   /**
-   * Moves to the next key/values(s) pair
+   * Writes a key/value pair.
    * 
-   * @return true if another key/value(s) pair exists, false if there are no more.
+   * @param key
+   *          the key to write
+   * @param value
+   *          the value to write
    * @throws IOException
    *           if an error occurs
    */
-  public boolean next() throws IOException;
-
-  
-  /**
-   * Returns the current key
-   * @return
-   */
-  public Object getCurrentKey() throws IOException;
-  
-  /**
-   * Returns an Iterable view of the values associated with the current key
-   * @return
-   */
-  public Iterable<Object> getCurrentValues() throws IOException;
+  public void write(Object key, Object value) throws IOException;
 }

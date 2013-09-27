@@ -36,8 +36,8 @@ import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
-import org.apache.tez.runtime.library.api.KVReader;
-import org.apache.tez.runtime.library.api.KVWriter;
+import org.apache.tez.runtime.library.api.KeyValueReader;
+import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
 public class FilterByWordInputProcessor implements LogicalIOProcessor {
@@ -107,12 +107,12 @@ public class FilterByWordInputProcessor implements LogicalIOProcessor {
       }
     }
 
-    KVReader kvReader = mrInput.getReader();
-    KVWriter kvWriter = kvOutput.getWriter();
+    KeyValueReader kvReader = mrInput.getReader();
+    KeyValueWriter kvWriter = kvOutput.getWriter();
 
     while (kvReader.next()) {
       Object key = kvReader.getCurrentKey();
-      Object val = kvReader.getCurrentValues().iterator().next();
+      Object val = kvReader.getCurrentValue();
 
       Text valText = (Text) val;
       String readVal = valText.toString();

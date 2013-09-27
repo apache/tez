@@ -45,8 +45,8 @@ import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
-import org.apache.tez.runtime.library.api.KVReader;
-import org.apache.tez.runtime.library.api.KVWriter;
+import org.apache.tez.runtime.library.api.KeyValuesReader;
+import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
@@ -130,9 +130,9 @@ implements LogicalIOProcessor {
       throw new IOException("Illegal input to reduce: " + in.getClass());
     }
     ShuffledMergedInputLegacy shuffleInput = (ShuffledMergedInputLegacy)in;
-    KVReader kvReader = shuffleInput.getReader();
+    KeyValuesReader kvReader = shuffleInput.getReader();
 
-    KVWriter kvWriter = null;
+    KeyValueWriter kvWriter = null;
     if((out instanceof MROutput)) {
       kvWriter = ((MROutput) out).getWriter();
     } else if ((out instanceof OnFileSortedOutput)) {
@@ -162,11 +162,11 @@ implements LogicalIOProcessor {
 
   void runOldReducer(JobConf job,
       final MRTaskReporter reporter,
-      KVReader input,
+      KeyValuesReader input,
       RawComparator comparator,
       Class keyClass,
       Class valueClass,
-      final KVWriter output) throws IOException, InterruptedException {
+      final KeyValueWriter output) throws IOException, InterruptedException {
 
     Reducer reducer =
         ReflectionUtils.newInstance(job.getReducerClass(), job);
@@ -210,12 +210,12 @@ implements LogicalIOProcessor {
   private static class ReduceValuesIterator<KEY,VALUE>
   implements Iterator<VALUE> {
     private Counter reduceInputValueCounter;
-    private KVReader in;
+    private KeyValuesReader in;
     private Progressable reporter;
     private Object currentKey;
     private Iterator<Object> currentValues;
 
-    public ReduceValuesIterator (KVReader in,
+    public ReduceValuesIterator (KeyValuesReader in,
         Progressable reporter,
         Counter reduceInputValueCounter)
             throws IOException {
@@ -268,7 +268,7 @@ implements LogicalIOProcessor {
       RawComparator comparator,
       Class keyClass,
       Class valueClass,
-      final KVWriter out
+      final KeyValueWriter out
       ) throws IOException,InterruptedException,
       ClassNotFoundException {
 

@@ -18,7 +18,6 @@
 package org.apache.tez.mapreduce.input;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -39,9 +38,9 @@ import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormatCounter;
-import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
+import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
@@ -53,7 +52,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.library.api.KVReader;
+import org.apache.tez.runtime.library.api.KeyValueReader;
 
 import com.google.common.base.Preconditions;
 
@@ -167,7 +166,7 @@ public class MRInput implements LogicalInput {
   }
 
   @Override
-  public KVReader getReader() throws IOException {
+  public KeyValueReader getReader() throws IOException {
     Preconditions
         .checkState(recordReaderCreated == false,
             "Only a single instance of record reader can be created for this input.");
@@ -227,46 +226,7 @@ public class MRInput implements LogicalInput {
   private TaskAttemptContext createTaskAttemptContext() {
     return new TaskAttemptContextImpl(this.jobConf, inputContext, true);
   }
-  
 
-  private static class SimpleValueIterator implements Iterator<Object> {
-
-    private Object value;
-
-    public void setValue(Object value) {
-      this.value = value;
-    }
-
-    public boolean hasNext() {
-      return value != null;
-    }
-
-    public Object next() {
-      Object value = this.value;
-      this.value = null;
-      return value;
-    }
-
-    public void remove() {
-      throw new UnsupportedOperationException();
-    }
-  }
-
-  private static class SimpleIterable implements Iterable<Object> {
-    private final Iterator<Object> iterator;
-    public SimpleIterable(Iterator<Object> iterator) {
-      this.iterator = iterator;
-    }
-
-    @Override
-    public Iterator<Object> iterator() {
-      return iterator;
-    }
-  }
-
-
-
-  
   @SuppressWarnings("unchecked")
   private InputSplit getOldSplitDetails(TaskSplitIndex splitMetaInfo)
       throws IOException {
@@ -373,13 +333,10 @@ public class MRInput implements LogicalInput {
     return allTaskSplitMetaInfo;
   }
   
-  private class MRInputKVReader implements KVReader {
+  private class MRInputKVReader implements KeyValueReader {
     
     Object key;
     Object value;
-
-    private SimpleValueIterator valueIterator = new SimpleValueIterator();
-    private SimpleIterable valueIterable = new SimpleIterable(valueIterator);
 
     private final boolean localNewApi;
     
@@ -432,19 +389,18 @@ public class MRInput implements LogicalInput {
         return key;
       }
     }
-    
+
     @Override
-    public Iterable<Object> getCurrentValues() throws IOException {
+    public Object getCurrentValue() throws IOException {
       if (localNewApi) {
         try {
-          valueIterator.setValue(newRecordReader.getCurrentValue());
+          return newRecordReader.getCurrentValue();
         } catch (InterruptedException e) {
-          throw new IOException("Interrupted while fetching next value(s)", e);
+          throw new IOException("Interrupted while fetching next value", e);
         }
       } else {
-        valueIterator.setValue(value);
+        return value;
       }
-      return valueIterable;
     }
   };
 }

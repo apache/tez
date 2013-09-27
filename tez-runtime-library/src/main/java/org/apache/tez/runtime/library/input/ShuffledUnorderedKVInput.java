@@ -28,7 +28,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.library.api.KVReader;
+import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.broadcast.input.BroadcastKVReader;
 import org.apache.tez.runtime.library.broadcast.input.BroadcastShuffleManager;
 
@@ -63,7 +63,7 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   }
 
   @Override
-  public KVReader getReader() throws Exception {
+  public KeyValueReader getReader() throws Exception {
     return this.kvReader;
   }
 

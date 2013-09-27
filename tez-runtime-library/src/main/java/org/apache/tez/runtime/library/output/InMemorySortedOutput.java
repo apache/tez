@@ -27,7 +27,7 @@ import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Output;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.Writer;
-import org.apache.tez.runtime.library.api.KVWriter;
+import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.common.sort.impl.dflt.InMemoryShuffleSorter;
 
 /**
@@ -52,7 +52,7 @@ public class InMemorySortedOutput implements LogicalOutput {
 
   @Override
   public Writer getWriter() throws IOException {
-    return new KVWriter() {
+    return new KeyValueWriter() {
       
       @Override
       public void write(Object key, Object value) throws IOException {

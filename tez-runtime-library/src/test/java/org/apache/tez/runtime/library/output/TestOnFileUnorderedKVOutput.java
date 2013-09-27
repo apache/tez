@@ -48,7 +48,7 @@ import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.impl.TezOutputContextImpl;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
-import org.apache.tez.runtime.library.api.KVWriter;
+import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.runtime.library.testutils.KVDataGen;
@@ -125,7 +125,7 @@ public class TestOnFileUnorderedKVOutput {
     events = kvOutput.initialize(outputContext);
     assertTrue(events != null && events.size() == 0);
 
-    KVWriter kvWriter = kvOutput.getWriter();
+    KeyValueWriter kvWriter = kvOutput.getWriter();
     List<KVPair> data = KVDataGen.generateTestData(true);
     for (KVPair kvp : data) {
       kvWriter.write(kvp.getKey(), kvp.getvalue());

@@ -19,7 +19,6 @@
 package org.apache.tez.runtime.library.broadcast.input;
 
 import java.io.IOException;
-import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -30,15 +29,15 @@ import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.runtime.library.api.KVReader;
+import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.shuffle.impl.InMemoryReader;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput;
-import org.apache.tez.runtime.library.shuffle.common.MemoryFetchedInput;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
+import org.apache.tez.runtime.library.shuffle.common.MemoryFetchedInput;
 
-public class BroadcastKVReader<K, V> implements KVReader {
+public class BroadcastKVReader<K, V> implements KeyValueReader {
 
   private static final Log LOG = LogFactory.getLog(BroadcastKVReader.class);
   
@@ -53,9 +52,6 @@ public class BroadcastKVReader<K, V> implements KVReader {
   private final DataInputBuffer keyIn;
   private final DataInputBuffer valIn;
 
-  private final SimpleValueIterator valueIterator;
-  private final SimpleIterable valueIterable;
-  
   private K key;
   private V value;
   
@@ -89,9 +85,6 @@ public class BroadcastKVReader<K, V> implements KVReader {
     this.keyDeserializer.open(keyIn);
     this.valDeserializer = serializationFactory.getDeserializer(valClass);
     this.valDeserializer.open(valIn);
-    
-    this.valueIterator = new SimpleValueIterator();
-    this.valueIterable = new SimpleIterable(this.valueIterator);
   }
 
   // TODO NEWTEZ Maybe add an interface to check whether next will block.
@@ -127,11 +120,10 @@ public class BroadcastKVReader<K, V> implements KVReader {
   public Object getCurrentKey() throws IOException {
     return (Object) key;
   }
-  
-  @SuppressWarnings("unchecked")
-  public Iterable<Object> getCurrentValues() throws IOException {
-    this.valueIterator.setValue(value);
-    return (Iterable<Object>) this.valueIterable;
+
+  @Override
+  public Object getCurrentValue() throws IOException {
+    return value;
   }
 
   /**
@@ -192,44 +184,6 @@ public class BroadcastKVReader<K, V> implements KVReader {
     } else {
       return new IFile.Reader(conf, fetchedInput.getInputStream(),
           fetchedInput.getSize(), codec, null);
-    }
-  }
-
-  
-  
-  // TODO NEWTEZ Move this into a common class. Also used in MRInput
-  private class SimpleValueIterator implements Iterator<V> {
-
-    private V value;
-
-    public void setValue(V value) {
-      this.value = value;
-    }
-
-    public boolean hasNext() {
-      return value != null;
-    }
-
-    public V next() {
-      V value = this.value;
-      this.value = null;
-      return value;
-    }
-
-    public void remove() {
-      throw new UnsupportedOperationException();
-    }
-  }
-
-  private class SimpleIterable implements Iterable<V> {
-    private final Iterator<V> iterator;
-    public SimpleIterable(Iterator<V> iterator) {
-      this.iterator = iterator;
-    }
-
-    @Override
-    public Iterator<V> iterator() {
-      return iterator;
     }
   }
 }

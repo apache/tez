@@ -30,7 +30,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
-import org.apache.tez.runtime.library.api.KVWriter;
+import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
 import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
@@ -68,8 +68,8 @@ public class OnFileSortedOutput implements LogicalOutput {
   }
 
   @Override
-  public KVWriter getWriter() throws IOException {
-    return new KVWriter() {
+  public KeyValueWriter getWriter() throws IOException {
+    return new KeyValueWriter() {
       @Override
       public void write(Object key, Object value) throws IOException {
         sorter.write(key, value);

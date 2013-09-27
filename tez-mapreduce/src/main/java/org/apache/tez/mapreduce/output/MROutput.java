@@ -35,7 +35,7 @@ import org.apache.tez.mapreduce.processor.MRTaskReporter;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezOutputContext;
-import org.apache.tez.runtime.library.api.KVWriter;
+import org.apache.tez.runtime.library.api.KeyValueWriter;
 
 public class MROutput implements LogicalOutput {
 
@@ -235,8 +235,8 @@ public class MROutput implements LogicalOutput {
   }
 
   @Override
-  public KVWriter getWriter() throws IOException {
-    return new KVWriter() {
+  public KeyValueWriter getWriter() throws IOException {
+    return new KeyValueWriter() {
       private final boolean useNewWriter = useNewApi;
 
       @SuppressWarnings("unchecked")
