@@ -18,17 +18,25 @@
 
 package org.apache.tez.dag.app.dag.event;
 
+import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGAppMasterEventDAGFinished extends DAGAppMasterEvent {
   private final TezDAGID dagId;
+  private final DAGState dagState;
 
-  public DAGAppMasterEventDAGFinished(TezDAGID dagId) {
+  public DAGAppMasterEventDAGFinished(TezDAGID dagId,
+      DAGState dagState) {
     super(DAGAppMasterEventType.DAG_FINISHED);
     this.dagId = dagId;
+    this.dagState = dagState;
   }
-  
+
   public TezDAGID getDAGId() {
     return dagId;
+  }
+
+  public DAGState getDAGState() {
+    return dagState;
   }
 }

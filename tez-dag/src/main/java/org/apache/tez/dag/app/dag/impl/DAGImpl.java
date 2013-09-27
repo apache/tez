@@ -713,7 +713,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
     */
     if (finishTime == 0) setFinishTime();
-    eventHandler.handle(new DAGAppMasterEventDAGFinished(getID()));
+    eventHandler.handle(new DAGAppMasterEventDAGFinished(getID(), finalState));
 
     // TODO Metrics
     /*
@@ -869,7 +869,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         return dag.finished(DAGState.FAILED);
       }
     }
-    
+
     private void createDAGEdges(DAGImpl dag) {
       for (EdgePlan edgePlan : dag.getJobPlan().getEdgeList()) {
         EdgeProperty edgeProperty = DagTypeConverters
@@ -1156,7 +1156,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
 
   }
-  
+
   private static class VertexReRunningTransition implements
       SingleArcTransition<DAGImpl, DAGEvent> {
     @Override
@@ -1165,7 +1165,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       Vertex vertex = job.vertices.get(vertexEvent.getVertexId());
       job.numCompletedVertices--;
       job.vertexReRunning(vertex);
-      
+
 
       LOG.info("Vertex " + vertex.getVertexId() + " re-running."
           + ", numCompletedVertices=" + job.numCompletedVertices
@@ -1175,13 +1175,13 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           + ", numVertices=" + job.numVertices);
     }
   }
-  
+
   private void vertexSucceeded(Vertex vertex) {
     numSuccessfulVertices++;
     // TODO: Metrics
     //job.metrics.completedTask(task);
   }
-  
+
   private void vertexReRunning(Vertex vertex) {
     numSuccessfulVertices--;
     addDiagnostic("Vertex re-running " + vertex.getVertexId());

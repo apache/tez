@@ -82,6 +82,12 @@ import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 /**
  * An MRR job built on top of word count to return words sorted by
  * their frequency of occurrence.
+ *
+ * Use -DUSE_TEZ_SESSION=true to run jobs in a session mode.
+ * If multiple input/outputs are provided, this job will process each pair
+ * as a separate DAG in a sequential manner.
+ * Use -DINTER_JOB_SLEEP_INTERVAL=<N> where N is the sleep interval in seconds
+ * between the sequential DAGs.
  */
 public class OrderedWordCount {
 
@@ -136,74 +142,9 @@ public class OrderedWordCount {
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
-    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-    if (otherArgs.length != 2) {
-      System.err.println("Usage: wordcount <in> <out>");
-      System.exit(2);
-    }
-    String inputPath = otherArgs[0];
-    String outputPath = otherArgs[1];
-
-    boolean useTezSession = conf.getBoolean("USE_TEZ_SESSION", true);
-
-    UserGroupInformation.setConfiguration(conf);
-    String user = UserGroupInformation.getCurrentUser().getShortUserName();
-
-    TezConfiguration tezConf = new TezConfiguration(conf);
-    TezClient tezClient = new TezClient(tezConf);
-    ApplicationId appId = tezClient.createApplication();
-
-    FileSystem fs = FileSystem.get(conf);
-    if (fs.exists(new Path(outputPath))) {
-      throw new FileAlreadyExistsException("Output directory " + outputPath +
-          " already exists");
-    }
-
-    String stagingDirStr = Path.SEPARATOR + "user" + Path.SEPARATOR
-        + user + Path.SEPARATOR+ ".staging" + Path.SEPARATOR
-        + Path.SEPARATOR + appId.toString();
-    Path stagingDir = new Path(stagingDirStr);
-    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
-    stagingDir = fs.makeQualified(stagingDir);
-    TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
-
-    tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
-        MRHelpers.getMRAMJavaOpts(conf));
-
-    String jarPath = ClassUtil.findContainingJar(OrderedWordCount.class);
-    if (jarPath == null)  {
-        throw new TezUncheckedException("Could not find any jar containing"
-            + " OrderedWordCount.class in the classpath");
-    }
-    Path remoteJarPath = fs.makeQualified(
-        new Path(stagingDir, "dag_job.jar"));
-    fs.copyFromLocalFile(new Path(jarPath), remoteJarPath);
-    FileStatus jarFileStatus = fs.getFileStatus(remoteJarPath);
-
-    Map<String, LocalResource> commonLocalResources =
-        new TreeMap<String, LocalResource>();
-    LocalResource dagJarLocalRsrc = LocalResource.newInstance(
-        ConverterUtils.getYarnUrlFromPath(remoteJarPath),
-        LocalResourceType.FILE,
-        LocalResourceVisibility.APPLICATION,
-        jarFileStatus.getLen(),
-        jarFileStatus.getModificationTime());
-    commonLocalResources.put("dag_job.jar", dagJarLocalRsrc);
-
-    TezSession tezSession = null;
-    AMConfiguration amConfig = new AMConfiguration("default", null,
-        commonLocalResources, tezConf, null);
-    if (useTezSession) {
-      LOG.info("Creating Tez Session");
-      TezSessionConfiguration sessionConfig =
-          new TezSessionConfiguration(amConfig, tezConf);
-      tezSession = new TezSession("OrderedWordCountSession",
-          sessionConfig);
-      tezSession.start();
-      LOG.info("Created Tez Session");
-    }
+  private static DAG createDAG(FileSystem fs, Configuration conf,
+      Map<String, LocalResource> commonLocalResources, Path stagingDir,
+      int dagIndex, String inputPath, String outputPath) throws Exception {
 
     Configuration mapStageConf = new JobConf(conf);
     mapStageConf.set(MRJobConfig.MAP_CLASS_ATTR,
@@ -303,62 +244,170 @@ public class OrderedWordCount {
     finalReduceVertex.setTaskEnvironment(reduceEnv);
     vertices.add(finalReduceVertex);
 
-    DAG dag = new DAG("OrderedWordCount");
+    DAG dag = new DAG("OrderedWordCount" + dagIndex);
     for (int i = 0; i < vertices.size(); ++i) {
       dag.addVertex(vertices.get(i));
       if (i != 0) {
         dag.addEdge(new Edge(vertices.get(i-1),
             vertices.get(i), new EdgeProperty(
                 DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
-                SchedulingType.SEQUENTIAL, 
+                SchedulingType.SEQUENTIAL,
                 new OutputDescriptor(
                     OnFileSortedOutput.class.getName()),
                 new InputDescriptor(
                     ShuffledMergedInputLegacy.class.getName()))));
       }
     }
+    return dag;
+  }
 
-    DAGClient dagClient;
+  public static void main(String[] args) throws Exception {
+    Configuration conf = new Configuration();
+    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+    boolean useTezSession = conf.getBoolean("USE_TEZ_SESSION", true);
+    long interJobSleepTimeout = conf.getInt("INTER_JOB_SLEEP_INTERVAL", 0)
+        * 1000;
+    if (((otherArgs.length%2) != 0)
+        || (!useTezSession && otherArgs.length != 2)) {
+      System.err.println("Usage: wordcount <in> <out>");
+      System.err.println("Usage (In Session Mode):"
+          + " wordcount <in1> <out1> ... <inN> <outN>");
+      System.exit(2);
+    }
+    List<String> inputPaths = new ArrayList<String>();
+    List<String> outputPaths = new ArrayList<String>();
+
+    for (int i = 0; i < otherArgs.length; i+=2) {
+      inputPaths.add(otherArgs[i]);
+      outputPaths.add(otherArgs[i+1]);
+    }
+
+    UserGroupInformation.setConfiguration(conf);
+    String user = UserGroupInformation.getCurrentUser().getShortUserName();
+
+    TezConfiguration tezConf = new TezConfiguration(conf);
+    TezClient tezClient = new TezClient(tezConf);
+    ApplicationId appId = tezClient.createApplication();
+
+    FileSystem fs = FileSystem.get(conf);
+
+    String stagingDirStr = Path.SEPARATOR + "user" + Path.SEPARATOR
+        + user + Path.SEPARATOR+ ".staging" + Path.SEPARATOR
+        + Path.SEPARATOR + appId.toString();
+    Path stagingDir = new Path(stagingDirStr);
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
+    stagingDir = fs.makeQualified(stagingDir);
+    TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
+
+    tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
+        MRHelpers.getMRAMJavaOpts(conf));
+
+    String jarPath = ClassUtil.findContainingJar(OrderedWordCount.class);
+    if (jarPath == null)  {
+        throw new TezUncheckedException("Could not find any jar containing"
+            + " OrderedWordCount.class in the classpath");
+    }
+    Path remoteJarPath = fs.makeQualified(
+        new Path(stagingDir, "dag_job.jar"));
+    fs.copyFromLocalFile(new Path(jarPath), remoteJarPath);
+    FileStatus jarFileStatus = fs.getFileStatus(remoteJarPath);
+
+    Map<String, LocalResource> commonLocalResources =
+        new TreeMap<String, LocalResource>();
+    LocalResource dagJarLocalRsrc = LocalResource.newInstance(
+        ConverterUtils.getYarnUrlFromPath(remoteJarPath),
+        LocalResourceType.FILE,
+        LocalResourceVisibility.APPLICATION,
+        jarFileStatus.getLen(),
+        jarFileStatus.getModificationTime());
+    commonLocalResources.put("dag_job.jar", dagJarLocalRsrc);
+
+    TezSession tezSession = null;
+    AMConfiguration amConfig = new AMConfiguration("default", null,
+        commonLocalResources, tezConf, null);
     if (useTezSession) {
-      LOG.info("Submitting DAG to Tez Session");
-      dagClient = tezSession.submitDAG(dag);
-      LOG.info("Submitted DAG to Tez Session");
-    } else {
-      LOG.info("Submitting DAG as a new Tez Application");
-      dagClient = tezClient.submitDAGApplication(dag, amConfig);
+      LOG.info("Creating Tez Session");
+      TezSessionConfiguration sessionConfig =
+          new TezSessionConfiguration(amConfig, tezConf);
+      tezSession = new TezSession("OrderedWordCountSession", appId,
+          sessionConfig);
+      tezSession.start();
+      LOG.info("Created Tez Session");
     }
 
     DAGStatus dagStatus = null;
     try {
-      while (true) {
-        dagStatus = dagClient.getDAGStatus();
-        if(dagStatus.getState() == DAGStatus.State.RUNNING ||
-            dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
-            dagStatus.getState() == DAGStatus.State.FAILED ||
-            dagStatus.getState() == DAGStatus.State.KILLED ||
-            dagStatus.getState() == DAGStatus.State.ERROR) {
-          break;
-        }
-        try {
-          Thread.sleep(500);
-        } catch (InterruptedException e) {
-          // continue;
-        }
-      }
-
-      while (dagStatus.getState() == DAGStatus.State.RUNNING) {
-        try {
-          ExampleDriver.printMRRDAGStatus(dagStatus);
+      for (int dagIndex = 1; dagIndex <= inputPaths.size(); ++dagIndex) {
+        if (dagIndex != 1
+            && interJobSleepTimeout > 0) {
           try {
-            Thread.sleep(1000);
+            LOG.info("Sleeping between jobs, sleepInterval="
+                + (interJobSleepTimeout/1000));
+            Thread.sleep(interJobSleepTimeout);
+          } catch (InterruptedException e) {
+            LOG.info("Main thread interrupted. Breaking out of job loop");
+            break;
+          }
+        }
+
+        String inputPath = inputPaths.get(dagIndex-1);
+        String outputPath = outputPaths.get(dagIndex-1);
+
+        if (fs.exists(new Path(outputPath))) {
+          throw new FileAlreadyExistsException("Output directory "
+              + outputPath + " already exists");
+        }
+        LOG.info("Running OrderedWordCount DAG"
+            + ", dagIndex=" + dagIndex
+            + ", inputPath=" + inputPath
+            + ", outputPath=" + outputPath);
+
+        DAG dag = createDAG(fs, conf, commonLocalResources, stagingDir,
+            dagIndex, inputPath, outputPath);
+
+        DAGClient dagClient;
+        if (useTezSession) {
+          LOG.info("Submitting DAG to Tez Session, dagIndex=" + dagIndex);
+          dagClient = tezSession.submitDAG(dag);
+          LOG.info("Submitted DAG to Tez Session, dagIndex=" + dagIndex);
+        } else {
+          LOG.info("Submitting DAG as a new Tez Application");
+          dagClient = tezClient.submitDAGApplication(dag, amConfig);
+        }
+
+        while (true) {
+          dagStatus = dagClient.getDAGStatus();
+          if(dagStatus.getState() == DAGStatus.State.RUNNING ||
+              dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
+              dagStatus.getState() == DAGStatus.State.FAILED ||
+              dagStatus.getState() == DAGStatus.State.KILLED ||
+              dagStatus.getState() == DAGStatus.State.ERROR) {
+            break;
+          }
+          try {
+            Thread.sleep(500);
           } catch (InterruptedException e) {
             // continue;
           }
-          dagStatus = dagClient.getDAGStatus();
-        } catch (TezException e) {
-          LOG.fatal("Failed to get application progress. Exiting");
-          System.exit(-1);
         }
+
+        while (dagStatus.getState() == DAGStatus.State.RUNNING) {
+          try {
+            ExampleDriver.printMRRDAGStatus(dagStatus);
+            try {
+              Thread.sleep(1000);
+            } catch (InterruptedException e) {
+              // continue;
+            }
+            dagStatus = dagClient.getDAGStatus();
+          } catch (TezException e) {
+            LOG.fatal("Failed to get application progress. Exiting");
+            System.exit(-1);
+          }
+        }
+        ExampleDriver.printMRRDAGStatus(dagStatus);
+        LOG.info("DAG " + dagIndex + " completed. "
+            + "FinalState=" + dagStatus.getState());
       }
     } finally {
       fs.delete(stagingDir, true);
@@ -367,9 +416,11 @@ public class OrderedWordCount {
       }
     }
 
-    ExampleDriver.printMRRDAGStatus(dagStatus);
-    LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
-    System.exit(dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1);
+    if (!useTezSession) {
+      ExampleDriver.printMRRDAGStatus(dagStatus);
+      LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
+      System.exit(dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1);
+    }
   }
 
 }

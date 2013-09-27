@@ -261,6 +261,10 @@ public class TezClientUtils {
         TezConfiguration.DEFAULT_TEZ_AM_JAVA_OPTS));
 
     vargs.add(TezConfiguration.TEZ_APPLICATION_MASTER_CLASS);
+    if (dag == null) {
+      vargs.add("--" + TezConstants.TEZ_SESSION_MODE_CLI_OPTION);
+    }
+
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
         File.separator + ApplicationConstants.STDOUT);
     vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
@@ -396,9 +400,6 @@ public class TezClientUtils {
                 textPath, LocalResourceType.FILE,
                 LocalResourceVisibility.APPLICATION));
       }
-    } else {
-      Apps.addToEnvironment(environment,
-          TezConstants.TEZ_AM_IS_SESSION_ENV, "set");
     }
 
     Map<ApplicationAccessType, String> acls

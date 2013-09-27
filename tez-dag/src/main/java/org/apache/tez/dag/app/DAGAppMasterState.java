@@ -21,6 +21,7 @@ package org.apache.tez.dag.app;
 public enum DAGAppMasterState {
   NEW,
   INITED,
+  IDLE,
   RUNNING,
   SUCCEEDED,
   FAILED,

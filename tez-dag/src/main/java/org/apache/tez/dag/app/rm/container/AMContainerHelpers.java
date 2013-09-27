@@ -44,6 +44,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.utils.TezRuntimeChildJVM;
 import org.apache.tez.runtime.library.common.security.TokenCache;
 import org.apache.tez.runtime.library.common.shuffle.server.ShuffleHandler;
@@ -55,7 +56,10 @@ public class AMContainerHelpers {
   private static final Log LOG = LogFactory.getLog(AMContainerHelpers.class);
 
   private static Object commonContainerSpecLock = new Object();
-  private static ContainerLaunchContext commonContainerSpec = null;
+  private static TezDAGID lastDAGID = null;
+  private static Map<TezDAGID, ContainerLaunchContext> commonContainerSpecs =
+      new HashMap<TezDAGID, ContainerLaunchContext>();
+
 
   /**
    * Create a {@link LocalResource} record with all the given parameters.
@@ -134,6 +138,7 @@ public class AMContainerHelpers {
 
   @VisibleForTesting
   public static ContainerLaunchContext createContainerLaunchContext(
+      TezDAGID tezDAGID,
       Map<ApplicationAccessType, String> acls,
       ContainerId containerId,
       Map<String, LocalResource> localResources,
@@ -142,10 +147,23 @@ public class AMContainerHelpers {
       TaskAttemptListener taskAttemptListener, Credentials credentials,
       boolean shouldProfile, AppContext appContext) {
 
+    ContainerLaunchContext commonContainerSpec = null;
     synchronized (commonContainerSpecLock) {
-      if (commonContainerSpec == null) {
-        commonContainerSpec = createCommonContainerLaunchContext(
-            acls, credentials);
+      if (!commonContainerSpecs.containsKey(tezDAGID)) {
+        commonContainerSpec =
+            createCommonContainerLaunchContext(acls, credentials);
+        commonContainerSpecs.put(tezDAGID, commonContainerSpec);
+      } else {
+        commonContainerSpec = commonContainerSpecs.get(tezDAGID);
+      }
+
+      // Ensure that we remove container specs for previous AMs to reduce
+      // memory footprint
+      if (lastDAGID == null) {
+        lastDAGID = tezDAGID;
+      } else if (!lastDAGID.equals(tezDAGID)) {
+        commonContainerSpecs.remove(lastDAGID);
+        lastDAGID = tezDAGID;
       }
     }
 

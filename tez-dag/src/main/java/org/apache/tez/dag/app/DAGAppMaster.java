@@ -35,6 +35,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.Options;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -140,6 +143,7 @@ public class DAGAppMaster extends AbstractService {
   public static final int SHUTDOWN_HOOK_PRIORITY = 30;
 
   private Clock clock;
+  private final boolean isSession;
   private long appsStartTime;
   private final long startTime;
   private final long appSubmitTime;
@@ -152,7 +156,7 @@ public class DAGAppMaster extends AbstractService {
   private AMContainerMap containers;
   private AMNodeMap nodes;
   private AppContext context;
-  private Configuration conf;
+  private Configuration amConf;
   private Dispatcher dispatcher;
   private ContainerLauncher containerLauncher;
   private TaskCleaner taskCleaner;
@@ -178,20 +182,31 @@ public class DAGAppMaster extends AbstractService {
   private Credentials fsTokens = new Credentials(); // Filled during init
   private UserGroupInformation currentUser; // Will be setup during init
 
+  private AtomicBoolean sessionStopped = new AtomicBoolean(false);
+
+  // DAG Counter
+  private final AtomicInteger dagCounter = new AtomicInteger();
+
+  // Session counters
+  private final AtomicInteger submittedDAGs = new AtomicInteger();
+  private final AtomicInteger successfulDAGs = new AtomicInteger();
+  private final AtomicInteger failedDAGs = new AtomicInteger();
+  private final AtomicInteger killedDAGs = new AtomicInteger();
+
   // must be LinkedHashMap to preserve order of service addition
   Map<Service, ServiceWithDependency> services =
       new LinkedHashMap<Service, ServiceWithDependency>();
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      long appSubmitTime) {
+      long appSubmitTime, boolean isSession) {
     this(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort,
-        new SystemClock(), appSubmitTime);
+        new SystemClock(), appSubmitTime, isSession);
   }
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      Clock clock, long appSubmitTime) {
+      Clock clock, long appSubmitTime, boolean isSession) {
     super(DAGAppMaster.class.getName());
     this.clock = clock;
     this.startTime = clock.getTime();
@@ -202,6 +217,7 @@ public class DAGAppMaster extends AbstractService {
     this.nmPort = nmPort;
     this.nmHttpPort = nmHttpPort;
     this.state = DAGAppMasterState.NEW;
+    this.isSession = isSession;
     // TODO Metrics
     //this.metrics = DAGAppMetrics.create();
     LOG.info("Created DAGAppMaster for application " + applicationAttemptId);
@@ -212,7 +228,7 @@ public class DAGAppMaster extends AbstractService {
 
     this.state = DAGAppMasterState.INITED;
 
-    this.conf = conf;
+    this.amConf = conf;
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
 
     downloadTokensAndSetupUGI(conf);
@@ -307,10 +323,47 @@ public class DAGAppMaster extends AbstractService {
       }
       break;
     case DAG_FINISHED:
-      setStateOnDAGCompletion();
-      LOG.info("Shutting down on completion of dag:" +
-              ((DAGAppMasterEventDAGFinished)event).getDAGId().toString());
-      shutdownHandler.shutdown();
+      DAGAppMasterEventDAGFinished finishEvt =
+          (DAGAppMasterEventDAGFinished) event;
+      if (!isSession) {
+        setStateOnDAGCompletion();
+        LOG.info("Shutting down on completion of dag:" +
+              finishEvt.getDAGId().toString());
+        shutdownHandler.shutdown();
+      } else {
+        LOG.info("DAG completed, dagId="
+            + finishEvt.getDAGId().toString()
+            + ", dagState=" + finishEvt.getDAGState());
+        switch(finishEvt.getDAGState()) {
+        case SUCCEEDED:
+          successfulDAGs.incrementAndGet();
+          break;
+        case ERROR:
+        case FAILED:
+          failedDAGs.incrementAndGet();
+          break;
+        case KILLED:
+          killedDAGs.incrementAndGet();
+          break;
+        default:
+          LOG.fatal("Received a DAG Finished Event with state="
+              + finishEvt.getDAGState()
+              + ". Error. Shutting down.");
+          state = DAGAppMasterState.ERROR;
+          shutdownHandler.shutdown();
+          break;
+        }
+        if (!state.equals(DAGAppMasterState.ERROR)) {
+          if (!sessionStopped.get()) {
+            LOG.info("Waiting for next DAG to be submitted.");
+            state = DAGAppMasterState.IDLE;
+          } else {
+            LOG.info("Session shutting down now.");
+            state = DAGAppMasterState.SUCCEEDED;
+            shutdownHandler.shutdown();
+          }
+        }
+      }
       break;
     default:
       throw new TezUncheckedException(
@@ -373,10 +426,21 @@ public class DAGAppMaster extends AbstractService {
 
   /** Create and initialize (but don't start) a single dag. */
   protected DAG createDAG(DAGPlan dagPB) {
-    TezDAGID dagId = new TezDAGID(appAttemptID.getApplicationId(), 1);
-    // create single job
+    TezDAGID dagId = new TezDAGID(appAttemptID.getApplicationId(),
+        dagCounter.incrementAndGet());
+
+    Iterator<PlanKeyValuePair> iter =
+        dagPB.getDagKeyValues().getConfKeyValuesList().iterator();
+    Configuration dagConf = new Configuration(amConf);
+
+    while (iter.hasNext()) {
+      PlanKeyValuePair keyValPair = iter.next();
+      dagConf.set(keyValPair.getKey(), keyValPair.getValue());
+    }
+
+    // create single dag
     DAG newDag =
-        new DAGImpl(dagId, conf, dagPB, dispatcher.getEventHandler(),
+        new DAGImpl(dagId, dagConf, dagPB, dispatcher.getEventHandler(),
             taskAttemptListener, jobTokenSecretManager, fsTokens, clock,
             currentUser.getShortUserName(),
             taskHeartbeatHandler, context);
@@ -524,8 +588,15 @@ public class DAGAppMaster extends AbstractService {
   }
 
   public List<String> getDiagnostics() {
-    if(currentDAG != null) {
-      return currentDAG.getDiagnostics();
+    if (!isSession) {
+      if(currentDAG != null) {
+        return currentDAG.getDiagnostics();
+      }
+    } else {
+      return Collections.singletonList("Session stats:"
+          + "submittedDAGs=" + submittedDAGs.get()
+          + ", successfulDAGs=" + successfulDAGs.get()
+          + ", failedDAGs=" + failedDAGs.get());
     }
     return null;
   }
@@ -539,27 +610,65 @@ public class DAGAppMaster extends AbstractService {
 
   private synchronized void setStateOnDAGCompletion() {
     DAGAppMasterState oldState = state;
-    if(state == DAGAppMasterState.RUNNING) {
-      switch(currentDAG.getState()) {
-      case SUCCEEDED:
-        state = DAGAppMasterState.SUCCEEDED;
-        break;
-      case FAILED:
-        state = DAGAppMasterState.FAILED;
-        break;
-      case KILLED:
-        state = DAGAppMasterState.KILLED;
-        break;
-      case ERROR:
-        state = DAGAppMasterState.ERROR;
-        break;
-      default:
-        state = DAGAppMasterState.ERROR;
-        break;
-      }
+    if(isSession) {
+      return;
+    }
+    switch(currentDAG.getState()) {
+    case SUCCEEDED:
+      state = DAGAppMasterState.SUCCEEDED;
+      break;
+    case FAILED:
+      state = DAGAppMasterState.FAILED;
+      break;
+    case KILLED:
+      state = DAGAppMasterState.KILLED;
+      break;
+    case ERROR:
+      state = DAGAppMasterState.ERROR;
+      break;
+    default:
+      state = DAGAppMasterState.ERROR;
+      break;
     }
     LOG.info("On DAG completion. Old state: "
         + oldState + " new state: " + state);
+  }
+
+  synchronized String submitDAGToAppMaster(DAGPlan dagPlan)
+      throws TezException  {
+    if(currentDAG != null
+        && !state.equals(DAGAppMasterState.IDLE)) {
+      throw new TezException("App master already running a DAG");
+    }
+    if (state.equals(DAGAppMasterState.ERROR)
+        || sessionStopped.get()) {
+      throw new TezException("AM unable to accept new DAG submissions."
+          + " In the process of shutting down");
+    }
+    
+    // RPC server runs in the context of the job user as it was started in
+    // the job user's UGI context
+    LOG.info("Starting DAG submitted via RPC");
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Writing DAG plan to: "
+          + TezConfiguration.TEZ_PB_PLAN_TEXT_NAME);
+
+      File outFile = new File(TezConfiguration.TEZ_PB_PLAN_TEXT_NAME);
+      try {
+        PrintWriter printWriter = new PrintWriter(outFile);
+        String dagPbString = dagPlan.toString();
+        printWriter.println(dagPbString);
+        printWriter.close();
+      } catch (IOException e) {
+        throw new TezException("Failed to write TEZ_PLAN to "
+            + outFile.toString(), e);
+      }
+    }
+
+    submittedDAGs.incrementAndGet();
+    startDAG(dagPlan);
+    return currentDAG.getID().toString();
   }
 
   public class DAGClientHandler {
@@ -568,8 +677,7 @@ public class DAGAppMaster extends AbstractService {
       return Collections.singletonList(currentDAG.getID().toString());
     }
 
-    public DAGStatus getDAGStatus(String dagIdStr)
-                                      throws TezException {
+    public DAGStatus getDAGStatus(String dagIdStr) throws TezException {
       return getDAG(dagIdStr).getDAGStatus();
     }
 
@@ -588,6 +696,7 @@ public class DAGAppMaster extends AbstractService {
       if(dagId == null) {
         throw new TezException("Bad dagId: " + dagIdStr);
       }
+
       if(currentDAG == null) {
         throw new TezException("No running dag at present");
       }
@@ -607,29 +716,7 @@ public class DAGAppMaster extends AbstractService {
     }
 
     public synchronized String submitDAG(DAGPlan dagPlan) throws TezException {
-      if(currentDAG != null) {
-        throw new TezException("App master already running a DAG");
-      }
-      // RPC server runs in the context of the job user as it was started in
-      // the job user's UGI context
-      LOG.info("Starting DAG submitted via RPC");
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Writing DAG plan to: " + TezConfiguration.TEZ_PB_PLAN_TEXT_NAME);
-        
-        File outFile = new File(TezConfiguration.TEZ_PB_PLAN_TEXT_NAME);
-        try {
-          PrintWriter printWriter = new PrintWriter(outFile);
-          String dagPbString = dagPlan.toString();
-          printWriter.println(dagPbString);
-          printWriter.close();
-        } catch (IOException e) {
-          throw new TezException("Failed to write TEZ_PLAN to " + outFile.toString(), e);
-        }
-        
-        
-      }
-      startDAG(dagPlan);
-      return currentDAG.getID().toString();
+      return submitDAGToAppMaster(dagPlan);
     }
 
     public synchronized void shutdownAM() {
@@ -640,8 +727,12 @@ public class DAGAppMaster extends AbstractService {
         LOG.info("Sending a kill event to the current DAG"
             + ", dagId=" + currentDAG.getID());
         sendEvent(new DAGEvent(currentDAG.getID(), DAGEventType.DAG_KILL));
+        sessionStopped.set(true);
       } else {
         LOG.info("No current running DAG, shutting down the AM");
+        if (isSession && !state.equals(DAGAppMasterState.ERROR)) {
+          state = DAGAppMasterState.SUCCEEDED;
+        }
         shutdownHandler.shutdown();
       }
     }
@@ -665,7 +756,7 @@ public class DAGAppMaster extends AbstractService {
     }
 
     @Override
-    public Configuration getConf() {
+    public Configuration getAMConf() {
       return conf;
     }
 
@@ -944,7 +1035,7 @@ public class DAGAppMaster extends AbstractService {
     startServices();
     super.serviceStart();
 
-    this.state = DAGAppMasterState.RUNNING;
+    this.state = DAGAppMasterState.IDLE;
 
     // metrics system init is really init & start.
     // It's more test friendly to put it here.
@@ -955,6 +1046,12 @@ public class DAGAppMaster extends AbstractService {
         startTime, appsStartTime, appSubmitTime);
     dispatcher.getEventHandler().handle(
         new DAGHistoryEvent(startEvent));
+
+    if (!isSession) {
+      startDAG();
+    } else {
+      LOG.info("In Session mode. Waiting for DAG over RPC");
+    }
   }
 
   @Override
@@ -1049,10 +1146,18 @@ public class DAGAppMaster extends AbstractService {
       // the objects myself.
       conf.setBoolean("fs.automatic.close", false);
 
+      // Command line options
+      Options opts = new Options();
+      opts.addOption(TezConstants.TEZ_SESSION_MODE_CLI_OPTION,
+          false, "Run Tez Application Master in Session mode");
+
+      CommandLine cliParser = new GnuParser().parse(opts, args);
+
       DAGAppMaster appMaster =
           new DAGAppMaster(applicationAttemptId, containerId, nodeHostString,
               Integer.parseInt(nodePortString),
-              Integer.parseInt(nodeHttpPortString), appSubmitTime);
+              Integer.parseInt(nodeHttpPortString), appSubmitTime,
+              cliParser.hasOption(TezConstants.TEZ_SESSION_MODE_CLI_OPTION));
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 
@@ -1086,12 +1191,13 @@ public class DAGAppMaster extends AbstractService {
         LOG.info("DAGAppMaster received a signal. Signaling TaskScheduler");
         appMaster.taskSchedulerEventHandler.setSignalled(true);
       }
+
       if (EnumSet.of(DAGAppMasterState.NEW, DAGAppMasterState.INITED,
-          DAGAppMasterState.RUNNING).contains(appMaster.state)) {
-        // DAG not in a final state. Must have receive a KILL signal
+          DAGAppMasterState.IDLE, DAGAppMasterState.RUNNING)
+          .contains(appMaster.state)) {
+            // DAG not in a final state. Must have receive a KILL signal
         appMaster.state = DAGAppMasterState.KILLED;
       }
-
       appMaster.stop();
     }
   }
@@ -1127,13 +1233,6 @@ public class DAGAppMaster extends AbstractService {
       }
     }
 
-    Iterator<PlanKeyValuePair> iter =
-        dagPlan.getDagKeyValues().getConfKeyValuesList().iterator();
-    while (iter.hasNext()) {
-      PlanKeyValuePair keyValPair = iter.next();
-      conf.set(keyValPair.getKey(), keyValPair.getValue());
-    }
-
     // Job name is the same as the app name until we support multiple dags
     // for an app later
     appName = dagPlan.getName();
@@ -1145,6 +1244,8 @@ public class DAGAppMaster extends AbstractService {
 
   private void startDAG(DAG dag) {
     currentDAG = dag;
+    this.state = DAGAppMasterState.RUNNING;
+
     // End of creating the job.
     ((RunningAppContext) context).setDAG(currentDAG);
 
@@ -1177,12 +1278,6 @@ public class DAGAppMaster extends AbstractService {
       public Object run() throws Exception {
         appMaster.init(conf);
         appMaster.start();
-        String submitDAGOverRpc = System.getenv(TezConstants.TEZ_AM_IS_SESSION_ENV);
-        if(submitDAGOverRpc == null || submitDAGOverRpc.isEmpty()) {
-          appMaster.startDAG();
-        } else {
-          LOG.info("Waiting for DAG over RPC");
-        }
         return null;
       }
     });

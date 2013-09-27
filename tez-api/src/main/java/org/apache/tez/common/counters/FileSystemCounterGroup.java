@@ -232,7 +232,6 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public void incrAllCounters(CounterGroupBase<C> other) {
     if (checkNotNull(other.getUnderlyingGroup(), "other group")
         instanceof FileSystemCounterGroup<?>) {
@@ -255,7 +254,6 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
       WritableUtils.writeVInt(out, numSetCounters(entry.getValue()));
       for (Object counter : entry.getValue()) {
         if (counter == null) continue;
-        @SuppressWarnings("unchecked")
         FSCounter c = (FSCounter) ((TezCounter)counter).getUnderlyingCounter();
         WritableUtils.writeVInt(out, c.key.ordinal());  // key
         WritableUtils.writeVLong(out, c.getValue());    // value

@@ -42,7 +42,7 @@ public interface AppContext {
 
   DAGAppMaster getAppMaster();
 
-  Configuration getConf();
+  Configuration getAMConf();
 
   ApplicationId getApplicationID();
 

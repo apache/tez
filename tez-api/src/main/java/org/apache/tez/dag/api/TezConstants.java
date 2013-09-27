@@ -23,7 +23,9 @@ package org.apache.tez.dag.api;
  */
 public class TezConstants {
 
-  // Env variable names
-  public static final String TEZ_AM_IS_SESSION_ENV = "TEZ_AM_IS_SESSION";
+  /**
+   * Command-line argument to be set when running the Tez AM in session mode.
+   */
+  public static final String TEZ_SESSION_MODE_CLI_OPTION = "session";
 
 }

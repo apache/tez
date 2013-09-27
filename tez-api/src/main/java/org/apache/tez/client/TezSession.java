@@ -88,6 +88,8 @@ public class TezSession {
               sessionConfig.getTezConfiguration(), applicationId,
               null, sessionName, sessionConfig.getAMConfiguration(),
               tezJarResources);
+      // Set Tez Sessions to not retry on AM crashes
+      appContext.setMaxAppAttempts(1);
       tezConfPBLRsrc = appContext.getAMContainerSpec().getLocalResources().get(
           TezConfiguration.TEZ_PB_BINARY_CONF_NAME);
       yarnClient.submitApplication(appContext);
@@ -121,6 +123,7 @@ public class TezSession {
 
     DAGClientAMProtocolBlockingPB proxy;
     while (true) {
+      // FIXME implement a max time to wait for submit
       proxy = TezClientUtils.getAMProxy(yarnClient,
           sessionConfig.getYarnConfiguration(), applicationId);
       if (proxy != null) {
@@ -150,17 +153,19 @@ public class TezSession {
     LOG.info("Shutting down Tez Session"
         + ", sessionName=" + sessionName
         + ", applicationId=" + applicationId);
-    DAGClientAMProtocolBlockingPB proxy = TezClientUtils.getAMProxy(yarnClient,
-        sessionConfig.getYarnConfiguration(), applicationId);
-    if (proxy != null) {
-      try {
+    try {
+      DAGClientAMProtocolBlockingPB proxy = TezClientUtils.getAMProxy(
+          yarnClient, sessionConfig.getYarnConfiguration(), applicationId);
+      if (proxy != null) {
         ShutdownSessionRequestProto request =
             ShutdownSessionRequestProto.newBuilder().build();
         proxy.shutdownSession(null, request);
         return;
-      } catch (ServiceException e) {
-        LOG.info("Failed to shutdown Tez Session via proxy", e);
       }
+    } catch (TezException e) {
+      LOG.info("Failed to shutdown Tez Session via proxy", e);
+    } catch (ServiceException e) {
+      LOG.info("Failed to shutdown Tez Session via proxy", e);
     }
     LOG.info("Could not connect to AM, killing session via YARN"
         + ", sessionName=" + sessionName

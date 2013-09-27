@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.io.WritableUtils;
 
@@ -44,8 +42,7 @@ import com.google.common.collect.Iterators;
 @InterfaceAudience.Private
 public abstract class FrameworkCounterGroup<T extends Enum<T>,
     C extends TezCounter> implements CounterGroupBase<C> {
-  private static final Log LOG = LogFactory.getLog(FrameworkCounterGroup.class);
-  
+
   private final Class<T> enumClass; // for Enum.valueOf
   private final Object[] counters;  // local casts are OK and save a class ref
   private String displayName = null;
@@ -106,7 +103,6 @@ public abstract class FrameworkCounterGroup<T extends Enum<T>,
     }
   }
 
-  @SuppressWarnings("unchecked")
   public FrameworkCounterGroup(Class<T> enumClass) {
     this.enumClass = enumClass;
     T[] enums = enumClass.getEnumConstants();
@@ -194,8 +190,8 @@ public abstract class FrameworkCounterGroup<T extends Enum<T>,
     return n;
   }
 
+  @SuppressWarnings("rawtypes")
   @Override
-  @SuppressWarnings("unchecked")
   public void incrAllCounters(CounterGroupBase<C> other) {
     if (checkNotNull(other, "other counter group")
         instanceof FrameworkCounterGroup<?, ?>) {

@@ -71,7 +71,8 @@ public class AMContainerImpl implements AMContainer {
   private final TaskAttemptListener taskAttemptListener;
   protected final EventHandler eventHandler;
 
-  private final List<TezTaskAttemptID> completedAttempts = new LinkedList<TezTaskAttemptID>();
+  private final List<TezTaskAttemptID> completedAttempts =
+      new LinkedList<TezTaskAttemptID>();
 
   // TODO Maybe this should be pulled from the TaskAttempt.s
   private final Map<TezTaskAttemptID, TaskSpec> remoteTaskMap =
@@ -330,6 +331,7 @@ public class AMContainerImpl implements AMContainer {
       ContainerContext containerContext = event.getContainerContext();
 
       container.clc = AMContainerHelpers.createContainerLaunchContext(
+          container.appContext.getCurrentDAGID(),
           container.appContext.getApplicationACLs(),
           container.getContainerId(),
           containerContext.getLocalResources(),

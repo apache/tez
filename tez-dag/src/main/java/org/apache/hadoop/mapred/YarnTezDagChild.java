@@ -368,7 +368,7 @@ public class YarnTezDagChild {
         for (int idle = 0; null == containerTask; ++idle) {
           long sleepTimeMilliSecs = Math.min(idle * 10, getTaskMaxSleepTime);
           LOG.info("Sleeping for " + sleepTimeMilliSecs
-              + "ms before retrying again. Got null now.");
+              + "ms before retrying getTask again. Got null now.");
           MILLISECONDS.sleep(sleepTimeMilliSecs);
           containerTask = umbilical.getTask(containerContext);
         }
@@ -404,7 +404,7 @@ public class YarnTezDagChild {
           }
           lastVertexId = newVertexId;
           updateLoggers(currentTaskAttemptID);
-          
+
           currentTask = createLogicalTask(attemptNumber, taskSpec,
               defaultConf, tezUmbilical, serviceConsumerMetadata);
         } finally {
@@ -426,9 +426,15 @@ public class YarnTezDagChild {
         childUGI.doAs(new PrivilegedExceptionAction<Object>() {
           @Override
           public Object run() throws Exception {
+            LOG.info("Initializing task"
+                + ", taskAttemptId=" + currentTaskAttemptID);
             currentTask.initialize();
             if (!currentTask.hadFatalError()) {
+              LOG.info("Running task"
+                  + ", taskAttemptId=" + currentTaskAttemptID);
               currentTask.run();
+              LOG.info("Closing task"
+                  + ", taskAttemptId=" + currentTaskAttemptID);
               currentTask.close();
             }
             LOG.info("Task completed"
@@ -525,7 +531,7 @@ public class YarnTezDagChild {
     String [] localDirs = StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
     conf.setStrings(TezJobConfig.LOCAL_DIRS, localDirs);
     LOG.info("LocalDirs for child: " + Arrays.toString(localDirs));
-    
+
     return new LogicalIOProcessorRuntimeTask(taskSpec, attemptNum, conf,
         tezUmbilical, serviceConsumerMetadata);
   }

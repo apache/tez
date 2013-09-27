@@ -78,6 +78,7 @@ public class TestMRRJobs {
   @BeforeClass
   public static void setup() throws IOException {
     try {
+      conf.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, 1);
       conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
       dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(2)
         .format(true).racks(null).build();
@@ -109,11 +110,11 @@ public class TestMRRJobs {
     LOG.info("APP_JAR_HDFS: " + APP_JAR_HDFS);
     LOG.info("YARN_SITE_XML: " + YARN_SITE_XML);
     LOG.info("YARN_SITE_XML_HDFS: " + YARN_SITE_XML_HDFS);
-    
+
     localFs.copyFromLocalFile(new Path(MiniMRRTezCluster.APPJAR), APP_JAR);
     localFs.setPermission(APP_JAR, new FsPermission("700"));
     localFs.copyFromLocalFile(mrrTezCluster.getConfigFilePath(), YARN_SITE_XML);
-    
+
     remoteFs.copyFromLocalFile(new Path(MiniMRRTezCluster.APPJAR), APP_JAR_HDFS);
     remoteFs.copyFromLocalFile(mrrTezCluster.getConfigFilePath(), YARN_SITE_XML_HDFS);
   }
