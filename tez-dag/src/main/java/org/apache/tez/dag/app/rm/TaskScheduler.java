@@ -602,8 +602,10 @@ public class TaskScheduler extends AbstractService
   synchronized void preemptIfNeeded() {
     Resource freeResources = Resources.subtract(totalResources,
         allocatedResources);
-    LOG.info("Allocated resource memory: " + allocatedResources.getMemory() +
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Allocated resource memory: " + allocatedResources.getMemory() +
              " cpu:" + allocatedResources.getVirtualCores());
+    }
     assert freeResources.getMemory() >= 0;
 
     CookieContainerRequest highestPriRequest = null;
