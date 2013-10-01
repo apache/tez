@@ -420,38 +420,37 @@ public class YarnTezDagChild {
         childUGI.doAs(new PrivilegedExceptionAction<Object>() {
           @Override
           public Object run() throws Exception {
-            LOG.info("Initializing task"
-                + ", taskAttemptId=" + currentTaskAttemptID);
-            currentTask.initialize();
-            if (!currentTask.hadFatalError()) {
-              LOG.info("Running task"
+            try {
+              LOG.info("Initializing task"
                   + ", taskAttemptId=" + currentTaskAttemptID);
-              currentTask.run();
-              LOG.info("Closing task"
-                  + ", taskAttemptId=" + currentTaskAttemptID);
-              currentTask.close();
-            }
-            LOG.info("Task completed"
-                + ", taskAttemptId=" + currentTaskAttemptID
-                + ", fatalErrorOccurred=" + currentTask.hadFatalError());
-            // TODONEWTEZ check if task had a fatal error before
-            // sending completed event
-            if (!currentTask.hadFatalError()) {
-              TezEvent statusUpdateEvent =
-                  new TezEvent(new TaskStatusUpdateEvent(
-                      currentTask.getCounters(), currentTask.getProgress()),
-                      new EventMetaData(EventProducerConsumerType.SYSTEM,
-                          currentTask.getVertexName(), "",
-                          currentTask.getTaskAttemptID()));
-              TezEvent taskCompletedEvent =
-                  new TezEvent(new TaskAttemptCompletedEvent(), sourceInfo);
-              heartbeat(Arrays.asList(statusUpdateEvent, taskCompletedEvent));
+              currentTask.initialize();
+              if (!currentTask.hadFatalError()) {
+                LOG.info("Running task"
+                    + ", taskAttemptId=" + currentTaskAttemptID);
+                currentTask.run();
+                LOG.info("Closing task"
+                    + ", taskAttemptId=" + currentTaskAttemptID);
+                currentTask.close();
+              }
+              LOG.info("Task completed"
+                  + ", taskAttemptId=" + currentTaskAttemptID
+                  + ", fatalErrorOccurred=" + currentTask.hadFatalError());
+              if (!currentTask.hadFatalError()) {
+                TezEvent statusUpdateEvent =
+                    new TezEvent(new TaskStatusUpdateEvent(
+                        currentTask.getCounters(), currentTask.getProgress()),
+                        new EventMetaData(EventProducerConsumerType.SYSTEM,
+                            currentTask.getVertexName(), "",
+                            currentTask.getTaskAttemptID()));
+                TezEvent taskCompletedEvent =
+                    new TezEvent(new TaskAttemptCompletedEvent(), sourceInfo);
+                heartbeat(Arrays.asList(statusUpdateEvent, taskCompletedEvent));
+              }
+            } finally {
+              currentTask.cleanup();
             }
             try {
               taskLock.writeLock().lock();
-              if (currentTask != null) {
-                currentTask.cleanup();
-              }
               currentTask = null;
               currentTaskAttemptID = null;
             } finally {
