@@ -67,6 +67,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Level;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
@@ -512,7 +513,7 @@ public class TezClientUtils {
     return textPath;
   }
 
-  static DAGClientAMProtocolBlockingPB getAMProxy(YarnClient yarnClient,
+  static DAGClientAMProtocolBlockingPB getSessionAMProxy(YarnClient yarnClient,
       Configuration conf,
       ApplicationId applicationId) throws TezException, IOException {
     ApplicationReport appReport;
@@ -529,7 +530,7 @@ public class TezClientUtils {
         if (appState == YarnApplicationState.FINISHED
             || appState == YarnApplicationState.KILLED
             || appState == YarnApplicationState.FAILED) {
-          throw new TezUncheckedException("Application not running"
+          throw new SessionNotRunning("Application not running"
               + ", applicationId=" + applicationId
               + ", yarnApplicationState=" + appReport.getYarnApplicationState()
               + ", finalApplicationStatus="

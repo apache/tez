@@ -220,4 +220,29 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_APPLICATION_TYPE = "TEZ-MR*";
 
   public static final String LOCAL_FRAMEWORK_NAME = "local-tez";
+
+  /**
+   * Session-related properties
+   */
+  public static final String TEZ_SESSION_PREFIX =
+      TEZ_PREFIX + "session.";
+
+  /**
+   * Time (in seconds) to wait for AM to come up when trying to submit a DAG
+   * from the client.
+   */
+  public static final String TEZ_SESSION_CLIENT_TIMEOUT_SECS =
+      TEZ_SESSION_PREFIX + "client.timeout.secs";
+  public static final int TEZ_SESSION_CLIENT_TIMEOUT_SECS_DEFAULT =
+      120;
+
+  /**
+   * Time (in seconds) for which the Tez AM should wait for a DAG to be submitted before
+   * shutting down.
+   */
+  public static final String TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS =
+      TEZ_SESSION_PREFIX + "am.dag.submit.timeout.secs";
+  public static final int TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT =
+      300;
+
 }

@@ -30,6 +30,8 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DAGSubmissionTimedOut;
+import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -55,6 +57,7 @@ public class TezSession {
   private YarnClient yarnClient;
   private Map<String, LocalResource> tezJarResources;
   private boolean sessionStarted = false;
+  private boolean sessionStopped = false;
 
   public TezSession(String sessionName,
       ApplicationId applicationId,
@@ -69,6 +72,11 @@ public class TezSession {
     this(sessionName, null, sessionConfig);
   }
 
+  /**
+   * Start a Tez Session
+   * @throws TezException
+   * @throws IOException
+   */
   public synchronized void start() throws TezException, IOException {
     yarnClient = YarnClient.createYarnClient();
     yarnClient.init(sessionConfig.getYarnConfiguration());
@@ -99,10 +107,23 @@ public class TezSession {
     sessionStarted = true;
   }
 
+  /**
+   * Submit a DAG to a Tez Session. Blocks until either the DAG is submitted to
+   * the session or configured timeout period expires. Cleans up session if the
+   * submission timed out.
+   * @param dag DAG to be submitted to Session
+   * @return DAGClient to monitor the DAG
+   * @throws TezException
+   * @throws IOException
+   * @throws SessionNotRunning if session is not alive
+   * @throws DAGSubmissionTimedOut if submission timed out
+   */
   public synchronized DAGClient submitDAG(DAG dag)
       throws TezException, IOException {
     if (!sessionStarted) {
       throw new TezUncheckedException("Session not started");
+    } else if (sessionStopped) {
+      throw new TezUncheckedException("Session stopped");
     }
 
     String dagId = null;
@@ -122,9 +143,14 @@ public class TezSession {
         SubmitDAGRequestProto.newBuilder().setDAGPlan(dagPlan).build();
 
     DAGClientAMProtocolBlockingPB proxy;
+    long startTime = System.currentTimeMillis();
+    int timeout = sessionConfig.getTezConfiguration().getInt(
+        TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS,
+        TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS_DEFAULT);
+    long endTime = startTime + (timeout * 1000);
     while (true) {
       // FIXME implement a max time to wait for submit
-      proxy = TezClientUtils.getAMProxy(yarnClient,
+      proxy = TezClientUtils.getSessionAMProxy(yarnClient,
           sessionConfig.getYarnConfiguration(), applicationId);
       if (proxy != null) {
         break;
@@ -133,6 +159,16 @@ public class TezSession {
         Thread.sleep(100l);
       } catch (InterruptedException e) {
         // Ignore
+      }
+      if (System.currentTimeMillis() > endTime) {
+        try {
+          LOG.warn("DAG submission to session timed out, stopping session");
+          stop();
+        } catch (Throwable t) {
+          LOG.info("Got an exception when trying to stop session", t);
+        }
+        throw new DAGSubmissionTimedOut("Could not submit DAG to Tez Session"
+            + ", timed out after " + timeout + " seconds");
       }
     }
 
@@ -149,12 +185,18 @@ public class TezSession {
         sessionConfig.getTezConfiguration());
   }
 
+  /**
+   * Shutdown a Tez Session.
+   * @throws TezException
+   * @throws IOException
+   */
   public synchronized void stop() throws TezException, IOException {
     LOG.info("Shutting down Tez Session"
         + ", sessionName=" + sessionName
         + ", applicationId=" + applicationId);
+    sessionStopped = true;
     try {
-      DAGClientAMProtocolBlockingPB proxy = TezClientUtils.getAMProxy(
+      DAGClientAMProtocolBlockingPB proxy = TezClientUtils.getSessionAMProxy(
           yarnClient, sessionConfig.getYarnConfiguration(), applicationId);
       if (proxy != null) {
         ShutdownSessionRequestProto request =
