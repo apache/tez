@@ -31,10 +31,12 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TezSessionStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.NamedDescriptorProto;
@@ -51,79 +53,78 @@ import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 
 import com.google.protobuf.ByteString;
 
-
 public class DagTypeConverters {
-  
+
   public static PlanLocalResourceVisibility convertToDAGPlan(LocalResourceVisibility visibility){
     switch(visibility){
-      case PUBLIC : return PlanLocalResourceVisibility.PUBLIC;  
+      case PUBLIC : return PlanLocalResourceVisibility.PUBLIC;
       case PRIVATE : return PlanLocalResourceVisibility.PRIVATE;
       case APPLICATION : return PlanLocalResourceVisibility.APPLICATION;
       default : throw new RuntimeException("unknown 'visibility': " + visibility);
     }
   }
-  
+
   public static LocalResourceVisibility convertFromDAGPlan(PlanLocalResourceVisibility visibility){
     switch(visibility){
-      case PUBLIC : return LocalResourceVisibility.PUBLIC;  
+      case PUBLIC : return LocalResourceVisibility.PUBLIC;
       case PRIVATE : return LocalResourceVisibility.PRIVATE;
       case APPLICATION : return LocalResourceVisibility.APPLICATION;
       default : throw new RuntimeException("unknown 'visibility': " + visibility);
     }
   }
-  
+
   public static PlanEdgeDataSourceType convertToDAGPlan(DataSourceType sourceType){
     switch(sourceType){
-      case PERSISTED : return PlanEdgeDataSourceType.PERSISTED;  
+      case PERSISTED : return PlanEdgeDataSourceType.PERSISTED;
       case PERSISTED_RELIABLE : return PlanEdgeDataSourceType.PERSISTED_RELIABLE;
       case EPHEMERAL :  return PlanEdgeDataSourceType.EPHEMERAL;
       default : throw new RuntimeException("unknown 'dataSourceType': " + sourceType);
     }
   }
-  
+
   public static DataSourceType convertFromDAGPlan(PlanEdgeDataSourceType sourceType){
     switch(sourceType){
-      case PERSISTED : return DataSourceType.PERSISTED;  
+      case PERSISTED : return DataSourceType.PERSISTED;
       case PERSISTED_RELIABLE : return DataSourceType.PERSISTED_RELIABLE;
       case EPHEMERAL :  return DataSourceType.EPHEMERAL;
       default : throw new RuntimeException("unknown 'dataSourceType': " + sourceType);
     }
   }
-  
+
   public static PlanEdgeDataMovementType convertToDAGPlan(DataMovementType type){
     switch(type){
-      case ONE_TO_ONE : return PlanEdgeDataMovementType.ONE_TO_ONE;  
+      case ONE_TO_ONE : return PlanEdgeDataMovementType.ONE_TO_ONE;
       case BROADCAST : return PlanEdgeDataMovementType.BROADCAST;
       case SCATTER_GATHER : return PlanEdgeDataMovementType.SCATTER_GATHER;
       default : throw new RuntimeException("unknown 'dataMovementType': " + type);
     }
   }
-  
+
   public static DataMovementType convertFromDAGPlan(PlanEdgeDataMovementType type){
     switch(type){
-      case ONE_TO_ONE : return DataMovementType.ONE_TO_ONE;  
+      case ONE_TO_ONE : return DataMovementType.ONE_TO_ONE;
       case BROADCAST : return DataMovementType.BROADCAST;
       case SCATTER_GATHER : return DataMovementType.SCATTER_GATHER;
       default : throw new IllegalArgumentException("unknown 'dataMovementType': " + type);
     }
   }
-  
+
   public static PlanEdgeSchedulingType convertToDAGPlan(SchedulingType type){
     switch(type){
-      case SEQUENTIAL : return PlanEdgeSchedulingType.SEQUENTIAL;  
+      case SEQUENTIAL : return PlanEdgeSchedulingType.SEQUENTIAL;
       case CONCURRENT : return PlanEdgeSchedulingType.CONCURRENT;
       default : throw new RuntimeException("unknown 'SchedulingType': " + type);
     }
   }
-  
+
   public static SchedulingType convertFromDAGPlan(PlanEdgeSchedulingType type){
     switch(type){
-      case SEQUENTIAL : return SchedulingType.SEQUENTIAL;  
+      case SEQUENTIAL : return SchedulingType.SEQUENTIAL;
       case CONCURRENT : return SchedulingType.CONCURRENT;
       default : throw new IllegalArgumentException("unknown 'SchedulingType': " + type);
     }
   }
-  
+
   public static PlanLocalResourceType convertToDAGPlan(LocalResourceType type) {
     switch(type){
     case ARCHIVE : return PlanLocalResourceType.ARCHIVE;
@@ -132,7 +133,7 @@ public class DagTypeConverters {
     default : throw new IllegalArgumentException("unknown 'type': " + type);
     }
   }
-  
+
   public static LocalResourceType convertFromDAGPlan(PlanLocalResourceType type) {
     switch(type){
     case ARCHIVE : return LocalResourceType.ARCHIVE;
@@ -145,8 +146,8 @@ public class DagTypeConverters {
   public static VertexLocationHint convertFromDAGPlan(
       List<PlanTaskLocationHint> locationHints) {
 
-    List<TaskLocationHint> outputList = new ArrayList<TaskLocationHint>();  
-    
+    List<TaskLocationHint> outputList = new ArrayList<TaskLocationHint>();
+
     for(PlanTaskLocationHint inputHint : locationHints){
       TaskLocationHint outputHint = new TaskLocationHint(
           new HashSet<String>(inputHint.getHostList()),
@@ -157,14 +158,14 @@ public class DagTypeConverters {
   }
 
   // notes re HDFS URL handling:
-  //   Resource URLs in the protobuf message are strings of the form hdfs://host:port/path 
+  //   Resource URLs in the protobuf message are strings of the form hdfs://host:port/path
   //   org.apache.hadoop.fs.Path.Path  is actually a URI type that allows any scheme
   //   org.apache.hadoop.yarn.api.records.URL is a URL type used by YARN.
   //   java.net.URL cannot be used out of the box as it rejects unknown schemes such as HDFS.
-  
+
   public static String convertToDAGPlan(URL resource) {
     // see above notes on HDFS URL handling
-    String out = resource.getScheme() + "://" + resource.getHost() + ":" + resource.getPort() 
+    String out = resource.getScheme() + "://" + resource.getHost() + ":" + resource.getPort()
         + resource.getFile();
     return out;
   }
@@ -174,7 +175,7 @@ public class DagTypeConverters {
     Map<String, LocalResource> map = new HashMap<String, LocalResource>();
     for(PlanLocalResource res : localResourcesList){
       LocalResource r = new LocalResourcePBImpl();
-      
+
       //NOTE: have to check every optional field in protobuf generated classes for existence before accessing
       //else we will receive a default value back, eg ""
       if(res.hasPattern()){
@@ -191,16 +192,16 @@ public class DagTypeConverters {
   }
 
   public static Map<String, String> createEnvironmentMapFromDAGPlan(
-      List<PlanKeyValuePair> environmentSettingList) {  
-      
+      List<PlanKeyValuePair> environmentSettingList) {
+
     Map<String, String> map = new HashMap<String, String>();
     for(PlanKeyValuePair setting : environmentSettingList){
       map.put(setting.getKey(), setting.getValue());
     }
-    
+
     return map;
   }
-  
+
   public static Map<String, EdgePlan> createEdgePlanMapFromDAGPlan(List<EdgePlan> edgeList){
     Map<String, EdgePlan> edgePlanMap =
         new HashMap<String, EdgePlan>();
@@ -209,7 +210,7 @@ public class DagTypeConverters {
     }
     return edgePlanMap;
   }
-  
+
   public static EdgeProperty createEdgePropertyMapFromDAGPlan(EdgePlan edge) {
     return new EdgeProperty(
         convertFromDAGPlan(edge.getDataMovementType()),
@@ -246,7 +247,7 @@ public class DagTypeConverters {
     }
     return builder.build();
   }
-  
+
   public static NamedDescriptorProto convertToDAGPlan(
       NamedDescriptor<? extends TezEntityDescriptor> descriptor) {
     NamedDescriptorProto.Builder builder = NamedDescriptorProto.newBuilder();
@@ -284,4 +285,37 @@ public class DagTypeConverters {
     }
     return new ProcessorDescriptor(className).setUserPayload(bb);
   }
+
+  public static TezSessionStatus convertTezSessionStatusFromProto(
+      TezSessionStatusProto proto) {
+    switch (proto) {
+    case INITIALIZING:
+      return TezSessionStatus.INITIALIZING;
+    case READY:
+      return TezSessionStatus.READY;
+    case RUNNING:
+      return TezSessionStatus.RUNNING;
+    case SHUTDOWN:
+      return TezSessionStatus.SHUTDOWN;
+    }
+    throw new TezUncheckedException("Could not convert to TezSessionStatus from"
+        + " proto");
+  }
+
+  public static TezSessionStatusProto convertTezSessionStatusToProto(
+      TezSessionStatus status) {
+    switch (status) {
+    case INITIALIZING:
+      return TezSessionStatusProto.INITIALIZING;
+    case READY:
+      return TezSessionStatusProto.READY;
+    case RUNNING:
+      return TezSessionStatusProto.RUNNING;
+    case SHUTDOWN:
+      return TezSessionStatusProto.SHUTDOWN;
+    }
+    throw new TezUncheckedException("Could not convert TezSessionStatus to"
+        + " proto");
+  }
+
 }

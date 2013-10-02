@@ -25,12 +25,14 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DAGSubmissionTimedOut;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -38,10 +40,14 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientRPCImpl;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+
+import sun.security.provider.certpath.OCSPResponse.ResponseStatus;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ServiceException;
@@ -227,5 +233,42 @@ public class TezSession {
   @VisibleForTesting
   public synchronized ApplicationId getApplicationId() {
     return applicationId;
+  }
+
+  public TezSessionStatus getSessionStatus() throws TezException, IOException {
+    try {
+      ApplicationReport appReport = yarnClient.getApplicationReport(
+          applicationId);
+      switch (appReport.getYarnApplicationState()) {
+      case NEW:
+      case NEW_SAVING:
+      case ACCEPTED:
+      case SUBMITTED:
+        return TezSessionStatus.INITIALIZING;
+      case FINISHED:
+      case FAILED:
+      case KILLED:
+        return TezSessionStatus.SHUTDOWN;
+      case RUNNING:
+        try {
+          DAGClientAMProtocolBlockingPB proxy = TezClientUtils.getSessionAMProxy(
+              yarnClient, sessionConfig.getYarnConfiguration(), applicationId);
+          if (proxy == null) {
+            return TezSessionStatus.INITIALIZING;
+          }
+          GetAMStatusResponseProto response = proxy.getAMStatus(null,
+              GetAMStatusRequestProto.newBuilder().build());
+          return DagTypeConverters.convertTezSessionStatusFromProto(
+              response.getStatus());
+        } catch (TezException e) {
+          LOG.info("Failed to retrieve AM Status via proxy", e);
+        } catch (ServiceException e) {
+          LOG.info("Failed to retrieve AM Status via proxy", e);
+        }
+      }
+    } catch (YarnException e) {
+      throw new TezException(e);
+    }
+    return TezSessionStatus.INITIALIZING;
   }
 }

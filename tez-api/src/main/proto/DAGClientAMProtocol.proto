@@ -71,6 +71,20 @@ message ShutdownSessionRequestProto {
 message ShutdownSessionResponseProto {
 }
 
+enum TezSessionStatusProto {
+  INITIALIZING = 0;
+  READY = 1;
+  RUNNING = 2;
+  SHUTDOWN = 3;
+}
+
+message GetAMStatusRequestProto {
+}
+
+message GetAMStatusResponseProto {
+  required TezSessionStatusProto status = 1;
+}
+
 service DAGClientAMProtocol {
   rpc getAllDAGs (GetAllDAGsRequestProto) returns (GetAllDAGsResponseProto);
   rpc getDAGStatus (GetDAGStatusRequestProto) returns (GetDAGStatusResponseProto);
@@ -78,4 +92,5 @@ service DAGClientAMProtocol {
   rpc tryKillDAG (TryKillDAGRequestProto) returns (TryKillDAGResponseProto);
   rpc submitDAG (SubmitDAGRequestProto) returns (SubmitDAGResponseProto);
   rpc shutdownSession (ShutdownSessionRequestProto) returns (ShutdownSessionResponseProto);
+  rpc getAMStatus (GetAMStatusRequestProto) returns (GetAMStatusResponseProto);
 }

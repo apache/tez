@@ -54,6 +54,7 @@ import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezSession;
 import org.apache.tez.client.TezSessionConfiguration;
+import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -243,15 +244,25 @@ public class TestMRRJobsDAGApi {
         new TezSessionConfiguration(amConfig, tezConf);
     TezSession tezSession = new TezSession("testsession", tezSessionConfig);
     tezSession.start();
+    Assert.assertEquals(TezSessionStatus.INITIALIZING,
+        tezSession.getSessionStatus());
 
     State finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession);
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
+    Assert.assertEquals(TezSessionStatus.READY,
+        tezSession.getSessionStatus());
     finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession);
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
+    Assert.assertEquals(TezSessionStatus.READY,
+        tezSession.getSessionStatus());
+
     ApplicationId appId = tezSession.getApplicationId();
     tezSession.stop();
+    Assert.assertEquals(TezSessionStatus.SHUTDOWN,
+        tezSession.getSessionStatus());
+
     YarnClient yarnClient = YarnClient.createYarnClient();
     yarnClient.init(mrrTezCluster.getConfig());
     yarnClient.start();
@@ -533,6 +544,8 @@ public class TestMRRJobsDAGApi {
       LOG.info("Submitting dag to tez session with appId="
           + tezSession.getApplicationId());
       dagClient = tezSession.submitDAG(dag);
+      Assert.assertEquals(TezSessionStatus.RUNNING,
+          tezSession.getSessionStatus());
     }
     DAGStatus dagStatus = dagClient.getDAGStatus();
     while (!dagStatus.isCompleted()) {

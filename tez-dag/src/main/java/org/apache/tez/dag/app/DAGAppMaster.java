@@ -71,6 +71,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
@@ -749,6 +750,28 @@ public class DAGAppMaster extends AbstractService {
     public synchronized void shutdownAM() {
       LOG.info("Received message to shutdown AM");
       shutdownTezAM();
+    }
+
+    public synchronized TezSessionStatus getSessionStatus() throws TezException {
+      if (!isSession) {
+        throw new TezException("Unsupported operation as AM not running in"
+            + " session mode");
+      }
+      switch (state) {
+      case NEW:
+      case INITED:
+        return TezSessionStatus.INITIALIZING;
+      case IDLE:
+        return TezSessionStatus.READY;
+      case RUNNING:
+        return TezSessionStatus.RUNNING;
+      case ERROR:
+      case FAILED:
+      case SUCCEEDED:
+      case KILLED:
+        return TezSessionStatus.SHUTDOWN;
+      }
+      return TezSessionStatus.INITIALIZING;
     }
   }
 

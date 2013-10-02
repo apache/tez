@@ -20,12 +20,16 @@ package org.apache.tez.dag.api.client.rpc;
 
 import java.util.List;
 
+import org.apache.tez.client.TezSessionStatus;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAllDAGsRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAllDAGsResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequestProto;
@@ -129,6 +133,19 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
       ShutdownSessionRequestProto arg1) throws ServiceException {
     real.shutdownAM();
     return ShutdownSessionResponseProto.newBuilder().build();
+  }
+
+  @Override
+  public GetAMStatusResponseProto getAMStatus(RpcController controller,
+      GetAMStatusRequestProto request) throws ServiceException {
+    try {
+      TezSessionStatus sessionStatus = real.getSessionStatus();
+      return GetAMStatusResponseProto.newBuilder().setStatus(
+          DagTypeConverters.convertTezSessionStatusToProto(sessionStatus))
+          .build();
+    } catch(TezException e) {
+      throw wrapException(e);
+    }
   }
 
 }
