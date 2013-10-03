@@ -98,8 +98,6 @@
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-        <configuration>
-        </configuration>
       </plugin>
     </plugins>
   </build>

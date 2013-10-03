@@ -49,8 +49,6 @@
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-        <configuration>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.hadoop</groupId>

@@ -296,7 +296,7 @@
         <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
-          <version>0.8</version>
+          <version>0.10</version>
         </plugin>
         <plugin>
           <groupId>org.apache.avro</groupId>
@@ -355,13 +355,6 @@
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>.gitattributes</exclude>
-            <exclude>.gitignore</exclude>
-            <exclude>.git/**</exclude>
-          </excludes>
-        </configuration>
       </plugin>
     </plugins>
   </build>
