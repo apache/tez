@@ -47,8 +47,6 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionR
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 
-import sun.security.provider.certpath.OCSPResponse.ResponseStatus;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ServiceException;
 
