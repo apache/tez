@@ -46,39 +46,46 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+
 
 public class DAG { // FIXME rename to Topology
-  final List<Vertex> vertices;
+  final BiMap<String, Vertex> vertices;
   final List<Edge> edges;
   final String name;
 
   public DAG(String name) {
-    this.vertices = new ArrayList<Vertex>();
+    this.vertices = HashBiMap.<String, Vertex>create();
     this.edges = new ArrayList<Edge>();
     this.name = name;
   }
 
   public synchronized DAG addVertex(Vertex vertex) {
-    if (vertices.contains(vertex)) {
-      throw new IllegalArgumentException(
-          "Vertex " + vertex + " already defined!");
+    if (vertices.containsKey(vertex.getVertexName())) {
+      throw new IllegalStateException(
+          "Vertex " + vertex.getVertexName() + " already defined!");
     }
-    vertices.add(vertex);
+    vertices.put(vertex.getVertexName(), vertex);
     return this;
+  }
+  
+  public synchronized Vertex getVertex(String vertexName) {
+    return vertices.get(vertexName);
   }
 
   @Private
-  public synchronized List<Vertex> getVertices() {
-    return Collections.unmodifiableList(this.vertices);
+  public synchronized Set<Vertex> getVertices() {
+    return Collections.unmodifiableSet(this.vertices.values());
   }
 
   public synchronized DAG addEdge(Edge edge) {
     // Sanity checks
-    if (!vertices.contains(edge.getInputVertex())) {
+    if (!vertices.containsValue(edge.getInputVertex())) {
       throw new IllegalArgumentException(
           "Input vertex " + edge.getInputVertex() + " doesn't exist!");
     }
-    if (!vertices.contains(edge.getOutputVertex())) {
+    if (!vertices.containsValue(edge.getOutputVertex())) {
       throw new IllegalArgumentException(
           "Output vertex " + edge.getOutputVertex() + " doesn't exist!");
     }
@@ -159,7 +166,7 @@ public class DAG { // FIXME rename to Topology
     // check for valid vertices, duplicate vertex names,
     // and prepare for cycle detection
     Map<String, AnnotatedVertex> vertexMap = new HashMap<String, AnnotatedVertex>();
-    for(Vertex v : vertices){
+    for(Vertex v : vertices.values()){
       if(vertexMap.containsKey(v.getVertexName())){
          throw new IllegalStateException("DAG contains multiple vertices"
              + " with name: " + v.getVertexName());
@@ -169,7 +176,7 @@ public class DAG { // FIXME rename to Topology
 
     // Verify Input/Output names don't collide amongs themselves as well as with vertexNames
     Set<String> namedIOs = new HashSet<String>();
-    for (Vertex v : vertices) {
+    for (Vertex v : vertices.values()) {
       for (NamedDescriptor<InputDescriptor> in : v.getInputs()) {
         if (vertexMap.containsKey(in.getName())) {
           throw new IllegalStateException(
@@ -294,7 +301,7 @@ public class DAG { // FIXME rename to Topology
 
     dagBuilder.setName(this.name);
 
-    for(Vertex vertex : vertices){
+    for(Vertex vertex : vertices.values()){
       VertexPlan.Builder vertexBuilder = VertexPlan.newBuilder();
       vertexBuilder.setName(vertex.getVertexName());
       vertexBuilder.setType(PlanVertexType.NORMAL); // vertex type is implicitly NORMAL until  TEZ-46.

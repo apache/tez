@@ -19,6 +19,7 @@
 package org.apache.tez.dag.api;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -184,12 +185,12 @@ public class Vertex { // FIXME rename to Task
     outputEdgeIds.add(edgeId);
   }
 
-  List<Vertex> getInputVertices() {
-    return inputVertices;
+  public List<Vertex> getInputVertices() {
+    return Collections.unmodifiableList(inputVertices);
   }
 
-  List<Vertex> getOutputVertices() {
-    return outputVertices;
+  public List<Vertex> getOutputVertices() {
+    return Collections.unmodifiableList(outputVertices);
   }
 
   List<String> getInputEdgeIds() {

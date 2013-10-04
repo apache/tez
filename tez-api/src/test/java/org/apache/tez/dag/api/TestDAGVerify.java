@@ -265,10 +265,10 @@ public class TestDAGVerify {
     Vertex v1repeat = new Vertex("v1",
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
-    DAG dag = new DAG("testDag");
-    dag.addVertex(v1);
-    dag.addVertex(v1repeat);
     try {
+      DAG dag = new DAG("testDag");
+      dag.addVertex(v1);
+      dag.addVertex(v1repeat);
       dag.verify();
     }
     catch (IllegalStateException e){
@@ -276,7 +276,7 @@ public class TestDAGVerify {
     }
     Assert.assertNotNull(ex);
     System.out.println(ex.getMessage());
-    Assert.assertTrue(ex.getMessage().startsWith("DAG contains multiple vertices with name"));
+    Assert.assertTrue(ex.getMessage().startsWith("Vertex v1 already defined"));
   }
 
   @Test (expected = IllegalStateException.class)
