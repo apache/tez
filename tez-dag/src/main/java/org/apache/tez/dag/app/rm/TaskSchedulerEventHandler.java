@@ -428,6 +428,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   public synchronized void appShutdownRequested() {
     // This can happen if the RM has been restarted. If it is in that state,
     // this application must clean itself up.
+    LOG.info("App shutdown requested by scheduler");
     sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.INTERNAL_ERROR));
   }
 
@@ -494,6 +495,7 @@ public class TaskSchedulerEventHandler extends AbstractService
 
   @Override
   public void onError(Throwable t) {
+    LOG.info("Error reported by scheduler");
     sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.INTERNAL_ERROR));
   }
 
