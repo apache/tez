@@ -29,7 +29,6 @@ import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleInputEventHandler;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 
 import com.google.common.base.Preconditions;
@@ -38,7 +37,7 @@ import com.google.protobuf.TextFormat;
 
 public class BroadcastShuffleInputEventHandler {
 
-  private static final Log LOG = LogFactory.getLog(ShuffleInputEventHandler.class);
+  private static final Log LOG = LogFactory.getLog(BroadcastShuffleInputEventHandler.class);
   
   private final BroadcastShuffleManager shuffleManager;
   

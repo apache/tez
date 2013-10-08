@@ -104,6 +104,7 @@ public class FileBasedKVWriter implements KeyValueWriter {
 
     Path indexFile = ouputFileManager
         .getOutputIndexFileForWrite(INDEX_RECORD_LENGTH);
+    LOG.info("Writing index file: " + indexFile);
     sr.writeToFile(indexFile, conf);
     return numRecords > 0;
   }
@@ -116,6 +117,7 @@ public class FileBasedKVWriter implements KeyValueWriter {
 
   public void initWriter() throws IOException {
     Path outputFile = ouputFileManager.getOutputFileForWrite();
+    LOG.info("Writing data file: " + outputFile);
 
     // TODO NEWTEZ Consider making the buffer size configurable. Also consider
     // setting up an in-memory buffer which is occasionally flushed to disk so

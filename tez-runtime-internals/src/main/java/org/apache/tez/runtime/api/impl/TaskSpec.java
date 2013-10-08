@@ -128,7 +128,7 @@ public class TaskSpec implements Writable {
   public String toString() {
     StringBuffer sb = new StringBuffer();
     sb.append("TaskAttemptID:" + taskAttemptId);
-    sb.append("processorName=" + processorDescriptor.getClassName()
+    sb.append(", processorName=" + processorDescriptor.getClassName()
         + ", inputSpecListSize=" + inputSpecList.size()
         + ", outputSpecListSize=" + outputSpecList.size());
     sb.append(", inputSpecList=[");

@@ -49,6 +49,7 @@ import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
@@ -90,9 +91,8 @@ public class BroadcastShuffleManager implements FetcherCallback {
 
   private final BlockingQueue<FetchedInput> completedInputs;
   private final Set<InputIdentifier> completedInputSet;
-//  private final Set<InputIdentifier> pendingInputs;
   private final ConcurrentMap<String, InputHost> knownSrcHosts;
-  private final Set<InputHost> pendingHosts;
+  private final BlockingQueue<InputHost> pendingHosts;
   private final Set<InputAttemptIdentifier> obsoletedInputs;
   
   private final AtomicInteger numCompletedInputs = new AtomicInteger(0);
@@ -133,7 +133,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
     completedInputSet = Collections.newSetFromMap(new ConcurrentHashMap<InputIdentifier, Boolean>(numInputs));
     completedInputs = new LinkedBlockingQueue<FetchedInput>(numInputs);
     knownSrcHosts = new ConcurrentHashMap<String, InputHost>();
-    pendingHosts = Collections.newSetFromMap(new ConcurrentHashMap<InputHost, Boolean>());
+    pendingHosts = new LinkedBlockingQueue<InputHost>();
     obsoletedInputs = Collections.newSetFromMap(new ConcurrentHashMap<InputAttemptIdentifier, Boolean>());
     
     int maxConfiguredFetchers = 
@@ -196,41 +196,50 @@ public class BroadcastShuffleManager implements FetcherCallback {
           } finally {
             lock.unlock();
           }
-          if (shuffleError != null) {
-            // InputContext has already been informed of a fatal error.
-            // Initiate shutdown.
-            break;
-          }
-          
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("NumCompletedInputs: " + numCompletedInputs);
-          }
-          if (numCompletedInputs.get() < numInputs) {
-            lock.lock();
-            try {
-              int numFetchersToRun = Math.min(pendingHosts.size(), numFetchers - numRunningFetchers.get());
-              int count = 0;
-              for (Iterator<InputHost> inputHostIter = pendingHosts.iterator() ; inputHostIter.hasNext() ; ) {
-                InputHost inputHost = inputHostIter.next();
-                inputHostIter.remove();
-                if (inputHost.getNumPendingInputs() > 0) {
-                  Fetcher fetcher = constructFetcherForHost(inputHost);
-                  LOG.info("Scheduling fetch for inputHost: " + inputHost);
-                  numRunningFetchers.incrementAndGet();
-                  ListenableFuture<FetchResult> future = fetcherExecutor
-                      .submit(fetcher);
-                  Futures.addCallback(future, fetchFutureCallback);
-                  if (++count >= numFetchersToRun) {
-                    break;
-                  }
+        }
+        if (shuffleError != null) {
+          // InputContext has already been informed of a fatal error.
+          // Initiate shutdown.
+          break;
+        }
+
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("NumCompletedInputs: " + numCompletedInputs);
+        }
+        if (numCompletedInputs.get() < numInputs) {
+          lock.lock();
+          try {
+            int numFetchersToRun = Math.min(pendingHosts.size(), numFetchers
+                - numRunningFetchers.get());
+            int count = 0;
+            while (pendingHosts.peek() != null) {
+              InputHost inputHost = pendingHosts.take();
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Processing pending host: " + inputHost);
+              }
+              if (inputHost.getNumPendingInputs() > 0) {
+                LOG.info("Scheduling fetch for inputHost: " + inputHost);
+                Fetcher fetcher = constructFetcherForHost(inputHost);
+                numRunningFetchers.incrementAndGet();
+                ListenableFuture<FetchResult> future = fetcherExecutor
+                    .submit(fetcher);
+                Futures.addCallback(future, fetchFutureCallback);
+                if (++count >= numFetchersToRun) {
+                  break;
+                }
+              } else {
+                if (LOG.isDebugEnabled()) {
+                  LOG.debug("Skipping host: " + inputHost.getHost()
+                      + " since it has know inputs to process");
                 }
               }
-            } finally {
-              lock.unlock();
             }
+          } finally {
+            lock.unlock();
           }
         }
       }
+      LOG.info("Shutting down FetchScheduler");
       // TODO NEWTEZ Maybe clean up inputs.
       if (!fetcherExecutor.isShutdown()) {
         fetcherExecutor.shutdownNow();
@@ -282,10 +291,18 @@ public class BroadcastShuffleManager implements FetcherCallback {
         host = old;
       }
     }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Adding input: " + srcAttemptIdentifier + ", to host: " + host);
+    }
     host.addKnownInput(srcAttemptIdentifier);
     lock.lock();
     try {
-      pendingHosts.add(host);
+      boolean added = pendingHosts.offer(host);
+      if (!added) {
+        String errorMessage = "Unable to add host: " + host.getHost() + " to pending queue";
+        LOG.error(errorMessage);
+        throw new TezUncheckedException(errorMessage);
+      }
       wakeLoop.signal();
     } finally {
       lock.unlock();
@@ -335,7 +352,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
       long copyDuration) throws IOException {
     InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();    
 
-    LOG.info("Complete fetch for attempt: " + srcAttemptIdentifier + " to " + fetchedInput.getType());
+    LOG.info("Completed fetch for attempt: " + srcAttemptIdentifier + " to " + fetchedInput.getType());
 
     // Count irrespective of whether this is a copy of an already fetched input
     lock.lock();
