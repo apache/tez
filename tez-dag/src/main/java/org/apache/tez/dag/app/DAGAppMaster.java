@@ -635,7 +635,8 @@ public class DAGAppMaster extends AbstractService {
       return Collections.singletonList("Session stats:"
           + "submittedDAGs=" + submittedDAGs.get()
           + ", successfulDAGs=" + successfulDAGs.get()
-          + ", failedDAGs=" + failedDAGs.get());
+          + ", failedDAGs=" + failedDAGs.get()
+          + ", killedDAGs=" + killedDAGs.get());
     }
     return null;
   }
