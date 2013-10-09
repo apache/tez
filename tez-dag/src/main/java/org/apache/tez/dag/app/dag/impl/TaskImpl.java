@@ -457,8 +457,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         int actualMax = Math.min(maxEvents,
             (tezEventsForTaskAttempts.size() - fromEventId));
         int toEventId = actualMax + fromEventId;
-        events = Collections.unmodifiableList(tezEventsForTaskAttempts.subList(
-            fromEventId, toEventId));
+        events = Collections.unmodifiableList(new ArrayList<TezEvent>(
+            tezEventsForTaskAttempts.subList(fromEventId, toEventId)));
         LOG.info("TaskAttempt:" + attemptID + " sent events: (" + fromEventId
             + "-" + toEventId + ")"); 
         // currently not modifying the events so that we dont have to create 

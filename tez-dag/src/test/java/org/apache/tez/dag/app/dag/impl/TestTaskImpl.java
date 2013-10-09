@@ -52,6 +52,7 @@ import org.apache.tez.dag.app.dag.TaskStateInternal;
 import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
+import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
@@ -60,6 +61,9 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -137,6 +141,17 @@ public class TestTaskImpl {
   private void scheduleTaskAttempt(TezTaskID taskId) {
     mockTask.handle(new TaskEvent(taskId, TaskEventType.T_SCHEDULE));
     assertTaskScheduledState();
+  }
+
+  private void sendTezEventsToTask(TezTaskID taskId, int numTezEvents) {
+    TaskEventAddTezEvent event = null;
+    EventMetaData eventMetaData = new EventMetaData();
+    DataMovementEvent dmEvent = new DataMovementEvent(null);
+    TezEvent tezEvent = new TezEvent(dmEvent, eventMetaData);
+    for (int i = 0; i < numTezEvents; i++) {
+      event = new TaskEventAddTezEvent(taskId, tezEvent);
+      mockTask.handle(event);
+    }
   }
 
   private void killTask(TezTaskID taskId) {
@@ -275,6 +290,28 @@ public class TestTaskImpl {
     scheduleTaskAttempt(taskId);
     launchTaskAttempt(mockTask.getLastAttempt().getID());
     killRunningTaskAttempt(mockTask.getLastAttempt().getID());
+  }
+
+  @Test
+  public void testFetchedEventsModifyUnderlyingList() {
+    // Tests to ensure that adding an event to a task, does not affect the
+    // result of past getTaskAttemptTezEvents calls.
+    List<TezEvent> fetchedList;
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    sendTezEventsToTask(taskId, 2);
+    TezTaskAttemptID attemptID = mockTask.getAttemptList().iterator().next()
+        .getID();
+    fetchedList = mockTask.getTaskAttemptTezEvents(attemptID, 0, 100);
+    assertEquals(2, fetchedList.size());
+
+    // Add events, make sure underlying list is the same, and no exceptions are
+    // thrown while accessing the previous list
+    sendTezEventsToTask(taskId, 4);
+    assertEquals(2, fetchedList.size());
+
+    fetchedList = mockTask.getTaskAttemptTezEvents(attemptID, 0, 100);
+    assertEquals(6, fetchedList.size());
   }
 
   @Test
