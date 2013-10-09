@@ -1150,7 +1150,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         job.vertexSucceeded(vertex);
       }
       else if (vertexEvent.getVertexState() == VertexState.FAILED) {
-        job.enactKill(DAGTerminationCause.VERTEX_FAILURE, VertexTerminationCause.OTHER_VERTEX_FAILURE);
+        job.enactKill(
+            DAGTerminationCause.VERTEX_FAILURE,
+            vertexEvent.getVertexTerminationCause() == null ? VertexTerminationCause.OTHER_VERTEX_FAILURE
+                : vertexEvent.getVertexTerminationCause());
         job.vertexFailed(vertex);
         forceTransitionToKillWait = true;
       }

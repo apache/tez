@@ -102,9 +102,10 @@ message TezEntityDescriptorProto {
   optional bytes user_payload = 2;
 }
 
-message NamedDescriptorProto {
+message RootInputLeafOutputProto {
   optional string name = 1;
   optional TezEntityDescriptorProto entity_descriptor= 2;
+  optional string initializer_class_name = 3;
 }
 
 message VertexPlan {
@@ -115,8 +116,8 @@ message VertexPlan {
   repeated PlanTaskLocationHint taskLocationHint = 7;
   repeated string inEdgeId = 8;
   repeated string outEdgeId = 9;
-  repeated NamedDescriptorProto inputs = 10;
-  repeated NamedDescriptorProto outputs = 11;
+  repeated RootInputLeafOutputProto inputs = 10;
+  repeated RootInputLeafOutputProto outputs = 11;
 }
 
 message EdgePlan {

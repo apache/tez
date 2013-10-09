@@ -27,6 +27,8 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
+import org.apache.tez.runtime.api.TezRootInputInitializer;
+import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 
 public class Vertex { // FIXME rename to Task
 
@@ -38,8 +40,8 @@ public class Vertex { // FIXME rename to Task
   private final Resource taskResource;
   private Map<String, LocalResource> taskLocalResources;
   private Map<String, String> taskEnvironment;
-  private final List<NamedDescriptor<InputDescriptor>> additionalInputs = new ArrayList<NamedDescriptor<InputDescriptor>>();
-  private final List<NamedDescriptor<OutputDescriptor>> additionalOutputs = new ArrayList<NamedDescriptor<OutputDescriptor>>();
+  private final List<RootInputLeafOutput<InputDescriptor>> additionalInputs = new ArrayList<RootInputLeafOutput<InputDescriptor>>();
+  private final List<RootInputLeafOutput<OutputDescriptor>> additionalOutputs = new ArrayList<RootInputLeafOutput<OutputDescriptor>>();
 
   private final List<Vertex> inputVertices = new ArrayList<Vertex>();
   private final List<Vertex> outputVertices = new ArrayList<Vertex>();
@@ -56,8 +58,9 @@ public class Vertex { // FIXME rename to Task
     this.processorDescriptor = processorDescriptor;
     this.parallelism = parallelism;
     this.taskResource = taskResource;
-    if (parallelism == 0) {
-      throw new IllegalArgumentException("Parallelism cannot be 0");
+    if (!(parallelism == -1 || parallelism > 0)) {
+      throw new IllegalArgumentException(
+          "Parallelism should be -1 if determined by the AM, otherwise should be > 0");
     }
     if (taskResource == null) {
       throw new IllegalArgumentException("Resource cannot be null");
@@ -133,12 +136,25 @@ public class Vertex { // FIXME rename to Task
    *          in the {@link LogicalIOProcessor}
    * @param inputDescriptor
    *          the inputDescriptor for this input
+   * @param inputInitializer
+   *          An initializer for this Input which may run within the AM. This
+   *          can be used to set the parallelism for this vertex and generate
+   *          {@link RootInputDataInformationEvent}s for the actual Input.</p>
+   *          If this is not specified, the parallelism must be set for the
+   *          vertex. In addition, the Input should know how to access data for
+   *          each of it's tasks. </p> If a {@link TezRootInputInitializer} is
+   *          meant to determine the parallelism of the vertex, the initial
+   *          vertex parallelism should be set to -1.
    * @return
    */
-  // TODO : Add a processing component.
-  public Vertex addInput(String inputName, InputDescriptor inputDescriptor) {
-    additionalInputs.add(new NamedDescriptor<InputDescriptor>(inputName,
-        inputDescriptor));
+  public Vertex addInput(String inputName, InputDescriptor inputDescriptor,
+      Class<? extends TezRootInputInitializer> inputInitializer) {
+    if (additionalInputs.size() == 1) {
+      throw new IllegalStateException(
+          "For now, only a single Root Input can be added to a Vertex");
+    }
+    additionalInputs.add(new RootInputLeafOutput<InputDescriptor>(inputName,
+        inputDescriptor, inputInitializer));
     return this;
   }
 
@@ -161,8 +177,8 @@ public class Vertex { // FIXME rename to Task
    */
   // TODO : Add a processing component.
   public Vertex addOutput(String outputName, OutputDescriptor outputDescriptor) {
-    additionalOutputs.add(new NamedDescriptor<OutputDescriptor>(outputName,
-        outputDescriptor));
+    additionalOutputs.add(new RootInputLeafOutput<OutputDescriptor>(outputName,
+        outputDescriptor, null));
     return this;
   }
 
@@ -201,11 +217,11 @@ public class Vertex { // FIXME rename to Task
     return outputEdgeIds;
   }
   
-  List<NamedDescriptor<InputDescriptor>> getInputs() {
+  List<RootInputLeafOutput<InputDescriptor>> getInputs() {
     return additionalInputs;
   }
 
-  List<NamedDescriptor<OutputDescriptor>> getOutputs() {
+  List<RootInputLeafOutput<OutputDescriptor>> getOutputs() {
     return additionalOutputs;
   }
   // FIXME how do we support profiling? Can't profile all tasks.

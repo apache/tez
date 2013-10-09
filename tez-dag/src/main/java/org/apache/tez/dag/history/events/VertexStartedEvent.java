@@ -28,12 +28,14 @@ public class VertexStartedEvent implements HistoryEvent {
   private VertexStarted datum = new VertexStarted();
 
   public VertexStartedEvent(TezVertexID vertexId,
-      String vertexName, long initTime, long startTime,
+      String vertexName, long initRequestedTime, long initedTime, long startRequestedTime, long startTime,
       long numTasks, String processorName) {
     datum.vertexName = vertexName;
     datum.vertexId = vertexId.toString();
-    datum.initTime = initTime;
-    datum.startTime = startTime;
+    datum.initRequestedTime = initRequestedTime;
+    datum.initedTime = initedTime;
+    datum.startRequestedTime = startRequestedTime;
+    datum.startedTime = startTime;
     datum.numTasks = numTasks;
     datum.processorName = processorName;
   }
@@ -58,8 +60,10 @@ public class VertexStartedEvent implements HistoryEvent {
   public String toString() {
     return "vertexName=" + datum.vertexName
         + ", vertexId=" + datum.vertexId
-        + ", initTime=" + datum.initTime
-        + ", startTime=" + datum.startTime
+        + ", initRequestedTime=" + datum.initRequestedTime
+        + ", initedTime=" + datum.initedTime
+        + ", startRequestedTime=" + datum.startRequestedTime
+        + ", startedTime=" + datum.startedTime
         + ", numTasks=" + datum.numTasks
         + ", processorName=" + datum.processorName;
   }

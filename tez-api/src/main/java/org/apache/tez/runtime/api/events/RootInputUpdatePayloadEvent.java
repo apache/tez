@@ -15,16 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.dag.app.dag;
 
-public enum VertexState {
-  NEW,
-  INITIALIZING,
-  INITED,
-  RUNNING,
-  SUCCEEDED,
-  FAILED,
-  KILLED,
-  ERROR,
-  TERMINATING,
+package org.apache.tez.runtime.api.events;
+
+import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.TezRootInputInitializer;
+
+/**
+ * Events used by {@link TezRootInputInitializer} implementations to update the
+ * shared user payload for the Input that is being initialized. </p>
+ * 
+ * This event is specific to an Input, and should only be sent once - ideally
+ * before {@link RootInputDataInformationEvent}s
+ */
+public class RootInputUpdatePayloadEvent extends Event {
+
+  private final byte[] userPayload;
+
+  public RootInputUpdatePayloadEvent(byte[] userPayload) {
+    this.userPayload = userPayload;
+  }
+
+  public byte[] getUserPayload() {
+    return this.userPayload;
+  }
 }

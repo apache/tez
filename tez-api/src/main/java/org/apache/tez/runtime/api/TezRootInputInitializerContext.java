@@ -15,16 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.dag.app.dag;
 
-public enum VertexState {
-  NEW,
-  INITIALIZING,
-  INITED,
-  RUNNING,
-  SUCCEEDED,
-  FAILED,
-  KILLED,
-  ERROR,
-  TERMINATING,
+package org.apache.tez.runtime.api;
+
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+
+public interface TezRootInputInitializerContext {
+
+  ApplicationId getApplicationId();
+  
+  String getDAGName();
+  
+  String getInputName();
+
+  public byte[] getUserPayload();
+  
 }

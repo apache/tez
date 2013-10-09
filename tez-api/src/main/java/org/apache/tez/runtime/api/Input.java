@@ -58,7 +58,7 @@ public interface Input {
    * @param inputEvents
    *          the list of {@link Event}s
    */
-  public void handleEvents(List<Event> inputEvents);
+  public void handleEvents(List<Event> inputEvents) throws Exception;
 
   /**
    * Closes the <code>Input</code>

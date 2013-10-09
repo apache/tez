@@ -29,14 +29,17 @@ public enum VertexTerminationCause {
   /** Other vertex failed causing DAG to fail thus killing this vertex  */
   OTHER_VERTEX_FAILURE,
 
+  /** Initialization failed for one of the root Inputs */
+  ROOT_INPUT_INIT_FAILURE,
+  
   /** One of the tasks for this vertex failed.  */
   OWN_TASK_FAILURE, 
 
   /** This vertex failed during commit. */
   COMMIT_FAILURE,
 
-  /** This vertex failed as it had zero tasks. */
-  ZERO_TASKS, 
+  /** This vertex failed as it had invalid number tasks. */
+  INVALID_NUM_OF_TASKS, 
 
   /** This vertex failed during init. */
   INIT_FAILURE,

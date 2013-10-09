@@ -83,8 +83,10 @@
       "fields": [
           {"name": "vertexName", "type": "string"},
           {"name": "vertexId", "type": "string"},
-          {"name": "initTime", "type": "long"},
-          {"name": "startTime", "type": "long"},
+          {"name": "initRequestedTime", "type": "long"},
+          {"name": "initedTime", "type": "long"},
+          {"name": "startRequestedTime", "type": "long"},
+          {"name": "startedTime", "type": "long"},
           {"name": "numTasks", "type": "long"},
           {"name": "processorName", "type": "string"}
       ]

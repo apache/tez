@@ -177,7 +177,7 @@ public class DAG { // FIXME rename to Topology
     // Verify Input/Output names don't collide amongs themselves as well as with vertexNames
     Set<String> namedIOs = new HashSet<String>();
     for (Vertex v : vertices.values()) {
-      for (NamedDescriptor<InputDescriptor> in : v.getInputs()) {
+      for (RootInputLeafOutput<InputDescriptor> in : v.getInputs()) {
         if (vertexMap.containsKey(in.getName())) {
           throw new IllegalStateException(
               "DAG contains a vertex and an Input to a vertex with the same name: "
@@ -190,7 +190,7 @@ public class DAG { // FIXME rename to Topology
           namedIOs.add(in.getName());
         }
       }
-      for (NamedDescriptor<OutputDescriptor> out : v.getOutputs()) {
+      for (RootInputLeafOutput<OutputDescriptor> out : v.getOutputs()) {
         if (vertexMap.containsKey(out.getName())) {
           throw new IllegalStateException(
               "DAG contains a vertex and an Output from a vertex with the same name: "
@@ -308,12 +308,12 @@ public class DAG { // FIXME rename to Topology
       vertexBuilder.setProcessorDescriptor(DagTypeConverters
           .convertToDAGPlan(vertex.getProcessorDescriptor()));
       if (vertex.getInputs().size() > 0) {
-        for (NamedDescriptor<InputDescriptor> input : vertex.getInputs()) {
+        for (RootInputLeafOutput<InputDescriptor> input : vertex.getInputs()) {
           vertexBuilder.addInputs(DagTypeConverters.convertToDAGPlan(input));
         }
       }
       if (vertex.getOutputs().size() > 0) {
-        for (NamedDescriptor<OutputDescriptor> output : vertex.getOutputs()) {
+        for (RootInputLeafOutput<OutputDescriptor> output : vertex.getOutputs()) {
           vertexBuilder.addOutputs(DagTypeConverters.convertToDAGPlan(output));
         }
       }

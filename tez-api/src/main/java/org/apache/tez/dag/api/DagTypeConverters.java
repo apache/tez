@@ -39,7 +39,6 @@ import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TezSessionStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
-import org.apache.tez.dag.api.records.DAGProtos.NamedDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataMovementType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataSourceType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSchedulingType;
@@ -49,6 +48,7 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceVisibility;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
+import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 
 import com.google.protobuf.ByteString;
@@ -248,11 +248,15 @@ public class DagTypeConverters {
     return builder.build();
   }
 
-  public static NamedDescriptorProto convertToDAGPlan(
-      NamedDescriptor<? extends TezEntityDescriptor> descriptor) {
-    NamedDescriptorProto.Builder builder = NamedDescriptorProto.newBuilder();
+  public static RootInputLeafOutputProto convertToDAGPlan(
+      RootInputLeafOutput<? extends TezEntityDescriptor> descriptor) {
+    RootInputLeafOutputProto.Builder builder = RootInputLeafOutputProto.newBuilder();
     builder.setName(descriptor.getName());
     builder.setEntityDescriptor(convertToDAGPlan(descriptor.getDescriptor()));
+    if (descriptor.getInitializerClass() != null) {
+      builder.setInitializerClassName(descriptor.getInitializerClass()
+          .getName());
+    }
     return builder.build();
   }
 

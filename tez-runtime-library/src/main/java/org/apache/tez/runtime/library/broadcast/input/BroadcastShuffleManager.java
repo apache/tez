@@ -530,7 +530,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
 
     @Override
     public void onFailure(Throwable t) {
-      LOG.error("Fetcher failed with error: " + t);
+      LOG.error("Fetcher failed with error: ", t);
       shuffleError = t;
       inputContext.fatalError(t, "Fetch failed");
       doBookKeepingForFetcherComplete();

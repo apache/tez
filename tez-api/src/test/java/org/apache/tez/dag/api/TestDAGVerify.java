@@ -284,7 +284,7 @@ public class TestDAGVerify {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
-    v1.addInput("v1", new InputDescriptor("Input"));
+    v1.addInput("v1", new InputDescriptor("Input"), null);
     Vertex v2 = new Vertex("v2",
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
@@ -314,7 +314,7 @@ public class TestDAGVerify {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
-    v1.addInput("collide", new InputDescriptor("Input"));
+    v1.addInput("collide", new InputDescriptor("Input"), null);
     Vertex v2 = new Vertex("v2",
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
@@ -425,7 +425,11 @@ public class TestDAGVerify {
           0, dummyTaskResource);
       Assert.fail("Expected exception for 0 parallelism");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage().startsWith("Parallelism cannot be 0"));
+      Assert
+          .assertTrue(e
+              .getMessage()
+              .startsWith(
+                  "Parallelism should be -1 if determined by the AM, otherwise should be > 0"));
     }
     try {
       Vertex v1 = new Vertex("v1",

@@ -24,12 +24,15 @@ import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.dag.api.records.DAGProtos.NamedDescriptorProto;
+import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.app.dag.impl.Edge;
+import org.apache.tez.dag.app.dag.impl.RootInputLeafOutputDescriptor;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.impl.InputSpec;
@@ -72,11 +75,14 @@ public interface Vertex extends Comparable<Vertex> {
   void setInputVertices(Map<Vertex, Edge> inVertices);
   void setOutputVertices(Map<Vertex, Edge> outVertices);
 
-  void setAdditionalInputs(List<NamedDescriptorProto> inputs);
-  void setAdditionalOutputs(List<NamedDescriptorProto> outputs);
-  
   Map<Vertex, Edge> getInputVertices();
   Map<Vertex, Edge> getOutputVertices();
+  
+  void setAdditionalInputs(List<RootInputLeafOutputProto> inputs);
+  void setAdditionalOutputs(List<RootInputLeafOutputProto> outputs);
+  
+  Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> getAdditionalInputs();
+  Map<String, RootInputLeafOutputDescriptor<OutputDescriptor>> getAdditionalOutputs();
   
   List<InputSpec> getInputSpecList(int taskIndex);
   List<OutputSpec> getOutputSpecList(int taskIndex);
@@ -89,4 +95,5 @@ public interface Vertex extends Comparable<Vertex> {
   ProcessorDescriptor getProcessorDescriptor();
   public DAG getDAG();
   VertexTerminationCause getTerminationCause();
+
 }

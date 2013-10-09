@@ -17,18 +17,21 @@
 
 package org.apache.tez.common;
 
+import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 
 import com.google.common.base.Preconditions;
+import com.google.protobuf.ByteString;
 
 public class TezUtils {
   
@@ -56,6 +59,15 @@ public class TezUtils {
     }
   }
   
+  public static ByteString createByteStringFromConf(Configuration conf)
+      throws IOException {
+    Preconditions.checkNotNull(conf, "Configuration must be specified");
+    ByteString.Output os = ByteString.newOutput();
+    DataOutputStream dos = new DataOutputStream(os);
+    conf.write(dos);
+    return os.toByteString();
+  }
+  
   public static byte[] createUserPayloadFromConf(Configuration conf)
       throws IOException {
     Preconditions.checkNotNull(conf, "Configuration must be specified");
@@ -64,6 +76,16 @@ public class TezUtils {
     return dob.getData();
   }
 
+  public static Configuration createConfFromByteString(ByteString byteString)
+      throws IOException {
+    Preconditions.checkNotNull(byteString, "ByteString must be specified");
+    DataInputByteBuffer dibb = new DataInputByteBuffer();
+    dibb.reset(byteString.asReadOnlyByteBuffer());
+    Configuration conf = new Configuration(false);
+    conf.readFields(dibb);
+    return conf;
+  }
+  
   public static Configuration createConfFromUserPayload(byte[] bb)
       throws IOException {
     // TODO Avoid copy ?

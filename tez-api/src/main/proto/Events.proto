@@ -43,3 +43,8 @@ message VertexManagerEventProto {
   optional string target_vertex_name = 1;
   optional bytes user_payload = 2;
 }
+
+message RootInputDataInformationEventProto {
+  optional int32 index = 1;
+  optional bytes user_payload = 2;
+}

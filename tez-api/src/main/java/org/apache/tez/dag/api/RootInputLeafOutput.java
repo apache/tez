@@ -18,14 +18,19 @@
 
 package org.apache.tez.dag.api;
 
-class  NamedDescriptor <T extends TezEntityDescriptor> {
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+
+@Private
+class  RootInputLeafOutput <T extends TezEntityDescriptor> {
 
   private final String name;
   private final T descriptor;
+  private final Class<?> initializerClazz;
   
-  NamedDescriptor(String name, T descriptor) {
+  RootInputLeafOutput(String name, T descriptor, Class<?> initializerClazz) {
     this.name = name;
     this.descriptor = descriptor;
+    this.initializerClazz = initializerClazz;
   }
   
   public String getName() {
@@ -34,5 +39,9 @@ class  NamedDescriptor <T extends TezEntityDescriptor> {
 
   public T getDescriptor() {
     return this.descriptor;
+  }
+  
+  public Class<?> getInitializerClass() {
+    return this.initializerClazz;
   }
 }

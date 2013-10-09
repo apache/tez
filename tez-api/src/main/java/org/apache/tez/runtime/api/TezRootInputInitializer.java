@@ -15,16 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.dag.app.dag;
 
-public enum VertexState {
-  NEW,
-  INITIALIZING,
-  INITED,
-  RUNNING,
-  SUCCEEDED,
-  FAILED,
-  KILLED,
-  ERROR,
-  TERMINATING,
+package org.apache.tez.runtime.api;
+
+import java.util.List;
+
+/**
+ * <code>TezRootInputInitializer</code>s are used to initialize root vertices
+ * within the AM. They can be used to distribute data across the tasks for the
+ * vertex, determine the number of tasks at runtime, update the Input payload
+ * etc.
+ */
+public interface TezRootInputInitializer {
+  
+  List<Event> initialize(TezRootInputInitializerContext inputVertexContext)
+      throws Exception;
+  
 }

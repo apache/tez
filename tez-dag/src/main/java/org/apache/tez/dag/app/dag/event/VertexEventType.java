@@ -50,10 +50,13 @@ public enum VertexEventType {
   V_ATTEMPT_KILLED,
   
   //Producer:Any component
-  V_DIAGNOSTIC_UPDATE,
   V_INTERNAL_ERROR,
   V_COUNTER_UPDATE,
   
   V_ROUTE_EVENT,
+  
+  //Producer: VertexInputInitializer
+  V_ROOT_INPUT_INITIALIZED,
+  V_ROOT_INPUT_FAILED,
   
 }

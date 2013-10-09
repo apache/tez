@@ -29,9 +29,11 @@ import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.EventProtos.DataMovementEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.InputFailedEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.InputReadErrorEventProto;
+import org.apache.tez.runtime.api.events.EventProtos.RootInputDataInformationEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.VertexManagerEventProto;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
+import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
@@ -71,6 +73,8 @@ public class TezEvent implements Writable {
       eventType = EventType.INPUT_FAILED_EVENT;
     } else if (event instanceof TaskStatusUpdateEvent) {
       eventType = EventType.TASK_STATUS_UPDATE_EVENT;
+    } else if (event instanceof RootInputDataInformationEvent) {
+      eventType = EventType.ROOT_INPUT_DATA_INFORMATION_EVENT;
     } else {
       throw new TezUncheckedException("Unknown event, event="
           + event.getClass().getName());
@@ -154,6 +158,13 @@ public class TezEvent implements Writable {
             .setTargetIndex(ifEvt.getTargetIndex())
             .setVersion(ifEvt.getVersion()).build().toByteArray();
         break;
+      case ROOT_INPUT_DATA_INFORMATION_EVENT:
+        RootInputDataInformationEvent liEvent = (RootInputDataInformationEvent) event;
+        eventBytes = RootInputDataInformationEventProto.newBuilder()
+            .setIndex(liEvent.getIndex())
+            .setUserPayload(ByteString.copyFrom(liEvent.getUserPayload()))
+            .build().toByteArray();
+        break;
       default:
         throw new TezUncheckedException("Unknown TezEvent"
            + ", type=" + eventType);
@@ -211,8 +222,15 @@ public class TezEvent implements Writable {
         event = new InputFailedEvent(ifProto.getSourceIndex(),
             ifProto.getTargetIndex(), ifProto.getVersion());
         break;
+      case ROOT_INPUT_DATA_INFORMATION_EVENT:
+        RootInputDataInformationEventProto difProto = RootInputDataInformationEventProto
+            .parseFrom(eventBytes);
+        event = new RootInputDataInformationEvent(difProto.getIndex(), difProto
+            .getUserPayload().toByteArray());
+        break;
       default:
-        throw new TezUncheckedException("Unknown TezEvent"
+        // RootInputUpdatePayload event not wrapped in a TezEvent.
+        throw new TezUncheckedException("Unexpected TezEvent"
            + ", type=" + eventType);
       }
     }

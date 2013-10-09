@@ -16,22 +16,26 @@
 * limitations under the License.
 */
 
-package org.apache.tez.dag.app.dag;
+package org.apache.tez.dag.app.dag.event;
 
-import java.util.List;
+import org.apache.tez.dag.records.TezVertexID;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.events.VertexManagerEvent;
+public class VertexEventRootInputFailed extends VertexEvent {
+  
+  private final String inputName;
+  private final Throwable error;
 
-
-// Rename to VertexManager TEZ-364 and move to DAG API. Make abstract class.
-public interface VertexScheduler {
-  void initialize(Configuration conf);
-  void onVertexStarted();
-  void onSourceTaskCompleted(TezTaskAttemptID attemptId);
-  void onVertexManagerEventReceived(VertexManagerEvent vmEvent);
-  void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor, List<Event> events);
+  public VertexEventRootInputFailed(TezVertexID vertexId, String inputName, Throwable error) {
+    super(vertexId, VertexEventType.V_ROOT_INPUT_FAILED);
+    this.inputName = inputName;
+    this.error = error;
+  }
+  
+  public Throwable getError() {
+    return this.error;
+  }
+  
+  public String getInputName() {
+    return this.inputName;
+  }
 }

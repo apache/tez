@@ -16,22 +16,35 @@
 * limitations under the License.
 */
 
-package org.apache.tez.dag.app.dag;
+package org.apache.tez.dag.app.dag.event;
 
+import java.util.Collections;
 import java.util.List;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
+public class VertexEventRootInputInitialized extends VertexEvent {
 
-// Rename to VertexManager TEZ-364 and move to DAG API. Make abstract class.
-public interface VertexScheduler {
-  void initialize(Configuration conf);
-  void onVertexStarted();
-  void onSourceTaskCompleted(TezTaskAttemptID attemptId);
-  void onVertexManagerEventReceived(VertexManagerEvent vmEvent);
-  void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor, List<Event> events);
+  private final String inputName;
+  private final List<Event> events;
+
+  public VertexEventRootInputInitialized(TezVertexID vertexId, String inputName, List<Event> events) {
+    super(vertexId, VertexEventType.V_ROOT_INPUT_INITIALIZED);
+    this.inputName = inputName;
+    if (events == null) {
+      this.events = Collections.emptyList();
+    } else {
+      this.events = events;
+    }
+  }
+  
+  public List<Event> getEvents() {
+    return events;
+  }
+  
+  public String getInputName() {
+    return this.inputName;
+  }
+
 }

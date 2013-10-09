@@ -18,10 +18,14 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexScheduler;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 /**
@@ -49,6 +53,11 @@ public class ImmediateStartVertexScheduler implements VertexScheduler {
 
   @Override
   public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
+  }
+
+  @Override
+  public void onRootVertexInitialized(String inputName,
+      InputDescriptor inputDescriptor, List<Event> events) {
   }
 
 }

@@ -125,7 +125,7 @@ public class OnFileSortedOutput implements LogicalOutput {
 
     List<Event> events = Lists.newArrayListWithCapacity(numOutputs+1);
     events.add(vmEvent);
-    
+
     for (int i = 0; i < numOutputs; i++) {
       DataMovementEvent event = new DataMovementEvent(i, payloadBytes);
       events.add(event);
