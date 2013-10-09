@@ -477,6 +477,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     this.containerContext = new ContainerContext(this.localResources,
         this.credentials, this.environment, this.javaOpts);
+
+    if (vertexPlan.getInputsCount() > 0) {
+      setAdditionalInputs(vertexPlan.getInputsList());
+    }
+    if (vertexPlan.getOutputsCount() > 0) {
+      setAdditionalOutputs(vertexPlan.getOutputsList());
+    }
+
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
@@ -1740,6 +1748,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public void setAdditionalOutputs(List<RootInputLeafOutputProto> outputs) {
+    LOG.info("setting additional outputs for vertex " + this.vertexName);
     this.additionalOutputs = Maps.newHashMapWithExpectedSize(outputs.size());
     for (RootInputLeafOutputProto output : outputs) {
       

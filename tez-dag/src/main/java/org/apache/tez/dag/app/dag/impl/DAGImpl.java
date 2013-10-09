@@ -947,12 +947,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           dag.credentials, dag.clock,
           dag.taskHeartbeatHandler, dag.appContext,
           vertexLocationHint);
-      if (vertexPlan.getInputsCount() > 0) {
-        v.setAdditionalInputs(vertexPlan.getInputsList());
-      }
-      if (vertexPlan.getOutputsCount() > 0) {
-        v.setAdditionalOutputs(vertexPlan.getOutputsList());
-      }
       return v;
     }
 
