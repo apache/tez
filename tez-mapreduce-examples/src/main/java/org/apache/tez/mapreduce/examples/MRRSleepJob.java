@@ -77,8 +77,9 @@ import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
+import org.apache.tez.mapreduce.common.MRInputSplitDistributor;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
@@ -420,7 +421,7 @@ public class MRRSleepJob extends Configured implements Tool {
       int numMapper, int numReducer, int iReduceStagesCount,
       int numIReducer, long mapSleepTime, int mapSleepCount,
       long reduceSleepTime, int reduceSleepCount,
-      long iReduceSleepTime, int iReduceSleepCount)
+      long iReduceSleepTime, int iReduceSleepCount, boolean writeSplitsToDFS)
       throws IOException, YarnException {
 
 
@@ -516,15 +517,26 @@ public class MRRSleepJob extends Configured implements Tool {
       MRHelpers.doJobClientMagic(finalReduceConf);
     }
 
-    InputSplitInfo inputSplitInfo;
-    try {
-      inputSplitInfo = MRHelpers.generateInputSplits(mapStageConf,
-          remoteStagingDir);
-    } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      throw new TezUncheckedException("Could not generate input splits", e);
-    } catch (ClassNotFoundException e) {
-      throw new TezUncheckedException("Failed to generate input splits", e);
+    InputSplitInfo inputSplitInfo = null;
+    if (writeSplitsToDFS) {
+      LOG.info("Writing splits to DFS");
+      try {
+        inputSplitInfo = MRHelpers.generateInputSplits(mapStageConf,
+            remoteStagingDir);
+      } catch (InterruptedException e) {
+        throw new TezUncheckedException("Could not generate input splits", e);
+      } catch (ClassNotFoundException e) {
+        throw new TezUncheckedException("Failed to generate input splits", e);
+      }
+    } else {
+      try {
+        LOG.info("Creating in-mem splits");
+        inputSplitInfo = MRHelpers.generateInputSplitsToMem(mapStageConf);
+      } catch (ClassNotFoundException e) {
+        throw new TezUncheckedException("Could not generate input splits", e);
+      } catch (InterruptedException e) {
+        throw new TezUncheckedException("Could not generate input splits", e);
+      }
     }
 
     DAG dag = new DAG("MRRSleepJob");
@@ -550,25 +562,40 @@ public class MRRSleepJob extends Configured implements Tool {
 
     List<Vertex> vertices = new ArrayList<Vertex>();
 
+    
+    byte[] mapInputPayload = null;
+    if (writeSplitsToDFS) {
+      mapInputPayload = MRHelpers.createMRInputPayload(mapStageConf, null);
+    } else {
+      mapInputPayload = MRHelpers.createMRInputPayload(mapStageConf, inputSplitInfo.getSplitsProto());
+    }
+    
     byte[] mapUserPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
     Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(mapUserPayload),
         numMapper, MRHelpers.getMapResource(mapStageConf));
     mapVertex.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
     mapVertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
-    Map<String, LocalResource> mapLocalResources =
-        new HashMap<String, LocalResource>();
-    mapLocalResources.putAll(commonLocalResources);
-    MRHelpers.updateLocalResourcesForInputSplits(remoteFs, inputSplitInfo,
-        mapLocalResources);
-    mapVertex.setTaskLocalResources(mapLocalResources);
+    
+    if (writeSplitsToDFS) {
+      Map<String, LocalResource> mapLocalResources = new HashMap<String, LocalResource>();
+      mapLocalResources.putAll(commonLocalResources);
+      MRHelpers.updateLocalResourcesForInputSplits(remoteFs, inputSplitInfo,
+          mapLocalResources);
+      mapVertex.setTaskLocalResources(mapLocalResources);
+    } else {
+      mapVertex.setTaskLocalResources(commonLocalResources);
+    }
+
     Map<String, String> mapEnv = new HashMap<String, String>();
     MRHelpers.updateEnvironmentForMRTasks(mapStageConf, mapEnv, true);
     mapVertex.setTaskEnvironment(mapEnv);
-    MRHelpers.addMRInput(mapVertex, mapUserPayload);
+    if (writeSplitsToDFS) {
+      MRHelpers.addMRInput(mapVertex, mapInputPayload, null);
+    } else {
+      MRHelpers.addMRInput(mapVertex, mapInputPayload, MRInputSplitDistributor.class);
+    }
     vertices.add(mapVertex);
-    
-    
 
     if (iReduceStagesCount > 0
         && numIReducer > 0) {
@@ -692,7 +719,8 @@ public class MRRSleepJob extends Configured implements Tool {
           " [-irs numIntermediateReducerStages]" +
           " [-mt mapSleepTime (msec)] [-rt reduceSleepTime (msec)]" +
           " [-irt intermediateReduceSleepTime]" +
-          " [-recordt recordSleepTime (msec)]");
+          " [-recordt recordSleepTime (msec)]" +
+          " [-writeSplitsToDfs (false)/true]");
       ToolRunner.printGenericCommandUsage(System.err);
       return 2;
     }
@@ -702,6 +730,7 @@ public class MRRSleepJob extends Configured implements Tool {
         iReduceSleepTime=1;
     int mapSleepCount = 1, reduceSleepCount = 1, iReduceSleepCount = 1;
     int iReduceStagesCount = 1;
+    boolean writeSplitsToDfs = false;
 
     for(int i=0; i < args.length; i++ ) {
       if(args[i].equals("-m")) {
@@ -727,6 +756,9 @@ public class MRRSleepJob extends Configured implements Tool {
       }
       else if (args[i].equals("-recordt")) {
         recSleepTime = Long.parseLong(args[++i]);
+      }
+      else if (args[i].equals("-writeSplitsToDfs")) {
+        writeSplitsToDfs = Boolean.parseBoolean(args[++i]);
       }
     }
 
@@ -762,7 +794,7 @@ public class MRRSleepJob extends Configured implements Tool {
     DAG dag = createDAG(remoteFs, conf, appId, remoteStagingDir,
         numMapper, numReducer, iReduceStagesCount, numIReducer,
         mapSleepTime, mapSleepCount, reduceSleepTime, reduceSleepCount,
-        iReduceSleepTime, iReduceSleepCount);
+        iReduceSleepTime, iReduceSleepCount, writeSplitsToDfs);
 
     conf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
         MRHelpers.getMRAMJavaOpts(conf));

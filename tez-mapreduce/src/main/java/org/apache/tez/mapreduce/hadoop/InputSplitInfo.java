@@ -20,66 +20,56 @@ package org.apache.tez.mapreduce.hadoop;
 
 import java.util.List;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
+
+// TODO Fix this to be more usable. Interface is broken since half the methods apply to only a specific type.
 
 /**
- * Information obtained by using the InputFormat class to generate
- * the required InputSplit information files that in turn can be used to
- * setup a DAG.
- *
- * The splitsFile and splitsMetaInfoFile need to be provided as LocalResources
- * to the vertex in question. The numTasks represents the parallelism for
- * the vertex and the taskLocationHints define the possible nodes on which the
- * tasks should be run based on the location of the splits that will be
- * processed by each task.
+ * Provides information about input splits.</p>
+ * 
+ * The get*Path methods are only applicable when generating splits to disk. The
+ * getSplitsProto method is only applicable when generating splits to memory.
+ * 
  */
-public class InputSplitInfo {
+@Private
+@Unstable
+public interface InputSplitInfo {
 
-  /// Splits file
-  private final Path splitsFile;
-  /// Meta info file for all the splits information
-  private final Path splitsMetaInfoFile;
-  /// Location hints to determine where to run the tasks
-  private final List<TaskLocationHint> taskLocationHints;
-  /// The num of tasks - same as number of splits generated.
-  private final int numTasks;
-
-  public InputSplitInfo(Path splitsFile, Path splitsMetaInfoFile, int numTasks,
-      List<TaskLocationHint> taskLocationHints) {
-    this.splitsFile = splitsFile;
-    this.splitsMetaInfoFile = splitsMetaInfoFile;
-    this.taskLocationHints = taskLocationHints;
-    this.numTasks = numTasks;
+  public enum Type {
+    DISK, MEM
   }
-
   /**
    * Get the TaskLocationHints for each task
    */
-  public List<TaskLocationHint> getTaskLocationHints() {
-    return taskLocationHints;
-  }
+  public abstract List<TaskLocationHint> getTaskLocationHints();
 
   /**
    * Get the path to the splits meta info file
    */
-  public Path getSplitsMetaInfoFile() {
-    return splitsMetaInfoFile;
-  }
+  public abstract Path getSplitsMetaInfoFile();
 
   /**
    * Get the path to the splits file
    */
-  public Path getSplitsFile() {
-    return splitsFile;
-  }
+  public abstract Path getSplitsFile();
 
+  /**
+   * Get the splits proto
+   */
+  public abstract MRSplitsProto getSplitsProto();
+  
   /**
    * Get the number of splits that were generated. Same as number of tasks that
    * should be run for the vertex processing these set of splits.
    */
-  public int getNumTasks() {
-    return numTasks;
-  }
-
+  public abstract int getNumTasks();
+  
+  /**
+   * Get the {@link Type} of the InputSplitInfo
+   */
+  public abstract Type getType();
 }

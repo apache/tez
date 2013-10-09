@@ -220,6 +220,9 @@ public class MultiStageMRConfToTezTranslator {
     // Assuming no 0 map jobs, and the first stage is always a map.
     int numStages = numIntermediateStages + (hasFinalReduceStage ? 2 : 1);
 
+    // Read split info from HDFS
+    conf.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
+    
     // Setup Tez partitioner class
     conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS,
         MRPartitioner.class.getName());

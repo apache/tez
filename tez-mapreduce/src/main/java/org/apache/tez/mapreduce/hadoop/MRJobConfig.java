@@ -19,11 +19,15 @@ package org.apache.tez.mapreduce.hadoop;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
 public interface MRJobConfig {
 
+  @Private
+  static final String MR_TEZ_PREFIX = "mapreduce.tez.";
+  
   // Put all of the attribute names in here so that Job and JobContext are
   // consistent.
   public static final String INPUT_FORMAT_CLASS_ATTR = "mapreduce.job.inputformat.class";
@@ -650,6 +654,9 @@ public interface MRJobConfig {
       "mrr.vertex.";
 
   public static final String VERTEX_NAME = "mapreduce.task.vertex.name";
+
+  public static final String MR_TEZ_SPLITS_VIA_EVENTS = MR_TEZ_PREFIX + "splits.via.events";
+  public static final boolean MR_TEZ_SPLITS_VIA_EVENTS_DEFAULT = true;
   
   // Stage specific properties
   // Format of each property is mapred.ireducer.stage.<stage-num>.<suffix>

@@ -18,6 +18,7 @@
 
 package org.apache.tez.mapreduce.hadoop;
 
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -37,12 +38,17 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.serializer.Deserializer;
+import org.apache.hadoop.io.serializer.SerializationFactory;
+import org.apache.hadoop.io.serializer.Serializer;
+import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobSubmissionFiles;
 import org.apache.hadoop.mapreduce.split.JobSplitWriter;
+import org.apache.hadoop.mapreduce.v2.proto.MRProtos;
 import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.yarn.ContainerLogAppender;
@@ -66,12 +72,21 @@ import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRUserPayloadProto;
+import org.apache.tez.runtime.api.TezRootInputInitializer;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.protobuf.ByteString;
 
 
 public class MRHelpers {
 
   private static final Log LOG = LogFactory.getLog(MRHelpers.class);
 
+  static final int SPLIT_SERIALIZED_LENGTH_ESTIMATE = 40;
   static final String JOB_SPLIT_RESOURCE_NAME = "job.split";
   static final String JOB_SPLIT_METAINFO_RESOURCE_NAME =
       "job.splitmetainfo";
@@ -126,6 +141,24 @@ public class MRHelpers {
     }
   }
 
+  private static org.apache.hadoop.mapreduce.InputSplit[] generateNewSplits(
+      JobContext jobContext) throws ClassNotFoundException, IOException,
+      InterruptedException {
+    Configuration conf = jobContext.getConfiguration();
+    InputFormat<?, ?> input = ReflectionUtils.newInstance(
+        jobContext.getInputFormatClass(), conf);
+
+    List<org.apache.hadoop.mapreduce.InputSplit> array = input
+        .getSplits(jobContext);
+    org.apache.hadoop.mapreduce.InputSplit[] splits = (org.apache.hadoop.mapreduce.InputSplit[]) array
+        .toArray(new org.apache.hadoop.mapreduce.InputSplit[array.size()]);
+
+    // sort the splits into order based on size, so that the biggest
+    // go first
+    Arrays.sort(splits, new InputSplitComparator());
+    return splits;
+  }
+
   /**
    * Generate new-api mapreduce InputFormat splits
    * @param jobContext JobContext required by InputFormat
@@ -139,23 +172,13 @@ public class MRHelpers {
    * @throws InterruptedException
    * @throws ClassNotFoundException
    */
-  private static InputSplitInfo writeNewSplits(JobContext jobContext,
+  private static InputSplitInfoDisk writeNewSplits(JobContext jobContext,
       Path inputSplitDir) throws IOException, InterruptedException,
       ClassNotFoundException {
+    
+    org.apache.hadoop.mapreduce.InputSplit[] splits = generateNewSplits(jobContext);
+    
     Configuration conf = jobContext.getConfiguration();
-    InputFormat<?, ?> input =
-        ReflectionUtils.newInstance(jobContext.getInputFormatClass(), conf);
-
-    List<org.apache.hadoop.mapreduce.InputSplit> array =
-        input.getSplits(jobContext);
-    org.apache.hadoop.mapreduce.InputSplit[] splits =
-        (org.apache.hadoop.mapreduce.InputSplit[])
-        array.toArray(
-            new org.apache.hadoop.mapreduce.InputSplit[array.size()]);
-
-    // sort the splits into order based on size, so that the biggest
-    // go first
-    Arrays.sort(splits, new InputSplitComparator());
 
     JobSplitWriter.createSplitFiles(inputSplitDir, conf,
         inputSplitDir.getFileSystem(conf), splits);
@@ -168,12 +191,22 @@ public class MRHelpers {
               Arrays.asList(splits[i].getLocations())), null));
     }
 
-    return new InputSplitInfo(
+    return new InputSplitInfoDisk(
         JobSubmissionFiles.getJobSplitFile(inputSplitDir),
         JobSubmissionFiles.getJobSplitMetaFile(inputSplitDir),
         splits.length, locationHints);
   }
 
+  private static org.apache.hadoop.mapred.InputSplit[] generateOldSplits(
+      JobConf jobConf) throws IOException {
+    org.apache.hadoop.mapred.InputSplit[] splits = jobConf.getInputFormat()
+        .getSplits(jobConf, jobConf.getNumMapTasks());
+    // sort the splits into order based on size, so that the biggest
+    // go first
+    Arrays.sort(splits, new OldInputSplitComparator());
+    return splits;
+  }
+  
   /**
    * Generate old-api mapred InputFormat splits
    * @param jobConf JobConf required by InputFormat class
@@ -185,13 +218,11 @@ public class MRHelpers {
    *
    * @throws IOException
    */
-  private static InputSplitInfo writeOldSplits(JobConf jobConf,
+  private static InputSplitInfoDisk writeOldSplits(JobConf jobConf,
       Path inputSplitDir) throws IOException {
-    org.apache.hadoop.mapred.InputSplit[] splits =
-        jobConf.getInputFormat().getSplits(jobConf, jobConf.getNumMapTasks());
-    // sort the splits into order based on size, so that the biggest
-    // go first
-    Arrays.sort(splits, new OldInputSplitComparator());
+    
+    org.apache.hadoop.mapred.InputSplit[] splits = generateOldSplits(jobConf);
+    
     JobSplitWriter.createSplitFiles(inputSplitDir, jobConf,
         inputSplitDir.getFileSystem(jobConf), splits);
 
@@ -203,7 +234,7 @@ public class MRHelpers {
               Arrays.asList(splits[i].getLocations())), null));
     }
 
-    return new InputSplitInfo(
+    return new InputSplitInfoDisk(
         JobSubmissionFiles.getJobSplitFile(inputSplitDir),
         JobSubmissionFiles.getJobSplitMetaFile(inputSplitDir),
         splits.length, locationHints);
@@ -235,11 +266,12 @@ public class MRHelpers {
    * @throws InterruptedException
    * @throws ClassNotFoundException
    */
-  public static InputSplitInfo generateInputSplits(Configuration conf,
+  public static InputSplitInfoDisk generateInputSplits(Configuration conf,
       Path inputSplitsDir) throws IOException, InterruptedException,
       ClassNotFoundException {
     Job job = Job.getInstance(conf);
     JobConf jobConf = new JobConf(conf);
+    conf.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
     if (jobConf.getUseNewMapper()) {
       LOG.info("Generating new input splits"
           + ", splitsDir=" + inputSplitsDir.toString());
@@ -249,6 +281,112 @@ public class MRHelpers {
           + ", splitsDir=" + inputSplitsDir.toString());
       return writeOldSplits(jobConf, inputSplitsDir);
     }
+  }
+
+  /**
+   * Generates Input splits and stores them in a {@link MRProtos} instance.
+   * 
+   * Returns an instance of {@link InputSplitInfoMem}
+   * 
+   * @param conf
+   *          an instance of Configuration which is used to determine whether
+   *          the mapred of mapreduce API is being used. This Configuration
+   *          instance should also contain adequate information to be able to
+   *          generate splits - like the InputFormat being used and related
+   *          configuration.
+   * @return an instance of {@link InputSplitInfoMem} which supports a subset of
+   *         the APIs defined on {@link InputSplitInfo}
+   * @throws IOException
+   * @throws ClassNotFoundException
+   * @throws InterruptedException
+   */
+  public static InputSplitInfoMem generateInputSplitsToMem(Configuration conf)
+      throws IOException, ClassNotFoundException, InterruptedException {
+
+    InputSplitInfoMem splitInfoMem = null;
+    JobConf jobConf = new JobConf(conf);
+    if (jobConf.getUseNewMapper()) {
+      LOG.info("Generating mapreduce api input splits");
+      Job job = Job.getInstance(conf);
+      org.apache.hadoop.mapreduce.InputSplit[] splits = generateNewSplits(job);
+      splitInfoMem = createSplitsProto(splits, new SerializationFactory(job.getConfiguration()));
+    } else {
+      LOG.info("Generating mapred api input splits");
+      org.apache.hadoop.mapred.InputSplit[] splits = generateOldSplits(jobConf);
+      splitInfoMem = createSplitsProto(splits);
+    }
+    LOG.info("NumSplits: " + splitInfoMem.getNumTasks() + ", SerializedSize: "
+        + splitInfoMem.getSplitsProto().getSerializedSize());
+    return splitInfoMem;
+  }
+
+  private static InputSplitInfoMem createSplitsProto(
+      org.apache.hadoop.mapreduce.InputSplit[] newSplits,
+      SerializationFactory serializationFactory) throws IOException,
+      InterruptedException {
+    MRSplitsProto.Builder splitsBuilder = MRSplitsProto.newBuilder();
+
+    List<TaskLocationHint> locationHints = Lists
+        .newArrayListWithCapacity(newSplits.length);
+    for (org.apache.hadoop.mapreduce.InputSplit newSplit : newSplits) {
+      splitsBuilder.addSplits(createSplitProto(newSplit, serializationFactory));
+      locationHints.add(new TaskLocationHint(new HashSet<String>(Arrays
+          .asList(newSplit.getLocations())), null));
+    }
+    return new InputSplitInfoMem(splitsBuilder.build(), locationHints,
+        newSplits.length);
+  }
+
+  private static <T extends org.apache.hadoop.mapreduce.InputSplit> MRSplitProto createSplitProto(
+      T newSplit, SerializationFactory serializationFactory)
+      throws IOException, InterruptedException {
+    MRSplitProto.Builder builder = MRSplitProto
+        .newBuilder();
+    
+    builder.setSplitClassName(newSplit.getClass().getName());
+
+    @SuppressWarnings("unchecked")
+    Serializer<T> serializer = serializationFactory
+        .getSerializer((Class<T>) newSplit.getClass());
+    ByteString.Output out = ByteString
+        .newOutput(SPLIT_SERIALIZED_LENGTH_ESTIMATE);
+    serializer.open(out);
+    serializer.serialize(newSplit);
+    // TODO MR Compat: Check against max block locations per split.
+    ByteString splitBs = out.toByteString();
+    builder.setSplitBytes(splitBs);
+
+    return builder.build();
+  }
+
+  private static InputSplitInfoMem createSplitsProto(
+      org.apache.hadoop.mapred.InputSplit[] oldSplits) throws IOException {
+    MRSplitsProto.Builder splitsBuilder = MRSplitsProto.newBuilder();
+
+    List<TaskLocationHint> locationHints = Lists
+        .newArrayListWithCapacity(oldSplits.length);
+    for (org.apache.hadoop.mapred.InputSplit oldSplit : oldSplits) {
+      splitsBuilder.addSplits(createSplitProto(oldSplit));
+      locationHints.add(new TaskLocationHint(new HashSet<String>(Arrays
+          .asList(oldSplit.getLocations())), null));
+    }
+    return new InputSplitInfoMem(splitsBuilder.build(), locationHints,
+        oldSplits.length);
+  }
+
+  private static MRSplitProto createSplitProto(
+      org.apache.hadoop.mapred.InputSplit oldSplit) throws IOException {
+    MRSplitProto.Builder builder = MRSplitProto.newBuilder();
+
+    builder.setSplitClassName(oldSplit.getClass().getName());
+    
+    ByteString.Output os = ByteString
+        .newOutput(SPLIT_SERIALIZED_LENGTH_ESTIMATE);
+    oldSplit.write(new DataOutputStream(os));
+    ByteString splitBs = os.toByteString();
+    builder.setSplitBytes(splitBs);
+
+    return builder.build();
   }
 
   private static String getChildLogLevel(Configuration conf, boolean isMap) {
@@ -460,12 +598,41 @@ public class MRHelpers {
       throws IOException {
     return TezUtils.createUserPayloadFromConf(conf);
   }
+  
+  @LimitedPrivate("Hive, Pig")
+  public static ByteString createByteStringFromConf(Configuration conf)
+      throws IOException {
+    return TezUtils.createByteStringFromConf(conf);
+  }
 
   @LimitedPrivate("Hive, Pig")
   @Unstable
   public static Configuration createConfFromUserPayload(byte[] bb)
       throws IOException {
     return TezUtils.createConfFromUserPayload(bb);
+  }
+
+  @LimitedPrivate("Hive, Pig")
+  public static Configuration createConfFromByteString(ByteString bs)
+      throws IOException {
+    return TezUtils.createConfFromByteString(bs);
+  }
+
+  public static byte[] createMRInputPayload(Configuration conf,
+      MRSplitsProto mrSplitProto) throws IOException {
+    MRUserPayloadProto.Builder userPayloadBuilder = MRUserPayloadProto
+        .newBuilder();
+    userPayloadBuilder.setConfigurationBytes(createByteStringFromConf(conf));
+    if (mrSplitProto != null) {
+      userPayloadBuilder.setSplits(mrSplitProto);
+    }
+    // TODO Should this be a ByteBuffer or a byte array ? A ByteBuffer would be
+    // more efficient.
+    return userPayloadBuilder.build().toByteArray();
+  }
+
+  public static MRUserPayloadProto parseMRPayload(byte[] bytes) throws IOException {
+    return MRUserPayloadProto.parseFrom(bytes);
   }
 
   /**
@@ -666,7 +833,7 @@ public class MRHelpers {
     return mrAppMasterAdminOptions.trim()
         + " " + mrAppMasterUserOptions.trim();
   }
-  
+
   /**
    * Convenience method to add an MR Input to the specified vertex. The name of
    * the Input is "MRInput" </p>
@@ -675,11 +842,13 @@ public class MRHelpers {
    * 
    * @param vertex
    * @param userPayload
+   * @param initClazz class to init the input in the AM
    */
-  public static void addMRInput(Vertex vertex, byte[] userPayload) {
+  public static void addMRInput(Vertex vertex, byte[] userPayload,
+      Class<? extends TezRootInputInitializer> initClazz) {
     InputDescriptor id = new InputDescriptor(MRInputLegacy.class.getName())
         .setUserPayload(userPayload);
-    vertex.addInput("MRInput", id);
+    vertex.addInput("MRInput", id, initClazz);
   }
 
   /**
@@ -696,5 +865,52 @@ public class MRHelpers {
         .setUserPayload(userPayload);
     vertex.addOutput("MROutput", od);
   }
+  
+  @SuppressWarnings("unchecked")
+  public static InputSplit createOldFormatSplitFromUserPayload(
+      MRSplitProto splitProto, SerializationFactory serializationFactory)
+      throws IOException {
+    // This may not need to use serialization factory, since OldFormat
+    // always uses Writable to write splits.
+    Preconditions.checkNotNull(splitProto, "splitProto cannot be null");
+    String className = splitProto.getSplitClassName();
+    Class<InputSplit> clazz;
 
+    try {
+      clazz = (Class<InputSplit>) Class.forName(className);
+    } catch (ClassNotFoundException e) {
+      throw new IOException("Failed to load InputSplit class: [" + className + "]", e);
+    }
+
+    Deserializer<InputSplit> deserializer = serializationFactory
+        .getDeserializer(clazz);
+    deserializer.open(splitProto.getSplitBytes().newInput());
+    InputSplit inputSplit = deserializer.deserialize(null);
+    deserializer.close();
+    return inputSplit;
+  }
+
+  @SuppressWarnings("unchecked")
+  public static org.apache.hadoop.mapreduce.InputSplit createNewFormatSplitFromUserPayload(
+      MRSplitProto splitProto, SerializationFactory serializationFactory)
+      throws IOException {
+    Preconditions.checkNotNull(splitProto, "splitProto must be specified");
+    String className = splitProto.getSplitClassName();
+    Class<org.apache.hadoop.mapreduce.InputSplit> clazz;
+
+    try {
+      clazz = (Class<org.apache.hadoop.mapreduce.InputSplit>) Class
+          .forName(className);
+    } catch (ClassNotFoundException e) {
+      throw new IOException("Failed to load InputSplit class: [" + className + "]", e);
+    }
+
+    Deserializer<org.apache.hadoop.mapreduce.InputSplit> deserializer = serializationFactory
+        .getDeserializer(clazz);
+    deserializer.open(splitProto.getSplitBytes().newInput());
+    org.apache.hadoop.mapreduce.InputSplit inputSplit = deserializer
+        .deserialize(null);
+    deserializer.close();
+    return inputSplit;
+  }
 }

@@ -48,6 +48,7 @@ public class SplitMetaInfoReaderTez {
   public static final int META_SPLIT_VERSION = JobSplit.META_SPLIT_VERSION;
   public static final byte[] META_SPLIT_FILE_HEADER = JobSplit.META_SPLIT_FILE_HEADER;
 
+
   // Forked from the MR variant so that the metaInfo file as well as the split
   // file can be read from local fs - relying on these files being localized.
   public static TaskSplitMetaInfo[] readSplitMetaInfo(Configuration conf,

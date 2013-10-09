@@ -64,8 +64,8 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
@@ -171,8 +171,8 @@ public class FilterLinesByWord {
     
     // Configure the Input for stage1
     stage1Vertex.addInput("MRInput",
-        new InputDescriptor(MRInputLegacy.class.getName()).setUserPayload(MRHelpers
-            .createUserPayloadFromConf(stage1Conf)));
+        new InputDescriptor(MRInputLegacy.class.getName())
+            .setUserPayload(MRHelpers.createMRInputPayload(stage1Conf, null)), null);
 
     // Setup stage2 Vertex
     Vertex stage2Vertex = new Vertex("stage2", new ProcessorDescriptor(

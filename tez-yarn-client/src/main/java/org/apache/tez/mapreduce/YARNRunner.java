@@ -406,7 +406,8 @@ public class YARNRunner implements ClientProtocol {
         setUserPayload(vertexUserPayload),
         numTasks, taskResource);
     if (isMap) {
-      MRHelpers.addMRInput(vertex, vertexUserPayload);
+      byte[] mapInputPayload = MRHelpers.createMRInputPayload(stageConf, null);
+      MRHelpers.addMRInput(vertex, mapInputPayload, null);
     }
     // Map only jobs.
     if (stageNum == totalStages -1) {
