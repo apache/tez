@@ -124,11 +124,15 @@ public class YarnTezDagChild {
                 return;
               }
             } catch (InvalidToken e) {
+              // FIXME NEWTEZ maybe send a container failed event to AM?
+              // Irrecoverable error unless heartbeat sync can be re-established
               LOG.error("Heartbeat error in authenticating with AM: ", e);
               heartbeatErrorException = e;
               heartbeatError.set(true);
               return;
             } catch (Throwable e) {
+              // FIXME NEWTEZ maybe send a container failed event to AM?
+              // Irrecoverable error unless heartbeat sync can be re-established
               LOG.error("Heartbeat error in communicating with AM. ", e);
               heartbeatErrorException = e;
               heartbeatError.set(true);
@@ -171,6 +175,11 @@ public class YarnTezDagChild {
               currentTask.getCounters(), currentTask.getProgress()),
                 new EventMetaData(EventProducerConsumerType.SYSTEM,
                     currentTask.getVertexName(), "", taskAttemptID));
+        } else if (outOfBandEvents == null) {
+          LOG.info("Setting TaskAttemptID to null as the task has already"
+            + " completed. Caused by race-condition between the normal"
+            + " heartbeat and out-of-band heartbeats");
+          taskAttemptID = null;
         }
       }
     } finally {
@@ -184,6 +193,7 @@ public class YarnTezDagChild {
     if (outOfBandEvents != null && !outOfBandEvents.isEmpty()) {
       events.addAll(outOfBandEvents);
     }
+
     long reqId = requestCounter.incrementAndGet();
     TezHeartbeatRequest request = new TezHeartbeatRequest(reqId, events,
         containerIdStr, taskAttemptID, eventCounter, eventsRange);
@@ -326,6 +336,8 @@ public class YarnTezDagChild {
         } catch (Throwable t) {
           LOG.fatal("Failed to communicate task attempt failure to AM via"
               + " umbilical", t);
+          // FIXME NEWTEZ maybe send a container failed event to AM?
+          // Irrecoverable error unless heartbeat sync can be re-established
           heartbeatError.set(true);
           heartbeatErrorException = t;
         }
@@ -470,19 +482,35 @@ public class YarnTezDagChild {
     } catch (FSError e) {
       LOG.fatal("FSError from child", e);
       // TODO NEWTEZ this should be a container failed event?
-      TezEvent taskAttemptFailedEvent =
-          new TezEvent(new TaskAttemptFailedEvent(
-              StringUtils.stringifyException(e)),
-              currentSourceInfo);
-      heartbeat(Collections.singletonList(taskAttemptFailedEvent));
+      try {
+        taskLock.readLock().lock();
+        if (currentTask != null && !currentTask.hadFatalError()) {
+          // Prevent dup failure events
+          currentTask.setFatalError(e, "FS Error in Child JVM");
+          TezEvent taskAttemptFailedEvent =
+              new TezEvent(new TaskAttemptFailedEvent(
+                  StringUtils.stringifyException(e)),
+                  currentSourceInfo);
+          heartbeat(Collections.singletonList(taskAttemptFailedEvent));
+        }
+      } finally {
+        taskLock.readLock().unlock();
+      }
     } catch (Throwable throwable) {
       String cause = StringUtils.stringifyException(throwable);
       LOG.fatal("Error running child : " + cause);
-      if (currentTaskAttemptID != null && !currentTask.hadFatalError()) {
-        TezEvent taskAttemptFailedEvent =
+      taskLock.readLock().lock();
+      try {
+        if (currentTask != null && !currentTask.hadFatalError()) {
+          // Prevent dup failure events
+          currentTask.setFatalError(throwable, "Error in Child JVM");
+          TezEvent taskAttemptFailedEvent =
             new TezEvent(new TaskAttemptFailedEvent(cause),
-                currentSourceInfo);
-        heartbeat(Collections.singletonList(taskAttemptFailedEvent));
+              currentSourceInfo);
+          heartbeat(Collections.singletonList(taskAttemptFailedEvent));
+        }
+      } finally {
+        taskLock.readLock().unlock();
       }
     } finally {
       stopped.set(true);
