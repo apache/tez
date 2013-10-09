@@ -55,6 +55,7 @@ import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezSession;
 import org.apache.tez.client.TezSessionConfiguration;
+import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -368,6 +369,8 @@ public class OrderedWordCount {
 
         DAGClient dagClient;
         if (useTezSession) {
+          LOG.info("Waiting for TezSession to get into ready state");
+          waitForTezSessionReady(tezSession);
           LOG.info("Submitting DAG to Tez Session, dagIndex=" + dagIndex);
           dagClient = tezSession.submitDAG(dag);
           LOG.info("Submitted DAG to Tez Session, dagIndex=" + dagIndex);
@@ -421,6 +424,25 @@ public class OrderedWordCount {
       ExampleDriver.printMRRDAGStatus(dagStatus);
       LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
       System.exit(dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1);
+    }
+  }
+
+  private static void waitForTezSessionReady(TezSession tezSession)
+    throws IOException, TezException {
+    while (true) {
+      TezSessionStatus status = tezSession.getSessionStatus();
+      if (status.equals(TezSessionStatus.SHUTDOWN)) {
+        throw new RuntimeException("TezSession has already shutdown");
+      }
+      if (status.equals(TezSessionStatus.READY)) {
+        return;
+      }
+      try {
+        Thread.sleep(100);
+      } catch (InterruptedException e) {
+        LOG.info("Interrupted while trying to check session status");
+        return;
+      }
     }
   }
 

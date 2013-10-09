@@ -525,8 +525,10 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
         }
 
         List<TezEvent> inEvents = request.getEvents();
-        LOG.info("Ping from " + taskAttemptID.toString() +
-            " events: " + (inEvents != null? inEvents.size() : -1));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Ping from " + taskAttemptID.toString() +
+              " events: " + (inEvents != null? inEvents.size() : -1));
+        }
         if(inEvents!=null && !inEvents.isEmpty()) {
           TezVertexID vertexId = taskAttemptID.getTaskID().getVertexID();
           context.getEventHandler().handle(

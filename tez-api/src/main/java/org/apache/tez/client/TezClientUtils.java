@@ -67,6 +67,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Level;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
@@ -74,6 +75,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
+import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
@@ -204,23 +206,18 @@ public class TezClientUtils {
 
   /**
    * Create an ApplicationSubmissionContext to launch a Tez AM
-   * @param conf
-   * @param appId
-   * @param dag
-   * @param appStagingDir
-   * @param ts
-   * @param amQueueName
-   * @param amName
-   * @param amArgs
-   * @param amEnv
-   * @param amLocalResources
-   * @param appConf
+   * @param conf TezConfiguration
+   * @param appId Application Id
+   * @param dag DAG to be submitted
+   * @param amName Name for the application
+   * @param amConfig AM Configuration
+   * @param tezJarResources Resources to be used by the AM
    * @return
    * @throws IOException
    * @throws YarnException
    */
   static ApplicationSubmissionContext createApplicationSubmissionContext(
-      Configuration conf, ApplicationId appId, DAG dag, String amName,
+      TezConfiguration conf, ApplicationId appId, DAG dag, String amName,
       AMConfiguration amConfig,
       Map<String, LocalResource> tezJarResources)
           throws IOException, YarnException{
@@ -327,7 +324,8 @@ public class TezClientUtils {
     localResources.putAll(tezJarResources);
 
     // emit conf as PB file
-    Configuration finalTezConf = createFinalTezConfForApp(amConfig.getAMConf());
+    Configuration finalTezConf = createFinalTezConfForApp(conf,
+      amConfig.getAMConf());
     Path binaryConfPath =  new Path(amConfig.getStagingDir(),
         TezConfiguration.TEZ_PB_BINARY_CONF_NAME + "." + appId.toString());
     FSDataOutputStream amConfPBOutBinaryStream = null;
@@ -359,8 +357,38 @@ public class TezClientUtils {
     localResources.put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
         binaryConfLRsrc);
 
+    // Create Session Jars definition to be sent to AM as a local resource
+    Path sessionJarsPath = new Path(amConfig.getStagingDir(),
+      TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME + "."
+      + appId.toString());
+    FSDataOutputStream sessionJarsPBOutStream = null;
+    try {
+      Map<String, LocalResource> sessionJars =
+        new HashMap<String, LocalResource>(tezJarResources.size() + 1);
+      sessionJars.putAll(tezJarResources);
+      sessionJars.put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
+        binaryConfLRsrc);
+      DAGProtos.PlanLocalResourcesProto proto =
+        DagTypeConverters.convertFromLocalResources(sessionJars);
+      sessionJarsPBOutStream = FileSystem.create(fs, sessionJarsPath,
+        new FsPermission(TEZ_AM_FILE_PERMISSION));
+      proto.writeTo(sessionJarsPBOutStream);
+    } finally {
+      if (sessionJarsPBOutStream != null) {
+        sessionJarsPBOutStream.close();
+      }
+    }
+
+    LocalResource sessionJarsPBLRsrc =
+      TezClientUtils.createLocalResource(fs,
+        sessionJarsPath, LocalResourceType.FILE,
+        LocalResourceVisibility.APPLICATION);
+    localResources.put(
+      TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME,
+      sessionJarsPBLRsrc);
+
     if(dag != null) {
-      // Add tez jars to vertices too
+
       for (Vertex v : dag.getVertices()) {
         v.getTaskLocalResources().putAll(tezJarResources);
         v.getTaskLocalResources().put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
@@ -440,19 +468,36 @@ public class TezClientUtils {
         + "," + TezConfiguration.TEZ_CONTAINER_LOGGER_NAME);
   }
 
-  static Configuration createFinalTezConfForApp(TezConfiguration amConf) {
+  static Configuration createFinalTezConfForApp(TezConfiguration tezConf,
+      TezConfiguration amConf) {
     Configuration conf = new Configuration(false);
     conf.setQuietMode(true);
 
+    assert tezConf != null;
     assert amConf != null;
-    Iterator<Entry<String, String>> iter = amConf.iterator();
+
+    Entry<String, String> entry;
+    Iterator<Entry<String, String>> iter = tezConf.iterator();
     while (iter.hasNext()) {
-      Entry<String, String> entry = iter.next();
+      entry = iter.next();
       // Copy all tez config parameters.
       if (entry.getKey().startsWith(TezConfiguration.TEZ_PREFIX)) {
         conf.set(entry.getKey(), entry.getValue());
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Adding tez dag am parameter: " + entry.getKey()
+          LOG.debug("Adding tez dag am parameter from conf: " + entry.getKey()
+            + ", with value: " + entry.getValue());
+        }
+      }
+    }
+
+    iter = amConf.iterator();
+    while (iter.hasNext()) {
+      entry = iter.next();
+      // Copy all tez config parameters.
+      if (entry.getKey().startsWith(TezConfiguration.TEZ_PREFIX)) {
+        conf.set(entry.getKey(), entry.getValue());
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Adding tez dag am parameter from amConf: " + entry.getKey()
               + ", with value: " + entry.getValue());
         }
       }

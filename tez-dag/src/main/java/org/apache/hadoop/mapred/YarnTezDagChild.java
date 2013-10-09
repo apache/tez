@@ -164,9 +164,11 @@ public class YarnTezDagChild {
     int eventCounter = 0;
     int eventsRange = 0;
     TezTaskAttemptID taskAttemptID = null;
+    List<TezEvent> events = new ArrayList<TezEvent>();
     try {
       taskLock.readLock().lock();
       if (currentTask != null) {
+        eventsToSend.drainTo(events);
         taskAttemptID = currentTaskAttemptID;
         eventCounter = currentTask.getEventCounter();
         eventsRange = maxEventsToGet;
@@ -175,23 +177,20 @@ public class YarnTezDagChild {
               currentTask.getCounters(), currentTask.getProgress()),
                 new EventMetaData(EventProducerConsumerType.SYSTEM,
                     currentTask.getVertexName(), "", taskAttemptID));
-        } else if (outOfBandEvents == null) {
+          events.add(updateEvent);
+        } else if (outOfBandEvents == null && events.isEmpty()) {
           LOG.info("Setting TaskAttemptID to null as the task has already"
             + " completed. Caused by race-condition between the normal"
             + " heartbeat and out-of-band heartbeats");
           taskAttemptID = null;
+        } else {
+          if (outOfBandEvents != null && !outOfBandEvents.isEmpty()) {
+            events.addAll(outOfBandEvents);
+          }
         }
       }
     } finally {
       taskLock.readLock().unlock();
-    }
-    List<TezEvent> events = new ArrayList<TezEvent>();
-    if (updateEvent != null) {
-      events.add(updateEvent);
-    }
-    eventsToSend.drainTo(events);
-    if (outOfBandEvents != null && !outOfBandEvents.isEmpty()) {
-      events.addAll(outOfBandEvents);
     }
 
     long reqId = requestCounter.incrementAndGet();
@@ -244,9 +243,7 @@ public class YarnTezDagChild {
   public static void main(String[] args) throws Throwable {
     Thread.setDefaultUncaughtExceptionHandler(
         new YarnUncaughtExceptionHandler());
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Child starting");
-    }
+    LOG.info("YarnTezDagChild starting");
 
     final Configuration defaultConf = new Configuration();
     TezUtils.addUserSpecifiedTezConfiguration(defaultConf);

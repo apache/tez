@@ -227,6 +227,9 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_SESSION_PREFIX =
       TEZ_PREFIX + "session.";
 
+  public static final String TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME =
+    TEZ_SESSION_PREFIX + "local-resources.pb.file-name";
+
   /**
    * Time (in seconds) to wait for AM to come up when trying to submit a DAG
    * from the client.
@@ -244,5 +247,35 @@ public class TezConfiguration extends Configuration {
       TEZ_SESSION_PREFIX + "am.dag.submit.timeout.secs";
   public static final int TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT =
       300;
+
+  /**
+   * Session pre-warm related configuration options
+   */
+
+  public static final String TEZ_SESSION_PRE_WARM_PREFIX =
+    TEZ_SESSION_PREFIX + "pre-warm.";
+  public static final String TEZ_SESSION_PRE_WARM_ENABLED =
+    TEZ_SESSION_PRE_WARM_PREFIX + "enabled";
+  public static final boolean TEZ_SESSION_PRE_WARM_ENABLED_DEFAULT = false;
+
+  public static final String TEZ_SESSION_PRE_WARM_NUM_CONTAINERS =
+    TEZ_SESSION_PRE_WARM_PREFIX + "num-containers";
+  public static final String TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB =
+    TEZ_SESSION_PRE_WARM_PREFIX + "container.resource.memory.mb";
+  public static final int
+    TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB_DEFAULT = 1024;
+
+  public static final String TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES =
+    TEZ_SESSION_PRE_WARM_PREFIX + "container.resource.vcores";
+  public static final int
+    TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES_DEFAULT = 1;
+
+  public static final String TEZ_SESSION_PRE_WARM_CONTAINER_JAVA_OPTS =
+    TEZ_SESSION_PRE_WARM_PREFIX + "container.java.opts";
+  public static final String TEZ_SESSION_PRE_WARM_CONTAINER_ENVIRONMENT =
+    TEZ_SESSION_PRE_WARM_PREFIX + "container.environment";
+
+  public static final String TEZ_SESSION_PRE_WARM_PROCESSOR_NAME =
+    TEZ_SESSION_PRE_WARM_PREFIX + "processor";
 
 }

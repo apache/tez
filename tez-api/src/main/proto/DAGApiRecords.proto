@@ -189,3 +189,7 @@ message DAGStatusProto {
   optional ProgressProto DAGProgress = 3;
   repeated StringProgressPairProto vertexProgress = 4;  
 }
+
+message PlanLocalResourcesProto {
+  repeated PlanLocalResource localResources = 1;
+}

@@ -464,6 +464,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.localResources = DagTypeConverters
         .createLocalResourceMapFromDAGPlan(vertexPlan.getTaskConfig()
             .getLocalResourceList());
+    this.localResources.putAll(appContext.getSessionResources());
     this.environment = DagTypeConverters
         .createEnvironmentMapFromDAGPlan(vertexPlan.getTaskConfig()
             .getEnvironmentSettingList());
@@ -1052,7 +1053,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     // for now, only for leaf vertices
     // TODO TEZ-41 make commmitter type configurable per vertex
     
-    if (targetVertices.isEmpty()) {
+    if (!this.additionalOutputSpecs.isEmpty()) {
       committer = new MRVertexOutputCommitter();
     }
     try {
@@ -1608,8 +1609,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       VertexEventRouteEvent rEvent = (VertexEventRouteEvent) event;
       List<TezEvent> tezEvents = rEvent.getEvents();
       for(TezEvent tezEvent : tezEvents) {
-        LOG.info("Vertex: " + vertex.getName() + " routing event: "
-            + tezEvent.getEventType());
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Vertex: " + vertex.getName() + " routing event: "
+              + tezEvent.getEventType());
+        }
         EventMetaData sourceMeta = tezEvent.getSourceInfo();
         switch(tezEvent.getEventType()) {
         case DATA_MOVEMENT_EVENT:

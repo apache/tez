@@ -89,6 +89,11 @@ public class TezSession {
     tezJarResources = TezClientUtils.setupTezJarsLocalResources(
         sessionConfig.getTezConfiguration());
 
+    if (sessionConfig.getSessionResources() != null
+      && !sessionConfig.getSessionResources().isEmpty()) {
+      tezJarResources.putAll(sessionConfig.getSessionResources());
+    }
+
     try {
       if (applicationId == null) {
         applicationId = yarnClient.createApplication().
@@ -134,14 +139,7 @@ public class TezSession {
     LOG.info("Submitting dag to TezSession"
         + ", sessionName=" + sessionName
         + ", applicationId=" + applicationId);
-    // Add tez jars to vertices too
-    for (Vertex v : dag.getVertices()) {
-      v.getTaskLocalResources().putAll(tezJarResources);
-      if (null != tezConfPBLRsrc) {
-        v.getTaskLocalResources().put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
-            tezConfPBLRsrc);
-      }
-    }
+
     DAGPlan dagPlan = dag.createDag(sessionConfig.getTezConfiguration());
     SubmitDAGRequestProto requestProto =
         SubmitDAGRequestProto.newBuilder().setDAGPlan(dagPlan).build();
@@ -153,7 +151,6 @@ public class TezSession {
         TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS_DEFAULT);
     long endTime = startTime + (timeout * 1000);
     while (true) {
-      // FIXME implement a max time to wait for submit
       proxy = TezClientUtils.getSessionAMProxy(yarnClient,
           sessionConfig.getYarnConfiguration(), applicationId);
       if (proxy != null) {
@@ -269,4 +266,5 @@ public class TezSession {
     }
     return TezSessionStatus.INITIALIZING;
   }
+
 }

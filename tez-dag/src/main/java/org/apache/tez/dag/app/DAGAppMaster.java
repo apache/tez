@@ -26,6 +26,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -63,25 +64,32 @@ import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
+import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGState;
@@ -116,6 +124,7 @@ import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.history.events.AMStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
+import org.apache.tez.runtime.library.processor.SleepProcessor;
 
 /**
  * The Map-Reduce Application Master.
@@ -172,6 +181,8 @@ public class DAGAppMaster extends AbstractService {
   private VertexEventDispatcher vertexEventDispatcher;
   private TaskSchedulerEventHandler taskSchedulerEventHandler;
   private HistoryEventHandler historyEventHandler;
+  private final Map<String, LocalResource> sessionResources =
+    new HashMap<String, LocalResource>();
 
   private DAGAppMasterShutdownHandler shutdownHandler =
       new DAGAppMasterShutdownHandler();
@@ -230,9 +241,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   @Override
-  public void serviceInit(final Configuration conf) throws Exception {
-
-    this.state = DAGAppMasterState.INITED;
+  public synchronized void serviceInit(final Configuration conf) throws Exception {
 
     this.amConf = conf;
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
@@ -304,8 +313,27 @@ public class DAGAppMaster extends AbstractService {
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT);
 
+    if (isSession) {
+      FileInputStream sessionResourcesStream = null;
+      try {
+        sessionResourcesStream = new FileInputStream(
+          TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME);
+        PlanLocalResourcesProto localResourcesProto =
+          PlanLocalResourcesProto.parseFrom(sessionResourcesStream);
+        sessionResources.putAll(DagTypeConverters.convertFromPlanLocalResources(
+          localResourcesProto));
+      } finally {
+        if (sessionResourcesStream != null) {
+          sessionResourcesStream.close();
+        }
+      }
+    }
+
     initServices(conf);
     super.serviceInit(conf);
+
+    this.state = DAGAppMasterState.INITED;
+
   }
 
   protected Dispatcher createDispatcher() {
@@ -863,6 +891,11 @@ public class DAGAppMaster extends AbstractService {
     }
 
     @Override
+    public Map<String, LocalResource> getSessionResources() {
+      return sessionResources;
+    }
+
+    @Override
     public Map<ApplicationAccessType, String> getApplicationACLs() {
       if (getServiceState() != STATE.STARTED) {
         throw new TezUncheckedException(
@@ -1066,13 +1099,11 @@ public class DAGAppMaster extends AbstractService {
 
   @SuppressWarnings("unchecked")
   @Override
-  public void serviceStart() throws Exception {
+  public synchronized void serviceStart() throws Exception {
 
     //start all the components
     startServices();
     super.serviceStart();
-
-    this.state = DAGAppMasterState.IDLE;
 
     // metrics system init is really init & start.
     // It's more test friendly to put it here.
@@ -1089,19 +1120,124 @@ public class DAGAppMaster extends AbstractService {
     if (!isSession) {
       startDAG();
     } else {
-      LOG.info("In Session mode. Waiting for DAG over RPC");
-      this.dagSubmissionTimer = new Timer(true);
-      this.dagSubmissionTimer.scheduleAtFixedRate(new TimerTask() {
-        @Override
-        public void run() {
-          checkAndHandleSessionTimeout();
-        }
-      }, sessionTimeoutInterval, sessionTimeoutInterval/10);
+      boolean preWarmContainersEnabled = amConf.getBoolean(
+        TezConfiguration.TEZ_SESSION_PRE_WARM_ENABLED,
+        TezConfiguration.TEZ_SESSION_PRE_WARM_ENABLED_DEFAULT);
+
+      boolean ranPreWarmContainersDAG = false;
+      if (preWarmContainersEnabled) {
+        ranPreWarmContainersDAG = runPreWarmContainersDAG();
+      }
+
+      if (!ranPreWarmContainersDAG) {
+        LOG.info("In Session mode. Waiting for DAG over RPC");
+        this.state = DAGAppMasterState.IDLE;
+
+        this.dagSubmissionTimer = new Timer(true);
+        this.dagSubmissionTimer.scheduleAtFixedRate(new TimerTask() {
+          @Override
+          public void run() {
+            checkAndHandleSessionTimeout();
+          }
+        }, sessionTimeoutInterval, sessionTimeoutInterval / 10);
+      }
     }
   }
 
+  private boolean runPreWarmContainersDAG() {
+    int numContainers = amConf.getInt(
+      TezConfiguration.TEZ_SESSION_PRE_WARM_NUM_CONTAINERS, 0);
+    if (numContainers == 0) {
+      LOG.info("Not pre-warming containers as "
+        + TezConfiguration.TEZ_SESSION_PRE_WARM_NUM_CONTAINERS
+        + " not specified or set to 0");
+      return false;
+    }
+    if ((null == amConf.get(
+        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB))
+      || (null == amConf.get(
+        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES))) {
+      LOG.info("Not pre-warming containers as container resource"
+        + " requirements not specified"
+        + ", "
+        + TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB
+        + "=" + amConf.get(
+        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB)
+        + ", "
+        + TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES
+        + "=" + amConf.get(
+        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES));
+      return false;
+    }
+
+    Resource containerResource = Resource.newInstance(
+      amConf.getInt(
+        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB,
+        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB_DEFAULT),
+      amConf.getInt(
+        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES,
+        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES_DEFAULT));
+
+    ProcessorDescriptor processorDescriptor = null;
+
+    if (amConf.get(TezConfiguration.TEZ_SESSION_PRE_WARM_PROCESSOR_NAME) != null) {
+      processorDescriptor = new ProcessorDescriptor(amConf.get(
+        TezConfiguration.TEZ_SESSION_PRE_WARM_PROCESSOR_NAME));
+    } else {
+      processorDescriptor = new ProcessorDescriptor(
+        SleepProcessor.class.getName());
+    }
+
+    // Create a DAG using SleepProcessor to launch the required containers.
+    org.apache.tez.dag.api.DAG preWarmContainersDAG =
+      new org.apache.tez.dag.api.DAG("PreWarmContainersDAG");
+    Vertex sleepVertex = new Vertex("PreWarmSleepVertex",
+      processorDescriptor, numContainers, containerResource);
+
+    Map<String, String> environment = new HashMap<String, String>();
+    if (null != amConf.get(
+      TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_ENVIRONMENT)) {
+    Apps.setEnvFromInputString(environment,
+      amConf.get(
+        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_ENVIRONMENT));
+    }
+
+    Apps.addToEnvironment(environment,
+      Environment.CLASSPATH.name(),
+      Environment.PWD.$());
+
+    Apps.addToEnvironment(environment,
+      Environment.CLASSPATH.name(),
+      Environment.PWD.$() + File.separator + "*");
+
+    // Add YARN/COMMON/HDFS jars to path
+    for (String c : amConf.getStrings(
+        YarnConfiguration.YARN_APPLICATION_CLASSPATH,
+        YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
+      Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
+        c.trim());
+    }
+
+    sleepVertex.setTaskEnvironment(environment);
+
+    if (null != amConf.get(
+      TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_JAVA_OPTS)) {
+      sleepVertex.setJavaOpts(amConf.get(
+        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_JAVA_OPTS));
+    }
+
+    preWarmContainersDAG.addVertex(sleepVertex);
+
+    LOG.info("Starting DAG to pre-warm containers for AM using "
+      + SleepProcessor.class.getName()
+      + ", numContainers=" + numContainers
+      + ", containerResource=" + containerResource);
+    startDAG(preWarmContainersDAG.createDag(amConf));
+    return true;
+  }
+
   @Override
-  public void serviceStop() throws Exception {
+  public synchronized void serviceStop() throws Exception {
     if (isSession) {
       sessionStopped.set(true);
     }
@@ -1276,12 +1412,9 @@ public class DAGAppMaster extends AbstractService {
       DAGPlan dagPlan = null;
 
       // Read the protobuf DAG
-      DAGPlan.Builder dagPlanBuilder = DAGPlan.newBuilder();
       dagPBBinaryStream = new FileInputStream(
           TezConfiguration.TEZ_PB_PLAN_BINARY_NAME);
-      dagPlanBuilder.mergeFrom(dagPBBinaryStream);
-
-      dagPlan = dagPlanBuilder.build();
+      dagPlan = DAGPlan.parseFrom(dagPBBinaryStream);
 
       startDAG(dagPlan);
 
@@ -1293,6 +1426,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   private void startDAG(DAGPlan dagPlan) {
+    this.state = DAGAppMasterState.RUNNING;
     if (LOG.isDebugEnabled()) {
       LOG.debug("Running a DAG with " + dagPlan.getVertexCount()
           + " vertices ");
@@ -1312,7 +1446,6 @@ public class DAGAppMaster extends AbstractService {
 
   private void startDAG(DAG dag) {
     currentDAG = dag;
-    this.state = DAGAppMasterState.RUNNING;
 
     // End of creating the job.
     ((RunningAppContext) context).setDAG(currentDAG);

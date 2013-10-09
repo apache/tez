@@ -64,12 +64,12 @@ public class DAG { // FIXME rename to Topology
   public synchronized DAG addVertex(Vertex vertex) {
     if (vertices.containsKey(vertex.getVertexName())) {
       throw new IllegalStateException(
-          "Vertex " + vertex.getVertexName() + " already defined!");
+        "Vertex " + vertex.getVertexName() + " already defined!");
     }
     vertices.put(vertex.getVertexName(), vertex);
     return this;
   }
-  
+
   public synchronized Vertex getVertex(String vertexName) {
     return vertices.get(vertexName);
   }
@@ -83,15 +83,15 @@ public class DAG { // FIXME rename to Topology
     // Sanity checks
     if (!vertices.containsValue(edge.getInputVertex())) {
       throw new IllegalArgumentException(
-          "Input vertex " + edge.getInputVertex() + " doesn't exist!");
+        "Input vertex " + edge.getInputVertex() + " doesn't exist!");
     }
     if (!vertices.containsValue(edge.getOutputVertex())) {
       throw new IllegalArgumentException(
-          "Output vertex " + edge.getOutputVertex() + " doesn't exist!");
+        "Output vertex " + edge.getOutputVertex() + " doesn't exist!");
     }
     if (edges.contains(edge)) {
       throw new IllegalArgumentException(
-          "Edge " + edge + " already defined!");
+        "Edge " + edge + " already defined!");
     }
 
     // Inform the vertices
@@ -101,7 +101,7 @@ public class DAG { // FIXME rename to Topology
     edges.add(edge);
     return this;
   }
-  
+
   public String getName() {
     return this.name;
   }
@@ -116,11 +116,11 @@ public class DAG { // FIXME rename to Topology
 
     int outDegree;
 
-    private AnnotatedVertex(Vertex v){
-       this.v = v;
-       index = -1;
-       lowlink = -1;
-       outDegree = 0;
+    private AnnotatedVertex(Vertex v) {
+      this.v = v;
+      index = -1;
+      lowlink = -1;
+      outDegree = 0;
     }
   }
 
@@ -147,16 +147,16 @@ public class DAG { // FIXME rename to Topology
     verify(true);
   }
 
-  public void verify(boolean restricted) throws IllegalStateException  {
+  public void verify(boolean restricted) throws IllegalStateException {
     if (vertices.isEmpty()) {
       throw new IllegalStateException("Invalid dag containing 0 vertices");
     }
 
     Map<Vertex, List<Edge>> edgeMap = new HashMap<Vertex, List<Edge>>();
-    for(Edge e : edges){
+    for (Edge e : edges) {
       Vertex inputVertex = e.getInputVertex();
       List<Edge> edgeList = edgeMap.get(inputVertex);
-      if(edgeList == null){
+      if (edgeList == null) {
         edgeList = new ArrayList<Edge>();
         edgeMap.put(inputVertex, edgeList);
       }
@@ -166,10 +166,10 @@ public class DAG { // FIXME rename to Topology
     // check for valid vertices, duplicate vertex names,
     // and prepare for cycle detection
     Map<String, AnnotatedVertex> vertexMap = new HashMap<String, AnnotatedVertex>();
-    for(Vertex v : vertices.values()){
-      if(vertexMap.containsKey(v.getVertexName())){
-         throw new IllegalStateException("DAG contains multiple vertices"
-             + " with name: " + v.getVertexName());
+    for (Vertex v : vertices.values()) {
+      if (vertexMap.containsKey(v.getVertexName())) {
+        throw new IllegalStateException("DAG contains multiple vertices"
+          + " with name: " + v.getVertexName());
       }
       vertexMap.put(v.getVertexName(), new AnnotatedVertex(v));
     }
@@ -180,12 +180,12 @@ public class DAG { // FIXME rename to Topology
       for (RootInputLeafOutput<InputDescriptor> in : v.getInputs()) {
         if (vertexMap.containsKey(in.getName())) {
           throw new IllegalStateException(
-              "DAG contains a vertex and an Input to a vertex with the same name: "
-                  + in.getName());
+            "DAG contains a vertex and an Input to a vertex with the same name: "
+              + in.getName());
         }
         if (namedIOs.contains(in.getName())) {
           throw new IllegalStateException(
-              "DAG contains an Input or an Output with a repeated name: " + in.getName());
+            "DAG contains an Input or an Output with a repeated name: " + in.getName());
         } else {
           namedIOs.add(in.getName());
         }
@@ -193,38 +193,38 @@ public class DAG { // FIXME rename to Topology
       for (RootInputLeafOutput<OutputDescriptor> out : v.getOutputs()) {
         if (vertexMap.containsKey(out.getName())) {
           throw new IllegalStateException(
-              "DAG contains a vertex and an Output from a vertex with the same name: "
-                  + out.getName());
+            "DAG contains a vertex and an Output from a vertex with the same name: "
+              + out.getName());
         }
         if (namedIOs.contains(out.getName())) {
           throw new IllegalStateException(
-              "DAG contains an Input or an Output with a repeated name: " + out.getName());
+            "DAG contains an Input or an Output with a repeated name: " + out.getName());
         } else {
           namedIOs.add(out.getName());
         }
       }
     }
-    
+
     detectCycles(edgeMap, vertexMap);
 
-    if(restricted){
-      for(Edge e : edges){
+    if (restricted) {
+      for (Edge e : edges) {
         vertexMap.get(e.getInputVertex().getVertexName()).outDegree++;
         if (e.getEdgeProperty().getDataSourceType() !=
-            DataSourceType.PERSISTED) {
+          DataSourceType.PERSISTED) {
           throw new IllegalStateException(
-              "Unsupported source type on edge. " + e);
+            "Unsupported source type on edge. " + e);
         }
         if (e.getEdgeProperty().getSchedulingType() !=
-            SchedulingType.SEQUENTIAL) {
+          SchedulingType.SEQUENTIAL) {
           throw new IllegalStateException(
-              "Unsupported scheduling type on edge. " + e);
+            "Unsupported scheduling type on edge. " + e);
         }
       }
-      for(AnnotatedVertex av: vertexMap.values()){
+      for (AnnotatedVertex av : vertexMap.values()) {
         if (av.outDegree > 1) {
           throw new IllegalStateException("Vertex has outDegree>1: "
-              + av.v.getVertexName());
+            + av.v.getVertexName());
         }
       }
     }
@@ -233,11 +233,11 @@ public class DAG { // FIXME rename to Topology
   // Adaptation of Tarjan's algorithm for connected components.
   // http://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
   private void detectCycles(Map<Vertex, List<Edge>> edgeMap, Map<String, AnnotatedVertex> vertexMap)
-      throws IllegalStateException{
+    throws IllegalStateException {
     Integer nextIndex = 0; // boxed integer so it is passed by reference.
     Stack<AnnotatedVertex> stack = new Stack<DAG.AnnotatedVertex>();
-    for(AnnotatedVertex av: vertexMap.values()){
-      if(av.index == -1){
+    for (AnnotatedVertex av : vertexMap.values()) {
+      if (av.index == -1) {
         assert stack.empty();
         strongConnect(av, vertexMap, edgeMap, stack, nextIndex);
       }
@@ -247,10 +247,10 @@ public class DAG { // FIXME rename to Topology
   // part of Tarjan's algorithm for connected components.
   // http://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
   private void strongConnect(
-          AnnotatedVertex av,
-          Map<String, AnnotatedVertex> vertexMap,
-          Map<Vertex, List<Edge>> edgeMap,
-          Stack<AnnotatedVertex> stack, Integer nextIndex) throws IllegalStateException{
+    AnnotatedVertex av,
+    Map<String, AnnotatedVertex> vertexMap,
+    Map<Vertex, List<Edge>> edgeMap,
+    Stack<AnnotatedVertex> stack, Integer nextIndex) throws IllegalStateException {
     av.index = nextIndex;
     av.lowlink = nextIndex;
     nextIndex++;
@@ -258,14 +258,13 @@ public class DAG { // FIXME rename to Topology
     av.onstack = true;
 
     List<Edge> edges = edgeMap.get(av.v);
-    if(edges != null){
-      for(Edge e : edgeMap.get(av.v)){
+    if (edges != null) {
+      for (Edge e : edgeMap.get(av.v)) {
         AnnotatedVertex outVertex = vertexMap.get(e.getOutputVertex().getVertexName());
-        if(outVertex.index == -1){
+        if (outVertex.index == -1) {
           strongConnect(outVertex, vertexMap, edgeMap, stack, nextIndex);
           av.lowlink = Math.min(av.lowlink, outVertex.lowlink);
-        }
-        else if(outVertex.onstack){
+        } else if (outVertex.onstack) {
           // strongly connected component detected, but we will wait till later so that the full cycle can be displayed.
           // update lowlink in case outputVertex should be considered the root of this component.
           av.lowlink = Math.min(av.lowlink, outVertex.index);
@@ -273,21 +272,21 @@ public class DAG { // FIXME rename to Topology
       }
     }
 
-    if(av.lowlink == av.index ){
-       AnnotatedVertex pop = stack.pop();
-       pop.onstack = false;
-       if(pop != av){
-         // there was something on the stack other than this "av".
-         // this indicates there is a scc/cycle. It comprises all nodes from top of stack to "av"
-         StringBuilder message = new StringBuilder();
-         message.append(av.v.getVertexName() + " <- ");
-         for( ; pop != av; pop = stack.pop()){
-           message.append(pop.v.getVertexName() + " <- ");
-           pop.onstack = false;
-         }
-         message.append(av.v.getVertexName());
-         throw new IllegalStateException("DAG contains a cycle: " + message);
-       }
+    if (av.lowlink == av.index) {
+      AnnotatedVertex pop = stack.pop();
+      pop.onstack = false;
+      if (pop != av) {
+        // there was something on the stack other than this "av".
+        // this indicates there is a scc/cycle. It comprises all nodes from top of stack to "av"
+        StringBuilder message = new StringBuilder();
+        message.append(av.v.getVertexName() + " <- ");
+        for (; pop != av; pop = stack.pop()) {
+          message.append(pop.v.getVertexName() + " <- ");
+          pop.onstack = false;
+        }
+        message.append(av.v.getVertexName());
+        throw new IllegalStateException("DAG contains a cycle: " + message);
+      }
     }
   }
 
@@ -301,12 +300,12 @@ public class DAG { // FIXME rename to Topology
 
     dagBuilder.setName(this.name);
 
-    for(Vertex vertex : vertices.values()){
+    for (Vertex vertex : vertices.values()) {
       VertexPlan.Builder vertexBuilder = VertexPlan.newBuilder();
       vertexBuilder.setName(vertex.getVertexName());
       vertexBuilder.setType(PlanVertexType.NORMAL); // vertex type is implicitly NORMAL until  TEZ-46.
       vertexBuilder.setProcessorDescriptor(DagTypeConverters
-          .convertToDAGPlan(vertex.getProcessorDescriptor()));
+        .convertToDAGPlan(vertex.getProcessorDescriptor()));
       if (vertex.getInputs().size() > 0) {
         for (RootInputLeafOutput<InputDescriptor> input : vertex.getInputs()) {
           vertexBuilder.addInputs(DagTypeConverters.convertToDAGPlan(input));
@@ -328,31 +327,34 @@ public class DAG { // FIXME rename to Topology
 
       taskConfigBuilder.setTaskModule(vertex.getVertexName());
       PlanLocalResource.Builder localResourcesBuilder = PlanLocalResource.newBuilder();
-      Map<String,LocalResource> lrs = vertex.getTaskLocalResources();
-      for(Entry<String, LocalResource> entry : lrs.entrySet()){
-        String key = entry.getKey();
-        LocalResource lr = entry.getValue();
-        localResourcesBuilder.setName(key);
-        localResourcesBuilder.setUri(
+      if (vertex.getTaskLocalResources() != null) {
+        localResourcesBuilder.clear();
+        for (Entry<String, LocalResource> entry :
+          vertex.getTaskLocalResources().entrySet()) {
+          String key = entry.getKey();
+          LocalResource lr = entry.getValue();
+          localResourcesBuilder.setName(key);
+          localResourcesBuilder.setUri(
             DagTypeConverters.convertToDAGPlan(lr.getResource()));
-        localResourcesBuilder.setSize(lr.getSize());
-        localResourcesBuilder.setTimeStamp(lr.getTimestamp());
-        localResourcesBuilder.setType(
+          localResourcesBuilder.setSize(lr.getSize());
+          localResourcesBuilder.setTimeStamp(lr.getTimestamp());
+          localResourcesBuilder.setType(
             DagTypeConverters.convertToDAGPlan(lr.getType()));
-        localResourcesBuilder.setVisibility(
+          localResourcesBuilder.setVisibility(
             DagTypeConverters.convertToDAGPlan(lr.getVisibility()));
-        if(lr.getType() == LocalResourceType.PATTERN){
-          if (lr.getPattern() == null || lr.getPattern().isEmpty()) {
-            throw new TezUncheckedException("LocalResource type set to pattern"
+          if (lr.getType() == LocalResourceType.PATTERN) {
+            if (lr.getPattern() == null || lr.getPattern().isEmpty()) {
+              throw new TezUncheckedException("LocalResource type set to pattern"
                 + " but pattern is null or empty");
+            }
+            localResourcesBuilder.setPattern(lr.getPattern());
           }
-          localResourcesBuilder.setPattern(lr.getPattern());
+          taskConfigBuilder.addLocalResource(localResourcesBuilder);
         }
-        taskConfigBuilder.addLocalResource(localResourcesBuilder);
       }
 
-      if(vertex.getTaskEnvironment() != null){
-        for(String key : vertex.getTaskEnvironment().keySet()){
+      if (vertex.getTaskEnvironment() != null) {
+        for (String key : vertex.getTaskEnvironment().keySet()) {
           PlanKeyValuePair.Builder envSettingBuilder = PlanKeyValuePair.newBuilder();
           envSettingBuilder.setKey(key);
           envSettingBuilder.setValue(vertex.getTaskEnvironment().get(key));
@@ -360,15 +362,15 @@ public class DAG { // FIXME rename to Topology
         }
       }
 
-      if(vertex.getTaskLocationsHint() != null ){
-        if(vertex.getTaskLocationsHint().getTaskLocationHints() != null){
-          for(TaskLocationHint hint : vertex.getTaskLocationsHint().getTaskLocationHints()){
+      if (vertex.getTaskLocationsHint() != null) {
+        if (vertex.getTaskLocationsHint().getTaskLocationHints() != null) {
+          for (TaskLocationHint hint : vertex.getTaskLocationsHint().getTaskLocationHints()) {
             PlanTaskLocationHint.Builder taskLocationHintBuilder = PlanTaskLocationHint.newBuilder();
 
-            if(hint.getDataLocalHosts() != null){
+            if (hint.getDataLocalHosts() != null) {
               taskLocationHintBuilder.addAllHost(hint.getDataLocalHosts());
             }
-            if(hint.getRacks() != null){
+            if (hint.getRacks() != null) {
               taskLocationHintBuilder.addAllRack(hint.getRacks());
             }
 
@@ -377,11 +379,11 @@ public class DAG { // FIXME rename to Topology
         }
       }
 
-      for(String inEdgeId : vertex.getInputEdgeIds()){
+      for (String inEdgeId : vertex.getInputEdgeIds()) {
         vertexBuilder.addInEdgeId(inEdgeId);
       }
 
-      for(String outEdgeId : vertex.getOutputEdgeIds()){
+      for (String outEdgeId : vertex.getOutputEdgeIds()) {
         vertexBuilder.addOutEdgeId(outEdgeId);
       }
 
@@ -389,7 +391,7 @@ public class DAG { // FIXME rename to Topology
       dagBuilder.addVertex(vertexBuilder);
     }
 
-    for(Edge edge : edges){
+    for (Edge edge : edges) {
       EdgePlan.Builder edgeBuilder = EdgePlan.newBuilder();
       edgeBuilder.setId(edge.getId());
       edgeBuilder.setInputVertexName(edge.getInputVertex().getVertexName());
@@ -402,10 +404,10 @@ public class DAG { // FIXME rename to Topology
       dagBuilder.addEdge(edgeBuilder);
     }
 
-    if(dagConf != null) {
+    if (dagConf != null) {
       Iterator<Entry<String, String>> iter = dagConf.iterator();
       ConfigurationProto.Builder confProtoBuilder =
-          ConfigurationProto.newBuilder();
+        ConfigurationProto.newBuilder();
       while (iter.hasNext()) {
         Entry<String, String> entry = iter.next();
         PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();

@@ -18,28 +18,49 @@
 
 package org.apache.tez.client;
 
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class TezSessionConfiguration {
 
   private final AMConfiguration amConfiguration;
   private final YarnConfiguration yarnConfig;
   private final TezConfiguration tezConfig;
+  private final Map<String, LocalResource> sessionResources;
 
   public TezSessionConfiguration(AMConfiguration amConfiguration,
       TezConfiguration tezConfig) {
-    this.amConfiguration = amConfiguration;
-    this.tezConfig = tezConfig;
-    this.yarnConfig = new YarnConfiguration(tezConfig);
+    this(amConfiguration, tezConfig, new YarnConfiguration(tezConfig));
   }
 
   TezSessionConfiguration(AMConfiguration amConfiguration,
+                          TezConfiguration tezConfig,
+                          YarnConfiguration yarnConf) {
+    this(amConfiguration, tezConfig, yarnConf,
+      new TreeMap<String, LocalResource>());
+  }
+
+  /**
+   * TezSessionConfiguration constructor
+   * @param amConfiguration AM Configuration @see AMConfiguration
+   * @param tezConfig Tez Configuration
+   * @param yarnConf Yarn Configuration
+   * @param sessionResources LocalResources accessible to all tasks that are
+   *                         launched within this session.
+   */
+  TezSessionConfiguration(AMConfiguration amConfiguration,
       TezConfiguration tezConfig,
-      YarnConfiguration yarnConf) {
+      YarnConfiguration yarnConf,
+      Map<String, LocalResource> sessionResources) {
     this.amConfiguration = amConfiguration;
     this.tezConfig = tezConfig;
     this.yarnConfig = yarnConf;
+    this.sessionResources = sessionResources;
   }
 
   public AMConfiguration getAMConfiguration() {
@@ -52,6 +73,10 @@ public class TezSessionConfiguration {
 
   public TezConfiguration getTezConfiguration() {
     return tezConfig;
+  }
+
+  public Map<String, LocalResource> getSessionResources() {
+    return Collections.unmodifiableMap(sessionResources);
   }
 
 }

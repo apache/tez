@@ -44,6 +44,7 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataSourceType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSchedulingType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResource;
+import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceVisibility;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
@@ -320,6 +321,63 @@ public class DagTypeConverters {
     }
     throw new TezUncheckedException("Could not convert TezSessionStatus to"
         + " proto");
+  }
+
+
+  public static PlanLocalResourcesProto convertFromLocalResources(
+    Map<String, LocalResource> localResources) {
+    PlanLocalResourcesProto.Builder builder =
+      PlanLocalResourcesProto.newBuilder();
+    for (Map.Entry<String, LocalResource> entry : localResources.entrySet()) {
+      PlanLocalResource plr = convertLocalResourceToPlanLocalResource(
+        entry.getKey(), entry.getValue());
+      builder.addLocalResources(plr);
+    }
+    return builder.build();
+  }
+
+  public static Map<String, LocalResource> convertFromPlanLocalResources(
+    PlanLocalResourcesProto proto) {
+    Map<String, LocalResource> localResources =
+      new HashMap<String, LocalResource>(proto.getLocalResourcesCount());
+    for (PlanLocalResource plr : proto.getLocalResourcesList()) {
+      String name = plr.getName();
+      LocalResource lr = convertPlanLocalResourceToLocalResource(plr);
+      localResources.put(name, lr);
+    }
+    return localResources;
+  }
+
+  public static PlanLocalResource convertLocalResourceToPlanLocalResource(
+    String name, LocalResource lr) {
+    PlanLocalResource.Builder localResourcesBuilder = PlanLocalResource.newBuilder();
+    localResourcesBuilder.setName(name);
+    localResourcesBuilder.setUri(
+      DagTypeConverters.convertToDAGPlan(lr.getResource()));
+    localResourcesBuilder.setSize(lr.getSize());
+    localResourcesBuilder.setTimeStamp(lr.getTimestamp());
+    localResourcesBuilder.setType(
+      DagTypeConverters.convertToDAGPlan(lr.getType()));
+    localResourcesBuilder.setVisibility(
+      DagTypeConverters.convertToDAGPlan(lr.getVisibility()));
+    if (lr.getType() == LocalResourceType.PATTERN) {
+      if (lr.getPattern() == null || lr.getPattern().isEmpty()) {
+        throw new TezUncheckedException("LocalResource type set to pattern"
+          + " but pattern is null or empty");
+      }
+      localResourcesBuilder.setPattern(lr.getPattern());
+    }
+    return localResourcesBuilder.build();
+  }
+
+  public static LocalResource convertPlanLocalResourceToLocalResource(
+      PlanLocalResource plr) {
+    return LocalResource.newInstance(
+      ConverterUtils.getYarnUrlFromPath(new Path(plr.getUri())),
+      DagTypeConverters.convertFromDAGPlan(plr.getType()),
+      DagTypeConverters.convertFromDAGPlan(plr.getVisibility()),
+      plr.getSize(), plr.getTimeStamp(),
+      plr.hasPattern() ? plr.getPattern() : null);
   }
 
 }
