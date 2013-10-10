@@ -19,8 +19,9 @@
 package org.apache.tez.runtime.library.shuffle.common;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
@@ -30,7 +31,7 @@ public class InputHost {
   private final String host;
   private final int port;
 
-  private final List<InputAttemptIdentifier> inputs = new LinkedList<InputAttemptIdentifier>();
+  private final BlockingQueue<InputAttemptIdentifier> inputs = new LinkedBlockingQueue<InputAttemptIdentifier>();
 
   public InputHost(String hostName, int port, ApplicationId appId) {
     this.host = hostName;
@@ -45,18 +46,18 @@ public class InputHost {
     return this.port;
   }
 
-  public synchronized int getNumPendingInputs() {
+  public int getNumPendingInputs() {
     return inputs.size();
   }
   
-  public synchronized void addKnownInput(InputAttemptIdentifier srcAttempt) {
+  public void addKnownInput(InputAttemptIdentifier srcAttempt) {
     inputs.add(srcAttempt);
   }
 
-  public synchronized List<InputAttemptIdentifier> clearAndGetPendingInputs() {
+  public List<InputAttemptIdentifier> clearAndGetPendingInputs() {
     List<InputAttemptIdentifier> inputsCopy = new ArrayList<InputAttemptIdentifier>(
-        inputs);
-    inputs.clear();
+        inputs.size());
+    inputs.drainTo(inputsCopy);
     return inputsCopy;
   }
 
@@ -88,10 +89,13 @@ public class InputHost {
     return true;
   }
 
-  @Override
-  public String toString() {
+  public String toDetailedString() {
     return "InputHost [host=" + host + ", port=" + port + ", inputs=" + inputs
         + "]";
   }
-
+  
+  @Override
+  public String toString() {
+    return "InputHost [host=" + host + ", port=" + port + "]";
+  }
 }

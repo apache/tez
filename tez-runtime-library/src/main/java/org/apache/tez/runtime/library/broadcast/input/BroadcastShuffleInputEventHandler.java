@@ -72,7 +72,7 @@ public class BroadcastShuffleInputEventHandler {
     } catch (InvalidProtocolBufferException e) {
       throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
     }
-    LOG.info("Processing data moveement event with srcIndex: "
+    LOG.info("Processing DataMovementEvent with srcIndex: "
         + dme.getSourceIndex() + ", targetIndex: " + dme.getTargetIndex()
         + ", attemptNum: " + dme.getVersion() + ", payload: "
         + TextFormat.shortDebugString(shufflePayload));

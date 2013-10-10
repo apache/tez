@@ -31,7 +31,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -89,6 +88,9 @@ public class BroadcastShuffleManager implements FetcherCallback {
   private final ExecutorService fetcherRawExecutor;
   private final ListeningExecutorService fetcherExecutor;
 
+  private final ExecutorService schedulerRawExecutor;
+  private final ListeningExecutorService schedulerExecutor;
+  
   private final BlockingQueue<FetchedInput> completedInputs;
   private final Set<InputIdentifier> completedInputSet;
   private final ConcurrentMap<String, InputHost> knownSrcHosts;
@@ -99,9 +101,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
   
   private final long startTime;
   private long lastProgressTime;
-  
-  private FutureTask<Void> runShuffleFuture;
-  
+
   // Required to be held when manipulating pendingHosts
   private ReentrantLock lock = new ReentrantLock();
   private Condition wakeLoop = lock.newCondition();
@@ -143,10 +143,23 @@ public class BroadcastShuffleManager implements FetcherCallback {
     
     this.numFetchers = Math.min(maxConfiguredFetchers, numInputs);
     
-    this.fetcherRawExecutor = Executors.newFixedThreadPool(numFetchers,
-        new ThreadFactoryBuilder().setDaemon(true).setNameFormat("Fetcher #%d")
+    this.fetcherRawExecutor = Executors.newFixedThreadPool(
+        numFetchers,
+        new ThreadFactoryBuilder()
+            .setDaemon(true)
+            .setNameFormat(
+                "Fetcher [" + inputContext.getUniqueIdentifier() + "] #%d")
             .build());
     this.fetcherExecutor = MoreExecutors.listeningDecorator(fetcherRawExecutor);
+    
+    this.schedulerRawExecutor = Executors.newFixedThreadPool(
+        1,
+        new ThreadFactoryBuilder()
+            .setDaemon(true)
+            .setNameFormat(
+                "ShuffleRunner [" + inputContext.getUniqueIdentifier() + "]")
+            .build());
+    this.schedulerExecutor = MoreExecutors.listeningDecorator(schedulerRawExecutor);
     
     this.startTime = System.currentTimeMillis();
     this.lastProgressTime = startTime;
@@ -178,10 +191,11 @@ public class BroadcastShuffleManager implements FetcherCallback {
   
   public void run() {
     RunBroadcastShuffleCallable callable = new RunBroadcastShuffleCallable();
-    runShuffleFuture = new FutureTask<Void>(callable);
-    Thread runThread = new Thread(runShuffleFuture, "ShuffleRunner");
-    runThread.setDaemon(true);
-    runThread.start();
+    ListenableFuture<Void> runShuffleFuture = schedulerExecutor
+        .submit(callable);
+    Futures.addCallback(runShuffleFuture, new SchedulerFutureCallback());
+    // Shutdown this executor once this task, and the callback complete.
+    schedulerExecutor.shutdown();
   }
   
   private class RunBroadcastShuffleCallable implements Callable<Void> {
@@ -209,22 +223,21 @@ public class BroadcastShuffleManager implements FetcherCallback {
         if (numCompletedInputs.get() < numInputs) {
           lock.lock();
           try {
-            int numFetchersToRun = Math.min(pendingHosts.size(), numFetchers
-                - numRunningFetchers.get());
+            int maxFetchersToRun = numFetchers - numRunningFetchers.get();
             int count = 0;
             while (pendingHosts.peek() != null) {
               InputHost inputHost = pendingHosts.take();
               if (LOG.isDebugEnabled()) {
-                LOG.debug("Processing pending host: " + inputHost);
+                LOG.debug("Processing pending host: " + inputHost.toDetailedString());
               }
               if (inputHost.getNumPendingInputs() > 0) {
-                LOG.info("Scheduling fetch for inputHost: " + inputHost);
+                LOG.info("Scheduling fetch for inputHost: " + inputHost.getHost());
                 Fetcher fetcher = constructFetcherForHost(inputHost);
                 numRunningFetchers.incrementAndGet();
                 ListenableFuture<FetchResult> future = fetcherExecutor
                     .submit(fetcher);
                 Futures.addCallback(future, fetchFutureCallback);
-                if (++count >= numFetchersToRun) {
+                if (++count >= maxFetchersToRun) {
                   break;
                 }
               } else {
@@ -276,6 +289,8 @@ public class BroadcastShuffleManager implements FetcherCallback {
     // fetcher, especially in the case where #hosts < #fetchers
     fetcherBuilder.assignWork(inputHost.getHost(), inputHost.getPort(), 0,
         pendingInputsForHost);
+    LOG.info("Created Fetcher for host: " + inputHost.getHost()
+        + ", with inputs: " + pendingInputsForHost);
     return fetcherBuilder.build();
   }
   
@@ -501,6 +516,21 @@ public class BroadcastShuffleManager implements FetcherCallback {
     }
   }
   
+  
+  private class SchedulerFutureCallback implements FutureCallback<Void> {
+
+    @Override
+    public void onSuccess(Void result) {
+      LOG.info("Scheduler thread completed");
+    }
+
+    @Override
+    public void onFailure(Throwable t) {
+      LOG.error("Scheduler failed with error: ", t);
+      inputContext.fatalError(t, "Broadcast Scheduler Failed");
+    }
+    
+  }
   
   private class FetchFutureCallback implements FutureCallback<FetchResult> {
 
