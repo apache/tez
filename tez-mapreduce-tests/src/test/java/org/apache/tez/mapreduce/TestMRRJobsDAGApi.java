@@ -52,6 +52,7 @@ import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezSession;
 import org.apache.tez.client.TezSessionConfiguration;
 import org.apache.tez.client.TezSessionStatus;
@@ -70,6 +71,7 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatus.State;
+import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.examples.MRRSleepJob;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.ISleepReducer;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.MRRSleepJobPartitioner;
@@ -82,6 +84,7 @@ import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
+import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 import org.junit.AfterClass;
@@ -184,7 +187,7 @@ public class TestMRRJobsDAGApi {
   @Test(timeout = 60000)
   public void testMRRSleepJobDagSubmit() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
-    State finalState = testMRRSleepJobDagSubmitCore(false, false, false);
+    State finalState = testMRRSleepJobDagSubmitCore(false, false, false, false);
 
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
     // TODO Add additional checks for tracking URL etc. - once it's exposed by
@@ -195,7 +198,7 @@ public class TestMRRJobsDAGApi {
   @Test(timeout = 60000)
   public void testMRRSleepJobDagSubmitAndKill() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
-    State finalState = testMRRSleepJobDagSubmitCore(false, true, false);
+    State finalState = testMRRSleepJobDagSubmitCore(false, true, false, false);
 
     Assert.assertEquals(DAGStatus.State.KILLED, finalState);
     // TODO Add additional checks for tracking URL etc. - once it's exposed by
@@ -206,7 +209,7 @@ public class TestMRRJobsDAGApi {
   @Test(timeout = 60000)
   public void testMRRSleepJobViaSession() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
-    State finalState = testMRRSleepJobDagSubmitCore(true, false, false);
+    State finalState = testMRRSleepJobDagSubmitCore(true, false, false, false);
 
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
   }
@@ -248,12 +251,12 @@ public class TestMRRJobsDAGApi {
         tezSession.getSessionStatus());
 
     State finalState = testMRRSleepJobDagSubmitCore(true, false, false,
-        tezSession);
+        tezSession, false);
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
     Assert.assertEquals(TezSessionStatus.READY,
         tezSession.getSessionStatus());
     finalState = testMRRSleepJobDagSubmitCore(true, false, false,
-        tezSession);
+        tezSession, false);
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
     Assert.assertEquals(TezSessionStatus.READY,
         tezSession.getSessionStatus());
@@ -290,7 +293,7 @@ public class TestMRRJobsDAGApi {
   @Test(timeout = 60000)
   public void testMRRSleepJobDagSubmitAndKillViaRPC() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
-    State finalState = testMRRSleepJobDagSubmitCore(true, true, false);
+    State finalState = testMRRSleepJobDagSubmitCore(true, true, false, false);
 
     Assert.assertEquals(DAGStatus.State.KILLED, finalState);
     // TODO Add additional checks for tracking URL etc. - once it's exposed by
@@ -301,17 +304,24 @@ public class TestMRRJobsDAGApi {
   @Test(timeout = 60000)
   public void testTezSessionShutdown() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
-    testMRRSleepJobDagSubmitCore(true, false, true);
+    testMRRSleepJobDagSubmitCore(true, false, true, false);
+  }
+
+  @Test(timeout = 60000)
+  public void testAMSplitGeneration() throws IOException, InterruptedException,
+      TezException, ClassNotFoundException, YarnException {
+    testMRRSleepJobDagSubmitCore(true, false, false, true);
   }
 
   public State testMRRSleepJobDagSubmitCore(
       boolean dagViaRPC,
       boolean killDagWhileRunning,
-      boolean closeSessionBeforeSubmit) throws IOException,
+      boolean closeSessionBeforeSubmit,
+      boolean genSplitsInAM) throws IOException,
       InterruptedException, TezException, ClassNotFoundException,
       YarnException {
     return testMRRSleepJobDagSubmitCore(dagViaRPC, killDagWhileRunning,
-        closeSessionBeforeSubmit, null);
+        closeSessionBeforeSubmit, null, genSplitsInAM);
   }
 
   private Map<String, String> createCommonEnv() {
@@ -326,7 +336,8 @@ public class TestMRRJobsDAGApi {
       boolean dagViaRPC,
       boolean killDagWhileRunning,
       boolean closeSessionBeforeSubmit,
-      TezSession reUseTezSession) throws IOException,
+      TezSession reUseTezSession,
+      boolean genSplitsInAM) throws IOException,
       InterruptedException, TezException, ClassNotFoundException,
       YarnException {
     LOG.info("\n\n\nStarting testMRRSleepJobDagSubmit().");
@@ -395,18 +406,25 @@ public class TestMRRJobsDAGApi {
 
     Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String
         .valueOf(new Random().nextInt(100000))));
-    InputSplitInfo inputSplitInfo = MRHelpers.generateInputSplits(stage1Conf,
+    TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
+    InputSplitInfo inputSplitInfo = null;
+    if (!genSplitsInAM) {
+      inputSplitInfo = MRHelpers.generateInputSplits(stage1Conf,
         remoteStagingDir);
+    }
 
     byte[] stage1Payload = MRHelpers.createUserPayloadFromConf(stage1Conf);
-    byte[] stage1InputPayload = MRHelpers.createMRInputPayload(stage1Conf, null);
+    byte[] stage1InputPayload = MRHelpers.createMRInputPayload(stage1Payload, null);
     byte[] stage3Payload = MRHelpers.createUserPayloadFromConf(stage3Conf);
     
     DAG dag = new DAG("testMRRSleepJobDagSubmit");
+    int stage1NumTasks = genSplitsInAM ? -1 : inputSplitInfo.getNumTasks();
+    Class<? extends TezRootInputInitializer> inputInitializerClazz = genSplitsInAM ? MRInputAMSplitGenerator.class
+        : null;
     Vertex stage1Vertex = new Vertex("map", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(stage1Payload),
-        inputSplitInfo.getNumTasks(), Resource.newInstance(256, 1));
-    MRHelpers.addMRInput(stage1Vertex, stage1InputPayload, null);
+        stage1NumTasks, Resource.newInstance(256, 1));
+    MRHelpers.addMRInput(stage1Vertex, stage1InputPayload, inputInitializerClazz);
     Vertex stage2Vertex = new Vertex("ireduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName()).setUserPayload(
         MRHelpers.createUserPayloadFromConf(stage2Conf)),
@@ -428,21 +446,26 @@ public class TestMRRJobsDAGApi {
 
     Map<String, String> commonEnv = createCommonEnv();
 
-    // TODO Use utility method post TEZ-205.
-    Map<String, LocalResource> stage1LocalResources = new HashMap<String, LocalResource>();
-    stage1LocalResources.put(
-        inputSplitInfo.getSplitsFile().getName(),
-        createLocalResource(remoteFs, inputSplitInfo.getSplitsFile(),
-            LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
-    stage1LocalResources.put(
-        inputSplitInfo.getSplitsMetaInfoFile().getName(),
-        createLocalResource(remoteFs, inputSplitInfo.getSplitsMetaInfoFile(),
-            LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
-    stage1LocalResources.putAll(commonLocalResources);
+    if (!genSplitsInAM) {
+      // TODO Use utility method post TEZ-205.
+      Map<String, LocalResource> stage1LocalResources = new HashMap<String, LocalResource>();
+      stage1LocalResources.put(
+          inputSplitInfo.getSplitsFile().getName(),
+          createLocalResource(remoteFs, inputSplitInfo.getSplitsFile(),
+              LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
+      stage1LocalResources.put(
+          inputSplitInfo.getSplitsMetaInfoFile().getName(),
+          createLocalResource(remoteFs, inputSplitInfo.getSplitsMetaInfoFile(),
+              LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
+      stage1LocalResources.putAll(commonLocalResources);
+
+      stage1Vertex.setTaskLocalResources(stage1LocalResources);
+      stage1Vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
+    } else {
+      stage1Vertex.setTaskLocalResources(commonLocalResources);
+    }
 
     stage1Vertex.setJavaOpts(MRHelpers.getMapJavaOpts(stage1Conf));
-    stage1Vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
-    stage1Vertex.setTaskLocalResources(stage1LocalResources);
     stage1Vertex.setTaskEnvironment(commonEnv);
 
     // TODO env, resources

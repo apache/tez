@@ -18,11 +18,12 @@
 
 package org.apache.tez.mapreduce.common;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfoMem;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
@@ -30,56 +31,70 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.api.TezRootInputInitializerContext;
+import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
-import org.apache.tez.runtime.api.events.RootInputUpdatePayloadEvent;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
-public class MRInputSplitDistributor implements TezRootInputInitializer {
+public class MRInputAMSplitGenerator implements TezRootInputInitializer {
 
   private static final Log LOG = LogFactory
-      .getLog(MRInputSplitDistributor.class);
+      .getLog(MRInputAMSplitGenerator.class);
 
-  public MRInputSplitDistributor() {
+  public MRInputAMSplitGenerator() {
   }
-
-  private MRSplitsProto splitsProto;
 
   @Override
   public List<Event> initialize(TezRootInputInitializerContext rootInputContext)
-      throws IOException {
+      throws Exception {
     Stopwatch sw = null;
     if (LOG.isDebugEnabled()) {
       sw = new Stopwatch().start();
     }
-    MRInputUserPayloadProto userPayloadProto = MRHelpers.parseMRInputPayload(rootInputContext.getUserPayload());
+    MRInputUserPayloadProto userPayloadProto = MRHelpers
+        .parseMRInputPayload(rootInputContext.getUserPayload());
     if (LOG.isDebugEnabled()) {
       sw.stop();
       LOG.debug("Time to parse MRInput payload into prot: "
-          + sw.elapsedMillis());  
+          + sw.elapsedMillis());
     }
-    
+    if (LOG.isDebugEnabled()) {
+      sw.reset().start();
+    }
+    Configuration conf = MRHelpers.createConfFromByteString(userPayloadProto
+        .getConfigurationBytes());
+    if (LOG.isDebugEnabled()) {
+      sw.stop();
+      LOG.debug("Time converting ByteString to configuration: " + sw.elapsedMillis());
+    }
 
-    this.splitsProto = userPayloadProto.getSplits();
-    
-    MRInputUserPayloadProto.Builder updatedPayloadBuilder = MRInputUserPayloadProto.newBuilder(userPayloadProto);
-    updatedPayloadBuilder.clearSplits();
+    if (LOG.isDebugEnabled()) {
+      sw.reset().start();
+    }
+    InputSplitInfoMem inputSplitInfo = MRHelpers.generateInputSplitsToMem(conf);
+    if (LOG.isDebugEnabled()) {
+      sw.stop();
+      LOG.debug("Time to create splits to mem: " + sw.elapsedMillis());
+    }
 
-    List<Event> events = Lists.newArrayListWithCapacity(this.splitsProto.getSplitsCount() + 1);
-    RootInputUpdatePayloadEvent updatePayloadEvent = new RootInputUpdatePayloadEvent(
-        updatedPayloadBuilder.build().toByteArray());
+    List<Event> events = Lists.newArrayListWithCapacity(inputSplitInfo
+        .getNumTasks() + 1);
+    RootInputConfigureVertexTasksEvent configureVertexEvent = new RootInputConfigureVertexTasksEvent(
+        inputSplitInfo.getNumTasks(), inputSplitInfo.getTaskLocationHints());
+    events.add(configureVertexEvent);
 
-    events.add(updatePayloadEvent);
+    MRSplitsProto splitsProto = inputSplitInfo.getSplitsProto();
+
     int count = 0;
-    for (MRSplitProto mrSplit : this.splitsProto.getSplitsList()) {
+    for (MRSplitProto mrSplit : splitsProto.getSplitsList()) {
       // Unnecessary array copy, can be avoided by using ByteBuffer instead of a
       // raw array.
       RootInputDataInformationEvent diEvent = new RootInputDataInformationEvent(
           count++, mrSplit.toByteArray());
       events.add(diEvent);
     }
-
     return events;
   }
+
 }

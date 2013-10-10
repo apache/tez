@@ -16,25 +16,30 @@
  * limitations under the License.
  */
 
-option java_package = "org.apache.tez.mapreduce.protos";
-option java_outer_classname = "MRRuntimeProtos";
-option java_generate_equals_and_hash = true;
+package org.apache.tez.runtime.api.events;
 
-// Represents multiple MR splits
-message MRSplitsProto {
-  optional int32 version = 1;
-  repeated MRSplitProto splits = 2;
-  // May be useful to have a single large field to serialize all splits
-  // and use CodedInputStream to read these efficiently (via a Writable/Hadoop serialization wrapper).
-}
+import java.util.List;
 
-// Represents a single MRSplit
-message MRSplitProto {
-  optional string split_class_name = 1;
-  optional bytes split_bytes = 2;
-}
+import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.runtime.api.Event;
 
-message MRInputUserPayloadProto {
-  optional bytes configuration_bytes = 1;
-  optional MRSplitsProto splits = 2;
+public class RootInputConfigureVertexTasksEvent extends Event {
+
+  private final int numTasks;
+  private final List<TaskLocationHint> taskLocationHints;
+  
+  public RootInputConfigureVertexTasksEvent(int numTasks, List<TaskLocationHint> locationHints) {
+    this.numTasks = numTasks;
+    this.taskLocationHints = locationHints;
+  }
+
+  public int getNumTasks() {
+    return numTasks;
+  }
+
+  public List<TaskLocationHint> getTaskLocationHints() {
+    return taskLocationHints;
+  }
+
+  
 }

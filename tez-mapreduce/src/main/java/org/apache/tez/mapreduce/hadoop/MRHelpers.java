@@ -72,9 +72,9 @@ import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
-import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRUserPayloadProto;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 
 import com.google.common.base.Preconditions;
@@ -618,21 +618,38 @@ public class MRHelpers {
     return TezUtils.createConfFromByteString(bs);
   }
 
+  public static byte[] createMRInputPayload(byte[] configurationBytes,
+      MRSplitsProto mrSplitsProto) {
+    Preconditions.checkArgument(configurationBytes != null,
+        "Configuration bytes must be specified");
+    MRInputUserPayloadProto.Builder userPayloadBuilder = MRInputUserPayloadProto
+        .newBuilder();
+    userPayloadBuilder.setConfigurationBytes(ByteString
+        .copyFrom(configurationBytes));
+    if (mrSplitsProto != null) {
+      userPayloadBuilder.setSplits(mrSplitsProto);
+    }
+    return userPayloadBuilder.build().toByteArray();
+  }
+  
   public static byte[] createMRInputPayload(Configuration conf,
-      MRSplitsProto mrSplitProto) throws IOException {
-    MRUserPayloadProto.Builder userPayloadBuilder = MRUserPayloadProto
+      MRSplitsProto mrSplitsProto) throws IOException {
+    Preconditions
+        .checkArgument(conf != null, "Configuration must be specified");
+    MRInputUserPayloadProto.Builder userPayloadBuilder = MRInputUserPayloadProto
         .newBuilder();
     userPayloadBuilder.setConfigurationBytes(createByteStringFromConf(conf));
-    if (mrSplitProto != null) {
-      userPayloadBuilder.setSplits(mrSplitProto);
+    if (mrSplitsProto != null) {
+      userPayloadBuilder.setSplits(mrSplitsProto);
     }
     // TODO Should this be a ByteBuffer or a byte array ? A ByteBuffer would be
     // more efficient.
     return userPayloadBuilder.build().toByteArray();
   }
 
-  public static MRUserPayloadProto parseMRPayload(byte[] bytes) throws IOException {
-    return MRUserPayloadProto.parseFrom(bytes);
+  public static MRInputUserPayloadProto parseMRInputPayload(byte[] bytes)
+      throws IOException {
+    return MRInputUserPayloadProto.parseFrom(bytes);
   }
 
   /**

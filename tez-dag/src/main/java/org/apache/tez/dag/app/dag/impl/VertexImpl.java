@@ -412,6 +412,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private RootInputInitializerRunner rootInputInitializer;
   
   private VertexScheduler vertexScheduler;
+  
+  private boolean parallelismSet = false;
 
   private VertexOutputCommitter committer;
   private AtomicBoolean committed = new AtomicBoolean(false);
@@ -748,6 +750,24 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       Map<Vertex, EdgeManager> sourceEdgeManagers) {
     writeLock.lock();
     try {
+      Preconditions.checkState(parallelismSet == false,
+          "Parallelism can only be set dynamically once per vertex");
+      parallelismSet = true;
+      
+      // Input initializer expected to set parallelism.
+      if (numTasks == -1) {
+        Preconditions
+            .checkArgument(sourceEdgeManagers == null,
+                "SourceEdge managers cannot be set when determining initial parallelism");
+        this.numTasks = parallelism;
+        this.createTasks();
+        LOG.info("Parallelism set to : " + this.numTasks);
+        // Pending task event management, which follows, is not required.
+        // Vertex event buffering is happening elsewhere - while in the Vertex
+        // INITIALIZING state.
+        return;
+      }
+      
       if (parallelism >= numTasks) {
         // not that hard to support perhaps. but checking right now since there
         // is no use case for it and checking may catch other bugs.
@@ -830,6 +850,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       writeLock.unlock();
     }
     
+  }
+
+  public void setVertexLocationHint(VertexLocationHint vertexLocationHint) {
+    writeLock.lock();
+    try {
+      this.vertexLocationHint = vertexLocationHint;
+    } finally {
+      writeLock.unlock();
+    }
   }
 
   @Override
@@ -1092,34 +1121,34 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     // no code, for now
   }
   
-  private void createTasks(VertexImpl vertex) {
-    Configuration conf = vertex.conf;
+  private void createTasks() {
+    Configuration conf = this.conf;
     boolean useNullLocationHint = true;
-    if (vertex.vertexLocationHint != null
-        && vertex.vertexLocationHint.getTaskLocationHints() != null
-        && vertex.vertexLocationHint.getTaskLocationHints().size() ==
-            vertex.numTasks) {
+    if (this.vertexLocationHint != null
+        && this.vertexLocationHint.getTaskLocationHints() != null
+        && this.vertexLocationHint.getTaskLocationHints().size() ==
+            this.numTasks) {
       useNullLocationHint = false;
     }
-    for (int i=0; i < vertex.numTasks; ++i) {
+    for (int i=0; i < this.numTasks; ++i) {
       TaskLocationHint locHint = null;
       if (!useNullLocationHint) {
-        locHint = vertex.vertexLocationHint.getTaskLocationHints().get(i);
+        locHint = this.vertexLocationHint.getTaskLocationHints().get(i);
       }
       TaskImpl task =
-          new TaskImpl(vertex.getVertexId(), i,
-              vertex.eventHandler,
+          new TaskImpl(this.getVertexId(), i,
+              this.eventHandler,
               conf,
-              vertex.taskAttemptListener,
-              vertex.clock,
-              vertex.taskHeartbeatHandler,
-              vertex.appContext,
-              vertex.targetVertices.isEmpty(),
-              locHint, vertex.taskResource,
-              vertex.containerContext);
-      vertex.addTask(task);
+              this.taskAttemptListener,
+              this.clock,
+              this.taskHeartbeatHandler,
+              this.appContext,
+              this.targetVertices.isEmpty(),
+              locHint, this.taskResource,
+              this.containerContext);
+      this.addTask(task);
       if(LOG.isDebugEnabled()) {
-        LOG.debug("Created task for vertex " + vertex.getVertexId() + ": " +
+        LOG.debug("Created task for vertex " + this.getVertexId() + ": " +
             task.getTaskId());
       }
     }
@@ -1207,7 +1236,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       if (vertex.numTasks == -1) {
         LOG.info("Num tasks is -1. Expecting VertexManager/InputInitializers to set #tasks for the vertex");
       } else {
-        vertex.createTasks(vertex);
+        vertex.createTasks();
       }
 
       if (vertex.inputsWithInitializers != null) {

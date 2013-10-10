@@ -146,7 +146,7 @@ import org.apache.tez.runtime.library.processor.SleepProcessor;
 
 @SuppressWarnings("rawtypes")
 public class DAGAppMaster extends AbstractService {
-
+ 
   private static final Log LOG = LogFactory.getLog(DAGAppMaster.class);
 
   /**
@@ -1340,7 +1340,7 @@ public class DAGAppMaster extends AbstractService {
 
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
 
-      Configuration conf = new Configuration(new YarnConfiguration());
+      final Configuration conf = new Configuration(new YarnConfiguration());
       TezUtils.addUserSpecifiedTezConfiguration(conf);
 
       String jobUserName = System

@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -59,6 +60,9 @@ import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -66,17 +70,17 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
+import org.apache.tez.mapreduce.examples.helpers.SplitsInClientOptionParser;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
+import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
@@ -145,7 +149,8 @@ public class OrderedWordCount {
 
   private static DAG createDAG(FileSystem fs, Configuration conf,
       Map<String, LocalResource> commonLocalResources, Path stagingDir,
-      int dagIndex, String inputPath, String outputPath) throws Exception {
+      int dagIndex, String inputPath, String outputPath,
+      boolean generateSplitsInClient) throws Exception {
 
     Configuration mapStageConf = new JobConf(conf);
     mapStageConf.set(MRJobConfig.MAP_CLASS_ATTR,
@@ -159,9 +164,11 @@ public class OrderedWordCount {
     mapStageConf.set(FileInputFormat.INPUT_DIR, inputPath);
     mapStageConf.setBoolean("mapred.mapper.new-api", true);
 
-    InputSplitInfo inputSplitInfo =
-        MRHelpers.generateInputSplits(mapStageConf, stagingDir);
-    mapStageConf.setInt(MRJobConfig.NUM_MAPS, inputSplitInfo.getNumTasks());
+    InputSplitInfo inputSplitInfo = null;
+    if (generateSplitsInClient) {
+      inputSplitInfo = MRHelpers.generateInputSplits(mapStageConf, stagingDir);
+      mapStageConf.setInt(MRJobConfig.NUM_MAPS, inputSplitInfo.getNumTasks());
+    }
 
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(mapStageConf,
         null);
@@ -202,22 +209,30 @@ public class OrderedWordCount {
     List<Vertex> vertices = new ArrayList<Vertex>();
 
     byte[] mapPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
-    byte[] mapInputPayload = MRHelpers.createMRInputPayload(mapStageConf, null);
+    byte[] mapInputPayload = MRHelpers.createMRInputPayload(mapPayload, null);
+    int numMaps = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(mapPayload),
-        inputSplitInfo.getNumTasks(), MRHelpers.getMapResource(mapStageConf));
+        numMaps, MRHelpers.getMapResource(mapStageConf));
     mapVertex.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
-    mapVertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
-    Map<String, LocalResource> mapLocalResources =
-        new HashMap<String, LocalResource>();
-    mapLocalResources.putAll(commonLocalResources);
-    MRHelpers.updateLocalResourcesForInputSplits(fs, inputSplitInfo,
-        mapLocalResources);
-    mapVertex.setTaskLocalResources(mapLocalResources);
+    if (generateSplitsInClient) {
+      mapVertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
+      Map<String, LocalResource> mapLocalResources =
+          new HashMap<String, LocalResource>();
+      mapLocalResources.putAll(commonLocalResources);
+      MRHelpers.updateLocalResourcesForInputSplits(fs, inputSplitInfo,
+          mapLocalResources);
+      mapVertex.setTaskLocalResources(mapLocalResources);
+    } else {
+      mapVertex.setTaskLocalResources(commonLocalResources);
+    }
+
     Map<String, String> mapEnv = new HashMap<String, String>();
     MRHelpers.updateEnvironmentForMRTasks(mapStageConf, mapEnv, true);
     mapVertex.setTaskEnvironment(mapEnv);
-    MRHelpers.addMRInput(mapVertex, mapInputPayload, null);
+    Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
+        : MRInputAMSplitGenerator.class;
+    MRHelpers.addMRInput(mapVertex, mapInputPayload, initializerClazz);
     vertices.add(mapVertex);
 
     Vertex ivertex = new Vertex("ivertex1", new ProcessorDescriptor(
@@ -263,19 +278,38 @@ public class OrderedWordCount {
     return dag;
   }
 
+  private static void printUsage() {
+    System.err.println("Usage: orderedwordcount <in> <out> [-generateSplitsInClient true/<false>]");
+    System.err.println("Usage (In Session Mode):"
+        + " orderedwordcount <in1> <out1> ... <inN> <outN> [-generateSplitsInClient true/<false>]");
+  }
+  
+  
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+    
+    boolean generateSplitsInClient = false;
+    
+    SplitsInClientOptionParser splitCmdLineParser = new SplitsInClientOptionParser();
+    try {
+      generateSplitsInClient = splitCmdLineParser.parse(otherArgs, false);
+      otherArgs = splitCmdLineParser.getRemainingArgs();
+    } catch (ParseException e1) {
+      System.err.println("Invalid options");
+      printUsage();
+      System.exit(2);
+    }
+
     boolean useTezSession = conf.getBoolean("USE_TEZ_SESSION", true);
     long interJobSleepTimeout = conf.getInt("INTER_JOB_SLEEP_INTERVAL", 0)
         * 1000;
     if (((otherArgs.length%2) != 0)
         || (!useTezSession && otherArgs.length != 2)) {
-      System.err.println("Usage: wordcount <in> <out>");
-      System.err.println("Usage (In Session Mode):"
-          + " wordcount <in1> <out1> ... <inN> <outN>");
+      printUsage();
       System.exit(2);
     }
+
     List<String> inputPaths = new ArrayList<String>();
     List<String> outputPaths = new ArrayList<String>();
 
@@ -365,7 +399,7 @@ public class OrderedWordCount {
             + ", outputPath=" + outputPath);
 
         DAG dag = createDAG(fs, conf, commonLocalResources, stagingDir,
-            dagIndex, inputPath, outputPath);
+            dagIndex, inputPath, outputPath, generateSplitsInClient);
 
         DAGClient dagClient;
         if (useTezSession) {

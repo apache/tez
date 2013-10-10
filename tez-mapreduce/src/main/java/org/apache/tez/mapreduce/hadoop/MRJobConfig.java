@@ -657,7 +657,7 @@ public interface MRJobConfig {
 
   public static final String MR_TEZ_SPLITS_VIA_EVENTS = MR_TEZ_PREFIX + "splits.via.events";
   public static final boolean MR_TEZ_SPLITS_VIA_EVENTS_DEFAULT = true;
-  
+
   // Stage specific properties
   // Format of each property is mapred.ireducer.stage.<stage-num>.<suffix>
   // where suffix is one of MRR_INTERMEDIATE_STAGE_* fields defined below.

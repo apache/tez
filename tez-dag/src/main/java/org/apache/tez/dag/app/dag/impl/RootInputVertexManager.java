@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexScheduler;
 import org.apache.tez.dag.app.dag.VertexState;
@@ -32,6 +33,7 @@ import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.runtime.api.events.RootInputUpdatePayloadEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
@@ -49,7 +51,7 @@ public class RootInputVertexManager implements VertexScheduler {
   private final Map<String, EventMetaData> destInfoMap;
   @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
-
+  
   @SuppressWarnings("rawtypes")
   public RootInputVertexManager(Vertex vertex, EventHandler eventHandler) {
     this.managedVertex = vertex;
@@ -91,6 +93,18 @@ public class RootInputVertexManager implements VertexScheduler {
     Preconditions.checkState(EnumSet.of(VertexState.INITIALIZING,
         VertexState.NEW).contains(managedVertex.getState()));
     for (Event event : events) {
+      if (event instanceof RootInputConfigureVertexTasksEvent) {
+        // No tasks should have been started yet. Checked by initial state check.
+        Preconditions.checkState(dataInformationEventSeen == false);
+        Preconditions
+            .checkState(
+                managedVertex.getTotalTasks() == -1,
+                "Parallelism for the vertex should be set to -1 if the InputInitializer is setting parallelism");
+        RootInputConfigureVertexTasksEvent cEvent = (RootInputConfigureVertexTasksEvent) event;
+        managedVertex.setParallelism(cEvent.getNumTasks(), null);
+        managedVertex.setVertexLocationHint(new VertexLocationHint(cEvent
+            .getNumTasks(), cEvent.getTaskLocationHints()));
+      }
       if (event instanceof RootInputUpdatePayloadEvent) {
         // No tasks should have been started yet. Checked by initial state check.
         Preconditions.checkState(dataInformationEventSeen == false);

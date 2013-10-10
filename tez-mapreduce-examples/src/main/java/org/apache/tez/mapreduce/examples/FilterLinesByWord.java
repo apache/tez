@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -64,13 +65,16 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
+import org.apache.tez.mapreduce.examples.helpers.SplitsInClientOptionParser;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
+import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.processor.FilterByWordInputProcessor;
 import org.apache.tez.processor.FilterByWordOutputProcessor;
+import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
@@ -80,13 +84,28 @@ public class FilterLinesByWord {
 
   public static final String FILTER_PARAM_NAME = "tez.runtime.examples.filterbyword.word";
 
+  private static void printUsage() {
+    System.err.println("Usage filtelinesrbyword <in> <out> <filter_word> [-generateSplitsInClient true/<false>]");
+  }
 
   public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, TezException {
     Configuration conf = new Configuration();
     String [] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
 
+    boolean generateSplitsInClient = false;
+    
+    SplitsInClientOptionParser splitCmdLineParser = new SplitsInClientOptionParser();
+    try {
+      generateSplitsInClient = splitCmdLineParser.parse(otherArgs, false);
+      otherArgs = splitCmdLineParser.getRemainingArgs();
+    } catch (ParseException e1) {
+      System.err.println("Invalid options");
+      printUsage();
+      System.exit(2);
+    }
+
     if (otherArgs.length != 3) {
-      System.err.println("Usage filtelinesrbyword <in> <out> <filter_word>");
+      printUsage();
       System.exit(2);
     }
 
@@ -140,7 +159,10 @@ public class FilterLinesByWord {
     stage1Conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, TextLongPair.class.getName());
     stage1Conf.set(FILTER_PARAM_NAME, filterWord);
 
-    InputSplitInfo inputSplitInfo = MRHelpers.generateInputSplits(stage1Conf, stagingDir);
+    InputSplitInfo inputSplitInfo = null;
+    if (generateSplitsInClient) {
+      inputSplitInfo = MRHelpers.generateInputSplits(stage1Conf, stagingDir);
+    }
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage1Conf, null);
 
 
@@ -155,24 +177,33 @@ public class FilterLinesByWord {
     MRHelpers.doJobClientMagic(stage1Conf);
     MRHelpers.doJobClientMagic(stage2Conf);
 
+    byte[] stage1Payload = MRHelpers.createUserPayloadFromConf(stage1Conf);
     // Setup stage1 Vertex
+    int stage1NumTasks = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex stage1Vertex = new Vertex("stage1", new ProcessorDescriptor(
-        FilterByWordInputProcessor.class.getName()).setUserPayload(MRHelpers
-        .createUserPayloadFromConf(stage1Conf)), inputSplitInfo.getNumTasks(),
-        MRHelpers.getMapResource(stage1Conf));
-    stage1Vertex.setJavaOpts(MRHelpers.getMapJavaOpts(stage1Conf)).setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
-    Map<String, LocalResource> stage1LocalResources = new HashMap<String, LocalResource>();
-    stage1LocalResources.putAll(commonLocalResources);
-    MRHelpers.updateLocalResourcesForInputSplits(fs, inputSplitInfo, stage1LocalResources);
-    stage1Vertex.setTaskLocalResources(stage1LocalResources);
+        FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload),
+        stage1NumTasks, MRHelpers.getMapResource(stage1Conf));
+    stage1Vertex.setJavaOpts(MRHelpers.getMapJavaOpts(stage1Conf));
+    if (generateSplitsInClient) {
+      stage1Vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
+      Map<String, LocalResource> stage1LocalResources = new HashMap<String, LocalResource>();
+      stage1LocalResources.putAll(commonLocalResources);
+      MRHelpers.updateLocalResourcesForInputSplits(fs, inputSplitInfo, stage1LocalResources);
+      stage1Vertex.setTaskLocalResources(stage1LocalResources);
+    } else {
+      stage1Vertex.setTaskLocalResources(commonLocalResources);
+    }
     Map<String, String> stage1Env = new HashMap<String, String>();
     MRHelpers.updateEnvironmentForMRTasks(stage1Conf, stage1Env, true);
     stage1Vertex.setTaskEnvironment(stage1Env);
     
     // Configure the Input for stage1
+    Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
+        : MRInputAMSplitGenerator.class;
     stage1Vertex.addInput("MRInput",
         new InputDescriptor(MRInputLegacy.class.getName())
-            .setUserPayload(MRHelpers.createMRInputPayload(stage1Conf, null)), null);
+            .setUserPayload(MRHelpers.createMRInputPayload(stage1Payload, null)),
+        initializerClazz);
 
     // Setup stage2 Vertex
     Vertex stage2Vertex = new Vertex("stage2", new ProcessorDescriptor(
