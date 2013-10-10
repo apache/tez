@@ -185,7 +185,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>2.4</version>
+
           <reportSets>
             <reportSet>
               <reports>
@@ -193,8 +193,8 @@
                 <report>mailing-list</report>
                 <report>issue-tracking</report>
                 <report>license</report>
-               </reports>
-             </reportSet>
+              </reports>
+            </reportSet>
           </reportSets>
         </plugin>
       </plugins>
