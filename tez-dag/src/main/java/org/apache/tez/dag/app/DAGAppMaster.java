@@ -123,6 +123,7 @@ import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.history.events.AMStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 
@@ -1221,11 +1222,18 @@ public class DAGAppMaster extends AbstractService {
 
     sleepVertex.setTaskEnvironment(environment);
 
+    List<String> javaOpts = new ArrayList<String>(4);
+    MRHelpers.addLog4jSystemProperties("INFO", javaOpts);
     if (null != amConf.get(
       TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_JAVA_OPTS)) {
-      sleepVertex.setJavaOpts(amConf.get(
+      javaOpts.add(amConf.get(
         TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_JAVA_OPTS));
     }
+    StringBuilder sb = new StringBuilder();
+    for (String s : javaOpts) {
+      sb.append(s).append(" ");
+    }
+    sleepVertex.setJavaOpts(sb.toString());
 
     preWarmContainersDAG.addVertex(sleepVertex);
 
