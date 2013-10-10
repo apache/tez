@@ -230,7 +230,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
               } else {
                 if (LOG.isDebugEnabled()) {
                   LOG.debug("Skipping host: " + inputHost.getHost()
-                      + " since it has know inputs to process");
+                      + " since it has no inputs to process");
                 }
               }
             }

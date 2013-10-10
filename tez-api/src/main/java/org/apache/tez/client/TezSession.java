@@ -192,6 +192,10 @@ public class TezSession {
    * @throws IOException
    */
   public synchronized void stop() throws TezException, IOException {
+    if (!sessionStarted) {
+      LOG.info("Session not started. Ignoring stop command");
+      return;
+    }
     LOG.info("Shutting down Tez Session"
         + ", sessionName=" + sessionName
         + ", applicationId=" + applicationId);
