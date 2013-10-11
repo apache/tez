@@ -203,8 +203,8 @@ public class BroadcastShuffleManager implements FetcherCallback {
     @Override
     public Void call() throws Exception {
       while (numCompletedInputs.get() < numInputs) {
+        lock.lock();
         if (numRunningFetchers.get() >= numFetchers || pendingHosts.size() == 0) {
-          lock.lock();
           try {
             wakeLoop.await();
           } finally {
