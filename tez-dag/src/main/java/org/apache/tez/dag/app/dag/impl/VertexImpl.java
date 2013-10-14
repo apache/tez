@@ -1616,11 +1616,20 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     diagnostics.add(diag);
   }
   
-  private static void checkEventSourceMetadata(Vertex vertex, EventMetaData sourceMeta) {
+  private static boolean isEventFromVertex(Vertex vertex, 
+      EventMetaData sourceMeta) {
     if (!sourceMeta.getTaskVertexName().equals(vertex.getName())) {
-      throw new TezUncheckedException("Bad routing of event"
-          + ", Event-vertex=" + sourceMeta.getTaskVertexName()
-          + ", Expected=" + vertex.getName());
+      return false;
+    }
+    return true;
+  }
+
+  private static void checkEventSourceMetadata(Vertex vertex, 
+      EventMetaData sourceMeta) {
+    if (!isEventFromVertex(vertex, sourceMeta)) {
+        throw new TezUncheckedException("Bad routing of event"
+            + ", Event-vertex=" + sourceMeta.getTaskVertexName()
+            + ", Expected=" + vertex.getName());
     }
   }
 
@@ -1651,16 +1660,41 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               + tezEvent.getEventType());
         }
         EventMetaData sourceMeta = tezEvent.getSourceInfo();
+        boolean isDataMovementEvent = true;
         switch(tezEvent.getEventType()) {
+        case INPUT_FAILED_EVENT:
+          isDataMovementEvent = false;
         case DATA_MOVEMENT_EVENT:
           {
-            checkEventSourceMetadata(vertex, sourceMeta);
-            TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
-            DataMovementEvent dmEvent = (DataMovementEvent) tezEvent.getEvent();
-            dmEvent.setVersion(srcTaId.getId());
-            Edge destEdge = vertex.targetVertices.get(vertex.getDAG().getVertex(
-                sourceMeta.getEdgeVertexName()));
-            destEdge.sendTezEventToDestinationTasks(tezEvent);
+            if (isEventFromVertex(vertex, sourceMeta)) {
+              // event from this vertex. send to destination vertex
+              TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
+              if (isDataMovementEvent) {
+                ((DataMovementEvent) tezEvent.getEvent()).setVersion(srcTaId.getId());
+              } else {
+                ((InputFailedEvent) tezEvent.getEvent()).setVersion(srcTaId.getId());
+              }
+              Vertex destVertex = vertex.getDAG().getVertex(sourceMeta.getEdgeVertexName());
+              Edge destEdge = vertex.targetVertices.get(destVertex);
+              if (destEdge == null) {
+                throw new TezUncheckedException("Bad destination vertex: " + 
+                    sourceMeta.getEdgeVertexName() + " for event vertex: " +
+                    vertex.getVertexId());
+              }
+              vertex.eventHandler.handle(new VertexEventRouteEvent(destVertex
+                  .getVertexId(), Collections.singletonList(tezEvent)));
+            } else {
+              // event not from this vertex. must have come from source vertex.
+              // send to tasks
+              Edge srcEdge = vertex.sourceVertices.get(vertex.getDAG().getVertex(
+                  sourceMeta.getTaskVertexName()));
+              if (srcEdge == null) {
+                throw new TezUncheckedException("Bad source vertex: " + 
+                    sourceMeta.getTaskVertexName() + " for destination vertex: " +
+                    vertex.getVertexId());
+              }
+              srcEdge.sendTezEventToDestinationTasks(tezEvent);
+            }
           }
           break;
         case VERTEX_MANAGER_EVENT:
@@ -1675,17 +1709,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           }
         }
           break;
-        case INPUT_FAILED_EVENT:
-        {
-          checkEventSourceMetadata(vertex, sourceMeta);
-          TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
-          InputFailedEvent ifEvent = (InputFailedEvent) tezEvent.getEvent();
-          ifEvent.setVersion(srcTaId.getId());
-          Edge destEdge = vertex.targetVertices.get(vertex.getDAG().getVertex(
-              sourceMeta.getEdgeVertexName()));
-          destEdge.sendTezEventToDestinationTasks(tezEvent);
-        }
-        break;
         case INPUT_READ_ERROR_EVENT:
           {
             checkEventSourceMetadata(vertex, sourceMeta);

@@ -26,12 +26,12 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.dag.EdgeManager;
-import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
@@ -168,41 +168,38 @@ public class Edge {
   public void sendTezEventToDestinationTasks(TezEvent tezEvent) {
     if (!bufferEvents.get()) {
       List<Integer> destTaskIndices = new ArrayList<Integer>();
+      boolean isDataMovementEvent = true;
       switch (tezEvent.getEventType()) {
-      case DATA_MOVEMENT_EVENT:
-        DataMovementEvent dmEvent = (DataMovementEvent) tezEvent.getEvent();
-        TezTaskAttemptID dmSourceAttemptId = tezEvent.getSourceInfo().getTaskAttemptID();
-        int dmSourceTaskIndex = dmSourceAttemptId.getTaskID().getId();
-        edgeManager.routeEventToDestinationTasks(dmEvent, dmSourceTaskIndex,
-            destinationVertex.getTotalTasks(), destTaskIndices);
-        for(Integer destTaskIndex : destTaskIndices) {
-          EventMetaData destMeta = new EventMetaData(EventProducerConsumerType.INPUT, 
-              destinationVertex.getName(), 
-              sourceVertex.getName(), 
-              null); // will be filled by Task when sending the event. Is it needed?
-          destMeta.setIndex(dmEvent.getTargetIndex());
-          tezEvent.setDestinationInfo(destMeta);
-          Task destTask = destinationVertex.getTask(destTaskIndex);
-          TezTaskID destTaskId = destTask.getTaskId();
-          sendEventToTask(destTaskId, tezEvent);
-        }        
-        break;
       case INPUT_FAILED_EVENT:
-        InputFailedEvent ifEvent = (InputFailedEvent) tezEvent.getEvent();
-        TezTaskAttemptID ifSourceAttemptId = tezEvent.getSourceInfo().getTaskAttemptID();
-        int ifSourceTaskIndex = ifSourceAttemptId.getTaskID().getId();
-        edgeManager.routeEventToDestinationTasks(ifEvent, ifSourceTaskIndex,
-            destinationVertex.getTotalTasks(), destTaskIndices);
+        isDataMovementEvent = false;
+      case DATA_MOVEMENT_EVENT:
+        Event event = tezEvent.getEvent();
+        TezTaskAttemptID sourceAttemptId = tezEvent.getSourceInfo().getTaskAttemptID();
+        int sourceTaskIndex = sourceAttemptId.getTaskID().getId();
+        if (isDataMovementEvent) {
+          edgeManager.routeEventToDestinationTasks((DataMovementEvent) event,
+              sourceTaskIndex, destinationVertex.getTotalTasks(),
+              destTaskIndices);
+        } else {
+          edgeManager.routeEventToDestinationTasks((InputFailedEvent) event,
+              sourceTaskIndex, destinationVertex.getTotalTasks(),
+              destTaskIndices);
+        }
         for(Integer destTaskIndex : destTaskIndices) {
           EventMetaData destMeta = new EventMetaData(EventProducerConsumerType.INPUT, 
               destinationVertex.getName(), 
               sourceVertex.getName(), 
               null); // will be filled by Task when sending the event. Is it needed?
-          destMeta.setIndex(ifEvent.getTargetIndex());
+          if (isDataMovementEvent) {
+            destMeta.setIndex(((DataMovementEvent)event).getTargetIndex());
+          } else {
+            destMeta.setIndex(((InputFailedEvent)event).getTargetIndex());
+          }
           tezEvent.setDestinationInfo(destMeta);
           TezTaskID destTaskId = destinationVertex.getTask(destTaskIndex).getTaskId();
           sendEventToTask(destTaskId, tezEvent);
         }        
+        break;
       default:
         throw new TezUncheckedException("Unhandled tez event type: "
             + tezEvent.getEventType());
