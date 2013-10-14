@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.library.input;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -68,7 +69,7 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   }
 
   @Override
-  public void handleEvents(List<Event> inputEvents) {
+  public void handleEvents(List<Event> inputEvents) throws IOException {
     shuffleManager.handleEvents(inputEvents);
   }
 

@@ -80,7 +80,7 @@ public class OutputSpec implements Writable {
 
   public String toString() {
     return "{ destinationVertexName=" + destinationVertexName
-        + ", physicalEdgeCount" + physicalEdgeCount
+        + ", physicalEdgeCount=" + physicalEdgeCount
         + ", outputClassName=" + outputDescriptor.getClassName()
         + " }";
   }

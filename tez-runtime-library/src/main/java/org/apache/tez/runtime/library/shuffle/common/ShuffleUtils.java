@@ -19,16 +19,25 @@
 package org.apache.tez.runtime.library.shuffle.common;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 import javax.crypto.SecretKey;
 
+import org.apache.commons.logging.Log;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.io.compress.CodecPool;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.runtime.library.common.security.JobTokenIdentifier;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
+import org.apache.tez.runtime.library.common.sort.impl.IFileInputStream;
 
 public class ShuffleUtils {
 
@@ -61,6 +70,78 @@ public class ShuffleUtils {
       return port;
     } finally {
       in.close();
+    }
+  }
+  
+  @SuppressWarnings("resource")
+  public static void shuffleToMemory(Configuration conf,
+      MemoryFetchedInput fetchedInput, InputStream input,
+      int decompressedLength, int compressedLength,
+      CompressionCodec codec, Log LOG) throws IOException {
+    IFileInputStream checksumIn = new IFileInputStream(input, compressedLength,
+        conf);
+
+    input = checksumIn;
+
+    // Are map-outputs compressed?
+    if (codec != null) {
+      Decompressor decompressor = CodecPool.getDecompressor(codec);
+      decompressor.reset();
+      input = codec.createInputStream(input, decompressor);
+    }
+    // Copy map-output into an in-memory buffer
+    byte[] shuffleData = fetchedInput.getBytes();
+
+    try {
+      IOUtils.readFully(input, shuffleData, 0, shuffleData.length);
+      // metrics.inputBytes(shuffleData.length);
+      LOG.info("Read " + shuffleData.length + " bytes from input for "
+          + fetchedInput.getInputAttemptIdentifier());
+    } catch (IOException ioe) {
+      // Close the streams
+      IOUtils.cleanup(LOG, input);
+      // Re-throw
+      throw ioe;
+    }
+  }
+  
+  public static void shuffleToDisk(DiskFetchedInput fetchedInput,
+      InputStream input, long compressedLength, Log LOG)
+      throws IOException {
+    // Copy data to local-disk
+    OutputStream output = fetchedInput.getOutputStream();
+    long bytesLeft = compressedLength;
+    try {
+      final int BYTES_TO_READ = 64 * 1024;
+      byte[] buf = new byte[BYTES_TO_READ];
+      while (bytesLeft > 0) {
+        int n = input.read(buf, 0, (int) Math.min(bytesLeft, BYTES_TO_READ));
+        if (n < 0) {
+          throw new IOException("read past end of stream reading "
+              + fetchedInput.getInputAttemptIdentifier());
+        }
+        output.write(buf, 0, n);
+        bytesLeft -= n;
+        // metrics.inputBytes(n);
+      }
+
+      LOG.info("Read " + (compressedLength - bytesLeft)
+          + " bytes from input for " + fetchedInput.getInputAttemptIdentifier());
+
+      output.close();
+    } catch (IOException ioe) {
+      // Close the streams
+      IOUtils.cleanup(LOG, input, output);
+
+      // Re-throw
+      throw ioe;
+    }
+
+    // Sanity check
+    if (bytesLeft != 0) {
+      throw new IOException("Incomplete input received for "
+          + fetchedInput.getInputAttemptIdentifier() + " ("
+          + bytesLeft + " bytes missing of " + compressedLength + ")");
     }
   }
   

@@ -307,4 +307,10 @@ public class TezJobConfig {
    */
   public static final String DAG_CREDENTIALS_BINARY =  "tez.dag.credentials.binary";
   
+  public static final String TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED = "tez.runtime.broadcast.data-via-events.enabled";
+  public static final boolean TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED_DEFAULT = false;
+  
+  public static final String TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_MAX_SIZE = "tez.runtime.broadcast.data-via-events.max-size";
+  public static final int TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_MAX_SIZE_DEFAULT = 200 << 10;// 200KB
+  
 }

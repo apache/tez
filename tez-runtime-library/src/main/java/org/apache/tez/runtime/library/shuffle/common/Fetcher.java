@@ -20,8 +20,6 @@ package org.apache.tez.runtime.library.shuffle.common;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -45,14 +43,12 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleHeader;
-import org.apache.tez.runtime.library.common.sort.impl.IFileInputStream;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
 
 import com.google.common.base.Preconditions;
@@ -70,7 +66,6 @@ public class Fetcher implements Callable<FetchResult> {
 
   // Configurable fields.
   private CompressionCodec codec;
-  private Decompressor decompressor;
   private int connectionTimeout;
   private int readTimeout;
 
@@ -264,10 +259,12 @@ public class Fetcher implements Callable<FetchResult> {
           + fetchedInput.getType());
 
       if (fetchedInput.getType() == Type.MEMORY) {
-        shuffleToMemory((MemoryFetchedInput) fetchedInput, input,
-            (int) decompressedLength, (int) compressedLength);
+        ShuffleUtils.shuffleToMemory(conf, (MemoryFetchedInput) fetchedInput,
+            input, (int) decompressedLength, (int) compressedLength, codec,
+            LOG);
       } else {
-        shuffleToDisk((DiskFetchedInput) fetchedInput, input, compressedLength);
+        ShuffleUtils.shuffleToDisk((DiskFetchedInput) fetchedInput, input,
+            compressedLength, LOG);
       }
 
       // Inform the shuffle scheduler
@@ -302,75 +299,6 @@ public class Fetcher implements Callable<FetchResult> {
       }
       // metrics.failedFetch();
       return new InputAttemptIdentifier[] { srcAttemptId };
-    }
-  }
-
-  @SuppressWarnings("resource")
-  private void shuffleToMemory(MemoryFetchedInput fetchedInput,
-      InputStream input, int decompressedLength, int compressedLength)
-      throws IOException {
-    IFileInputStream checksumIn = new IFileInputStream(input, compressedLength,
-        conf);
-
-    input = checksumIn;
-
-    // Are map-outputs compressed?
-    if (codec != null) {
-      decompressor.reset();
-      input = codec.createInputStream(input, decompressor);
-    }
-    // Copy map-output into an in-memory buffer
-    byte[] shuffleData = fetchedInput.getBytes();
-
-    try {
-      IOUtils.readFully(input, shuffleData, 0, shuffleData.length);
-      // metrics.inputBytes(shuffleData.length);
-      LOG.info("Read " + shuffleData.length + " bytes from input for "
-          + fetchedInput.getInputAttemptIdentifier());
-    } catch (IOException ioe) {
-      // Close the streams
-      IOUtils.cleanup(LOG, input);
-      // Re-throw
-      throw ioe;
-    }
-  }
-
-  private void shuffleToDisk(DiskFetchedInput fetchedInput, InputStream input,
-      long compressedLength) throws IOException {
-    // Copy data to local-disk
-    OutputStream output = fetchedInput.getOutputStream();
-    long bytesLeft = compressedLength;
-    try {
-      final int BYTES_TO_READ = 64 * 1024;
-      byte[] buf = new byte[BYTES_TO_READ];
-      while (bytesLeft > 0) {
-        int n = input.read(buf, 0, (int) Math.min(bytesLeft, BYTES_TO_READ));
-        if (n < 0) {
-          throw new IOException("read past end of stream reading "
-              + fetchedInput.getInputAttemptIdentifier());
-        }
-        output.write(buf, 0, n);
-        bytesLeft -= n;
-        // metrics.inputBytes(n);
-      }
-
-      LOG.info("Read " + (compressedLength - bytesLeft)
-          + " bytes from input for " + fetchedInput.getInputAttemptIdentifier());
-
-      output.close();
-    } catch (IOException ioe) {
-      // Close the streams
-      IOUtils.cleanup(LOG, input, output);
-
-      // Re-throw
-      throw ioe;
-    }
-
-    // Sanity check
-    if (bytesLeft != 0) {
-      throw new IOException("Incomplete input received for "
-          + fetchedInput.getInputAttemptIdentifier() + " from " + host + " ("
-          + bytesLeft + " bytes missing of " + compressedLength + ")");
     }
   }
 
@@ -558,10 +486,8 @@ public class Fetcher implements Callable<FetchResult> {
           shuffleSecret, conf);
     }
 
-    public FetcherBuilder setCompressionParameters(CompressionCodec codec,
-        Decompressor decompressor) {
+    public FetcherBuilder setCompressionParameters(CompressionCodec codec) {
       fetcher.codec = codec;
-      fetcher.decompressor = decompressor;
       return this;
     }
 

@@ -26,7 +26,14 @@ message DataMovementEventPayloadProto {
   optional int32 port = 3;
   optional string path_component = 4;
   optional int32 run_duration = 5;
+  optional DataProto data = 6;
 } 
+
+message DataProto {
+  optional int32 raw_length = 1;
+  optional int32 compressed_length = 2;
+  optional bytes data = 3;
+}
 
 message InputInformationEventPayloadProto {
   optional int32 partition_range = 1;

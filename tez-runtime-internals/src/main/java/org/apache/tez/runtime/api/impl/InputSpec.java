@@ -80,7 +80,7 @@ public class InputSpec implements Writable {
 
   public String toString() {
     return "{ sourceVertexName=" + sourceVertexName
-        + ", physicalEdgeCount" + physicalEdgeCount
+        + ", physicalEdgeCount=" + physicalEdgeCount
         + ", inputClassName=" + inputDescriptor.getClassName()
         + " }";
   }

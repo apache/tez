@@ -42,9 +42,7 @@ import javax.crypto.SecretKey;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
@@ -114,7 +112,6 @@ public class BroadcastShuffleManager implements FetcherCallback {
   private final int connectionTimeout;
   private final int readTimeout;
   private final CompressionCodec codec;
-  private final Decompressor decompressor;
   
   private final FetchFutureCallback fetchFutureCallback = new FetchFutureCallback();
   
@@ -126,9 +123,17 @@ public class BroadcastShuffleManager implements FetcherCallback {
     this.inputContext = inputContext;
     this.conf = conf;
     this.numInputs = numInputs;
-    
-    this.inputEventHandler = new BroadcastShuffleInputEventHandler(inputContext, this);
+
+    if (ConfigUtils.isIntermediateInputCompressed(conf)) {
+      Class<? extends CompressionCodec> codecClass = ConfigUtils
+          .getIntermediateInputCompressorClass(conf, DefaultCodec.class);
+      codec = ReflectionUtils.newInstance(codecClass, conf);
+    } else {
+      codec = null;
+    }
+
     this.inputManager = new BroadcastInputManager(inputContext.getUniqueIdentifier(), conf);
+    this.inputEventHandler = new BroadcastShuffleInputEventHandler(inputContext, this.conf, this, this.inputManager, codec);
 
     completedInputSet = Collections.newSetFromMap(new ConcurrentHashMap<InputIdentifier, Boolean>(numInputs));
     completedInputs = new LinkedBlockingQueue<FetchedInput>(numInputs);
@@ -175,17 +180,9 @@ public class BroadcastShuffleManager implements FetcherCallback {
         TezJobConfig.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT,
         TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT);
     
-    if (ConfigUtils.isIntermediateInputCompressed(conf)) {
-      Class<? extends CompressionCodec> codecClass = ConfigUtils
-          .getIntermediateInputCompressorClass(conf, DefaultCodec.class);
-      codec = ReflectionUtils.newInstance(codecClass, conf);
-      decompressor = CodecPool.getDecompressor(codec);
-    } else {
-      codec = null;
-      decompressor = null;
-    }
+    
     LOG.info("BroadcastShuffleManager -> numInputs: " + numInputs
-        + " compressionCodec: " + (codec == null ? null : codec.getClass()
+        + " compressionCodec: " + (codec == null ? "NoCompressionCodec" : codec.getClass()
         .getName()) + ", numFetchers: " + numFetchers);
   }
   
@@ -204,16 +201,19 @@ public class BroadcastShuffleManager implements FetcherCallback {
     public Void call() throws Exception {
       while (numCompletedInputs.get() < numInputs) {
         lock.lock();
-        if (numRunningFetchers.get() >= numFetchers || pendingHosts.size() == 0) {
-          try {
-            wakeLoop.await();
-          } finally {
-            lock.unlock();
+        try {
+          if (numRunningFetchers.get() >= numFetchers || pendingHosts.size() == 0) {
+            if (numCompletedInputs.get() < numInputs) {
+              wakeLoop.await();
+            }
           }
+        } finally {
+          lock.unlock();
         }
+
         if (shuffleError != null) {
-          // InputContext has already been informed of a fatal error.
-          // Initiate shutdown.
+          // InputContext has already been informed of a fatal error. Relying on
+          // tez to kill the task.
           break;
         }
 
@@ -266,7 +266,9 @@ public class BroadcastShuffleManager implements FetcherCallback {
         BroadcastShuffleManager.this, inputManager,
         inputContext.getApplicationId(), shuffleSecret, conf);
     fetcherBuilder.setConnectionParameters(connectionTimeout, readTimeout);
-    fetcherBuilder.setCompressionParameters(codec, decompressor);
+    if (codec != null) {
+      fetcherBuilder.setCompressionParameters(codec);
+    }
 
     // Remove obsolete inputs from the list being given to the fetcher. Also
     // remove from the obsolete list.
@@ -332,9 +334,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
     if (!completedInputSet.contains(inputIdentifier)) {
       synchronized (completedInputSet) {
         if (!completedInputSet.contains(inputIdentifier)) {
-          completedInputSet.add(inputIdentifier);
-          completedInputs.add(new NullFetchedInput(srcAttemptIdentifier));
-          numCompletedInputs.incrementAndGet();
+          registerCompletedInput(new NullFetchedInput(srcAttemptIdentifier));
         }
       }
     }
@@ -348,13 +348,52 @@ public class BroadcastShuffleManager implements FetcherCallback {
     }
   }
 
+  public void addCompletedInputWithData(
+      InputAttemptIdentifier srcAttemptIdentifier, FetchedInput fetchedInput)
+      throws IOException {
+    InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
+
+    LOG.info("Received Data via Event: " + srcAttemptIdentifier + " to "
+        + fetchedInput.getType());
+    // Count irrespective of whether this is a copy of an already fetched input
+    lock.lock();
+    try {
+      lastProgressTime = System.currentTimeMillis();
+    } finally {
+      lock.unlock();
+    }
+
+    boolean committed = false;
+    if (!completedInputSet.contains(inputIdentifier)) {
+      synchronized (completedInputSet) {
+        if (!completedInputSet.contains(inputIdentifier)) {
+          fetchedInput.commit();
+          committed = true;
+          registerCompletedInput(fetchedInput);
+        }
+      }
+    }
+    if (!committed) {
+      fetchedInput.abort(); // If this fails, the fetcher may attempt another
+                            // abort.
+    } else {
+      lock.lock();
+      try {
+        // Signal the wakeLoop to check for termination.
+        wakeLoop.signal();
+      } finally {
+        lock.unlock();
+      }
+    }
+  }
+
   public synchronized void obsoleteKnownInput(InputAttemptIdentifier srcAttemptIdentifier) {
     obsoletedInputs.add(srcAttemptIdentifier);
     // TODO NEWTEZ Maybe inform the fetcher about this. For now, this is used during the initial fetch list construction.
   }
   
   
-  public void handleEvents(List<Event> events) {
+  public void handleEvents(List<Event> events) throws IOException {
     inputEventHandler.handleEvents(events);
   }
 
@@ -383,9 +422,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
         if (!completedInputSet.contains(inputIdentifier)) {
           fetchedInput.commit();
           committed = true;
-          completedInputSet.add(inputIdentifier);
-          completedInputs.add(fetchedInput);
-          numCompletedInputs.incrementAndGet();
+          registerCompletedInput(fetchedInput);
         }
       }
     }
@@ -434,6 +471,17 @@ public class BroadcastShuffleManager implements FetcherCallback {
     }
   }
   
+  private void registerCompletedInput(FetchedInput fetchedInput) {
+    lock.lock();
+    try {
+      completedInputSet.add(fetchedInput.getInputAttemptIdentifier().getInputIdentifier());
+      completedInputs.add(fetchedInput);
+      numCompletedInputs.incrementAndGet();
+    } finally {
+      lock.unlock();
+    }
+  }
+  
   /////////////////// Methods for walking the available inputs
   
   /**
@@ -452,7 +500,12 @@ public class BroadcastShuffleManager implements FetcherCallback {
    * @return true if all of the required inputs have been fetched.
    */
   public boolean allInputsFetched() {
-    return numCompletedInputs.get() == numInputs;
+    lock.lock();
+    try {
+      return numCompletedInputs.get() == numInputs;
+    } finally {
+      lock.unlock();
+    }
   }
 
   /**
@@ -463,20 +516,20 @@ public class BroadcastShuffleManager implements FetcherCallback {
   public FetchedInput getNextInput() throws InterruptedException {
     FetchedInput input = null;
     do {
-      input = completedInputs.peek();
-      if (input == null) {
-        if (allInputsFetched()) {
+      // Check for no additional inputs
+      lock.lock();
+      try {
+        input = completedInputs.peek();
+        if (input == null && allInputsFetched()) {
           break;
-        } else {
-          input = completedInputs.take(); // block
         }
-      } else {
-        input = completedInputs.poll();
+      } finally {
+        lock.unlock();
       }
+      input = completedInputs.take(); // block
     } while (input instanceof NullFetchedInput);
     return input;
   }
-
   /////////////////// End of methods for walking the available inputs
   
   

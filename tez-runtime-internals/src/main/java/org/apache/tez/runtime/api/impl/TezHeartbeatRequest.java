@@ -130,7 +130,7 @@ public class TezHeartbeatRequest implements Writable {
         + ", requestId=" + requestId
         + ", startIndex=" + startIndex
         + ", maxEventsToGet=" + maxEvents
-        + ", taskAttemptId" + currentTaskAttemptID
+        + ", taskAttemptId=" + currentTaskAttemptID
         + ", eventCount=" + (events != null ? events.size() : 0)
         + " }";
   }

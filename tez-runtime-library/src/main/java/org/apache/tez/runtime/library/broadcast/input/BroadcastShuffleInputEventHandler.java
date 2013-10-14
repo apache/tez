@@ -19,39 +19,55 @@
 
 package org.apache.tez.runtime.library.broadcast.input;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.shuffle.common.DiskFetchedInput;
+import org.apache.tez.runtime.library.shuffle.common.FetchedInput;
+import org.apache.tez.runtime.library.shuffle.common.FetchedInputAllocator;
+import org.apache.tez.runtime.library.shuffle.common.MemoryFetchedInput;
+import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataProto;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.TextFormat;
 
 public class BroadcastShuffleInputEventHandler {
 
   private static final Log LOG = LogFactory.getLog(BroadcastShuffleInputEventHandler.class);
   
+  private final Configuration conf;
   private final BroadcastShuffleManager shuffleManager;
+  private final FetchedInputAllocator inputAllocator;
+  private final CompressionCodec codec;
   
-  public BroadcastShuffleInputEventHandler(TezInputContext inputContext, BroadcastShuffleManager shuffleManager) {
+  public BroadcastShuffleInputEventHandler(TezInputContext inputContext, Configuration conf,
+      BroadcastShuffleManager shuffleManager,
+      FetchedInputAllocator inputAllocator, CompressionCodec codec) {
+    this.conf = conf;
     this.shuffleManager = shuffleManager;
+    this.inputAllocator = inputAllocator;
+    this.codec = codec;
   }
 
-  public void handleEvents(List<Event> events) {
+  public void handleEvents(List<Event> events) throws IOException {
     for (Event event : events) {
       handleEvent(event);
     }
   }
   
-  private void handleEvent(Event event) {
+  private void handleEvent(Event event) throws IOException {
     if (event instanceof DataMovementEvent) {
       processDataMovementEvent((DataMovementEvent)event);
     } else if (event instanceof InputFailedEvent) {
@@ -62,7 +78,7 @@ public class BroadcastShuffleInputEventHandler {
   }
   
   
-  private void processDataMovementEvent(DataMovementEvent dme) {
+  private void processDataMovementEvent(DataMovementEvent dme) throws IOException {
     Preconditions.checkArgument(dme.getSourceIndex() == 0,
         "Unexpected srcIndex: " + dme.getSourceIndex()
             + " on DataMovementEvent. Can only be 0");
@@ -75,18 +91,58 @@ public class BroadcastShuffleInputEventHandler {
     LOG.info("Processing DataMovementEvent with srcIndex: "
         + dme.getSourceIndex() + ", targetIndex: " + dme.getTargetIndex()
         + ", attemptNum: " + dme.getVersion() + ", payload: "
-        + TextFormat.shortDebugString(shufflePayload));
+        + stringify(shufflePayload));
     if (shufflePayload.getOutputGenerated()) {
-      InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dme.getTargetIndex(), dme.getVersion(), shufflePayload.getPathComponent());
-      shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(), srcAttemptIdentifier, 0);
+      InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(
+          dme.getTargetIndex(), dme.getVersion(),
+          shufflePayload.getPathComponent());
+      if (shufflePayload.hasData()) {
+        DataProto dataProto = shufflePayload.getData();
+        FetchedInput fetchedInput = inputAllocator.allocate(dataProto.getRawLength(), srcAttemptIdentifier);
+        moveDataToFetchedInput(dataProto, fetchedInput);
+        shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);
+      } else {
+        shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(), srcAttemptIdentifier, 0);
+      }
     } else {
       shuffleManager.addCompletedInputWithNoData(new InputAttemptIdentifier(dme.getTargetIndex(), dme.getVersion()));
+    }
+  }
+  
+  private void moveDataToFetchedInput(DataProto dataProto,
+      FetchedInput fetchedInput) throws IOException {
+    switch (fetchedInput.getType()) {
+    case DISK:
+      ShuffleUtils.shuffleToDisk((DiskFetchedInput) fetchedInput, dataProto
+          .getData().newInput(), dataProto.getCompressedLength(), LOG);
+      break;
+    case MEMORY:
+      ShuffleUtils.shuffleToMemory(conf, (MemoryFetchedInput) fetchedInput,
+          dataProto.getData().newInput(), dataProto.getRawLength(),
+          dataProto.getCompressedLength(), codec, LOG);
+      break;
+    case WAIT:
+    default:
+      throw new TezUncheckedException("Unexpected type: "
+          + fetchedInput.getType());
     }
   }
   
   private void processInputFailedEvent(InputFailedEvent ife) {
     InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(ife.getTargetIndex(), ife.getVersion());
     shuffleManager.obsoleteKnownInput(srcAttemptIdentifier);
+  }
+  
+  private String stringify(DataMovementEventPayloadProto dmProto) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    sb.append("outputGenerated: " + dmProto.getOutputGenerated()).append(", ");
+    sb.append("host: " + dmProto.getHost()).append(", ");
+    sb.append("port: " + dmProto.getPort()).append(", ");
+    sb.append("pathComponent: " + dmProto.getPathComponent()).append(", ");
+    sb.append("runDuration: " + dmProto.getRunDuration()).append(", ");
+    sb.append("hasData: " + dmProto.hasData());
+    return sb.toString();
   }
 }
 
