@@ -299,7 +299,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     if (!(processor instanceof LogicalIOProcessor)) {
       throw new TezUncheckedException(processor.getClass().getName()
           + " is not a sub-type of LogicalIOProcessor."
-          + " Only LogicalOutput sub-types supported by LogicalIOProcessor.");
+          + " Only LogicalIOProcessor sub-types supported by LogicalIOProcessorRuntimeTask.");
     }
     return (LogicalIOProcessor) processor;
   }
