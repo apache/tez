@@ -227,6 +227,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.INITIALIZING, VertexState.INITIALIZING,
               VertexEventType.V_SOURCE_VERTEX_STARTED,
               new SourceVertexStartedTransition())
+          .addTransition(VertexState.INITIALIZING,  VertexState.INITIALIZING,
+              VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
+              SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
           .addTransition(VertexState.INITIALIZING, VertexState.INITIALIZING,
               VertexEventType.V_ROUTE_EVENT,
               new RouteEventsWhileInitializingTransition())
@@ -242,6 +245,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.INITED, VertexState.INITED,
               VertexEventType.V_SOURCE_VERTEX_STARTED,
               new SourceVertexStartedTransition())
+          .addTransition(VertexState.INITIALIZING,  VertexState.INITIALIZING,
+              VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
+              SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
           .addTransition(VertexState.INITED, VertexState.RUNNING,
               VertexEventType.V_START,
               new StartTransition())
@@ -1483,7 +1489,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   /**
-   * Here, the Vertex is being told that one of his source task-attempts
+   * Here, the Vertex is being told that one of it's source task-attempts
    * completed.
    */
   private static class SourceTaskAttemptCompletedEventTransition implements
