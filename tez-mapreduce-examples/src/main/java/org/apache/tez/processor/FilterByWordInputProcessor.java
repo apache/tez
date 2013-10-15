@@ -93,6 +93,7 @@ public class FilterByWordInputProcessor implements LogicalIOProcessor {
 
     
     
+    
     MRInput mrInput = (MRInput) li;
     OnFileUnorderedKVOutput kvOutput = (OnFileUnorderedKVOutput) lo;
 

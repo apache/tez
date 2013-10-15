@@ -52,7 +52,27 @@ public class MRInputLegacy extends MRInput {
   
   @LimitedPrivate("hive")
   public void init() throws IOException {
+    checkAndAwaitRecordReaderInitialization();
+  }
+  
+  @Override
+  void processSplitEvent(RootInputDataInformationEvent event) {
     eventLock.lock();
+    try {
+      initEvent = event;
+      // Don't process event, but signal in case init is waiting on the event.
+      eventCondition.signal();
+    } finally {
+      eventLock.unlock();
+    }
+  }
+
+  @Override
+  void checkAndAwaitRecordReaderInitialization() throws IOException {
+    eventLock.lock();
+    if (inited) {
+      return;
+    }
     try {
       if (splitInfoViaEvents && !inited) {
         if (initEvent == null) {
@@ -69,18 +89,6 @@ public class MRInputLegacy extends MRInput {
         // Already inited
         return;
       }
-    } finally {
-      eventLock.unlock();
-    }
-  }
-
-  @Override
-  void processSplitEvent(RootInputDataInformationEvent event) {
-    eventLock.lock();
-    try {
-      initEvent = event;
-      // Don't process event, but signal in case init is waiting on the event.
-      eventCondition.signal();
     } finally {
       eventLock.unlock();
     }

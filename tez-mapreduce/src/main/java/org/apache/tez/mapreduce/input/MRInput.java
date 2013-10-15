@@ -25,7 +25,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -80,7 +79,7 @@ public class MRInput implements LogicalInput {
   private static final Log LOG = LogFactory.getLog(MRInput.class);
   
   private final Lock rrLock = new ReentrantLock();
-  Condition rrInited = rrLock.newCondition();
+  private Condition rrInited = rrLock.newCondition();
   private TezInputContext inputContext;
   
   private volatile boolean eventReceived = false;
@@ -235,12 +234,7 @@ public class MRInput implements LogicalInput {
     rrLock.lock();
     try {
       if (newRecordReader == null && oldRecordReader == null)
-        try {
-          LOG.info("Awaiting RecordReader initialization");
-          rrInited.await();
-        } catch (Exception e) {
-          throw new IOException("Interrupted waiting for RecordReader initiailization");
-        }
+        checkAndAwaitRecordReaderInitialization();
     } finally {
       rrLock.unlock();
     }
@@ -326,6 +320,16 @@ public class MRInput implements LogicalInput {
       rrInited.signal();
     } finally {
       rrLock.unlock();
+    }
+  }
+  
+  void checkAndAwaitRecordReaderInitialization() throws IOException {
+    try {
+      LOG.info("Awaiting RecordReader initialization");
+      rrInited.await();
+    } catch (Exception e) {
+      throw new IOException(
+          "Interrupted waiting for RecordReader initiailization");
     }
   }
 
