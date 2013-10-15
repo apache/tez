@@ -18,7 +18,6 @@
 
 package org.apache.tez.mapreduce;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,12 +29,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
-import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
@@ -46,9 +43,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
@@ -100,29 +95,10 @@ public class TestMRRJobsDAGApi {
   protected static MiniDFSCluster dfsCluster;
 
   private static Configuration conf = new Configuration();
-  private static FileSystem localFs;
   private static FileSystem remoteFs;
-  static {
-    try {
-      localFs = FileSystem.getLocal(conf);
-    } catch (IOException io) {
-      throw new RuntimeException("problem getting local fs", io);
-    }
-  }
 
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestMRRJobsDAGApi.class.getName() + "-tmpDir";
-
-  private static String TEST_ROOT_DIR_HDFS = "/tmp" + Path.SEPARATOR
-      + TestMRRJobsDAGApi.class.getSimpleName();
-
-  private static Path TEST_ROOT_DIR_PATH = localFs.makeQualified(new Path(
-      TEST_ROOT_DIR));
-  static Path APP_JAR = new Path(TEST_ROOT_DIR_PATH, "MRAppJar.jar");
-  static Path YARN_SITE_XML = new Path(TEST_ROOT_DIR_PATH, "yarn-site.xml");
-
-  static Path APP_JAR_HDFS = new Path(TEST_ROOT_DIR_HDFS, "MRAppJar.jar");
-  static Path YARN_SITE_XML_HDFS = new Path(TEST_ROOT_DIR_HDFS, "yarn-site.xml");
 
   @BeforeClass
   public static void setup() throws IOException {
@@ -131,42 +107,19 @@ public class TestMRRJobsDAGApi {
       dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(2)
           .format(true).racks(null).build();
       remoteFs = dfsCluster.getFileSystem();
-      APP_JAR_HDFS = remoteFs.makeQualified(APP_JAR_HDFS);
-      YARN_SITE_XML_HDFS = remoteFs.makeQualified(YARN_SITE_XML_HDFS);
     } catch (IOException io) {
       throw new RuntimeException("problem starting mini dfs cluster", io);
     }
-
-    if (!(new File(MiniMRRTezCluster.APPJAR)).exists()) {
-      LOG.info("MRAppJar " + MiniMRRTezCluster.APPJAR
-          + " not found. Not running test.");
-      return;
-    }
-
+    
     if (mrrTezCluster == null) {
       mrrTezCluster = new MiniMRRTezCluster(TestMRRJobsDAGApi.class.getName(),
           1, 1, 1);
       Configuration conf = new Configuration();
       conf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
-      conf.set(MRJobConfig.MR_AM_STAGING_DIR, "/apps_staging_dir");
-      conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
       mrrTezCluster.init(conf);
       mrrTezCluster.start();
     }
 
-    LOG.info("APP_JAR: " + APP_JAR);
-    LOG.info("APP_JAR_HDFS: " + APP_JAR_HDFS);
-    LOG.info("YARN_SITE_XML: " + YARN_SITE_XML);
-    LOG.info("YARN_SITE_XML_HDFS: " + YARN_SITE_XML_HDFS);
-
-    localFs.copyFromLocalFile(new Path(MiniMRRTezCluster.APPJAR), APP_JAR);
-    localFs.setPermission(APP_JAR, new FsPermission("700"));
-    localFs.copyFromLocalFile(mrrTezCluster.getConfigFilePath(), YARN_SITE_XML);
-
-    remoteFs
-        .copyFromLocalFile(new Path(MiniMRRTezCluster.APPJAR), APP_JAR_HDFS);
-    remoteFs.copyFromLocalFile(mrrTezCluster.getConfigFilePath(),
-        YARN_SITE_XML_HDFS);
   }
 
   @AfterClass
@@ -226,19 +179,9 @@ public class TestMRRJobsDAGApi {
         mrrTezCluster.getConfig());
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         remoteStagingDir.toString());
-    LocalResource appJarLr = createLocalResource(remoteFs,
-        remoteFs.makeQualified(APP_JAR_HDFS), LocalResourceType.FILE,
-        LocalResourceVisibility.APPLICATION);
-    LocalResource yarnSiteLr = createLocalResource(remoteFs,
-        remoteFs.makeQualified(YARN_SITE_XML_HDFS), LocalResourceType.FILE,
-        LocalResourceVisibility.APPLICATION);
-    Map<String, LocalResource> commonLocalResources = new HashMap<String, LocalResource>();
-    commonLocalResources.put(APP_JAR.getName(), appJarLr);
 
     Map<String, LocalResource> amLocalResources =
         new HashMap<String, LocalResource>();
-    amLocalResources.put("yarn-site.xml", yarnSiteLr);
-    amLocalResources.putAll(commonLocalResources);
 
     AMConfiguration amConfig = new AMConfiguration(
         "default", commonEnv, amLocalResources,
@@ -326,9 +269,6 @@ public class TestMRRJobsDAGApi {
 
   private Map<String, String> createCommonEnv() {
     Map<String, String> commonEnv = new HashMap<String, String>();
-    Apps.addToEnvironment(commonEnv, Environment.CLASSPATH.name(), ".");
-    Apps.addToEnvironment(commonEnv, Environment.CLASSPATH.name(),
-        System.getProperty("java.class.path"));
     return commonEnv;
   }
 
@@ -341,12 +281,6 @@ public class TestMRRJobsDAGApi {
       InterruptedException, TezException, ClassNotFoundException,
       YarnException {
     LOG.info("\n\n\nStarting testMRRSleepJobDagSubmit().");
-
-    if (!(new File(MiniMRRTezCluster.APPJAR)).exists()) {
-      LOG.info("MRAppJar " + MiniMRRTezCluster.APPJAR
-          + " not found. Not running test.");
-      return State.ERROR;
-    }
 
     JobConf stage1Conf = new JobConf(mrrTezCluster.getConfig());
     JobConf stage2Conf = new JobConf(mrrTezCluster.getConfig());
@@ -434,16 +368,7 @@ public class TestMRRJobsDAGApi {
         1, Resource.newInstance(256, 1));
     MRHelpers.addMROutput(stage3Vertex, stage3Payload);
 
-    LocalResource appJarLr = createLocalResource(remoteFs,
-        remoteFs.makeQualified(APP_JAR_HDFS), LocalResourceType.FILE,
-        LocalResourceVisibility.APPLICATION);
-    LocalResource yarnSiteLr = createLocalResource(remoteFs,
-        remoteFs.makeQualified(YARN_SITE_XML_HDFS), LocalResourceType.FILE,
-        LocalResourceVisibility.APPLICATION);
-
     Map<String, LocalResource> commonLocalResources = new HashMap<String, LocalResource>();
-    commonLocalResources.put(APP_JAR.getName(), appJarLr);
-
     Map<String, String> commonEnv = createCommonEnv();
 
     if (!genSplitsInAM) {
@@ -498,7 +423,6 @@ public class TestMRRJobsDAGApi {
 
     Map<String, LocalResource> amLocalResources =
         new HashMap<String, LocalResource>();
-    amLocalResources.put("yarn-site.xml", yarnSiteLr);
     amLocalResources.putAll(commonLocalResources);
 
     TezConfiguration tezConf = new TezConfiguration(

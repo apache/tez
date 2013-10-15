@@ -30,7 +30,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
-import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.mapreduce.Job;
@@ -53,25 +52,11 @@ public class TestMRRJobs {
   protected static MiniDFSCluster dfsCluster;
 
   private static Configuration conf = new Configuration();
-  private static FileSystem localFs;
   private static FileSystem remoteFs;
-  static {
-    try {
-      localFs = FileSystem.getLocal(conf);
-    } catch (IOException io) {
-      throw new RuntimeException("problem getting local fs", io);
-    }
-  }
 
   private static String TEST_ROOT_DIR = "target"
       + Path.SEPARATOR + TestMRRJobs.class.getName() + "-tmpDir";
 
-  private static Path TEST_ROOT_DIR_PATH =
-      localFs.makeQualified(new Path(TEST_ROOT_DIR));
-  static Path APP_JAR = new Path(TEST_ROOT_DIR_PATH, "MRAppJar.jar");
-  static Path YARN_SITE_XML = new Path(TEST_ROOT_DIR_PATH, "yarn-site.xml");
-  static Path APP_JAR_HDFS = new Path("/tmp/localResources/MRAppJar.jar");
-  static Path YARN_SITE_XML_HDFS = new Path("/tmp/localResources/yarn-site.xml");
   private static final String OUTPUT_ROOT_DIR = "/tmp" + Path.SEPARATOR +
       TestMRRJobs.class.getSimpleName();
 
@@ -83,8 +68,6 @@ public class TestMRRJobs {
       dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(2)
         .format(true).racks(null).build();
       remoteFs = dfsCluster.getFileSystem();
-      APP_JAR_HDFS = remoteFs.makeQualified(APP_JAR_HDFS);
-      YARN_SITE_XML_HDFS = remoteFs.makeQualified(YARN_SITE_XML_HDFS);
     } catch (IOException io) {
       throw new RuntimeException("problem starting mini dfs cluster", io);
     }
@@ -106,17 +89,6 @@ public class TestMRRJobs {
       mrrTezCluster.start();
     }
 
-    LOG.info("APP_JAR: " + APP_JAR);
-    LOG.info("APP_JAR_HDFS: " + APP_JAR_HDFS);
-    LOG.info("YARN_SITE_XML: " + YARN_SITE_XML);
-    LOG.info("YARN_SITE_XML_HDFS: " + YARN_SITE_XML_HDFS);
-
-    localFs.copyFromLocalFile(new Path(MiniMRRTezCluster.APPJAR), APP_JAR);
-    localFs.setPermission(APP_JAR, new FsPermission("700"));
-    localFs.copyFromLocalFile(mrrTezCluster.getConfigFilePath(), YARN_SITE_XML);
-
-    remoteFs.copyFromLocalFile(new Path(MiniMRRTezCluster.APPJAR), APP_JAR_HDFS);
-    remoteFs.copyFromLocalFile(mrrTezCluster.getConfigFilePath(), YARN_SITE_XML_HDFS);
   }
 
   @AfterClass
@@ -150,8 +122,6 @@ public class TestMRRJobs {
     Job job = sleepJob.createJob(1, 1, 1, 1, 1,
         1, 1, 1, 1, 1);
 
-    job.addFileToClassPath(APP_JAR); // The AppMaster jar itself.
-    job.addFileToClassPath(YARN_SITE_XML);
     job.setJarByClass(MRRSleepJob.class);
     job.setMaxMapAttempts(1); // speed up failures
     job.submit();
@@ -187,8 +157,6 @@ public class TestMRRJobs {
     Path outputDir = new Path(OUTPUT_ROOT_DIR, "random-output");
     FileOutputFormat.setOutputPath(job, outputDir);
     job.setSpeculativeExecution(false);
-    job.addFileToClassPath(APP_JAR); // The AppMaster jar itself.
-    job.addFileToClassPath(YARN_SITE_XML);
     job.setJarByClass(RandomTextWriterJob.class);
     job.setMaxMapAttempts(1); // speed up failures
     job.submit();
@@ -239,8 +207,6 @@ public class TestMRRJobs {
     Job job = sleepJob.createJob(1, 1, 1, 1, 1,
         1, 1, 1, 1, 1);
 
-    job.addFileToClassPath(APP_JAR); // The AppMaster jar itself.
-    job.addFileToClassPath(YARN_SITE_XML);
     job.setJarByClass(MRRSleepJob.class);
     job.setMaxMapAttempts(1); // speed up failures
     job.getConfiguration().setBoolean(MRRSleepJob.MAP_FATAL_ERROR, true);
@@ -275,8 +241,6 @@ public class TestMRRJobs {
     Job job = sleepJob.createJob(1, 1, 1, 1, 1,
         1, 1, 1, 1, 1);
 
-    job.addFileToClassPath(APP_JAR); // The AppMaster jar itself.
-    job.addFileToClassPath(YARN_SITE_XML);
     job.setJarByClass(MRRSleepJob.class);
     job.setMaxMapAttempts(3); // speed up failures
     job.getConfiguration().setBoolean(MRRSleepJob.MAP_THROW_ERROR, true);
@@ -310,8 +274,6 @@ public class TestMRRJobs {
     Job job = sleepJob.createJob(1, 1, 2, 1, 1,
         1, 1, 1, 1, 1);
 
-    job.addFileToClassPath(APP_JAR); // The AppMaster jar itself.
-    job.addFileToClassPath(YARN_SITE_XML);
     job.setJarByClass(MRRSleepJob.class);
     job.setMaxMapAttempts(1); // speed up failures
 

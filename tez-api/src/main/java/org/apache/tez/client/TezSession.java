@@ -140,6 +140,20 @@ public class TezSession {
         + ", sessionName=" + sessionName
         + ", applicationId=" + applicationId);
 
+    // setup env
+    Map<String, String> environment = TezClientUtils
+        .createEnvironment(sessionConfig.getYarnConfiguration());
+    for (Vertex v : dag.getVertices()) {
+      Map<String, String> taskEnv = v.getTaskEnvironment();
+      for (Map.Entry<String, String> entry : environment.entrySet()) {
+        String key = entry.getKey();
+        String value = entry.getValue();
+        if (!taskEnv.containsKey(key)) {
+          taskEnv.put(key, value);
+        }
+      }
+    }
+    
     DAGPlan dagPlan = dag.createDag(sessionConfig.getTezConfiguration());
     SubmitDAGRequestProto requestProto =
         SubmitDAGRequestProto.newBuilder().setDAGPlan(dagPlan).build();

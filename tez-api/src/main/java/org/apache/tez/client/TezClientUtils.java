@@ -104,9 +104,6 @@ public class TezClientUtils {
       throws IOException {
     Map<String, LocalResource> tezJarResources =
         new TreeMap<String, LocalResource>();
-    if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
-      return tezJarResources;
-    }
 
     // Add tez jars to local resource
     String[] tezJarUris = conf.getStrings(
@@ -277,37 +274,14 @@ public class TezClientUtils {
     }
     vargsFinal.add(mergedCommand.toString());
 
-    LOG.debug("Command to launch container for ApplicationMaster is : "
-        + mergedCommand);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Command to launch container for ApplicationMaster is : "
+          + mergedCommand);
+    }
 
     // Setup the CLASSPATH in environment
     // i.e. add { Hadoop jars, job jar, CWD } to classpath.
-    Map<String, String> environment = new HashMap<String, String>();
-
-    boolean isMiniCluster =
-        conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false);
-    if (isMiniCluster) {
-      Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-          System.getProperty("java.class.path"));
-    }
-
-    Apps.addToEnvironment(environment,
-        Environment.CLASSPATH.name(),
-        Environment.PWD.$());
-
-    Apps.addToEnvironment(environment,
-        Environment.CLASSPATH.name(),
-        Environment.PWD.$() + File.separator + "*");
-
-    // Add YARN/COMMON/HDFS jars to path
-    if (!isMiniCluster) {
-      for (String c : conf.getStrings(
-          YarnConfiguration.YARN_APPLICATION_CLASSPATH,
-          YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
-        Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-            c.trim());
-      }
-    }
+    Map<String, String> environment = createEnvironment(conf);
 
     if (amConfig.getEnv() != null) {
       for (Map.Entry<String, String> entry : amConfig.getEnv().entrySet()) {
@@ -393,6 +367,14 @@ public class TezClientUtils {
         v.getTaskLocalResources().putAll(tezJarResources);
         v.getTaskLocalResources().put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
             binaryConfLRsrc);
+        Map<String, String> taskEnv = v.getTaskEnvironment();
+        for (Map.Entry<String, String> entry : environment.entrySet()) {
+          String key = entry.getKey();
+          String value = entry.getValue();
+          if (!taskEnv.containsKey(key)) {
+            taskEnv.put(key, value);
+          }
+        }
       }
 
       // emit protobuf DAG file style
@@ -455,6 +437,27 @@ public class TezClientUtils {
 
     return appContext;
 
+  }
+  
+  static Map<String, String> createEnvironment(Configuration conf) {
+    Map<String, String> environment = new HashMap<String, String>();
+
+    Apps.addToEnvironment(environment,
+        Environment.CLASSPATH.name(),
+        Environment.PWD.$());
+
+    Apps.addToEnvironment(environment,
+        Environment.CLASSPATH.name(),
+        Environment.PWD.$() + File.separator + "*");
+
+    // Add YARN/COMMON/HDFS jars and conf locations to path
+    for (String c : conf.getStrings(
+        YarnConfiguration.YARN_APPLICATION_CLASSPATH,
+        YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
+      Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
+          c.trim());
+    }
+    return environment;
   }
 
   @VisibleForTesting

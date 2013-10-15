@@ -742,34 +742,6 @@ public class MRHelpers {
    */
   public static void updateEnvironmentForMRTasks(Configuration conf,
       Map<String, String> environment, boolean isMap) {
-
-    boolean isMiniCluster =
-        conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false);
-    if (isMiniCluster) {
-      Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-          System.getProperty("java.class.path"));
-    }
-
-    // TEZ jars and deps will be localized by the TezClient submission layer
-    // Assumption is that MR is also in TEZ dependencies
-    Apps.addToEnvironment(environment,
-        Environment.CLASSPATH.name(),
-        Environment.PWD.$());
-
-    // Add YARN/COMMON/HDFS jars to path
-    if (!isMiniCluster) {
-      for (String c : conf.getStrings(
-          YarnConfiguration.YARN_APPLICATION_CLASSPATH,
-          YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
-        Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-            c.trim());
-      }
-    }
-
-    Apps.addToEnvironment(environment,
-        Environment.CLASSPATH.name(),
-        Environment.PWD.$() + File.separator + "*");
-
     // Shell
     environment.put(Environment.SHELL.name(), conf.get(
         MRJobConfig.MAPRED_ADMIN_USER_SHELL, MRJobConfig.DEFAULT_SHELL));

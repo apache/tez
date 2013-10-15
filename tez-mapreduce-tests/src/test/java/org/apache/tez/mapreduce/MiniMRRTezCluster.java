@@ -36,6 +36,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.MiniYARNCluster;
 import org.apache.hadoop.yarn.server.nodemanager.ContainerExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.DefaultContainerExecutor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
@@ -75,6 +76,23 @@ public class MiniMRRTezCluster extends MiniYARNCluster {
     if (conf.get(MRJobConfig.MR_AM_STAGING_DIR) == null) {
       conf.set(MRJobConfig.MR_AM_STAGING_DIR, new File(getTestWorkDir(),
           "apps_staging_dir" + Path.SEPARATOR).getAbsolutePath());
+    }
+    
+    if (conf.get(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC) == null) {
+      // nothing defined. set quick delete value
+      conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
+    }
+
+    File appJarFile = new File(MiniMRRTezCluster.APPJAR);
+
+    if (!appJarFile.exists()) {
+      String message = "TezAppJar " + MiniMRRTezCluster.APPJAR
+          + " not found. Exiting.";
+      LOG.info(message);
+      throw new TezUncheckedException(message);
+    } else {
+      conf.set(TezConfiguration.TEZ_LIB_URIS, "file://" + appJarFile.getAbsolutePath());
+      LOG.info("Set TEZ-LIB-URI to: " + conf.get(TezConfiguration.TEZ_LIB_URIS));
     }
 
     // VMEM monitoring disabled, PMEM monitoring enabled.
@@ -141,6 +159,10 @@ public class MiniMRRTezCluster extends MiniYARNCluster {
       throw new RuntimeException(e);
     }
     confFilePath = new Path(confFile.getAbsolutePath());
+    conf.setStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
+        workDir.getAbsolutePath(), System.getProperty("java.class.path"));
+    LOG.info("Setting yarn-site.xml via YARN-APP-CP at: "
+        + conf.get(YarnConfiguration.YARN_APPLICATION_CLASSPATH));
   }
 
   public Path getConfigFilePath() {
