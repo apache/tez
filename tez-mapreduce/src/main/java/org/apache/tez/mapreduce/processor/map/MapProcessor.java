@@ -106,6 +106,7 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
           "Only Simple Input supported. Input: " + in.getClass()));
     }
     MRInputLegacy input = (MRInputLegacy)in;
+    input.init();
     Configuration incrementalConf = input.getConfigUpdates();
     if (incrementalConf != null) {
       for (Entry<String, String> entry : incrementalConf) {
