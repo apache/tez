@@ -51,6 +51,7 @@ import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -115,13 +116,13 @@ public class YarnTezDagChild {
   private static Thread startHeartbeatThread() {
     Thread heartbeatThread = new Thread(new Runnable() {
       public void run() {
-        while (!stopped.get() && !Thread.currentThread().isInterrupted()
-            && !heartbeatError.get()) {
+        while (!(stopped.get() || heartbeatError.get())) {
           try {
             Thread.sleep(amPollInterval);
             try {
               if(!heartbeat()) {
-                return;
+                // AM asked us to die
+                break;
               }
             } catch (InvalidToken e) {
               // FIXME NEWTEZ maybe send a container failed event to AM?
@@ -129,26 +130,37 @@ public class YarnTezDagChild {
               LOG.error("Heartbeat error in authenticating with AM: ", e);
               heartbeatErrorException = e;
               heartbeatError.set(true);
-              return;
+              break;
             } catch (Throwable e) {
               // FIXME NEWTEZ maybe send a container failed event to AM?
               // Irrecoverable error unless heartbeat sync can be re-established
               LOG.error("Heartbeat error in communicating with AM. ", e);
               heartbeatErrorException = e;
               heartbeatError.set(true);
-              return;
+              break;
             }
           } catch (InterruptedException e) {
-            if (!stopped.get()) {
-              LOG.warn("Heartbeat thread interrupted. Returning.");
-            }
-            return;
+            // we were interrupted so that we will stop.
+            LOG.info("Heartbeat thread interrupted. " +
+            " stopped: " + stopped.get() +  " error: " + heartbeatError.get());
+            continue; 
+          }
+        }
+        
+        if (!stopped.get()) {
+          // if we are not stopping because the main thread told us to do so,
+          // then bring down the entire process
+          if (heartbeatErrorException != null) {
+            ExitUtil.terminate(-1, heartbeatErrorException);
+          } else {
+            ExitUtil.terminate(-1, "Exiting Tez Child Process");
           }
         }
       }
     });
     heartbeatThread.setName("Tez Container Heartbeat Thread ["
         + containerIdStr + "]");
+    heartbeatThread.setDaemon(true);
     heartbeatThread.start();
     return heartbeatThread;
   }
@@ -313,7 +325,7 @@ public class YarnTezDagChild {
       }
     });
 
-    Thread heartbeatThread = startHeartbeatThread();
+    final Thread heartbeatThread = startHeartbeatThread();
 
     TezUmbilical tezUmbilical = new TezUmbilical() {
       @Override
@@ -335,8 +347,9 @@ public class YarnTezDagChild {
               + " umbilical", t);
           // FIXME NEWTEZ maybe send a container failed event to AM?
           // Irrecoverable error unless heartbeat sync can be re-established
-          heartbeatError.set(true);
           heartbeatErrorException = t;
+          heartbeatError.set(true);
+          heartbeatThread.interrupt();
         }
       }
 
