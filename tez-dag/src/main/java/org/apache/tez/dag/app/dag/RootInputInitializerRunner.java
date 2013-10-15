@@ -63,7 +63,7 @@ public class RootInputInitializerRunner {
     this.vertexID = vertexID;
     this.eventHandler = eventHandler;
     this.rawExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-        .setDaemon(true).setNameFormat("InputInitializer #%d").build());
+        .setDaemon(true).setNameFormat("InputInitializer [" + this.vertexName + "] #%d").build());
     this.executor = MoreExecutors.listeningDecorator(rawExecutor);
   }
 

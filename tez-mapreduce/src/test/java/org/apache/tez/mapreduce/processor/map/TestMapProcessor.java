@@ -137,7 +137,7 @@ public class TestMapProcessor {
     task.run();
     task.close();
     
-    TezInputContext inputContext = task.getInputContexts().get(0);
+    TezInputContext inputContext = task.getInputContexts().iterator().next();
     TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles(jobConf, inputContext.getUniqueIdentifier());
     
     
