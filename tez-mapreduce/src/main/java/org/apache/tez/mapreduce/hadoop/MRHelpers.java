@@ -19,7 +19,6 @@
 package org.apache.tez.mapreduce.hadoop;
 
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;

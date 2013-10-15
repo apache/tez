@@ -41,6 +41,12 @@
       <groupId>org.apache.tez</groupId>
       <artifactId>tez-api</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.xerial.snappy</groupId>
+      <artifactId>snappy-java</artifactId>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
 
   <build>
