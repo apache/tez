@@ -336,7 +336,6 @@ public class TestMRHelpers {
   private void testCommonEnvSettingsForMRTasks(Map<String, String> env) {
     Assert.assertTrue(env.containsKey("foo"));
     Assert.assertTrue(env.containsKey("bar"));
-    Assert.assertTrue(env.containsKey(Environment.CLASSPATH.name()));
     Assert.assertTrue(env.containsKey(Environment.LD_LIBRARY_PATH.name()));
     Assert.assertTrue(env.containsKey(Environment.SHELL.name()));
     Assert.assertTrue(env.containsKey("HADOOP_ROOT_LOGGER"));

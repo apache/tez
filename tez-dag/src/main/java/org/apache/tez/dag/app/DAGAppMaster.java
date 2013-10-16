@@ -21,6 +21,7 @@ package org.apache.tez.dag.app;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.Credentials;
@@ -65,25 +67,21 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.VertexStatus;
@@ -123,9 +121,7 @@ import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.history.events.AMStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
-import org.apache.tez.runtime.library.processor.SleepProcessor;
 
 /**
  * The Map-Reduce Application Master.
@@ -1146,102 +1142,40 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  private boolean runPreWarmContainersDAG() {
-    int numContainers = amConf.getInt(
-      TezConfiguration.TEZ_SESSION_PRE_WARM_NUM_CONTAINERS, 0);
-    if (numContainers == 0) {
-      LOG.info("Not pre-warming containers as "
-        + TezConfiguration.TEZ_SESSION_PRE_WARM_NUM_CONTAINERS
-        + " not specified or set to 0");
-      return false;
+  private boolean runPreWarmContainersDAG() throws Exception {
+
+    InputStream dagPBBinaryStream = null;
+    try {
+      DAGPlan preWarmDAGPlan = null;
+      String preWarmDAGPlanPathStr =
+        amConf.get(TezConfiguration.TEZ_PRE_WARM_PB_PLAN_BINARY_PATH);
+      if (preWarmDAGPlanPathStr == null
+            || preWarmDAGPlanPathStr.isEmpty()) {
+        LOG.info("No path to pre-warm DAG plan specified");
+        return false;
+      }
+
+      LOG.info("Trying to run pre-warm DAG plan from specified path: "
+          + preWarmDAGPlanPathStr);
+
+      FileSystem fs = FileSystem.get(amConf);
+      Path preWarmDAGPlanPath = new Path(preWarmDAGPlanPathStr);
+      if (!fs.exists(preWarmDAGPlanPath)) {
+        LOG.info("Could not find pre-warm DAG plan file, path="
+          + preWarmDAGPlanPathStr);
+        return false;
+      }
+
+      // Read the protobuf-based pre-warm DAG plan
+      dagPBBinaryStream = fs.open(preWarmDAGPlanPath);
+      preWarmDAGPlan = DAGPlan.parseFrom(dagPBBinaryStream);
+      startDAG(preWarmDAGPlan);
+
+    } finally {
+      if (dagPBBinaryStream != null) {
+        dagPBBinaryStream.close();
+      }
     }
-    if ((null == amConf.get(
-        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB))
-      || (null == amConf.get(
-        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES))) {
-      LOG.info("Not pre-warming containers as container resource"
-        + " requirements not specified"
-        + ", "
-        + TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB
-        + "=" + amConf.get(
-        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB)
-        + ", "
-        + TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES
-        + "=" + amConf.get(
-        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES));
-      return false;
-    }
-
-    Resource containerResource = Resource.newInstance(
-      amConf.getInt(
-        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB,
-        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB_DEFAULT),
-      amConf.getInt(
-        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES,
-        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES_DEFAULT));
-
-    ProcessorDescriptor processorDescriptor = null;
-
-    if (amConf.get(TezConfiguration.TEZ_SESSION_PRE_WARM_PROCESSOR_NAME) != null) {
-      processorDescriptor = new ProcessorDescriptor(amConf.get(
-        TezConfiguration.TEZ_SESSION_PRE_WARM_PROCESSOR_NAME));
-    } else {
-      processorDescriptor = new ProcessorDescriptor(
-        SleepProcessor.class.getName());
-    }
-
-    // Create a DAG using SleepProcessor to launch the required containers.
-    org.apache.tez.dag.api.DAG preWarmContainersDAG =
-      new org.apache.tez.dag.api.DAG("PreWarmContainersDAG");
-    Vertex sleepVertex = new Vertex("PreWarmSleepVertex",
-      processorDescriptor, numContainers, containerResource);
-
-    Map<String, String> environment = new HashMap<String, String>();
-    if (null != amConf.get(
-      TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_ENVIRONMENT)) {
-    Apps.setEnvFromInputString(environment,
-      amConf.get(
-        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_ENVIRONMENT));
-    }
-
-    Apps.addToEnvironment(environment,
-      Environment.CLASSPATH.name(),
-      Environment.PWD.$());
-
-    Apps.addToEnvironment(environment,
-      Environment.CLASSPATH.name(),
-      Environment.PWD.$() + File.separator + "*");
-
-    // Add YARN/COMMON/HDFS jars to path
-    for (String c : amConf.getStrings(
-        YarnConfiguration.YARN_APPLICATION_CLASSPATH,
-        YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
-      Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-        c.trim());
-    }
-
-    sleepVertex.setTaskEnvironment(environment);
-
-    List<String> javaOpts = new ArrayList<String>(4);
-    MRHelpers.addLog4jSystemProperties("INFO", javaOpts);
-    if (null != amConf.get(
-      TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_JAVA_OPTS)) {
-      javaOpts.add(amConf.get(
-        TezConfiguration.TEZ_SESSION_PRE_WARM_CONTAINER_JAVA_OPTS));
-    }
-    StringBuilder sb = new StringBuilder();
-    for (String s : javaOpts) {
-      sb.append(s).append(" ");
-    }
-    sleepVertex.setJavaOpts(sb.toString());
-
-    preWarmContainersDAG.addVertex(sleepVertex);
-
-    LOG.info("Starting DAG to pre-warm containers for AM using "
-      + SleepProcessor.class.getName()
-      + ", numContainers=" + numContainers
-      + ", containerResource=" + containerResource);
-    startDAG(preWarmContainersDAG.createDag(amConf));
     return true;
   }
 
@@ -1325,6 +1259,10 @@ public class DAGAppMaster extends AbstractService {
         + ", lastDAGCompletionTime=" + lastDAGCompletionTime + " ms"
         + ", sessionTimeoutInterval=" + sessionTimeoutInterval + " ms");
     shutdownTezAM();
+  }
+
+  public boolean isSession() {
+    return isSession;
   }
 
   public static void main(String[] args) {

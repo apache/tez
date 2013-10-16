@@ -110,7 +110,7 @@ public class TestTaskImpl {
     conf = new Configuration();
     taskAttemptListener = mock(TaskAttemptListener.class);
     taskHeartbeatHandler = mock(TaskHeartbeatHandler.class);
-    credentials = null;
+    credentials = new Credentials();
     clock = new SystemClock();
     locationHint = new TaskLocationHint(null, null);
 

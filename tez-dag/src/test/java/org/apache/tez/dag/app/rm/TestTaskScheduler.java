@@ -55,7 +55,6 @@ import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceRequest;
-import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
@@ -66,6 +65,7 @@ import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback.AppFinalStatus;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerAppCallbackDrainable;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerWithDrainableAppCallback;
+import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AlwaysMatchesContainerMatcher;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -84,14 +84,14 @@ public class TestTaskScheduler {
     RackResolver.init(new YarnConfiguration());
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
-    AMRMClientAsync<CookieContainerRequest> mockRMClient =
-                                                  mock(AMRMClientAsync.class);
+    TezAMRMClientAsync<CookieContainerRequest> mockRMClient =
+                                                  mock(TezAMRMClientAsync.class);
 
     String appHost = "host";
     int appPort = 0;
     String appUrl = "url";
     TaskSchedulerWithDrainableAppCallback scheduler = new TaskSchedulerWithDrainableAppCallback(
-        mockApp, appHost, appPort, appUrl, mockRMClient);
+        mockApp, new AlwaysMatchesContainerMatcher(), appHost, appPort, appUrl, mockRMClient);
     TaskSchedulerAppCallbackDrainable drainableAppCallback = scheduler
         .getDrainableAppCallback();
 
@@ -370,14 +370,14 @@ public class TestTaskScheduler {
     RackResolver.init(new YarnConfiguration());
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
-    AMRMClientAsync<CookieContainerRequest> mockRMClient =
-                                                  mock(AMRMClientAsync.class);
+    TezAMRMClientAsync<CookieContainerRequest> mockRMClient =
+                                                  mock(TezAMRMClientAsync.class);
 
     String appHost = "host";
     int appPort = 0;
     String appUrl = "url";
     TaskSchedulerWithDrainableAppCallback scheduler = new TaskSchedulerWithDrainableAppCallback(
-        mockApp, appHost, appPort, appUrl, mockRMClient);
+        mockApp, new AlwaysMatchesContainerMatcher(), appHost, appPort, appUrl, mockRMClient);
     TaskSchedulerAppCallbackDrainable drainableAppCallback = scheduler
         .getDrainableAppCallback();
 
@@ -555,9 +555,9 @@ public class TestTaskScheduler {
 
     RackResolver.init(new Configuration());
     TaskSchedulerAppCallback appClient = mock(TaskSchedulerAppCallback.class);
-    AMRMClientAsync<CookieContainerRequest> amrmClient = mock(AMRMClientAsync.class);
+    TezAMRMClientAsync<CookieContainerRequest> amrmClient = mock(TezAMRMClientAsync.class);
     TaskSchedulerWithDrainableAppCallback taskScheduler = new TaskSchedulerWithDrainableAppCallback(
-        appClient, "host", 0, "", amrmClient);
+        appClient, new AlwaysMatchesContainerMatcher(), "host", 0, "", amrmClient);
     TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler
         .getDrainableAppCallback();
     

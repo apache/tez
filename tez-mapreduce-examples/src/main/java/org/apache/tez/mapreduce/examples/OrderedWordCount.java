@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.TreeMap;
 
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
@@ -338,29 +337,12 @@ public class OrderedWordCount {
     tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
         MRHelpers.getMRAMJavaOpts(conf));
 
-    String jarPath = ClassUtil.findContainingJar(OrderedWordCount.class);
-    if (jarPath == null)  {
-        throw new TezUncheckedException("Could not find any jar containing"
-            + " OrderedWordCount.class in the classpath");
-    }
-    Path remoteJarPath = fs.makeQualified(
-        new Path(stagingDir, "dag_job.jar"));
-    fs.copyFromLocalFile(new Path(jarPath), remoteJarPath);
-    FileStatus jarFileStatus = fs.getFileStatus(remoteJarPath);
-
-    Map<String, LocalResource> commonLocalResources =
-        new TreeMap<String, LocalResource>();
-    LocalResource dagJarLocalRsrc = LocalResource.newInstance(
-        ConverterUtils.getYarnUrlFromPath(remoteJarPath),
-        LocalResourceType.FILE,
-        LocalResourceVisibility.APPLICATION,
-        jarFileStatus.getLen(),
-        jarFileStatus.getModificationTime());
-    commonLocalResources.put("dag_job.jar", dagJarLocalRsrc);
+    // No need to add jar containing this class as assumed to be part of
+    // the tez jars.
 
     TezSession tezSession = null;
     AMConfiguration amConfig = new AMConfiguration("default", null,
-        commonLocalResources, tezConf, null);
+        null, tezConf, null);
     if (useTezSession) {
       LOG.info("Creating Tez Session");
       TezSessionConfiguration sessionConfig =
@@ -398,7 +380,7 @@ public class OrderedWordCount {
             + ", inputPath=" + inputPath
             + ", outputPath=" + outputPath);
 
-        DAG dag = createDAG(fs, conf, commonLocalResources, stagingDir,
+        DAG dag = createDAG(fs, conf, null, stagingDir,
             dagIndex, inputPath, outputPath, generateSplitsInClient);
 
         DAGClient dagClient;

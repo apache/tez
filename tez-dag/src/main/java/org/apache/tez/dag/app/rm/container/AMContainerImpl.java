@@ -289,7 +289,8 @@ public class AMContainerImpl implements AMContainer {
       }
       if (oldState != getState()) {
         LOG.info("AMContainer " + this.containerId + " transitioned from "
-            + oldState + " to " + getState());
+            + oldState + " to " + getState()
+            + " via event " + event.getType());
       }
     } finally {
       writeLock.unlock();

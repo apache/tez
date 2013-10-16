@@ -42,7 +42,8 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   public AMSchedulerEventTALaunchRequest(TezTaskAttemptID attemptId,
       Resource capability,
       TaskSpec remoteTaskSpec, TaskAttempt ta,
-      String[] hosts, String[] racks, Priority priority, ContainerContext containerContext) {
+      String[] hosts, String[] racks, Priority priority,
+      ContainerContext containerContext) {
     super(AMSchedulerEventType.S_TA_LAUNCH_REQUEST);
     this.attemptId = attemptId;
     this.capability = capability;

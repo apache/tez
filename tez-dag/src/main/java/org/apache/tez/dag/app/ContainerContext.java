@@ -18,20 +18,33 @@
 package org.apache.tez.dag.app;
 
 import java.util.Map;
+import java.util.Map.Entry;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 
+import com.google.common.base.Preconditions;
+
 public class ContainerContext {
+
+  private static final Log LOG = LogFactory.getLog(ContainerContext.class);
 
   private final Map<String, LocalResource> localResources;
   private final Credentials credentials;
   private final Map<String, String> environment;
   private final String javaOpts;
 
-  public ContainerContext(
-      Map<String, LocalResource> localResources, Credentials credentials,
-      Map<String, String> environment, String javaOpts) {
+  // FIXME Add support for service meta data comparisons
+
+  public ContainerContext(Map<String, LocalResource> localResources,
+      Credentials credentials, Map<String, String> environment, String javaOpts) {
+    Preconditions.checkNotNull(localResources,
+        "localResources should not be null");
+    Preconditions.checkNotNull(credentials, "credentials should not be null");
+    Preconditions.checkNotNull(environment, "environment should not be null");
+    Preconditions.checkNotNull(javaOpts, "javaOpts should not be null");
     this.localResources = localResources;
     this.credentials = credentials;
     this.environment = environment;
@@ -41,16 +54,72 @@ public class ContainerContext {
   public Map<String, LocalResource> getLocalResources() {
     return this.localResources;
   }
-  
+
   public Credentials getCredentials() {
     return this.credentials;
   }
-  
+
   public Map<String, String> getEnvironment() {
     return this.environment;
   }
-  
+
   public String getJavaOpts() {
     return this.javaOpts;
+  }
+
+  /**
+   * @return true if this ContainerContext is a super-set of the specified
+   *         container context.
+   */
+  public boolean isSuperSet(ContainerContext otherContext) {
+    // Assumptions:
+    // Credentials are the same for all containers belonging to a DAG.
+    // Matching can be added if containers are used across DAGs
+
+    // Match javaOpts
+    if (!this.javaOpts.equals(otherContext.javaOpts)) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Incompatible java opts, "
+          + ", this=" + this.javaOpts
+          + ", other=" + otherContext.javaOpts);
+      }
+      return false;
+    }
+
+    return
+      (isSuperSet(this.environment, otherContext.getEnvironment(),
+        "Environment")
+      && isSuperSet(this.localResources, otherContext.getLocalResources(),
+        "LocalResources"));
+  }
+
+  private static <K, V> boolean isSuperSet(Map<K, V> srcMap, Map<K, V> matchMap,
+      String matchInfo) {
+    for (Entry<K, V> oEntry : matchMap.entrySet()) {
+      K oKey = oEntry.getKey();
+      V oVal = oEntry.getValue();
+      if (srcMap.containsKey(oKey)) {
+        if (!oVal.equals(srcMap.get(oKey))) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Incompatible container context"
+              + ", matchInfo=" + matchInfo
+              + ", thisKey=" + oKey
+              + ", thisVal=" + srcMap.get(oKey)
+              + ", otherVal=" + oVal);
+          }
+          return false;
+        }
+      } else {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Incompatible container context"
+            + ", matchInfo=" + matchInfo
+            + ", thisKey=" + oKey
+            + ", thisVal=null"
+            + ", otherVal=" + oVal);
+        }
+        return false;
+      }
+    }
+    return true;
   }
 }

@@ -19,7 +19,9 @@
 package org.apache.tez.runtime.common.objectregistry;
 
 import java.util.AbstractMap;
+
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -32,7 +34,7 @@ import com.google.inject.Singleton;
 public class ObjectRegistryImpl implements ObjectRegistry {
 
   private Map<String, Map.Entry<Object, ObjectLifeCycle>> objectCache =
-      new HashMap<String, Map.Entry<Object, ObjectLifeCycle>>();
+      new HashMap<String, Entry<Object, ObjectLifeCycle>>();
 
   @Override
   public synchronized Object add(ObjectLifeCycle lifeCycle,
@@ -57,10 +59,12 @@ public class ObjectRegistryImpl implements ObjectRegistry {
   }
 
   public synchronized void clearCache(ObjectLifeCycle lifeCycle) {
-    for (Entry<String, Entry<Object, ObjectLifeCycle>> entry :
-      objectCache.entrySet()) {
+    Iterator<Entry<String, Entry<Object, ObjectLifeCycle>>> it =
+      objectCache.entrySet().iterator();
+    while (it.hasNext()) {
+      Entry<String, Entry<Object, ObjectLifeCycle>> entry = it.next();
       if (entry.getValue().getValue().equals(lifeCycle)) {
-        objectCache.remove(entry.getKey());
+        it.remove();
       }
     }
   }

@@ -41,14 +41,15 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
-import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
-import org.apache.hadoop.yarn.client.api.async.impl.AMRMClientAsyncImpl;
 import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.rm.TaskScheduler.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.TaskScheduler.CookieContainerRequest;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
+
+import com.google.common.base.Preconditions;
 
 
 class TestTaskSchedulerHelpers {
@@ -68,7 +69,7 @@ class TestTaskSchedulerHelpers {
 
   // Mocking AMRMClientAsyncImpl to make use of getMatchingRequest
   static class AMRMClientAsyncForTest extends
-      AMRMClientAsyncImpl<CookieContainerRequest> {
+      TezAMRMClientAsync<CookieContainerRequest> {
 
     public AMRMClientAsyncForTest(
         AMRMClient<CookieContainerRequest> client,
@@ -105,20 +106,27 @@ class TestTaskSchedulerHelpers {
   }
 
   // Overrides start / stop. Will be controlled without the extra event handling thread.
-  static class TaskSchedulerEventHandlerForTest extends TaskSchedulerEventHandler {
+  static class TaskSchedulerEventHandlerForTest extends
+      TaskSchedulerEventHandler {
 
-    private AMRMClientAsync<CookieContainerRequest> amrmClientAsync;
+    private TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync;
+    private ContainerSignatureMatcher containerSignatureMatcher;
 
     @SuppressWarnings("rawtypes")
     public TaskSchedulerEventHandlerForTest(AppContext appContext,
-        EventHandler eventHandler, AMRMClientAsync<CookieContainerRequest> amrmClientAsync) {
+        EventHandler eventHandler,
+        TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync,
+        ContainerSignatureMatcher containerSignatureMatcher) {
       super(appContext, null, eventHandler);
       this.amrmClientAsync = amrmClientAsync;
+      this.containerSignatureMatcher = containerSignatureMatcher;
     }
 
     @Override
-    public TaskScheduler createTaskScheduler(String host, int port, String trackingUrl) {
-      return new TaskSchedulerWithDrainableAppCallback(this, host, port, trackingUrl, amrmClientAsync);
+    public TaskScheduler createTaskScheduler(String host, int port,
+        String trackingUrl) {
+      return new TaskSchedulerWithDrainableAppCallback(this,
+          containerSignatureMatcher, host, port, trackingUrl, amrmClientAsync);
     }
 
     public TaskScheduler getSpyTaskScheduler() {
@@ -168,22 +176,26 @@ class TestTaskSchedulerHelpers {
       fail("Expected Event: " + eventClass.getName() + " not sent");
     }
   }
-  
+
   static class TaskSchedulerWithDrainableAppCallback extends TaskScheduler {
 
     private TaskSchedulerAppCallbackDrainable drainableAppCallback;
 
     public TaskSchedulerWithDrainableAppCallback(
-        TaskSchedulerAppCallback appClient, String appHostName,
-        int appHostPort, String appTrackingUrl) {
-      super(appClient, appHostName, appHostPort, appTrackingUrl);
+        TaskSchedulerAppCallback appClient,
+        ContainerSignatureMatcher containerSignatureMatcher,
+        String appHostName, int appHostPort, String appTrackingUrl) {
+      super(appClient, containerSignatureMatcher, appHostName, appHostPort,
+          appTrackingUrl, false);
     }
 
     public TaskSchedulerWithDrainableAppCallback(
-        TaskSchedulerAppCallback appClient, String appHostName,
-        int appHostPort, String appTrackingUrl,
-        AMRMClientAsync<CookieContainerRequest> client) {
-      super(appClient, appHostName, appHostPort, appTrackingUrl, client);
+        TaskSchedulerAppCallback appClient,
+        ContainerSignatureMatcher containerSignatureMatcher,
+        String appHostName, int appHostPort, String appTrackingUrl,
+        TezAMRMClientAsync<CookieContainerRequest> client) {
+      super(appClient, containerSignatureMatcher, appHostName, appHostPort,
+          appTrackingUrl, client, false);
     }
 
     @Override
@@ -206,12 +218,12 @@ class TestTaskSchedulerHelpers {
     int invocations;
     private TaskSchedulerAppCallback real;
     private CompletionService completionService;
-    
+
     public TaskSchedulerAppCallbackDrainable(TaskSchedulerAppCallbackWrapper real) {
       completionService = real.completionService;
       this.real = real;
     }
-    
+
     @Override
     public void taskAllocated(Object task, Object appCookie, Container container) {
       invocations++;
@@ -267,7 +279,7 @@ class TestTaskSchedulerHelpers {
       invocations++;
       return real.getFinalAppStatus();
     }
-    
+
     public void drain() throws InterruptedException, ExecutionException {
       while (completedEvents < invocations) {
         Future f = completionService.poll(5000l, TimeUnit.MILLISECONDS);
@@ -276,9 +288,19 @@ class TestTaskSchedulerHelpers {
         } else {
           fail("Timed out while trying to drain queue");
         }
-        
+
       }
     }
   }
-  
+
+  static class AlwaysMatchesContainerMatcher implements ContainerSignatureMatcher {
+
+    @Override
+    public boolean isCompatible(Object cs1, Object cs2) {
+      Preconditions.checkNotNull(cs1, "Arguments cannot be null");
+      Preconditions.checkNotNull(cs2, "Arguments cannot be null");
+      return true;
+    }
+  }
+
 }

@@ -56,10 +56,8 @@ public class TezSession {
 
   private final String sessionName;
   private ApplicationId applicationId;
-  private LocalResource tezConfPBLRsrc = null;
   private final TezSessionConfiguration sessionConfig;
   private YarnClient yarnClient;
-  private Map<String, LocalResource> tezJarResources;
   private boolean sessionStarted = false;
   private boolean sessionStopped = false;
 
@@ -86,8 +84,9 @@ public class TezSession {
     yarnClient.init(sessionConfig.getYarnConfiguration());
     yarnClient.start();
 
-    tezJarResources = TezClientUtils.setupTezJarsLocalResources(
-        sessionConfig.getTezConfiguration());
+    Map<String, LocalResource> tezJarResources =
+        TezClientUtils.setupTezJarsLocalResources(
+          sessionConfig.getTezConfiguration());
 
     if (sessionConfig.getSessionResources() != null
       && !sessionConfig.getSessionResources().isEmpty()) {
@@ -107,8 +106,6 @@ public class TezSession {
               tezJarResources);
       // Set Tez Sessions to not retry on AM crashes
       appContext.setMaxAppAttempts(1);
-      tezConfPBLRsrc = appContext.getAMContainerSpec().getLocalResources().get(
-          TezConfiguration.TEZ_PB_BINARY_CONF_NAME);
       yarnClient.submitApplication(appContext);
     } catch (YarnException e) {
       throw new TezException(e);
@@ -135,7 +132,7 @@ public class TezSession {
       throw new TezUncheckedException("Session stopped");
     }
 
-    String dagId = null;
+    String dagId;
     LOG.info("Submitting dag to TezSession"
         + ", sessionName=" + sessionName
         + ", applicationId=" + applicationId);

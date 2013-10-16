@@ -162,7 +162,7 @@ public class TezConfiguration extends Configuration {
 
   public static final String TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX = TEZ_TASK_PREFIX
       + "get-task.sleep.interval-ms.max";
-  public static final int TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT = 500;
+  public static final int TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT = 200;
 
   public static final String TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS = TEZ_TASK_PREFIX
       + "am.heartbeat.interval-ms.max";
@@ -258,24 +258,7 @@ public class TezConfiguration extends Configuration {
     TEZ_SESSION_PRE_WARM_PREFIX + "enabled";
   public static final boolean TEZ_SESSION_PRE_WARM_ENABLED_DEFAULT = false;
 
-  public static final String TEZ_SESSION_PRE_WARM_NUM_CONTAINERS =
-    TEZ_SESSION_PRE_WARM_PREFIX + "num-containers";
-  public static final String TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB =
-    TEZ_SESSION_PRE_WARM_PREFIX + "container.resource.memory.mb";
-  public static final int
-    TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_MEMORY_MB_DEFAULT = 1024;
-
-  public static final String TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES =
-    TEZ_SESSION_PRE_WARM_PREFIX + "container.resource.vcores";
-  public static final int
-    TEZ_SESSION_PRE_WARM_CONTAINER_RESOURCE_VCORES_DEFAULT = 1;
-
-  public static final String TEZ_SESSION_PRE_WARM_CONTAINER_JAVA_OPTS =
-    TEZ_SESSION_PRE_WARM_PREFIX + "container.java.opts";
-  public static final String TEZ_SESSION_PRE_WARM_CONTAINER_ENVIRONMENT =
-    TEZ_SESSION_PRE_WARM_PREFIX + "container.environment";
-
-  public static final String TEZ_SESSION_PRE_WARM_PROCESSOR_NAME =
-    TEZ_SESSION_PRE_WARM_PREFIX + "processor";
+  public static final String TEZ_PRE_WARM_PB_PLAN_BINARY_PATH =
+      TEZ_SESSION_PRE_WARM_PREFIX + "dag-plan.pb.path";
 
 }

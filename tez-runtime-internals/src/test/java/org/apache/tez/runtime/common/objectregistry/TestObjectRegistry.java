@@ -37,10 +37,7 @@ public class TestObjectRegistry {
     Injector injector = Guice.createInjector(new ObjectRegistryModule());
   }
 
-  @Test
-  public void testBasicCRUD() {
-    ObjectRegistry objectRegistry =
-        ObjectRegistryFactory.getObjectRegistry();
+  private void testCRUD(ObjectRegistry objectRegistry) {
     Assert.assertNotNull(objectRegistry);
 
     Assert.assertNull(objectRegistry.get("foo"));
@@ -56,5 +53,33 @@ public class TestObjectRegistry {
     Assert.assertEquals(two_2, objectRegistry.get("two"));
     Assert.assertTrue(objectRegistry.delete("one"));
     Assert.assertFalse(objectRegistry.delete("one"));
+
+  }
+
+  @Test
+  public void testBasicCRUD() {
+    ObjectRegistry objectRegistry =
+        ObjectRegistryFactory.getObjectRegistry();
+    testCRUD(objectRegistry);
+  }
+
+  @Test
+  public void testClearCache() {
+    ObjectRegistry objectRegistry = new ObjectRegistryImpl();
+    testCRUD(objectRegistry);
+
+    String one = "one";
+    String two = "two";
+    objectRegistry.add(ObjectLifeCycle.VERTEX, one, one);
+    objectRegistry.add(ObjectLifeCycle.DAG, two, two);
+
+    ((ObjectRegistryImpl)objectRegistry).clearCache(ObjectLifeCycle.VERTEX);
+    Assert.assertNull(objectRegistry.get(one));
+    Assert.assertNotNull(objectRegistry.get(two));
+
+    objectRegistry.add(ObjectLifeCycle.VERTEX, one, one);
+    ((ObjectRegistryImpl)objectRegistry).clearCache(ObjectLifeCycle.DAG);
+    Assert.assertNotNull(objectRegistry.get(one));
+    Assert.assertNull(objectRegistry.get(two));
   }
 }

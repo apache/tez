@@ -46,6 +46,7 @@ import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
+import org.apache.tez.dag.app.rm.TaskScheduler.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.container.AMContainerEventAssignTA;
 import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
@@ -57,6 +58,8 @@ import org.apache.tez.dag.app.rm.node.AMNodeEventContainerAllocated;
 import org.apache.tez.dag.app.rm.node.AMNodeEventStateChanged;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptEnded;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptSucceeded;
+
+import com.google.common.annotations.VisibleForTesting;
 
 public class TaskSchedulerEventHandler extends AbstractService
                                          implements TaskSchedulerAppCallback,
@@ -307,14 +310,21 @@ public class TaskSchedulerEventHandler extends AbstractService
                                event.getHosts(),
                                event.getRacks(),
                                event.getPriority(),
-                               taskAttempt.getVertexID(),
+                               event.getContainerContext(),
                                event);
   }
 
 
   protected TaskScheduler createTaskScheduler(String host, int port,
+      String trackingUrl, boolean isSession) {
+    return new TaskScheduler(this, createContainerSignatureMatcher(),
+      host, port, trackingUrl, isSession);
+  }
+
+  protected TaskScheduler createTaskScheduler(String host, int port,
       String trackingUrl) {
-    return new TaskScheduler(this, host, port, trackingUrl);
+    return new TaskScheduler(this, createContainerSignatureMatcher(),
+      host, port, trackingUrl, false);
   }
 
   @Override
@@ -322,11 +332,11 @@ public class TaskSchedulerEventHandler extends AbstractService
     // FIXME hack alert how is this supposed to support multiple DAGs?
     // Answer: this is shared across dags. need job==app-dag-master
     InetSocketAddress serviceAddr = clientService.getBindAddress();
+    dagAppMaster = appContext.getAppMaster();
     taskScheduler = createTaskScheduler(serviceAddr.getHostName(),
-        serviceAddr.getPort(), "");
+        serviceAddr.getPort(), "", dagAppMaster.isSession());
     taskScheduler.init(getConfig());
     taskScheduler.start();
-    dagAppMaster = appContext.getAppMaster();
     this.eventHandlingThread = new Thread("TaskSchedulerEventHandlerThread") {
       @Override
       public void run() {
@@ -368,6 +378,11 @@ public class TaskSchedulerEventHandler extends AbstractService
     if (taskScheduler != null) {
       taskScheduler.stop();
     }
+  }
+
+  @VisibleForTesting
+  protected ContainerSignatureMatcher createContainerSignatureMatcher() {
+    return new ContainerContextMatcher();
   }
 
   // TaskSchedulerAppCallback methods

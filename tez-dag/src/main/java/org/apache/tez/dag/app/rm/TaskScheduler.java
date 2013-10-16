@@ -108,16 +108,20 @@ public class TaskScheduler extends AbstractService
     public AppFinalStatus getFinalAppStatus();
   }
 
-  /**
-   * Used as a default container resource if the user does not specify one.
-   * Effectively behaves as a universal matcher and avoids a bunch of null
-   * checks.
-   */
-  private final Object DEFAULT_CONTAINER_SIGNATURE = new Object();
-  
-  final AMRMClientAsync<CookieContainerRequest> amRmClient;
+  public interface ContainerSignatureMatcher {
+    /**
+     * Checks the compatibility between the specified container signatures.
+     *
+     * @return true if the first signature is a super set of the second
+     *         signature.
+     */
+    public boolean isCompatible(Object cs1, Object cs2);
+  }
+
+  final TezAMRMClientAsync<CookieContainerRequest> amRmClient;
   final TaskSchedulerAppCallback realAppClient;
   final TaskSchedulerAppCallback appClientDelegate;
+  final ContainerSignatureMatcher containerSignatureMatcher;
   ExecutorService appCallbackExecutor;
 
   // Container Re-Use configuration
@@ -148,6 +152,7 @@ public class TaskScheduler extends AbstractService
   final String appHostName;
   final int appHostPort;
   final String appTrackingUrl;
+  final boolean isSession;
 
   boolean isStopped = false;
 
@@ -167,11 +172,7 @@ public class TaskScheduler extends AbstractService
     CRCookie(Object task, Object appCookie, Object containerSignature) {
       this.task = task;
       this.appCookie = appCookie;
-      if (containerSignature != null) {
-        this.containerSignature = containerSignature;
-      } else {
-        this.containerSignature = DEFAULT_CONTAINER_SIGNATURE;
-      }
+      this.containerSignature = containerSignature;
     }
 
     Object getTask() {
@@ -189,8 +190,13 @@ public class TaskScheduler extends AbstractService
 
   class CookieContainerRequest extends ContainerRequest {
     CRCookie cookie;
-    public CookieContainerRequest(Resource capability, String[] hosts,
-        String[] racks, Priority priority, CRCookie cookie) {
+
+    public CookieContainerRequest(
+        Resource capability,
+        String[] hosts,
+        String[] racks,
+        Priority priority,
+        CRCookie cookie) {
       super(capability, hosts, racks, priority);
       this.cookie = cookie;
     }
@@ -201,34 +207,42 @@ public class TaskScheduler extends AbstractService
   }
 
   public TaskScheduler(TaskSchedulerAppCallback appClient,
+                        ContainerSignatureMatcher containerSignatureMatcher,
                         String appHostName,
                         int appHostPort,
-                        String appTrackingUrl) {
+                        String appTrackingUrl,
+                        boolean isSession) {
     super(TaskScheduler.class.getName());
     this.realAppClient = appClient;
     this.appCallbackExecutor = createAppCallbackExecutorService();
+    this.containerSignatureMatcher = containerSignatureMatcher;
     this.appClientDelegate = createAppCallbackDelegate(appClient);
-    this.amRmClient = AMRMClientAsync.createAMRMClientAsync(1000, this);
+    this.amRmClient = TezAMRMClientAsync.createAMRMClientAsync(1000, this);
     this.appHostName = appHostName;
     this.appHostPort = appHostPort;
     this.appTrackingUrl = appTrackingUrl;
+    this.isSession = isSession;
   }
 
   @Private
   @VisibleForTesting
   TaskScheduler(TaskSchedulerAppCallback appClient,
+      ContainerSignatureMatcher containerSignatureMatcher,
       String appHostName,
       int appHostPort,
       String appTrackingUrl,
-      AMRMClientAsync<CookieContainerRequest> client) {
+      TezAMRMClientAsync<CookieContainerRequest> client,
+      boolean isSession) {
     super(TaskScheduler.class.getName());
     this.realAppClient = appClient;
     this.appCallbackExecutor = createAppCallbackExecutorService();
+    this.containerSignatureMatcher = containerSignatureMatcher;
     this.appClientDelegate = createAppCallbackDelegate(appClient);
     this.amRmClient = client;
     this.appHostName = appHostName;
     this.appHostPort = appHostPort;
     this.appTrackingUrl = appTrackingUrl;
+    this.isSession = isSession;
   }
 
   private ExecutorService createAppCallbackExecutorService() {
@@ -452,9 +466,16 @@ public class TaskScheduler extends AbstractService
         assignedContainers);
 
     if (releaseUnassigned) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Releasing unassigned containers: " + containers);
+      }
       releaseUnassignedContainers(containers);
     }
     if (queueUnassigned) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Queueing unassigned containers for delayed scheduling: "
+            + containers);
+      }
       delayedContainerManager.addDelayedContainers(containers);
     }
     return assignedContainers;
@@ -512,22 +533,21 @@ public class TaskScheduler extends AbstractService
     return totalResources;
   }
 
-  public synchronized void allocateTask(Object task,
-                                           Resource capability,
-                                           String[] hosts,
-                                           String[] racks,
-                                           Priority priority,
-                                           Object containerSignature,
-                                           Object clientCookie) {
+  public synchronized void allocateTask(
+      Object task,
+      Resource capability,
+      String[] hosts,
+      String[] racks,
+      Priority priority,
+      Object containerSignature,
+      Object clientCookie) {
+
+    // XXX Have ContainerContext implement an interface defined by TaskScheduler.
     // TODO check for nulls etc
     // TODO extra memory allocation
     CRCookie cookie = new CRCookie(task, clientCookie, containerSignature);
-    CookieContainerRequest request =
-             new CookieContainerRequest(capability,
-                                         hosts,
-                                         racks,
-                                         priority,
-                                         cookie);
+    CookieContainerRequest request = new CookieContainerRequest(
+      capability, hosts, racks, priority, cookie);
 
     addTaskRequest(task, request);
     // See if any of the delayedContainers can be used for this task.
@@ -567,6 +587,11 @@ public class TaskScheduler extends AbstractService
             + container.getId());
 
         if (!taskSucceeded || !shouldReuseContainers) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Releasing container, containerId=" + container.getId()
+                + ", taskSucceeded=" + taskSucceeded
+                + ", reuseContainersFlag=" + shouldReuseContainers);
+          }
           releaseContainer(container.getId());
         } else {
           // Don't attempt to delay containers if delay is 0.
@@ -654,29 +679,44 @@ public class TaskScheduler extends AbstractService
     return resource.getMemory() >= toFit.getMemory();
   }
 
-  private CookieContainerRequest getMatchingRequest(
-                                      Container container, String location) {
+  private CookieContainerRequest getMatchingRequest(Container container,
+      String location) {
     Priority priority = container.getPriority();
     Resource capability = container.getResource();
-    CookieContainerRequest assigned = null;
     List<? extends Collection<CookieContainerRequest>> requestsList =
         amRmClient.getMatchingRequests(priority, location, capability);
 
-    if(requestsList.size() > 0) {
+    if (!requestsList.isEmpty()) {
       // pick first one
-      for(Collection<CookieContainerRequest> requests : requestsList) {
+      for (Collection<CookieContainerRequest> requests : requestsList) {
         Iterator<CookieContainerRequest> iterator = requests.iterator();
-        while(iterator.hasNext()) {
+        while (iterator.hasNext()) {
           // Check if the container can be assigned.
           CookieContainerRequest cookieContainerRequest = iterator.next();
           if (canAssignTaskToContainer(cookieContainerRequest, container)) {
-            assigned = cookieContainerRequest;
-            break;
+            return cookieContainerRequest;
           }
         }
       }
     }
-    return assigned;
+
+    // FIXME TODO later - do across priority matching but account for
+    // deadlocks/preemption
+    // No matches at the specified priority. Can this container be used for
+    // some other task.
+//    List<List<? extends Collection<CookieContainerRequest>>> piRequestsList =
+//        amRmClient.getMatchingRequestsWithoutPriority(location, capability);
+//    for (List<? extends Collection<CookieContainerRequest>> pRequestsList :
+//        piRequestsList) {
+//      for (Collection<CookieContainerRequest> requests : pRequestsList) {
+//        for (CookieContainerRequest cookieContainerRequest : requests) {
+//          if (canAssignTaskToContainer(cookieContainerRequest, container)) {
+//            return cookieContainerRequest;
+//          }
+//        }
+//      }
+//    }
+    return null;
   }
 
   private boolean canAssignTaskToContainer(
@@ -685,8 +725,13 @@ public class TaskScheduler extends AbstractService
     if (heldContainer == null) { // New container.
       return true;
     } else {
-      if (heldContainer.getContainerSignature().equals(
-          cookieContainerRequest.getCookie().getContainerSignature())) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Trying to match task to a held container, "
+            + " containerId=" + heldContainer.container.getId());
+      }
+      if (containerSignatureMatcher.isCompatible(heldContainer
+          .getContainerSignature(), cookieContainerRequest.getCookie()
+          .getContainerSignature())) {
         return true;
       }
     }
@@ -802,8 +847,8 @@ public class TaskScheduler extends AbstractService
     Iterator<Container> containerIterator = containers.iterator();
     while (containerIterator.hasNext()) {
       Container container = containerIterator.next();
-      CookieContainerRequest assigned = assigner.assignAllocatedContainer(container,
-          honorLocalityFlags);
+      CookieContainerRequest assigned =
+          assigner.assignAllocatedContainer(container, honorLocalityFlags);
       if (assigned != null) {
         assignedContainers.put(assigned, container);
         containerIterator.remove();
@@ -821,10 +866,12 @@ public class TaskScheduler extends AbstractService
 
   private void informAppAboutAssignment(CookieContainerRequest assigned,
       Container container) {
-    appClientDelegate.taskAllocated(getTask(assigned), assigned.getCookie().getAppCookie(), container);
+    appClientDelegate.taskAllocated(getTask(assigned),
+        assigned.getCookie().getAppCookie(), container);
   }
 
-  private void informAppAboutAssignments(Map<CookieContainerRequest, Container> assignedContainers) {
+  private void informAppAboutAssignments(
+      Map<CookieContainerRequest, Container> assignedContainers) {
     for (Entry<CookieContainerRequest, Container> entry : assignedContainers
         .entrySet()) {
       informAppAboutAssignment(entry.getKey(), entry.getValue());
@@ -861,14 +908,14 @@ public class TaskScheduler extends AbstractService
     String location = ResourceRequest.ANY;
     List<? extends Collection<CookieContainerRequest>> requestsList = amRmClient
         .getMatchingRequests(priority, location, capability);
-    if (requestsList.size() > 0) {
+    if (!requestsList.isEmpty()) {
       // pick first one
       for (Collection<CookieContainerRequest> requests : requestsList) {
         Iterator<CookieContainerRequest> iterator = requests.iterator();
         if (iterator.hasNext()) {
           // Check if the container can be assigned.
           CookieContainerRequest cookieContainerRequest = iterator.next();
-          return (cookieContainerRequest.getNodes().size() > 0);
+          return (!cookieContainerRequest.getNodes().isEmpty());
         }
       }
     }
@@ -884,15 +931,15 @@ public class TaskScheduler extends AbstractService
     String location = ResourceRequest.ANY;
     List<? extends Collection<CookieContainerRequest>> requestsList = amRmClient
         .getMatchingRequests(priority, location, capability);
-    if (requestsList.size() > 0) {
+    if (!requestsList.isEmpty()) {
       // pick first one
       for (Collection<CookieContainerRequest> requests : requestsList) {
         Iterator<CookieContainerRequest> iterator = requests.iterator();
         if (iterator.hasNext()) {
           // Check if the container can be assigned.
           CookieContainerRequest cookieContainerRequest = iterator.next();
-          return (cookieContainerRequest.getNodes().size() > 0 || cookieContainerRequest
-              .getRacks().size() > 0);
+          return (!cookieContainerRequest.getNodes().isEmpty()
+              || !cookieContainerRequest.getRacks().isEmpty());
         }
       }
     }
@@ -908,7 +955,7 @@ public class TaskScheduler extends AbstractService
     Resource capability = container.getResource();
     List<? extends Collection<CookieContainerRequest>> requestsList =
         amRmClient.getMatchingRequests(priority, location, capability);
-    if (requestsList.size() > 0) {
+    if (!requestsList.isEmpty()) {
       return true;
     }
     return false;
@@ -919,8 +966,9 @@ public class TaskScheduler extends AbstractService
     public abstract CookieContainerRequest assignAllocatedContainer(
         Container container, boolean honorLocalityFlags);
 
-    public void doBookKeepingForAssignedContainer(CookieContainerRequest assigned,
-        Container container, String matchedLocation, boolean honorLocalityFlags) {
+    public void doBookKeepingForAssignedContainer(
+        CookieContainerRequest assigned, Container container,
+        String matchedLocation, boolean honorLocalityFlags) {
       if (assigned == null) {
         return;
       }
@@ -930,7 +978,8 @@ public class TaskScheduler extends AbstractService
       LOG.info("Assigning container: " + container + " for task: " + task
           + " at locality: " + matchedLocation + " with honorLocalityFlags: "
           + honorLocalityFlags + " reused: " 
-          + containerAssignments.containsKey(container.getId()) + " resource memory: "
+          + containerAssignments.containsKey(container.getId())
+          + " resource memory: "
           + container.getResource().getMemory() + " cpu: "
           + container.getResource().getVirtualCores());
       
@@ -993,11 +1042,12 @@ public class TaskScheduler extends AbstractService
   @VisibleForTesting
   class DelayedContainerManager extends Thread {
     
-    private BlockingQueue<HeldContainer> delayedContainers = new LinkedBlockingQueue<TaskScheduler.HeldContainer>();
+    private BlockingQueue<HeldContainer> delayedContainers =
+      new LinkedBlockingQueue<TaskScheduler.HeldContainer>();
     private volatile boolean tryAssigningAll = false;
     private volatile boolean running = true;
     private long delay;
-    
+
     DelayedContainerManager(long delay) {
       this.delay = delay;
     }
@@ -1012,7 +1062,8 @@ public class TaskScheduler extends AbstractService
         }
 
         // Try allocating containers which have timed out. 
-        // Required since these containers may get assigned without locality at this point.
+        // Required since these containers may get assigned without
+        // locality at this point.
         if (delayedContainers.peek() == null) {
           try {
             synchronized(this) {
@@ -1038,7 +1089,8 @@ public class TaskScheduler extends AbstractService
               // honor locality - false. Contaienr timed out - do a best match.
               // release = true (timed out), queue = false (timed out)
               assignedContainers = assignAllocatedContainers(
-                  Lists.newArrayList(allocatedContainer.getContainer()), false, true, false);
+                  Lists.newArrayList(allocatedContainer.getContainer()), false,
+                    true, false);
             }
             informAppAboutAssignments(assignedContainers);
           } else {
@@ -1073,7 +1125,12 @@ public class TaskScheduler extends AbstractService
         // honor reuse-locality flags (container not timed out yet), Don't queue
         // (already in queue), don't release (release happens when containers
         // time-out)
-        assignedContainers = assignAllocatedContainers(new ContainerIterable(delayedContainers), true, false, false);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Trying to assign all delayed containers to newly received"
+            + " task");
+        }
+        assignedContainers = assignAllocatedContainers(
+          new ContainerIterable(delayedContainers), true, false, false);
       }
       // Inform app
       informAppAboutAssignments(assignedContainers);
@@ -1096,12 +1153,14 @@ public class TaskScheduler extends AbstractService
     }
     
     private void releasePendingContainers() {
-      List<HeldContainer> pendingContainers = Lists.newArrayListWithCapacity(delayedContainers.size());
+      List<HeldContainer> pendingContainers = Lists.newArrayListWithCapacity(
+        delayedContainers.size());
       delayedContainers.drainTo(pendingContainers);
       releaseUnassignedContainers(new ContainerIterable(pendingContainers));
     }
 
-    private boolean addDelayedContainer(Container container, long nextScheduleTime, boolean wake) {
+    private boolean addDelayedContainer(Container container,
+                                        long nextScheduleTime, boolean wake) {
       HeldContainer delayedContainer = heldContainers.get(container.getId());
       if (delayedContainer == null) {
         // Currently only already running containers are added to this. Hence
@@ -1122,9 +1181,12 @@ public class TaskScheduler extends AbstractService
     }
     
     public void addDelayedContainers(Iterable<Container> containers) {
-      // If there's no pending requests matching a specific container, release
-      // it instead of delaying it.
-      releaseContainersWithNoPendingRequests(containers);
+      if (!isSession) {
+        // FIXME remove release when we support re-use across vertices
+        // this should be removed to allow for cross-vertex reuse
+        // as later vertices may not have fully initialized yet
+        releaseContainersWithNoPendingRequests(containers);
+      }
 
       long nextScheduleTime = System.currentTimeMillis() + delay;
       for (Container container : containers) {
@@ -1181,7 +1243,8 @@ public class TaskScheduler extends AbstractService
     private long nextScheduleTime;
     private Object containerSignature;
     
-    HeldContainer(Container container, long nextScheduleTime, Object containerParams) {
+    HeldContainer(Container container, long nextScheduleTime,
+        Object containerParams) {
       this.container = container;
       this.nextScheduleTime = nextScheduleTime;
       this.containerSignature = containerParams;
@@ -1206,7 +1269,8 @@ public class TaskScheduler extends AbstractService
     @Override
     public String toString() {
       return "HeldContainer: id: " + container.getId() + ", nextScheduleTime: "
-          + nextScheduleTime + ", signature: " + containerSignature.toString();
+          + nextScheduleTime + ", signature: "
+          + (containerSignature != null? containerSignature.toString():"null");
     }
   }
 }
