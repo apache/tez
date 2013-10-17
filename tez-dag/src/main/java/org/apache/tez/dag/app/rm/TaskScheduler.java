@@ -529,7 +529,7 @@ public class TaskScheduler extends AbstractService
     appClientDelegate.onError(t);
   }
 
-  public synchronized Resource getTotalResources() {
+  public Resource getTotalResources() {
     return totalResources;
   }
 

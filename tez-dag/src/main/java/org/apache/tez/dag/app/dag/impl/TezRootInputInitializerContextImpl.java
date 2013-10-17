@@ -30,16 +30,18 @@ public class TezRootInputInitializerContextImpl implements
   private final String dagName;
   private final String inputName;
   private final InputDescriptor inputDescriptor;
+  private final int numTasks;
 
   // TODO Add support for counters - merged with the Vertex counters.
   
   public TezRootInputInitializerContextImpl(TezVertexID vertexID,
       String dagName, String vertexName, String inputName,
-      InputDescriptor inputDescriptor) {
+      InputDescriptor inputDescriptor, int numTasks) {
     this.vertexID = vertexID;
     this.dagName = dagName;
     this.inputName = inputName;
     this.inputDescriptor = inputDescriptor;
+    this.numTasks = numTasks;
   }
 
   @Override
@@ -60,6 +62,11 @@ public class TezRootInputInitializerContextImpl implements
   @Override
   public byte[] getUserPayload() {
     return inputDescriptor.getUserPayload();
+  }
+  
+  @Override 
+  public int getNumTasks() {
+    return numTasks;
   }
 
 }

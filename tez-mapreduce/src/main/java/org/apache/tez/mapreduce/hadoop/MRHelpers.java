@@ -42,6 +42,7 @@ import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -65,6 +66,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.mapreduce.combine.MRCombiner;
@@ -140,14 +142,41 @@ public class MRHelpers {
     }
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   private static org.apache.hadoop.mapreduce.InputSplit[] generateNewSplits(
-      JobContext jobContext) throws ClassNotFoundException, IOException,
+      JobContext jobContext, String inputFormatName, int numTasks) 
+          throws ClassNotFoundException, IOException,
       InterruptedException {
     Configuration conf = jobContext.getConfiguration();
-    InputFormat<?, ?> input = ReflectionUtils.newInstance(
+    InputFormat<?, ?> inputFormat = ReflectionUtils.newInstance(
         jobContext.getInputFormatClass(), conf);
 
-    List<org.apache.hadoop.mapreduce.InputSplit> array = input
+    InputFormat<?, ?> finalInputFormat = inputFormat;
+    
+    if (inputFormatName != null && !inputFormatName.isEmpty()) {
+      if (!inputFormat.getClass().equals(
+          org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat.class)){
+        throw new TezUncheckedException(
+        "Expected " +
+        org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat.class.getName()
+        + " in conf but got: " + inputFormat.getClass().getName());
+      }
+      try {
+      inputFormat = (org.apache.hadoop.mapreduce.InputFormat) 
+          ReflectionUtils.newInstance(Class.forName(inputFormatName), conf);
+      } catch (ClassNotFoundException e) {
+        throw new TezUncheckedException(e);
+      }
+
+      org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat groupedFormat = 
+          new org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat();
+      groupedFormat.setConf(conf);
+      groupedFormat.setInputFormat(inputFormat);
+      groupedFormat.setDesiredNumberOfSPlits(numTasks);
+      finalInputFormat = groupedFormat;
+    }
+    
+    List<org.apache.hadoop.mapreduce.InputSplit> array = finalInputFormat
         .getSplits(jobContext);
     org.apache.hadoop.mapreduce.InputSplit[] splits = (org.apache.hadoop.mapreduce.InputSplit[]) array
         .toArray(new org.apache.hadoop.mapreduce.InputSplit[array.size()]);
@@ -175,7 +204,8 @@ public class MRHelpers {
       Path inputSplitDir) throws IOException, InterruptedException,
       ClassNotFoundException {
     
-    org.apache.hadoop.mapreduce.InputSplit[] splits = generateNewSplits(jobContext);
+    org.apache.hadoop.mapreduce.InputSplit[] splits = 
+        generateNewSplits(jobContext, null, 0);
     
     Configuration conf = jobContext.getConfiguration();
 
@@ -196,9 +226,33 @@ public class MRHelpers {
         splits.length, locationHints);
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   private static org.apache.hadoop.mapred.InputSplit[] generateOldSplits(
-      JobConf jobConf) throws IOException {
-    org.apache.hadoop.mapred.InputSplit[] splits = jobConf.getInputFormat()
+      JobConf jobConf, String inputFormatName, int numTasks) throws IOException {
+    org.apache.hadoop.mapred.InputFormat inputFormat = jobConf.getInputFormat();
+    org.apache.hadoop.mapred.InputFormat finalInputFormat = inputFormat;
+    if (inputFormatName != null && !inputFormatName.isEmpty()) {
+      if (!inputFormat.getClass().equals(
+          org.apache.hadoop.mapred.split.TezGroupedSplitsInputFormat.class)){
+        throw new TezUncheckedException(
+        "Expected " +
+        org.apache.hadoop.mapred.split.TezGroupedSplitsInputFormat.class.getName()
+        + " in conf but got: " + inputFormat.getClass().getName());
+      }
+      try {
+        inputFormat = (org.apache.hadoop.mapred.InputFormat) 
+            ReflectionUtils.newInstance(Class.forName(inputFormatName), jobConf);
+      } catch (ClassNotFoundException e) {
+        throw new TezUncheckedException(e);
+      }
+      org.apache.hadoop.mapred.split.TezGroupedSplitsInputFormat groupedFormat = 
+          new org.apache.hadoop.mapred.split.TezGroupedSplitsInputFormat();
+      groupedFormat.setConf(jobConf);
+      groupedFormat.setInputFormat(inputFormat);
+      groupedFormat.setDesiredNumberOfSPlits(numTasks);
+      finalInputFormat = groupedFormat;
+    }
+    org.apache.hadoop.mapred.InputSplit[] splits = finalInputFormat
         .getSplits(jobConf, jobConf.getNumMapTasks());
     // sort the splits into order based on size, so that the biggest
     // go first
@@ -220,7 +274,8 @@ public class MRHelpers {
   private static InputSplitInfoDisk writeOldSplits(JobConf jobConf,
       Path inputSplitDir) throws IOException {
     
-    org.apache.hadoop.mapred.InputSplit[] splits = generateOldSplits(jobConf);
+    org.apache.hadoop.mapred.InputSplit[] splits = 
+        generateOldSplits(jobConf, null, 0);
     
     JobSplitWriter.createSplitFiles(inputSplitDir, jobConf,
         inputSplitDir.getFileSystem(jobConf), splits);
@@ -299,7 +354,8 @@ public class MRHelpers {
    * @throws ClassNotFoundException
    * @throws InterruptedException
    */
-  public static InputSplitInfoMem generateInputSplitsToMem(Configuration conf)
+  public static InputSplitInfoMem generateInputSplitsToMem(Configuration conf, 
+      String inputFormatName, int numTasks)
       throws IOException, ClassNotFoundException, InterruptedException {
 
     InputSplitInfoMem splitInfoMem = null;
@@ -307,11 +363,13 @@ public class MRHelpers {
     if (jobConf.getUseNewMapper()) {
       LOG.info("Generating mapreduce api input splits");
       Job job = Job.getInstance(conf);
-      org.apache.hadoop.mapreduce.InputSplit[] splits = generateNewSplits(job);
+      org.apache.hadoop.mapreduce.InputSplit[] splits = 
+          generateNewSplits(job, inputFormatName, numTasks);
       splitInfoMem = createSplitsProto(splits, new SerializationFactory(job.getConfiguration()));
     } else {
       LOG.info("Generating mapred api input splits");
-      org.apache.hadoop.mapred.InputSplit[] splits = generateOldSplits(jobConf);
+      org.apache.hadoop.mapred.InputSplit[] splits = 
+          generateOldSplits(jobConf, inputFormatName, numTasks);
       splitInfoMem = createSplitsProto(splits);
     }
     LOG.info("NumSplits: " + splitInfoMem.getNumTasks() + ", SerializedSize: "
@@ -618,34 +676,70 @@ public class MRHelpers {
   }
 
   public static byte[] createMRInputPayload(byte[] configurationBytes,
-      MRSplitsProto mrSplitsProto) {
+      MRSplitsProto mrSplitsProto) throws IOException {
     Preconditions.checkArgument(configurationBytes != null,
         "Configuration bytes must be specified");
-    MRInputUserPayloadProto.Builder userPayloadBuilder = MRInputUserPayloadProto
-        .newBuilder();
-    userPayloadBuilder.setConfigurationBytes(ByteString
-        .copyFrom(configurationBytes));
-    if (mrSplitsProto != null) {
-      userPayloadBuilder.setSplits(mrSplitsProto);
-    }
-    return userPayloadBuilder.build().toByteArray();
+    return createMRInputPayload(ByteString
+        .copyFrom(configurationBytes), mrSplitsProto, null);
   }
   
   public static byte[] createMRInputPayload(Configuration conf,
       MRSplitsProto mrSplitsProto) throws IOException {
     Preconditions
         .checkArgument(conf != null, "Configuration must be specified");
+    
+    return createMRInputPayload(createByteStringFromConf(conf), 
+        mrSplitsProto, null);
+  }
+  
+  /**
+   * Called to specify that grouping of input splits be performed by Tez
+   * The configurationBytes conf should have the input format class configuration 
+   * set to the TezGroupedSplitsInputFormat. The real input format class name 
+   * should be passed as an argument to this method.
+   */
+  public static byte[] createMRInputPayloadWithGrouping(byte[] configurationBytes,
+      MRSplitsProto mrSplitsProto, String inputFormatName) throws IOException {
+    Preconditions.checkArgument(configurationBytes != null,
+        "Configuration bytes must be specified");
+    Preconditions.checkArgument(inputFormatName != null, 
+        "InputFormat must be specified");
+    return createMRInputPayload(ByteString
+        .copyFrom(configurationBytes), mrSplitsProto, inputFormatName);    
+  }
+
+  /**
+   * Called to specify that grouping of input splits be performed by Tez
+   * The conf should have the input format class configuration 
+   * set to the TezGroupedSplitsInputFormat. The real input format class name 
+   * should be passed as an argument to this method.
+   */
+  public static byte[] createMRInputPayloadWithGrouping(Configuration conf,
+      MRSplitsProto mrSplitsProto, String inputFormatName) throws IOException {
+    Preconditions
+        .checkArgument(conf != null, "Configuration must be specified");
+    Preconditions.checkArgument(inputFormatName != null, 
+        "InputFormat must be specified");
+    return createMRInputPayload(createByteStringFromConf(conf), 
+        mrSplitsProto, inputFormatName);    
+  }
+
+  private static byte[] createMRInputPayload(ByteString bytes, 
+      MRSplitsProto mrSplitsProto, String inputFormatName) throws IOException {
     MRInputUserPayloadProto.Builder userPayloadBuilder = MRInputUserPayloadProto
         .newBuilder();
-    userPayloadBuilder.setConfigurationBytes(createByteStringFromConf(conf));
+    userPayloadBuilder.setConfigurationBytes(bytes);
     if (mrSplitsProto != null) {
       userPayloadBuilder.setSplits(mrSplitsProto);
+    }
+    if (inputFormatName!=null) {
+      userPayloadBuilder.setInputFormatName(inputFormatName);
     }
     // TODO Should this be a ByteBuffer or a byte array ? A ByteBuffer would be
     // more efficient.
     return userPayloadBuilder.build().toByteArray();
   }
-
+  
   public static MRInputUserPayloadProto parseMRInputPayload(byte[] bytes)
       throws IOException {
     return MRInputUserPayloadProto.parseFrom(bytes);

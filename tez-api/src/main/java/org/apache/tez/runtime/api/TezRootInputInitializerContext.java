@@ -28,6 +28,7 @@ public interface TezRootInputInitializerContext {
   
   String getInputName();
 
-  public byte[] getUserPayload();
+  byte[] getUserPayload();
   
+  int getNumTasks();
 }

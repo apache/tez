@@ -24,17 +24,21 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.tez.dag.api.TezUncheckedException;
 
-public class TezGroupedSplit extends InputSplit implements Writable {
+public class TezGroupedSplit extends InputSplit 
+  implements Writable, Configurable {
 
   List<InputSplit> wrappedSplits = null;
   String wrappedInputFormatName = null;
   String[] locations = null;
   long length = 0;
+  Configuration conf;
   
   public TezGroupedSplit() {
     
@@ -63,7 +67,7 @@ public class TezGroupedSplit extends InputSplit implements Writable {
     }
 
     Text.writeString(out, wrappedInputFormatName);
-    Text.writeString(out, wrappedSplits.get(0).getClass().getCanonicalName());
+    Text.writeString(out, wrappedSplits.get(0).getClass().getName());
     out.writeInt(wrappedSplits.size());
     for(InputSplit split : wrappedSplits) {
       writeWrappedSplit(split, out);
@@ -142,5 +146,15 @@ public class TezGroupedSplit extends InputSplit implements Writable {
   @Override
   public String[] getLocations() throws IOException, InterruptedException {
     return locations;
+  }
+  
+  @Override
+  public void setConf(Configuration conf) {
+    this.conf = conf;
+  }
+
+  @Override
+  public Configuration getConf() {
+    return conf;
   }
 }

@@ -220,6 +220,13 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_APPLICATION_TYPE = "TEZ-MR*";
 
   public static final String LOCAL_FRAMEWORK_NAME = "local-tez";
+  
+  public static final String TEZ_AM_GROUPING_SPLIT_COUNT = TEZ_AM_PREFIX +
+      "grouping.split-count";
+  
+  public static final String TEZ_AM_GROUPING_SPLIT_WAVES = TEZ_AM_PREFIX +
+      "grouping.split-waves";
+  public static float TEZ_AM_GROUPING_SPLIT_WAVES_DEFAULT = 1.5f;
 
   /**
    * Session-related properties

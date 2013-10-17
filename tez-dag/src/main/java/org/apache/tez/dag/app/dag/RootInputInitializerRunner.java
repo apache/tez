@@ -52,16 +52,19 @@ public class RootInputInitializerRunner {
   private final String dagName;
   private final String vertexName;
   private final TezVertexID vertexID;
+  private final int numTasks;
   @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
   private volatile boolean isStopped = false;
 
   @SuppressWarnings("rawtypes")
-  public RootInputInitializerRunner(String dagName, String vertexName, TezVertexID vertexID, EventHandler eventHandler) {
+  public RootInputInitializerRunner(String dagName, String vertexName,
+      TezVertexID vertexID, EventHandler eventHandler, int numTasks) {
     this.dagName = dagName;
     this.vertexName = vertexName;
     this.vertexID = vertexID;
     this.eventHandler = eventHandler;
+    this.numTasks = numTasks;
     this.rawExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
         .setDaemon(true).setNameFormat("InputInitializer [" + this.vertexName + "] #%d").build());
     this.executor = MoreExecutors.listeningDecorator(rawExecutor);
@@ -71,7 +74,7 @@ public class RootInputInitializerRunner {
     for (RootInputLeafOutputDescriptor<InputDescriptor> input : inputs) {
       ListenableFuture<List<Event>> future = executor
           .submit(new InputInitializerCallable(input, vertexID, dagName,
-              vertexName));
+              vertexName, numTasks));
       Futures.addCallback(future, new InputInitializerCallback(input.getEntityName()));
     }
   }
@@ -92,20 +95,23 @@ public class RootInputInitializerRunner {
     private final TezVertexID vertexID;
     private final String dagName;
     private final String vertexName;
+    private final int numTasks;
 
     public InputInitializerCallable(RootInputLeafOutputDescriptor<InputDescriptor> input,
-        TezVertexID vertexID, String dagName, String vertexName) {
+        TezVertexID vertexID, String dagName, String vertexName, int numTasks) {
       this.input = input;
       this.vertexID = vertexID;
       this.dagName = dagName;
       this.vertexName = vertexName;
+      this.numTasks = numTasks;
     }
 
     @Override
     public List<Event> call() throws Exception {
       TezRootInputInitializer initializer = createInitializer();
       TezRootInputInitializerContext context = new TezRootInputInitializerContextImpl(
-          vertexID, dagName, vertexName, input.getEntityName(), input.getDescriptor());
+          vertexID, dagName, vertexName, input.getEntityName(), input.getDescriptor(),
+          numTasks);
       return initializer.initialize(context);
     }
 

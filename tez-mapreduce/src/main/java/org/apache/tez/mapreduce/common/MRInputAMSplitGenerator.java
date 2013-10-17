@@ -72,7 +72,9 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
     if (LOG.isDebugEnabled()) {
       sw.reset().start();
     }
-    InputSplitInfoMem inputSplitInfo = MRHelpers.generateInputSplitsToMem(conf);
+
+    InputSplitInfoMem inputSplitInfo = MRHelpers.generateInputSplitsToMem(conf,
+        userPayloadProto.getInputFormatName(), rootInputContext.getNumTasks());
     if (LOG.isDebugEnabled()) {
       sw.stop();
       LOG.debug("Time to create splits to mem: " + sw.elapsedMillis());
@@ -80,6 +82,7 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
 
     List<Event> events = Lists.newArrayListWithCapacity(inputSplitInfo
         .getNumTasks() + 1);
+    
     RootInputConfigureVertexTasksEvent configureVertexEvent = new RootInputConfigureVertexTasksEvent(
         inputSplitInfo.getNumTasks(), inputSplitInfo.getTaskLocationHints());
     events.add(configureVertexEvent);

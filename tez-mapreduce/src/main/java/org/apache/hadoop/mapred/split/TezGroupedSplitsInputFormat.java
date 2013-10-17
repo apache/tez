@@ -28,20 +28,26 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 
 import com.google.common.base.Preconditions;
 
-public class TezGroupedSplitsInputFormat<K, V> implements InputFormat<K, V> {
+public class TezGroupedSplitsInputFormat<K, V> 
+  implements InputFormat<K, V>, Configurable{
+  
   private static final Log LOG = LogFactory.getLog(TezGroupedSplitsInputFormat.class);
 
   InputFormat<K, V> wrappedInputFormat;
   int desiredNumSplits = 0;
+  Configuration conf;
   
   public TezGroupedSplitsInputFormat() {
     
@@ -96,19 +102,26 @@ public class TezGroupedSplitsInputFormat<K, V> implements InputFormat<K, V> {
   
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
+    
+    int configNumSplits = conf.getInt(TezConfiguration.TEZ_AM_GROUPING_SPLIT_COUNT, 0);
+    if (configNumSplits > 0) {
+      // always use config override if specified
+      desiredNumSplits = configNumSplits;
+      LOG.info("Desired numSplits overridden by config to: " + desiredNumSplits);
+    }
+
     if (desiredNumSplits > 0) {
       // get the desired num splits directly if possible
       numSplits = desiredNumSplits;
     }
     InputSplit[] originalSplits = wrappedInputFormat.getSplits(job, numSplits);
-    String wrappedInputFormatName = wrappedInputFormat.getClass().getCanonicalName();
+    String wrappedInputFormatName = wrappedInputFormat.getClass().getName();
     if (desiredNumSplits == 0 ||
         originalSplits.length == 0 ||
         desiredNumSplits >= originalSplits.length) {
       // nothing set. so return all the splits as is
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Using original number of splits: " + originalSplits.length);
-      }
+      LOG.info("Using original number of splits: " + originalSplits.length +
+          " desired splits: " + desiredNumSplits);
       InputSplit[] groupedSplits = new TezGroupedSplit[originalSplits.length];
       int i=0;
       for (InputSplit split : originalSplits) {
@@ -156,10 +169,10 @@ public class TezGroupedSplitsInputFormat<K, V> implements InputFormat<K, V> {
     
     long lengthPerSplit = totalLength/desiredNumSplits;
     int numLocations = distinctLocations.size();
-    int numSplitsPerLocation = originalSplits.length/numLocations;
+    int numSplitsGroupedPerLocation = originalSplits.length/numLocations;
     int numSplitsInGroup = originalSplits.length/desiredNumSplits;
     for (String location : distinctLocations.keySet()) {
-      distinctLocations.put(location, new LocationHolder(numSplitsPerLocation));
+      distinctLocations.put(location, new LocationHolder(numSplitsGroupedPerLocation));
     }
     
     for (InputSplit split : originalSplits) {
@@ -174,13 +187,12 @@ public class TezGroupedSplitsInputFormat<K, V> implements InputFormat<K, V> {
       }
     }
     
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Desired lengthPerSplit: " + lengthPerSplit +
-          " numLocations: " + numLocations +
-          " numSplitsPerLocation: " + numSplitsPerLocation +
-          " numSplitsInGroup: " + numSplitsInGroup + 
-          " totalLength: " + totalLength);
-    }
+    LOG.info("Desired lengthPerSplit: " + lengthPerSplit +
+        " numLocations: " + numLocations +
+        " numSplitsGroupedPerLocation: " + numSplitsGroupedPerLocation +
+        " numSplitsInGroup: " + numSplitsInGroup + 
+        " totalLength: " + totalLength +
+        " numSplits: " + originalSplits.length);
     
     // go through locations and group splits
     int splitsProcessed = 0;
@@ -188,10 +200,10 @@ public class TezGroupedSplitsInputFormat<K, V> implements InputFormat<K, V> {
     boolean allowSmallGroups = false;
     int iterations = 0;
     while (splitsProcessed < originalSplits.length) {
-      group.clear();
       iterations++;
       int numFullGroupsCreated = 0;
       for (Map.Entry<String, LocationHolder> entry : distinctLocations.entrySet()) {
+        group.clear();
         String location = entry.getKey();
         LocationHolder holder = entry.getValue();
         SplitHolder splitHolder = holder.getUnprocessedHeadSplit();
@@ -230,7 +242,9 @@ public class TezGroupedSplitsInputFormat<K, V> implements InputFormat<K, V> {
           splitsProcessed++;
         }
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Grouped " + group.size() + " split at: " + groupLocation);
+          LOG.debug("Grouped " + group.size()
+              + " length: " + groupedSplit.getLength()
+              + " split at: " + location);
         }
         groupedSplitsList.add(groupedSplit);
       }
@@ -375,6 +389,16 @@ public class TezGroupedSplitsInputFormat<K, V> implements InputFormat<K, V> {
       }
       return (progress + subprogress);
     }
-  }  
+  }
+
+  @Override
+  public void setConf(Configuration conf) {
+    this.conf = conf;
+  }
+
+  @Override
+  public Configuration getConf() {
+    return conf;
+  }
 
 }

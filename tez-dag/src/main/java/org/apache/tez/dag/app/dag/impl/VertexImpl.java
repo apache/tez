@@ -57,6 +57,7 @@ import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -1246,9 +1247,24 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       }
 
       if (vertex.inputsWithInitializers != null) {
+        // Use DAGScheduler to arbitrate resources among vertices later
+        // Ask for 1.5 the number of tasks we can fit in one wave
+        int totalResource = vertex.appContext.getTaskScheduler()
+            .getTotalResources().getMemory();
+        int taskResource = vertex.getTaskResource().getMemory();
+        float waves = vertex.conf.getFloat(
+            TezConfiguration.TEZ_AM_GROUPING_SPLIT_WAVES,
+            TezConfiguration.TEZ_AM_GROUPING_SPLIT_WAVES_DEFAULT);
+        
+        int numTasks = (int)((totalResource*waves)/taskResource);
+        
+        LOG.info("Vertex " + vertex.getVertexId() + " asking for " + numTasks 
+            + " tasks. Headroom: " + totalResource + " Task Resource: " 
+            + taskResource + " waves: " + waves);
+
         vertex.rootInputInitializer = new RootInputInitializerRunner(vertex
             .getDAG().getName(), vertex.getName(), vertex.getVertexId(),
-            vertex.eventHandler);
+            vertex.eventHandler, numTasks);
         List<RootInputLeafOutputDescriptor<InputDescriptor>> inputList = Lists
             .newArrayListWithCapacity(vertex.inputsWithInitializers.size());
         for (String inputName : vertex.inputsWithInitializers) {

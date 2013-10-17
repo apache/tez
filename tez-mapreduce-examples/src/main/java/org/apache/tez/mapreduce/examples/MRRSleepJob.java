@@ -535,7 +535,7 @@ public class MRRSleepJob extends Configured implements Tool {
       } else {
         try {
           LOG.info("Creating in-mem splits");
-          inputSplitInfo = MRHelpers.generateInputSplitsToMem(mapStageConf);
+          inputSplitInfo = MRHelpers.generateInputSplitsToMem(mapStageConf, null, 0);
         } catch (ClassNotFoundException e) {
           throw new TezUncheckedException("Could not generate input splits", e);
         } catch (InterruptedException e) {
@@ -573,7 +573,8 @@ public class MRRSleepJob extends Configured implements Tool {
     if (writeSplitsToDFS || generateSplitsInAM) {
       mapInputPayload = MRHelpers.createMRInputPayload(mapUserPayload, null);
     } else {
-      mapInputPayload = MRHelpers.createMRInputPayload(mapUserPayload, inputSplitInfo.getSplitsProto());
+      mapInputPayload = MRHelpers.createMRInputPayload(
+          mapUserPayload, inputSplitInfo.getSplitsProto());
     }
     int numTasks = generateSplitsInAM ? -1 : numMapper;
     
