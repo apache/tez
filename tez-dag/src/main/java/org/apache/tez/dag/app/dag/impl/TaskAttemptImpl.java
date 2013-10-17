@@ -130,6 +130,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private String nodeRackName;
 
   private TaskAttemptStatus reportedStatus;
+  private DAGCounter localityCounter;
 
   // Used to store locality information when
   Set<String> taskHosts = new HashSet<String>();
@@ -336,7 +337,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   public TezCounters getCounters() {
     readLock.lock();
     try {
-      reportedStatus.setLocalityCounter(reportedStatus.localityCounter);
+      reportedStatus.setLocalityCounter(this.localityCounter);
       TezCounters counters = reportedStatus.counters;
       if (counters == null) {
         counters = EMPTY_COUNTERS;
@@ -942,16 +943,15 @@ public class TaskAttemptImpl implements TaskAttempt,
       // TODO Remove after HDFS-5098
       // Compute LOCALITY counter for this task.
       if (ta.taskHosts.contains(ta.containerNodeId.getHost())) {
-        ta.reportedStatus.localityCounter = DAGCounter.DATA_LOCAL_TASKS;
+        ta.localityCounter = DAGCounter.DATA_LOCAL_TASKS;
       } else if (ta.taskRacks.contains(ta.nodeRackName)) {
-        ta.reportedStatus.localityCounter = DAGCounter.RACK_LOCAL_TASKS;
+        ta.localityCounter = DAGCounter.RACK_LOCAL_TASKS;
       } else {
         // Not computing this if the task does not have locality information.
         if (ta.locationHint != null) {
-          ta.reportedStatus.localityCounter = DAGCounter.OTHER_LOCAL_TASKS;
+          ta.localityCounter = DAGCounter.OTHER_LOCAL_TASKS;
         }
       }
-
 
       // Inform the speculator about the container assignment.
       //ta.maybeSendSpeculatorContainerNoLongerRequired();

@@ -101,9 +101,9 @@ public class RootInputVertexManager implements VertexScheduler {
                 managedVertex.getTotalTasks() == -1,
                 "Parallelism for the vertex should be set to -1 if the InputInitializer is setting parallelism");
         RootInputConfigureVertexTasksEvent cEvent = (RootInputConfigureVertexTasksEvent) event;
-        managedVertex.setParallelism(cEvent.getNumTasks(), null);
         managedVertex.setVertexLocationHint(new VertexLocationHint(cEvent
             .getNumTasks(), cEvent.getTaskLocationHints()));
+        managedVertex.setParallelism(cEvent.getNumTasks(), null);
       }
       if (event instanceof RootInputUpdatePayloadEvent) {
         // No tasks should have been started yet. Checked by initial state check.
