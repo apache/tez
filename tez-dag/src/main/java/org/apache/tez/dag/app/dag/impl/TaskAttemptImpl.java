@@ -557,7 +557,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   // always called in write lock
   private void setFinishTime() {
     // set the finish time only if launch time is set
-    if (launchTime != 0 && finishTime != 0) {
+    if (launchTime != 0 && finishTime == 0) {
       finishTime = clock.getTime();
     }
   }
