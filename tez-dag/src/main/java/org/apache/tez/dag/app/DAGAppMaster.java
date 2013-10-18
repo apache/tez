@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -48,6 +49,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -121,7 +123,9 @@ import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.history.events.AMStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.runtime.library.common.security.JobTokenIdentifier;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
+import org.apache.tez.runtime.library.common.security.TokenCache;
 
 /**
  * The Map-Reduce Application Master.
@@ -174,6 +178,7 @@ public class DAGAppMaster extends AbstractService {
   private TaskAttemptListener taskAttemptListener;
   private JobTokenSecretManager jobTokenSecretManager =
       new JobTokenSecretManager();
+  private Token<JobTokenIdentifier> sessionToken;
   private DagEventDispatcher dagEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
   private TaskSchedulerEventHandler taskSchedulerEventHandler;
@@ -190,7 +195,7 @@ public class DAGAppMaster extends AbstractService {
   private DAGClientHandler clientHandler;
 
   private DAG currentDAG;
-  private Credentials fsTokens = new Credentials(); // Filled during init
+  private Credentials tokens = new Credentials(); // Filled during init
   private UserGroupInformation currentUser; // Will be setup during init
 
   private AtomicBoolean sessionStopped = new AtomicBoolean(false);
@@ -260,6 +265,13 @@ public class DAGAppMaster extends AbstractService {
 
     containerHeartbeatHandler = createContainerHeartbeatHandler(context, conf);
     addIfService(containerHeartbeatHandler, true);
+
+    JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(UUID
+        .randomUUID().toString()));
+    sessionToken = new Token<JobTokenIdentifier>(identifier,
+        jobTokenSecretManager);
+    sessionToken.setService(identifier.getJobId());
+    TokenCache.setJobToken(sessionToken, tokens);
 
     //service to handle requests to TaskUmbilicalProtocol
     taskAttemptListener = createTaskAttemptListener(context,
@@ -464,6 +476,13 @@ public class DAGAppMaster extends AbstractService {
   protected DAG createDAG(DAGPlan dagPB) {
     TezDAGID dagId = new TezDAGID(appAttemptID.getApplicationId(),
         dagCounter.incrementAndGet());
+    
+    // Prepare the TaskAttemptListener server for authentication of Containers
+    // TaskAttemptListener gets the information via jobTokenSecretManager.
+    String dagIdString = dagId.toString().replace("application", "job");
+    jobTokenSecretManager.addTokenForJob(dagIdString, sessionToken);
+    LOG.info("Adding job token for " + dagIdString
+        + " to jobTokenSecretManager");
 
     Iterator<PlanKeyValuePair> iter =
         dagPB.getDagKeyValues().getConfKeyValuesList().iterator();
@@ -477,7 +496,7 @@ public class DAGAppMaster extends AbstractService {
     // create single dag
     DAG newDag =
         new DAGImpl(dagId, dagConf, dagPB, dispatcher.getEventHandler(),
-            taskAttemptListener, jobTokenSecretManager, fsTokens, clock,
+            taskAttemptListener, jobTokenSecretManager, tokens, clock,
             currentUser.getShortUserName(),
             taskHeartbeatHandler, context);
 
@@ -502,11 +521,11 @@ public class DAGAppMaster extends AbstractService {
                     .getAbsolutePath()));
         Path jobTokenFile =
             new Path(jobSubmitDir, TezConfiguration.APPLICATION_TOKENS_FILE);
-        fsTokens.addAll(Credentials.readTokenStorageFile(jobTokenFile, conf));
+        tokens.addAll(Credentials.readTokenStorageFile(jobTokenFile, conf));
         LOG.info("jobSubmitDir=" + jobSubmitDir + " jobTokenFile="
             + jobTokenFile);
 
-        for (Token<? extends TokenIdentifier> tk : fsTokens.getAllTokens()) {
+        for (Token<? extends TokenIdentifier> tk : tokens.getAllTokens()) {
           if (LOG.isDebugEnabled()) {
             LOG.debug("Token of kind " + tk.getKind()
                 + "in current ugi in the AppMaster for service "

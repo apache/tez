@@ -166,6 +166,8 @@ public class Fetcher implements Callable<FetchResult> {
       // with the first map, typically lost map. So, penalize only that map
       // and add the rest
       InputAttemptIdentifier firstAttempt = srcAttempts.get(0);
+      LOG.warn("Fetch Failure from host while connecting: " + host
+          + ", attempt: " + firstAttempt + " Informing ShuffleManager: ", e);
       fetcherCallback.fetchFailed(host, firstAttempt, false);
       remaining.remove(firstAttempt);
       return new FetchResult(host, port, partition, remaining);

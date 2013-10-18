@@ -445,7 +445,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
       InputAttemptIdentifier srcAttemptIdentifier, boolean connectFailed) {
     // TODO NEWTEZ. Implement logic to report fetch failures after a threshold.
     // For now, reporting immediately.
-    LOG.info("Fetch failed for src: " + srcAttemptIdentifier + ", connectFailed: " + connectFailed);
+    LOG.info("Fetch failed for src: " + srcAttemptIdentifier + "InputIdentifier: " + srcAttemptIdentifier + ", connectFailed: " + connectFailed);
     InputReadErrorEvent readError = new InputReadErrorEvent(
         "Fetch failure while fetching from "
             + TezRuntimeUtils.getTaskAttemptIdentifier(

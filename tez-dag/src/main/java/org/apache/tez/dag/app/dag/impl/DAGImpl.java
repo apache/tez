@@ -18,7 +18,6 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,10 +35,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -92,9 +89,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.runtime.library.common.security.JobTokenIdentifier;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
-import org.apache.tez.runtime.library.common.security.TokenCache;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -323,8 +318,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private boolean isUber = false;
   private DAGTerminationCause terminationCause;
   private Credentials credentials;
-  private Token<JobTokenIdentifier> jobToken;
-  private JobTokenSecretManager jobTokenSecretManager;
 
   private long initTime;
   private long startTime;
@@ -358,7 +351,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     this.writeLock = readWriteLock.writeLock();
 
     this.credentials = fsTokenCredentials;
-    this.jobTokenSecretManager = jobTokenSecretManager;
 
     this.aclsManager = new ApplicationACLsManager(conf);
 
@@ -834,51 +826,42 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       // TODO Metrics
       //dag.metrics.submittedJob(dag);
       //dag.metrics.preparingJob(dag);
-      try {
-        setup(dag);
 
-        // If we have no vertices, fail the dag
-        dag.numVertices = dag.getJobPlan().getVertexCount();
-        if (dag.numVertices == 0) {
-          dag.addDiagnostic("No vertices for dag");
-          dag.trySetTerminationCause(DAGTerminationCause.ZERO_VERTICES);
-          dag.abortJob(DAGStatus.State.FAILED);
-          return dag.finished(DAGState.FAILED);
-        }
+      dag.initTime = dag.clock.getTime();
 
-        checkTaskLimits();
-
-        // create the vertices
-        for (int i=0; i < dag.numVertices; ++i) {
-          String vertexName = dag.getJobPlan().getVertex(i).getName();
-          VertexImpl v = createVertex(dag, vertexName, i);
-          dag.addVertex(v);
-        }
-
-        createDAGEdges(dag);
-        Map<String,EdgePlan> edgePlans = DagTypeConverters.createEdgePlanMapFromDAGPlan(dag.getJobPlan().getEdgeList());
-
-        // setup the dag
-        for (Vertex v : dag.vertices.values()) {
-          parseVertexEdges(dag, edgePlans, v);
-        }
-
-        assignDAGScheduler(dag);
-
-        // TODO Metrics
-        //dag.metrics.endPreparingJob(dag);
-        return DAGState.INITED;
-
-      } catch (IOException e) {
-        LOG.warn("Job init failed", e);
-        dag.addDiagnostic("Job init failed : "
-            + StringUtils.stringifyException(e));
-        dag.trySetTerminationCause(DAGTerminationCause.INIT_FAILURE);
+      // If we have no vertices, fail the dag
+      dag.numVertices = dag.getJobPlan().getVertexCount();
+      if (dag.numVertices == 0) {
+        dag.addDiagnostic("No vertices for dag");
+        dag.trySetTerminationCause(DAGTerminationCause.ZERO_VERTICES);
         dag.abortJob(DAGStatus.State.FAILED);
-        // TODO Metrics
-        //dag.metrics.endPreparingJob(dag);
         return dag.finished(DAGState.FAILED);
       }
+
+      checkTaskLimits();
+
+      // create the vertices
+      for (int i=0; i < dag.numVertices; ++i) {
+        String vertexName = dag.getJobPlan().getVertex(i).getName();
+        VertexImpl v = createVertex(dag, vertexName, i);
+        dag.addVertex(v);
+      }
+
+      createDAGEdges(dag);
+      Map<String,EdgePlan> edgePlans = DagTypeConverters.createEdgePlanMapFromDAGPlan(dag.getJobPlan().getEdgeList());
+
+      // setup the dag
+      for (Vertex v : dag.vertices.values()) {
+        parseVertexEdges(dag, edgePlans, v);
+      }
+
+      assignDAGScheduler(dag);
+
+      // TODO Metrics
+      //dag.metrics.endPreparingJob(dag);
+      return DAGState.INITED;
+
+
     }
 
     private void createDAGEdges(DAGImpl dag) {
@@ -980,27 +963,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
       vertex.setInputVertices(inVertices);
       vertex.setOutputVertices(outVertices);
-    }
-
-    protected void setup(DAGImpl job) throws IOException {
-      job.initTime = job.clock.getTime();
-      String dagIdString = job.dagId.toString().replace("application", "job");
-
-      // Prepare the TaskAttemptListener server for authentication of Containers
-      // TaskAttemptListener gets the information via jobTokenSecretManager.
-      JobTokenIdentifier identifier =
-          new JobTokenIdentifier(new Text(dagIdString));
-      job.jobToken =
-          new Token<JobTokenIdentifier>(identifier, job.jobTokenSecretManager);
-      job.jobToken.setService(identifier.getJobId());
-      // Add it to the jobTokenSecretManager so that TaskAttemptListener server
-      // can authenticate containers(tasks)
-      job.jobTokenSecretManager.addTokenForJob(dagIdString, job.jobToken);
-      LOG.info("Adding job token for " + dagIdString
-          + " to jobTokenSecretManager");
-
-      // Populate the jobToken into job credentials.
-      TokenCache.setJobToken(job.jobToken, job.credentials);
     }
 
     /**
