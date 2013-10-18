@@ -92,6 +92,7 @@ public class TestGroupedSplits {
     wrappedFormat.configure(job);
     TezGroupedSplitsInputFormat<LongWritable , Text> format = 
         new TezGroupedSplitsInputFormat<LongWritable, Text>();
+    format.setConf(job);
     format.setDesiredNumberOfSPlits(1);
     format.setInputFormat(wrappedFormat);
     LongWritable key = new LongWritable();
@@ -231,6 +232,7 @@ public class TestGroupedSplits {
     wrappedFormat.configure(job);
     TezGroupedSplitsInputFormat<LongWritable , Text> format = 
         new TezGroupedSplitsInputFormat<LongWritable, Text>();
+    format.setConf(job);
     format.setInputFormat(wrappedFormat);
     
     // TextInputFormat will produce 3 splits
