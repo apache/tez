@@ -60,7 +60,11 @@ public class PipelinedSorter extends ExternalSorter {
   public static final int MAP_OUTPUT_INDEX_RECORD_LENGTH = 24;
 
   private final static int APPROX_HEADER_LENGTH = 150;
-    
+  
+  boolean ifileReadAhead;
+  int ifileReadAheadLength;
+  int ifileBufferSize;
+  
   int partitionBits;
   
   private static final int PARTITION = 0;        // partition offset in acct
@@ -354,7 +358,8 @@ public class PipelinedSorter extends ExternalSorter {
 
         Segment s =
             new Segment(conf, rfs, spillFilename, indexRecord.getStartOffset(),
-                             indexRecord.getPartLength(), codec, true);
+                             indexRecord.getPartLength(), codec, ifileReadAhead,
+                             ifileReadAheadLength, ifileBufferSize, true);
         segmentList.add(i, s);
       }
 
@@ -380,7 +385,7 @@ public class PipelinedSorter extends ExternalSorter {
                            spilledRecordsCounter);
       writer.setRLE(merger.needsRLE());
       if (combiner == null || numSpills < minSpillsForCombine) {
-        TezMerger.writeFile(kvIter, writer, nullProgressable, conf);
+        TezMerger.writeFile(kvIter, writer, nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
       } else {
         runCombineProcessor(kvIter, writer);
       }

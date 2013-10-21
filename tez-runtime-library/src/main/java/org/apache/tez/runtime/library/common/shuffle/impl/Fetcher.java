@@ -41,13 +41,10 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.Decompressor;
-import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.security.ssl.SSLFactory;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.impl.MapOutput.Type;
@@ -90,6 +87,9 @@ class Fetcher extends Thread {
   private volatile boolean stopped = false;
 
   private Configuration job;
+  
+  private final boolean ifileReadAhead;
+  private final int ifileReadAheadLength;
 
   private static boolean sslShuffle;
   private static SSLFactory sslFactory;
@@ -97,7 +97,7 @@ class Fetcher extends Thread {
   public Fetcher(Configuration job, 
       ShuffleScheduler scheduler, MergeManager merger,
       ShuffleClientMetrics metrics,
-      Shuffle shuffle, SecretKey jobTokenSecret, TezInputContext inputContext) throws IOException {
+      Shuffle shuffle, SecretKey jobTokenSecret, boolean ifileReadAhead, int ifileReadAheadLength, CompressionCodec codec, TezInputContext inputContext) throws IOException {
     this.job = job;
     this.scheduler = scheduler;
     this.merger = merger;
@@ -118,14 +118,15 @@ class Fetcher extends Thread {
     wrongReduceErrs = inputContext.getCounters().findCounter(SHUFFLE_ERR_GRP_NAME,
         ShuffleErrors.WRONG_REDUCE.toString());
 
-    if (ConfigUtils.isIntermediateInputCompressed(job)) {
-      Class<? extends CompressionCodec> codecClass =
-          ConfigUtils.getIntermediateInputCompressorClass(job, DefaultCodec.class);
-      codec = ReflectionUtils.newInstance(codecClass, job);
-      decompressor = CodecPool.getDecompressor(codec);
+    this.ifileReadAhead = ifileReadAhead;
+    this.ifileReadAheadLength = ifileReadAheadLength;
+    
+    if (codec != null) {
+      this.codec = codec;
+      this.decompressor = CodecPool.getDecompressor(codec);
     } else {
-      codec = null;
-      decompressor = null;
+      this.codec = null;
+      this.decompressor = null;
     }
 
     this.connectionTimeout = 
@@ -151,8 +152,8 @@ class Fetcher extends Thread {
         }
       }
     }
-  }
-  
+  }  
+
   public void run() {
     try {
       while (!stopped && !Thread.currentThread().isInterrupted()) {
@@ -547,7 +548,7 @@ class Fetcher extends Thread {
                                int decompressedLength, 
                                int compressedLength) throws IOException {    
     IFileInputStream checksumIn = 
-      new IFileInputStream(input, compressedLength, job);
+      new IFileInputStream(input, compressedLength, ifileReadAhead, ifileReadAheadLength);
 
     input = checksumIn;       
   

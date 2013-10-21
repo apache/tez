@@ -69,14 +69,16 @@ public class Fetcher implements Callable<FetchResult> {
   private int connectionTimeout;
   private int readTimeout;
 
+  private boolean ifileReadAhead = TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT;
+  private int ifileReadAheadLength = TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT;
+  
   private final SecretKey shuffleSecret;
-  private final Configuration conf;
 
   private final FetcherCallback fetcherCallback;
   private final FetchedInputAllocator inputManager;
   private final ApplicationId appId;
 
-  private static boolean sslShuffle;
+  private static boolean sslShuffle = false;
   private static SSLFactory sslFactory;
   private static boolean sslFactoryInited;
 
@@ -103,29 +105,29 @@ public class Fetcher implements Callable<FetchResult> {
     this.inputManager = inputManager;
     this.shuffleSecret = shuffleSecret;
     this.appId = appId;
-    this.conf = conf;
     this.pathToAttemptMap = new HashMap<String, InputAttemptIdentifier>();
 
     this.fetcherIdentifier = fetcherIdGen.getAndIncrement();
     
     // TODO NEWTEZ Ideally, move this out from here into a static initializer block.
-    synchronized (Fetcher.class) {
-      if (!sslFactoryInited) {
-        sslFactoryInited = true;
-        sslShuffle = conf.getBoolean(
-            TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
-        if (sslShuffle) {
-          sslFactory = new SSLFactory(SSLFactory.Mode.CLIENT, conf);
-          try {
-            sslFactory.init();
-          } catch (Exception ex) {
-            sslFactory.destroy();
-            throw new RuntimeException(ex);
-          }
-        }
-      }
-    }
+    // Re-enable when ssl shuffle support is needed.
+//    synchronized (Fetcher.class) {
+//      if (!sslFactoryInited) {
+//        sslFactoryInited = true;
+//        sslShuffle = conf.getBoolean(
+//            TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
+//            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
+//        if (sslShuffle) {
+//          sslFactory = new SSLFactory(SSLFactory.Mode.CLIENT, conf);
+//          try {
+//            sslFactory.init();
+//          } catch (Exception ex) {
+//            sslFactory.destroy();
+//            throw new RuntimeException(ex);
+//          }
+//        }
+//      }
+//    }
   }
 
   @Override
@@ -261,9 +263,9 @@ public class Fetcher implements Callable<FetchResult> {
           + fetchedInput.getType());
 
       if (fetchedInput.getType() == Type.MEMORY) {
-        ShuffleUtils.shuffleToMemory(conf, (MemoryFetchedInput) fetchedInput,
+        ShuffleUtils.shuffleToMemory((MemoryFetchedInput) fetchedInput,
             input, (int) decompressedLength, (int) compressedLength, codec,
-            LOG);
+            ifileReadAhead, ifileReadAheadLength, LOG);
       } else {
         ShuffleUtils.shuffleToDisk((DiskFetchedInput) fetchedInput, input,
             compressedLength, LOG);
@@ -497,6 +499,12 @@ public class Fetcher implements Callable<FetchResult> {
         int readTimeout) {
       fetcher.connectionTimeout = connectionTimeout;
       fetcher.readTimeout = readTimeout;
+      return this;
+    }
+    
+    public FetcherBuilder setIFileParams(boolean readAhead, int readAheadBytes) {
+      fetcher.ifileReadAhead = readAhead;
+      fetcher.ifileReadAheadLength = readAheadBytes;
       return this;
     }
 

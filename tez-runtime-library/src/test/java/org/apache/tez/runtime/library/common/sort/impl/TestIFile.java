@@ -96,7 +96,7 @@ public class TestIFile {
     List<KVPair> data = KVDataGen.generateTestData(true);
     writeTestFile(outputPath, false, data);
 
-    IFile.Reader reader = new IFile.Reader(defaultConf, localFs, outputPath, null, null);
+    IFile.Reader reader = new IFile.Reader(localFs, outputPath, null, null, false, 0, -1);
 
     readAndVerify(reader, data);
     reader.close();
@@ -129,7 +129,7 @@ public class TestIFile {
     List<KVPair> data = KVDataGen.generateTestData(true);
     writeTestFile(outputPath, true, data);
 
-    IFile.Reader reader = new IFile.Reader(defaultConf, localFs, outputPath, null, null);
+    IFile.Reader reader = new IFile.Reader(localFs, outputPath, null, null, false, 0, -1);
 
     readAndVerify(reader, data);
     reader.close();

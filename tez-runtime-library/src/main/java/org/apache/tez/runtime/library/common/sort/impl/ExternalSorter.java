@@ -62,7 +62,7 @@ public abstract class ExternalSorter {
   public abstract void flush() throws IOException;
 
   public abstract void write(Object key, Object value) throws IOException;
-
+  
   protected Progressable nullProgressable = new NullProgressable();
   protected TezOutputContext outputContext;
   protected Combiner combiner;
@@ -77,6 +77,10 @@ public abstract class ExternalSorter {
   protected SerializationFactory serializationFactory;
   protected Serializer keySerializer;
   protected Serializer valSerializer;
+  
+  protected boolean ifileReadAhead;
+  protected int ifileReadAheadLength;
+  protected int ifileBufferSize;
 
   protected IndexedSorter sorter;
 
@@ -129,6 +133,20 @@ public abstract class ExternalSorter {
       codec = null;
     }
 
+    this.ifileReadAhead = this.conf.getBoolean(
+        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
+        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT);
+    if (this.ifileReadAhead) {
+      this.ifileReadAheadLength = conf.getInt(
+          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
+          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT);
+    } else {
+      this.ifileReadAheadLength = 0;
+    }
+    this.ifileBufferSize = conf.getInt("io.file.buffer.size",
+        TezJobConfig.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
+
+    
     // Task outputs
     mapOutputFile = TezRuntimeUtils.instantiateTaskOutputManager(conf, outputContext);
     

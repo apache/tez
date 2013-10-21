@@ -26,7 +26,6 @@ import java.nio.ByteBuffer;
 import javax.crypto.SecretKey;
 
 import org.apache.commons.logging.Log;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IOUtils;
@@ -74,12 +73,12 @@ public class ShuffleUtils {
   }
   
   @SuppressWarnings("resource")
-  public static void shuffleToMemory(Configuration conf,
-      MemoryFetchedInput fetchedInput, InputStream input,
-      int decompressedLength, int compressedLength,
-      CompressionCodec codec, Log LOG) throws IOException {
+  public static void shuffleToMemory(MemoryFetchedInput fetchedInput,
+      InputStream input, int decompressedLength, int compressedLength,
+      CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength,
+      Log LOG) throws IOException {
     IFileInputStream checksumIn = new IFileInputStream(input, compressedLength,
-        conf);
+        ifileReadAhead, ifileReadAheadLength);
 
     input = checksumIn;
 

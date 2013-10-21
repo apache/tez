@@ -25,10 +25,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.shuffle.impl.InMemoryReader;
@@ -42,7 +40,6 @@ public class BroadcastKVReader<K, V> implements KeyValueReader {
   private static final Log LOG = LogFactory.getLog(BroadcastKVReader.class);
   
   private final BroadcastShuffleManager shuffleManager;
-  private final Configuration conf;
   private final CompressionCodec codec;
   
   private final Class<K> keyClass;
@@ -52,6 +49,10 @@ public class BroadcastKVReader<K, V> implements KeyValueReader {
   private final DataInputBuffer keyIn;
   private final DataInputBuffer valIn;
 
+  private final boolean ifileReadAhead;
+  private final int ifileReadAheadLength;
+  private final int ifileBufferSize;
+  
   private K key;
   private V value;
   
@@ -60,18 +61,15 @@ public class BroadcastKVReader<K, V> implements KeyValueReader {
   
   private int numRecordsRead = 0;
   
-  public BroadcastKVReader(BroadcastShuffleManager shuffleManager,
-      Configuration conf) throws IOException {
+  public BroadcastKVReader(BroadcastShuffleManager shuffleManager, Configuration conf,
+      CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength, int ifileBufferSize)
+      throws IOException {
     this.shuffleManager = shuffleManager;
-    this.conf = conf;
 
-    if (ConfigUtils.isIntermediateInputCompressed(this.conf)) {
-      Class<? extends CompressionCodec> codecClass = ConfigUtils
-          .getIntermediateInputCompressorClass(conf, DefaultCodec.class);
-      codec = ReflectionUtils.newInstance(codecClass, conf);
-    } else {
-      codec = null;
-    }
+    this.codec = codec;
+    this.ifileReadAhead = ifileReadAhead;
+    this.ifileReadAheadLength = ifileReadAheadLength;
+    this.ifileBufferSize = ifileBufferSize;
 
     this.keyClass = ConfigUtils.getIntermediateInputKeyClass(conf);
     this.valClass = ConfigUtils.getIntermediateInputValueClass(conf);
@@ -182,8 +180,9 @@ public class BroadcastKVReader<K, V> implements KeyValueReader {
       return new InMemoryReader(null, mfi.getInputAttemptIdentifier(),
           mfi.getBytes(), 0, (int) mfi.getSize());
     } else {
-      return new IFile.Reader(conf, fetchedInput.getInputStream(),
-          fetchedInput.getSize(), codec, null);
+      return new IFile.Reader(fetchedInput.getInputStream(),
+          fetchedInput.getSize(), codec, null, ifileReadAhead,
+          ifileReadAheadLength, ifileBufferSize);
     }
   }
 }

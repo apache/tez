@@ -108,6 +108,10 @@ public class MergeManager {
   private final CompressionCodec codec;
   
   private volatile boolean finalMergeComplete = false;
+  
+  private final boolean ifileReadAhead;
+  private final int ifileReadAheadLength;
+  private final int ifileBufferSize;
 
   public MergeManager(Configuration conf, 
                       FileSystem localFS,
@@ -140,6 +144,18 @@ public class MergeManager {
     } else {
       codec = null;
     }
+    this.ifileReadAhead = conf.getBoolean(
+        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
+        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT);
+    if (this.ifileReadAhead) {
+      this.ifileReadAheadLength = conf.getInt(
+          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
+          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT);
+    } else {
+      this.ifileReadAheadLength = 0;
+    }
+    this.ifileBufferSize = conf.getInt("io.file.buffer.size",
+        TezJobConfig.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
 
     final float maxInMemCopyUse =
       conf.getFloat(
@@ -408,7 +424,7 @@ public class MergeManager {
                        new Path(inputContext.getUniqueIdentifier()),
                        (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
                        nullProgressable, null, null, null);
-      TezMerger.writeFile(rIter, writer, nullProgressable, conf);
+      TezMerger.writeFile(rIter, writer, nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
       writer.close();
 
       LOG.info(inputContext.getUniqueIdentifier() +  
@@ -476,7 +492,7 @@ public class MergeManager {
             nullProgressable, spilledRecordsCounter, null, null);
 
         if (null == combiner) {
-          TezMerger.writeFile(rIter, writer, nullProgressable, conf);
+          TezMerger.writeFile(rIter, writer, nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
         } else {
           runCombineProcessor(rIter, writer);
         }
@@ -552,13 +568,13 @@ public class MergeManager {
         iter = TezMerger.merge(conf, rfs,
                             (Class)ConfigUtils.getIntermediateInputKeyClass(conf), 
                             (Class)ConfigUtils.getIntermediateInputValueClass(conf),
-                            codec, inputs.toArray(new Path[inputs.size()]), 
-                            true, ioSortFactor, tmpDir, 
+                            codec, ifileReadAhead, ifileReadAheadLength, ifileBufferSize,
+                            inputs.toArray(new Path[inputs.size()]), true, ioSortFactor, tmpDir, 
                             (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf), 
                             nullProgressable, spilledRecordsCounter, null, 
                             mergedMapOutputsCounter, null);
 
-        TezMerger.writeFile(iter, writer, nullProgressable, conf);
+        TezMerger.writeFile(iter, writer, nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
         writer.close();
       } catch (IOException e) {
         localFS.delete(outputPath, true);
@@ -609,7 +625,8 @@ public class MergeManager {
 
     public RawKVIteratorReader(TezRawKeyValueIterator kvIter, long size)
         throws IOException {
-      super(null, null, size, null, spilledRecordsCounter);
+      super(null, size, null, spilledRecordsCounter, ifileReadAhead,
+          ifileReadAheadLength, ifileBufferSize);
       this.kvIter = kvIter;
     }
     public boolean nextRawKey(DataInputBuffer key) throws IOException {
@@ -698,7 +715,7 @@ public class MergeManager {
         final Writer writer = new Writer(job, fs, outputPath,
             keyClass, valueClass, codec, null);
         try {
-          TezMerger.writeFile(rIter, writer, nullProgressable, job);
+          TezMerger.writeFile(rIter, writer, nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
           // add to list of final disk outputs.
           onDiskMapOutputs.add(outputPath);
         } catch (IOException e) {
@@ -735,7 +752,8 @@ public class MergeManager {
       onDiskBytes += fs.getFileStatus(file).getLen();
       LOG.debug("Disk file: " + file + " Length is " + 
           fs.getFileStatus(file).getLen());
-      diskSegments.add(new Segment(job, fs, file, codec, false,
+      diskSegments.add(new Segment(job, fs, file, codec, ifileReadAhead,
+                                   ifileReadAheadLength, ifileBufferSize, false,
                                          (file.toString().endsWith(
                                              Constants.MERGED_OUTPUT_PREFIX) ?
                                           null : mergedMapOutputsCounter)

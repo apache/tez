@@ -24,7 +24,6 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
@@ -47,18 +46,22 @@ public class BroadcastShuffleInputEventHandler {
 
   private static final Log LOG = LogFactory.getLog(BroadcastShuffleInputEventHandler.class);
   
-  private final Configuration conf;
   private final BroadcastShuffleManager shuffleManager;
   private final FetchedInputAllocator inputAllocator;
   private final CompressionCodec codec;
+  private final boolean ifileReadAhead;
+  private final int ifileReadAheadLength;
   
-  public BroadcastShuffleInputEventHandler(TezInputContext inputContext, Configuration conf,
+  
+  public BroadcastShuffleInputEventHandler(TezInputContext inputContext,
       BroadcastShuffleManager shuffleManager,
-      FetchedInputAllocator inputAllocator, CompressionCodec codec) {
-    this.conf = conf;
+      FetchedInputAllocator inputAllocator, CompressionCodec codec,
+      boolean ifileReadAhead, int ifileReadAheadLength) {
     this.shuffleManager = shuffleManager;
     this.inputAllocator = inputAllocator;
     this.codec = codec;
+    this.ifileReadAhead = ifileReadAhead;
+    this.ifileReadAheadLength = ifileReadAheadLength;
   }
 
   public void handleEvents(List<Event> events) throws IOException {
@@ -117,9 +120,9 @@ public class BroadcastShuffleInputEventHandler {
           .getData().newInput(), dataProto.getCompressedLength(), LOG);
       break;
     case MEMORY:
-      ShuffleUtils.shuffleToMemory(conf, (MemoryFetchedInput) fetchedInput,
+      ShuffleUtils.shuffleToMemory((MemoryFetchedInput) fetchedInput,
           dataProto.getData().newInput(), dataProto.getRawLength(),
-          dataProto.getCompressedLength(), codec, LOG);
+          dataProto.getCompressedLength(), codec, ifileReadAhead, ifileReadAheadLength, LOG);
       break;
     case WAIT:
     default:

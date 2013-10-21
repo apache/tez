@@ -113,6 +113,10 @@ public class BroadcastShuffleManager implements FetcherCallback {
   private final int readTimeout;
   private final CompressionCodec codec;
   
+  private final boolean ifileReadAhead;
+  private final int ifileReadAheadLength;
+  private final int ifileBufferSize;
+  
   private final FetchFutureCallback fetchFutureCallback = new FetchFutureCallback();
   
   private volatile Throwable shuffleError;
@@ -132,8 +136,23 @@ public class BroadcastShuffleManager implements FetcherCallback {
       codec = null;
     }
 
+    this.ifileReadAhead = conf.getBoolean(
+        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
+        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT);
+    if (this.ifileReadAhead) {
+      this.ifileReadAheadLength = conf.getInt(
+          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
+          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT);
+    } else {
+      this.ifileReadAheadLength = 0;
+    }
+    this.ifileBufferSize = conf.getInt("io.file.buffer.size",
+        TezJobConfig.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
+    
     this.inputManager = new BroadcastInputManager(inputContext.getUniqueIdentifier(), conf);
-    this.inputEventHandler = new BroadcastShuffleInputEventHandler(inputContext, this.conf, this, this.inputManager, codec);
+    this.inputEventHandler = new BroadcastShuffleInputEventHandler(
+        inputContext, this, this.inputManager, codec, ifileReadAhead,
+        ifileReadAheadLength);
 
     completedInputSet = Collections.newSetFromMap(new ConcurrentHashMap<InputIdentifier, Boolean>(numInputs));
     completedInputs = new LinkedBlockingQueue<FetchedInput>(numInputs);
@@ -269,6 +288,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
     if (codec != null) {
       fetcherBuilder.setCompressionParameters(codec);
     }
+    fetcherBuilder.setIFileParams(ifileReadAhead, ifileReadAheadLength);
 
     // Remove obsolete inputs from the list being given to the fetcher. Also
     // remove from the obsolete list.
@@ -531,7 +551,11 @@ public class BroadcastShuffleManager implements FetcherCallback {
     return input;
   }
   /////////////////// End of methods for walking the available inputs
-  
+
+  @SuppressWarnings("rawtypes")
+  public BroadcastKVReader craeteReader() throws IOException {
+    return new BroadcastKVReader(this, conf, codec, ifileReadAhead, ifileReadAheadLength, ifileBufferSize);
+  }
   
   /**
    * Fake input that is added to the completed input list in case an input does not have any data.

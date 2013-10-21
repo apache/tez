@@ -58,6 +58,10 @@ public class LocalShuffle {
   private final TezCounter spilledRecordsCounter;
   private final CompressionCodec codec;
   private final TezTaskOutput mapOutputFile;
+  
+  private final boolean ifileReadAhead;
+  private final int ifileReadAheadLength;
+  private final int ifileBufferSize;
 
   public LocalShuffle(TezInputContext inputContext, Configuration conf, int numInputs) throws IOException {
     this.inputContext = inputContext;
@@ -85,6 +89,18 @@ public class LocalShuffle {
     } else {
       this.codec = null;
     }
+    this.ifileReadAhead = conf.getBoolean(
+        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
+        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT);
+    if (this.ifileReadAhead) {
+      this.ifileReadAheadLength = conf.getInt(
+          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
+          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT);
+    } else {
+      this.ifileReadAheadLength = 0;
+    }
+    this.ifileBufferSize = conf.getInt("io.file.buffer.size",
+        TezJobConfig.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
     
     // Always local
     this.mapOutputFile = new TezLocalTaskOutputFiles(conf, inputContext.getUniqueIdentifier());
@@ -99,6 +115,7 @@ public class LocalShuffle {
     return TezMerger.merge(conf, rfs, 
         keyClass, valClass,
         codec, 
+        ifileReadAhead, ifileReadAheadLength, ifileBufferSize,
         getMapFiles(),
         false, 
         sortFactor,

@@ -28,14 +28,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ChecksumException;
 import org.apache.hadoop.fs.HasFileDescriptor;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.ReadaheadPool;
 import org.apache.hadoop.io.ReadaheadPool.ReadaheadRequest;
 import org.apache.hadoop.util.DataChecksum;
-import org.apache.tez.common.TezJobConfig;
 /**
  * A checksum input stream, used for IFiles.
  * Used to validate the checksum of files created by {@link IFileOutputStream}. 
@@ -58,21 +56,31 @@ public class IFileInputStream extends InputStream {
 
   private ReadaheadRequest curReadahead = null;
   private ReadaheadPool raPool = ReadaheadPool.getInstance();
-  private boolean readahead;
-  private int readaheadLength;
+  private final boolean readahead;
+  private final int readaheadLength;
 
   public static final Log LOG = LogFactory.getLog(IFileInputStream.class);
 
   private boolean disableChecksumValidation = false;
   
   /**
+   * Create a checksum input stream that reads without readAhead.
+   * @param in
+   * @param len
+   */
+  public IFileInputStream(InputStream in, long len) {
+    this(in, len, false, 0);
+  }
+  
+  /**
    * Create a checksum input stream that reads
    * @param in The input stream to be verified for checksum.
    * @param len The length of the input stream including checksum bytes.
+   * @param readAhead Whether to attempt readAhead for this stream
+   * @param readAheadLength Number of bytes to readAhead if it is enabled
    */
-  public IFileInputStream(InputStream in, long len, Configuration conf) {
+  public IFileInputStream(InputStream in, long len, boolean readAhead, int readAheadLength) {
     this.in = in;
-    this.inFd = getFileDescriptorIfAvail(in);
     sum = DataChecksum.newDataChecksum(DataChecksum.Type.CRC32, 
         Integer.MAX_VALUE);
     checksumSize = sum.getChecksumSize();
@@ -81,13 +89,15 @@ public class IFileInputStream extends InputStream {
     length = len;
     dataLength = length - checksumSize;
 
-    conf = (conf != null) ? conf : new Configuration();
-    readahead = conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
-        TezJobConfig.DEFAULT_TEZ_RUNTIME_IFILE_READAHEAD);
-    readaheadLength = conf.getInt(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
-        TezJobConfig.DEFAULT_TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
+    readahead = readAhead;
+    readaheadLength = readAheadLength;
 
-    doReadahead();
+    if (readahead) {
+      this.inFd = getFileDescriptorIfAvail(in);
+      doReadahead();
+    } else {
+      this.inFd = null;
+    }
   }
 
   private static FileDescriptor getFileDescriptorIfAvail(InputStream in) {

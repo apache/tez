@@ -50,7 +50,6 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   public ShuffledUnorderedKVInput() {
   }
 
-  @SuppressWarnings("rawtypes")
   @Override
   public List<Event> initialize(TezInputContext inputContext) throws Exception {
     Preconditions.checkArgument(numInputs != -1, "Number of Inputs has not been set");
@@ -59,7 +58,7 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
     
     this.shuffleManager = new BroadcastShuffleManager(inputContext, conf, numInputs);
     this.shuffleManager.run();
-    this.kvReader = new BroadcastKVReader(shuffleManager, conf);
+    this.kvReader = this.shuffleManager.craeteReader();
     return null;
   }
 

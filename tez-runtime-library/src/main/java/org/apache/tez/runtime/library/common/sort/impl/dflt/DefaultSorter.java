@@ -113,7 +113,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   @Override
   public void initialize(TezOutputContext outputContext, Configuration conf, int numOutputs) throws IOException { 
     super.initialize(outputContext, conf, numOutputs);
-
+    
     // sanity checks
     final float spillper = this.conf.getFloat(
         TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT,
@@ -1051,7 +1051,8 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
 
           Segment s =
             new Segment(conf, rfs, filename[i], indexRecord.getStartOffset(),
-                             indexRecord.getPartLength(), codec, true);
+                             indexRecord.getPartLength(), codec, ifileReadAhead,
+                             ifileReadAheadLength, ifileBufferSize, true);
           segmentList.add(i, s);
 
           if (LOG.isDebugEnabled()) {
@@ -1084,7 +1085,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
                 spilledRecordsCounter);
         if (combiner == null || numSpills < minSpillsForCombine) {
           TezMerger.writeFile(kvIter, writer,
-              nullProgressable, conf);
+              nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
         } else {
           runCombineProcessor(kvIter, writer);
         }

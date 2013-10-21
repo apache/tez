@@ -44,16 +44,21 @@ public class TezJobConfig {
    */
   public static final String TEZ_RUNTIME_IFILE_READAHEAD =
       "tez.runtime.ifile.readahead";
-  public static final boolean DEFAULT_TEZ_RUNTIME_IFILE_READAHEAD = true;
+  public static final boolean TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT = true;
 
   /**
    * Configuration key to set the IFile readahead length in bytes.
    */
   public static final String TEZ_RUNTIME_IFILE_READAHEAD_BYTES =
       "tez.runtime.ifile.readahead.bytes";
-  public static final int DEFAULT_TEZ_RUNTIME_IFILE_READAHEAD_BYTES =
+  public static final int TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT =
       4 * 1024 * 1024;
 
+  /**
+   * TODO Maybe move this over from IFile into this file. -1 for now means ignore.
+   */
+  public static final int TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT = -1;
+  
   /**
    * 
    */

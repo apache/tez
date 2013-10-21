@@ -378,12 +378,13 @@ public class IFile {
      * @param readsCounter Counter for records read from disk
      * @throws IOException
      */
-    public Reader(Configuration conf, FileSystem fs, Path file,
+    public Reader(FileSystem fs, Path file,
                   CompressionCodec codec,
-                  TezCounter readsCounter) throws IOException {
-      this(conf, fs.open(file), 
+                  TezCounter readsCounter, boolean ifileReadAhead,
+                  int ifileReadAheadLength, int bufferSize) throws IOException {
+      this(fs.open(file), 
            fs.getFileStatus(file).getLen(),
-           codec, readsCounter);
+           codec, readsCounter, ifileReadAhead, ifileReadAheadLength, bufferSize);
     }
 
     /**
@@ -397,11 +398,13 @@ public class IFile {
      * @param readsCounter Counter for records read from disk
      * @throws IOException
      */
-    public Reader(Configuration conf, InputStream in, long length, 
+    public Reader(InputStream in, long length, 
                   CompressionCodec codec,
-                  TezCounter readsCounter) throws IOException {
+                  TezCounter readsCounter,
+                  boolean readAhead, int readAheadLength,
+                  int bufferSize) throws IOException {
       readRecordsCounter = readsCounter;
-      checksumIn = new IFileInputStream(in,length, conf);
+      checksumIn = new IFileInputStream(in,length, readAhead, readAheadLength);
       if (codec != null) {
         decompressor = CodecPool.getDecompressor(codec);
         if (decompressor != null) {
@@ -416,8 +419,8 @@ public class IFile {
       this.dataIn = new DataInputStream(this.in);
       this.fileLength = length;
       
-      if (conf != null) {
-        bufferSize = conf.getInt("io.file.buffer.size", DEFAULT_BUFFER_SIZE);
+      if (bufferSize != -1) {
+        this.bufferSize = bufferSize;
       }
     }
     
