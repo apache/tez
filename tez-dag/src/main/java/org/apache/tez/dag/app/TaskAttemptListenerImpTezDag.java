@@ -206,8 +206,10 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
           task = TASK_FOR_INVALID_JVM; // i.e. ask the child to die.
         } else {
           if (taskContext.getTask() == null) {
-            LOG.info("No task currently assigned to Container with id: "
-                + containerId);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("No task currently assigned to Container with id: "
+                  + containerId);
+            }
           } else {
             registerTaskAttempt(taskContext.getTask().getTaskAttemptID(),
                 containerId);

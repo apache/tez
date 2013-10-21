@@ -316,15 +316,9 @@ public class TaskSchedulerEventHandler extends AbstractService
 
 
   protected TaskScheduler createTaskScheduler(String host, int port,
-      String trackingUrl, boolean isSession) {
+      String trackingUrl, AppContext appContext) {
     return new TaskScheduler(this, createContainerSignatureMatcher(),
-      host, port, trackingUrl, isSession);
-  }
-
-  protected TaskScheduler createTaskScheduler(String host, int port,
-      String trackingUrl) {
-    return new TaskScheduler(this, createContainerSignatureMatcher(),
-      host, port, trackingUrl, false);
+      host, port, trackingUrl, appContext);
   }
 
   @Override
@@ -334,7 +328,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     InetSocketAddress serviceAddr = clientService.getBindAddress();
     dagAppMaster = appContext.getAppMaster();
     taskScheduler = createTaskScheduler(serviceAddr.getHostName(),
-        serviceAddr.getPort(), "", dagAppMaster.isSession());
+        serviceAddr.getPort(), "", appContext);
     taskScheduler.init(getConfig());
     taskScheduler.start();
     this.eventHandlingThread = new Thread("TaskSchedulerEventHandlerThread") {
@@ -499,6 +493,8 @@ public class TaskSchedulerEventHandler extends AbstractService
     return new AppFinalStatus(finishState, sb.toString(), historyUrl);
   }
 
+
+
   // Not synchronized to avoid deadlocks from TaskScheduler callbacks.
   // TaskScheduler uses a separate thread for it's callbacks. Since this method
   // returns a value which is required, the TaskScheduler wait for the call to
@@ -514,4 +510,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.INTERNAL_ERROR));
   }
 
+  public void dagCompleted() {
+    taskScheduler.resetMatchLocalityForAllHeldContainers();
+  }
 }

@@ -183,21 +183,30 @@ public class TezConfiguration extends Configuration {
    * Whether to reuse containers for rack local tasks. Active only if reuse is
    * enabled.
    */
-  public static final String TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED = TEZ_AM_PREFIX
-      + "container.reuse.rack-fallback.enabled";
-  public static final boolean TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED_DEFAULT = true;
+  public static final String TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED =
+      TEZ_AM_PREFIX + "container.reuse.rack-fallback.enabled";
+  public static final boolean
+      TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED_DEFAULT = true;
 
   /**
    * Whether to reuse containers for non-local tasks. Active only if reuse is
    * enabled.
    */
-  public static final String TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED = TEZ_AM_PREFIX
-      + "container.reuse.non-local-fallback.enabled";
-  public static final boolean TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED_DEFAULT = false;
+  public static final String TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED =
+      TEZ_AM_PREFIX + "container.reuse.non-local-fallback.enabled";
+  public static final boolean
+      TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED_DEFAULT = false;
 
-  public static final String TEZ_AM_CONTAINER_REUSE_DELAY_ALLOCATION_MILLIS = TEZ_AM_PREFIX
-      + "container.reuse.delay-allocation-millis";
-  public static final long TEZ_AM_CONTAINER_REUSE_DELAY_ALLOCATION_MILLIS_DEFAULT = 3000l;
+  public static final String
+      TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS =
+      TEZ_AM_PREFIX + "container.reuse.locality.delay-allocation-millis";
+  public static final long
+    TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS_DEFAULT = 1000l;
+
+  public static final String TEZ_AM_CONTAINER_SESSION_DELAY_ALLOCATION_MILLIS =
+    TEZ_AM_PREFIX + "container.session.delay-allocation-millis";
+  public static final long
+    TEZ_AM_CONTAINER_SESSION_DELAY_ALLOCATION_MILLIS_DEFAULT = 10000l;
 
   public static final String TEZ_PB_BINARY_CONF_NAME = "tez-conf.pb";
   public static final String TEZ_PB_PLAN_BINARY_NAME = "tez-dag.pb";

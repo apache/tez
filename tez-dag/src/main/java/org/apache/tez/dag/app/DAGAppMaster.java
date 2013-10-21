@@ -404,6 +404,7 @@ public class DAGAppMaster extends AbstractService {
         if (!state.equals(DAGAppMasterState.ERROR)) {
           if (!sessionStopped.get()) {
             LOG.info("Waiting for next DAG to be submitted.");
+            taskSchedulerEventHandler.dagCompleted();
             state = DAGAppMasterState.IDLE;
           } else {
             LOG.info("Session shutting down now.");
@@ -910,6 +911,16 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public Map<String, LocalResource> getSessionResources() {
       return sessionResources;
+    }
+
+    @Override
+    public boolean isSession() {
+      return isSession;
+    }
+
+    @Override
+    public DAGAppMasterState getAMState() {
+      return state;
     }
 
     @Override

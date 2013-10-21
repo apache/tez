@@ -124,9 +124,10 @@ class TestTaskSchedulerHelpers {
 
     @Override
     public TaskScheduler createTaskScheduler(String host, int port,
-        String trackingUrl) {
+        String trackingUrl, AppContext appContext) {
       return new TaskSchedulerWithDrainableAppCallback(this,
-          containerSignatureMatcher, host, port, trackingUrl, amrmClientAsync);
+          containerSignatureMatcher, host, port, trackingUrl, amrmClientAsync,
+          appContext);
     }
 
     public TaskScheduler getSpyTaskScheduler() {
@@ -135,7 +136,8 @@ class TestTaskSchedulerHelpers {
 
     @Override
     public void serviceStart() {
-      TaskScheduler taskSchedulerReal = createTaskScheduler("host", 0, "");
+      TaskScheduler taskSchedulerReal = createTaskScheduler("host", 0, "",
+        appContext);
       // Init the service so that reuse configuration is picked up.
       taskSchedulerReal.serviceInit(getConfig());
       taskSchedulerReal.serviceStart();
@@ -184,18 +186,20 @@ class TestTaskSchedulerHelpers {
     public TaskSchedulerWithDrainableAppCallback(
         TaskSchedulerAppCallback appClient,
         ContainerSignatureMatcher containerSignatureMatcher,
-        String appHostName, int appHostPort, String appTrackingUrl) {
+        String appHostName, int appHostPort, String appTrackingUrl,
+        AppContext appContext) {
       super(appClient, containerSignatureMatcher, appHostName, appHostPort,
-          appTrackingUrl, false);
+          appTrackingUrl, appContext);
     }
 
     public TaskSchedulerWithDrainableAppCallback(
         TaskSchedulerAppCallback appClient,
         ContainerSignatureMatcher containerSignatureMatcher,
         String appHostName, int appHostPort, String appTrackingUrl,
-        TezAMRMClientAsync<CookieContainerRequest> client) {
+        TezAMRMClientAsync<CookieContainerRequest> client,
+        AppContext appContext) {
       super(appClient, containerSignatureMatcher, appHostName, appHostPort,
-          appTrackingUrl, client, false);
+          appTrackingUrl, client, appContext);
     }
 
     @Override

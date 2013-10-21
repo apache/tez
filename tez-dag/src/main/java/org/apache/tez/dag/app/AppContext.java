@@ -78,4 +78,7 @@ public interface AppContext {
 
   Map<String, LocalResource> getSessionResources();
 
+  boolean isSession();
+
+  DAGAppMasterState getAMState();
 }
