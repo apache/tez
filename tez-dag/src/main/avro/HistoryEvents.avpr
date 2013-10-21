@@ -96,7 +96,10 @@
       "fields": [
           {"name": "vertexName", "type": "string"},
           {"name": "vertexId", "type": "string"},
-          {"name": "startTime", "type": "long"},
+          {"name": "initRequestedTime", "type": "long"},
+          {"name": "initedTime", "type": "long"},
+          {"name": "startRequestedTime", "type": "long"},
+          {"name": "startedTime", "type": "long"},
           {"name": "finishTime", "type": "long"},
           {"name": "status", "type": "string"},
           {"name": "diagnostics", "type": "string"},
