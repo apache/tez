@@ -41,12 +41,16 @@ import org.apache.hadoop.classification.InterfaceStability;
 @InterfaceStability.Stable
 public class TezVertexID extends TezID {
   public static final String VERTEX = "vertex";
-  protected static final NumberFormat idFormat =
-      NumberFormat.getInstance();
-  static {
-    idFormat.setGroupingUsed(false);
-    idFormat.setMinimumIntegerDigits(2);
-  }
+  protected static final ThreadLocal<NumberFormat> idFormat = new ThreadLocal<NumberFormat>() {
+
+    @Override
+    public NumberFormat initialValue() {
+      NumberFormat fmt = NumberFormat.getInstance();
+      fmt.setGroupingUsed(false);
+      fmt.setMinimumIntegerDigits(2);
+      return fmt;
+    }
+  };
 
   private TezDAGID dagId;
 
@@ -114,7 +118,7 @@ public class TezVertexID extends TezID {
   protected StringBuilder appendTo(StringBuilder builder) {
     return dagId.appendTo(builder).
         append(SEPARATOR).
-        append(idFormat.format(id));
+        append(idFormat.get().format(id));
   }
 
   @Override

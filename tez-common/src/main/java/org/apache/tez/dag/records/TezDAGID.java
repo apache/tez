@@ -103,17 +103,25 @@ public class TezDAGID extends TezID {
 
   // DO NOT CHANGE THIS. DAGClient replicates this code to create DAG id string
   public static final String DAG = "dag";
-  protected static final NumberFormat tezAppIdFormat =
-      NumberFormat.getInstance();
-  protected static final NumberFormat tezDagIdFormat =
-      NumberFormat.getInstance();
-
-  static {
-    tezAppIdFormat.setGroupingUsed(false);
-    tezAppIdFormat.setMinimumIntegerDigits(4);
-    tezDagIdFormat.setGroupingUsed(false);
-    tezDagIdFormat.setMinimumIntegerDigits(1);
-  }
+  protected static final ThreadLocal<NumberFormat> tezAppIdFormat = new ThreadLocal<NumberFormat>() {
+    @Override
+    public NumberFormat initialValue() {
+      NumberFormat fmt = NumberFormat.getInstance();
+      fmt.setGroupingUsed(false);
+      fmt.setMinimumIntegerDigits(4);
+      return fmt;
+    }
+  };
+  
+  protected static final ThreadLocal<NumberFormat> tezDagIdFormat = new ThreadLocal<NumberFormat>() {
+    @Override
+    public NumberFormat initialValue() {
+      NumberFormat fmt = NumberFormat.getInstance();
+      fmt.setGroupingUsed(false);
+      fmt.setMinimumIntegerDigits(1);
+      return fmt;
+    }
+  };
 
   @Override
   public String toString() {
@@ -124,9 +132,9 @@ public class TezDAGID extends TezID {
     try {
       String[] split = dagId.split("_");
       String rmId = split[1];
-      int appId = tezAppIdFormat.parse(split[2]).intValue();
+      int appId = tezAppIdFormat.get().parse(split[2]).intValue();
       int id;
-      id = tezDagIdFormat.parse(split[3]).intValue();
+      id = tezDagIdFormat.get().parse(split[3]).intValue();
       return new TezDAGID(rmId, appId, id);
     } catch (Exception e) {
       e.printStackTrace();
@@ -143,9 +151,9 @@ public class TezDAGID extends TezID {
     return builder.append(SEPARATOR).
                  append(applicationId.getClusterTimestamp()).
                  append(SEPARATOR).
-                 append(tezAppIdFormat.format(applicationId.getId())).
+                 append(tezAppIdFormat.get().format(applicationId.getId())).
                  append(SEPARATOR).
-                 append(tezDagIdFormat.format(id));
+                 append(tezDagIdFormat.get().format(id));
   }
 
   @Override

@@ -40,12 +40,16 @@ import org.apache.tez.dag.records.TezVertexID;
 @InterfaceStability.Stable
 public class TezTaskID extends TezID {
   public static final String TASK = "task";
-  protected static final NumberFormat idFormat =
-      NumberFormat.getInstance();
-  static {
-    idFormat.setGroupingUsed(false);
-    idFormat.setMinimumIntegerDigits(6);
-  }
+  
+  protected static final ThreadLocal<NumberFormat> idFormat = new ThreadLocal<NumberFormat>() {
+    @Override
+    public NumberFormat initialValue() {
+      NumberFormat fmt = NumberFormat.getInstance();
+      fmt.setGroupingUsed(false);
+      fmt.setMinimumIntegerDigits(6);
+      return fmt;
+    }
+  };
 
   private TezVertexID vertexId;
 
@@ -104,7 +108,7 @@ public class TezTaskID extends TezID {
   protected StringBuilder appendTo(StringBuilder builder) {
     return vertexId.appendTo(builder).
                  append(SEPARATOR).
-                 append(idFormat.format(id));
+                 append(idFormat.get().format(id));
   }
 
   @Override

@@ -126,11 +126,15 @@ public class TezClient {
   // DO NOT CHANGE THIS. This code is replicated from TezDAGID.java
   private static final char SEPARATOR = '_';
   private static final String DAG = "dag";
-  private static final NumberFormat idFormat = NumberFormat.getInstance();
-  static {
-    idFormat.setGroupingUsed(false);
-    idFormat.setMinimumIntegerDigits(6);
-  }
+  private static final ThreadLocal<NumberFormat> idFormat = new ThreadLocal<NumberFormat>() {
+    @Override
+    public NumberFormat initialValue() {
+      NumberFormat fmt = NumberFormat.getInstance();
+      fmt.setGroupingUsed(false);
+      fmt.setMinimumIntegerDigits(6);
+      return fmt;
+    }
+  };
 
   String getDefaultTezDAGID(ApplicationId appId) {
      return (new StringBuilder(DAG)).append(SEPARATOR).
@@ -138,7 +142,7 @@ public class TezClient {
                    append(SEPARATOR).
                    append(appId.getId()).
                    append(SEPARATOR).
-                   append(idFormat.format(1)).toString();
+                   append(idFormat.get().format(1)).toString();
   }
 
 }
