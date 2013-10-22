@@ -18,8 +18,15 @@
 
 package org.apache.tez.dag.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+
 public class ProcessorDescriptor extends TezEntityDescriptor {
 
+  @Private // for Writable
+  public ProcessorDescriptor() {
+    super();
+  }
+  
   public ProcessorDescriptor(String processorClassName) {
     super(processorClassName);
   }

@@ -18,11 +18,23 @@
 
 package org.apache.tez.dag.api;
 
-public abstract class TezEntityDescriptor {
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
+
+public abstract class TezEntityDescriptor implements Writable {
 
   protected byte[] userPayload;
   private String className;
 
+  @Private // for Writable
+  public TezEntityDescriptor() {
+  }
+  
   public TezEntityDescriptor(String className) {
     this.className = className;
   }
@@ -38,5 +50,26 @@ public abstract class TezEntityDescriptor {
 
   public String getClassName() {
     return this.className;
+  }
+  
+  @Override
+  public void write(DataOutput out) throws IOException {
+    Text.writeString(out, className);
+    if (userPayload == null) {
+      out.writeInt(-1);
+    } else {
+      out.writeInt(userPayload.length);
+      out.write(userPayload);
+    }
+  }
+
+  @Override
+  public void readFields(DataInput in) throws IOException {
+    this.className = Text.readString(in);
+    int payloadLength = in.readInt();
+    if (payloadLength != -1) {
+      userPayload = new byte[payloadLength];
+      in.readFully(userPayload);
+    }
   }
 }

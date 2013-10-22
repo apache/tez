@@ -18,8 +18,15 @@
 
 package org.apache.tez.dag.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+
 public class OutputDescriptor extends TezEntityDescriptor {
 
+  @Private // for Writable
+  public OutputDescriptor() {
+    super();
+  }
+  
   public OutputDescriptor(String outputClassName) {
     super(outputClassName);
   }

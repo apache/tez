@@ -775,6 +775,10 @@ public class DAGAppMaster extends AbstractService {
         throw new TezException("No running dag at present");
       }
       if(!dagId.equals(currentDAG.getID())) {
+        LOG.warn("Current DAGID : "
+            + (currentDAG.getID() == null ? "NULL" : currentDAG.getID())
+            + ", Looking for string (not found): " + dagIdStr + ", dagIdObj: "
+            + dagId);
         throw new TezException("Unknown dagId: " + dagIdStr);
       }
 

@@ -24,9 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.io.Writable;
-import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class TaskSpec implements Writable {
@@ -81,10 +79,7 @@ public class TaskSpec implements Writable {
   public void write(DataOutput out) throws IOException {
     taskAttemptId.write(out);
     out.writeUTF(vertexName);
-    byte[] procDesc =
-        DagTypeConverters.convertToDAGPlan(processorDescriptor).toByteArray();
-    out.writeInt(procDesc.length);
-    out.write(procDesc);
+    processorDescriptor.write(out);
     out.writeInt(inputSpecList.size());
     for (InputSpec inputSpec : inputSpecList) {
       inputSpec.write(out);
@@ -100,14 +95,9 @@ public class TaskSpec implements Writable {
     taskAttemptId = new TezTaskAttemptID();
     taskAttemptId.readFields(in);
     vertexName = in.readUTF();
-    int procDescLength = in.readInt();
-    // TODO at least 3 buffer copies here. Need to convert this to full PB
-    // TEZ-305
-    byte[] procDescBytes = new byte[procDescLength];
-    in.readFully(procDescBytes);
-    processorDescriptor =
-        DagTypeConverters.convertProcessorDescriptorFromDAGPlan(
-            TezEntityDescriptorProto.parseFrom(procDescBytes));
+    // TODO TEZ-305 convert this to PB
+    processorDescriptor = new ProcessorDescriptor();
+    processorDescriptor.readFields(in);
     int numInputSpecs = in.readInt();
     inputSpecList = new ArrayList<InputSpec>(numInputSpecs);
     for (int i = 0; i < numInputSpecs; i++) {

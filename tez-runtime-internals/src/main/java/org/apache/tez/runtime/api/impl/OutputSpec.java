@@ -23,9 +23,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
-import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.OutputDescriptor;
-import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 
 public class OutputSpec implements Writable {
 
@@ -57,25 +55,18 @@ public class OutputSpec implements Writable {
 
   @Override
   public void write(DataOutput out) throws IOException {
-    // TODONEWTEZ convert to PB
+    // TODO TEZ-305 convert this to PB
     out.writeUTF(destinationVertexName);
     out.writeInt(physicalEdgeCount);
-    byte[] inputDescBytes =
-        DagTypeConverters.convertToDAGPlan(outputDescriptor).toByteArray();
-    out.writeInt(inputDescBytes.length);
-    out.write(inputDescBytes);
+    outputDescriptor.write(out);
   }
 
   @Override
   public void readFields(DataInput in) throws IOException {
     destinationVertexName = in.readUTF();
     physicalEdgeCount = in.readInt();
-    int inputDescLen = in.readInt();
-    byte[] inputDescBytes = new byte[inputDescLen];
-    in.readFully(inputDescBytes);
-    outputDescriptor =
-        DagTypeConverters.convertOutputDescriptorFromDAGPlan(
-            TezEntityDescriptorProto.parseFrom(inputDescBytes));
+    outputDescriptor = new OutputDescriptor();
+    outputDescriptor.readFields(in);
   }
 
   public String toString() {
