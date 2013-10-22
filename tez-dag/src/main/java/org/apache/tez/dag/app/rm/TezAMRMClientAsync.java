@@ -22,11 +22,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.collect.SortedMultiset;
-import com.google.common.collect.TreeMultiset;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
@@ -35,7 +38,23 @@ import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 
 public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAsyncImpl<T> {
 
-  private SortedMultiset<Priority> knownPriorities = TreeMultiset.create();
+  private static final Log LOG = LogFactory.getLog(TezAMRMClientAsync.class);
+
+  /**
+   * Used to track the type of requests at a given priority.
+   */
+  private static class LocalityRequestCounter {
+    final AtomicInteger localityRequests;
+    final AtomicInteger noLocalityRequests;
+
+    public LocalityRequestCounter() {
+      this.localityRequests = new AtomicInteger(0);
+      this.noLocalityRequests = new AtomicInteger(0);
+    }
+  }
+
+  private TreeMap<Priority, LocalityRequestCounter> knownRequestsByPriority =
+    new TreeMap<Priority, LocalityRequestCounter>();
 
   public static <T extends ContainerRequest> TezAMRMClientAsync<T> createAMRMClientAsync(
       int intervalMs, CallbackHandler callbackHandler) {
@@ -56,13 +75,36 @@ public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAs
   @Override
   public synchronized void addContainerRequest(T req) {
     super.addContainerRequest(req);
-    knownPriorities.add(req.getPriority());
+    boolean hasLocality = (req.getNodes() != null && !req.getNodes().isEmpty())
+      || (req.getRacks() != null && !req.getRacks().isEmpty());
+    LocalityRequestCounter lrc = knownRequestsByPriority.get(req.getPriority());
+    if (lrc == null) {
+      lrc = new LocalityRequestCounter();
+      knownRequestsByPriority.put(req.getPriority(), lrc);
+    }
+    if (hasLocality) {
+      lrc.localityRequests.incrementAndGet();
+    } else {
+      lrc.noLocalityRequests.incrementAndGet();
+    }
   }
 
   @Override
   public synchronized void removeContainerRequest(T req) {
     super.removeContainerRequest(req);
-    knownPriorities.remove(req.getPriority());
+    boolean hasLocality = (req.getNodes() != null && !req.getNodes().isEmpty())
+      || (req.getRacks() != null && !req.getRacks().isEmpty());
+    LocalityRequestCounter lrc = knownRequestsByPriority.get(
+      req.getPriority());
+    if (hasLocality) {
+      lrc.localityRequests.decrementAndGet();
+    } else {
+      lrc.noLocalityRequests.decrementAndGet();
+    }
+    if (lrc.localityRequests.get() == 0
+        && lrc.noLocalityRequests.get() == 0) {
+      knownRequestsByPriority.remove(req.getPriority());
+    }
   }
 
   public synchronized List<? extends Collection<T>>
@@ -70,12 +112,28 @@ public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAs
         String resourceName, Resource capability) {
     // Sort based on reverse order. By default, Priority ordering is based on
     // highest numeric value being considered to be lowest priority.
-    Iterator<Priority> iter = knownPriorities.descendingMultiset().iterator();
+    Iterator<Priority> iter =
+      knownRequestsByPriority.descendingKeySet().iterator();
     if (!iter.hasNext()) {
       return Collections.emptyList();
     }
+    Priority p = iter.next();
+    LocalityRequestCounter lrc = knownRequestsByPriority.get(p);
+    if (lrc.localityRequests.get() == 0) {
+      // Fallback to ANY if there are no pending requests that require
+      // locality matching
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Over-ridding location request for matching containers as"
+          + " there are no pending requests that require locality at this"
+          + " priority"
+          + ", priority=" + p
+          + ", localityRequests=" + lrc.localityRequests
+          + ", noLocalityRequests=" + lrc.noLocalityRequests);
+      }
+      resourceName = ResourceRequest.ANY;
+    }
     List<? extends Collection<T>> matched =
-      getMatchingRequests(iter.next(), resourceName, capability);
+      getMatchingRequests(p, resourceName, capability);
     if (matched != null && !matched.isEmpty()) {
       return matched;
     }

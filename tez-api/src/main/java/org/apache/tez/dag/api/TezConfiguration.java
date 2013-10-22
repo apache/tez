@@ -226,10 +226,8 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_LIB_URIS =
       TEZ_PREFIX + "lib.uris";
 
-  public static final String TEZ_APPLICATION_TYPE = "TEZ-MR*";
+  public static final String TEZ_APPLICATION_TYPE = "TEZ";
 
-  public static final String LOCAL_FRAMEWORK_NAME = "local-tez";
-  
   public static final String TEZ_AM_GROUPING_SPLIT_COUNT = TEZ_AM_PREFIX +
       "grouping.split-count";
   

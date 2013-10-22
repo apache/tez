@@ -507,7 +507,7 @@ public class TestContainerReuse {
 
     Resource resource1 = Resource.newInstance(1024, 1);
     String [] emptyHosts = new String[0];
-    String [] emptyRacks = new String[0];
+    String [] racks = { "default-rack" };
 
     Priority priority = Priority.newInstance(3);
 
@@ -518,14 +518,14 @@ public class TestContainerReuse {
     TaskAttempt ta11 = mock(TaskAttempt.class);
     doReturn(vertexID).when(ta11).getVertexID();
     AMSchedulerEventTALaunchRequest lrEvent11 = createLaunchRequestEvent(
-      taID11, ta11, resource1, emptyHosts, emptyRacks, priority);
+      taID11, ta11, resource1, emptyHosts, racks, priority);
 
     //Vertex1, Task2, Attempt 1,  no locality information.
     TezTaskAttemptID taID12 = new TezTaskAttemptID(new TezTaskID(vertexID, 2), 1);
     TaskAttempt ta12 = mock(TaskAttempt.class);
     doReturn(vertexID).when(ta12).getVertexID();
     AMSchedulerEventTALaunchRequest lrEvent12 = createLaunchRequestEvent(
-      taID12, ta12, resource1, emptyHosts, emptyRacks, priority);
+      taID12, ta12, resource1, emptyHosts, racks, priority);
 
     // Send launch request for task 1 only, deterministic assignment to this task.
     taskSchedulerEventHandler.handleEvent(lrEvent11);
