@@ -279,6 +279,54 @@ public class TestDAGVerify {
     Assert.assertTrue(ex.getMessage().startsWith("Vertex v1 already defined"));
   }
   
+  @Test (expected = IllegalStateException.class)
+  public void testInputAndInputVertexNameCollision() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    
+    v2.addInput("v1", new InputDescriptor(), null);
+    
+    Edge e1 = new Edge(v1, v2,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")));
+    
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addEdge(e1);
+    dag.verify();
+  }
+  
+  @Test (expected = IllegalStateException.class)
+  public void testOutputAndOutputVertexNameCollision() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    
+    v1.addOutput("v2", new OutputDescriptor());
+    
+    Edge e1 = new Edge(v1, v2,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")));
+    
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addEdge(e1);
+    dag.verify();
+  }
+  
   //  v1  v2
   //   |  |
   //    v3

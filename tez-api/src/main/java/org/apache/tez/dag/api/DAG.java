@@ -152,20 +152,11 @@ public class DAG { // FIXME rename to Topology
       throw new IllegalStateException("Invalid dag containing 0 vertices");
     }
 
-    Map<Vertex, List<Edge>> edgeMap = new HashMap<Vertex, List<Edge>>();
-    for (Edge e : edges) {
-      Vertex inputVertex = e.getInputVertex();
-      List<Edge> edgeList = edgeMap.get(inputVertex);
-      if (edgeList == null) {
-        edgeList = new ArrayList<Edge>();
-        edgeMap.put(inputVertex, edgeList);
-      }
-      edgeList.add(e);
-    }
-
     // check for valid vertices, duplicate vertex names,
     // and prepare for cycle detection
     Map<String, AnnotatedVertex> vertexMap = new HashMap<String, AnnotatedVertex>();
+    Map<Vertex, Set<String>> inboundVertexMap = new HashMap<Vertex, Set<String>>();
+    Map<Vertex, Set<String>> outboundVertexMap = new HashMap<Vertex, Set<String>>();
     for (Vertex v : vertices.values()) {
       if (vertexMap.containsKey(v.getVertexName())) {
         throw new IllegalStateException("DAG contains multiple vertices"
@@ -173,6 +164,67 @@ public class DAG { // FIXME rename to Topology
       }
       vertexMap.put(v.getVertexName(), new AnnotatedVertex(v));
     }
+
+    Map<Vertex, List<Edge>> edgeMap = new HashMap<Vertex, List<Edge>>();
+    for (Edge e : edges) {
+      // Construct structure for cycle detection
+      Vertex inputVertex = e.getInputVertex();
+      Vertex outputVertex = e.getOutputVertex();
+      List<Edge> edgeList = edgeMap.get(inputVertex);
+      if (edgeList == null) {
+        edgeList = new ArrayList<Edge>();
+        edgeMap.put(inputVertex, edgeList);
+      }
+      edgeList.add(e);
+      
+      // Construct map for Input name verification
+      Set<String> inboundSet = inboundVertexMap.get(outputVertex);
+      if (inboundSet == null) {
+        inboundSet = new HashSet<String>();
+        inboundVertexMap.put(outputVertex, inboundSet);
+      }
+      inboundSet.add(inputVertex.getVertexName());
+      
+      // Construct map for Output name verification
+      Set<String> outboundSet = outboundVertexMap.get(inputVertex);
+      if (outboundSet == null) {
+        outboundSet = new HashSet<String>();
+        outboundVertexMap.put(inputVertex, outboundSet);
+      }
+      outboundSet.add(outputVertex.getVertexName());
+    }
+
+    // Check for valid InputNames
+    for (Entry<Vertex, Set<String>> entry : inboundVertexMap.entrySet()) {
+      Vertex vertex = entry.getKey();
+      for (RootInputLeafOutput<InputDescriptor> input : vertex.getInputs()) {
+        if (entry.getValue().contains(input.getName())) {
+          throw new IllegalStateException("Vertex: "
+              + vertex.getVertexName()
+              + " contains an incoming vertex and Input with the same name: "
+              + input.getName());
+        }
+      }
+    }
+
+    // Check for valid OutputNames
+    for (Entry<Vertex, Set<String>> entry : outboundVertexMap.entrySet()) {
+      Vertex vertex = entry.getKey();
+      for (RootInputLeafOutput<OutputDescriptor> output : vertex.getOutputs()) {
+        if (entry.getValue().contains(output.getName())) {
+          throw new IllegalStateException("Vertex: "
+              + vertex.getVertexName()
+              + " contains an outgoing vertex and Output with the same name: "
+              + output.getName());
+        }
+      }
+    }
+    
+    
+    // Not checking for repeated input names / output names vertex names on the same vertex,
+    // since we only allow 1 at the moment.
+    // When additional inputs are supported, this can be chceked easily (and early)
+    // within the addInput / addOutput call itself.
 
     detectCycles(edgeMap, vertexMap);
 
