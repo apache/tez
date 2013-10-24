@@ -174,37 +174,6 @@ public class DAG { // FIXME rename to Topology
       vertexMap.put(v.getVertexName(), new AnnotatedVertex(v));
     }
 
-    // Verify Input/Output names don't collide amongs themselves as well as with vertexNames
-    Set<String> namedIOs = new HashSet<String>();
-    for (Vertex v : vertices.values()) {
-      for (RootInputLeafOutput<InputDescriptor> in : v.getInputs()) {
-        if (vertexMap.containsKey(in.getName())) {
-          throw new IllegalStateException(
-            "DAG contains a vertex and an Input to a vertex with the same name: "
-              + in.getName());
-        }
-        if (namedIOs.contains(in.getName())) {
-          throw new IllegalStateException(
-            "DAG contains an Input or an Output with a repeated name: " + in.getName());
-        } else {
-          namedIOs.add(in.getName());
-        }
-      }
-      for (RootInputLeafOutput<OutputDescriptor> out : v.getOutputs()) {
-        if (vertexMap.containsKey(out.getName())) {
-          throw new IllegalStateException(
-            "DAG contains a vertex and an Output from a vertex with the same name: "
-              + out.getName());
-        }
-        if (namedIOs.contains(out.getName())) {
-          throw new IllegalStateException(
-            "DAG contains an Input or an Output with a repeated name: " + out.getName());
-        } else {
-          namedIOs.add(out.getName());
-        }
-      }
-    }
-
     detectCycles(edgeMap, vertexMap);
 
     if (restricted) {

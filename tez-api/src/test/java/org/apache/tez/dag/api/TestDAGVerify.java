@@ -278,52 +278,6 @@ public class TestDAGVerify {
     System.out.println(ex.getMessage());
     Assert.assertTrue(ex.getMessage().startsWith("Vertex v1 already defined"));
   }
-
-  @Test (expected = IllegalStateException.class)
-  public void testInputNameCollision() {
-    Vertex v1 = new Vertex("v1",
-        new ProcessorDescriptor("MapProcessor"),
-        dummyTaskCount, dummyTaskResource);
-    v1.addInput("v1", new InputDescriptor("Input"), null);
-    Vertex v2 = new Vertex("v2",
-        new ProcessorDescriptor("MapProcessor"),
-        dummyTaskCount, dummyTaskResource);
-    DAG dag = new DAG("testDag");
-    dag.addVertex(v1);
-    dag.addVertex(v2);
-    dag.verify();
-  }
-  
-  @Test (expected = IllegalStateException.class)
-  public void testOutputNameCollision() {
-    Vertex v1 = new Vertex("v1",
-        new ProcessorDescriptor("MapProcessor"),
-        dummyTaskCount, dummyTaskResource);
-    Vertex v2 = new Vertex("v2",
-        new ProcessorDescriptor("MapProcessor"),
-        dummyTaskCount, dummyTaskResource);
-    v2.addOutput("v1", new OutputDescriptor("Output"));
-    DAG dag = new DAG("testDag");
-    dag.addVertex(v1);
-    dag.addVertex(v2);
-    dag.verify();
-  }
-  
-  @Test (expected = IllegalStateException.class)
-  public void testInputOutputNameCollision() {
-    Vertex v1 = new Vertex("v1",
-        new ProcessorDescriptor("MapProcessor"),
-        dummyTaskCount, dummyTaskResource);
-    v1.addInput("collide", new InputDescriptor("Input"), null);
-    Vertex v2 = new Vertex("v2",
-        new ProcessorDescriptor("MapProcessor"),
-        dummyTaskCount, dummyTaskResource);
-    v2.addOutput("collide", new OutputDescriptor("Output"));
-    DAG dag = new DAG("testDag");
-    dag.addVertex(v1);
-    dag.addVertex(v2);
-    dag.verify();
-  }
   
   //  v1  v2
   //   |  |
