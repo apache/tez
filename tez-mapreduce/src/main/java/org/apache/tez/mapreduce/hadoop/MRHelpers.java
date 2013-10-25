@@ -32,6 +32,7 @@ import java.util.Vector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -42,7 +43,6 @@ import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -143,7 +143,8 @@ public class MRHelpers {
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  private static org.apache.hadoop.mapreduce.InputSplit[] generateNewSplits(
+  @Private
+  public static org.apache.hadoop.mapreduce.InputSplit[] generateNewSplits(
       JobContext jobContext, String inputFormatName, int numTasks) 
           throws ClassNotFoundException, IOException,
       InterruptedException {
@@ -227,7 +228,8 @@ public class MRHelpers {
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  private static org.apache.hadoop.mapred.InputSplit[] generateOldSplits(
+  @Private
+  public static org.apache.hadoop.mapred.InputSplit[] generateOldSplits(
       JobConf jobConf, String inputFormatName, int numTasks) throws IOException {
     org.apache.hadoop.mapred.InputFormat inputFormat = jobConf.getInputFormat();
     org.apache.hadoop.mapred.InputFormat finalInputFormat = inputFormat;
@@ -354,8 +356,7 @@ public class MRHelpers {
    * @throws ClassNotFoundException
    * @throws InterruptedException
    */
-  public static InputSplitInfoMem generateInputSplitsToMem(Configuration conf, 
-      String inputFormatName, int numTasks)
+  public static InputSplitInfoMem generateInputSplitsToMem(Configuration conf)
       throws IOException, ClassNotFoundException, InterruptedException {
 
     InputSplitInfoMem splitInfoMem = null;
@@ -364,12 +365,12 @@ public class MRHelpers {
       LOG.info("Generating mapreduce api input splits");
       Job job = Job.getInstance(conf);
       org.apache.hadoop.mapreduce.InputSplit[] splits = 
-          generateNewSplits(job, inputFormatName, numTasks);
+          generateNewSplits(job, null, 0);
       splitInfoMem = createSplitsProto(splits, new SerializationFactory(job.getConfiguration()));
     } else {
       LOG.info("Generating mapred api input splits");
       org.apache.hadoop.mapred.InputSplit[] splits = 
-          generateOldSplits(jobConf, inputFormatName, numTasks);
+          generateOldSplits(jobConf, null, 0);
       splitInfoMem = createSplitsProto(splits);
     }
     LOG.info("NumSplits: " + splitInfoMem.getNumTasks() + ", SerializedSize: "
@@ -394,7 +395,8 @@ public class MRHelpers {
         newSplits.length);
   }
 
-  private static <T extends org.apache.hadoop.mapreduce.InputSplit> MRSplitProto createSplitProto(
+  @Private
+  public static <T extends org.apache.hadoop.mapreduce.InputSplit> MRSplitProto createSplitProto(
       T newSplit, SerializationFactory serializationFactory)
       throws IOException, InterruptedException {
     MRSplitProto.Builder builder = MRSplitProto
@@ -431,7 +433,8 @@ public class MRHelpers {
         oldSplits.length);
   }
 
-  private static MRSplitProto createSplitProto(
+  @Private
+  public static MRSplitProto createSplitProto(
       org.apache.hadoop.mapred.InputSplit oldSplit) throws IOException {
     MRSplitProto.Builder builder = MRSplitProto.newBuilder();
 

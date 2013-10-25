@@ -535,7 +535,7 @@ public class MRRSleepJob extends Configured implements Tool {
       } else {
         try {
           LOG.info("Creating in-mem splits");
-          inputSplitInfo = MRHelpers.generateInputSplitsToMem(mapStageConf, null, 0);
+          inputSplitInfo = MRHelpers.generateInputSplitsToMem(mapStageConf);
         } catch (ClassNotFoundException e) {
           throw new TezUncheckedException("Could not generate input splits", e);
         } catch (InterruptedException e) {

@@ -36,6 +36,7 @@ public class TezGroupedSplit implements InputSplit, Configurable {
   List<InputSplit> wrappedSplits = null;
   String wrappedInputFormatName = null;
   String[] locations = null;
+  String rack = null;
   long length = 0;
   Configuration conf;
   
@@ -44,10 +45,15 @@ public class TezGroupedSplit implements InputSplit, Configurable {
   }
   
   public TezGroupedSplit(int numSplits, String wrappedInputFormatName,
-      String[] locations) {
+      String[] locations, String rack) {
     this.wrappedSplits = new ArrayList<InputSplit>(numSplits);
     this.wrappedInputFormatName = wrappedInputFormatName;
     this.locations = locations;
+    this.rack = rack;
+  }
+  public TezGroupedSplit(int numSplits, String wrappedInputFormatName,
+      String[] locations) {
+    this(numSplits, wrappedInputFormatName, locations, null);
   }
   
   public void addSplit(InputSplit split) {
@@ -147,5 +153,9 @@ public class TezGroupedSplit implements InputSplit, Configurable {
   @Override
   public Configuration getConf() {
     return conf;
+  }
+  
+  public String getRack() {
+    return rack;
   }
 }

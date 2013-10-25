@@ -230,10 +230,26 @@ public class TezConfiguration extends Configuration {
 
   public static final String TEZ_AM_GROUPING_SPLIT_COUNT = TEZ_AM_PREFIX +
       "grouping.split-count";
+  public static final String TEZ_AM_GROUPING_SPLIT_BY_LENGTH = TEZ_AM_PREFIX + 
+      "grouping.by-length";
+  public static final boolean TEZ_AM_GROUPING_SPLIT_BY_LENGTH_DEFAULT = true;
+  public static final String TEZ_AM_GROUPING_SPLIT_BY_COUNT = TEZ_AM_PREFIX + 
+      "grouping.by-count";
+  public static final boolean TEZ_AM_GROUPING_SPLIT_BY_COUNT_DEFAULT = false;
   
   public static final String TEZ_AM_GROUPING_SPLIT_WAVES = TEZ_AM_PREFIX +
       "grouping.split-waves";
   public static float TEZ_AM_GROUPING_SPLIT_WAVES_DEFAULT = 1.5f;
+  
+  public static final String TEZ_AM_GROUPING_SPLIT_MAX_SIZE = TEZ_AM_PREFIX +
+      "grouping.max-size";
+  public static long TEZ_AM_GROUPING_SPLIT_MAX_SIZE_DEFAULT = 
+      1024*1024*1024L;
+
+  public static final String TEZ_AM_GROUPING_RACK_SPLIT_SIZE_REDUCTION = 
+      TEZ_AM_PREFIX + "grouping.rack-split-reduction";
+  public static final float TEZ_AM_GROUPING_RACK_SPLIT_SIZE_REDUCTION_DEFAULT = 0.75f;
+
 
   /**
    * Session-related properties
