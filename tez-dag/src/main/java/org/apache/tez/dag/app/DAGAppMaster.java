@@ -46,7 +46,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -54,7 +53,6 @@ import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.service.ServiceOperations;
@@ -74,6 +72,7 @@ import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
@@ -247,8 +246,6 @@ public class DAGAppMaster extends AbstractService {
 
     this.amConf = conf;
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
-
-    downloadTokensAndSetupUGI(conf);
 
     context = new RunningAppContext(conf);
 
@@ -480,7 +477,7 @@ public class DAGAppMaster extends AbstractService {
     
     // Prepare the TaskAttemptListener server for authentication of Containers
     // TaskAttemptListener gets the information via jobTokenSecretManager.
-    String dagIdString = dagId.toString().replace("application", "job");
+    String dagIdString = dagId.toString();
     jobTokenSecretManager.addTokenForJob(dagIdString, sessionToken);
     LOG.info("Adding job token for " + dagIdString
         + " to jobTokenSecretManager");
@@ -503,43 +500,7 @@ public class DAGAppMaster extends AbstractService {
 
     return newDag;
   } // end createDag()
-
-
-  /**
-   * Obtain the tokens needed by the job and put them in the UGI
-   * @param conf
-   */
-  protected void downloadTokensAndSetupUGI(Configuration conf) {
-    // TODO remove - TEZ-71
-    try {
-      this.currentUser = UserGroupInformation.getCurrentUser();
-
-      if (UserGroupInformation.isSecurityEnabled()) {
-        // Read the file-system tokens from the localized tokens-file.
-        Path jobSubmitDir =
-            FileContext.getLocalFSFileContext().makeQualified(
-                new Path(new File(TezConfiguration.JOB_SUBMIT_DIR)
-                    .getAbsolutePath()));
-        Path jobTokenFile =
-            new Path(jobSubmitDir, TezConfiguration.APPLICATION_TOKENS_FILE);
-        tokens.addAll(Credentials.readTokenStorageFile(jobTokenFile, conf));
-        LOG.info("jobSubmitDir=" + jobSubmitDir + " jobTokenFile="
-            + jobTokenFile);
-
-        for (Token<? extends TokenIdentifier> tk : tokens.getAllTokens()) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Token of kind " + tk.getKind()
-                + "in current ugi in the AppMaster for service "
-                + tk.getService());
-          }
-          currentUser.addToken(tk); // For use by AppMaster itself.
-        }
-      }
-    } catch (IOException e) {
-      throw new TezUncheckedException(e);
-    }
-  }
-
+  
   protected void addIfService(Object object, boolean addDispatcher) {
     if (object instanceof Service) {
       Service service = (Service) object;
@@ -580,8 +541,8 @@ public class DAGAppMaster extends AbstractService {
       AppContext context, Configuration conf) {
     ContainerHeartbeatHandler chh = new ContainerHeartbeatHandler(context,
         conf.getInt(
-            TezConfiguration.TEZ_AM_CONTAINER_LISTENER_THREAD_COUNT,
-            TezConfiguration.TEZ_AM_CONTAINER_LISTENER_THREAD_COUNT_DEFAULT));
+            TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT,
+            TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT));
     return chh;
   }
 
@@ -1449,12 +1410,26 @@ public class DAGAppMaster extends AbstractService {
   protected static void initAndStartAppMaster(final DAGAppMaster appMaster,
       final Configuration conf, String jobUserName) throws IOException,
       InterruptedException {
-    Credentials credentials =
-        UserGroupInformation.getCurrentUser().getCredentials();
     UserGroupInformation.setConfiguration(conf);
+    appMaster.currentUser = UserGroupInformation.getCurrentUser();
+        Credentials credentials =
+        UserGroupInformation.getCurrentUser().getCredentials();
+    
     UserGroupInformation appMasterUgi = UserGroupInformation
         .createRemoteUser(jobUserName);
     appMasterUgi.addCredentials(credentials);
+    
+    // Now remove the AM->RM token so tasks don't have it
+    Iterator<Token<?>> iter = credentials.getAllTokens().iterator();
+    while (iter.hasNext()) {
+      Token<?> token = iter.next();
+      if (token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
+        iter.remove();
+      }
+    }
+    
+    appMaster.tokens = credentials;
+
     appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {
       @Override
       public Object run() throws Exception {

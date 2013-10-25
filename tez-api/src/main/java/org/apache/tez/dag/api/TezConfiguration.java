@@ -43,9 +43,6 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_STAGING_DIR = TEZ_PREFIX + "staging-dir";
   public static final String TEZ_AM_STAGING_DIR_DEFAULT = "/tmp/tez/staging";
 
-  // TODO Should not be required once all tokens are handled via AppSubmissionContext
-  public static final String JOB_SUBMIT_DIR = TEZ_PREFIX + "jobSubmitDir";
-  public static final String APPLICATION_TOKENS_FILE = "appTokens";
   public static final String TEZ_APPLICATION_MASTER_CLASS =
       "org.apache.tez.dag.app.DAGAppMaster";
 
@@ -64,10 +61,6 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_TASK_LISTENER_THREAD_COUNT =
       TEZ_AM_PREFIX + "task.listener.thread-count";
   public static final int TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
-
-  public static final String TEZ_AM_CONTAINER_LISTENER_THREAD_COUNT =
-      TEZ_AM_PREFIX + "container.listener.thread-count";
-  public static final int TEZ_AM_CONTAINER_LISTENER_THREAD_COUNT_DEFAULT = 30;
 
   // TODO Some of the DAG properties are job specific and not AM specific. Rename accordingly.
   // TODO Are any of these node blacklisting properties required. (other than for MR compat)

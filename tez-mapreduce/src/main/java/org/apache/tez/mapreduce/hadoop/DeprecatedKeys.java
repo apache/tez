@@ -107,11 +107,6 @@ public class DeprecatedKeys {
   }
   
   private static void populateMRToDagParamMap() {
-    mrParamToDAGParamMap.put(MRJobConfig.JOB_SUBMIT_DIR,
-        TezConfiguration.JOB_SUBMIT_DIR);
-    mrParamToDAGParamMap.put(MRJobConfig.APPLICATION_TOKENS_FILE,
-        TezConfiguration.APPLICATION_TOKENS_FILE);
-
     // TODO Default value handling.
     mrParamToDAGParamMap.put(MRJobConfig.MR_AM_TASK_LISTENER_THREAD_COUNT,
         TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT);

@@ -35,8 +35,8 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 @SuppressWarnings({"unchecked"})
 public class TaskHeartbeatHandler extends HeartbeatHandlerBase<TezTaskAttemptID> {
 
-  public TaskHeartbeatHandler(AppContext context, int numThreads) {
-    super(context, numThreads, "TaskHeartbeatHandler");
+  public TaskHeartbeatHandler(AppContext context, int expectedConcurrency) {
+    super(context, expectedConcurrency, "TaskHeartbeatHandler");
   }
 
   @Override

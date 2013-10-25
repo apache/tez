@@ -44,15 +44,15 @@ public abstract class HeartbeatHandlerBase<T> extends AbstractService {
   private ConcurrentMap<T, ReportTime> runningMap;
   private volatile boolean stopped;
 
-  public HeartbeatHandlerBase(AppContext appContext, int numThreads, String name) {
+  public HeartbeatHandlerBase(AppContext appContext, int expectedConcurrency, String name) {
     super(name);
     this.name = name;
     this.eventHandler = appContext.getEventHandler();
     this.clock = appContext.getClock();
     this.appContext = appContext;
-    numThreads = numThreads == 0 ? 1 : numThreads;
+    expectedConcurrency = expectedConcurrency == 0 ? 1 : expectedConcurrency;
     this.runningMap = new ConcurrentHashMap<T, HeartbeatHandlerBase.ReportTime>(
-        16, 0.75f, numThreads);
+        16, 0.75f, expectedConcurrency);
   }
 
   @Override

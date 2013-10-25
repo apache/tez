@@ -863,6 +863,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     writeLock.lock();
     try {
       this.vertexLocationHint = vertexLocationHint;
+      if (LOG.isDebugEnabled()) {
+        logLocationHints(this.vertexLocationHint);
+      }
     } finally {
       writeLock.unlock();
     }
@@ -1984,15 +1987,23 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     for (TaskLocationHint taskLocationHint : locationHint
         .getTaskLocationHints()) {
       StringBuilder sb = new StringBuilder();
-      sb.append("Hosts: ");
-      for (String host : taskLocationHint.getDataLocalHosts()) {
-        hosts.add(host);
-        sb.append(host).append(", ");
+      if (taskLocationHint.getDataLocalHosts() == null) {
+        sb.append("No Hosts");
+      } else {
+        sb.append("Hosts: ");
+        for (String host : taskLocationHint.getDataLocalHosts()) {
+          hosts.add(host);
+          sb.append(host).append(", ");
+        }
       }
-      sb.append("Racks: ");
-      for (String rack : taskLocationHint.getRacks()) {
-        racks.add(rack);
-        sb.append(rack).append(", ");
+      if (taskLocationHint.getRacks() == null) {
+        sb.append("No Racks");
+      } else {
+        sb.append("Racks: ");
+        for (String rack : taskLocationHint.getRacks()) {
+          racks.add(rack);
+          sb.append(rack).append(", ");
+        }
       }
       LOG.debug("Location: " + counter + " : " + sb.toString());
       counter++;

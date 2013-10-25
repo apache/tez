@@ -29,8 +29,8 @@ public class ContainerHeartbeatHandler extends
 
  
   public ContainerHeartbeatHandler(AppContext context, 
-      int numThreads) {
-    super(context, numThreads, "ContainerHeartbeatHandler");
+      int expectedConcurrency) {
+    super(context, expectedConcurrency, "ContainerHeartbeatHandler");
   }
 
   @Override

@@ -90,7 +90,6 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.DAGClient;
@@ -310,8 +309,7 @@ public class YARNRunner implements ClientProtocol {
     // TODO gross hack
     for (String s : new String[] {
         MRJobConfig.JOB_SPLIT,
-        MRJobConfig.JOB_SPLIT_METAINFO,
-        MRJobConfig.APPLICATION_TOKENS_FILE }) {
+        MRJobConfig.JOB_SPLIT_METAINFO}) {
       localResources.put(s,
           createApplicationResource(defaultFileContext,
               new Path(jobSubmitDir, s), LocalResourceType.FILE));
@@ -506,16 +504,6 @@ public class YARNRunner implements ClientProtocol {
   @Override
   public JobStatus submitJob(JobID jobId, String jobSubmitDir, Credentials ts)
   throws IOException, InterruptedException {
-
-    // TEZ-192 - stop using token file
-    // Upload only in security mode: TODO
-    Path applicationTokensFile =
-        new Path(jobSubmitDir, MRJobConfig.APPLICATION_TOKENS_FILE);
-    try {
-      ts.writeTokenStorageFile(applicationTokensFile, conf);
-    } catch (IOException e) {
-      throw new TezUncheckedException(e);
-    }
 
     ApplicationId appId = resMgrDelegate.getApplicationId();
 
