@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.mapreduce;
+package org.apache.tez.mapreduce.client;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;

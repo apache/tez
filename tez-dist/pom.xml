@@ -30,12 +30,6 @@
   <packaging>pom</packaging>
 
   <dependencies>
-    <!--tez-yarn-client should require all other modules to be built before it, so this becomes the last -->
-    <dependency>
-      <groupId>org.apache.tez</groupId>
-      <artifactId>tez-yarn-client</artifactId>
-      <version>${project.version}</version>
-    </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
       <artifactId>tez-dag</artifactId>
@@ -48,7 +42,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
-      <artifactId>tez-mapreduce-tests</artifactId>
+      <artifactId>tez-tests</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
     </dependency>

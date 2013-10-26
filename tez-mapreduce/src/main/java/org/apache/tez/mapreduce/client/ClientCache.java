@@ -16,35 +16,35 @@
  * limitations under the License.
  */
 
-package org.apache.tez.mapreduce;
+package org.apache.tez.mapreduce.client;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.protocol.ClientProtocol;
-import org.apache.hadoop.mapreduce.protocol.ClientProtocolProvider;
-import org.apache.tez.mapreduce.hadoop.MRConfig;
+import org.apache.hadoop.mapreduce.JobID;
 
-public class YarnTezClientProtocolProvider extends ClientProtocolProvider {
+public class ClientCache {
 
-  @Override
-  public ClientProtocol create(Configuration conf) throws IOException {
-    if (MRConfig.YARN_TEZ_FRAMEWORK_NAME.equals(conf.get(MRConfig.FRAMEWORK_NAME))) {
-      return new YARNRunner(conf);
+  private final Configuration conf;
+  private final ResourceMgrDelegate rm;
+
+  private Map<JobID, ClientServiceDelegate> cache = 
+      new HashMap<JobID, ClientServiceDelegate>();
+
+  public ClientCache(Configuration conf, ResourceMgrDelegate rm) {
+    this.conf = conf;
+    this.rm = rm;
+  }
+
+  //TODO: evict from the cache on some threshold
+  public synchronized ClientServiceDelegate getClient(JobID jobId) {
+    ClientServiceDelegate client = cache.get(jobId);
+    if (client == null) {
+      client = new ClientServiceDelegate(conf, rm, jobId);
+      cache.put(jobId, client);
     }
-    return null;
-  }
-
-  @Override
-  public ClientProtocol create(InetSocketAddress addr, Configuration conf)
-      throws IOException {
-    return create(conf);
-  }
-
-  @Override
-  public void close(ClientProtocol clientProtocol) throws IOException {
-    // nothing to do
+    return client;
   }
 
 }

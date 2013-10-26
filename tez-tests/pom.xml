@@ -22,7 +22,7 @@
     <artifactId>tez</artifactId>
     <version>0.2.0-SNAPSHOT</version>
   </parent>
-  <artifactId>tez-mapreduce-tests</artifactId>
+  <artifactId>tez-tests</artifactId>
 
   <dependencies>
     <dependency>
@@ -33,11 +33,6 @@
     <dependency>
       <groupId>org.apache.tez</groupId>
       <artifactId>tez-mapreduce</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.tez</groupId>
-      <artifactId>tez-yarn-client</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

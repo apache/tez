@@ -16,7 +16,7 @@
 * limitations under the License.
 */
 
-package org.apache.tez.mapreduce;
+package org.apache.tez.mapreduce.client;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

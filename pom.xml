@@ -120,17 +120,12 @@
       </dependency>
       <dependency>
         <groupId>org.apache.tez</groupId>
-        <artifactId>tez-mapreduce-tests</artifactId>
+        <artifactId>tez-tests</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tez</groupId>
         <artifactId>tez-dag</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.tez</groupId>
-        <artifactId>tez-yarn-client</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -259,10 +254,9 @@
     <module>tez-common</module>
     <module>tez-runtime-library</module>
     <module>tez-runtime-internals</module>
-    <module>tez-yarn-client</module>
     <module>tez-mapreduce</module>
     <module>tez-mapreduce-examples</module>
-    <module>tez-mapreduce-tests</module>
+    <module>tez-tests</module>
     <module>tez-dag</module>
     <module>tez-dist</module>
     <module>docs</module>

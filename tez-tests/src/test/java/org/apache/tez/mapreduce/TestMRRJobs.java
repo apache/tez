@@ -39,6 +39,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.mapreduce.examples.MRRSleepJob;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+import org.apache.tez.test.MiniTezCluster;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -48,7 +49,7 @@ public class TestMRRJobs {
 
   private static final Log LOG = LogFactory.getLog(TestMRRJobs.class);
 
-  protected static MiniMRRTezCluster mrrTezCluster;
+  protected static MiniTezCluster mrrTezCluster;
   protected static MiniDFSCluster dfsCluster;
 
   private static Configuration conf = new Configuration();
@@ -72,14 +73,14 @@ public class TestMRRJobs {
       throw new RuntimeException("problem starting mini dfs cluster", io);
     }
 
-    if (!(new File(MiniMRRTezCluster.APPJAR)).exists()) {
-      LOG.info("MRAppJar " + MiniMRRTezCluster.APPJAR
+    if (!(new File(MiniTezCluster.APPJAR)).exists()) {
+      LOG.info("MRAppJar " + MiniTezCluster.APPJAR
                + " not found. Not running test.");
       return;
     }
 
     if (mrrTezCluster == null) {
-      mrrTezCluster = new MiniMRRTezCluster(TestMRRJobs.class.getName(), 1,
+      mrrTezCluster = new MiniTezCluster(TestMRRJobs.class.getName(), 1,
           1, 1);
       Configuration conf = new Configuration();
       conf.set("fs.defaultFS", remoteFs.getUri().toString());   // use HDFS
@@ -108,8 +109,8 @@ public class TestMRRJobs {
       ClassNotFoundException {
     LOG.info("\n\n\nStarting testMRRSleepJob().");
 
-    if (!(new File(MiniMRRTezCluster.APPJAR)).exists()) {
-      LOG.info("MRAppJar " + MiniMRRTezCluster.APPJAR
+    if (!(new File(MiniTezCluster.APPJAR)).exists()) {
+      LOG.info("MRAppJar " + MiniTezCluster.APPJAR
                + " not found. Not running test.");
       return;
     }
@@ -144,8 +145,8 @@ public class TestMRRJobs {
       ClassNotFoundException {
 
     LOG.info("\n\n\nStarting testRandomWriter().");
-    if (!(new File(MiniMRRTezCluster.APPJAR)).exists()) {
-      LOG.info("MRAppJar " + MiniMRRTezCluster.APPJAR
+    if (!(new File(MiniTezCluster.APPJAR)).exists()) {
+      LOG.info("MRAppJar " + MiniTezCluster.APPJAR
                + " not found. Not running test.");
       return;
     }
@@ -193,8 +194,8 @@ public class TestMRRJobs {
 
     LOG.info("\n\n\nStarting testFailingJob().");
 
-    if (!(new File(MiniMRRTezCluster.APPJAR)).exists()) {
-      LOG.info("MRAppJar " + MiniMRRTezCluster.APPJAR
+    if (!(new File(MiniTezCluster.APPJAR)).exists()) {
+      LOG.info("MRAppJar " + MiniTezCluster.APPJAR
                + " not found. Not running test.");
       return;
     }
@@ -227,8 +228,8 @@ public class TestMRRJobs {
 
     LOG.info("\n\n\nStarting testFailingAttempt().");
 
-    if (!(new File(MiniMRRTezCluster.APPJAR)).exists()) {
-      LOG.info("MRAppJar " + MiniMRRTezCluster.APPJAR
+    if (!(new File(MiniTezCluster.APPJAR)).exists()) {
+      LOG.info("MRAppJar " + MiniTezCluster.APPJAR
                + " not found. Not running test.");
       return;
     }
@@ -260,8 +261,8 @@ public class TestMRRJobs {
       InterruptedException, ClassNotFoundException {
     LOG.info("\n\n\nStarting testMRRSleepJobWithCompression().");
 
-    if (!(new File(MiniMRRTezCluster.APPJAR)).exists()) {
-      LOG.info("MRAppJar " + MiniMRRTezCluster.APPJAR
+    if (!(new File(MiniTezCluster.APPJAR)).exists()) {
+      LOG.info("MRAppJar " + MiniTezCluster.APPJAR
                + " not found. Not running test.");
       return;
     }

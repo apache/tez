@@ -82,6 +82,7 @@ import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.test.MiniTezCluster;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -91,7 +92,7 @@ public class TestMRRJobsDAGApi {
 
   private static final Log LOG = LogFactory.getLog(TestMRRJobsDAGApi.class);
 
-  protected static MiniMRRTezCluster mrrTezCluster;
+  protected static MiniTezCluster mrrTezCluster;
   protected static MiniDFSCluster dfsCluster;
 
   private static Configuration conf = new Configuration();
@@ -112,7 +113,7 @@ public class TestMRRJobsDAGApi {
     }
     
     if (mrrTezCluster == null) {
-      mrrTezCluster = new MiniMRRTezCluster(TestMRRJobsDAGApi.class.getName(),
+      mrrTezCluster = new MiniTezCluster(TestMRRJobsDAGApi.class.getName(),
           1, 1, 1);
       Configuration conf = new Configuration();
       conf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS

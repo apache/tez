@@ -16,7 +16,7 @@
 * limitations under the License.
 */
 
-package org.apache.tez.mapreduce;
+package org.apache.tez.test;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -47,25 +47,25 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
  *
  * When using this mini cluster, the user is expected to
  */
-public class MiniMRRTezCluster extends MiniYARNCluster {
+public class MiniTezCluster extends MiniYARNCluster {
 
   public static final String APPJAR = JarFinder.getJar(DAGAppMaster.class);
 
-  private static final Log LOG = LogFactory.getLog(MiniMRRTezCluster.class);
+  private static final Log LOG = LogFactory.getLog(MiniTezCluster.class);
 
   private static final String YARN_CLUSTER_CONFIG = "yarn-site.xml";
 
   private Path confFilePath;
 
-  public MiniMRRTezCluster(String testName) {
+  public MiniTezCluster(String testName) {
     this(testName, 1);
   }
 
-  public MiniMRRTezCluster(String testName, int noOfNMs) {
+  public MiniTezCluster(String testName, int noOfNMs) {
     super(testName, noOfNMs, 4, 4);
   }
 
-  public MiniMRRTezCluster(String testName, int noOfNMs,
+  public MiniTezCluster(String testName, int noOfNMs,
       int numLocalDirs, int numLogDirs)  {
     super(testName, noOfNMs, numLocalDirs, numLogDirs);
   }
@@ -83,10 +83,10 @@ public class MiniMRRTezCluster extends MiniYARNCluster {
       conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
     }
 
-    File appJarFile = new File(MiniMRRTezCluster.APPJAR);
+    File appJarFile = new File(MiniTezCluster.APPJAR);
 
     if (!appJarFile.exists()) {
-      String message = "TezAppJar " + MiniMRRTezCluster.APPJAR
+      String message = "TezAppJar " + MiniTezCluster.APPJAR
           + " not found. Exiting.";
       LOG.info(message);
       throw new TezUncheckedException(message);
