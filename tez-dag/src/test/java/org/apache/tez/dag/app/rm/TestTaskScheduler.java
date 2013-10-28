@@ -392,6 +392,7 @@ public class TestTaskScheduler {
         .getDrainableAppCallback();
 
     Configuration conf = new Configuration();
+    conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
     scheduler.init(conf);
 
     RegisterApplicationMasterResponse mockRegResponse =
@@ -577,7 +578,9 @@ public class TestTaskScheduler {
     TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler
         .getDrainableAppCallback();
     
-    taskScheduler.init(new Configuration());
+    Configuration conf = new Configuration();
+    conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
+    taskScheduler.init(conf);
     
     RegisterApplicationMasterResponse mockRegResponse = mock(RegisterApplicationMasterResponse.class);
     Resource mockMaxResource = mock(Resource.class);
@@ -590,9 +593,6 @@ public class TestTaskScheduler {
     
     taskScheduler.start();
     
-    taskScheduler.serviceInit(new Configuration());
-    taskScheduler.serviceStart();
-
     Resource resource = Resource.newInstance(1024, 1);
     Priority priority = Priority.newInstance(1);
 

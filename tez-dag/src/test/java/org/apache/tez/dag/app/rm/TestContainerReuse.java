@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
@@ -84,7 +85,15 @@ import com.google.common.collect.Lists;
 
 public class TestContainerReuse {
 
-
+  void waitForDelayedDrainNotify(AtomicBoolean drainNotifier)
+      throws InterruptedException {
+    while (!drainNotifier.get()) {
+      synchronized (drainNotifier) {
+        drainNotifier.wait();
+      }
+    }
+  }
+  
   @Test(timeout = 15000l)
   public void testDelayedReuseContainerBecomesAvailable()
       throws IOException, InterruptedException, ExecutionException {
@@ -142,6 +151,9 @@ public class TestContainerReuse {
     TaskSchedulerAppCallbackDrainable drainableAppCallback =
       taskScheduler.getDrainableAppCallback();
 
+    AtomicBoolean drainNotifier = new AtomicBoolean(false);
+    taskScheduler.delayedContainerManager.drainedDelayedContainers = drainNotifier;
+
     Resource resource = Resource.newInstance(1024, 1);
     Priority priority = Priority.newInstance(5);
     String [] host1 = {"host1"};
@@ -175,8 +187,10 @@ public class TestContainerReuse {
     Container containerHost1 = createContainer(1, host1[0], resource, priority);
     Container containerHost2 = createContainer(2, host2[0], resource, priority);
 
+    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(
       Lists.newArrayList(containerHost1, containerHost2));
+    waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(
       eq(ta11), any(Object.class), eq(containerHost1));
@@ -272,6 +286,9 @@ public class TestContainerReuse {
           .getSpyTaskScheduler();
     TaskSchedulerAppCallbackDrainable drainableAppCallback =
       taskScheduler.getDrainableAppCallback();
+    
+    AtomicBoolean drainNotifier = new AtomicBoolean(false);
+    taskScheduler.delayedContainerManager.drainedDelayedContainers = drainNotifier;
 
     Resource resource = Resource.newInstance(1024, 1);
     Priority priority = Priority.newInstance(5);
@@ -300,7 +317,9 @@ public class TestContainerReuse {
     Container containerHost1 = createContainer(1, host1[0], resource, priority);
     Container containerHost2 = createContainer(2, host2[0], resource, priority);
 
+    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Lists.newArrayList(containerHost1, containerHost2));
+    waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta11), any(Object.class), eq(containerHost1));
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta21), any(Object.class), eq(containerHost2));
@@ -363,6 +382,8 @@ public class TestContainerReuse {
     TaskSchedulerWithDrainableAppCallback taskScheduler = (TaskSchedulerWithDrainableAppCallback) ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
         .getSpyTaskScheduler();
     TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
+    AtomicBoolean drainNotifier = new AtomicBoolean(false);
+    taskScheduler.delayedContainerManager.drainedDelayedContainers = drainNotifier;
 
     Resource resource1 = Resource.newInstance(1024, 1);
     String[] host1 = {"host1"};
@@ -401,7 +422,9 @@ public class TestContainerReuse {
     Container container1 = createContainer(1, "host1", resource1, priority1);
 
     // One container allocated.
+    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
+    waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta11), any(Object.class), eq(container1));
 
@@ -436,7 +459,9 @@ public class TestContainerReuse {
     Container container2 = createContainer(2, "host2", resource1, priority1);
 
     // Second container allocated. Should be allocated to the last task.
+    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container2));
+    waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta14), any(Object.class), eq(container2));
 
@@ -504,6 +529,8 @@ public class TestContainerReuse {
         .getSpyTaskScheduler();
     TaskSchedulerAppCallbackDrainable drainableAppCallback =
       taskScheduler.getDrainableAppCallback();
+    AtomicBoolean drainNotifier = new AtomicBoolean(false);
+    taskScheduler.delayedContainerManager.drainedDelayedContainers = drainNotifier;
 
     Resource resource1 = Resource.newInstance(1024, 1);
     String [] emptyHosts = new String[0];
@@ -533,7 +560,9 @@ public class TestContainerReuse {
     Container container1 = createContainer(1, "randomHost", resource1, priority);
 
     // One container allocated.
+    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
+    waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(
       eq(ta11), any(Object.class), eq(container1));
@@ -622,6 +651,9 @@ public class TestContainerReuse {
           .getSpyTaskScheduler();
     TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
 
+    AtomicBoolean drainNotifier = new AtomicBoolean(false);
+    taskScheduler.delayedContainerManager.drainedDelayedContainers = drainNotifier;
+
     Resource resource1 = Resource.newInstance(1024, 1);
     String[] host1 = {"host1"};
 
@@ -654,7 +686,9 @@ public class TestContainerReuse {
     Container container1 = createContainer(1, host1[0], resource1, priority1);
 
     // One container allocated.
+    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
+    waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(
       eq(ta11), any(Object.class), eq(container1));
