@@ -28,7 +28,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.DataChecksum;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.sort.impl.IFileOutputStream;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 
 import com.google.common.base.Preconditions;
@@ -40,7 +43,15 @@ public class DiskFetchedInput extends FetchedInput {
   private final FileSystem localFS;
   private final Path tmpOutputPath;
   private final Path outputPath;
+  
+  private static final long checkSumSize; 
 
+  static {
+    DataChecksum sum = DataChecksum.newDataChecksum(DataChecksum.Type.CRC32, 
+        Integer.MAX_VALUE);
+    checkSumSize = sum.getChecksumSize();
+  }
+  
   public DiskFetchedInput(long size,
       InputAttemptIdentifier inputAttemptIdentifier,
       FetchedInputCallback callbackHandler, Configuration conf,
@@ -58,12 +69,19 @@ public class DiskFetchedInput extends FetchedInput {
   public OutputStream getOutputStream() throws IOException {
     return localFS.create(tmpOutputPath);
   }
+  
+  // Assumes that the file written to disk is an IFile that has a checksum 
+  // at the end. The size in super is the real data size.
+  @Override
+  public long getSize() {
+    return super.getSize() + checkSumSize;
+  }
 
   @Override
   public InputStream getInputStream() throws IOException {
     return localFS.open(outputPath);
   }
-
+  
   @Override
   public void commit() throws IOException {
     if (state == State.PENDING) {

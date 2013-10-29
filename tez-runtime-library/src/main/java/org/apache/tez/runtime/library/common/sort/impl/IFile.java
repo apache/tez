@@ -492,6 +492,12 @@ public class IFile {
     
     public KeyState readRawKey(DataInputBuffer key) throws IOException {
       if (!positionToNextRecord(dataIn)) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("currentKeyLength=" + currentKeyLength +
+              ", currentValueLength=" + currentValueLength +
+              ", bytesRead=" + bytesRead + 
+              ", length=" + fileLength);
+        }
         return KeyState.NO_KEY;
       }
       if(currentKeyLength == RLE_MARKER) {

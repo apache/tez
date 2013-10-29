@@ -105,6 +105,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
    * @throws IOException
    */
   public Path getOutputFileForWrite() throws IOException {
+    // TODO how to write 2 different broadcast outputs?????
     Path attemptOutput =
       new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
     return lDirAlloc.getLocalPathForWrite(attemptOutput.toString(), conf);
@@ -181,8 +182,8 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   public Path getSpillFileForWrite(int spillNumber, long size)
       throws IOException {
     return lDirAlloc.getLocalPathForWrite(
-        String.format(String.format(SPILL_FILE_PATTERN,
-            uniqueId, spillNumber)), size, conf);
+        String.format(SPILL_FILE_PATTERN,
+            uniqueId, spillNumber), size, conf);
   }
 
   /**
@@ -234,8 +235,8 @@ public class TezTaskOutputFiles extends TezTaskOutput {
    */
   public Path getInputFileForWrite(int srcTaskId,
       long size) throws IOException {
-    return lDirAlloc.getLocalPathForWrite(String.format(
-        uniqueId, getAttemptOutputDir().toString(), srcTaskId),
+    return lDirAlloc.getLocalPathForWrite(String.format(SPILL_FILE_PATTERN,
+        uniqueId, srcTaskId),
         size, conf);
   }
 

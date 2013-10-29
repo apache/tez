@@ -90,7 +90,7 @@ public class FileBasedKVWriter implements KeyValueWriter {
 
     this.ouputFileManager = TezRuntimeUtils.instantiateTaskOutputManager(conf,
         outputContext);
-    LOG.info("Craeted KVWriter -> " + "compressionCodec: " + (codec == null ? "NoCompressionCodec"
+    LOG.info("Created KVWriter -> " + "compressionCodec: " + (codec == null ? "NoCompressionCodec"
         : codec.getClass().getName()));
 
     initWriter();

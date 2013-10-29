@@ -172,6 +172,7 @@ public class IFileInputStream extends InputStream {
    * At EOF, checksum is validated, but the checksum
    * bytes are not passed back in the buffer. 
    */
+  @Override
   public int read(byte[] b, int off, int len) throws IOException {
 
     if (currentOffset >= dataLength) {
@@ -233,14 +234,24 @@ public class IFileInputStream extends InputStream {
     
     // If we are trying to read past the end of data, just read
     // the left over data
+    int origLen = len;
     if (currentOffset + len > dataLength) {
-      len = (int) dataLength - (int)currentOffset;
+      len = (int) (dataLength - currentOffset);
     }
     
     int bytesRead = in.read(b, off, len);
 
     if (bytesRead < 0) {
-      throw new ChecksumException("Checksum Error", 0);
+      String mesg = " CurrentOffset=" + currentOffset +
+          ", offset=" + offset +
+          ", off=" + off +
+          ", dataLength=" + dataLength + 
+          ", origLen=" + origLen +
+          ", len=" + len +
+          ", length=" + length +
+          ", checksumSize=" + checksumSize;
+      LOG.info(mesg);
+      throw new ChecksumException("Checksum Error: " + mesg, 0);
     }
 
     checksum(b, off, bytesRead);
@@ -257,7 +268,18 @@ public class IFileInputStream extends InputStream {
       csum = new byte[checksumSize];
       IOUtils.readFully(in, csum, 0, checksumSize);
       if (!sum.compare(csum, 0)) {
-        throw new ChecksumException("Checksum Error", 0);
+        String mesg = "CurrentOffset=" + currentOffset +
+            ", off=" + offset +
+            ", dataLength=" + dataLength + 
+            ", origLen=" + origLen +
+            ", len=" + len +
+            ", length=" + length +
+            ", checksumSize=" + checksumSize+
+            ", csum=" + csum +
+            ", sum=" + sum; 
+        LOG.info(mesg);
+
+        throw new ChecksumException("Checksum Error: " + mesg, 0);
       }
     }
     return bytesRead;

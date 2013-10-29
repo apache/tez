@@ -84,7 +84,8 @@ public class BroadcastInputManager implements FetchedInputAllocator,
 
     this.maxSingleShuffleLimit = (long) (memoryLimit * singleShuffleMemoryLimitPercent);
     
-    LOG.info("BroadcastInputManager -> " + "MemoryLimit: " + this.memoryLimit + ", maxSingleMemLimit: " + this.maxSingleShuffleLimit);
+    LOG.info("BroadcastInputManager -> " + "MemoryLimit: " + 
+    this.memoryLimit + ", maxSingleMemLimit: " + this.maxSingleShuffleLimit);
   }
 
   @Override
