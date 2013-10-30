@@ -173,7 +173,7 @@ public class MRHelpers {
           new org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat();
       groupedFormat.setConf(conf);
       groupedFormat.setInputFormat(inputFormat);
-      groupedFormat.setDesiredNumberOfSPlits(numTasks);
+      groupedFormat.setDesiredNumberOfSplits(numTasks);
       finalInputFormat = groupedFormat;
     }
     
@@ -251,7 +251,7 @@ public class MRHelpers {
           new org.apache.hadoop.mapred.split.TezGroupedSplitsInputFormat();
       groupedFormat.setConf(jobConf);
       groupedFormat.setInputFormat(inputFormat);
-      groupedFormat.setDesiredNumberOfSPlits(numTasks);
+      groupedFormat.setDesiredNumberOfSplits(numTasks);
       finalInputFormat = groupedFormat;
     }
     org.apache.hadoop.mapred.InputSplit[] splits = finalInputFormat

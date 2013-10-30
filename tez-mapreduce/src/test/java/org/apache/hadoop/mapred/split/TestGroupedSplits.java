@@ -93,7 +93,7 @@ public class TestGroupedSplits {
     TezGroupedSplitsInputFormat<LongWritable , Text> format = 
         new TezGroupedSplitsInputFormat<LongWritable, Text>();
     format.setConf(job);
-    format.setDesiredNumberOfSPlits(1);
+    format.setDesiredNumberOfSplits(1);
     format.setInputFormat(wrappedFormat);
     LongWritable key = new LongWritable();
     Text value = new Text();
@@ -237,7 +237,7 @@ public class TestGroupedSplits {
     
     // TextInputFormat will produce 3 splits
     for (int j=1; j<=3; ++j) {
-      format.setDesiredNumberOfSPlits(j);
+      format.setDesiredNumberOfSplits(j);
       InputSplit[] splits = format.getSplits(job, 100);
       if (j==1 || j==3) {
         // j==1 covers single split corner case

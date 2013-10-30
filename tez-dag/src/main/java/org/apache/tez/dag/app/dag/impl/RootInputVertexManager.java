@@ -74,7 +74,7 @@ public class RootInputVertexManager implements VertexScheduler {
   }
 
   @Override
-  public void onVertexStarted() {
+  public void onVertexStarted(List<TezTaskAttemptID> completions) {
     managedVertex.scheduleTasks(managedVertex.getTasks().keySet());
   }
 

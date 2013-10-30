@@ -176,7 +176,7 @@ public class ShuffleVertexManager implements VertexScheduler {
 
   
   @Override
-  public void onVertexStarted() {
+  public void onVertexStarted(List<TezTaskAttemptID> completions) {
     pendingTasks = new ArrayList<TezTaskID>(managedVertex.getTotalTasks());
     // track the tasks in this vertex
     updatePendingTasks();
@@ -186,6 +186,11 @@ public class ShuffleVertexManager implements VertexScheduler {
              " with " + numSourceTasks + " source tasks and " + 
              totalTasksToSchedule + " pending tasks");
     
+    if (completions != null) {
+      for (TezTaskAttemptID srcAttemptId : completions) {
+        onSourceTaskCompleted(srcAttemptId);
+      }
+    }
     // for the special case when source has 0 tasks or min fraction == 0
     schedulePendingTasks();
   }

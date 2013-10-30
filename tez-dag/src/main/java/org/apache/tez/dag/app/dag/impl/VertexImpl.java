@@ -246,7 +246,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.INITED, VertexState.INITED,
               VertexEventType.V_SOURCE_VERTEX_STARTED,
               new SourceVertexStartedTransition())
-          .addTransition(VertexState.INITIALIZING,  VertexState.INITIALIZING,
+          .addTransition(VertexState.INITED,  VertexState.INITED,
               VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
               SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
           .addTransition(VertexState.INITED, VertexState.RUNNING,
@@ -322,6 +322,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.SUCCEEDED, VertexState.SUCCEEDED,
               EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
+                  // after we are done reruns of source tasks should not affect
+                  // us. These reruns may be triggered by other consumer vertices.
+                  // We should have been in RUNNING state if we had triggered the 
+                  // reruns.
+                  VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
+                  // accumulate these in case we get restarted
                   VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_TASK_COMPLETED))
 
@@ -338,6 +344,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED,
                   VertexEventType.V_ROOT_INPUT_INITIALIZED,
+                  VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_ROOT_INPUT_FAILED))
 
           // Transitions from KILLED state
@@ -353,6 +360,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_TASK_RESCHEDULED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
+                  VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED,
                   VertexEventType.V_ROOT_INPUT_INITIALIZED,
                   VertexEventType.V_ROOT_INPUT_FAILED))
@@ -368,6 +376,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_TERMINATE,
                   VertexEventType.V_TASK_COMPLETED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
+                  VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_RESCHEDULED,
                   VertexEventType.V_INTERNAL_ERROR,
                   VertexEventType.V_ROOT_INPUT_INITIALIZED,
@@ -415,6 +424,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private int numInitializedInputs;
   private boolean startSignalPending = false;
   List<TezEvent> pendingRouteEvents = null;
+  List<TezTaskAttemptID> pendingReportedSrcCompletions = Lists.newLinkedList();
 
   private RootInputInitializerRunner rootInputInitializer;
   
@@ -1380,7 +1390,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private void startVertex() {
     startedTime = clock.getTime();
-    vertexScheduler.onVertexStarted();
+    vertexScheduler.onVertexStarted(pendingReportedSrcCompletions);
+    pendingReportedSrcCompletions.clear();
     logJobHistoryVertexStartedEvent();
     
     // TODO: Metrics
@@ -1520,13 +1531,18 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           ((VertexEventSourceTaskAttemptCompleted) event).getCompletionEvent();
       LOG.info("Source task attempt completed for vertex: " + vertex.getVertexId()
             + " attempt: " + completionEvent.getTaskAttemptId()
-            + " with state: " + completionEvent.getTaskAttemptState());
+            + " with state: " + completionEvent.getTaskAttemptState()
+            + " vertexState: " + vertex.getState());
       
       if (TaskAttemptStateInternal.SUCCEEDED.equals(completionEvent
           .getTaskAttemptState())) {
         vertex.numSuccessSourceAttemptCompletions++;
-        vertex.vertexScheduler.onSourceTaskCompleted(completionEvent
-            .getTaskAttemptId());
+        if (vertex.getState() == VertexState.RUNNING) {
+          vertex.vertexScheduler.onSourceTaskCompleted(completionEvent
+              .getTaskAttemptId());
+        } else {
+          vertex.pendingReportedSrcCompletions.add(completionEvent.getTaskAttemptId());
+        }
       }
 
     }

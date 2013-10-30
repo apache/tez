@@ -61,7 +61,7 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
     }
   }
   
-  public void setDesiredNumberOfSPlits(int num) {
+  public void setDesiredNumberOfSplits(int num) {
     this.desiredNumSplits = num;
     if (LOG.isDebugEnabled()) {
       LOG.debug("desiredNumSplits: " + desiredNumSplits);

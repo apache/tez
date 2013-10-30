@@ -30,7 +30,7 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 // Rename to VertexManager TEZ-364 and move to DAG API. Make abstract class.
 public interface VertexScheduler {
   void initialize(Configuration conf);
-  void onVertexStarted();
+  void onVertexStarted(List<TezTaskAttemptID> completions);
   void onSourceTaskCompleted(TezTaskAttemptID attemptId);
   void onVertexManagerEventReceived(VertexManagerEvent vmEvent);
   void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor, List<Event> events);

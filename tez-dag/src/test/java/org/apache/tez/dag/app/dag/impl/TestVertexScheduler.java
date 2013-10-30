@@ -142,7 +142,7 @@ public class TestVertexScheduler {
     // source vertices have 0 tasks. immediate start of all managed tasks
     when(mockSrcVertex1.getTotalTasks()).thenReturn(0);
     when(mockSrcVertex2.getTotalTasks()).thenReturn(0);
-    scheduler.onVertexStarted();
+    scheduler.onVertexStarted(null);
     Assert.assertTrue(scheduler.pendingTasks.isEmpty());
     Assert.assertTrue(scheduledTasks.size() == 4); // all tasks scheduled
     scheduledTasks.clear();
@@ -164,7 +164,7 @@ public class TestVertexScheduler {
     VertexManagerEvent vmEvent = new VertexManagerEvent("Vertex", payload);
     // parallelism not change due to large data size
     scheduler = createScheduler(conf, mockManagedVertex, 0.1f, 0.1f);
-    scheduler.onVertexStarted();
+    scheduler.onVertexStarted(null);
     Assert.assertTrue(scheduler.pendingTasks.size() == 4); // no tasks scheduled
     Assert.assertTrue(scheduler.numSourceTasks == 4);
     scheduler.onVertexManagerEventReceived(vmEvent);
@@ -184,7 +184,7 @@ public class TestVertexScheduler {
     vmEvent = new VertexManagerEvent("Vertex", payload);
     
     scheduler = createScheduler(conf, mockManagedVertex, 0.5f, 0.5f);
-    scheduler.onVertexStarted();
+    scheduler.onVertexStarted(null);
     Assert.assertEquals(4, scheduler.pendingTasks.size()); // no tasks scheduled
     Assert.assertEquals(4, scheduler.numSourceTasks);
     // task completion from non-bipartite stage does nothing
@@ -309,7 +309,7 @@ public class TestVertexScheduler {
     // source vertices have 0 tasks. immediate start of all managed tasks
     when(mockSrcVertex1.getTotalTasks()).thenReturn(0);
     when(mockSrcVertex2.getTotalTasks()).thenReturn(0);
-    scheduler.onVertexStarted();
+    scheduler.onVertexStarted(null);
     Assert.assertTrue(scheduler.pendingTasks.isEmpty());
     Assert.assertTrue(scheduledTasks.size() == 3); // all tasks scheduled
     
@@ -336,7 +336,7 @@ public class TestVertexScheduler {
     
     // source vertex have some tasks. min, max == 0
     scheduler = createScheduler(conf, mockManagedVertex, 0, 0);
-    scheduler.onVertexStarted();
+    scheduler.onVertexStarted(null);
     Assert.assertTrue(scheduler.numSourceTasks == 4);
     Assert.assertTrue(scheduler.totalTasksToSchedule == 3);
     Assert.assertTrue(scheduler.numSourceTasksCompleted == 0);
@@ -356,7 +356,7 @@ public class TestVertexScheduler {
     
     // min, max > 0 and min == max
     scheduler = createScheduler(conf, mockManagedVertex, 0.25f, 0.25f);
-    scheduler.onVertexStarted();
+    scheduler.onVertexStarted(null);
     Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
     Assert.assertTrue(scheduler.numSourceTasks == 4);
     // task completion from non-bipartite stage does nothing
@@ -371,7 +371,7 @@ public class TestVertexScheduler {
     
     // min, max > 0 and min == max == absolute max 1.0
     scheduler = createScheduler(conf, mockManagedVertex, 1.0f, 1.0f);
-    scheduler.onVertexStarted();
+    scheduler.onVertexStarted(null);
     Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
     Assert.assertTrue(scheduler.numSourceTasks == 4);
     // task completion from non-bipartite stage does nothing
@@ -395,7 +395,7 @@ public class TestVertexScheduler {
     
     // min, max > 0 and min == max
     scheduler = createScheduler(conf, mockManagedVertex, 1.0f, 1.0f);
-    scheduler.onVertexStarted();
+    scheduler.onVertexStarted(null);
     Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
     Assert.assertTrue(scheduler.numSourceTasks == 4);
     // task completion from non-bipartite stage does nothing
@@ -419,7 +419,7 @@ public class TestVertexScheduler {
     
     // min, max > and min < max
     scheduler = createScheduler(conf, mockManagedVertex, 0.25f, 0.75f);
-    scheduler.onVertexStarted();
+    scheduler.onVertexStarted(null);
     Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
     Assert.assertTrue(scheduler.numSourceTasks == 4);
     scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
@@ -444,7 +444,7 @@ public class TestVertexScheduler {
 
     // min, max > and min < max
     scheduler = createScheduler(conf, mockManagedVertex, 0.25f, 1.0f);
-    scheduler.onVertexStarted();
+    scheduler.onVertexStarted(null);
     Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
     Assert.assertTrue(scheduler.numSourceTasks == 4);
     scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
