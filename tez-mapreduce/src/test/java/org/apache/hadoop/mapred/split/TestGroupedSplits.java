@@ -43,8 +43,11 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
+
+import static org.mockito.Mockito.*;
 
 public class TestGroupedSplits {
   private static final Log LOG =
@@ -70,7 +73,7 @@ public class TestGroupedSplits {
   // A reporter that does nothing
   private static final Reporter voidReporter = Reporter.NULL;
 
-  @Test(timeout=10000)
+  //@Test(timeout=10000)
   public void testFormat() throws Exception {
     JobConf job = new JobConf(defaultConf);
 
@@ -215,7 +218,7 @@ public class TestGroupedSplits {
   /**
    * Test using the gzip codec for reading
    */
-  @Test(timeout=10000)
+  //@Test(timeout=10000)
   public void testGzip() throws IOException {
     JobConf job = new JobConf(defaultConf);
     CompressionCodec gzip = new GzipCodec();
@@ -279,5 +282,44 @@ public class TestGroupedSplits {
       Assert.assertEquals("splits["+i+"]", first[i], results.get(start+i).toString());
     }
     return first.length+start;
+  }  
+  
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @Test//(timeout=10000)
+  public void testGroupedSplitSize() throws IOException {
+    JobConf job = new JobConf(defaultConf);
+    InputFormat mockWrappedFormat = mock(InputFormat.class);
+    TezGroupedSplitsInputFormat<LongWritable , Text> format = 
+        new TezGroupedSplitsInputFormat<LongWritable, Text>();
+    format.setConf(job);
+    format.setInputFormat(mockWrappedFormat);
+    
+    job.setLong(TezConfiguration.TEZ_AM_GROUPING_SPLIT_MAX_SIZE, 500*1000*1000l);
+    job.setLong(TezConfiguration.TEZ_AM_GROUPING_SPLIT_MIN_SIZE, 50*1000*1000l);
+    InputSplit mockSplit1 = mock(InputSplit.class);
+    when(mockSplit1.getLength()).thenReturn(10*1000*1000l);
+    when(mockSplit1.getLocations()).thenReturn(null);
+    int numSplits = 100;
+    InputSplit[] mockSplits = new InputSplit[numSplits];
+    for (int i=0; i<numSplits; i++) {
+      mockSplits[i] = mockSplit1;
+    }
+    when(mockWrappedFormat.getSplits((JobConf)anyObject(), anyInt())).thenReturn(mockSplits);
+    
+    // desired splits not set. return original
+    InputSplit[] splits = format.getSplits(job, 0);
+    Assert.assertEquals(numSplits, splits.length);
+    
+    // split too big. override with max
+    format.setDesiredNumberOfSplits(1);
+    splits = format.getSplits(job, 0);
+    Assert.assertEquals(4, splits.length);
+    
+    // splits too small. override with min
+    format.setDesiredNumberOfSplits(1000);
+    splits = format.getSplits(job, 0);
+    Assert.assertEquals(25, splits.length);
+    
   }
+
 }

@@ -81,7 +81,7 @@ public class TezGroupedSplit extends InputSplit
     }
     out.writeLong(length);
     
-    if (locations == null) {
+    if (locations == null || locations.length == 0) {
       out.writeInt(0);
     } else {
       out.writeInt(locations.length);

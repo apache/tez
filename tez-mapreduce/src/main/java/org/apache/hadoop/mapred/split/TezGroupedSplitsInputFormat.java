@@ -137,13 +137,40 @@ public class TezGroupedSplitsInputFormat<K, V>
       long maxLengthPerGroup = job.getLong(
           TezConfiguration.TEZ_AM_GROUPING_SPLIT_MAX_SIZE,
           TezConfiguration.TEZ_AM_GROUPING_SPLIT_MAX_SIZE_DEFAULT);
+      long minLengthPerGroup = job.getLong(
+          TezConfiguration.TEZ_AM_GROUPING_SPLIT_MIN_SIZE,
+          TezConfiguration.TEZ_AM_GROUPING_SPLIT_MIN_SIZE_DEFAULT);
+      if (maxLengthPerGroup < minLengthPerGroup || 
+          minLengthPerGroup <=0) {
+        throw new TezUncheckedException(
+          "Invalid max/min group lengths. Required min>0, max>=min. " +
+          " max: " + maxLengthPerGroup + " min: " + minLengthPerGroup);
+      }
       if (lengthPerGroup > maxLengthPerGroup) {
         // splits too big to work. Need to override with max size.
         int newDesiredNumSplits = (int)(totalLength/maxLengthPerGroup) + 1;
         LOG.info("Desired splits: " + desiredNumSplits + " too small. " + 
             " Desired splitLength: " + lengthPerGroup + 
             " Max splitLength: " + maxLengthPerGroup +
-            " . New desired splits: " + newDesiredNumSplits);
+            " New desired splits: " + newDesiredNumSplits + 
+            " Total length: " + totalLength +
+            " Original splits: " + originalSplits.length);
+        
+        desiredNumSplits = newDesiredNumSplits;
+        if (desiredNumSplits > originalSplits.length) {
+          // too few splits were produced. See if we can produce more splits
+          LOG.info("Recalculating splits. Original splits: " + originalSplits.length);
+          originalSplits = wrappedInputFormat.getSplits(job, desiredNumSplits);
+        }
+      } else if (lengthPerGroup < minLengthPerGroup) {
+        // splits too small to work. Need to override with size.
+        int newDesiredNumSplits = (int)(totalLength/minLengthPerGroup) + 1;
+        LOG.info("Desired splits: " + desiredNumSplits + " too large. " + 
+            " Desired splitLength: " + lengthPerGroup + 
+            " Min splitLength: " + minLengthPerGroup +
+            " New desired splits: " + newDesiredNumSplits + 
+            " Total length: " + totalLength +
+            " Original splits: " + originalSplits.length);
         
         desiredNumSplits = newDesiredNumSplits;
         if (desiredNumSplits > originalSplits.length) {
@@ -177,7 +204,8 @@ public class TezGroupedSplitsInputFormat<K, V>
       return groupedSplits;
     }
     
-    String[] emptyLocations = {"EmptyLocation"};
+    String emptyLocation = "EmptyLocation";
+    String[] emptyLocations = {emptyLocation};
     List<InputSplit> groupedSplitsList = new ArrayList<InputSplit>(desiredNumSplits);
     
     long totalLength = 0;
@@ -285,9 +313,6 @@ public class TezGroupedSplitsInputFormat<K, V>
 
         // One split group created
         String[] groupLocation = {location};
-        if (location == emptyLocations[0]) {
-          groupLocation = null;
-        }
         if (doingRackLocal) {
           for (SplitHolder splitH : group) {
             String[] locations = splitH.split.getLocations();
@@ -298,10 +323,14 @@ public class TezGroupedSplitsInputFormat<K, V>
             }
           }
           groupLocation = groupLocationSet.toArray(groupLocation);
+        } else if (location == emptyLocation) {
+          groupLocation = null;
         }
         TezGroupedSplit groupedSplit = 
             new TezGroupedSplit(group.size(), wrappedInputFormatName, 
-                groupLocation, (doingRackLocal?location:null));
+                groupLocation, 
+                // pass rack local hint directly to AM
+                ((doingRackLocal && location != emptyLocation)?location:null));
         for (SplitHolder groupedSplitHolder : group) {
           groupedSplit.addSplit(groupedSplitHolder.split);
           groupedSplitHolder.isProcessed = true;
@@ -343,8 +372,10 @@ public class TezGroupedSplitsInputFormat<K, V>
         Map<String, String> locToRackMap = new HashMap<String, String>(distinctLocations.size());
         Map<String, LocationHolder> rackLocations = new HashMap<String, LocationHolder>();
         for (String location : distinctLocations.keySet()) {
-          // unknown locations will get resolved to default-rack
-          String rack = RackResolver.resolve(location).getNetworkLocation();
+          String rack = emptyLocation;
+          if (location != emptyLocation) {
+            rack = RackResolver.resolve(location).getNetworkLocation();
+          }
           locToRackMap.put(location, rack);
           if (rackLocations.get(rack) == null) {
             // splits will probably be located in all racks
@@ -395,7 +426,7 @@ public class TezGroupedSplitsInputFormat<K, V>
         continue;
       }
       
-      if (!allowSmallGroups && numFullGroupsCreated < numNodeLocations/10) {
+      if (!allowSmallGroups && numFullGroupsCreated <= numNodeLocations/10) {
         // a few nodes have a lot of data or data is thinly spread across nodes
         // so allow small groups now        
         allowSmallGroups = true;

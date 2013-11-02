@@ -239,6 +239,11 @@ public class TezConfiguration extends Configuration {
   public static long TEZ_AM_GROUPING_SPLIT_MAX_SIZE_DEFAULT = 
       1024*1024*1024L;
 
+  public static final String TEZ_AM_GROUPING_SPLIT_MIN_SIZE = TEZ_AM_PREFIX +
+      "grouping.min-size";
+  public static long TEZ_AM_GROUPING_SPLIT_MIN_SIZE_DEFAULT = 
+      50*1024*1024L;
+
   public static final String TEZ_AM_GROUPING_RACK_SPLIT_SIZE_REDUCTION = 
       TEZ_AM_PREFIX + "grouping.rack-split-reduction";
   public static final float TEZ_AM_GROUPING_RACK_SPLIT_SIZE_REDUCTION_DEFAULT = 0.75f;
