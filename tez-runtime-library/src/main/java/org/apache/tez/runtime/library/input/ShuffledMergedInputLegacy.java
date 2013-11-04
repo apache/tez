@@ -22,14 +22,47 @@ import java.io.IOException;
 
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.util.Progress;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
 @LimitedPrivate("mapreduce")
 public class ShuffledMergedInputLegacy extends ShuffledMergedInput {
 
+  private final Progress progress = new Progress();
+
   @Private
   public TezRawKeyValueIterator getIterator() throws IOException, InterruptedException {
     // wait for input so that iterator is available
+    if (this.numInputs == 0) {
+      return new TezRawKeyValueIterator() {
+        @Override
+        public DataInputBuffer getKey() throws IOException {
+          throw new RuntimeException("No data available in Input");
+        }
+
+        @Override
+        public DataInputBuffer getValue() throws IOException {
+          throw new RuntimeException("No data available in Input");
+        }
+
+        @Override
+        public boolean next() throws IOException {
+          return false;
+        }
+
+        @Override
+        public void close() throws IOException {
+        }
+
+        @Override
+        public Progress getProgress() {
+          progress.complete();
+          return progress;
+        }
+      };
+    }
+
     waitForInputReady();
     return rawIter;
   }

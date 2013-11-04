@@ -281,6 +281,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.RUNNING, VertexState.RUNNING,
               VertexEventType.V_TASK_RESCHEDULED,
               new TaskRescheduledTransition())
+          .addTransition(VertexState.RUNNING,
+              EnumSet.of(VertexState.RUNNING, VertexState.SUCCEEDED,
+                  VertexState.FAILED),
+              VertexEventType.V_COMPLETED,
+              new VertexNoTasksCompletedTransition())
           .addTransition(
               VertexState.RUNNING,
               VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
@@ -1058,10 +1063,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   /**
    * Set the terminationCause and send a kill-message to all tasks.
    * The task-kill messages are only sent once.
-   * @param the trigger that is causing the Vertex to transition to KILLED/FAILED
-   * @param event The type of kill event to send to the vertices.
    */
-  void enactKill(VertexTerminationCause trigger, TaskTerminationCause taskterminationCause) {
+  void enactKill(VertexTerminationCause trigger,
+      TaskTerminationCause taskterminationCause) {
     if(trySetTerminationCause(trigger)){
       for (Task task : tasks.values()) {
         eventHandler.handle(
@@ -1131,6 +1135,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     // TODO: Metrics
     //vertex.metrics.endPreparingJob(job);
     initedTime = clock.getTime();
+
     return VertexState.INITED;
   }
   
@@ -1255,7 +1260,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       
       // Create tasks based on initial configuration, but don't start them yet.
       if (vertex.numTasks == -1) {
-        LOG.info("Num tasks is -1. Expecting VertexManager/InputInitializers to set #tasks for the vertex");
+        LOG.info("Num tasks is -1. Expecting VertexManager/InputInitializers"
+            + " to set #tasks for the vertex " + vertex.getVertexId());
       } else {
         vertex.createTasks();
       }
@@ -1404,6 +1410,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     for (Vertex targetVertex : targetVertices.keySet()) {
       eventHandler.handle(new VertexEventSourceVertexStarted(targetVertex
           .getVertexId(), distanceFromRoot));
+    }
+
+    // If we have no tasks, just transition to vertex completed
+    if (this.numTasks == 0) {
+      eventHandler.handle(new VertexEvent(
+        this.vertexId, VertexEventType.V_COMPLETED));
     }
   }
 
@@ -1626,7 +1638,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       vertex.succeededTaskCount--;
     }
   }
-  
+
+  static class VertexNoTasksCompletedTransition implements
+      MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
+
+    @Override
+    public VertexState transition(VertexImpl vertex, VertexEvent event) {
+      return VertexImpl.checkVertexForCompletion(vertex);
+    }
+  }
+
   private static class TaskRescheduledAfterVertexSuccessTransition implements
     MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
 

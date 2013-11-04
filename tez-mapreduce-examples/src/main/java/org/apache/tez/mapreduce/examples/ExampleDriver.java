@@ -87,24 +87,31 @@ public class ExampleDriver {
 
   public static void printMRRDAGStatus(DAGStatus dagStatus) {
     Progress progress = dagStatus.getDAGProgress();
+    double vProgressFloat = 0.0f;
     if (progress != null) {
       System.out.println("");
       System.out.println("DAG: State: "
           + dagStatus.getState()
           + " Progress: "
-          + formatter.format((double)(progress.getSucceededTaskCount())
-              /progress.getTotalTaskCount()));
+          + (progress.getTotalTaskCount() < 0 ? formatter.format(0.0f) :
+            formatter.format((double)(progress.getSucceededTaskCount())
+              /progress.getTotalTaskCount())));
       final String[] vNames = { "initialmap", "ivertex1", "finalreduce" };
       for (String vertexName : vNames) {
         Progress vProgress = dagStatus.getVertexProgress().get(vertexName);
         if (vProgress != null) {
+          vProgressFloat = 0.0f;
+          if (vProgress.getTotalTaskCount() == 0) {
+            vProgressFloat = 1.0f;
+          } else if (vProgress.getTotalTaskCount() > 0) {
+            vProgressFloat = (double)vProgress.getSucceededTaskCount()
+              /vProgress.getTotalTaskCount();
+          }
           System.out.println("VertexStatus:"
               + " VertexName: "
               + (vertexName.equals("ivertex1") ? "intermediate-reducer"
                   : vertexName)
-              + " Progress: "
-              + formatter.format((double)vProgress.getSucceededTaskCount()
-                      /vProgress.getTotalTaskCount()));
+              + " Progress: " + formatter.format(vProgressFloat));
         }
       }
     }

@@ -553,7 +553,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
   /////////////////// End of methods for walking the available inputs
 
   @SuppressWarnings("rawtypes")
-  public BroadcastKVReader craeteReader() throws IOException {
+  public BroadcastKVReader createReader() throws IOException {
     return new BroadcastKVReader(this, conf, codec, ifileReadAhead, ifileReadAheadLength, ifileBufferSize);
   }
   

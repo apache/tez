@@ -69,6 +69,10 @@ public class ShuffledMergedInput implements LogicalInput {
     this.inputContext = inputContext;
     this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
 
+    if (this.numInputs == 0) {
+      return Collections.emptyList();
+    }
+
     this.inputKeyCounter = inputContext.getCounters().findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
     this.inputValueCounter = inputContext.getCounters().findCounter(TaskCounter.REDUCE_INPUT_RECORDS);
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS,
@@ -89,6 +93,9 @@ public class ShuffledMergedInput implements LogicalInput {
    *         still in progress
    */
   public boolean isInputReady() {
+    if (this.numInputs == 0) {
+      return true;
+    }
     return shuffle.isInputReady();
   }
 
@@ -98,13 +105,18 @@ public class ShuffledMergedInput implements LogicalInput {
    * @throws InterruptedException
    */
   public void waitForInputReady() throws IOException, InterruptedException {
+    if (this.numInputs == 0) {
+      return;
+    }
     rawIter = shuffle.waitForInput();
     createValuesIterator();
   }
 
   @Override
   public List<Event> close() throws IOException {
-    rawIter.close();
+    if (this.numInputs != 0) {
+      rawIter.close();
+    }
     return Collections.emptyList();
   }
 
@@ -122,6 +134,24 @@ public class ShuffledMergedInput implements LogicalInput {
    */
   @Override
   public KeyValuesReader getReader() throws IOException {
+    if (this.numInputs == 0) {
+      return new KeyValuesReader() {
+        @Override
+        public boolean next() throws IOException {
+          return false;
+        }
+
+        @Override
+        public Object getCurrentKey() throws IOException {
+          throw new RuntimeException("No data available in Input");
+        }
+
+        @Override
+        public Iterable<Object> getCurrentValues() throws IOException {
+          throw new RuntimeException("No data available in Input");
+        }
+      };
+    }
     if (rawIter == null) {
       try {
         waitForInputReady();
@@ -150,6 +180,9 @@ public class ShuffledMergedInput implements LogicalInput {
 
   @Override
   public void handleEvents(List<Event> inputEvents) {
+    if (numInputs == 0) {
+      throw new RuntimeException("No input events expected as numInputs is 0");
+    }
     shuffle.handleEvents(inputEvents);
   }
 

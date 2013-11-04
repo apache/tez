@@ -38,6 +38,10 @@ public class LocalMergedInput extends ShuffledMergedInputLegacy {
     this.inputContext = inputContext;
     this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
 
+    if (numInputs == 0) {
+      return Collections.emptyList();
+    }
+
     LocalShuffle localShuffle = new LocalShuffle(inputContext, conf, numInputs);
     rawIter = localShuffle.run();
     createValuesIterator();
@@ -46,7 +50,10 @@ public class LocalMergedInput extends ShuffledMergedInputLegacy {
 
   @Override
   public List<Event> close() throws IOException {
-    rawIter.close();
+    if (numInputs != 0) {
+      rawIter.close();
+    }
     return Collections.emptyList();
   }
+
 }

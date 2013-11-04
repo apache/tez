@@ -45,8 +45,6 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   @SuppressWarnings("rawtypes")
   private BroadcastKVReader kvReader;
   
-  
-  
   public ShuffledUnorderedKVInput() {
   }
 
@@ -55,26 +53,54 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
     Preconditions.checkArgument(numInputs != -1, "Number of Inputs has not been set");
     this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS, inputContext.getWorkDirs());
-    
-    this.shuffleManager = new BroadcastShuffleManager(inputContext, conf, numInputs);
+
+    if (numInputs == 0) {
+      return null;
+    }
+
+    this.shuffleManager = new BroadcastShuffleManager(inputContext, conf,
+        numInputs);
     this.shuffleManager.run();
-    this.kvReader = this.shuffleManager.craeteReader();
+    this.kvReader = this.shuffleManager.createReader();
     return null;
   }
 
   @Override
   public KeyValueReader getReader() throws Exception {
+    if (numInputs == 0) {
+      return new KeyValueReader() {
+        @Override
+        public boolean next() throws IOException {
+          return false;
+        }
+
+        @Override
+        public Object getCurrentKey() throws IOException {
+          throw new RuntimeException("No data available in Input");
+        }
+
+        @Override
+        public Object getCurrentValue() throws IOException {
+          throw new RuntimeException("No data available in Input");
+        }
+      };
+    }
     return this.kvReader;
   }
 
   @Override
   public void handleEvents(List<Event> inputEvents) throws IOException {
+    if (numInputs == 0) {
+      throw new RuntimeException("No input events expected as numInputs is 0");
+    }
     shuffleManager.handleEvents(inputEvents);
   }
 
   @Override
   public List<Event> close() throws Exception {
-    this.shuffleManager.shutdown();
+    if (numInputs != 0) {
+      this.shuffleManager.shutdown();
+    }
     return null;
   }
 

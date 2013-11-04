@@ -421,17 +421,25 @@ public class TestDAGVerify {
   @SuppressWarnings("unused")
   @Test
   public void testInvalidVertexConstruction() {
+    {
+      Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor("MapProcessor"),
+        0, dummyTaskResource);
+      Vertex v2 = new Vertex("v1",
+        new ProcessorDescriptor("MapProcessor"),
+        -1, dummyTaskResource);
+    }
     try {
       Vertex v1 = new Vertex("v1",
           new ProcessorDescriptor("MapProcessor"),
-          0, dummyTaskResource);
+          -2, dummyTaskResource);
       Assert.fail("Expected exception for 0 parallelism");
     } catch (IllegalArgumentException e) {
       Assert
           .assertTrue(e
               .getMessage()
               .startsWith(
-                  "Parallelism should be -1 if determined by the AM, otherwise should be > 0"));
+                  "Parallelism should be -1 if determined by the AM, otherwise should be >= 0"));
     }
     try {
       Vertex v1 = new Vertex("v1",

@@ -58,9 +58,10 @@ public class Vertex { // FIXME rename to Task
     this.processorDescriptor = processorDescriptor;
     this.parallelism = parallelism;
     this.taskResource = taskResource;
-    if (!(parallelism == -1 || parallelism > 0)) {
+    if (parallelism < -1) {
       throw new IllegalArgumentException(
-          "Parallelism should be -1 if determined by the AM, otherwise should be > 0");
+          "Parallelism should be -1 if determined by the AM"
+          + ", otherwise should be >= 0");
     }
     if (taskResource == null) {
       throw new IllegalArgumentException("Resource cannot be null");
