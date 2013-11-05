@@ -1284,8 +1284,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             + " tasks. Headroom: " + totalResource + " Task Resource: " 
             + taskResource + " waves: " + waves);
 
-        vertex.rootInputInitializer = new RootInputInitializerRunner(vertex
-            .getDAG().getName(), vertex.getName(), vertex.getVertexId(),
+        vertex.rootInputInitializer = vertex.createRootInputInitializerRunner(
+            vertex.getDAG().getName(), vertex.getName(), vertex.getVertexId(),
             vertex.eventHandler, numTasks);
         List<RootInputLeafOutputDescriptor<InputDescriptor>> inputList = Lists
             .newArrayListWithCapacity(vertex.inputsWithInitializers.size());
@@ -1301,6 +1301,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       return vertex.initializeVertex();
     }
   } // end of InitTransition
+  
+  @VisibleForTesting
+  protected RootInputInitializerRunner createRootInputInitializerRunner(
+      String dagName, String vertexName, TezVertexID vertexID,
+      EventHandler eventHandler, int numTasks) {
+    return new RootInputInitializerRunner(dagName, vertexName, vertexID,
+        eventHandler, numTasks);
+  }
   
   public static class RootInputInitializedTransition implements
       MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
@@ -1972,6 +1980,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @VisibleForTesting
   String getJavaOpts() {
     return this.javaOpts;
+  }
+  
+  @VisibleForTesting
+  RootInputInitializerRunner getRootInputInitializerRunner() {
+    return this.rootInputInitializer;
+  }
+  
+  @VisibleForTesting
+  VertexLocationHint getVertexLocationHint() {
+    return this.vertexLocationHint;
   }
 
   // TODO Eventually remove synchronization.

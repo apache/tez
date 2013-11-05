@@ -36,6 +36,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.api.TezRootInputInitializerContext;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -75,10 +76,15 @@ public class RootInputInitializerRunner {
       ListenableFuture<List<Event>> future = executor
           .submit(new InputInitializerCallable(input, vertexID, dagName,
               vertexName, numTasks));
-      Futures.addCallback(future, new InputInitializerCallback(input.getEntityName()));
+      Futures.addCallback(future, createInputInitializerCallback(input.getEntityName()));
     }
   }
 
+  @VisibleForTesting
+  protected InputInitializerCallback createInputInitializerCallback(String entityName) {
+    return new InputInitializerCallback(entityName, eventHandler, vertexID);
+  }
+  
   public void shutdown() {
     if (executor != null && !isStopped) {
       // Don't really care about what is running if an error occurs. If no error
@@ -127,12 +133,20 @@ public class RootInputInitializerRunner {
     }
   }
 
-  private class InputInitializerCallback implements FutureCallback<List<Event>> {
+  @SuppressWarnings("rawtypes")
+  @VisibleForTesting
+  private static class InputInitializerCallback implements
+      FutureCallback<List<Event>> {
 
     private final String inputName;
+    private final EventHandler eventHandler;
+    private final TezVertexID vertexID;
 
-    public InputInitializerCallback(String inputName) {
+    public InputInitializerCallback(String inputName,
+        EventHandler eventHandler, TezVertexID vertexID) {
       this.inputName = inputName;
+      this.eventHandler = eventHandler;
+      this.vertexID = vertexID;
     }
 
     @SuppressWarnings("unchecked")
