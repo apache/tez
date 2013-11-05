@@ -1169,7 +1169,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               this.clock,
               this.taskHeartbeatHandler,
               this.appContext,
-              this.targetVertices.isEmpty(),
+              (this.targetVertices != null ?
+                this.targetVertices.isEmpty() : true),
               locHint, this.taskResource,
               this.containerContext);
       this.addTask(task);
@@ -1249,8 +1250,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       // For VertexManagers setting parallelism, the setParallelism call needs
       // to be inline.
       vertex.numTasks = vertex.getVertexPlan().getTaskConfig().getNumTasks();
-      if (!(vertex.numTasks == -1 || vertex.numTasks > 0)) {
-        vertex.addDiagnostic("No tasks for vertex " + vertex.getVertexId());
+      if (!(vertex.numTasks == -1 || vertex.numTasks >= 0)) {
+        vertex.addDiagnostic("Invalid task count for vertex"
+          + ", numTasks=" + vertex.numTasks);
         vertex.trySetTerminationCause(VertexTerminationCause.INVALID_NUM_OF_TASKS);
         vertex.abortVertex(VertexStatus.State.FAILED);
         return vertex.finished(VertexState.FAILED);
@@ -1407,9 +1409,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     // starting to downstream vertices. If the connections/structure of this
     // vertex is not fully defined yet then we could send this event later
     // when we are ready
-    for (Vertex targetVertex : targetVertices.keySet()) {
-      eventHandler.handle(new VertexEventSourceVertexStarted(targetVertex
-          .getVertexId(), distanceFromRoot));
+    if (targetVertices != null) {
+      for (Vertex targetVertex : targetVertices.keySet()) {
+        eventHandler.handle(new VertexEventSourceVertexStarted(targetVertex
+            .getVertexId(), distanceFromRoot));
+      }
     }
 
     // If we have no tasks, just transition to vertex completed
@@ -1617,7 +1621,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     private void taskFailed(VertexImpl vertex, Task task) {
       vertex.failedTaskCount++;
-      vertex.addDiagnostic("Task failed " + task.getTaskId());
+      vertex.addDiagnostic("Task failed"
+        + ", taskId=" + task.getTaskId()
+        + ", diagnostics=" + task.getDiagnostics());
       // TODO Metrics
       //vertex.metrics.failedTask(task);
     }
@@ -1840,7 +1846,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public void setOutputVertices(Map<Vertex, Edge> outVertices) {
     this.targetVertices = outVertices;
   }
-  
+
   @Override
   public void setAdditionalInputs(List<RootInputLeafOutputProto> inputs) {
     Preconditions.checkArgument(inputs.size() < 2,

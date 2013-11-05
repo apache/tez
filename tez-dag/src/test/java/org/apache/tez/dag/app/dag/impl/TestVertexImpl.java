@@ -97,6 +97,7 @@ public class TestVertexImpl {
   private TezDAGID dagId;
   private ApplicationAttemptId appAttemptId;
   private DAGPlan dagPlan;
+  private DAGPlan invalidDagPlan;
   private Map<String, VertexImpl> vertices;
   private Map<TezVertexID, VertexImpl> vertexIdMap;
   private DrainDispatcher dispatcher;
@@ -224,7 +225,6 @@ public class TestVertexImpl {
             .setTaskModule("x1.y1")
             .build()
             )
-        .addOutEdgeId("e1")
         .build()
         )
         .build();
@@ -527,6 +527,7 @@ public class TestVertexImpl {
         ApplicationId.newInstance(100, 1), 1);
     dagId = new TezDAGID(appAttemptId.getApplicationId(), 1);
     dagPlan = createTestDAGPlan();
+    invalidDagPlan = createInvalidDAGPlan();
     dispatcher = new DrainDispatcher();
     fsTokens = new Credentials();
     appContext = mock(AppContext.class);
@@ -767,7 +768,8 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexTerminationCause.OWN_TASK_FAILURE, v.getTerminationCause());
     String diagnostics =
         StringUtils.join(",", v.getDiagnostics()).toLowerCase();
-    Assert.assertTrue(diagnostics.contains("task failed " + t1.toString()));
+    Assert.assertTrue(diagnostics.contains("task failed"
+        + ", taskid=" + t1.toString()));
   }
 
   @Test(timeout = 5000)
@@ -1241,16 +1243,27 @@ public class TestVertexImpl {
 
   @Test
   public void testVertexWithNoTasks() {
-    TezDAGID invalidDagId = new TezDAGID(
-        dagId.getApplicationId(), 1000);
-    DAGPlan dPlan = createInvalidDAGPlan();
-    TezVertexID vId = new TezVertexID(invalidDagId, 1);
-    VertexPlan vPlan = dPlan.getVertex(0);
-    VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
-        dispatcher.getEventHandler(), taskAttemptListener, fsTokens,
-        clock, thh, appContext, vertexLocationHint);
-    v.handle(new VertexEvent(vId, VertexEventType.V_INIT));
-    Assert.assertEquals(VertexState.FAILED, v.getState());
+    TezVertexID vId = null;
+    try {
+      TezDAGID invalidDagId = new TezDAGID(
+          dagId.getApplicationId(), 1000);
+      vId = new TezVertexID(invalidDagId, 1);
+      VertexPlan vPlan = invalidDagPlan.getVertex(0);
+      VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
+          dispatcher.getEventHandler(), taskAttemptListener, fsTokens,
+          clock, thh, appContext, vertexLocationHint);
+      vertexIdMap.put(vId, v);
+      v.handle(new VertexEvent(vId, VertexEventType.V_INIT));
+      dispatcher.await();
+      Assert.assertEquals(VertexState.INITED, v.getState());
+      v.handle(new VertexEvent(vId, VertexEventType.V_START));
+      dispatcher.await();
+      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+    } finally {
+      if (vId != null) {
+        vertexIdMap.remove(vId);
+      }
+    }
   }
 
 }

@@ -22,11 +22,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProtoOrBuilder;
 import org.apache.tez.dag.api.records.DAGProtos.StringProgressPairProto;
 import org.apache.tez.dag.api.TezUncheckedException;
 
 public class DAGStatus {
+
+  private static final String LINE_SEPARATOR = System
+    .getProperty("line.separator");
 
   public enum State {
     SUBMITTED,
@@ -123,7 +127,9 @@ public class DAGStatus {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("status=" + getState()
-        + ", progress=" + getDAGProgress());
+        + ", progress=" + getDAGProgress()
+        + ", diagnostics="
+        + StringUtils.join(LINE_SEPARATOR, getDiagnostics()));
     return sb.toString();
   }
 

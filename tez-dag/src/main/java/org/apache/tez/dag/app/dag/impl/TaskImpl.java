@@ -31,6 +31,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
@@ -86,6 +87,9 @@ import com.google.common.annotations.VisibleForTesting;
 public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   private static final Log LOG = LogFactory.getLog(TaskImpl.class);
+
+  private static final String LINE_SEPARATOR = System
+    .getProperty("line.separator");
 
   protected final Configuration conf;
   protected final TaskAttemptListener taskAttemptListener;
@@ -488,6 +492,22 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     } finally {
       readLock.unlock();
     }        
+  }
+
+  @Override
+  public List<String> getDiagnostics() {
+    List<String> diagnostics = new ArrayList<String>(5);
+    readLock.lock();
+    try {
+      for (TaskAttempt att : attempts.values()) {
+        String prefix = "AttemptID:" + att.getID() + " Info:";
+        diagnostics.add(prefix
+          + StringUtils.join(LINE_SEPARATOR, att.getDiagnostics()));
+      }
+    } finally {
+      readLock.unlock();
+    }
+    return diagnostics;
   }
 
   @VisibleForTesting

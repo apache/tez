@@ -78,4 +78,7 @@ public interface Task {
       int fromEventId, int maxEvents);
   
   public List<TezEvent> getAndClearTaskTezEvents();
+
+  public List<String> getDiagnostics();
+
 }

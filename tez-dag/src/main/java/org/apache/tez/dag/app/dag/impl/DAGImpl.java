@@ -646,7 +646,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         new DAGHistoryEvent(finishEvt));
   }
 
-  static DAGState checkJobForCompletion(DAGImpl dag) {
+  static DAGState checkDAGForCompletion(DAGImpl dag) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Checking dag completion"
           + ", numCompletedVertices=" + dag.numCompletedVertices
@@ -1128,7 +1128,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           + ", numVertices=" + job.numVertices);
 
       // if the job has not finished but a failure/kill occurred, then force the transition to KILL_WAIT.
-      DAGState state = checkJobForCompletion(job);
+      DAGState state = checkDAGForCompletion(job);
       if(state == DAGState.RUNNING && forceTransitionToKillWait){
         return DAGState.TERMINATING;
       }
@@ -1167,21 +1167,29 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private void vertexReRunning(Vertex vertex) {
     reRunningVertices.add(vertex.getVertexId());
     numSuccessfulVertices--;
-    addDiagnostic("Vertex re-running " + vertex.getVertexId());
+    addDiagnostic("Vertex re-running"
+      + ", vertexName=" + vertex.getName()
+      + ", vertexId=" + vertex.getVertexId());
     // TODO: Metrics
     //job.metrics.completedTask(task);
   }
 
   private void vertexFailed(Vertex vertex) {
     numFailedVertices++;
-    addDiagnostic("Vertex failed " + vertex.getVertexId());
+    addDiagnostic("Vertex failed"
+        + ", vertexName=" + vertex.getName()
+        + ", vertexId=" + vertex.getVertexId()
+        + ", diagnostics=" + vertex.getDiagnostics());
     // TODO: Metrics
     //job.metrics.failedTask(task);
   }
 
   private void vertexKilled(Vertex vertex) {
     numKilledVertices++;
-    addDiagnostic("Vertex killed " + vertex.getVertexId());
+    addDiagnostic("Vertex killed"
+      + ", vertexName=" + vertex.getName()
+      + ", vertexId=" + vertex.getVertexId()
+      + ", diagnostics=" + vertex.getDiagnostics());
     // TODO: Metrics
     //job.metrics.killedTask(task);
   }
