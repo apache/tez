@@ -336,7 +336,7 @@ public class OrderedWordCount {
     // the tez jars.
 
     TezSession tezSession = null;
-    AMConfiguration amConfig = new AMConfiguration("default", null,
+    AMConfiguration amConfig = new AMConfiguration(null,
         null, tezConf, null);
     if (useTezSession) {
       LOG.info("Creating Tez Session");

@@ -289,4 +289,10 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_PRE_WARM_PB_PLAN_BINARY_PATH =
       TEZ_SESSION_PRE_WARM_PREFIX + "dag-plan.pb.path";
 
+  /**
+   * The queue name for all jobs being submitted as part of a session, or for
+   * non session jobs.
+   */
+  public static final String TEZ_QUEUE_NAME = 
+      TEZ_PREFIX + "queue.name";
 }

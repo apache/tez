@@ -147,7 +147,7 @@ public class FilterLinesByWord {
 
 
 
-    AMConfiguration amConf = new AMConfiguration("default", null, commonLocalResources, tezConf, null);
+    AMConfiguration amConf = new AMConfiguration(null, commonLocalResources, tezConf, null);
     TezSessionConfiguration sessionConf = new TezSessionConfiguration(amConf, tezConf);
     TezSession tezSession = new TezSession("FilterLinesByWordSession", sessionConf);
     tezSession.start(); // Why do I need to start the TezSession.

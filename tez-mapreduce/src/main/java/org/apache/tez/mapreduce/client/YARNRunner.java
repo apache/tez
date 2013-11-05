@@ -568,9 +568,10 @@ public class YARNRunner implements ClientProtocol {
     try {
       dagAMConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
           jobSubmitDir);
+      String queueName = jobConf.get(JobContext.QUEUE_NAME,
+          YarnConfiguration.DEFAULT_QUEUE_NAME);
+      dagAMConf.set(TezConfiguration.TEZ_QUEUE_NAME, queueName);
       AMConfiguration amConfig = new AMConfiguration(
-          jobConf.get(JobContext.QUEUE_NAME,
-              YarnConfiguration.DEFAULT_QUEUE_NAME),
           environment,
           jobLocalResources, dagAMConf, ts);
       tezClient.submitDAGApplication(appId, dag, amConfig);

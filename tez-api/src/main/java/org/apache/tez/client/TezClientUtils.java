@@ -428,7 +428,9 @@ public class TezClientUtils {
     appContext.setApplicationType(TezConfiguration.TEZ_APPLICATION_TYPE);
     appContext.setApplicationId(appId);
     appContext.setResource(capability);
-    appContext.setQueue(amConfig.getQueueName());
+    if (amConfig.getQueueName() != null) {
+      appContext.setQueue(amConfig.getQueueName());
+    }
     appContext.setApplicationName(amName);
     appContext.setCancelTokensWhenComplete(amConfig.getAMConf().getBoolean(
         TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN,

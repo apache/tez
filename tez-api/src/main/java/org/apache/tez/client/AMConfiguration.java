@@ -38,15 +38,15 @@ public class AMConfiguration {
   private final TezConfiguration amConf;
   private final Credentials credentials;
 
-  public AMConfiguration(String queueName, Map<String, String> env,
+  public AMConfiguration(Map<String, String> env,
       Map<String, LocalResource> localResources,
       TezConfiguration conf, Credentials credentials) {
-    this.queueName = queueName;
     if (conf != null) {
       this.amConf = conf;
     } else {
       this.amConf = new TezConfiguration();
     }
+    this.queueName = this.amConf.get(TezConfiguration.TEZ_QUEUE_NAME);
 
     if (env != null) {
       this.env = env;

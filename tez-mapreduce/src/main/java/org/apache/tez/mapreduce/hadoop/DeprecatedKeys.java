@@ -128,6 +128,8 @@ public class DeprecatedKeys {
   
   private static void populateMRToTezRuntimeParamMap() {
     
+    registerMRToRuntimeKeyTranslation(MRJobConfig.QUEUE_NAME, TezConfiguration.TEZ_QUEUE_NAME);
+    
     registerMRToRuntimeKeyTranslation(MRConfig.MAPRED_IFILE_READAHEAD, TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD);
 
     registerMRToRuntimeKeyTranslation(MRConfig.MAPRED_IFILE_READAHEAD_BYTES, TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES);

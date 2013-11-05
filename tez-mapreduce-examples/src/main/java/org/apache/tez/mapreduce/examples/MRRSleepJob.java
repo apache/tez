@@ -827,7 +827,7 @@ public class MRRSleepJob extends Configured implements Tool {
     conf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
         MRHelpers.getMRAMJavaOpts(conf));
 
-    AMConfiguration amConfig = new AMConfiguration(null, null,
+    AMConfiguration amConfig = new AMConfiguration(null,
         null, conf, null);
 
     DAGClient dagClient =

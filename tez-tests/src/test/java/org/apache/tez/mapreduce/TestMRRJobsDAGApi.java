@@ -185,7 +185,7 @@ public class TestMRRJobsDAGApi {
         new HashMap<String, LocalResource>();
 
     AMConfiguration amConfig = new AMConfiguration(
-        "default", commonEnv, amLocalResources,
+        commonEnv, amLocalResources,
         tezConf, null);
     TezSessionConfiguration tezSessionConfig =
         new TezSessionConfiguration(amConfig, tezConf);
@@ -437,7 +437,7 @@ public class TestMRRJobsDAGApi {
     boolean reuseSession = reUseTezSession != null;
     TezSessionConfiguration tezSessionConfig;
     AMConfiguration amConfig = new AMConfiguration(
-        "default", commonEnv, amLocalResources,
+        commonEnv, amLocalResources,
         tezConf, null);
     if(!dagViaRPC) {
       // TODO Use utility method post TEZ-205 to figure out AM arguments etc.
