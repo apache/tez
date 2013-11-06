@@ -38,6 +38,11 @@ public class MRInputLegacy extends MRInput {
   private volatile boolean inited = false;
   private ReentrantLock eventLock = new ReentrantLock();
   private Condition eventCondition = eventLock.newCondition();
+
+  @Private
+  protected void initializeInternal() throws IOException {
+    LOG.info("MRInputLegacy deferring initialization");
+  }
   
   @Private
   public org.apache.hadoop.mapreduce.InputSplit getNewInputSplit() {
@@ -52,6 +57,7 @@ public class MRInputLegacy extends MRInput {
   
   @LimitedPrivate("hive")
   public void init() throws IOException {
+    super.initializeInternal();
     checkAndAwaitRecordReaderInitialization();
   }
   

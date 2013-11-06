@@ -132,11 +132,17 @@ public class MRInput implements LogicalInput {
     this.fileInputByteCounter = inputContext.getCounters().findCounter(FileInputFormatCounter.BYTES_READ);
     
     useNewApi = this.jobConf.getUseNewMapper();
-    this.splitInfoViaEvents = conf.getBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS,
+    this.splitInfoViaEvents = jobConf.getBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS,
         MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS_DEFAULT);
     LOG.info("Using New mapreduce API: " + useNewApi
         + ", split information via event: " + splitInfoViaEvents);
 
+    initializeInternal();
+    return null;
+  }
+
+  @Private
+  void initializeInternal() throws IOException {
     // Primarily for visibility
     rrLock.lock();
     try {
@@ -146,10 +152,9 @@ public class MRInput implements LogicalInput {
         } else {
           setupOldInputFormat();
         }
-
       } else {
         // Read split information.
-        TaskSplitMetaInfo[] allMetaInfo = readSplits(conf);
+        TaskSplitMetaInfo[] allMetaInfo = readSplits(jobConf);
         TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[inputContext
             .getTaskIndex()];
         this.splitMetaInfo = new TaskSplitIndex(
@@ -168,13 +173,9 @@ public class MRInput implements LogicalInput {
     } finally {
       rrLock.unlock();
     }
-
     LOG.info("Initialzed MRInput: " + inputContext.getSourceVertexName());
-    return null;
   }
 
-  
-  
   private void setupOldInputFormat() {
     oldInputFormat = this.jobConf.getInputFormat();
   }

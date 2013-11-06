@@ -1042,7 +1042,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           LOG.error("task failure accounting error.  terminationCause=TASK_FAILURE but vertex.failedTaskCount == 0");
         }
         vertex.setFinishTime();
-        String diagnosticMsg = "Vertex killed as one or more tasks failed. "
+        String diagnosticMsg = "Vertex failed as one or more tasks failed. "
             + "failedTasks:"
             + vertex.failedTaskCount;
         LOG.info(diagnosticMsg);
