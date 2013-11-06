@@ -178,10 +178,10 @@ public class BroadcastKVReader<K, V> implements KeyValueReader {
       MemoryFetchedInput mfi = (MemoryFetchedInput) fetchedInput;
 
       return new InMemoryReader(null, mfi.getInputAttemptIdentifier(),
-          mfi.getBytes(), 0, (int) mfi.getSize());
+          mfi.getBytes(), 0, (int) mfi.getActualSize());
     } else {
       return new IFile.Reader(fetchedInput.getInputStream(),
-          fetchedInput.getSize(), codec, null, ifileReadAhead,
+          fetchedInput.getCompressedSize(), codec, null, ifileReadAhead,
           ifileReadAheadLength, ifileBufferSize);
     }
   }

@@ -28,10 +28,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.util.DataChecksum;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.sort.impl.IFileOutputStream;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 
 import com.google.common.base.Preconditions;
@@ -43,38 +40,23 @@ public class DiskFetchedInput extends FetchedInput {
   private final FileSystem localFS;
   private final Path tmpOutputPath;
   private final Path outputPath;
-  
-  private static final long checkSumSize; 
 
-  static {
-    DataChecksum sum = DataChecksum.newDataChecksum(DataChecksum.Type.CRC32, 
-        Integer.MAX_VALUE);
-    checkSumSize = sum.getChecksumSize();
-  }
-  
-  public DiskFetchedInput(long size,
+  public DiskFetchedInput(long actualSize, long compressedSize,
       InputAttemptIdentifier inputAttemptIdentifier,
       FetchedInputCallback callbackHandler, Configuration conf,
       LocalDirAllocator localDirAllocator, TezTaskOutputFiles filenameAllocator)
       throws IOException {
-    super(Type.DISK, size, inputAttemptIdentifier, callbackHandler);
+    super(Type.DISK, actualSize, compressedSize, inputAttemptIdentifier, callbackHandler);
 
     this.localFS = FileSystem.getLocal(conf);
     this.outputPath = filenameAllocator.getInputFileForWrite(
-        this.inputAttemptIdentifier.getInputIdentifier().getSrcTaskIndex(), size);
+        this.inputAttemptIdentifier.getInputIdentifier().getSrcTaskIndex(), actualSize);
     this.tmpOutputPath = outputPath.suffix(String.valueOf(id));
   }
 
   @Override
   public OutputStream getOutputStream() throws IOException {
     return localFS.create(tmpOutputPath);
-  }
-  
-  // Assumes that the file written to disk is an IFile that has a checksum 
-  // at the end. The size in super is the real data size.
-  @Override
-  public long getSize() {
-    return super.getSize() + checkSumSize;
   }
 
   @Override
@@ -123,7 +105,8 @@ public class DiskFetchedInput extends FetchedInput {
   @Override
   public String toString() {
     return "DiskFetchedInput [outputPath=" + outputPath
-        + ", inputAttemptIdentifier=" + inputAttemptIdentifier + ", size="
-        + size + ", type=" + type + ", id=" + id + ", state=" + state + "]";
+        + ", inputAttemptIdentifier=" + inputAttemptIdentifier
+        + ", actualSize=" + actualSize + ",compressedSize=" + compressedSize
+        + ", type=" + type + ", id=" + id + ", state=" + state + "]";
   }
 }

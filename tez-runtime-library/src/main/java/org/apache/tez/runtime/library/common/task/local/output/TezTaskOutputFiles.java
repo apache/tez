@@ -105,7 +105,6 @@ public class TezTaskOutputFiles extends TezTaskOutput {
    * @throws IOException
    */
   public Path getOutputFileForWrite() throws IOException {
-    // TODO how to write 2 different broadcast outputs?????
     Path attemptOutput =
       new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
     return lDirAlloc.getLocalPathForWrite(attemptOutput.toString(), conf);

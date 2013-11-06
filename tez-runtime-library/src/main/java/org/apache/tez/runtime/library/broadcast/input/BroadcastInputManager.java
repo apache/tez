@@ -89,16 +89,17 @@ public class BroadcastInputManager implements FetchedInputAllocator,
   }
 
   @Override
-  public synchronized FetchedInput allocate(long size,
+  public synchronized FetchedInput allocate(long actualSize, long compressedSize,
       InputAttemptIdentifier inputAttemptIdentifier) throws IOException {
-    if (size > maxSingleShuffleLimit
-        || this.usedMemory + size > this.memoryLimit) {
-      return new DiskFetchedInput(size, inputAttemptIdentifier, this, conf,
-          localDirAllocator, fileNameAllocator);
+    if (actualSize > maxSingleShuffleLimit
+        || this.usedMemory + actualSize > this.memoryLimit) {
+      return new DiskFetchedInput(actualSize, compressedSize,
+          inputAttemptIdentifier, this, conf, localDirAllocator,
+          fileNameAllocator);
     } else {
-      this.usedMemory += size;
-      LOG.info("Used memory after allocating " + size  + " : " + usedMemory);
-      return new MemoryFetchedInput(size, inputAttemptIdentifier, this);
+      this.usedMemory += actualSize;
+      LOG.info("Used memory after allocating " + actualSize  + " : " + usedMemory);
+      return new MemoryFetchedInput(actualSize, compressedSize, inputAttemptIdentifier, this);
     }
   }
 
@@ -130,7 +131,7 @@ public class BroadcastInputManager implements FetchedInputAllocator,
     case DISK:
       break;
     case MEMORY:
-      unreserve(fetchedInput.getSize());
+      unreserve(fetchedInput.getActualSize());
       break;
     default:
       throw new TezUncheckedException("InputType: " + fetchedInput.getType()

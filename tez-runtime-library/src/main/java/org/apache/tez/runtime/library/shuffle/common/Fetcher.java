@@ -27,11 +27,10 @@ import java.net.URLConnection;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -92,7 +91,7 @@ public class Fetcher implements Callable<FetchResult> {
 
   // Maps from the pathComponents (unique per srcTaskId) to the specific taskId
   private final Map<String, InputAttemptIdentifier> pathToAttemptMap;
-  private Set<InputAttemptIdentifier> remaining;
+  private LinkedHashSet<InputAttemptIdentifier> remaining;
 
   private URL url;
   private String encHash;
@@ -140,7 +139,7 @@ public class Fetcher implements Callable<FetchResult> {
       pathToAttemptMap.put(in.getPathComponent(), in);
     }
 
-    remaining = new HashSet<InputAttemptIdentifier>(srcAttempts);
+    remaining = new LinkedHashSet<InputAttemptIdentifier>(srcAttempts);
 
     HttpURLConnection connection;
     try {
@@ -217,10 +216,11 @@ public class Fetcher implements Callable<FetchResult> {
       long startTime = System.currentTimeMillis();
       int responsePartition = -1;
       // Read the shuffle header
+      String pathComponent = null;
       try {
         ShuffleHeader header = new ShuffleHeader();
         header.readFields(input);
-        String pathComponent = header.getMapId();
+        pathComponent = header.getMapId();
 
         srcAttemptId = pathToAttemptMap.get(pathComponent);
         compressedLength = header.getCompressedLength();
@@ -235,7 +235,12 @@ public class Fetcher implements Callable<FetchResult> {
 
       // Do some basic sanity verification
       if (!verifySanity(compressedLength, decompressedLength,
-          responsePartition, srcAttemptId)) {
+          responsePartition, srcAttemptId, pathComponent)) {
+        if (srcAttemptId == null) {
+          LOG.warn("Was expecting " + getNextRemainingAttempt() + " but got null");
+          srcAttemptId = getNextRemainingAttempt();
+        }
+        assert(srcAttemptId != null);
         return new InputAttemptIdentifier[] { srcAttemptId };
       }
 
@@ -245,7 +250,7 @@ public class Fetcher implements Callable<FetchResult> {
       }
 
       // Get the location for the map output - either in-memory or on-disk
-      fetchedInput = inputManager.allocate(decompressedLength, srcAttemptId);
+      fetchedInput = inputManager.allocate(decompressedLength, compressedLength, srcAttemptId);
 
       // TODO NEWTEZ No concept of WAIT at the moment.
       // // Check if we can shuffle *now* ...
@@ -317,18 +322,22 @@ public class Fetcher implements Callable<FetchResult> {
    * @return true/false, based on if the verification succeeded or not
    */
   private boolean verifySanity(long compressedLength, long decompressedLength,
-      int fetchPartition, InputAttemptIdentifier srcAttemptId) {
+      int fetchPartition, InputAttemptIdentifier srcAttemptId, String pathComponent) {
     if (compressedLength < 0 || decompressedLength < 0) {
       // wrongLengthErrs.increment(1);
-      LOG.warn(" invalid lengths in input header: id: " + srcAttemptId
+      LOG.warn(" invalid lengths in input header -> headerPathComponent: "
+          + pathComponent + ", nextRemainingSrcAttemptId: "
+          + getNextRemainingAttempt() + ", mappedSrcAttemptId: " + srcAttemptId
           + " len: " + compressedLength + ", decomp len: " + decompressedLength);
       return false;
     }
 
     if (fetchPartition != this.partition) {
       // wrongReduceErrs.increment(1);
-      LOG.warn(" data for the wrong reduce map: " + srcAttemptId + " len: "
-          + compressedLength + " decomp len: " + decompressedLength
+      LOG.warn(" data for the wrong reduce -> headerPathComponent: "
+          + pathComponent + "nextRemainingSrcAttemptId: "
+          + getNextRemainingAttempt() + ", mappedSrcAttemptId: " + srcAttemptId
+          + " len: " + compressedLength + " decomp len: " + decompressedLength
           + " for reduce " + fetchPartition);
       return false;
     }
@@ -336,10 +345,20 @@ public class Fetcher implements Callable<FetchResult> {
     // Sanity check
     if (!remaining.contains(srcAttemptId)) {
       // wrongMapErrs.increment(1);
-      LOG.warn("Invalid input. Received output for " + srcAttemptId);
+      LOG.warn("Invalid input. Received output for headerPathComponent: "
+          + pathComponent + "nextRemainingSrcAttemptId: "
+          + getNextRemainingAttempt() + ", mappedSrcAttemptId: " + srcAttemptId);
       return false;
     }
     return true;
+  }
+  
+  private InputAttemptIdentifier getNextRemainingAttempt() {
+    if (remaining.size() > 0) {
+      return remaining.iterator().next();
+    } else {
+      return null;
+    }
   }
 
   private HttpURLConnection connectToShuffleHandler(String host, int port,

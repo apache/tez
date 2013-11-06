@@ -465,7 +465,14 @@ public class BroadcastShuffleManager implements FetcherCallback {
       InputAttemptIdentifier srcAttemptIdentifier, boolean connectFailed) {
     // TODO NEWTEZ. Implement logic to report fetch failures after a threshold.
     // For now, reporting immediately.
-    LOG.info("Fetch failed for src: " + srcAttemptIdentifier + "InputIdentifier: " + srcAttemptIdentifier + ", connectFailed: " + connectFailed);
+    LOG.info("Fetch failed for src: " + srcAttemptIdentifier
+        + "InputIdentifier: " + srcAttemptIdentifier + ", connectFailed: "
+        + connectFailed);
+    if (srcAttemptIdentifier == null) {
+      String message = "Received fetchFailure for an unknown src (null)";
+      LOG.fatal(message);
+      inputContext.fatalError(null, message);
+    } else {
     InputReadErrorEvent readError = new InputReadErrorEvent(
         "Fetch failure while fetching from "
             + TezRuntimeUtils.getTaskAttemptIdentifier(
@@ -478,6 +485,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
     List<Event> failedEvents = Lists.newArrayListWithCapacity(1);
     failedEvents.add(readError);
     inputContext.sendEvents(failedEvents);
+    }
   }
   /////////////////// End of Methods from FetcherCallbackHandler
 
@@ -564,7 +572,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
   private class NullFetchedInput extends FetchedInput {
 
     public NullFetchedInput(InputAttemptIdentifier inputAttemptIdentifier) {
-      super(Type.MEMORY, -1, inputAttemptIdentifier, null);
+      super(Type.MEMORY, -1, -1, inputAttemptIdentifier, null);
     }
 
     @Override

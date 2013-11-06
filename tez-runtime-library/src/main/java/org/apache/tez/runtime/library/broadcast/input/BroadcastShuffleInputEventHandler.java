@@ -101,7 +101,7 @@ public class BroadcastShuffleInputEventHandler {
           shufflePayload.getPathComponent());
       if (shufflePayload.hasData()) {
         DataProto dataProto = shufflePayload.getData();
-        FetchedInput fetchedInput = inputAllocator.allocate(dataProto.getRawLength(), srcAttemptIdentifier);
+        FetchedInput fetchedInput = inputAllocator.allocate(dataProto.getRawLength(), dataProto.getCompressedLength(), srcAttemptIdentifier);
         moveDataToFetchedInput(dataProto, fetchedInput);
         shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);
       } else {

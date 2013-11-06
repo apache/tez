@@ -42,17 +42,19 @@ public abstract class FetchedInput {
   private static AtomicInteger ID_GEN = new AtomicInteger(0);
 
   protected InputAttemptIdentifier inputAttemptIdentifier;
-  protected final long size;
+  protected final long actualSize;
+  protected final long compressedSize;
   protected final Type type;
   protected final FetchedInputCallback callback;
   protected final int id;
   protected State state;
 
-  public FetchedInput(Type type, long size,
+  public FetchedInput(Type type, long actualSize, long compressedSize,
       InputAttemptIdentifier inputAttemptIdentifier,
       FetchedInputCallback callbackHandler) {
     this.type = type;
-    this.size = size;
+    this.actualSize = actualSize;
+    this.compressedSize = compressedSize;
     this.inputAttemptIdentifier = inputAttemptIdentifier;
     this.callback = callbackHandler;
     this.id = ID_GEN.getAndIncrement();
@@ -63,8 +65,12 @@ public abstract class FetchedInput {
     return this.type;
   }
 
-  public long getSize() {
-    return this.size;
+  public long getActualSize() {
+    return this.actualSize;
+  }
+  
+  public long getCompressedSize() {
+    return this.compressedSize;
   }
 
   public InputAttemptIdentifier getInputAttemptIdentifier() {

@@ -53,31 +53,32 @@ public class TestBroadcastInputManager {
     BroadcastInputManager inputManager = new BroadcastInputManager(UUID.randomUUID().toString(), conf);
     
     long requestSize = (long) (0.4f * inMemThreshold);
+    long compressedSize = 1l;
     LOG.info("RequestSize: " + requestSize);
     
-    FetchedInput fi1 = inputManager.allocate(requestSize, new InputAttemptIdentifier(1, 1));
+    FetchedInput fi1 = inputManager.allocate(requestSize, compressedSize, new InputAttemptIdentifier(1, 1));
     assertEquals(FetchedInput.Type.MEMORY, fi1.getType());
     
     
-    FetchedInput fi2 = inputManager.allocate(requestSize, new InputAttemptIdentifier(2, 1));
+    FetchedInput fi2 = inputManager.allocate(requestSize, compressedSize, new InputAttemptIdentifier(2, 1));
     assertEquals(FetchedInput.Type.MEMORY, fi2.getType());
     
     
     // Over limit by this point. Next reserve should give back a DISK allocation
-    FetchedInput fi3 = inputManager.allocate(requestSize, new InputAttemptIdentifier(3, 1));
+    FetchedInput fi3 = inputManager.allocate(requestSize, compressedSize, new InputAttemptIdentifier(3, 1));
     assertEquals(FetchedInput.Type.DISK, fi3.getType());
     
     
     // Freed one memory allocation. Next should be mem again.
     fi1.abort();
     fi1.free();
-    FetchedInput fi4 = inputManager.allocate(requestSize, new InputAttemptIdentifier(4, 1));
+    FetchedInput fi4 = inputManager.allocate(requestSize, compressedSize, new InputAttemptIdentifier(4, 1));
     assertEquals(FetchedInput.Type.MEMORY, fi4.getType());
     
     // Freed one disk allocation. Next sould be disk again (no mem freed)
     fi3.abort();
     fi3.free();
-    FetchedInput fi5 = inputManager.allocate(requestSize, new InputAttemptIdentifier(4, 1));
+    FetchedInput fi5 = inputManager.allocate(requestSize, compressedSize, new InputAttemptIdentifier(4, 1));
     assertEquals(FetchedInput.Type.DISK, fi5.getType());
   }
 

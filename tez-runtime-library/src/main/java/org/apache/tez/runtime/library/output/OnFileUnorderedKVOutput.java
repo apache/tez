@@ -101,7 +101,7 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
         .newBuilder();
     
-    LOG.info("Closing KVOutput: RawLegnth: " + this.kvWriter.getRawLength()
+    LOG.info("Closing KVOutput: RawLength: " + this.kvWriter.getRawLength()
         + ", CompressedLength: " + this.kvWriter.getCompressedLength());
 
     if (dataViaEventsEnabled && outputGenerated && this.kvWriter.getCompressedLength() <= dataViaEventsMaxSize) {

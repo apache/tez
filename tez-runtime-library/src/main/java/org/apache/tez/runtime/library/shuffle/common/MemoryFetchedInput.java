@@ -31,11 +31,11 @@ public class MemoryFetchedInput extends FetchedInput {
 
   private BoundedByteArrayOutputStream byteStream;
 
-  public MemoryFetchedInput(long size,
+  public MemoryFetchedInput(long actualSize, long compressedSize,
       InputAttemptIdentifier inputAttemptIdentifier,
       FetchedInputCallback callbackHandler) {
-    super(Type.MEMORY, size, inputAttemptIdentifier, callbackHandler);
-    this.byteStream = new BoundedByteArrayOutputStream((int) size);
+    super(Type.MEMORY, actualSize, compressedSize, inputAttemptIdentifier, callbackHandler);
+    this.byteStream = new BoundedByteArrayOutputStream((int) actualSize);
   }
 
   @Override
@@ -83,7 +83,8 @@ public class MemoryFetchedInput extends FetchedInput {
   @Override
   public String toString() {
     return "MemoryFetchedInput [inputAttemptIdentifier="
-        + inputAttemptIdentifier + ", size=" + size + ", type=" + type
-        + ", id=" + id + ", state=" + state + "]";
+        + inputAttemptIdentifier + ", actualSize=" + actualSize
+        + ", compressedSize=" + compressedSize + ", type=" + type + ", id="
+        + id + ", state=" + state + "]";
   }
 }

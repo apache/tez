@@ -652,30 +652,4 @@ public interface MRJobConfig {
   public static final String MR_TEZ_SPLITS_VIA_EVENTS = MR_TEZ_PREFIX + "splits.via.events";
   public static final boolean MR_TEZ_SPLITS_VIA_EVENTS_DEFAULT = true;
 
-  // Stage specific properties
-  // Format of each property is mapred.ireducer.stage.<stage-num>.<suffix>
-  // where suffix is one of MRR_INTERMEDIATE_STAGE_* fields defined below.
-//  public static final String MRR_INTERMEDIATE_STAGE_TASKS = "tasks";
-//  public static final String MRR_INTERMEDIATE_STAGE_CLASS = "class";
-//  public static final String
-//      MRR_INTERMEDIATE_STAGE_PARTITIONER_CLASS = "partitioner.class";
-//  public static final String
-//      MRR_INTERMEDIATE_STAGE_COMBINER_CLASS = "combiner.class";
-//  public static final String MRR_INTERMEDIATE_STAGE_OUTPUT_COMPRESS =
-//      "output.compress";
-//  public static final String MRR_INTERMEDIATE_STAGE_OUTPUT_COMPRESSION_CODEC =
-//      "output.compression.codec";
-//  public static final String MRR_INTERMEDIATE_STAGE_OUTPUT_KEY_CLASS =
-//      "key.class";
-//  public static final String MRR_INTERMEDIATE_STAGE_OUTPUT_KEY_COMPARATOR_CLASS
-//    = "key.comparator.class";
-//  public static final String MRR_INTERMEDIATE_STAGE_OUTPUT_VALUE_CLASS =
-//      "value.class";
-//  public static final String MRR_INTERMEDIATE_STAGE_SPECULATE =
-//      "speculate";
-//  public static final String MRR_INTERMEDIATE_STAGE_MEMORY_MB =
-//      "memory.mb";
-//  public static final String MRR_INTERMEDIATE_STAGE_CHILD_JAVA_OPTS =
-//      "child.java.opts";
-
 }
