@@ -109,11 +109,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private long scheduledTime;
 
   protected TaskLocationHint locationHint;
-  
+
   private List<TezEvent> tezEventsForTaskAttempts = new ArrayList<TezEvent>();
-  private static final List<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS = 
+  private static final List<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS =
       new ArrayList(0);
-  
+
 
   // counts the number of attempts that are either running or in a state where
   //  they will come to be running when they get a Container
@@ -162,8 +162,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(TaskStateInternal.SCHEDULED, TaskStateInternal.SCHEDULED,
         TaskEventType.T_ADD_TEZ_EVENT, ADD_TEZ_EVENT_TRANSITION)
 
-    // When current attempt fails/killed and new attempt launched then 
-    // TODO Task should go back to SCHEDULED state TEZ-495 
+    // When current attempt fails/killed and new attempt launched then
+    // TODO Task should go back to SCHEDULED state TEZ-495
     // Transitions from RUNNING state
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.RUNNING,
         TaskEventType.T_ATTEMPT_LAUNCHED) //more attempts may start later
@@ -444,7 +444,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       readLock.unlock();
     }
   }
-  
+
   @Override
   public List<TezEvent> getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
       int fromEventId, int maxEvents) {
@@ -464,39 +464,39 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         events = Collections.unmodifiableList(new ArrayList<TezEvent>(
             tezEventsForTaskAttempts.subList(fromEventId, toEventId)));
         LOG.info("TaskAttempt:" + attemptID + " sent events: (" + fromEventId
-            + "-" + toEventId + ")"); 
-        // currently not modifying the events so that we dont have to create 
+            + "-" + toEventId + ")");
+        // currently not modifying the events so that we dont have to create
         // copies of events. e.g. if we have to set taskAttemptId into the TezEvent
         // destination metadata then we will need to create a copy of the TezEvent
-        // and then modify the metadata and then send the copy on the RPC. This 
-        // is important because TezEvents are only routed in the AM and not copied 
-        // during routing. So e.g. a broadcast edge will send the same event to 
-        // all consumers (like it should). If copies were created then re-routing 
-        // the events on parallelism changes would be difficult. We would have to 
-        // buffer the events in the Vertex until the parallelism was set and then 
+        // and then modify the metadata and then send the copy on the RPC. This
+        // is important because TezEvents are only routed in the AM and not copied
+        // during routing. So e.g. a broadcast edge will send the same event to
+        // all consumers (like it should). If copies were created then re-routing
+        // the events on parallelism changes would be difficult. We would have to
+        // buffer the events in the Vertex until the parallelism was set and then
         // route the events.
       }
       return events;
     } finally {
       readLock.unlock();
-    }    
+    }
   }
-  
-  @Override 
+
+  @Override
   public List<TezEvent> getAndClearTaskTezEvents() {
     readLock.lock();
     try {
       List<TezEvent> events = tezEventsForTaskAttempts;
-      tezEventsForTaskAttempts = new ArrayList<TezEvent>(); 
+      tezEventsForTaskAttempts = new ArrayList<TezEvent>();
       return events;
     } finally {
       readLock.unlock();
-    }        
+    }
   }
 
   @Override
   public List<String> getDiagnostics() {
-    List<String> diagnostics = new ArrayList<String>(5);
+    List<String> diagnostics = new ArrayList<String>(attempts.size());
     readLock.lock();
     try {
       for (TaskAttempt att : attempts.values()) {
@@ -616,7 +616,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         if (ta == null) {
           throw new TezUncheckedException("Unknown task for commit: " + taskAttemptID);
         }
-        // Its ok to get a non-locked state snapshot since we handle changes of 
+        // Its ok to get a non-locked state snapshot since we handle changes of
         // state in the task attempt. Dont want to deadlock here.
         TaskAttemptState taState = ta.getStateNoLock();
         if (taState == TaskAttemptState.RUNNING) {
@@ -624,7 +624,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           LOG.info(taskAttemptID + " given a go for committing the task output.");
           return true;
         } else {
-          LOG.info(taskAttemptID + " with state: " + taState + 
+          LOG.info(taskAttemptID + " with state: " + taState +
               " given a no-go for commit because its not running.");
           return false;
         }
@@ -636,14 +636,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         // Don't think this can be a pluggable decision, so simply raise an
         // event for the TaskAttempt to delete its output.
         // Wait for commit attempt to succeed. Dont kill this. If commit
-        // attempt fails then choose a different committer. When commit attempt 
+        // attempt fails then choose a different committer. When commit attempt
         // succeeds then this and others will be killed
         LOG.info(commitAttempt
             + " is current committer. Commit waiting for:  "
             + taskAttemptID);
         return false;
       }
-    
+
     } finally {
       writeLock.unlock();
     }
@@ -654,7 +654,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   public boolean needsWaitAfterOutputConsumable() {
     Vertex vertex = getVertex();
     ProcessorDescriptor processorDescriptor = vertex.getProcessorDescriptor();
-    if (processorDescriptor != null && 
+    if (processorDescriptor != null &&
         processorDescriptor.getClassName().contains("InitialTaskWithInMemSort")) {
       return true;
     } else {
@@ -929,17 +929,17 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     @Override
     public void transition(TaskImpl task, TaskEvent event) {
       TezTaskAttemptID successTaId = ((TaskEventTAUpdate) event).getTaskAttemptID();
-      
-      if (task.commitAttempt != null && 
+
+      if (task.commitAttempt != null &&
           !task.commitAttempt.equals(successTaId)) {
         // The succeeded attempt is not the one that was selected to commit
         // This is impossible and has to be a bug
-        throw new TezUncheckedException("TA: " + successTaId 
-            + " succeeded but TA: " + task.commitAttempt 
+        throw new TezUncheckedException("TA: " + successTaId
+            + " succeeded but TA: " + task.commitAttempt
             + " was expected to commit and succeed");
       }
-      
-      task.handleTaskAttemptCompletion(successTaId, 
+
+      task.handleTaskAttemptCompletion(successTaId,
           TaskAttemptStateInternal.SUCCEEDED);
       task.finishedAttempts++;
       --task.numberUncompletedAttempts;
@@ -976,7 +976,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     @Override
     public void transition(TaskImpl task, TaskEvent event) {
       TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
-      if (task.commitAttempt !=null && 
+      if (task.commitAttempt !=null &&
           castEvent.getTaskAttemptID().equals(task.commitAttempt)) {
         task.commitAttempt = null;
       }
@@ -1028,7 +1028,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
       task.failedAttempts++;
       TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
-      if (task.commitAttempt != null && 
+      if (task.commitAttempt != null &&
           castEvent.getTaskAttemptID().equals(task.commitAttempt)) {
         task.commitAttempt = null;
       }
@@ -1096,17 +1096,17 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       //  fails, we have to let AttemptFailedTransition.transition
       //  believe that there's no redundancy.
       unSucceed(task);
-      
+
       // fake values for code for super.transition
       ++task.numberUncompletedAttempts;
       task.finishedAttempts--;
-      TaskStateInternal returnState = super.transition(task, event);      
-      
+      TaskStateInternal returnState = super.transition(task, event);
+
       if (returnState == TaskStateInternal.SCHEDULED) {
         // tell the dag about the rescheduling
-        task.eventHandler.handle(new VertexEventTaskReschedule(task.taskId));        
+        task.eventHandler.handle(new VertexEventTaskReschedule(task.taskId));
       }
-      
+
       return returnState;
     }
 
@@ -1184,8 +1184,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           logMsg));
     }
   }
-  
-  private static class AddTezEventTransition 
+
+  private static class AddTezEventTransition
       implements SingleArcTransition<TaskImpl, TaskEvent> {
     @Override
     public void transition(TaskImpl task, TaskEvent event) {

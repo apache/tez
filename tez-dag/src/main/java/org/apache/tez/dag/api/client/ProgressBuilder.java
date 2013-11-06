@@ -20,38 +20,37 @@ package org.apache.tez.dag.api.client;
 
 import org.apache.tez.dag.api.records.DAGProtos.ProgressProto;
 import org.apache.tez.dag.api.records.DAGProtos.ProgressProto.Builder;
-import org.apache.tez.dag.api.client.Progress;
 
 public class ProgressBuilder extends Progress {
 
   public ProgressBuilder() {
     super(ProgressProto.newBuilder());
   }
-  
+
   public ProgressProto getProto() {
     return getBuilder().build();
   }
-  
+
   public void setTotalTaskCount(int count) {
     getBuilder().setTotalTaskCount(count);
   }
-  
+
   public void setSucceededTaskCount(int count) {
     getBuilder().setSucceededTaskCount(count);
   }
-  
+
   public void setRunningTaskCount(int count) {
     getBuilder().setRunningTaskCount(count);
   }
-  
+
   public void setFailedTaskCount(int count) {
     getBuilder().setFailedTaskCount(count);
   }
-  
+
   public void setKilledTaskCount(int count) {
     getBuilder().setKilledTaskCount(count);
   }
-  
+
   private ProgressProto.Builder getBuilder() {
     return (Builder) this.proxy;
   }

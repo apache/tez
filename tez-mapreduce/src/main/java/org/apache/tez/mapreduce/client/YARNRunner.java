@@ -634,7 +634,7 @@ public class YARNRunner implements ClientProtocol {
       if(dagClient == null) {
         dagClient = tezClient.getDAGClient(TypeConverter.toYarn(jobID).getAppId());
       }
-      dagStatus = dagClient.getDAGStatus();
+      dagStatus = dagClient.getDAGStatus(null);
       return new DAGJobStatus(dagClient.getApplicationReport(), dagStatus, jobFile);
     } catch (TezException e) {
       throw new IOException(e);

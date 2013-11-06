@@ -21,8 +21,11 @@ package org.apache.tez.dag.api.client;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.util.StringUtils;
+import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProtoOrBuilder;
 import org.apache.tez.dag.api.records.DAGProtos.StringProgressPairProto;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -40,11 +43,13 @@ public class DAGStatus {
     KILLED,
     FAILED,
     ERROR,
-  };
+  }
 
   DAGStatusProtoOrBuilder proxy = null;
   Progress progress = null;
   Map<String, Progress> vertexProgress = null;
+  TezCounters dagCounters = null;
+  AtomicBoolean countersInitialized = new AtomicBoolean(false);
 
   public DAGStatus(DAGStatusProtoOrBuilder proxy) {
     this.proxy = proxy;
@@ -123,13 +128,27 @@ public class DAGStatus {
     return vertexProgress;
   }
 
+  public TezCounters getDAGCounters() {
+    if (countersInitialized.get()) {
+      return dagCounters;
+    }
+    if (proxy.hasDagCounters()) {
+      dagCounters = DagTypeConverters.convertTezCountersFromProto(
+        proxy.getDagCounters());
+    }
+    countersInitialized.set(true);
+    return dagCounters;
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("status=" + getState()
-        + ", progress=" + getDAGProgress()
-        + ", diagnostics="
-        + StringUtils.join(LINE_SEPARATOR, getDiagnostics()));
+      + ", progress=" + getDAGProgress()
+      + ", diagnostics="
+      + StringUtils.join(LINE_SEPARATOR, getDiagnostics())
+      + ", counters="
+      + (dagCounters == null ? "null" : dagCounters.toString()));
     return sb.toString();
   }
 

@@ -20,6 +20,7 @@ package org.apache.tez.dag.api.client;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -49,19 +50,25 @@ public interface DAGClient extends Closeable {
 
   /**
    * Get the status of the specified DAG
+   * @param statusOptions Optionally, retrieve additional information based on
+   *                      specified options
    */
-  public DAGStatus getDAGStatus() throws IOException, TezException;
+  public DAGStatus getDAGStatus(Set<StatusGetOpts> statusOptions)
+      throws IOException, TezException;
 
   /**
    * Get the status of a Vertex of a DAG
+   * @param statusOptions Optionally, retrieve additional information based on
+   *                      specified options
    */
-  public VertexStatus getVertexStatus(String vertexName)
-      throws IOException, TezException;
+  public VertexStatus getVertexStatus(String vertexName,
+      Set<StatusGetOpts> statusOptions)
+    throws IOException, TezException;
 
   /**
    * Kill a running DAG
    *
    */
-  public void tryKillDAG() throws TezException, IOException;
+  public void tryKillDAG() throws IOException, TezException;
 
 }

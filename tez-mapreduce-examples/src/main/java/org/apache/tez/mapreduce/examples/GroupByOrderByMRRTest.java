@@ -197,9 +197,10 @@ public class GroupByOrderByMRRTest {
     ApplicationId appId = TypeConverter.toYarn(jobId).getAppId();
 
     DAGClient dagClient = tezClient.getDAGClient(appId);
-    DAGStatus dagStatus = null;
+    DAGStatus dagStatus;
+    String[] vNames = { "initialmap" , "ireduce1" , "finalreduce" };
     while (true) {
-      dagStatus = dagClient.getDAGStatus();
+      dagStatus = dagClient.getDAGStatus(null);
       if(dagStatus.getState() == DAGStatus.State.RUNNING ||
          dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
          dagStatus.getState() == DAGStatus.State.FAILED ||
@@ -216,20 +217,20 @@ public class GroupByOrderByMRRTest {
 
     while (dagStatus.getState() == DAGStatus.State.RUNNING) {
       try {
-        ExampleDriver.printMRRDAGStatus(dagStatus);
+        ExampleDriver.printDAGStatus(dagClient, vNames);
         try {
           Thread.sleep(1000);
         } catch (InterruptedException e) {
           // continue;
         }
-        dagStatus = dagClient.getDAGStatus();
+        dagStatus = dagClient.getDAGStatus(null);
       } catch (TezException e) {
         LOG.fatal("Failed to get application progress. Exiting");
         System.exit(-1);
       }
     }
 
-    ExampleDriver.printMRRDAGStatus(dagStatus);
+    ExampleDriver.printDAGStatus(dagClient, vNames);
     LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
     System.exit(dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1);
   }

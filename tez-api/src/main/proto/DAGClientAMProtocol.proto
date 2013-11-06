@@ -34,6 +34,7 @@ message GetAllDAGsResponseProto {
 
 message GetDAGStatusRequestProto {
   optional string dagId = 1;
+  repeated StatusGetOptsProto statusOptions = 3;
 }
 
 message GetDAGStatusResponseProto {
@@ -43,6 +44,7 @@ message GetDAGStatusResponseProto {
 message GetVertexStatusRequestProto {
   optional string dagId = 1;
   optional string vertexName = 2;
+  repeated StatusGetOptsProto statusOptions = 3;
 }
 
 message GetVertexStatusResponseProto {

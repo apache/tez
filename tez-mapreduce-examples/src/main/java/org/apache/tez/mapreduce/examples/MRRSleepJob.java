@@ -834,7 +834,7 @@ public class MRRSleepJob extends Configured implements Tool {
         tezClient.submitDAGApplication(appId, dag, amConfig);
 
     while (true) {
-      DAGStatus status = dagClient.getDAGStatus();
+      DAGStatus status = dagClient.getDAGStatus(null);
       LOG.info("DAG Status: " + status);
       if (status.isCompleted()) {
         break;

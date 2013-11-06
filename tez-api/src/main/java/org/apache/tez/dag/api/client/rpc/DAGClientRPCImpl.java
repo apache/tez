@@ -21,6 +21,7 @@ package org.apache.tez.dag.api.client.rpc;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Collections;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -33,11 +34,13 @@ import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
@@ -74,10 +77,11 @@ public class DAGClientRPCImpl implements DAGClient {
   }
 
   @Override
-  public DAGStatus getDAGStatus() throws IOException, TezException {
+  public DAGStatus getDAGStatus(Set<StatusGetOpts> statusOptions)
+      throws IOException, TezException {
     if(createAMProxyIfNeeded()) {
       try {
-        return getDAGStatusViaAM();
+        return getDAGStatusViaAM(statusOptions);
       } catch (TezException e) {
         resetProxy(e); // create proxy again
       }
@@ -88,11 +92,12 @@ public class DAGClientRPCImpl implements DAGClient {
   }
 
   @Override
-  public VertexStatus getVertexStatus(String vertexName)
-                                    throws IOException, TezException {
+  public VertexStatus getVertexStatus(String vertexName,
+      Set<StatusGetOpts> statusOptions)
+      throws IOException, TezException {
     if(createAMProxyIfNeeded()) {
       try {
-        return getVertexStatusViaAM(vertexName);
+        return getVertexStatusViaAM(vertexName, statusOptions);
       } catch (TezException e) {
         resetProxy(e); // create proxy again
       }
@@ -101,6 +106,8 @@ public class DAGClientRPCImpl implements DAGClient {
     // need AM for this. Later maybe from History
     return null;
   }
+
+
 
   @Override
   public void tryKillDAG() throws TezException, IOException {
@@ -141,22 +148,29 @@ public class DAGClientRPCImpl implements DAGClient {
     proxy = null;
   }
 
-  DAGStatus getDAGStatusViaAM() throws IOException, TezException {
+  DAGStatus getDAGStatusViaAM(Set<StatusGetOpts> statusOptions)
+      throws IOException, TezException {
     if(LOG.isDebugEnabled()) {
       LOG.debug("GetDAGStatus via AM for app: " + appId + " dag:" + dagId);
     }
-    GetDAGStatusRequestProto requestProto =
-        GetDAGStatusRequestProto.newBuilder().setDagId(dagId).build();
+    GetDAGStatusRequestProto.Builder requestProtoBuilder =
+        GetDAGStatusRequestProto.newBuilder()
+          .setDagId(dagId);
+
+    if (statusOptions != null) {
+      requestProtoBuilder.addAllStatusOptions(
+        DagTypeConverters.convertStatusGetOptsToProto(statusOptions));
+    }
+
     try {
       return new DAGStatus(
-                 proxy.getDAGStatus(null, requestProto).getDagStatus());
+        proxy.getDAGStatus(null,
+          requestProtoBuilder.build()).getDagStatus());
     } catch (ServiceException e) {
       // TEZ-151 retrieve wrapped TezException
       throw new TezException(e);
     }
   }
-
-
 
   DAGStatus getDAGStatusViaRM() throws TezException, IOException {
     if(LOG.isDebugEnabled()) {
@@ -175,7 +189,7 @@ public class DAGClientRPCImpl implements DAGClient {
 
     DAGStatusProto.Builder builder = DAGStatusProto.newBuilder();
     DAGStatus dagStatus = new DAGStatus(builder);
-    DAGStatusStateProto dagState = null;
+    DAGStatusStateProto dagState;
     switch (appReport.getYarnApplicationState()) {
     case NEW:
     case NEW_SAVING:
@@ -224,18 +238,27 @@ public class DAGClientRPCImpl implements DAGClient {
     return dagStatus;
   }
 
-  VertexStatus getVertexStatusViaAM(String vertexName) throws TezException {
+  VertexStatus getVertexStatusViaAM(String vertexName,
+      Set<StatusGetOpts> statusOptions)
+      throws TezException {
     if (LOG.isDebugEnabled()) {
       LOG.debug("GetVertexStatus via AM for app: " + appId + " dag: " + dagId
           + " vertex: " + vertexName);
     }
-    GetVertexStatusRequestProto requestProto =
-        GetVertexStatusRequestProto.newBuilder().
-                        setDagId(dagId).setVertexName(vertexName).build();
+    GetVertexStatusRequestProto.Builder requestProtoBuilder =
+        GetVertexStatusRequestProto.newBuilder()
+          .setDagId(dagId)
+          .setVertexName(vertexName);
+
+    if (statusOptions != null) {
+      requestProtoBuilder.addAllStatusOptions(
+        DagTypeConverters.convertStatusGetOptsToProto(statusOptions));
+    }
 
     try {
       return new VertexStatus(
-                 proxy.getVertexStatus(null, requestProto).getVertexStatus());
+        proxy.getVertexStatus(null,
+          requestProtoBuilder.build()).getVertexStatus());
     } catch (ServiceException e) {
       // TEZ-151 retrieve wrapped TezException
       throw new TezException(e);

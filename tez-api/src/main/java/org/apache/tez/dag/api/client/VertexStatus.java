@@ -19,12 +19,15 @@
 package org.apache.tez.dag.api.client;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProtoOrBuilder;
 import org.apache.tez.dag.api.TezUncheckedException;
 
 public class VertexStatus {
-  
+
   public enum State {
     INITED,
     RUNNING,
@@ -33,11 +36,13 @@ public class VertexStatus {
     FAILED,
     ERROR,
     TERMINATING,
-  };
-  
+  }
+
   VertexStatusProtoOrBuilder proxy = null;
   Progress progress = null;
-  
+  TezCounters vertexCounters = null;
+  private AtomicBoolean countersInitialized = new AtomicBoolean(false);
+
   public VertexStatus(VertexStatusProtoOrBuilder proxy) {
     this.proxy = proxy;
   }
@@ -59,9 +64,9 @@ public class VertexStatus {
     case VERTEX_TERMINATING:
       return VertexStatus.State.TERMINATING;
     default:
-      throw new TezUncheckedException("Unsupported value for VertexStatus.State : " + 
-                              proxy.getState());
-    }    
+      throw new TezUncheckedException(
+        "Unsupported value for VertexStatus.State : " + proxy.getState());
+    }
   }
 
   public List<String> getDiagnostics() {
@@ -72,7 +77,29 @@ public class VertexStatus {
     if(progress == null && proxy.hasProgress()) {
       progress = new Progress(proxy.getProgress());
     }
-    return progress;    
+    return progress;
+  }
+
+  public TezCounters getVertexCounters() {
+    if (countersInitialized.get()) {
+      return vertexCounters;
+    }
+    if (proxy.hasVertexCounters()) {
+      vertexCounters = DagTypeConverters.convertTezCountersFromProto(
+        proxy.getVertexCounters());
+    }
+    countersInitialized.set(true);
+    return vertexCounters;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("status=" + getState()
+      + ", progress=" + getProgress()
+      + ", counters="
+      + (vertexCounters == null ? "null" : vertexCounters.toString()));
+    return sb.toString();
   }
 
 }

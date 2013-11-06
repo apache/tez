@@ -56,6 +56,7 @@ import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.ProgressBuilder;
+import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
@@ -510,7 +511,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   // monitoring apis
   @Override
-  public DAGStatusBuilder getDAGStatus() {
+  public DAGStatusBuilder getDAGStatus(Set<StatusGetOpts> statusOptions) {
     DAGStatusBuilder status = new DAGStatusBuilder();
     int totalTaskCount = 0;
     int totalSucceededTaskCount = 0;
@@ -537,6 +538,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       status.setState(getState());
       status.setDiagnostics(diagnostics);
       status.setDAGProgress(dagProgress);
+      if (statusOptions.contains(StatusGetOpts.GET_COUNTERS)) {
+        status.setDAGCounters(getAllCounters());
+      }
       return status;
     } finally {
       readLock.unlock();
@@ -544,12 +548,13 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   @Override
-  public VertexStatusBuilder getVertexStatus(String vertexName) {
+  public VertexStatusBuilder getVertexStatus(String vertexName,
+      Set<StatusGetOpts> statusOptions) {
     Vertex vertex = vertexMap.get(vertexName);
     if(vertex == null) {
       return null;
     }
-    return vertex.getVertexStatus();
+    return vertex.getVertexStatus(statusOptions);
   }
 
 
@@ -1032,10 +1037,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   /**
    * Set the terminationCause and send a kill-message to all vertices.
    * The vertex-kill messages are only sent once.
-   * @param the trigger that is causing the DAG to transition to KILLED/FAILED
-   * @param event The type of kill event to send to the vertices.
    */
-  void enactKill(DAGTerminationCause dagTerminationCause, VertexTerminationCause vertexTerminationCause) {
+  void enactKill(DAGTerminationCause dagTerminationCause,
+      VertexTerminationCause vertexTerminationCause) {
 
     if(trySetTerminationCause(dagTerminationCause)){
       for (Vertex v : vertices.values()) {
@@ -1100,7 +1104,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       job.numCompletedVertices++;
       if (vertexEvent.getVertexState() == VertexState.SUCCEEDED) {
         if (!job.reRunningVertices.contains(vertex.getVertexId())) {
-          // vertex succeeded for the first time 
+          // vertex succeeded for the first time
           job.dagScheduler.vertexCompleted(vertex);
         }
         job.vertexSucceeded(vertex);
@@ -1117,7 +1121,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         job.vertexKilled(vertex);
         forceTransitionToKillWait = true;
       }
-      
+
       job.reRunningVertices.remove(vertex.getVertexId());
 
       LOG.info("Vertex " + vertex.getVertexId() + " completed."

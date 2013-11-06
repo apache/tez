@@ -20,9 +20,12 @@ package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 
 import org.apache.commons.cli.ParseException;
@@ -65,6 +68,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.examples.helpers.SplitsInClientOptionParser;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
@@ -202,7 +206,7 @@ public class OrderedWordCount {
     List<Vertex> vertices = new ArrayList<Vertex>();
 
     byte[] mapPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
-    byte[] mapInputPayload = 
+    byte[] mapInputPayload =
         MRHelpers.createMRInputPayload(mapPayload, null);
     int numMaps = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
@@ -229,7 +233,7 @@ public class OrderedWordCount {
     MRHelpers.addMRInput(mapVertex, mapInputPayload, initializerClazz);
     vertices.add(mapVertex);
 
-    Vertex ivertex = new Vertex("ivertex1", new ProcessorDescriptor(
+    Vertex ivertex = new Vertex("intermediate_reducer", new ProcessorDescriptor(
         ReduceProcessor.class.getName()).
         setUserPayload(MRHelpers.createUserPayloadFromConf(iReduceStageConf)),
         2,
@@ -277,14 +281,14 @@ public class OrderedWordCount {
     System.err.println("Usage (In Session Mode):"
         + " orderedwordcount <in1> <out1> ... <inN> <outN> [-generateSplitsInClient true/<false>]");
   }
-  
-  
+
+
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-    
+
     boolean generateSplitsInClient = false;
-    
+
     SplitsInClientOptionParser splitCmdLineParser = new SplitsInClientOptionParser();
     try {
       generateSplitsInClient = splitCmdLineParser.parse(otherArgs, false);
@@ -349,6 +353,11 @@ public class OrderedWordCount {
     }
 
     DAGStatus dagStatus = null;
+    DAGClient dagClient = null;
+    String[] vNames = { "initialmap", "intermediate_reducer",
+      "finalreduce" };
+
+    Set<StatusGetOpts> statusGetOpts = EnumSet.of(StatusGetOpts.GET_COUNTERS);
     try {
       for (int dagIndex = 1; dagIndex <= inputPaths.size(); ++dagIndex) {
         if (dagIndex != 1
@@ -378,7 +387,6 @@ public class OrderedWordCount {
         DAG dag = createDAG(fs, conf, null, stagingDir,
             dagIndex, inputPath, outputPath, generateSplitsInClient);
 
-        DAGClient dagClient;
         if (useTezSession) {
           LOG.info("Waiting for TezSession to get into ready state");
           waitForTezSessionReady(tezSession);
@@ -391,7 +399,7 @@ public class OrderedWordCount {
         }
 
         while (true) {
-          dagStatus = dagClient.getDAGStatus();
+          dagStatus = dagClient.getDAGStatus(statusGetOpts);
           if(dagStatus.getState() == DAGStatus.State.RUNNING ||
               dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
               dagStatus.getState() == DAGStatus.State.FAILED ||
@@ -406,21 +414,23 @@ public class OrderedWordCount {
           }
         }
 
+
         while (dagStatus.getState() == DAGStatus.State.RUNNING) {
           try {
-            ExampleDriver.printMRRDAGStatus(dagStatus);
+            ExampleDriver.printDAGStatus(dagClient, vNames);
             try {
               Thread.sleep(1000);
             } catch (InterruptedException e) {
               // continue;
             }
-            dagStatus = dagClient.getDAGStatus();
+            dagStatus = dagClient.getDAGStatus(statusGetOpts);
           } catch (TezException e) {
             LOG.fatal("Failed to get application progress. Exiting");
             System.exit(-1);
           }
         }
-        ExampleDriver.printMRRDAGStatus(dagStatus);
+        ExampleDriver.printDAGStatus(dagClient, vNames,
+            true, true);
         LOG.info("DAG " + dagIndex + " completed. "
             + "FinalState=" + dagStatus.getState());
       }
@@ -432,7 +442,7 @@ public class OrderedWordCount {
     }
 
     if (!useTezSession) {
-      ExampleDriver.printMRRDAGStatus(dagStatus);
+      ExampleDriver.printDAGStatus(dagClient, vNames);
       LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
       System.exit(dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1);
     }

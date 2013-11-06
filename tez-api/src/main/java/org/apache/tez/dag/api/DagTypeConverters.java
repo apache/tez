@@ -20,8 +20,11 @@ package org.apache.tez.dag.api;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -32,11 +35,16 @@ import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.TezSessionStatus;
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TezSessionStatusProto;
+import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataMovementType;
@@ -50,6 +58,9 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceVisibility;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
+import org.apache.tez.dag.api.records.DAGProtos.TezCounterGroupProto;
+import org.apache.tez.dag.api.records.DAGProtos.TezCounterProto;
+import org.apache.tez.dag.api.records.DAGProtos.TezCountersProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 
 import com.google.protobuf.ByteString;
@@ -166,9 +177,8 @@ public class DagTypeConverters {
 
   public static String convertToDAGPlan(URL resource) {
     // see above notes on HDFS URL handling
-    String out = resource.getScheme() + "://" + resource.getHost() + ":" + resource.getPort()
-        + resource.getFile();
-    return out;
+    return resource.getScheme() + "://" + resource.getHost()
+        + ":" + resource.getPort() + resource.getFile();
   }
 
   public static Map<String, LocalResource> createLocalResourceMapFromDAGPlan(
@@ -378,6 +388,90 @@ public class DagTypeConverters {
       DagTypeConverters.convertFromDAGPlan(plr.getVisibility()),
       plr.getSize(), plr.getTimeStamp(),
       plr.hasPattern() ? plr.getPattern() : null);
+  }
+
+  public static TezCounters convertTezCountersFromProto(TezCountersProto proto) {
+    TezCounters counters = new TezCounters();
+    for (TezCounterGroupProto counterGroupProto : proto.getCounterGroupsList()) {
+      CounterGroup group = counters.addGroup(counterGroupProto.getName(),
+        counterGroupProto.getDisplayName());
+      for (TezCounterProto counterProto :
+        counterGroupProto.getCountersList()) {
+        TezCounter counter = group.findCounter(
+          counterProto.getName(),
+          counterProto.getDisplayName());
+        counter.setValue(counterProto.getValue());
+      }
+    }
+    return counters;
+  }
+
+  public static TezCountersProto convertTezCountersToProto(
+      TezCounters counters) {
+    TezCountersProto.Builder builder = TezCountersProto.newBuilder();
+    Iterator<CounterGroup> groupIterator = counters.iterator();
+    int groupIndex = 0;
+    while (groupIterator.hasNext()) {
+      CounterGroup counterGroup = groupIterator.next();
+      TezCounterGroupProto.Builder groupBuilder =
+        TezCounterGroupProto.newBuilder();
+      groupBuilder.setName(counterGroup.getName());
+      groupBuilder.setDisplayName(counterGroup.getDisplayName());
+      Iterator<TezCounter> counterIterator = counterGroup.iterator();
+      int counterIndex = 0;
+      while (counterIterator.hasNext()) {
+        TezCounter counter = counterIterator.next();
+        TezCounterProto tezCounterProto = TezCounterProto.newBuilder()
+          .setName(counter.getName())
+          .setDisplayName(counter.getDisplayName())
+          .setValue(counter.getValue())
+          .build();
+        groupBuilder.addCounters(counterIndex, tezCounterProto);
+        ++counterIndex;
+      }
+      builder.addCounterGroups(groupIndex, groupBuilder.build());
+      ++groupIndex;
+    }
+    return builder.build();
+  }
+
+  public static DAGProtos.StatusGetOptsProto convertStatusGetOptsToProto(
+    StatusGetOpts statusGetOpts) {
+    switch (statusGetOpts) {
+      case GET_COUNTERS:
+        return DAGProtos.StatusGetOptsProto.GET_COUNTERS;
+    }
+    throw new TezUncheckedException("Could not convert StatusGetOpts to"
+      + " proto");
+  }
+
+  public static StatusGetOpts convertStatusGetOptsFromProto(
+    DAGProtos.StatusGetOptsProto proto) {
+    switch (proto) {
+      case GET_COUNTERS:
+        return StatusGetOpts.GET_COUNTERS;
+    }
+    throw new TezUncheckedException("Could not convert to StatusGetOpts from"
+      + " proto");
+  }
+
+  public static List<DAGProtos.StatusGetOptsProto> convertStatusGetOptsToProto(
+    Set<StatusGetOpts> statusGetOpts) {
+    List<DAGProtos.StatusGetOptsProto> protos =
+      new ArrayList<DAGProtos.StatusGetOptsProto>(statusGetOpts.size());
+    for (StatusGetOpts opt : statusGetOpts) {
+      protos.add(convertStatusGetOptsToProto(opt));
+    }
+    return protos;
+  }
+
+  public static Set<StatusGetOpts> convertStatusGetOptsFromProto(
+      List<DAGProtos.StatusGetOptsProto> protoList) {
+    Set<StatusGetOpts> opts = new TreeSet<StatusGetOpts>();
+    for (DAGProtos.StatusGetOptsProto proto : protoList) {
+      opts.add(convertStatusGetOptsFromProto(proto));
+    }
+    return opts;
   }
 
 }

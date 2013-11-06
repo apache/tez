@@ -22,12 +22,12 @@ option java_generate_equals_and_hash = true;
 
 // DAG plan messages
 
-// Many of these types have a dual in the Tez-api.  To reduce confusion, these types have prefix or suffix 
+// Many of these types have a dual in the Tez-api.  To reduce confusion, these types have prefix or suffix
 // of "Plan" to indicate they are to be used in the dag-plan.
-// The big types use a suffix:  JobPlan, VertexPlan, EdgePlan 
+// The big types use a suffix:  JobPlan, VertexPlan, EdgePlan
 //   --> these get more direct use in the runtime and the naming is natural.
 // The enums and utility types use prefix: PlanVertexType, PlanEdgeConnectionPaatern, etc
-//   --> there is not great naming choice for these that avoids ambiguity, but this one seems acceptable. 
+//   --> there is not great naming choice for these that avoids ambiguity, but this one seems acceptable.
 
 enum PlanVertexType {
   INPUT = 0;
@@ -94,7 +94,7 @@ message PlanTaskConfiguration {
   required string javaOpts = 4;
   required string taskModule = 5;
   repeated PlanLocalResource localResource = 6;
-  repeated PlanKeyValuePair environmentSetting = 8;  
+  repeated PlanKeyValuePair environmentSetting = 7;
 }
 
 message TezEntityDescriptorProto {
@@ -113,11 +113,11 @@ message VertexPlan {
   required PlanVertexType type = 2;
   optional TezEntityDescriptorProto processor_descriptor = 3;
   required PlanTaskConfiguration taskConfig = 4;
-  repeated PlanTaskLocationHint taskLocationHint = 7;
-  repeated string inEdgeId = 8;
-  repeated string outEdgeId = 9;
-  repeated RootInputLeafOutputProto inputs = 10;
-  repeated RootInputLeafOutputProto outputs = 11;
+  repeated PlanTaskLocationHint taskLocationHint = 5;
+  repeated string inEdgeId = 6;
+  repeated string outEdgeId = 7;
+  repeated RootInputLeafOutputProto inputs = 8;
+  repeated RootInputLeafOutputProto outputs = 9;
 }
 
 message EdgePlan {
@@ -165,6 +165,7 @@ message VertexStatusProto {
   optional VertexStatusStateProto state = 1;
   repeated string diagnostics = 2;
   optional ProgressProto progress = 3;
+  optional TezCountersProto vertexCounters = 4;
 }
 
 enum DAGStatusStateProto {
@@ -187,9 +188,30 @@ message DAGStatusProto {
   optional DAGStatusStateProto state = 1;
   repeated string diagnostics = 2;
   optional ProgressProto DAGProgress = 3;
-  repeated StringProgressPairProto vertexProgress = 4;  
+  repeated StringProgressPairProto vertexProgress = 4;
+  optional TezCountersProto dagCounters = 5;
 }
 
 message PlanLocalResourcesProto {
   repeated PlanLocalResource localResources = 1;
+}
+
+message TezCounterProto {
+  optional string name = 1;
+  optional string display_name = 2;
+  optional int64 value = 3;
+}
+
+message TezCounterGroupProto {
+  optional string name = 1;
+  optional string display_name = 2;
+  repeated TezCounterProto counters = 3;
+}
+
+message TezCountersProto {
+  repeated TezCounterGroupProto counter_groups = 1;
+}
+
+enum StatusGetOptsProto {
+  GET_COUNTERS = 0;
 }

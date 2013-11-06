@@ -20,6 +20,8 @@ package org.apache.tez.dag.api.client;
 
 import java.util.List;
 
+import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProto.Builder;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusStateProto;
@@ -32,28 +34,34 @@ public class VertexStatusBuilder extends VertexStatus {
   public VertexStatusBuilder() {
     super(VertexStatusProto.newBuilder());
   }
-  
+
   public void setState(VertexState state) {
     getBuilder().setState(getProtoState(state));
   }
-  
+
   public void setDiagnostics(List<String> diagnostics) {
     Builder builder = getBuilder();
     builder.clearDiagnostics();
     builder.addAllDiagnostics(diagnostics);
   }
-  
+
   public void setProgress(ProgressBuilder progress) {
     getBuilder().setProgress(progress.getProto());
   }
-  
+
+  public void setVertexCounters(TezCounters counters) {
+    getBuilder().setVertexCounters(
+      DagTypeConverters.convertTezCountersToProto(counters));
+  }
+
   public VertexStatusProto getProto() {
     return getBuilder().build();
   }
-  
+
   private VertexStatusStateProto getProtoState(VertexState state) {
     switch(state) {
     case NEW:
+    case INITIALIZING:
     case INITED:
       return VertexStatusStateProto.VERTEX_INITED;
     case RUNNING:
@@ -72,7 +80,7 @@ public class VertexStatusBuilder extends VertexStatus {
       throw new TezUncheckedException("Unsupported value for VertexState : " + state);
     }
   }
-  
+
   private VertexStatusProto.Builder getBuilder() {
     return (Builder) this.proxy;
   }

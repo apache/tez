@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -85,6 +86,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
@@ -146,7 +148,7 @@ import org.apache.tez.runtime.library.common.security.TokenCache;
 
 @SuppressWarnings("rawtypes")
 public class DAGAppMaster extends AbstractService {
- 
+
   private static final Log LOG = LogFactory.getLog(DAGAppMaster.class);
 
   /**
@@ -474,7 +476,7 @@ public class DAGAppMaster extends AbstractService {
   protected DAG createDAG(DAGPlan dagPB) {
     TezDAGID dagId = new TezDAGID(appAttemptID.getApplicationId(),
         dagCounter.incrementAndGet());
-    
+
     // Prepare the TaskAttemptListener server for authentication of Containers
     // TaskAttemptListener gets the information via jobTokenSecretManager.
     String dagIdString = dagId.toString();
@@ -500,7 +502,7 @@ public class DAGAppMaster extends AbstractService {
 
     return newDag;
   } // end createDag()
-  
+
   protected void addIfService(Object object, boolean addDispatcher) {
     if (object instanceof Service) {
       Service service = (Service) object;
@@ -712,13 +714,17 @@ public class DAGAppMaster extends AbstractService {
       return Collections.singletonList(currentDAG.getID().toString());
     }
 
-    public DAGStatus getDAGStatus(String dagIdStr) throws TezException {
-      return getDAG(dagIdStr).getDAGStatus();
+    public DAGStatus getDAGStatus(String dagIdStr,
+                                  Set<StatusGetOpts> statusOptions)
+        throws TezException {
+      return getDAG(dagIdStr).getDAGStatus(statusOptions);
     }
 
-    public VertexStatus getVertexStatus(String dagIdStr, String vertexName)
+    public VertexStatus getVertexStatus(String dagIdStr, String vertexName,
+        Set<StatusGetOpts> statusOptions)
         throws TezException{
-      VertexStatus status = getDAG(dagIdStr).getVertexStatus(vertexName);
+      VertexStatus status = getDAG(dagIdStr)
+          .getVertexStatus(vertexName, statusOptions);
       if(status == null) {
         throw new TezException("Unknown vertexName: " + vertexName);
       }
@@ -1414,11 +1420,11 @@ public class DAGAppMaster extends AbstractService {
     appMaster.currentUser = UserGroupInformation.getCurrentUser();
         Credentials credentials =
         UserGroupInformation.getCurrentUser().getCredentials();
-    
+
     UserGroupInformation appMasterUgi = UserGroupInformation
         .createRemoteUser(jobUserName);
     appMasterUgi.addCredentials(credentials);
-    
+
     // Now remove the AM->RM token so tasks don't have it
     Iterator<Token<?>> iter = credentials.getAllTokens().iterator();
     while (iter.hasNext()) {
@@ -1427,7 +1433,7 @@ public class DAGAppMaster extends AbstractService {
         iter.remove();
       }
     }
-    
+
     appMaster.tokens = credentials;
 
     appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {

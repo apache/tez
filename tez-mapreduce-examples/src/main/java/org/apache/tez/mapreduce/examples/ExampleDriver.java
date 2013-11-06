@@ -18,11 +18,20 @@
 
 package org.apache.tez.mapreduce.examples;
 
+import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
 
 import org.apache.hadoop.util.ProgramDriver;
+import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.Progress;
+import org.apache.tez.dag.api.client.StatusGetOpts;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.mapreduce.examples.terasort.TeraGen;
 import org.apache.tez.mapreduce.examples.terasort.TeraSort;
 import org.apache.tez.mapreduce.examples.terasort.TeraValidate;
@@ -85,7 +94,17 @@ public class ExampleDriver {
     System.exit(exitCode);
   }
 
-  public static void printMRRDAGStatus(DAGStatus dagStatus) {
+  public static void printDAGStatus(DAGClient dagClient, String[] vertexNames)
+      throws IOException, TezException {
+    printDAGStatus(dagClient, vertexNames, false, false);
+  }
+
+  public static void printDAGStatus(DAGClient dagClient, String[] vertexNames,
+      boolean displayDAGCounters, boolean displayVertexCounters)
+      throws IOException, TezException {
+    Set<StatusGetOpts> opts = EnumSet.of(StatusGetOpts.GET_COUNTERS);
+    DAGStatus dagStatus = dagClient.getDAGStatus(
+      (displayDAGCounters ? opts : null));
     Progress progress = dagStatus.getDAGProgress();
     double vProgressFloat = 0.0f;
     if (progress != null) {
@@ -96,9 +115,10 @@ public class ExampleDriver {
           + (progress.getTotalTaskCount() < 0 ? formatter.format(0.0f) :
             formatter.format((double)(progress.getSucceededTaskCount())
               /progress.getTotalTaskCount())));
-      final String[] vNames = { "initialmap", "ivertex1", "finalreduce" };
-      for (String vertexName : vNames) {
-        Progress vProgress = dagStatus.getVertexProgress().get(vertexName);
+      for (String vertexName : vertexNames) {
+        VertexStatus vStatus = dagClient.getVertexStatus(vertexName,
+          (displayVertexCounters ? opts : null));
+        Progress vProgress = vStatus.getProgress();
         if (vProgress != null) {
           vProgressFloat = 0.0f;
           if (vProgress.getTotalTaskCount() == 0) {
@@ -113,6 +133,19 @@ public class ExampleDriver {
                   : vertexName)
               + " Progress: " + formatter.format(vProgressFloat));
         }
+        if (displayVertexCounters) {
+          TezCounters counters = vStatus.getVertexCounters();
+          if (counters != null) {
+            System.out.println("Vertex Counters for " + vertexName + ": "
+              + counters);
+          }
+        }
+      }
+    }
+    if (displayDAGCounters) {
+      TezCounters counters = dagStatus.getDAGCounters();
+      if (counters != null) {
+        System.out.println("DAG Counters: " + counters);
       }
     }
   }

@@ -93,7 +93,7 @@ public class FilterLinesByWord {
     String [] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
 
     boolean generateSplitsInClient = false;
-    
+
     SplitsInClientOptionParser splitCmdLineParser = new SplitsInClientOptionParser();
     try {
       generateSplitsInClient = splitCmdLineParser.parse(otherArgs, false);
@@ -196,7 +196,7 @@ public class FilterLinesByWord {
     Map<String, String> stage1Env = new HashMap<String, String>();
     MRHelpers.updateEnvironmentForMRTasks(stage1Conf, stage1Env, true);
     stage1Vertex.setTaskEnvironment(stage1Env);
-    
+
     // Configure the Input for stage1
     Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
         : MRInputAMSplitGenerator.class;
@@ -214,7 +214,7 @@ public class FilterLinesByWord {
     Map<String, String> stage2Env = new HashMap<String, String>();
     MRHelpers.updateEnvironmentForMRTasks(stage2Conf, stage2Env, false);
     stage2Vertex.setTaskEnvironment(stage2Env);
-    
+
     // Configure the Output for stage2
     stage2Vertex.addOutput("MROutput",
         new OutputDescriptor(MROutput.class.getName()).setUserPayload(MRHelpers
@@ -233,9 +233,10 @@ public class FilterLinesByWord {
     LOG.info("Submitted DAG to Tez Session");
 
     DAGStatus dagStatus = null;
+    String[] vNames = { "stage1", "stage2" };
     try {
       while (true) {
-        dagStatus = dagClient.getDAGStatus();
+        dagStatus = dagClient.getDAGStatus(null);
         if(dagStatus.getState() == DAGStatus.State.RUNNING ||
             dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
             dagStatus.getState() == DAGStatus.State.FAILED ||
@@ -252,13 +253,13 @@ public class FilterLinesByWord {
 
       while (dagStatus.getState() == DAGStatus.State.RUNNING) {
         try {
-          ExampleDriver.printMRRDAGStatus(dagStatus);
+          ExampleDriver.printDAGStatus(dagClient, vNames);
           try {
             Thread.sleep(1000);
           } catch (InterruptedException e) {
             // continue;
           }
-          dagStatus = dagClient.getDAGStatus();
+          dagStatus = dagClient.getDAGStatus(null);
         } catch (TezException e) {
           LOG.fatal("Failed to get application progress. Exiting");
           System.exit(-1);
@@ -269,24 +270,24 @@ public class FilterLinesByWord {
       tezSession.stop();
     }
 
-    ExampleDriver.printMRRDAGStatus(dagStatus);
+    ExampleDriver.printDAGStatus(dagClient, vNames);
     LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
     System.exit(dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1);
   }
-  
+
   public static class TextLongPair implements Writable {
 
     private Text text;
     private LongWritable longWritable;
-    
+
     public TextLongPair() {
     }
-    
+
     public TextLongPair(Text text, LongWritable longWritable) {
       this.text = text;
       this.longWritable = longWritable;
     }
-    
+
     @Override
     public void write(DataOutput out) throws IOException {
       this.text.write(out);
@@ -300,7 +301,7 @@ public class FilterLinesByWord {
       text.readFields(in);
       longWritable.readFields(in);
     }
-    
+
     @Override
     public String toString() {
       return text.toString() + "\t" + longWritable.get();

@@ -20,11 +20,13 @@ package org.apache.tez.dag.app.dag;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
@@ -66,8 +68,9 @@ public interface DAG {
   Configuration getConf();
 
   DAGPlan getJobPlan();
-  DAGStatusBuilder getDAGStatus();
-  VertexStatusBuilder getVertexStatus(String vertexName);
+  DAGStatusBuilder getDAGStatus(Set<StatusGetOpts> statusOptions);
+  VertexStatusBuilder getVertexStatus(String vertexName,
+                                      Set<StatusGetOpts> statusOptions);
 
   boolean isComplete();
 

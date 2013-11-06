@@ -20,6 +20,8 @@ package org.apache.tez.dag.api.client;
 
 import java.util.List;
 
+import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
 import org.apache.tez.dag.api.records.DAGProtos.StringProgressPairProto;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -33,32 +35,37 @@ public class DAGStatusBuilder extends DAGStatus {
   public DAGStatusBuilder() {
     super(DAGStatusProto.newBuilder());
   }
-  
+
   public void setState(DAGState state) {
     getBuilder().setState(getProtoState(state));
   }
-  
+
   public void setDiagnostics(List<String> diagnostics) {
     Builder builder = getBuilder();
     builder.clearDiagnostics();
     builder.addAllDiagnostics(diagnostics);
   }
-  
+
   public void setDAGProgress(ProgressBuilder progress) {
     getBuilder().setDAGProgress(progress.getProto());
   }
-  
+
+  public void setDAGCounters(TezCounters counters) {
+    getBuilder().setDagCounters(
+        DagTypeConverters.convertTezCountersToProto(counters));
+  }
+
   public void addVertexProgress(String name, ProgressBuilder progress) {
     StringProgressPairProto.Builder builder = StringProgressPairProto.newBuilder();
     builder.setKey(name);
     builder.setProgress(progress.getProto());
     getBuilder().addVertexProgress(builder.build());
   }
-  
+
   public DAGStatusProto getProto() {
     return getBuilder().build();
   }
-  
+
   private DAGStatusStateProto getProtoState(DAGState state) {
     switch(state) {
     case NEW:
@@ -80,7 +87,7 @@ public class DAGStatusBuilder extends DAGStatus {
       throw new TezUncheckedException("Unsupported value for DAGState : " + state);
     }
   }
-  
+
   private DAGStatusProto.Builder getBuilder() {
     return (Builder) this.proxy;
   }

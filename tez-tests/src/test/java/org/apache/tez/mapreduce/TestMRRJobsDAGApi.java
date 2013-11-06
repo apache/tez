@@ -496,7 +496,7 @@ public class TestMRRJobsDAGApi {
       Assert.assertEquals(TezSessionStatus.RUNNING,
           tezSession.getSessionStatus());
     }
-    DAGStatus dagStatus = dagClient.getDAGStatus();
+    DAGStatus dagStatus = dagClient.getDAGStatus(null);
     while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for job to complete. Sleeping for 500ms."
           + " Current state: " + dagStatus.getState());
@@ -510,7 +510,7 @@ public class TestMRRJobsDAGApi {
           dagClient.tryKillDAG();
         }
       }
-      dagStatus = dagClient.getDAGStatus();
+      dagStatus = dagClient.getDAGStatus(null);
     }
     if (dagViaRPC && !reuseSession) {
       tezSession.stop();

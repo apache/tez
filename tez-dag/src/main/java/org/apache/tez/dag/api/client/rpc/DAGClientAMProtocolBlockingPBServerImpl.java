@@ -74,7 +74,9 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
     try {
       String dagId = request.getDagId();
       DAGStatus status;
-      status = real.getDAGStatus(dagId);
+      status = real.getDAGStatus(dagId,
+        DagTypeConverters.convertStatusGetOptsFromProto(
+          request.getStatusOptionsList()));
       assert status instanceof DAGStatusBuilder;
       DAGStatusBuilder builder = (DAGStatusBuilder) status;
       return GetDAGStatusResponseProto.newBuilder().
@@ -90,7 +92,9 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
     try {
       String dagId = request.getDagId();
       String vertexName = request.getVertexName();
-      VertexStatus status = real.getVertexStatus(dagId, vertexName);
+      VertexStatus status = real.getVertexStatus(dagId, vertexName,
+        DagTypeConverters.convertStatusGetOptsFromProto(
+          request.getStatusOptionsList()));
       assert status instanceof VertexStatusBuilder;
       VertexStatusBuilder builder = (VertexStatusBuilder) status;
       return GetVertexStatusResponseProto.newBuilder().
