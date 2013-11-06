@@ -73,6 +73,15 @@
             <post>mailto:commits@tez.incubator.apache.org</post>
             <archive></archive>
         </mailingList>
+        <mailingList>
+            <name>JIRA Issues list</name>
+            <subscribe>mailto:issues-subscribe@tez.incubator.apache.org
+            </subscribe>
+            <unsubscribe>mailto:issues-unsubscribe@tez.incubator.apache.org
+            </unsubscribe>
+            <post>mailto:issues@tez.incubator.apache.org</post>
+            <archive></archive>
+        </mailingList>
     </mailingLists>
 
     <developers>
