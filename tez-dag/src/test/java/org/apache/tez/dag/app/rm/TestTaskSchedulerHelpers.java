@@ -300,10 +300,32 @@ class TestTaskSchedulerHelpers {
   static class AlwaysMatchesContainerMatcher implements ContainerSignatureMatcher {
 
     @Override
-    public boolean isCompatible(Object cs1, Object cs2) {
+    public boolean isSuperSet(Object cs1, Object cs2) {
       Preconditions.checkNotNull(cs1, "Arguments cannot be null");
       Preconditions.checkNotNull(cs2, "Arguments cannot be null");
       return true;
+    }
+
+    @Override
+    public boolean isExactMatch(Object cs1, Object cs2) {
+      return true;
+    }
+  }
+  
+  static class PreemptionMatcher implements ContainerSignatureMatcher {
+    @Override
+    public boolean isSuperSet(Object cs1, Object cs2) {
+      Preconditions.checkNotNull(cs1, "Arguments cannot be null");
+      Preconditions.checkNotNull(cs2, "Arguments cannot be null");
+      return true;
+    }
+
+    @Override
+    public boolean isExactMatch(Object cs1, Object cs2) {
+      if (cs1 == cs2 && cs1 != null) {
+        return true;
+      }
+      return false;
     }
   }
 

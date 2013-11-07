@@ -118,7 +118,13 @@ public class TaskScheduler extends AbstractService
      * @return true if the first signature is a super set of the second
      *         signature.
      */
-    public boolean isCompatible(Object cs1, Object cs2);
+    public boolean isSuperSet(Object cs1, Object cs2);
+    
+    /**
+     * Checks if the container signatures match exactly
+     * @return true if exact match
+     */
+    public boolean isExactMatch(Object cs1, Object cs2);
   }
 
   final TezAMRMClientAsync<CookieContainerRequest> amRmClient;
@@ -882,14 +888,23 @@ public class TaskScheduler extends AbstractService
       // TODO this is subject to error wrt RM resource normalization
       Map.Entry<Object, Container> preemptedEntry = null;
       for(Map.Entry<Object, Container> entry : taskAllocations.entrySet()) {
-        if(!isHigherPriority(highestPriRequest.getPriority(),
-                             entry.getValue().getPriority())) {
+        HeldContainer heldContainer = heldContainers.get(entry.getValue().getId());
+        CookieContainerRequest lastTaskInfo = heldContainer.getLastTaskInfo();
+        Priority taskPriority = lastTaskInfo.getPriority();
+        Object signature = lastTaskInfo.getCookie().getContainerSignature();
+        if(!isHigherPriority(highestPriRequest.getPriority(), taskPriority)) {
           // higher or same priority
           continue;
         }
+        if (containerSignatureMatcher.isExactMatch(
+            highestPriRequest.getCookie().getContainerSignature(),
+            signature)) {
+          // exact match with different priorities
+          continue;
+        }
         if(preemptedEntry == null ||
-           !isHigherPriority(entry.getValue().getPriority(),
-                             preemptedEntry.getValue().getPriority())) {
+           !isHigherPriority(taskPriority, 
+               preemptedEntry.getValue().getPriority())) {
           // keep the lower priority or the one added later
           preemptedEntry = entry;
         }
@@ -963,8 +978,8 @@ public class TaskScheduler extends AbstractService
         LOG.debug("Trying to match task to a held container, "
             + " containerId=" + heldContainer.container.getId());
       }
-      if (containerSignatureMatcher.isCompatible(heldContainer
-          .getContainerSignature(), cookieContainerRequest.getCookie()
+      if (containerSignatureMatcher.isSuperSet(heldContainer
+          .getFirstContainerSignature(), cookieContainerRequest.getCookie()
           .getContainerSignature())) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Matched delayed container to task"
@@ -1015,7 +1030,7 @@ public class TaskScheduler extends AbstractService
     HeldContainer heldContainer = heldContainers.get(container.getId()); 
     if (heldContainer == null) {
       heldContainers.put(container.getId(), new HeldContainer(container,
-        -1, -1, assigned.getCookie().getContainerSignature()));
+        -1, -1, assigned));
       Resources.addTo(allocatedResources, container.getResource());
     } else {
       if (heldContainer.isNew()) {
@@ -1025,9 +1040,9 @@ public class TaskScheduler extends AbstractService
         // think about preferring within vertex matching etc.
         heldContainers.put(container.getId(),
             new HeldContainer(container, heldContainer.getNextScheduleTime(),
-                heldContainer.getContainerExpiryTime(), assigned.getCookie()
-                    .getContainerSignature()));
+                heldContainer.getContainerExpiryTime(), assigned));
       }
+      heldContainer.setLastTaskInfo(assigned);
     }
   }
   
@@ -1530,23 +1545,27 @@ public class TaskScheduler extends AbstractService
 
     Container container;
     private long nextScheduleTime;
-    private Object containerSignature;
+    private Object firstContainerSignature;
     private LocalityMatchLevel localityMatchLevel;
     private long containerExpiryTime;
+    private CookieContainerRequest lastTaskInfo;
     
     HeldContainer(Container container,
         long nextScheduleTime,
         long containerExpiryTime,
-        Object containerParams) {
+        CookieContainerRequest firstTaskInfo) {
       this.container = container;
       this.nextScheduleTime = nextScheduleTime;
-      this.containerSignature = containerParams;
+      if (firstTaskInfo != null) {
+        this.lastTaskInfo = firstTaskInfo;
+        this.firstContainerSignature = firstTaskInfo.getCookie().getContainerSignature();
+      }
       this.localityMatchLevel = LocalityMatchLevel.NODE;
       this.containerExpiryTime = containerExpiryTime;
     }
     
     boolean isNew() {
-      return containerSignature == null;
+      return firstContainerSignature == null;
     }
     
     public Container getContainer() {
@@ -1569,8 +1588,16 @@ public class TaskScheduler extends AbstractService
       this.containerExpiryTime = containerExpiryTime;
     }
 
-    public Object getContainerSignature() {
-      return this.containerSignature;
+    public Object getFirstContainerSignature() {
+      return this.firstContainerSignature;
+    }
+    
+    public CookieContainerRequest getLastTaskInfo() {
+      return this.lastTaskInfo;
+    }
+    
+    public void setLastTaskInfo(CookieContainerRequest taskInfo) {
+      lastTaskInfo = taskInfo;
     }
 
     public synchronized void resetLocalityMatchLevel() {
@@ -1600,7 +1627,7 @@ public class TaskScheduler extends AbstractService
           + ", nextScheduleTime: " + nextScheduleTime
           + ", localityMatchLevel=" + localityMatchLevel
           + ", signature: "
-          + (containerSignature != null? containerSignature.toString():"null");
+          + (firstContainerSignature != null? firstContainerSignature.toString():"null");
     }
   }
 }

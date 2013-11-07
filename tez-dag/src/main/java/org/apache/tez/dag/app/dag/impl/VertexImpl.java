@@ -501,7 +501,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         getApplicationAttemptId());
 
     this.containerContext = new ContainerContext(this.localResources,
-        this.credentials, this.environment, this.javaOpts);
+        this.credentials, this.environment, this.javaOpts, this);
 
     if (vertexPlan.getInputsCount() > 0) {
       setAdditionalInputs(vertexPlan.getInputsList());

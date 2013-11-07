@@ -26,6 +26,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.dag.EdgeManager;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
@@ -149,7 +150,16 @@ public class Edge {
             event);
         int numConsumers = edgeManager.getDestinationConsumerTaskNumber(
             srcTaskIndex, destinationVertex.getTotalTasks());
-        TezTaskID srcTaskId = sourceVertex.getTask(srcTaskIndex).getTaskId();
+        Task srcTask = sourceVertex.getTask(srcTaskIndex);
+        if (srcTask == null) {
+          throw new TezUncheckedException("Unexpected null task." +
+              " sourceVertex=" + sourceVertex.getVertexId() +
+              " srcIndex = " + srcTaskIndex +
+              " destAttemptId=" + destAttemptId +
+              " destIndex=" + destTaskIndex + 
+              " edgeManager=" + edgeManager.getClass().getName());
+        }
+        TezTaskID srcTaskId = srcTask.getTaskId();
         int taskAttemptIndex = event.getVersion();
         TezTaskAttemptID srcTaskAttemptId = new TezTaskAttemptID(srcTaskId,
             taskAttemptIndex);
@@ -196,7 +206,16 @@ public class Edge {
             destMeta.setIndex(((InputFailedEvent)event).getTargetIndex());
           }
           tezEvent.setDestinationInfo(destMeta);
-          TezTaskID destTaskId = destinationVertex.getTask(destTaskIndex).getTaskId();
+          Task destTask = destinationVertex.getTask(destTaskIndex);
+          if (destTask == null) {
+            throw new TezUncheckedException("Unexpected null task." +
+                " sourceVertex=" + sourceVertex.getVertexId() +
+                " srcIndex = " + sourceTaskIndex +
+                " destAttemptId=" + destinationVertex.getVertexId() +
+                " destIndex=" + destTaskIndex + 
+                " edgeManager=" + edgeManager.getClass().getName());
+          }
+          TezTaskID destTaskId = destTask.getTaskId();
           sendEventToTask(destTaskId, tezEvent);
         }        
         break;

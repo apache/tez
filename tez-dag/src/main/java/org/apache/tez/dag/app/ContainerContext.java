@@ -24,6 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.tez.dag.app.dag.Vertex;
 
 import com.google.common.base.Preconditions;
 
@@ -35,6 +36,7 @@ public class ContainerContext {
   private final Credentials credentials;
   private final Map<String, String> environment;
   private final String javaOpts;
+  private final Vertex vertex;
 
   // FIXME Add support for service meta data comparisons
 
@@ -49,6 +51,22 @@ public class ContainerContext {
     this.credentials = credentials;
     this.environment = environment;
     this.javaOpts = javaOpts;
+    this.vertex = null;
+  }
+  
+  public ContainerContext(Map<String, LocalResource> localResources,
+      Credentials credentials, Map<String, String> environment, String javaOpts,
+      Vertex vertex) {
+    Preconditions.checkNotNull(localResources,
+        "localResources should not be null");
+    Preconditions.checkNotNull(credentials, "credentials should not be null");
+    Preconditions.checkNotNull(environment, "environment should not be null");
+    Preconditions.checkNotNull(javaOpts, "javaOpts should not be null");
+    this.localResources = localResources;
+    this.credentials = credentials;
+    this.environment = environment;
+    this.javaOpts = javaOpts;
+    this.vertex = vertex;
   }
 
   public Map<String, LocalResource> getLocalResources() {
@@ -91,6 +109,14 @@ public class ContainerContext {
         "Environment")
       && isSuperSet(this.localResources, otherContext.getLocalResources(),
         "LocalResources"));
+  }
+  
+  /**
+   * @return true if this ContainerContext is an exact match of the specified
+   *         container context.
+   */
+  public boolean isExactMatch(ContainerContext otherContext) {
+    return (this.vertex == otherContext.vertex);
   }
 
   private static <K, V> boolean isSuperSet(Map<K, V> srcMap, Map<K, V> matchMap,
