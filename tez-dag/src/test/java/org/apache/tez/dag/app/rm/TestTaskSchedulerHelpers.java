@@ -31,6 +31,7 @@ import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
@@ -326,6 +327,16 @@ class TestTaskSchedulerHelpers {
         return true;
       }
       return false;
+    }
+  }
+  
+
+  static void waitForDelayedDrainNotify(AtomicBoolean drainNotifier)
+      throws InterruptedException {
+    while (!drainNotifier.get()) {
+      synchronized (drainNotifier) {
+        drainNotifier.wait();
+      }
     }
   }
 

@@ -71,6 +71,15 @@ public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAs
       AMRMClientAsync.CallbackHandler callbackHandler) {
     super(client, intervalMs, callbackHandler);
   }
+  
+  public synchronized Priority getTopPriority() {
+    Iterator<Priority> iter =
+        knownRequestsByPriority.descendingKeySet().iterator();
+    if (!iter.hasNext()) {
+      return null;
+    }
+    return iter.next();
+  }
 
   @Override
   public synchronized void addContainerRequest(T req) {

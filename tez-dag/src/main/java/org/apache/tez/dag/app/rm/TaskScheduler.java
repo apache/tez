@@ -539,7 +539,8 @@ public class TaskScheduler extends AbstractService
       long currentTime = System.currentTimeMillis();
       if (isNew || (heldContainer.getContainerExpiryTime() <= currentTime
           && sessionDelay != -1)) {
-        LOG.info("Container's session delay expired or is new. Releasing container"
+        LOG.info("No taskRequests. Container's session delay expired or is new. " +
+        	"Releasing container"
           + ", containerId=" + heldContainer.container.getId()
           + ", containerExpiryTime="
           + heldContainer.getContainerExpiryTime()
@@ -626,7 +627,8 @@ public class TaskScheduler extends AbstractService
         long currentTime = System.currentTimeMillis();
 
         // Release container if final expiry time is reached
-        if (heldContainer.getContainerExpiryTime() <= currentTime
+        // Dont release a new container. The RM may not give us new ones
+        if (!isNew && heldContainer.getContainerExpiryTime() <= currentTime
           && sessionDelay != -1) {
           LOG.info("Container's session delay expired. Releasing container"
             + ", containerId=" + heldContainer.container.getId()
@@ -660,11 +662,24 @@ public class TaskScheduler extends AbstractService
               hitFinalMatchLevel = false;
             }
           }
-
+          
           if (hitFinalMatchLevel) {
+            boolean safeToRelease = true;
+            Priority topPendingPriority = amRmClient.getTopPriority();
+            Priority containerPriority = heldContainer.container.getPriority();
+            if (topPendingPriority != null && 
+                containerPriority.compareTo(topPendingPriority) < 0) {
+              // this container is of lower priority and given to us by the RM for
+              // a task that will be matched after the current top priority. Keep 
+              // this container for those pending tasks since the RM is not going
+              // to give this container to us again
+              safeToRelease = false;
+            }
+            
             // Are there any pending requests at any priority?
             // release if there are tasks or this is not a session
-            if (!taskRequests.isEmpty() || !appContext.isSession()) {
+            if (safeToRelease && 
+                (!taskRequests.isEmpty() || !appContext.isSession())) {
               LOG.info("Releasing held container as either there are pending but "
                 + " unmatched requests or this is not a session"
                 + ", containerId=" + heldContainer.container.getId()
@@ -1151,6 +1166,31 @@ public class TaskScheduler extends AbstractService
     Map<CookieContainerRequest, Container> assignedContainers,
     boolean honorLocality) {
 
+    Priority containerPriority = container.getPriority();
+    Priority topPendingTaskPriority = amRmClient.getTopPriority();
+    if (topPendingTaskPriority == null) {
+      // nothing left to assign
+      return false;
+    }
+    
+    if (topPendingTaskPriority.compareTo(containerPriority) > 0) {
+      // if the next task to assign is higher priority than the container then 
+      // dont assign this container to that task.
+      // if task and container are equal priority - then its first use or reuse
+      // within the same priority - safe to use
+      // if task is lower priority than container then its we use a container that
+      // is no longer needed by higher priority tasks All those higher pri tasks 
+      // have been assigned resources - safe to use (first use or reuse)
+      // if task is higher priority than container then we may end up using a 
+      // container that was assigned by the RM for a lower priority pending task 
+      // that will be assigned after this higher priority task is assigned. If we
+      // use that task's container now then we may not be able to match this 
+      // container to that task later on. However the RM has already assigned us 
+      // all containers and is not going to give us new containers. We will get 
+      // stuck for resources.
+      return false;
+    }
+    
     CookieContainerRequest assigned =
       assigner.assignReUsedContainer(container, honorLocality);
     if (assigned != null) {
@@ -1163,7 +1203,7 @@ public class TaskScheduler extends AbstractService
   private void releaseUnassignedContainers(Iterable<Container> containers) {
     for (Container container : containers) {
       releaseContainer(container.getId());
-      LOG.info("Releasing container, No RM requests matching container: "
+      LOG.info("Releasing unused container: "
           + container);
     }
   }

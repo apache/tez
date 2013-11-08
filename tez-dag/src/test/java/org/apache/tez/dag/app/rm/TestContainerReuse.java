@@ -84,15 +84,6 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 public class TestContainerReuse {
-
-  void waitForDelayedDrainNotify(AtomicBoolean drainNotifier)
-      throws InterruptedException {
-    while (!drainNotifier.get()) {
-      synchronized (drainNotifier) {
-        drainNotifier.wait();
-      }
-    }
-  }
   
   @Test(timeout = 15000l)
   public void testDelayedReuseContainerBecomesAvailable()
@@ -190,7 +181,7 @@ public class TestContainerReuse {
     drainNotifier.set(false);
     taskScheduler.onContainersAllocated(
       Lists.newArrayList(containerHost1, containerHost2));
-    waitForDelayedDrainNotify(drainNotifier);
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(
       eq(ta11), any(Object.class), eq(containerHost1));
@@ -319,7 +310,7 @@ public class TestContainerReuse {
 
     drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Lists.newArrayList(containerHost1, containerHost2));
-    waitForDelayedDrainNotify(drainNotifier);
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta11), any(Object.class), eq(containerHost1));
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta21), any(Object.class), eq(containerHost2));
@@ -424,7 +415,7 @@ public class TestContainerReuse {
     // One container allocated.
     drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
-    waitForDelayedDrainNotify(drainNotifier);
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta11), any(Object.class), eq(container1));
 
@@ -461,7 +452,7 @@ public class TestContainerReuse {
     // Second container allocated. Should be allocated to the last task.
     drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container2));
-    waitForDelayedDrainNotify(drainNotifier);
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta14), any(Object.class), eq(container2));
 
@@ -562,7 +553,7 @@ public class TestContainerReuse {
     // One container allocated.
     drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
-    waitForDelayedDrainNotify(drainNotifier);
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(
       eq(ta11), any(Object.class), eq(container1));
@@ -688,7 +679,7 @@ public class TestContainerReuse {
     // One container allocated.
     drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
-    waitForDelayedDrainNotify(drainNotifier);
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(
       eq(ta11), any(Object.class), eq(container1));
