@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.rm;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -104,7 +105,8 @@ public class TaskScheduler extends AbstractService
     public void appShutdownRequested();
     public void setApplicationRegistrationData(
                                 Resource maxContainerCapability,
-                                Map<ApplicationAccessType, String> appAcls
+                                Map<ApplicationAccessType, String> appAcls,
+                                ByteBuffer clientAMSecretKey
                                 );
     public void onError(Throwable t);
     public float getProgress();
@@ -335,7 +337,8 @@ public class TaskScheduler extends AbstractService
       // upcall to app outside locks
       appClientDelegate.setApplicationRegistrationData(
           response.getMaximumResourceCapability(),
-          response.getApplicationACLs());
+          response.getApplicationACLs(),
+          response.getClientToAMTokenMasterKey());
 
       delayedContainerManager.start();
     } catch (YarnException e) {

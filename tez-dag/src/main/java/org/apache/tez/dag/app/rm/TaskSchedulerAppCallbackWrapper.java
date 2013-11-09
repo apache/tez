@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.rm;
 
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -98,9 +99,9 @@ class TaskSchedulerAppCallbackWrapper implements TaskSchedulerAppCallback {
 
   @Override
   public void setApplicationRegistrationData(Resource maxContainerCapability,
-      Map<ApplicationAccessType, String> appAcls) {
+      Map<ApplicationAccessType, String> appAcls, ByteBuffer key) {
     completionService.submit(new SetApplicationRegistrationDataCallable(real,
-        maxContainerCapability, appAcls));
+        maxContainerCapability, appAcls, key));
   }
 
   @Override
@@ -234,18 +235,21 @@ class TaskSchedulerAppCallbackWrapper implements TaskSchedulerAppCallback {
 
     private final Resource maxContainerCapability;
     private final Map<ApplicationAccessType, String> appAcls;
+    private final ByteBuffer key;
 
     public SetApplicationRegistrationDataCallable(TaskSchedulerAppCallback app,
         Resource maxContainerCapability,
-        Map<ApplicationAccessType, String> appAcls) {
+        Map<ApplicationAccessType, String> appAcls,
+        ByteBuffer key) {
       super(app);
       this.maxContainerCapability = maxContainerCapability;
       this.appAcls = appAcls;
+      this.key = key;
     }
 
     @Override
     public Void call() throws Exception {
-      app.setApplicationRegistrationData(maxContainerCapability, appAcls);
+      app.setApplicationRegistrationData(maxContainerCapability, appAcls, key);
       return null;
     }
   }

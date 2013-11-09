@@ -24,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -262,9 +263,9 @@ class TestTaskSchedulerHelpers {
 
     @Override
     public void setApplicationRegistrationData(Resource maxContainerCapability,
-        Map<ApplicationAccessType, String> appAcls) {
+        Map<ApplicationAccessType, String> appAcls, ByteBuffer key) {
       invocations++;
-      real.setApplicationRegistrationData(maxContainerCapability, appAcls);
+      real.setApplicationRegistrationData(maxContainerCapability, appAcls, key);
     }
 
     @Override

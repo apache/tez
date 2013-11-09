@@ -256,7 +256,7 @@ public class DAGAppMaster extends AbstractService {
     dispatcher = createDispatcher();
     addIfService(dispatcher, false);
 
-    clientRpcServer = new DAGClientServer(clientHandler);
+    clientRpcServer = new DAGClientServer(clientHandler, appAttemptID);
     addIfService(clientRpcServer, true);
 
     taskHeartbeatHandler = createTaskHeartbeatHandler(context, conf);

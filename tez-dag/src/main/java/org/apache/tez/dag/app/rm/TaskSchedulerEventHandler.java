@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.rm;
 
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -444,10 +445,12 @@ public class TaskSchedulerEventHandler extends AbstractService
   @Override
   public synchronized void setApplicationRegistrationData(
       Resource maxContainerCapability,
-      Map<ApplicationAccessType, String> appAcls) {
+      Map<ApplicationAccessType, String> appAcls, 
+      ByteBuffer clientAMSecretKey) {
     this.appContext.getClusterInfo().setMaxContainerCapability(
         maxContainerCapability);
     this.appAcls = appAcls;
+    this.clientService.setClientAMSecretKey(clientAMSecretKey);
   }
 
   // Not synchronized to avoid deadlocks from TaskScheduler callbacks.

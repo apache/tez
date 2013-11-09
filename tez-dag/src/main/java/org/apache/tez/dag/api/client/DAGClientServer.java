@@ -20,6 +20,7 @@ package org.apache.tez.dag.api.client;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -29,6 +30,8 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
@@ -41,13 +44,16 @@ import com.google.protobuf.BlockingService;
 public class DAGClientServer extends AbstractService {
   static final Log LOG = LogFactory.getLog(DAGClientServer.class);
 
+  ClientToAMTokenSecretManager secretManager;
   DAGClientHandler realInstance;
   Server server;
   InetSocketAddress bindAddress;
 
-  public DAGClientServer(DAGClientHandler realInstance) {
+  public DAGClientServer(DAGClientHandler realInstance,
+      ApplicationAttemptId attemptId) {
     super("DAGClientRPCServer");
     this.realInstance = realInstance;
+    this.secretManager = new ClientToAMTokenSecretManager(attemptId, null);
   }
 
   @Override
@@ -88,6 +94,13 @@ public class DAGClientServer extends AbstractService {
   public InetSocketAddress getBindAddress() {
     return bindAddress;
   }
+  
+  public void setClientAMSecretKey(ByteBuffer key) {
+    if (key != null && key.hasRemaining()) {
+      // non-empty key. must be useful
+      secretManager.setMasterKey(key.array());
+    }
+  }
 
   private Server createServer(Class<?> pbProtocol, InetSocketAddress addr, Configuration conf,
       int numHandlers,
@@ -96,7 +109,7 @@ public class DAGClientServer extends AbstractService {
     RPC.Server server = new RPC.Builder(conf).setProtocol(pbProtocol)
         .setInstance(blockingService).setBindAddress(addr.getHostName())
         .setPort(addr.getPort()).setNumHandlers(numHandlers).setVerbose(false)
-        .setPortRangeConfig(portRangeConfig)
+        .setPortRangeConfig(portRangeConfig).setSecretManager(secretManager)
         .build();
     server.addProtocol(RPC.RpcKind.RPC_PROTOCOL_BUFFER, pbProtocol, blockingService);
     return server;

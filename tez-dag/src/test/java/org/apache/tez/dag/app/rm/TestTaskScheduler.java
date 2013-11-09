@@ -31,6 +31,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -121,6 +122,8 @@ public class TestTaskScheduler {
     when(mockRegResponse.getMaximumResourceCapability()).
                                                    thenReturn(mockMaxResource);
     when(mockRegResponse.getApplicationACLs()).thenReturn(mockAcls);
+    ByteBuffer mockKey = mock(ByteBuffer.class);
+    when(mockRegResponse.getClientToAMTokenMasterKey()).thenReturn(mockKey);
     when(mockRMClient.
           registerApplicationMaster(anyString(), anyInt(), anyString())).
                                                    thenReturn(mockRegResponse);
@@ -129,7 +132,7 @@ public class TestTaskScheduler {
     verify(mockRMClient).start();
     verify(mockRMClient).registerApplicationMaster(appHost, appPort, appUrl);
     verify(mockApp).setApplicationRegistrationData(mockMaxResource,
-                                                   mockAcls);
+                                                   mockAcls, mockKey);
 
     when(mockRMClient.getClusterNodeCount()).thenReturn(5);
     Assert.assertEquals(5, scheduler.getClusterNodeCount());
