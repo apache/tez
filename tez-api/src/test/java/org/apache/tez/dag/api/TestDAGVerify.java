@@ -327,6 +327,40 @@ public class TestDAGVerify {
     dag.verify();
   }
   
+  @Test (expected = IllegalStateException.class)
+  public void testOutputAndVertexNameCollision() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    
+    v1.addOutput("v2", new OutputDescriptor());
+    
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.verify();
+  }
+  
+  @Test (expected = IllegalStateException.class)
+  public void testInputAndVertexNameCollision() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    
+    v1.addInput("v2", new InputDescriptor(), null);
+    
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.verify();
+  }
+
   //  v1  v2
   //   |  |
   //    v3

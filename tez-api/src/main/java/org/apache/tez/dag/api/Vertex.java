@@ -40,8 +40,10 @@ public class Vertex { // FIXME rename to Task
   private final Resource taskResource;
   private Map<String, LocalResource> taskLocalResources;
   private Map<String, String> taskEnvironment;
-  private final List<RootInputLeafOutput<InputDescriptor>> additionalInputs = new ArrayList<RootInputLeafOutput<InputDescriptor>>();
-  private final List<RootInputLeafOutput<OutputDescriptor>> additionalOutputs = new ArrayList<RootInputLeafOutput<OutputDescriptor>>();
+  private final List<RootInputLeafOutput<InputDescriptor>> additionalInputs 
+                      = new ArrayList<RootInputLeafOutput<InputDescriptor>>();
+  private final List<RootInputLeafOutput<OutputDescriptor>> additionalOutputs 
+                      = new ArrayList<RootInputLeafOutput<OutputDescriptor>>();
 
   private final List<Vertex> inputVertices = new ArrayList<Vertex>();
   private final List<Vertex> outputVertices = new ArrayList<Vertex>();

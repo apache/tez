@@ -194,6 +194,26 @@ public class DAG { // FIXME rename to Topology
       outboundSet.add(outputVertex.getVertexName());
     }
 
+    // check input and output names dont collide with vertex names
+    for (Vertex vertex : vertices.values()) {
+      for (RootInputLeafOutput<InputDescriptor> input : vertex.getInputs()) {
+        if (vertexMap.containsKey(input.getName())) {
+          throw new IllegalStateException("Vertex: "
+              + vertex.getVertexName()
+              + " contains an Input with the same name as vertex: "
+              + input.getName());
+        }
+      }
+      for (RootInputLeafOutput<OutputDescriptor> output : vertex.getOutputs()) {
+        if (vertexMap.containsKey(output.getName())) {
+          throw new IllegalStateException("Vertex: "
+              + vertex.getVertexName()
+              + " contains an Output with the same name as vertex: "
+              + output.getName());
+        }
+      }
+    }
+
     // Check for valid InputNames
     for (Entry<Vertex, Set<String>> entry : inboundVertexMap.entrySet()) {
       Vertex vertex = entry.getKey();
