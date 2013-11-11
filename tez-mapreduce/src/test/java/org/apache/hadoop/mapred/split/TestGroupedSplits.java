@@ -306,9 +306,10 @@ public class TestGroupedSplits {
     }
     when(mockWrappedFormat.getSplits((JobConf)anyObject(), anyInt())).thenReturn(mockSplits);
     
-    // desired splits not set. return original
+    // desired splits not set. We end up choosing min/max split size based on 
+    // total data and num original splits. In this case, min size will be hit
     InputSplit[] splits = format.getSplits(job, 0);
-    Assert.assertEquals(numSplits, splits.length);
+    Assert.assertEquals(25, splits.length);
     
     // split too big. override with max
     format.setDesiredNumberOfSplits(1);

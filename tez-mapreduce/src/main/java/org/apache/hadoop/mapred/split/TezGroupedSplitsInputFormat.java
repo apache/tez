@@ -120,7 +120,6 @@ public class TezGroupedSplitsInputFormat<K, V>
     InputSplit[] originalSplits = wrappedInputFormat.getSplits(job, numSplits);
     
     if (! (configNumSplits > 0 || 
-          desiredNumSplits == 0 ||
           originalSplits == null || 
           originalSplits.length == 0) ) {
       // numSplits has not been overridden by config
@@ -131,8 +130,9 @@ public class TezGroupedSplitsInputFormat<K, V>
       for (InputSplit split : originalSplits) {
         totalLength += split.getLength();
       }
-  
-      long lengthPerGroup = totalLength/desiredNumSplits;
+
+      int splitCount = desiredNumSplits>0?desiredNumSplits:originalSplits.length;
+      long lengthPerGroup = totalLength/splitCount;
       
       long maxLengthPerGroup = job.getLong(
           TezConfiguration.TEZ_AM_GROUPING_SPLIT_MAX_SIZE,
