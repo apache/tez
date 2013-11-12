@@ -20,7 +20,6 @@ package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -84,7 +83,9 @@ public class ExampleDriver {
       pgd.addClass("orderedwordcount", OrderedWordCount.class,
           "Word Count with words sorted on frequency");
       pgd.addClass("filterLinesByWord", FilterLinesByWord.class,
-          "Filters lines by the specified word");
+          "Filters lines by the specified word using broadcast edge");
+      pgd.addClass("filterLinesByWordOneToOne", FilterLinesByWordOneToOne.class,
+          "Filters lines by the specified word using OneToOne edge");
       exitCode = pgd.run(argv);
     }
     catch(Throwable e){

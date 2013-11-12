@@ -557,8 +557,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return vertex.getVertexStatus(statusOptions);
   }
 
-
-  protected void startRootVertices() {
+  protected void initializeVerticesAndStart() {
+    for (Vertex v : vertices.values()) {
+      if (v.getInputVerticesCount() == 0) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Initing root vertex " + v.getName());
+        }
+        eventHandler.handle(new VertexEvent(v.getVertexId(),
+            VertexEventType.V_INIT));
+      }
+    }
     for (Vertex v : vertices.values()) {
       if (v.getInputVerticesCount() == 0) {
         if (LOG.isDebugEnabled()) {
@@ -567,13 +575,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         eventHandler.handle(new VertexEvent(v.getVertexId(),
             VertexEventType.V_START));
       }
-    }
-  }
-
-  protected void initializeVertices() {
-    for (Vertex v : vertices.values()) {
-      eventHandler.handle(new VertexEvent(v.getVertexId(),
-          VertexEventType.V_INIT));
     }
   }
 
@@ -986,15 +987,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
      * triggered in MRAppMaster's startJobs() method.
      */
     @Override
-    public void transition(DAGImpl job, DAGEvent event) {
-      job.startTime = job.clock.getTime();
-      job.initializeVertices();
-      job.logJobHistoryInitedEvent();
+    public void transition(DAGImpl dag, DAGEvent event) {
+      dag.startTime = dag.clock.getTime();
+      dag.logJobHistoryInitedEvent();
       // TODO Metrics
       //job.metrics.runningJob(job);
 
       // Start all vertices with no incoming edges when job starts
-      job.startRootVertices();
+      dag.initializeVerticesAndStart();
     }
   }
 

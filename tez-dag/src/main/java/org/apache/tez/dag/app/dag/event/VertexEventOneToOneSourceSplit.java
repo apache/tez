@@ -18,46 +18,33 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-/**
- * Event types handled by Task.
- */
-public enum VertexEventType {
+import org.apache.tez.dag.records.TezVertexID;
 
-  //Producer:Client, Job
-  V_TERMINATE,
+public class VertexEventOneToOneSourceSplit extends VertexEvent {
+  final int numTasks;
+  final TezVertexID originalSplitVertex;
+  final TezVertexID senderVertex;
+  
+  public VertexEventOneToOneSourceSplit(TezVertexID vertexId,
+      TezVertexID senderVertex,
+      TezVertexID originalSplitVertex,
+      int numTasks) {
+    super(vertexId, VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT);
+    this.numTasks = numTasks;
+    this.senderVertex = senderVertex;
+    this.originalSplitVertex = originalSplitVertex;
+  }
+  
+  public int getNumTasks() {
+    return numTasks;
+  }
+  
+  public TezVertexID getOriginalSplitSource() {
+    return originalSplitVertex;
+  }
+  
+  public TezVertexID getSenderVertex() {
+    return senderVertex;
+  }
 
-  //Producer:Job
-  V_INIT,
-  
-  //Producer:Vertex
-  V_COMPLETED,
-  V_START,
-  V_SOURCE_TASK_ATTEMPT_COMPLETED,
-  V_SOURCE_VERTEX_STARTED,
-  
-  //Producer:Speculator
-  V_ADD_SPEC_ATTEMPT,
-
-  //Producer:Task
-  V_TASK_COMPLETED,
-  V_TASK_RESCHEDULED,
-  V_TASK_ATTEMPT_COMPLETED,
-
-  V_TASK_LAUNCHED,
-  V_TASK_OUTPUT_CONSUMABLE,
-  V_TASK_FAILED,
-  V_TASK_SUCCEEDED,
-  V_ATTEMPT_KILLED,
-  
-  //Producer:Any component
-  V_INTERNAL_ERROR,
-  V_COUNTER_UPDATE,
-  
-  V_ROUTE_EVENT,
-  V_ONE_TO_ONE_SOURCE_SPLIT,
-  
-  //Producer: VertexInputInitializer
-  V_ROOT_INPUT_INITIALIZED,
-  V_ROOT_INPUT_FAILED,
-  
 }

@@ -20,7 +20,6 @@ package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;

@@ -31,6 +31,7 @@ import org.apache.tez.mapreduce.examples.FilterLinesByWord;
 import org.apache.tez.mapreduce.examples.FilterLinesByWord.TextLongPair;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.MRInput;
+import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -94,7 +95,8 @@ public class FilterByWordInputProcessor implements LogicalIOProcessor {
     
     
     
-    MRInput mrInput = (MRInput) li;
+    MRInputLegacy mrInput = (MRInputLegacy) li;
+    mrInput.init();
     OnFileUnorderedKVOutput kvOutput = (OnFileUnorderedKVOutput) lo;
 
     Configuration updatedConf = mrInput.getConfigUpdates();

@@ -319,6 +319,140 @@ public class TestVertexImpl {
     .build();
     return dag;
   }
+  
+  private DAGPlan createDAGPlanForOneToOneSplit(String initializerClassName) {
+    LOG.info("Setting up one to one dag plan");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("testVertexOneToOneSplit")
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex1")
+                .setType(PlanVertexType.NORMAL)
+                .addInputs(
+                    RootInputLeafOutputProto.newBuilder()
+                    .setInitializerClassName(initializerClassName)
+                    .setName("input1")
+                    .setEntityDescriptor(
+                        TezEntityDescriptorProto.newBuilder()
+                            .setClassName("InputClazz")
+                            .build()
+                    ).build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                    .setNumTasks(-1)
+                    .setVirtualCores(4)
+                    .setMemoryMb(1024)
+                    .setJavaOpts("")
+                    .setTaskModule("x1.y1")
+                    .build()
+                )
+                .addOutEdgeId("e1")
+                .addOutEdgeId("e2")
+            .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex2")
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                    .setNumTasks(-1)
+                    .setVirtualCores(4)
+                    .setMemoryMb(1024)
+                    .setJavaOpts("")
+                    .setTaskModule("x2.y2")
+                    .build()
+                )
+                .addInEdgeId("e1")
+                .addOutEdgeId("e3")
+            .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex3")
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                    .setNumTasks(-1)
+                    .setVirtualCores(4)
+                    .setMemoryMb(1024)
+                    .setJavaOpts("")
+                    .setTaskModule("x3.y3")
+                    .build()
+                )
+                .addInEdgeId("e2")
+                .addOutEdgeId("e4")
+            .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex4")
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                    .setNumTasks(-1)
+                    .setVirtualCores(4)
+                    .setMemoryMb(1024)
+                    .setJavaOpts("")
+                    .setTaskModule("x4.y4")
+                    .build()
+                )
+                .addInEdgeId("e3")
+                .addInEdgeId("e4")
+            .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v1_v2"))
+                .setInputVertexName("vertex1")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
+                .setOutputVertexName("vertex2")
+                .setDataMovementType(PlanEdgeDataMovementType.ONE_TO_ONE)
+                .setId("e1")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v1_v3"))
+                .setInputVertexName("vertex1")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
+                .setOutputVertexName("vertex3")
+                .setDataMovementType(PlanEdgeDataMovementType.ONE_TO_ONE)
+                .setId("e2")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v2_v4"))
+                .setInputVertexName("vertex2")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
+                .setOutputVertexName("vertex4")
+                .setDataMovementType(PlanEdgeDataMovementType.ONE_TO_ONE)
+                .setId("e3")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v3_v4"))
+                .setInputVertexName("vertex3")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
+                .setOutputVertexName("vertex4")
+                .setDataMovementType(PlanEdgeDataMovementType.ONE_TO_ONE)
+                .setId("e4")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+    .build();
+    return dag;
+  }
 
   private DAGPlan createTestDAGPlan() {
     LOG.info("Setting up dag plan");
@@ -680,10 +814,16 @@ public class TestVertexImpl {
     this.vertexIdMap = null;
   }
 
-  private void initAllVertices() {
-    for (int i = 1; i <= 6; ++i) {
+  private void initAllVertices(VertexState expectedState) {
+    for (int i = 1; i <= vertices.size(); ++i) {
       VertexImpl v = vertices.get("vertex" + i);
-      initVertex(v);
+      if (v.sourceVertices == null || v.sourceVertices.isEmpty()) {
+        initVertex(v);
+      }
+    }
+    for (int i = 1; i <= vertices.size(); ++i) {
+      VertexImpl v = vertices.get("vertex" + i);
+      Assert.assertEquals(expectedState, v.getState());
     }
   }
 
@@ -694,7 +834,6 @@ public class TestVertexImpl {
     dispatcher.getEventHandler().handle(new VertexEvent(v.getVertexId(),
           VertexEventType.V_INIT));
     dispatcher.await();
-    Assert.assertEquals(VertexState.INITED, v.getState());
   }
 
   private void startVertex(VertexImpl v) {
@@ -724,11 +863,9 @@ public class TestVertexImpl {
 
   @Test(timeout = 5000)
   public void testVertexInit() {
-    VertexImpl v = vertices.get("vertex2");
-    initVertex(v);
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v3 = vertices.get("vertex3");
-    initVertex(v3);
 
     Assert.assertEquals("x3.y3", v3.getProcessorName());
     Assert.assertEquals("foo", v3.getJavaOpts());
@@ -775,7 +912,7 @@ public class TestVertexImpl {
 
   @Test(timeout = 5000)
   public void testVertexStart() {
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
@@ -783,8 +920,8 @@ public class TestVertexImpl {
 
   @Test(timeout = 5000)
   public void testVertexSetParallelism() {
+    initAllVertices(VertexState.INITED);
     VertexImpl v3 = vertices.get("vertex3");
-    initVertex(v3);
     Assert.assertEquals(2, v3.getTotalTasks());
     Map<TezTaskID, Task> tasks = v3.getTasks();
     Assert.assertEquals(2, tasks.size());
@@ -808,7 +945,7 @@ public class TestVertexImpl {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testBasicVertexCompletion() {
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
@@ -833,7 +970,7 @@ public class TestVertexImpl {
   @Test(timeout = 5000)
   @Ignore // FIXME fix verteximpl for this test to work
   public void testDuplicateTaskCompletion() {
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
@@ -861,7 +998,7 @@ public class TestVertexImpl {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexFailure() {
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
@@ -881,30 +1018,16 @@ public class TestVertexImpl {
 
   @Test(timeout = 5000)
   public void testVertexKillDiagnostics() {
-    VertexImpl v1 = vertices.get("vertex1");
-    killVertex(v1);
-    String diagnostics =
-        StringUtils.join(",", v1.getDiagnostics()).toLowerCase();
-    Assert.assertTrue(diagnostics.contains(
-        "vertex received kill in new state"));
-
+    initAllVertices(VertexState.INITED);
     VertexImpl v2 = vertices.get("vertex2");
-    initVertex(v2);
     killVertex(v2);
-    diagnostics =
+    String diagnostics =
         StringUtils.join(",", v2.getDiagnostics()).toLowerCase();
     LOG.info("diagnostics v2: " + diagnostics);
     Assert.assertTrue(diagnostics.contains(
         "vertex received kill in inited state"));
 
     VertexImpl v3 = vertices.get("vertex3");
-    VertexImpl v4 = vertices.get("vertex4");
-    VertexImpl v5 = vertices.get("vertex5");
-    VertexImpl v6 = vertices.get("vertex6");
-    initVertex(v3);
-    initVertex(v4);
-    initVertex(v5);
-    initVertex(v6);
 
     startVertex(v3);
     killVertex(v3);
@@ -917,7 +1040,7 @@ public class TestVertexImpl {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexKillPending() {
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
@@ -943,7 +1066,7 @@ public class TestVertexImpl {
   @SuppressWarnings("unchecked")
   @Test
   public void testVertexKill() {
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
@@ -969,7 +1092,7 @@ public class TestVertexImpl {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testKilledTasksHandling() {
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
@@ -987,26 +1110,24 @@ public class TestVertexImpl {
 
   @Test(timeout = 5000)
   public void testVertexCommitterInit() {
+    initAllVertices(VertexState.INITED);
     VertexImpl v2 = vertices.get("vertex2");
-    initVertex(v2);
     Assert.assertTrue(v2.getVertexOutputCommitter()
         instanceof NullVertexOutputCommitter);
 
     VertexImpl v6 = vertices.get("vertex6");
-    initVertex(v6);
     Assert.assertTrue(v6.getVertexOutputCommitter()
         instanceof MRVertexOutputCommitter);
   }
 
   @Test(timeout = 5000)
   public void testVertexSchedulerInit() {
+    initAllVertices(VertexState.INITED);
     VertexImpl v2 = vertices.get("vertex2");
-    initVertex(v2);
     Assert.assertTrue(v2.getVertexScheduler()
         instanceof ImmediateStartVertexScheduler);
 
     VertexImpl v6 = vertices.get("vertex6");
-    initVertex(v6);
     Assert.assertTrue(v6.getVertexScheduler()
         instanceof ShuffleVertexManager);
   }
@@ -1014,7 +1135,7 @@ public class TestVertexImpl {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexTaskFailure() {
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
 
@@ -1045,7 +1166,7 @@ public class TestVertexImpl {
   @Test(timeout = 5000)
   public void testSourceVertexStartHandling() {
     LOG.info("Testing testSourceVertexStartHandling");
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v4 = vertices.get("vertex4");
     VertexImpl v5 = vertices.get("vertex5");
@@ -1077,7 +1198,7 @@ public class TestVertexImpl {
   @Test(timeout = 5000)
   public void testSourceTaskAttemptCompletionEvents() {
     LOG.info("Testing testSourceTaskAttemptCompletionEvents");
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v4 = vertices.get("vertex4");
     VertexImpl v5 = vertices.get("vertex5");
@@ -1125,7 +1246,7 @@ public class TestVertexImpl {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testDAGEventGeneration() {
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
@@ -1148,7 +1269,7 @@ public class TestVertexImpl {
   @Test(timeout = 5000)
   public void testTaskReschedule() {
     // For downstream failures
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
 
@@ -1185,7 +1306,7 @@ public class TestVertexImpl {
   @Test(timeout = 5000)
   public void testVertexSuccessToRunningAfterTaskScheduler() {
     // For downstream failures
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
 
@@ -1228,7 +1349,7 @@ public class TestVertexImpl {
   @Test(timeout = 5000)
   public void testVertexSuccessToFailedAfterTaskScheduler() {
     // For downstream failures
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
 
@@ -1262,7 +1383,7 @@ public class TestVertexImpl {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexCommit() {
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
 
@@ -1303,7 +1424,7 @@ public class TestVertexImpl {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testBadCommitter() {
-    initAllVertices();
+    initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
 
@@ -1329,6 +1450,46 @@ public class TestVertexImpl {
     Assert.assertEquals(0, committer.abortCounter);
     Assert.assertEquals(0, committer.initCounter); // already done in init
     Assert.assertEquals(0, committer.setupCounter); // already done in init
+  }
+  
+  @Test//(timeout = 5000)
+  public void testVertexWithOneToOneSplit() {
+    // create a diamond shaped dag with 1-1 edges. 
+    // split the source and remaining vertices should split equally
+    // vertex with 2 incoming splits from the same source should split once
+    useCustomInitializer = true;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanForOneToOneSplit("TestInputInitializer");
+    setupPostDagCreation();
+    initAllVertices(VertexState.INITIALIZING);
+    
+    int numTasks = 5;
+    VertexImplWithCustomInitializer v1 = (VertexImplWithCustomInitializer) vertices
+        .get("vertex1");
+    Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
+    RootInputInitializerRunnerControlled runner1 = v1.getRootInputInitializerRunner();
+    List<TaskLocationHint> v1Hints = createTaskLocationHints(numTasks);
+    runner1.completeInputInitialization(numTasks, v1Hints);
+
+    Assert.assertEquals(VertexState.INITED, v1.getState());
+    Assert.assertEquals(numTasks, v1.getTotalTasks());
+    Assert.assertEquals(RootInputVertexManager.class.getName(), v1
+        .getVertexScheduler().getClass().getName());
+    Assert.assertEquals(v1Hints, v1.getVertexLocationHint().getTaskLocationHints());
+    Assert.assertEquals(true, runner1.hasShutDown);
+    
+    Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
+    Assert.assertEquals(VertexState.INITED, vertices.get("vertex2").getState());
+    Assert.assertEquals(numTasks, vertices.get("vertex3").getTotalTasks());
+    Assert.assertEquals(VertexState.INITED, vertices.get("vertex3").getState());
+    Assert.assertEquals(numTasks, vertices.get("vertex4").getTotalTasks());
+    Assert.assertEquals(VertexState.INITED, vertices.get("vertex4").getState());
+    
+    startVertex(v1);
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex1").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex2").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex3").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex4").getState());
   }
 
   @Test(timeout = 5000)
@@ -1371,9 +1532,6 @@ public class TestVertexImpl {
     Assert.assertEquals(true, runner1.hasShutDown);
     
     VertexImplWithCustomInitializer v2 = (VertexImplWithCustomInitializer) vertices.get("vertex2");
-    dispatcher.getEventHandler().handle(
-        new VertexEvent(v2.getVertexId(), VertexEventType.V_INIT));
-    dispatcher.await();
     Assert.assertEquals(VertexState.INITIALIZING, v2.getState());
     RootInputInitializerRunnerControlled runner2 = v2.getRootInputInitializerRunner();
     runner2.failInputInitialization();
@@ -1410,9 +1568,6 @@ public class TestVertexImpl {
     Assert.assertEquals(true, runner1.hasShutDown);
     
     VertexImplWithCustomInitializer v2 = (VertexImplWithCustomInitializer) vertices.get("vertex2");
-    dispatcher.getEventHandler().handle(
-        new VertexEvent(v2.getVertexId(), VertexEventType.V_INIT));
-    dispatcher.await();
     Assert.assertEquals(VertexState.INITIALIZING, v2.getState());
     RootInputInitializerRunnerControlled runner2 = v2.getRootInputInitializerRunner();
     List<TaskLocationHint> v2Hints = createTaskLocationHints(10);
