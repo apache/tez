@@ -670,7 +670,7 @@ public class TaskScheduler extends AbstractService
             boolean safeToRelease = true;
             Priority topPendingPriority = amRmClient.getTopPriority();
             Priority containerPriority = heldContainer.container.getPriority();
-            if (topPendingPriority != null && 
+            if (isNew && topPendingPriority != null &&
                 containerPriority.compareTo(topPendingPriority) < 0) {
               // this container is of lower priority and given to us by the RM for
               // a task that will be matched after the current top priority. Keep 
