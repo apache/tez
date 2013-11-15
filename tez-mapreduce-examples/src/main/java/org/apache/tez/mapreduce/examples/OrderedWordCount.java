@@ -20,12 +20,14 @@ package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
@@ -383,8 +385,11 @@ public class OrderedWordCount {
             + ", inputPath=" + inputPath
             + ", outputPath=" + outputPath);
 
-        DAG dag = createDAG(fs, conf, null, stagingDir,
-            dagIndex, inputPath, outputPath, generateSplitsInClient);
+        Map<String, LocalResource> localResources =
+          Collections.emptyMap();
+        DAG dag = createDAG(fs, conf, localResources,
+            stagingDir, dagIndex, inputPath, outputPath,
+            generateSplitsInClient);
 
         if (useTezSession) {
           LOG.info("Waiting for TezSession to get into ready state");
