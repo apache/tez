@@ -56,7 +56,7 @@ public class BroadcastEdgeManager extends EdgeManager {
   @Override
   public int routeEventToSourceTasks(int destinationTaskIndex,
       InputReadErrorEvent event) {
-    return destinationTaskIndex;
+    return event.getIndex();
   }
   
   void addAllDestinationTaskIndices(int numDestinationTasks, List<Integer> taskIndeces) {
