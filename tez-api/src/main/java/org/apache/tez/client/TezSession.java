@@ -127,9 +127,9 @@ public class TezSession {
   public synchronized DAGClient submitDAG(DAG dag)
       throws TezException, IOException {
     if (!sessionStarted) {
-      throw new TezUncheckedException("Session not started");
+      throw new SessionNotRunning("Session not started");
     } else if (sessionStopped) {
-      throw new TezUncheckedException("Session stopped");
+      throw new SessionNotRunning("Session stopped");
     }
 
     String dagId;
