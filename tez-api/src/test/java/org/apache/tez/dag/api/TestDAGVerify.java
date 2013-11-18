@@ -399,7 +399,7 @@ public class TestDAGVerify {
   //  v2  v3
   @Test
   public void BinaryOutput() {
-    IllegalStateException ex=null;
+    IllegalStateException ex = null;
     try {
       Vertex v1 = new Vertex("v1",
           new ProcessorDescriptor("MapProcessor"),
@@ -431,9 +431,7 @@ public class TestDAGVerify {
     catch (IllegalStateException e){
       ex = e;
     }
-    Assert.assertNotNull(ex);
-    System.out.println(ex.getMessage());
-    Assert.assertTrue(ex.getMessage().startsWith("Vertex has outDegree>1"));
+    Assert.assertNull(ex);
   }
 
   @Test

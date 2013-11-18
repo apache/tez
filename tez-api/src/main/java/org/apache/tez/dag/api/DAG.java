@@ -262,12 +262,6 @@ public class DAG { // FIXME rename to Topology
             "Unsupported scheduling type on edge. " + e);
         }
       }
-      for (AnnotatedVertex av : vertexMap.values()) {
-        if (av.outDegree > 1) {
-          throw new IllegalStateException("Vertex has outDegree>1: "
-            + av.v.getVertexName());
-        }
-      }
     }
   }
 
