@@ -261,7 +261,9 @@ public class ShuffleVertexManager implements VertexScheduler {
     long expectedTotalSourceTasksOutputSize = 
         (numSourceTasks*completedSourceTasksOutputSize)/numVertexManagerEventsReceived;
     int desiredTaskParallelism = 
-        (int)(expectedTotalSourceTasksOutputSize/desiredTaskInputDataSize);
+        (int)(
+            (expectedTotalSourceTasksOutputSize+desiredTaskInputDataSize-1)/
+            desiredTaskInputDataSize);
     if(desiredTaskParallelism < minTaskParallelism) {
       desiredTaskParallelism = minTaskParallelism;
     }
