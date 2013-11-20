@@ -50,7 +50,6 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGStatus;
@@ -881,46 +880,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
 
     private void assignDAGScheduler(DAGImpl dag) {
-      if (dag.conf.getBoolean(TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING,
-          TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING_DEFAULT)) {
-        LOG.info("Using Natural order dag scheduler due to aggressive scheduling");
-        dag.dagScheduler = new DAGSchedulerNaturalOrder(dag, dag.eventHandler);
-      } else {
-        boolean isMRR = true;
-        for (Vertex vertex : dag.vertices.values()) {
-          Map<Vertex, Edge> outVertices = vertex.getOutputVertices();
-          Map<Vertex, Edge> inVertices = vertex.getInputVertices();
-          if (!(outVertices == null || outVertices.isEmpty() || (outVertices
-              .size() == 1 && outVertices.values().iterator().next().getEdgeProperty()
-              .getDataMovementType() == EdgeProperty.DataMovementType.SCATTER_GATHER))) {
-            // more than 1 output OR single output is not bipartite
-            isMRR = false;
-            break;
-          }
-          if (!(inVertices == null || inVertices.isEmpty() || (inVertices
-              .size() == 1 && inVertices.values().iterator().next().getEdgeProperty()
-              .getDataMovementType() == EdgeProperty.DataMovementType.SCATTER_GATHER))) {
-            // more than 1 output OR single output is not bipartite
-            isMRR = false;
-            break;
-          }
-        }
-
-        if (isMRR) {
-          LOG.info("Using MRR dag scheduler");
-          dag.dagScheduler = new DAGSchedulerMRR(
-              dag,
-              dag.eventHandler,
-              dag.appContext.getTaskScheduler(),
-              dag.conf
-                  .getFloat(
-                      TezConfiguration.TEZ_AM_SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION,
-                      TezConfiguration.TEZ_AM_SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION_DEFAULT));
-        } else {
-          LOG.info("Using Natural order dag scheduler");
-          dag.dagScheduler = new DAGSchedulerNaturalOrder(dag, dag.eventHandler);
-        }
-      }
+      LOG.info("Using Natural order dag scheduler");
+      dag.dagScheduler = new DAGSchedulerNaturalOrder(dag, dag.eventHandler);
     }
 
     private VertexImpl createVertex(DAGImpl dag, String vertexName, int vId) {

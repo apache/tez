@@ -844,6 +844,7 @@ public class TestDAGImpl {
     // FIXME need to implement
   }
 
+  @Ignore
   @SuppressWarnings("unchecked")
   @Test
   public void testOutofBandFailureForMRRScheduler() {

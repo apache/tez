@@ -414,13 +414,6 @@ public class ShuffleVertexManager implements VertexScheduler {
           "max cannot be < min.");
     }
     
-    if (conf.getBoolean(TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING,
-        TezConfiguration.TEZ_AM_AGGRESSIVE_SCHEDULING_DEFAULT)) {
-      LOG.info("Setting min/max threshold to 0 due to aggressive scheduling");
-      this.slowStartMinSrcCompletionFraction = 0;
-      this.slowStartMaxSrcCompletionFraction = 0;
-    }
-    
     enableAutoParallelism = conf
         .getBoolean(
             TezConfiguration.TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL,
