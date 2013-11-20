@@ -104,14 +104,16 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
           String rack = 
               ((org.apache.hadoop.mapreduce.split.TezGroupedSplit) split).getRack();
           if (rack == null) {
-            locationHints.add(new TaskLocationHint(new HashSet<String>(Arrays
-                .asList(split.getLocations())), null));
+            if (split.getLocations() != null) {
+              locationHints.add(new TaskLocationHint(new HashSet<String>(Arrays
+                  .asList(split.getLocations())), null));
+            } else {
+              locationHints.add(new TaskLocationHint(null, null));
+            }
           } else {
             locationHints.add(new TaskLocationHint(null, 
                 Collections.singleton(rack)));
           }
-          locationHints.add(new TaskLocationHint(new HashSet<String>(Arrays
-              .asList(split.getLocations())), null));
         }
         inputSplitInfo = new InputSplitInfoMem(splitsBuilder.build(),
             locationHints, splits.length);
@@ -128,8 +130,12 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
           String rack = 
               ((org.apache.hadoop.mapred.split.TezGroupedSplit) split).getRack();
           if (rack == null) {
-            locationHints.add(new TaskLocationHint(new HashSet<String>(Arrays
-                .asList(split.getLocations())), null));
+            if (split.getLocations() != null) {
+              locationHints.add(new TaskLocationHint(new HashSet<String>(Arrays
+                  .asList(split.getLocations())), null));
+            } else {
+              locationHints.add(new TaskLocationHint(null, null));
+            }
           } else {
             locationHints.add(new TaskLocationHint(null, 
                 Collections.singleton(rack)));
