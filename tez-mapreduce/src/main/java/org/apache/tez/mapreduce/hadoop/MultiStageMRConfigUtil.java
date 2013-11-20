@@ -183,12 +183,9 @@ public class MultiStageMRConfigUtil {
       Entry<String, String> entry = confEntries.next();
       String key = entry.getKey();
       if (key.startsWith(prefix)) {
-        // Ignore keys for other intermediate stages in case of an initial or
-        // final stage.
-        if (prefix.equals("")) {
-          if (key.startsWith(MRJobConfig.MRR_INTERMEDIATE_STAGE_PREFIX)) {
-            continue;
-          }
+        // Ignore keys for other intermediate stages in case of an initial or final stage.
+        if (prefix.equals("") && key.startsWith(MRJobConfig.MRR_INTERMEDIATE_STAGE_PREFIX)) {
+          continue;
         }
         String newKey = key.replace(prefix, "");
         strippedConf.set(newKey, entry.getValue());
@@ -206,7 +203,9 @@ public class MultiStageMRConfigUtil {
     Iterator<Entry<String, String>> entries = strippedConf.iterator();
     while (entries.hasNext()) {
       Entry<String, String> entry = entries.next();
-      conf.set(entry.getKey(), entry.getValue());
+      if (!Configuration.isDeprecated(entry.getKey())) {
+        conf.set(entry.getKey(), entry.getValue());
+      }
     }
     return conf;
   }
