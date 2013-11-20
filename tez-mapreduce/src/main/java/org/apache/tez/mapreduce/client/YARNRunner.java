@@ -583,9 +583,18 @@ public class YARNRunner implements ClientProtocol {
     try {
       dagAMConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
           jobSubmitDir);
+      
+      // Set Tez parameters based on MR parameters.
       String queueName = jobConf.get(JobContext.QUEUE_NAME,
           YarnConfiguration.DEFAULT_QUEUE_NAME);
       dagAMConf.set(TezConfiguration.TEZ_QUEUE_NAME, queueName);
+      
+      int amMemMB = jobConf.getInt(MRJobConfig.MR_AM_VMEM_MB, MRJobConfig.DEFAULT_MR_AM_VMEM_MB);
+      int amCores = jobConf.getInt(MRJobConfig.MR_AM_CPU_VCORES, MRJobConfig.DEFAULT_MR_AM_CPU_VCORES);
+      dagAMConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, amMemMB);
+      dagAMConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES, amCores);
+
+      
       AMConfiguration amConfig = new AMConfiguration(
           environment,
           jobLocalResources, dagAMConf, ts);
