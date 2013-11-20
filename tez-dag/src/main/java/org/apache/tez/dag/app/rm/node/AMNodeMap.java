@@ -141,6 +141,15 @@ public class AMNodeMap extends AbstractService implements
       numClusterNodes = event.getNodeCount();
       computeIgnoreBlacklisting();
       break;
+    case N_TURNED_UNHEALTHY:
+    case N_TURNED_HEALTHY:
+      AMNode amNode = nodeMap.get(nodeId);
+      if (amNode == null) {
+        LOG.info("Ignoring RM Health Update for unknwon node: " + nodeId);
+      } else {
+        amNode.handle(rEvent);
+      }
+      break;
     default:
       nodeMap.get(nodeId).handle(rEvent);
     }
