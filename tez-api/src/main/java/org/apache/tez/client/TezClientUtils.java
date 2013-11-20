@@ -24,6 +24,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -35,6 +36,7 @@ import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -47,6 +49,7 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
@@ -62,6 +65,7 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
@@ -601,19 +605,35 @@ public class TezClientUtils {
     } catch (YarnException e) {
       throw new TezException(e);
     }
-    return getAMProxy(conf, appReport.getHost(), appReport.getRpcPort());
+    return getAMProxy(conf, appReport.getHost(), appReport.getRpcPort(), appReport.getClientToAMToken());
   }
 
-  static DAGClientAMProtocolBlockingPB getAMProxy(Configuration conf,
-      String amHost, int amRpcPort) throws IOException {
-    InetSocketAddress addr = new InetSocketAddress(amHost,
-        amRpcPort);
+  @Private
+  public static DAGClientAMProtocolBlockingPB getAMProxy(final Configuration conf, String amHost,
+      int amRpcPort, org.apache.hadoop.yarn.api.records.Token clientToAMToken) throws IOException {
 
-    RPC.setProtocolEngine(conf, DAGClientAMProtocolBlockingPB.class,
-        ProtobufRpcEngine.class);
-    DAGClientAMProtocolBlockingPB proxy =
-        (DAGClientAMProtocolBlockingPB) RPC.getProxy(
-            DAGClientAMProtocolBlockingPB.class, 0, addr, conf);
+    final InetSocketAddress serviceAddr = new InetSocketAddress(amHost, amRpcPort);
+    UserGroupInformation userUgi = UserGroupInformation.createRemoteUser(UserGroupInformation
+        .getCurrentUser().getUserName());
+    if (clientToAMToken != null) {
+      Token<ClientToAMTokenIdentifier> token = ConverterUtils.convertFromYarn(clientToAMToken,
+          serviceAddr);
+      userUgi.addToken(token);
+    }
+    LOG.debug("Connecting to " + serviceAddr);
+    DAGClientAMProtocolBlockingPB proxy = null;
+    try {
+      proxy = userUgi.doAs(new PrivilegedExceptionAction<DAGClientAMProtocolBlockingPB>() {
+        @Override
+        public DAGClientAMProtocolBlockingPB run() throws IOException {
+          RPC.setProtocolEngine(conf, DAGClientAMProtocolBlockingPB.class, ProtobufRpcEngine.class);
+          return (DAGClientAMProtocolBlockingPB) RPC.getProxy(DAGClientAMProtocolBlockingPB.class,
+              0, serviceAddr, conf);
+        }
+      });
+    } catch (InterruptedException e) {
+      throw new IOException("Failed to connect to AM", e);
+    }
     return proxy;
   }
 
