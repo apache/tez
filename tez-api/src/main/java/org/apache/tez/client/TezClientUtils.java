@@ -254,6 +254,8 @@ public class TezClientUtils {
 
     vargs.add(amConfig.getAMConf().get(TezConfiguration.TEZ_AM_JAVA_OPTS,
         TezConfiguration.DEFAULT_TEZ_AM_JAVA_OPTS));
+    // FIX sun bug mentioned in TEZ-327
+    vargs.add("-Dsun.nio.ch.bugLevel=''");
 
     vargs.add(TezConfiguration.TEZ_APPLICATION_MASTER_CLASS);
     if (dag == null) {
