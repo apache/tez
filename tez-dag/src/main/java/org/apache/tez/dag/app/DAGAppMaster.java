@@ -622,10 +622,26 @@ public class DAGAppMaster extends AbstractService {
   }
 
   public float getProgress() {
-    if(currentDAG != null && currentDAG.getState() == DAGState.RUNNING) {
-      return currentDAG.getProgress();
+    if (isSession && state.equals(DAGAppMasterState.IDLE)) {
+      return 0.0f;
     }
-    return 0;
+    if(currentDAG != null) {
+      DAGState state = currentDAG.getState();
+      switch (state) {
+        case NEW:
+        case INITED:
+          return 0.0f;
+        case RUNNING:
+          return currentDAG.getProgress();
+        case SUCCEEDED:
+        case TERMINATING:
+        case ERROR:
+        case FAILED:
+        case KILLED:
+          return 1.0f;
+      }
+    }
+    return 0.0f;
   }
 
   private synchronized void setStateOnDAGCompletion() {
