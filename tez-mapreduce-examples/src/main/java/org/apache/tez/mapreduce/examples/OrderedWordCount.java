@@ -386,7 +386,7 @@ public class OrderedWordCount {
             + ", outputPath=" + outputPath);
 
         Map<String, LocalResource> localResources =
-          Collections.emptyMap();
+          new TreeMap<String, LocalResource>();
         DAG dag = createDAG(fs, conf, localResources,
             stagingDir, dagIndex, inputPath, outputPath,
             generateSplitsInClient);
