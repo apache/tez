@@ -63,7 +63,7 @@ public class TezGroupedSplitsInputFormat<K, V>
   }
   
   public void setDesiredNumberOfSplits(int num) {
-    Preconditions.checkArgument(num > 0);
+    Preconditions.checkArgument(num >= 0);
     this.desiredNumSplits = num;
     if (LOG.isDebugEnabled()) {
       LOG.debug("desiredNumSplits: " + desiredNumSplits);

@@ -40,6 +40,8 @@ import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 
+import com.google.common.base.Preconditions;
+
 public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
   implements Configurable{
   
@@ -62,6 +64,7 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
   }
   
   public void setDesiredNumberOfSplits(int num) {
+    Preconditions.checkArgument(num >= 0);
     this.desiredNumSplits = num;
     if (LOG.isDebugEnabled()) {
       LOG.debug("desiredNumSplits: " + desiredNumSplits);
