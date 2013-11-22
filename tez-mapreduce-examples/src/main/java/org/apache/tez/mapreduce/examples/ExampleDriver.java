@@ -119,6 +119,11 @@ public class ExampleDriver {
       for (String vertexName : vertexNames) {
         VertexStatus vStatus = dagClient.getVertexStatus(vertexName,
           (displayVertexCounters ? opts : null));
+        if (vStatus == null) {
+          System.out.println("Could not retrieve status for vertex: "
+            + vertexName);
+          continue;
+        }
         Progress vProgress = vStatus.getProgress();
         if (vProgress != null) {
           vProgressFloat = 0.0f;
