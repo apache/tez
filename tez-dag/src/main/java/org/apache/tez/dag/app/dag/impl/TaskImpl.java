@@ -307,6 +307,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     readLock = readWriteLock.readLock();
     writeLock = readWriteLock.writeLock();
     this.attempts = Collections.emptyMap();
+    // TODO Avoid reading this from configuration for each task.
     maxAttempts = this.conf.getInt(TezConfiguration.TEZ_AM_MAX_TASK_ATTEMPTS,
                               TezConfiguration.TEZ_AM_MAX_TASK_ATTEMPTS_DEFAULT);
     taskId = new TezTaskID(vertexId, taskIndex);
@@ -1048,6 +1049,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         // we don't need a new event if we already have a spare
         if (--task.numberUncompletedAttempts == 0
             && task.successfulAttempt == null) {
+          LOG.info("Scheduling new attempt for task: " + task.getTaskId()
+              + ", currentFailedAttempts: " + task.failedAttempts + ", maxAttempts: "
+              + task.maxAttempts);
           task.addAndScheduleAttempt();
         }
       } else {

@@ -27,7 +27,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -93,6 +93,8 @@ class Fetcher extends Thread {
 
   private static boolean sslShuffle;
   private static SSLFactory sslFactory;
+  
+  private LinkedHashSet<InputAttemptIdentifier> remaining;
 
   public Fetcher(Configuration job, 
       ShuffleScheduler scheduler, MergeManager merger,
@@ -157,6 +159,7 @@ class Fetcher extends Thread {
   public void run() {
     try {
       while (!stopped && !Thread.currentThread().isInterrupted()) {
+        remaining = null; // Safety.
         MapHost host = null;
         try {
           // If merge is on, block
@@ -233,7 +236,7 @@ class Fetcher extends Thread {
     }
     
     // List of maps to be fetched yet
-    Set<InputAttemptIdentifier> remaining = new HashSet<InputAttemptIdentifier>(srcAttempts);
+    remaining = new LinkedHashSet<InputAttemptIdentifier>(srcAttempts);
     
     // Construct the url and connect
     DataInputStream input;
@@ -319,7 +322,7 @@ class Fetcher extends Thread {
       // yet_to_be_fetched list and marking the failed tasks.
       InputAttemptIdentifier[] failedTasks = null;
       while (!remaining.isEmpty() && failedTasks == null) {
-        failedTasks = copyMapOutput(host, input, remaining);
+        failedTasks = copyMapOutput(host, input);
       }
       
       if(failedTasks != null && failedTasks.length > 0) {
@@ -346,8 +349,7 @@ class Fetcher extends Thread {
   private static InputAttemptIdentifier[] EMPTY_ATTEMPT_ID_ARRAY = new InputAttemptIdentifier[0];
   
   private InputAttemptIdentifier[] copyMapOutput(MapHost host,
-                                DataInputStream input,
-                                Set<InputAttemptIdentifier> remaining) {
+                                DataInputStream input) {
     MapOutput mapOutput = null;
     InputAttemptIdentifier srcAttemptId = null;
     long decompressedLength = -1;
@@ -376,6 +378,11 @@ class Fetcher extends Thread {
       // Do some basic sanity verification
       if (!verifySanity(compressedLength, decompressedLength, forReduce,
           remaining, srcAttemptId)) {
+        if (srcAttemptId == null) {
+          LOG.warn("Was expecting " + getNextRemainingAttempt() + " but got null");
+          srcAttemptId = getNextRemainingAttempt();
+        }
+        assert(srcAttemptId != null);
         return new InputAttemptIdentifier[] {srcAttemptId};
       }
       
@@ -473,6 +480,14 @@ class Fetcher extends Thread {
     }
     
     return true;
+  }
+  
+  private InputAttemptIdentifier getNextRemainingAttempt() {
+    if (remaining.size() > 0) {
+      return remaining.iterator().next();
+    } else {
+      return null;
+    }
   }
 
   /**

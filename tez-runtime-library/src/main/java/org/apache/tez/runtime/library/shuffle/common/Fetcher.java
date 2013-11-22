@@ -151,7 +151,6 @@ public class Fetcher implements Callable<FetchResult> {
       for (Iterator<InputAttemptIdentifier> leftIter = remaining.iterator(); leftIter
           .hasNext();) {
         fetcherCallback.fetchFailed(host, leftIter.next(), true);
-        leftIter.remove();
       }
       return new FetchResult(host, port, partition, remaining);
     }
@@ -170,7 +169,6 @@ public class Fetcher implements Callable<FetchResult> {
       LOG.warn("Fetch Failure from host while connecting: " + host
           + ", attempt: " + firstAttempt + " Informing ShuffleManager: ", e);
       fetcherCallback.fetchFailed(host, firstAttempt, false);
-      remaining.remove(firstAttempt);
       return new FetchResult(host, port, partition, remaining);
     }
 
@@ -190,7 +188,6 @@ public class Fetcher implements Callable<FetchResult> {
       LOG.warn("copyInputs failed for tasks " + Arrays.toString(failedInputs));
       for (InputAttemptIdentifier left : failedInputs) {
         fetcherCallback.fetchFailed(host, left, false);
-        remaining.remove(left);
       }
     }
 

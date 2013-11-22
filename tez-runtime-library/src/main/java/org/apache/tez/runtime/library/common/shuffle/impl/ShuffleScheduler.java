@@ -189,15 +189,13 @@ class ShuffleScheduler {
       hostFailures.put(hostname, new IntWritable(1));
     }
     if (failures >= abortFailureLimit) {
-      try {
-        throw new IOException(failures
+      IOException ioe = new IOException(failures
             + " failures downloading "
             + TezRuntimeUtils.getTaskAttemptIdentifier(
                 inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getSrcTaskIndex(),
                 srcAttempt.getAttemptNumber()));
-      } catch (IOException ie) {
-        shuffle.reportException(ie);
-      }
+      ioe.fillInStackTrace();
+      shuffle.reportException(ioe);
     }
     
     checkAndInformJobTracker(failures, srcAttempt, readError);

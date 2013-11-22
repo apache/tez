@@ -446,6 +446,14 @@ public class TaskScheduler extends AbstractService
     }
     Map<CookieContainerRequest, Container> assignedContainers;
 
+    if (LOG.isDebugEnabled()) {
+      StringBuilder sb = new StringBuilder();
+      for (Container container: containers) {
+        sb.append(container.getId()).append(", ");
+      }
+      LOG.debug("Assigned New Containers: " + sb.toString());
+    }
+
     synchronized (this) {
       if (!shouldReuseContainers) {
         List<Container> modifiableContainerList = Lists.newLinkedList(containers);
@@ -1422,6 +1430,9 @@ public class TaskScheduler extends AbstractService
           HeldContainer heldContainer = delayedContainers.peek();
           if (heldContainer == null) {
             continue;
+          }
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Considering HeldContainer: " + heldContainer + " for assignment");
           }
           long currentTs = System.currentTimeMillis();
           long nextScheduleTs = heldContainer.getNextScheduleTime();
