@@ -733,7 +733,7 @@ public class MRRSleepJob extends Configured implements Tool {
           " [-mt mapSleepTime (msec)] [-rt reduceSleepTime (msec)]" +
           " [-irt intermediateReduceSleepTime]" +
           " [-recordt recordSleepTime (msec)]" +
-          " [-generateSplitsInAM (fale)/true]" +
+          " [-generateSplitsInAM (false)/true]" +
           " [-writeSplitsToDfs (false)/true]");
       ToolRunner.printGenericCommandUsage(System.err);
       return 2;
