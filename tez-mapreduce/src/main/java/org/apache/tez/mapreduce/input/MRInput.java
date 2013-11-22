@@ -123,7 +123,7 @@ public class MRInput implements LogicalInput {
     MRInputUserPayloadProto mrUserPayload =
       MRHelpers.parseMRInputPayload(inputContext.getUserPayload());
     Preconditions.checkArgument(mrUserPayload.hasSplits() == false,
-        "All split information not expected in MRInput");
+        "Split information not expected in MRInput");
     Configuration conf =
       MRHelpers.createConfFromByteString(mrUserPayload.getConfigurationBytes());
     this.jobConf = new JobConf(conf);

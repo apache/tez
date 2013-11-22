@@ -464,6 +464,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private final String javaOpts;
   private final ContainerContext containerContext;
   private VertexTerminationCause terminationCause;
+  
+  private String logIdentifier;
 
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
       String vertexName, Configuration conf, EventHandler eventHandler,
@@ -528,6 +530,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       setAdditionalOutputs(vertexPlan.getOutputsList());
     }
 
+    logIdentifier =  this.getVertexId() + " [" + this.getName() + "]";
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
@@ -1287,15 +1290,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         // setup vertex scheduler
         // TODO this needs to consider data size and perhaps API.
         // Currently implicitly BIPARTITE is the only edge type
-        LOG.info("Setting vertexManager to ShuffleVertexManager");
+        LOG.info("Setting vertexManager to ShuffleVertexManager for " + vertex.logIdentifier);
         vertex.vertexScheduler = new ShuffleVertexManager(vertex);
       } else if (vertex.inputsWithInitializers != null) {
-        LOG.info("Setting vertexManager to RootInputVertexManager");
+        LOG.info("Setting vertexManager to RootInputVertexManager for " + vertex.logIdentifier);
         vertex.vertexScheduler = new RootInputVertexManager(vertex,
             vertex.eventHandler);
       } else {
         // schedule all tasks upon vertex start
-        LOG.info("Setting vertexManager to ImmediateStartVertexManager");
+        LOG.info("Setting vertexManager to ImmediateStartVertexManager for " + vertex.logIdentifier);
         vertex.vertexScheduler = new ImmediateStartVertexScheduler(vertex);
       }
       vertex.vertexScheduler.initialize(vertex.conf);
@@ -1369,11 +1372,25 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                 
         return VertexState.INITIALIZING;
       } else {
-        vertex.createTasks();
+        if (vertex.inputsWithInitializers != null) {
+          vertex.rootInputInitializer = vertex.createRootInputInitializerRunner(
+              vertex.getDAG().getName(), vertex.getName(), vertex.getVertexId(),
+              vertex.eventHandler, vertex.getTotalTasks());
+          List<RootInputLeafOutputDescriptor<InputDescriptor>> inputList = Lists
+              .newArrayListWithCapacity(vertex.inputsWithInitializers.size());
+          for (String inputName : vertex.inputsWithInitializers) {
+            inputList.add(vertex.additionalInputs.get(inputName));
+          }
+          LOG.info("Starting root input initializers: "
+              + vertex.inputsWithInitializers.size());
+          vertex.rootInputInitializer.runInputInitializers(inputList);
+          vertex.createTasks();
+          return VertexState.INITIALIZING;
+        } else {
+          vertex.createTasks();
+          return vertex.initializeVertex();
+        }
       }
-
-
-      return vertex.initializeVertex();
     }
   } // end of InitTransition
 
@@ -1727,7 +1744,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
       boolean forceTransitionToKillWait = false;
       vertex.completedTaskCount++;
-      LOG.info("Num completed Tasks for " + vertex.getVertexId() + " [" + vertex.getName() + "] : "
+      LOG.info("Num completed Tasks for " + vertex.logIdentifier + " : "
           + vertex.completedTaskCount);
       VertexEventTaskCompleted taskEvent = (VertexEventTaskCompleted) event;
       Task task = vertex.tasks.get(taskEvent.getTaskID());

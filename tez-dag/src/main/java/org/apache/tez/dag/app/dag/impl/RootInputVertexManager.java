@@ -45,7 +45,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 public class RootInputVertexManager implements VertexScheduler {
-
+  
   private final Vertex managedVertex;
   private final EventMetaData sourceInfo;
   private final Map<String, EventMetaData> destInfoMap;
