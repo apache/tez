@@ -157,6 +157,8 @@ public abstract class MRTask {
     }
     jobConf.set(Constants.TEZ_RUNTIME_TASK_ATTEMPT_ID,
         taskAttemptId.toString());
+    jobConf.set(MRJobConfig.TASK_ATTEMPT_ID,
+      taskAttemptId.toString());
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         context.getDAGAttemptNumber());
 

@@ -40,7 +40,10 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.RecordReader;
+import org.apache.hadoop.mapred.TaskAttemptID;
+import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormatCounter;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
@@ -117,14 +120,26 @@ public class MRInput implements LogicalInput {
   @Override
   public List<Event> initialize(TezInputContext inputContext) throws IOException {
     this.inputContext = inputContext;
-    MRInputUserPayloadProto mrUserPayload = MRHelpers.parseMRInputPayload(inputContext.getUserPayload());
+    MRInputUserPayloadProto mrUserPayload =
+      MRHelpers.parseMRInputPayload(inputContext.getUserPayload());
     Preconditions.checkArgument(mrUserPayload.hasSplits() == false,
         "All split information not expected in MRInput");
-    Configuration conf = MRHelpers.createConfFromByteString(mrUserPayload.getConfigurationBytes());
+    Configuration conf =
+      MRHelpers.createConfFromByteString(mrUserPayload.getConfigurationBytes());
     this.jobConf = new JobConf(conf);
 
-    
-    
+    TaskAttemptID taskAttemptId = new TaskAttemptID(
+      new TaskID(
+        Long.toString(inputContext.getApplicationId().getClusterTimestamp()),
+        inputContext.getApplicationId().getId(), TaskType.MAP,
+        inputContext.getTaskIndex()),
+      inputContext.getTaskAttemptNumber());
+
+    jobConf.set(MRJobConfig.TASK_ATTEMPT_ID,
+      taskAttemptId.toString());
+    jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
+      inputContext.getDAGAttemptNumber());
+
     // TODO NEWTEZ Rename this to be specific to MRInput. This Input, in
     // theory, can be used by the MapProcessor, ReduceProcessor or a custom
     // processor. (The processor could provide the counter though)

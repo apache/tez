@@ -104,6 +104,18 @@ public class MROutput implements LogicalOutput {
         false);
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         outputContext.getDAGAttemptNumber());
+    TaskAttemptID taskAttemptId = new TaskAttemptID(new TaskID(Long.toString(
+      outputContext.getApplicationId().getClusterTimestamp()),
+      outputContext.getApplicationId().getId(),
+      (isMapperOutput ? TaskType.MAP : TaskType.REDUCE),
+      outputContext.getTaskIndex()),
+      outputContext.getTaskAttemptNumber());
+    jobConf.set(JobContext.TASK_ATTEMPT_ID, taskAttemptId.toString());
+    jobConf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString());
+    jobConf.setBoolean(JobContext.TASK_ISMAP, isMapperOutput);
+    jobConf.setInt(JobContext.TASK_PARTITION,
+      taskAttemptId.getTaskID().getId());
+    jobConf.set(JobContext.ID, taskAttemptId.getJobID().toString());
 
     outputRecordCounter = outputContext.getCounters().findCounter(
         TaskCounter.MAP_OUTPUT_RECORDS);
@@ -141,19 +153,6 @@ public class MROutput implements LogicalOutput {
       long bytesOutCurr = getOutputBytes();
       fileOutputByteCounter.increment(bytesOutCurr - bytesOutPrev);
     } else {
-      TaskAttemptID taskAttemptId = new TaskAttemptID(new TaskID(Long.toString(
-          outputContext.getApplicationId().getClusterTimestamp()),
-          outputContext.getApplicationId().getId(),
-          (isMapperOutput ? TaskType.MAP : TaskType.REDUCE),
-          outputContext.getTaskIndex()),
-          outputContext.getTaskAttemptNumber());
-      jobConf.set(JobContext.TASK_ATTEMPT_ID, taskAttemptId.toString());
-      jobConf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString());
-      jobConf.setBoolean(JobContext.TASK_ISMAP, isMapperOutput);
-      jobConf.setInt(JobContext.TASK_PARTITION,
-          taskAttemptId.getTaskID().getId());
-      jobConf.set(JobContext.ID, taskAttemptId.getJobID().toString());
-
       oldApiTaskAttemptContext =
           new org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl(
               jobConf, taskAttemptId,
