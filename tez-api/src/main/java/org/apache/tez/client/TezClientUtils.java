@@ -373,7 +373,9 @@ public class TezClientUtils {
         if (v.getTaskLocalResources() == null) {
           v.setTaskLocalResources(new TreeMap<String, LocalResource>());
         }
-        v.getTaskLocalResources().putAll(tezJarResources);
+        if (tezJarResources != null) {
+          v.getTaskLocalResources().putAll(tezJarResources);
+        }
         v.getTaskLocalResources().put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
             binaryConfLRsrc);
 
