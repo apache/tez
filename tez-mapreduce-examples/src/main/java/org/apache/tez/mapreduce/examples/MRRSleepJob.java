@@ -55,7 +55,6 @@ import org.apache.hadoop.util.ClassUtil;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -846,8 +845,7 @@ public class MRRSleepJob extends Configured implements Tool {
       }
     }
 
-    return dagClient.getApplicationReport().getFinalApplicationStatus() ==
-        FinalApplicationStatus.SUCCEEDED ? 0 : 1;
+    return dagClient.getDAGStatus(null).getState().equals(DAGStatus.State.SUCCEEDED) ? 0 : 1;
   }
 
 }
