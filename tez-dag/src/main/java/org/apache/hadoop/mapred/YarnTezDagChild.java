@@ -362,9 +362,9 @@ public class YarnTezDagChild {
 
     // report non-pid to application master
     String pid = System.getenv().get("JVM_PID");
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("PID, containerId: " + pid + ", " + containerIdentifier);
-    }
+    
+    LOG.info("PID, containerIdentifier: " + pid + ", " + containerIdentifier);
+    
     ContainerTask containerTask = null;
     UserGroupInformation childUGI = null;
     ContainerContext containerContext = new ContainerContext(
@@ -381,19 +381,32 @@ public class YarnTezDagChild {
         if (taskCount > 0) {
           updateLoggers(null);
         }
+        boolean isNewGetTask = true;
+        long getTaskPollStartTime = System.currentTimeMillis();
+        long nextGetTaskPrintTime = getTaskPollStartTime + 2000l;
         for (int idle = 0; null == containerTask; ++idle) {
-          long sleepTimeMilliSecs = Math.min(idle * 10, getTaskMaxSleepTime);
-          LOG.info("Sleeping for " + sleepTimeMilliSecs
-              + "ms before retrying getTask again. Got null now.");
-          MILLISECONDS.sleep(sleepTimeMilliSecs);
+          if (!isNewGetTask) { // Don't sleep on the first iteration.
+            long sleepTimeMilliSecs = Math.min(idle * 10, getTaskMaxSleepTime);
+            if (sleepTimeMilliSecs + System.currentTimeMillis() > nextGetTaskPrintTime) {
+              LOG.info("Sleeping for "
+                  + sleepTimeMilliSecs
+                  + "ms before retrying getTask again. Got null now. "
+                  + "Next getTask sleep message after 2s");
+              nextGetTaskPrintTime = System.currentTimeMillis() + sleepTimeMilliSecs + 2000l;
+            }
+            MILLISECONDS.sleep(sleepTimeMilliSecs);
+          } else {
+            LOG.info("Attempting to fetch new task");
+          }
+          isNewGetTask = false;
           containerTask = umbilical.getTask(containerContext);
         }
-        LOG.info("TaskInfo: shouldDie: "
-            + containerTask.shouldDie()
-            + (containerTask.shouldDie() == true ?
-                "" : ", currentTaskAttemptId: "
-                  + containerTask.getTaskSpec().getTaskAttemptID()));
-
+        LOG.info("Got TaskUpdate: "
+            + (System.currentTimeMillis() - getTaskPollStartTime)
+            + " ms after starting to poll."
+            + " TaskInfo: shouldDie: " + containerTask.shouldDie()
+            + (containerTask.shouldDie() == true ? "" : ", currentTaskAttemptId: "
+                + containerTask.getTaskSpec().getTaskAttemptID()));
         if (containerTask.shouldDie()) {
           return;
         }
