@@ -607,7 +607,8 @@ public class TezClientUtils {
     } catch (YarnException e) {
       throw new TezException(e);
     }
-    return getAMProxy(conf, appReport.getHost(), appReport.getRpcPort(), appReport.getClientToAMToken());
+    return getAMProxy(conf, appReport.getHost(),
+        appReport.getRpcPort(), appReport.getClientToAMToken());
   }
 
   @Private

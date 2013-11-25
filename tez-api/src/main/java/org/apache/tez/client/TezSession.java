@@ -125,7 +125,7 @@ public class TezSession {
    * @throws DAGSubmissionTimedOut if submission timed out
    */
   public synchronized DAGClient submitDAG(DAG dag)
-      throws TezException, IOException {
+    throws TezException, IOException, InterruptedException {
     if (!sessionStarted) {
       throw new SessionNotRunning("Session not started");
     } else if (sessionStopped) {
@@ -167,12 +167,8 @@ public class TezSession {
       if (proxy != null) {
         break;
       }
-      try {
-        Thread.sleep(100l);
-      } catch (InterruptedException e) {
-        // Ignore
-      }
-      if (System.currentTimeMillis() > endTime) {
+      Thread.sleep(100l);
+      if (timeout != -1 && System.currentTimeMillis() > endTime) {
         try {
           LOG.warn("DAG submission to session timed out, stopping session");
           stop();
