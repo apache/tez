@@ -68,6 +68,10 @@ public class TezConfiguration extends Configuration {
       + "maxtaskfailures.per.node";
   public static final int TEZ_AM_MAX_TASK_FAILURES_PER_NODE_DEFAULT = 3;
 
+  public static final String TEZ_AM_MAX_APP_ATTEMPTS = TEZ_AM_PREFIX + 
+      "max.app.attempts";
+  public static int TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT = 2;
+  
   public static final String TEZ_AM_MAX_TASK_ATTEMPTS =
       TEZ_AM_PREFIX + "max.task.attempts";
   public static final int TEZ_AM_MAX_TASK_ATTEMPTS_DEFAULT = 4;

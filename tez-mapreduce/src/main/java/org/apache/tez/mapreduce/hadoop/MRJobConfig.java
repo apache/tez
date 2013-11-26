@@ -628,6 +628,9 @@ public interface MRJobConfig {
       "$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/lib/*",
   };
 
+  public static final String MR_AM_MAX_ATTEMPTS = "mapreduce.am.max-attempts";
+
+  public static final int DEFAULT_MR_AM_MAX_ATTEMPTS = 2;
 
   // TODO Fix this. Not accessible in JobClient
   /* do we need a HS delegation token for this client */

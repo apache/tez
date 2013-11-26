@@ -286,15 +286,15 @@ public class ShuffleVertexManager implements VertexScheduler {
     int finalTaskParallelism = (remainderRangeForLastShuffler > 0) ?
           (numShufflersWithBaseRange + 1) : (numShufflersWithBaseRange);
 
+    LOG.info("Reduce auto parallelism for vertex: " + managedVertex.getVertexId() 
+        + " to " + finalTaskParallelism + " from " + pendingTasks.size() 
+        + " . Expected output: " + expectedTotalSourceTasksOutputSize 
+        + " based on actual output: " + completedSourceTasksOutputSize
+        + " from " + numVertexManagerEventsReceived + " vertex manager events. "
+        + " desiredTaskInputSize: " + desiredTaskInputDataSize);
+          
     if(finalTaskParallelism < currentParallelism) {
       // final parallelism is less than actual parallelism
-      LOG.info("Reducing parallelism for vertex: " + managedVertex.getVertexId() 
-          + " to " + finalTaskParallelism + " from " + pendingTasks.size() 
-          + " . Expected output: " + expectedTotalSourceTasksOutputSize 
-          + " based on actual output: " + completedSourceTasksOutputSize
-          + " from " + numVertexManagerEventsReceived + " vertex manager events. "
-          + " desiredTaskInputSize: " + desiredTaskInputDataSize);
-      
       Map<Vertex, EdgeManager> edgeManagers = new HashMap<Vertex, EdgeManager>(
           bipartiteSources.size());
       for(Vertex vertex : bipartiteSources.values()) {
@@ -425,6 +425,12 @@ public class ShuffleVertexManager implements VertexScheduler {
     minTaskParallelism = conf.getInt(
             TezConfiguration.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM,
             TezConfiguration.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT);
+    LOG.info("Shuffle Vertex Manager: settings" + 
+            " minFrac:" + slowStartMinSrcCompletionFraction +
+            " maxFrac:" + slowStartMaxSrcCompletionFraction +
+            " auto:" + enableAutoParallelism + 
+            " desiredTaskIput:" + desiredTaskInputDataSize +
+            " minTasks:" + minTaskParallelism);
   }
 
   @Override

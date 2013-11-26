@@ -451,6 +451,10 @@ public class TezClientUtils {
         TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN,
         TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN_DEFAULT));
     appContext.setAMContainerSpec(amContainer);
+    
+    appContext.setMaxAppAttempts(
+        finalTezConf.getInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 
+            TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT));
 
     return appContext;
 
