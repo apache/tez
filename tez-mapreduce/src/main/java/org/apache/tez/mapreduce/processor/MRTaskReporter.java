@@ -39,7 +39,7 @@ public class MRTaskReporter
 
   private final TezTaskContext context;
   private final boolean isProcessorContext;
-  private final Reporter reporter;
+  private final MRReporter reporter;
 
   private InputSplit split = null;
 
@@ -62,6 +62,7 @@ public class MRTaskReporter
   }
 
   public void setProgress(float progress) {
+    reporter.setProgress(progress);
     if (isProcessorContext) {
       ((TezProcessorContext)context).setProgress(progress);
     } else {

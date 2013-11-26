@@ -235,7 +235,7 @@ public class MROutput implements LogicalOutput {
 
   private TaskAttemptContext createTaskAttemptContext() {
     return new TaskAttemptContextImpl(this.jobConf, outputContext,
-        isMapperOutput);
+        isMapperOutput, null);
   }
 
   private long getOutputBytes() {

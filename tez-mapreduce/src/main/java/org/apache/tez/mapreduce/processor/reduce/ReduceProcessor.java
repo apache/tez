@@ -194,6 +194,9 @@ implements LogicalIOProcessor {
         values.informReduceProgress();
       }
 
+      // Set progress to 1.0f if there was no exception,
+      reporter.setProgress(1.0f);
+      
       //Clean up: repeated in catch block below
       reducer.close();
       //End of clean up.
@@ -330,6 +333,10 @@ implements LogicalIOProcessor {
 
 
     reducer.run(reducerContext);
+
+    // Set progress to 1.0f if there was no exception,
+    reporter.setProgress(1.0f);
+
     trackedRW.close(reducerContext);
   }
 

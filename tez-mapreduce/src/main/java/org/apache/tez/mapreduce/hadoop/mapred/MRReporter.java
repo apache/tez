@@ -29,6 +29,7 @@ public class MRReporter implements Reporter {
 
   private TezTaskContext tezTaskContext;
   private InputSplit split;
+  private float progress = 0f;
   private boolean isProcessorContext = false;
   
   public MRReporter(TezProcessorContext tezProcContext) {
@@ -85,10 +86,14 @@ public class MRReporter implements Reporter {
     }
   }
 
+  public void setProgress(float progress) {
+    this.progress = progress;
+  }
+  
   @Override
   public float getProgress() {
-    // TOOD NEWTEZ Does this make a difference to anything ?
-    return 0.0f;
+    // TODO NEWTEZ This is likely broken. Only set on task complete in Map/ReduceProcessor
+    return this.progress;
   }
 
 }

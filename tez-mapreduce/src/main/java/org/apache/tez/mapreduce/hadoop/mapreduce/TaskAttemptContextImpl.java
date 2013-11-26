@@ -20,6 +20,7 @@ package org.apache.tez.mapreduce.hadoop.mapreduce;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.TaskID;
@@ -35,29 +36,31 @@ import org.apache.tez.runtime.api.TezTaskContext;
 public class TaskAttemptContextImpl
        extends org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl {
 
-  private TezTaskContext taskContext;
+  private final TezTaskContext taskContext;
+  private final Reporter reporter;
 
   // FIXME we need to use DAG Id but we are using App Id
   public TaskAttemptContextImpl(Configuration conf,
-      TezTaskContext taskContext, boolean isMap) {
+      TezTaskContext taskContext, boolean isMap, Reporter reporter) {
     // TODO NEWTEZ Can the jt Identifier string be taskContext.getUniqueId ?
     this(conf, new TaskAttemptID(
         new TaskID(String.valueOf(taskContext.getApplicationId()
             .getClusterTimestamp()), taskContext.getApplicationId().getId(),
             isMap ? TaskType.MAP : TaskType.REDUCE,
             taskContext.getTaskIndex()),
-            taskContext.getTaskAttemptNumber()), taskContext);
+            taskContext.getTaskAttemptNumber()), taskContext, reporter);
   }
 
-  public TaskAttemptContextImpl(Configuration conf, TaskAttemptID taId, TezTaskContext context) {
+  public TaskAttemptContextImpl(Configuration conf, TaskAttemptID taId, TezTaskContext context, Reporter reporter) {
     super(conf, taId);
     this.taskContext = context;
+    this.reporter = reporter;
   }
 
   @Override
   public float getProgress() {
-    // TODO NEWTEZ Will this break anything ?
-    return 0.0f;
+    // TODO NEWTEZ This is broken. Mainly set after all records are processed. Not set for Inputs/Outputs
+    return reporter == null ? 0.0f : reporter.getProgress();
   }
 
   @Override

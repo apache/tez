@@ -100,7 +100,7 @@ public class MRInput implements LogicalInput {
   @SuppressWarnings("rawtypes")
   private org.apache.hadoop.mapreduce.RecordReader newRecordReader;
   protected org.apache.hadoop.mapreduce.InputSplit newInputSplit;
-  
+
   @SuppressWarnings("rawtypes")
   private InputFormat oldInputFormat;
   @SuppressWarnings("rawtypes")
@@ -324,7 +324,7 @@ public class MRInput implements LogicalInput {
 
   
   private TaskAttemptContext createTaskAttemptContext() {
-    return new TaskAttemptContextImpl(this.jobConf, inputContext, true);
+    return new TaskAttemptContextImpl(this.jobConf, inputContext, true, null);
   }
   
   void processSplitEvent(RootInputDataInformationEvent event)

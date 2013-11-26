@@ -150,6 +150,9 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
         (MapRunnable)ReflectionUtils.newInstance(job.getMapRunnerClass(), job);
 
     runner.run(in, collector, (Reporter)reporter);
+    
+    // Set progress to 1.0f if there was no exception,
+    reporter.setProgress(1.0f);
     // start the sort phase only if there are reducers
     this.statusUpdate();
   }
@@ -192,13 +195,16 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
         job, taskAttemptId,
         input, output,
         getCommitter(),
-        processorContext, split);
+        processorContext, split, reporter);
 
     org.apache.hadoop.mapreduce.Mapper.Context mapperContext =
         new WrappedMapper().getMapContext(mapContext);
 
     input.initialize(split, mapperContext);
     mapper.run(mapperContext);
+    // Set progress to 1.0f if there was no exception,
+    reporter.setProgress(1.0f);
+    
     this.statusUpdate();
     input.close();
     output.close(mapperContext);

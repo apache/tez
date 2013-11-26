@@ -23,6 +23,7 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.MapContext;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -52,8 +53,8 @@ public class MapContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT>
                         RecordWriter<KEYOUT,VALUEOUT> writer,
                         OutputCommitter committer,
                         TezTaskContext context,
-                        InputSplit split) {
-    super(conf, taskid, writer, committer, context);
+                        InputSplit split, Reporter reporter) {
+    super(conf, taskid, writer, committer, context, reporter);
     this.reader = reader;
     this.split = split;
   }
