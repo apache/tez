@@ -27,6 +27,11 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.dag.records.TezVertexID;
 
+import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
 
 /**
  * TaskID represents the immutable and unique identifier for
@@ -51,10 +56,20 @@ public class TezTaskID extends TezID {
     }
   };
 
+  private static LoadingCache<TezTaskID, TezTaskID> taskIDCache = CacheBuilder.newBuilder().softValues().
+      build(
+          new CacheLoader<TezTaskID, TezTaskID>() {
+            @Override
+            public TezTaskID load(TezTaskID key) throws Exception {
+              return key;
+            }
+          }
+      );
+  
   private TezVertexID vertexId;
 
+  // Public for Writable serialization. Verify if this is actually required.
   public TezTaskID() {
-    vertexId = new TezVertexID();
   }
 
   /**
@@ -63,12 +78,15 @@ public class TezTaskID extends TezID {
    * @param type the {@link TezTaskType} of the task
    * @param id the tip number
    */
-  public TezTaskID(TezVertexID vertexId, int id) {
+  public static TezTaskID getInstance(TezVertexID vertexID, int id) {
+    Preconditions.checkArgument(vertexID != null, "vertexID cannot be null");
+    return taskIDCache.getUnchecked(new TezTaskID(vertexID, id));
+  }
+
+  private TezTaskID(TezVertexID vertexID, int id) {
     super(id);
-    if(vertexId == null) {
-      throw new IllegalArgumentException("vertexId cannot be null");
-    }
-    this.vertexId = vertexId;
+    Preconditions.checkArgument(vertexID != null, "vertexID cannot be null");
+    this.vertexId = vertexID;
   }
 
   /** Returns the {@link TezVertexID} object that this task belongs to */
@@ -117,9 +135,17 @@ public class TezTaskID extends TezID {
   }
 
   @Override
+  // Can't do much about this instance if used via the RPC layer. Any downstream
+  // users can however avoid using this method.
   public void readFields(DataInput in) throws IOException {
-    vertexId.readFields(in);
+    vertexId = TezVertexID.readTezVertexID(in);
     super.readFields(in);
+  }
+  
+  public static TezTaskID readTezTaskID(DataInput in) throws IOException {
+    TezVertexID vertexID = TezVertexID.readTezVertexID(in);
+    int taskIdInt = TezID.readID(in);
+    return getInstance(vertexID, taskIdInt);
   }
 
   @Override

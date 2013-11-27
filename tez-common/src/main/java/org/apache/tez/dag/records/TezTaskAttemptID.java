@@ -26,6 +26,10 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.dag.records.TezTaskID;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
 /**
  * TezTaskAttemptID represents the immutable and unique identifier for
  * a task attempt. Each task attempt is one particular instance of a Tez Task
@@ -47,8 +51,18 @@ public class TezTaskAttemptID extends TezID {
   public static final String ATTEMPT = "attempt";
   private TezTaskID taskId;
   
+  private static LoadingCache<TezTaskAttemptID, TezTaskAttemptID> taskAttemptIDCache = CacheBuilder.newBuilder().softValues().
+      build(
+          new CacheLoader<TezTaskAttemptID, TezTaskAttemptID>() {
+            @Override
+            public TezTaskAttemptID load(TezTaskAttemptID key) throws Exception {
+              return key;
+            }
+          }
+      );
+  
+  // Public for Writable serialization. Verify if this is actually required.
   public TezTaskAttemptID() {
-    taskId = new TezTaskID();
   }
   
   /**
@@ -56,7 +70,11 @@ public class TezTaskAttemptID extends TezID {
    * @param taskId TaskID that this task belongs to  
    * @param id the task attempt number
    */
-  public TezTaskAttemptID(TezTaskID taskId, int id) {
+  public static TezTaskAttemptID getInstance(TezTaskID taskID, int id) {
+    return taskAttemptIDCache.getUnchecked(new TezTaskAttemptID(taskID, id));
+  }
+
+  private TezTaskAttemptID(TezTaskID taskId, int id) {
     super(id);
     if(taskId == null) {
       throw new IllegalArgumentException("taskId cannot be null");
@@ -108,21 +126,22 @@ public class TezTaskAttemptID extends TezID {
   }
   
   @Override
+  // Can't do much about this instance if used via the RPC layer. Any downstream
+  // users can however avoid using this method.
   public void readFields(DataInput in) throws IOException {
-    taskId.readFields(in);
+    taskId = TezTaskID.readTezTaskID(in);
     super.readFields(in);
+  }
+  
+  public static TezTaskAttemptID readTezTaskAttemptID(DataInput in) throws IOException {
+    TezTaskID taskID = TezTaskID.readTezTaskID(in);
+    int attemptIdInt = TezID.readID(in);
+    return getInstance(taskID, attemptIdInt);
   }
 
   @Override
   public void write(DataOutput out) throws IOException {
     taskId.write(out);
     super.write(out);
-  }
-
-  // FIXME TEZ DAG needs to be removed
-  public static TezTaskAttemptID read(DataInput in) throws IOException {
-    TezTaskAttemptID tId = new TezTaskAttemptID();
-    tId.readFields(in);
-    return tId;
   }
 }

@@ -129,8 +129,8 @@ public class TestTaskAttempt {
     hosts.add("host3");
     TaskLocationHint locationHint = new TaskLocationHint(hosts, null);
 
-    TezTaskID taskID = new TezTaskID(
-        new TezVertexID(new TezDAGID("1", 1, 1), 1), 1);
+    TezTaskID taskID = TezTaskID.getInstance(
+        TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         mock(TaskAttemptListener.class), new Configuration(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
@@ -172,8 +172,8 @@ public class TestTaskAttempt {
     TaskLocationHint locationHint = new TaskLocationHint(
         new TreeSet<String>(Arrays.asList(hosts)), null);
 
-    TezTaskID taskID = new TezTaskID(
-        new TezVertexID(new TezDAGID("1", 1, 1), 1), 1);
+    TezTaskID taskID = TezTaskID.getInstance(
+        TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         mock(TaskAttemptListener.class), new Configuration(),
         new SystemClock(), mock(TaskHeartbeatHandler.class),
@@ -300,10 +300,10 @@ public class TestTaskAttempt {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
-    TezDAGID dagID = new TezDAGID(appId, 1);
-    TezVertexID vertexID = new TezVertexID(dagID, 1);
-    TezTaskID taskID = new TezTaskID(vertexID, 1);
-    TezTaskAttemptID taskAttemptID = new TezTaskAttemptID(taskID, 0);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
+    TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 0);
 
     MockEventHandler eventHandler = new MockEventHandler();
     TaskAttemptListener taListener = mock(TaskAttemptListener.class);
@@ -350,10 +350,10 @@ public class TestTaskAttempt {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
-    TezDAGID dagID = new TezDAGID(appId, 1);
-    TezVertexID vertexID = new TezVertexID(dagID, 1);
-    TezTaskID taskID = new TezTaskID(vertexID, 1);
-    TezTaskAttemptID taskAttemptID = new TezTaskAttemptID(taskID, 0);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
+    TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 0);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
     TaskAttemptListener taListener = mock(TaskAttemptListener.class);
@@ -441,10 +441,10 @@ public class TestTaskAttempt {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
-    TezDAGID dagID = new TezDAGID(appId, 1);
-    TezVertexID vertexID = new TezVertexID(dagID, 1);
-    TezTaskID taskID = new TezTaskID(vertexID, 1);
-    TezTaskAttemptID taskAttemptID = new TezTaskAttemptID(taskID, 0);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
+    TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 0);
 
     MockEventHandler eventHandler = new MockEventHandler();
     TaskAttemptListener taListener = mock(TaskAttemptListener.class);
@@ -503,10 +503,10 @@ public class TestTaskAttempt {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
-    TezDAGID dagID = new TezDAGID(appId, 1);
-    TezVertexID vertexID = new TezVertexID(dagID, 1);
-    TezTaskID taskID = new TezTaskID(vertexID, 1);
-    TezTaskAttemptID taskAttemptID = new TezTaskAttemptID(taskID, 0);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
+    TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 0);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
     TaskAttemptListener taListener = mock(TaskAttemptListener.class);
@@ -591,10 +591,10 @@ public class TestTaskAttempt {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
-    TezDAGID dagID = new TezDAGID(appId, 1);
-    TezVertexID vertexID = new TezVertexID(dagID, 1);
-    TezTaskID taskID = new TezTaskID(vertexID, 1);
-    TezTaskAttemptID taskAttemptID = new TezTaskAttemptID(taskID, 0);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
+    TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 0);
 
     MockEventHandler mockEh = new MockEventHandler();
     MockEventHandler eventHandler = spy(mockEh);

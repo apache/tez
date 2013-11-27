@@ -40,6 +40,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.MRVertexOutputCommitter;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.util.StringInterner;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -479,7 +480,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       AppContext appContext, VertexLocationHint vertexLocationHint) {
     this.vertexId = vertexId;
     this.vertexPlan = vertexPlan;
-    this.vertexName = vertexName;
+    this.vertexName = StringInterner.weakIntern(vertexName);
     this.conf = conf;
     //this.metrics = metrics;
     this.clock = clock;

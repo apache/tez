@@ -115,8 +115,8 @@ public class TestTaskImpl {
     locationHint = new TaskLocationHint(null, null);
 
     appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
-    dagId = new TezDAGID(appId, 1);
-    vertexId = new TezVertexID(dagId, 1);
+    dagId = TezDAGID.getInstance(appId, 1);
+    vertexId = TezVertexID.getInstance(dagId, 1);
     appContext = mock(AppContext.class);
     taskResource = Resource.newInstance(1024, 1);
     localResources = new HashMap<String, LocalResource>();
@@ -134,7 +134,7 @@ public class TestTaskImpl {
   }
 
   private TezTaskID getNewTaskID() {
-    TezTaskID taskID = new TezTaskID(vertexId, ++taskCounter);
+    TezTaskID taskID = TezTaskID.getInstance(vertexId, ++taskCounter);
     return taskID;
   }
 

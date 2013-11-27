@@ -82,10 +82,10 @@ public class TestTezIds {
   @Test
   public void testIdStringify() {
     ApplicationId appId = ApplicationId.newInstance(9999, 72);
-    TezDAGID dagId = new TezDAGID(appId, 1);
-    TezVertexID vId = new TezVertexID(dagId, 35);
-    TezTaskID tId = new TezTaskID(vId, 389);
-    TezTaskAttemptID taId = new TezTaskAttemptID(tId, 2);
+    TezDAGID dagId = TezDAGID.getInstance(appId, 1);
+    TezVertexID vId = TezVertexID.getInstance(dagId, 35);
+    TezTaskID tId = TezTaskID.getInstance(vId, 389);
+    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(tId, 2);
 
     String dagIdStr = dagId.toString();
     String vIdStr = vId.toString();

@@ -272,7 +272,7 @@ public class MRTaskStatus implements TezTaskStatus {
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    taskAttemptId = TezTaskAttemptID.read(in);
+    taskAttemptId = TezTaskAttemptID.readTezTaskAttemptID(in);
     state = WritableUtils.readEnum(in, State.class);
     progress = in.readFloat();
     diagnostics = WritableUtils.readString(in);
@@ -291,7 +291,7 @@ public class MRTaskStatus implements TezTaskStatus {
     
     int numFailedDependencies = in.readInt();
     for (int i = 0 ; i < numFailedDependencies ; i++) {
-      TezTaskAttemptID taskAttemptId = TezTaskAttemptID.read(in);
+      TezTaskAttemptID taskAttemptId = TezTaskAttemptID.readTezTaskAttemptID(in);
       failedTaskDependencies.add(taskAttemptId);
     }
     

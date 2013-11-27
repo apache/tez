@@ -88,6 +88,10 @@ public abstract class TezID implements WritableComparable<TezID> {
   public void readFields(DataInput in) throws IOException {
     this.id = in.readInt();
   }
+  
+  public static int readID(DataInput in) throws IOException {
+    return in.readInt();
+  }
 
   @Override
   public void write(DataOutput out) throws IOException {

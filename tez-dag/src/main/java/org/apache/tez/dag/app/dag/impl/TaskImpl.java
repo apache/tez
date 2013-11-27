@@ -310,7 +310,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     // TODO Avoid reading this from configuration for each task.
     maxAttempts = this.conf.getInt(TezConfiguration.TEZ_AM_MAX_TASK_ATTEMPTS,
                               TezConfiguration.TEZ_AM_MAX_TASK_ATTEMPTS_DEFAULT);
-    taskId = new TezTaskID(vertexId, taskIndex);
+    taskId = TezTaskID.getInstance(vertexId, taskIndex);
     this.taskAttemptListener = taskAttemptListener;
     this.taskHeartbeatHandler = thh;
     this.eventHandler = eventHandler;

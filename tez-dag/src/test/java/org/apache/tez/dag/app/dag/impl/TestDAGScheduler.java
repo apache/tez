@@ -78,13 +78,13 @@ public class TestDAGScheduler {
   @Test(timeout=10000)
   public void testDAGSchedulerMRR() {
     DAG mockDag = mock(DAG.class);
-    TezDAGID dagId = new TezDAGID("1", 1, 1);
+    TezDAGID dagId = TezDAGID.getInstance("1", 1, 1);
     
     TaskSchedulerEventHandler mockTaskScheduler = 
         mock(TaskSchedulerEventHandler.class);
 
     Vertex mockVertex1 = mock(Vertex.class);
-    TezVertexID mockVertexId1 = new TezVertexID(dagId, 1);
+    TezVertexID mockVertexId1 = TezVertexID.getInstance(dagId, 1);
     when(mockVertex1.getVertexId()).thenReturn(mockVertexId1);
     when(mockVertex1.getDistanceFromRoot()).thenReturn(0);
     TaskAttempt mockAttempt1 = mock(TaskAttempt.class);
@@ -93,7 +93,7 @@ public class TestDAGScheduler {
     when(mockDag.getVertex(mockVertexId1)).thenReturn(mockVertex1);
     
     Vertex mockVertex2 = mock(Vertex.class);
-    TezVertexID mockVertexId2 = new TezVertexID(dagId, 2);
+    TezVertexID mockVertexId2 = TezVertexID.getInstance(dagId, 2);
     when(mockVertex2.getVertexId()).thenReturn(mockVertexId2);
     when(mockVertex2.getDistanceFromRoot()).thenReturn(1);
     TaskAttempt mockAttempt2 = mock(TaskAttempt.class);
@@ -105,7 +105,7 @@ public class TestDAGScheduler {
     when(mockAttempt2f.getIsRescheduled()).thenReturn(true);
     
     Vertex mockVertex3 = mock(Vertex.class);
-    TezVertexID mockVertexId3 = new TezVertexID(dagId, 3);
+    TezVertexID mockVertexId3 = TezVertexID.getInstance(dagId, 3);
     when(mockVertex3.getVertexId()).thenReturn(mockVertexId3);
     when(mockVertex3.getDistanceFromRoot()).thenReturn(2);
     TaskAttempt mockAttempt3 = mock(TaskAttempt.class);

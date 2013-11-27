@@ -23,6 +23,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 /**
@@ -71,8 +72,8 @@ public class EventMetaData implements Writable {
       String taskVertexName, String edgeVertexName,
       TezTaskAttemptID taskAttemptID) {
     this.producerConsumerType = generator;
-    this.taskVertexName = taskVertexName;
-    this.edgeVertexName = edgeVertexName;
+    this.taskVertexName = StringInterner.weakIntern(taskVertexName);
+    this.edgeVertexName = StringInterner.weakIntern(edgeVertexName);
     this.taskAttemptID = taskAttemptID;
   }
 
@@ -121,14 +122,13 @@ public class EventMetaData implements Writable {
   public void readFields(DataInput in) throws IOException {
     producerConsumerType = EventProducerConsumerType.values()[in.readInt()];
     if (in.readBoolean()) {
-      taskVertexName = in.readUTF();
+      taskVertexName = StringInterner.weakIntern(in.readUTF());
     }
     if (in.readBoolean()) {
-      edgeVertexName = in.readUTF();
+      edgeVertexName = StringInterner.weakIntern(in.readUTF());
     }
     if (in.readBoolean()) {
-      taskAttemptID = new TezTaskAttemptID();
-      taskAttemptID.readFields(in);
+      taskAttemptID = TezTaskAttemptID.readTezTaskAttemptID(in);
     }
     index = in.readInt();
   }

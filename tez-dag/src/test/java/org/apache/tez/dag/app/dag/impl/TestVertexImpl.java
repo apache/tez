@@ -689,7 +689,7 @@ public class TestVertexImpl {
     for (int i = 0; i < vCnt; ++i) {
       VertexPlan vPlan = dagPlan.getVertex(i);
       String vName = vPlan.getName();
-      TezVertexID vertexId = new TezVertexID(dagId, i+1);
+      TezVertexID vertexId = TezVertexID.getInstance(dagId, i+1);
       VertexImpl v;
       if (useCustomInitializer) {
         v = new VertexImplWithCustomInitializer(vertexId, vPlan, vPlan.getName(), conf,
@@ -753,7 +753,7 @@ public class TestVertexImpl {
     conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
     appAttemptId = ApplicationAttemptId.newInstance(
         ApplicationId.newInstance(100, 1), 1);
-    dagId = new TezDAGID(appAttemptId.getApplicationId(), 1);
+    dagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 1);
   }
 
   public void setupPostDagCreation() {
@@ -950,8 +950,8 @@ public class TestVertexImpl {
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
 
-    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
-    TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
@@ -975,8 +975,8 @@ public class TestVertexImpl {
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
 
-    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
-    TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
@@ -1003,7 +1003,7 @@ public class TestVertexImpl {
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
 
-    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.FAILED));
@@ -1052,13 +1052,13 @@ public class TestVertexImpl {
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(
-            new TezTaskID(v.getVertexId(), 0), TaskState.SUCCEEDED));
+            TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(VertexState.KILLED, v.getState());
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(
-            new TezTaskID(v.getVertexId(), 1), TaskState.KILLED));
+            TezTaskID.getInstance(v.getVertexId(), 1), TaskState.KILLED));
     dispatcher.await();
     Assert.assertEquals(VertexState.KILLED, v.getState());
   }
@@ -1078,13 +1078,13 @@ public class TestVertexImpl {
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(
-            new TezTaskID(v.getVertexId(), 0), TaskState.SUCCEEDED));
+            TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(VertexState.KILLED, v.getState());
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(
-            new TezTaskID(v.getVertexId(), 1), TaskState.SUCCEEDED));
+            TezTaskID.getInstance(v.getVertexId(), 1), TaskState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(VertexState.KILLED, v.getState());
   }
@@ -1097,8 +1097,8 @@ public class TestVertexImpl {
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
 
-    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
-    TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.FAILED));
@@ -1144,8 +1144,8 @@ public class TestVertexImpl {
     v.setVertexOutputCommitter(committer);
     startVertex(v);
 
-    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
-    TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
@@ -1210,17 +1210,17 @@ public class TestVertexImpl {
     LOG.info("Verifying v6 state " + v6.getState());
     Assert.assertEquals(VertexState.RUNNING, v6.getState());
 
-    TezTaskID t1_v4 = new TezTaskID(v4.getVertexId(), 0);
-    TezTaskID t2_v4 = new TezTaskID(v4.getVertexId(), 1);
-    TezTaskID t1_v5 = new TezTaskID(v5.getVertexId(), 0);
-    TezTaskID t2_v5 = new TezTaskID(v5.getVertexId(), 1);
+    TezTaskID t1_v4 = TezTaskID.getInstance(v4.getVertexId(), 0);
+    TezTaskID t2_v4 = TezTaskID.getInstance(v4.getVertexId(), 1);
+    TezTaskID t1_v5 = TezTaskID.getInstance(v5.getVertexId(), 0);
+    TezTaskID t2_v5 = TezTaskID.getInstance(v5.getVertexId(), 1);
 
-    TezTaskAttemptID ta1_t1_v4 = new TezTaskAttemptID(t1_v4, 0);
-    TezTaskAttemptID ta2_t1_v4 = new TezTaskAttemptID(t1_v4, 0);
-    TezTaskAttemptID ta1_t2_v4 = new TezTaskAttemptID(t2_v4, 0);
-    TezTaskAttemptID ta1_t1_v5 = new TezTaskAttemptID(t1_v5, 0);
-    TezTaskAttemptID ta1_t2_v5 = new TezTaskAttemptID(t2_v5, 0);
-    TezTaskAttemptID ta2_t2_v5 = new TezTaskAttemptID(t2_v5, 0);
+    TezTaskAttemptID ta1_t1_v4 = TezTaskAttemptID.getInstance(t1_v4, 0);
+    TezTaskAttemptID ta2_t1_v4 = TezTaskAttemptID.getInstance(t1_v4, 0);
+    TezTaskAttemptID ta1_t2_v4 = TezTaskAttemptID.getInstance(t2_v4, 0);
+    TezTaskAttemptID ta1_t1_v5 = TezTaskAttemptID.getInstance(t1_v5, 0);
+    TezTaskAttemptID ta1_t2_v5 = TezTaskAttemptID.getInstance(t2_v5, 0);
+    TezTaskAttemptID ta2_t2_v5 = TezTaskAttemptID.getInstance(t2_v5, 0);
 
     v4.handle(new VertexEventTaskAttemptCompleted(ta1_t1_v4, TaskAttemptStateInternal.FAILED));
     v4.handle(new VertexEventTaskAttemptCompleted(ta2_t1_v4, TaskAttemptStateInternal.SUCCEEDED));
@@ -1251,8 +1251,8 @@ public class TestVertexImpl {
     VertexImpl v = vertices.get("vertex2");
     startVertex(v);
 
-    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
-    TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
@@ -1279,8 +1279,8 @@ public class TestVertexImpl {
 
     startVertex(v);
 
-    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
-    TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
@@ -1314,8 +1314,8 @@ public class TestVertexImpl {
 
     startVertex(v);
 
-    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
-    TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
@@ -1357,8 +1357,8 @@ public class TestVertexImpl {
 
     startVertex(v);
 
-    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
-    TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
@@ -1393,8 +1393,8 @@ public class TestVertexImpl {
 
     startVertex(v);
 
-    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
-    TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
@@ -1434,8 +1434,8 @@ public class TestVertexImpl {
 
     startVertex(v);
 
-    TezTaskID t1 = new TezTaskID(v.getVertexId(), 0);
-    TezTaskID t2 = new TezTaskID(v.getVertexId(), 1);
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
@@ -1596,9 +1596,9 @@ public class TestVertexImpl {
   public void testVertexWithNoTasks() {
     TezVertexID vId = null;
     try {
-      TezDAGID invalidDagId = new TezDAGID(
+      TezDAGID invalidDagId = TezDAGID.getInstance(
           dagId.getApplicationId(), 1000);
-      vId = new TezVertexID(invalidDagId, 1);
+      vId = TezVertexID.getInstance(invalidDagId, 1);
       VertexPlan vPlan = invalidDagPlan.getVertex(0);
       VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
           dispatcher.getEventHandler(), taskAttemptListener, fsTokens,

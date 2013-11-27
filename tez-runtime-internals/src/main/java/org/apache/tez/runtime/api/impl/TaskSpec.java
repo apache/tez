@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
@@ -31,7 +32,6 @@ public class TaskSpec implements Writable {
 
   private TezTaskAttemptID taskAttemptId;
   private String vertexName;
-  private String user;
   private ProcessorDescriptor processorDescriptor;
   private List<InputSpec> inputSpecList;
   private List<OutputSpec> outputSpecList;
@@ -39,13 +39,11 @@ public class TaskSpec implements Writable {
   public TaskSpec() {
   }
 
-  // TODO NEWTEZ Remove user
-  public TaskSpec(TezTaskAttemptID taskAttemptID, String user,
+  public TaskSpec(TezTaskAttemptID taskAttemptID,
       String vertexName, ProcessorDescriptor processorDescriptor,
       List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList) {
     this.taskAttemptId = taskAttemptID;
-    this.vertexName = vertexName;
-    this.user = user;
+    this.vertexName = StringInterner.weakIntern(vertexName);
     this.processorDescriptor = processorDescriptor;
     this.inputSpecList = inputSpecList;
     this.outputSpecList = outputSpecList;
@@ -57,10 +55,6 @@ public class TaskSpec implements Writable {
 
   public TezTaskAttemptID getTaskAttemptID() {
     return taskAttemptId;
-  }
-
-  public String getUser() {
-    return user;
   }
 
   public ProcessorDescriptor getProcessorDescriptor() {
@@ -92,9 +86,9 @@ public class TaskSpec implements Writable {
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    taskAttemptId = new TezTaskAttemptID();
-    taskAttemptId.readFields(in);
-    vertexName = in.readUTF();
+    taskAttemptId = TezTaskAttemptID.readTezTaskAttemptID(in);
+    // TODO ZZZ Intern this.
+    vertexName = StringInterner.weakIntern(in.readUTF());
     // TODO TEZ-305 convert this to PB
     processorDescriptor = new ProcessorDescriptor();
     processorDescriptor.readFields(in);

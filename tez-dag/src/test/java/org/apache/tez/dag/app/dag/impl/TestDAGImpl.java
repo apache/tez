@@ -490,7 +490,7 @@ public class TestDAGImpl {
     conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
     appAttemptId = ApplicationAttemptId.newInstance(
         ApplicationId.newInstance(100, 1), 1);
-    dagId = new TezDAGID(appAttemptId.getApplicationId(), 1);
+    dagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 1);
     Assert.assertNotNull(dagId);
     dagPlan = createTestDAGPlan();
     dispatcher = new DrainDispatcher();
@@ -504,7 +504,7 @@ public class TestDAGImpl {
         jobTokenSecretManager, fsTokens, clock, "user", thh, appContext);
     doReturn(dag).when(appContext).getCurrentDAG();
     mrrAppContext = mock(AppContext.class);
-    mrrDagId = new TezDAGID(appAttemptId.getApplicationId(), 2);
+    mrrDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 2);
     mrrDagPlan = createTestMRRDAGPlan();
     mrrDag = new DAGImpl(mrrDagId, conf, mrrDagPlan,
         dispatcher.getEventHandler(),  taskAttemptListener,
@@ -562,7 +562,7 @@ public class TestDAGImpl {
     dispatcher.await();
 
     for (int i = 0 ; i < 6; ++i ) {
-      TezVertexID vId = new TezVertexID(dagId, i);
+      TezVertexID vId = TezVertexID.getInstance(dagId, i);
       Vertex v = dag.getVertex(vId);
       Assert.assertEquals(VertexState.RUNNING, v.getState());
       if (i < 2) {
@@ -577,7 +577,7 @@ public class TestDAGImpl {
     }
 
     for (int i = 0 ; i < 6; ++i ) {
-      TezVertexID vId = new TezVertexID(dagId, i);
+      TezVertexID vId = TezVertexID.getInstance(dagId, i);
       LOG.info("Distance from root: v" + i + ":"
           + dag.getVertex(vId).getDistanceFromRoot());
     }
@@ -590,12 +590,12 @@ public class TestDAGImpl {
     startDAG(dag);
     dispatcher.await();
 
-    TezVertexID vId = new TezVertexID(dagId, 1);
+    TezVertexID vId = TezVertexID.getInstance(dagId, 1);
     Vertex v = dag.getVertex(vId);
     dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
-        new TezTaskID(vId, 0), TaskState.SUCCEEDED));
+        TezTaskID.getInstance(vId, 0), TaskState.SUCCEEDED));
     dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
-        new TezTaskID(vId, 1), TaskState.SUCCEEDED));
+        TezTaskID.getInstance(vId, 1), TaskState.SUCCEEDED));
     dispatcher.await();
 
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
@@ -610,12 +610,12 @@ public class TestDAGImpl {
     startDAG(dag);
     dispatcher.await();
 
-    TezVertexID vId = new TezVertexID(dagId, 1);
+    TezVertexID vId = TezVertexID.getInstance(dagId, 1);
     Vertex v = dag.getVertex(vId);
     dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
-        new TezTaskID(vId, 0), TaskState.SUCCEEDED));
+        TezTaskID.getInstance(vId, 0), TaskState.SUCCEEDED));
     dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
-        new TezTaskID(vId, 1), TaskState.SUCCEEDED));
+        TezTaskID.getInstance(vId, 1), TaskState.SUCCEEDED));
     dispatcher.await();
 
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
@@ -624,14 +624,14 @@ public class TestDAGImpl {
     verify(dag.dagScheduler, times(1)).vertexCompleted(v);
     
     dispatcher.getEventHandler().handle(
-        new VertexEventTaskReschedule(new TezTaskID(vId, 0)));
+        new VertexEventTaskReschedule(TezTaskID.getInstance(vId, 0)));
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v.getState());
     Assert.assertEquals(0, dag.getSuccessfulVertices());
     Assert.assertEquals(0, dag.numCompletedVertices);
     
     dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
-        new TezTaskID(vId, 0), TaskState.SUCCEEDED));
+        TezTaskID.getInstance(vId, 0), TaskState.SUCCEEDED));
           dispatcher.await();
 
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
@@ -655,7 +655,7 @@ public class TestDAGImpl {
 
     Assert.assertEquals(DAGState.KILLED, dag.getState());
     for (int i = 0 ; i < 6; ++i ) {
-      TezVertexID vId = new TezVertexID(dagId, i);
+      TezVertexID vId = TezVertexID.getInstance(dagId, i);
       Vertex v = dag.getVertex(vId);
       Assert.assertEquals(VertexState.KILLED, v.getState());
     }
@@ -669,14 +669,14 @@ public class TestDAGImpl {
     startDAG(dag);
     dispatcher.await();
 
-    TezVertexID vId1 = new TezVertexID(dagId, 1);
+    TezVertexID vId1 = TezVertexID.getInstance(dagId, 1);
     Vertex v1 = dag.getVertex(vId1);
     ((EventHandler<VertexEvent>) v1).handle(new VertexEventTaskCompleted(
-        new TezTaskID(vId1, 0), TaskState.SUCCEEDED));
-    TezVertexID vId0 = new TezVertexID(dagId, 0);
+        TezTaskID.getInstance(vId1, 0), TaskState.SUCCEEDED));
+    TezVertexID vId0 = TezVertexID.getInstance(dagId, 0);
     Vertex v0 = dag.getVertex(vId0);
     ((EventHandler<VertexEvent>) v0).handle(new VertexEventTaskCompleted(
-        new TezTaskID(vId0, 0), TaskState.SUCCEEDED));
+        TezTaskID.getInstance(vId0, 0), TaskState.SUCCEEDED));
     dispatcher.await();
 
     Assert.assertEquals(VertexState.SUCCEEDED, v0.getState());
@@ -689,7 +689,7 @@ public class TestDAGImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v0.getState());
     Assert.assertEquals(VertexState.TERMINATING, v1.getState());
     for (int i = 2 ; i < 6; ++i ) {
-      TezVertexID vId = new TezVertexID(dagId, i);
+      TezVertexID vId = TezVertexID.getInstance(dagId, i);
       Vertex v = dag.getVertex(vId);
       Assert.assertEquals(VertexState.KILLED, v.getState());
     }
@@ -715,22 +715,22 @@ public class TestDAGImpl {
 
     for (int i = 0; i < 6; ++i) {
       dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-          new TezVertexID(dagId, 0), VertexState.SUCCEEDED));
+          TezVertexID.getInstance(dagId, 0), VertexState.SUCCEEDED));
     }
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dag.getState());
     Assert.assertEquals(1, dag.getSuccessfulVertices());
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 1), VertexState.SUCCEEDED));
+        TezVertexID.getInstance(dagId, 1), VertexState.SUCCEEDED));
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 2), VertexState.SUCCEEDED));
+        TezVertexID.getInstance(dagId, 2), VertexState.SUCCEEDED));
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 3), VertexState.SUCCEEDED));
+        TezVertexID.getInstance(dagId, 3), VertexState.SUCCEEDED));
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 4), VertexState.SUCCEEDED));
+        TezVertexID.getInstance(dagId, 4), VertexState.SUCCEEDED));
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 5), VertexState.SUCCEEDED));
+        TezVertexID.getInstance(dagId, 5), VertexState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(DAGState.SUCCEEDED, dag.getState());
     Assert.assertEquals(6, dag.getSuccessfulVertices());
@@ -744,21 +744,21 @@ public class TestDAGImpl {
     dispatcher.await();
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 0), VertexState.SUCCEEDED));
+        TezVertexID.getInstance(dagId, 0), VertexState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dag.getState());
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 1), VertexState.SUCCEEDED));
+        TezVertexID.getInstance(dagId, 1), VertexState.SUCCEEDED));
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 2), VertexState.FAILED));
+        TezVertexID.getInstance(dagId, 2), VertexState.FAILED));
     dispatcher.await();
     Assert.assertEquals(DAGState.FAILED, dag.getState());
     Assert.assertEquals(2, dag.getSuccessfulVertices());
 
     // Expect running vertices to be killed on first failure
     for (int i = 3; i < 6; ++i) {
-      TezVertexID vId = new TezVertexID(dagId, i);
+      TezVertexID vId = TezVertexID.getInstance(dagId, i);
       Vertex v = dag.getVertex(vId);
       Assert.assertEquals(VertexState.KILLED, v.getState());
     }
@@ -779,16 +779,16 @@ public class TestDAGImpl {
     dispatcher.await();
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 0), VertexState.SUCCEEDED));
+        TezVertexID.getInstance(dagId, 0), VertexState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dag.getState());
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 1), VertexState.SUCCEEDED));
+        TezVertexID.getInstance(dagId, 1), VertexState.SUCCEEDED));
     dispatcher.getEventHandler().handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
     for (int i = 2; i < 6; ++i) {
       dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-          new TezVertexID(dagId, i), VertexState.SUCCEEDED));
+          TezVertexID.getInstance(dagId, i), VertexState.SUCCEEDED));
     }
     dispatcher.await();
     Assert.assertEquals(DAGState.KILLED, dag.getState());
@@ -810,27 +810,27 @@ public class TestDAGImpl {
     dispatcher.await();
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 0), VertexState.SUCCEEDED));
+        TezVertexID.getInstance(dagId, 0), VertexState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dag.getState());
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 1), VertexState.SUCCEEDED));
+        TezVertexID.getInstance(dagId, 1), VertexState.SUCCEEDED));
     dispatcher.getEventHandler().handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
 
     for (int i = 2; i < 5; ++i) {
       dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-          new TezVertexID(dagId, i), VertexState.SUCCEEDED));
+          TezVertexID.getInstance(dagId, i), VertexState.SUCCEEDED));
     }
     dispatcher.await();
     Assert.assertEquals(DAGState.KILLED, dag.getState());
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
-        new TezVertexID(dagId, 5), VertexState.KILLED));
+        TezVertexID.getInstance(dagId, 5), VertexState.KILLED));
     dispatcher.await();
     Assert.assertEquals(DAGState.KILLED, dag.getState());
     Assert.assertEquals(5, dag.getSuccessfulVertices());
-    Assert.assertEquals(dag.getVertex(new TezVertexID(dagId, 5)).getTerminationCause(), VertexTerminationCause.DAG_KILL);
+    Assert.assertEquals(dag.getVertex(TezVertexID.getInstance(dagId, 5)).getTerminationCause(), VertexTerminationCause.DAG_KILL);
     Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
   }
 

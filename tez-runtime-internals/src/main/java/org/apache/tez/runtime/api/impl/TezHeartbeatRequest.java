@@ -112,8 +112,7 @@ public class TezHeartbeatRequest implements Writable {
       }
     }
     if (in.readBoolean()) {
-      currentTaskAttemptID = new TezTaskAttemptID();
-      currentTaskAttemptID.readFields(in);
+      currentTaskAttemptID = TezTaskAttemptID.readTezTaskAttemptID(in);
     } else {
       currentTaskAttemptID = null;
     }

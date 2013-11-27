@@ -27,10 +27,10 @@ public class TezTestUtils {
 
   public static TezTaskAttemptID getMockTaskAttemptId(
       int jobId, int vertexId, int taskId, int taskAttemptId) {
-    return new TezTaskAttemptID(
-        new TezTaskID(
-            new TezVertexID(
-                new TezDAGID(
+    return TezTaskAttemptID.getInstance(
+        TezTaskID.getInstance(
+            TezVertexID.getInstance(
+                TezDAGID.getInstance(
                     ApplicationId.newInstance(0, jobId), jobId),
                     vertexId),
                     taskId)
@@ -39,21 +39,21 @@ public class TezTestUtils {
   
   public static TezTaskID getMockTaskId(int jobId,
       int vertexId, int taskId) {
-    return new TezTaskID(
-        new TezVertexID(new TezDAGID(
+    return TezTaskID.getInstance(
+        TezVertexID.getInstance(TezDAGID.getInstance(
             ApplicationId.newInstance(0, jobId),
             jobId), vertexId),
             taskId);
   }
   
   public static TezDAGID getMockJobId(int jobId) {
-    return new TezDAGID(
+    return TezDAGID.getInstance(
         ApplicationId.newInstance(0, jobId), jobId);
   }
   
   public static TezVertexID getMockVertexId(int jobId, int vId) {
-    return new TezVertexID(
-        new TezDAGID(
+    return TezVertexID.getInstance(
+        TezDAGID.getInstance(
             ApplicationId.newInstance(0, jobId), jobId),
             vId);
   }

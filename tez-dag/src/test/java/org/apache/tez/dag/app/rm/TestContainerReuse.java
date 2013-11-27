@@ -101,8 +101,8 @@ public class TestContainerReuse {
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
-    TezDAGID dagID = new TezDAGID("0", 0, 0);
-    TezVertexID vertexID = new TezVertexID(dagID, 1);
+    TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient =
@@ -152,12 +152,12 @@ public class TestContainerReuse {
 
     String [] defaultRack = {"/default-rack"};
 
-    TezTaskAttemptID taID11 = new TezTaskAttemptID(
-      new TezTaskID(vertexID, 1), 1);
-    TezTaskAttemptID taID21 = new TezTaskAttemptID(
-      new TezTaskID(vertexID, 2), 1);
-    TezTaskAttemptID taID31 = new TezTaskAttemptID(
-      new TezTaskID(vertexID, 3), 1);
+    TezTaskAttemptID taID11 = TezTaskAttemptID.getInstance(
+      TezTaskID.getInstance(vertexID, 1), 1);
+    TezTaskAttemptID taID21 = TezTaskAttemptID.getInstance(
+      TezTaskID.getInstance(vertexID, 2), 1);
+    TezTaskAttemptID taID31 = TezTaskAttemptID.getInstance(
+      TezTaskID.getInstance(vertexID, 3), 1);
     TaskAttempt ta11 = mock(TaskAttempt.class);
     TaskAttempt ta21 = mock(TaskAttempt.class);
     TaskAttempt ta31 = mock(TaskAttempt.class);
@@ -238,8 +238,8 @@ public class TestContainerReuse {
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
-    TezDAGID dagID = new TezDAGID("0", 0, 0);
-    TezVertexID vertexID = new TezVertexID(dagID, 1);
+    TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient =
@@ -288,9 +288,9 @@ public class TestContainerReuse {
 
     String [] defaultRack = {"/default-rack"};
 
-    TezTaskAttemptID taID11 = new TezTaskAttemptID(new TezTaskID(vertexID, 1), 1);
-    TezTaskAttemptID taID21 = new TezTaskAttemptID(new TezTaskID(vertexID, 2), 1);
-    TezTaskAttemptID taID31 = new TezTaskAttemptID(new TezTaskID(vertexID, 3), 1);
+    TezTaskAttemptID taID11 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID, 1), 1);
+    TezTaskAttemptID taID21 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID, 2), 1);
+    TezTaskAttemptID taID31 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID, 3), 1);
     TaskAttempt ta11 = mock(TaskAttempt.class);
     TaskAttempt ta21 = mock(TaskAttempt.class);
     TaskAttempt ta31 = mock(TaskAttempt.class);
@@ -345,7 +345,7 @@ public class TestContainerReuse {
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
-    TezDAGID dagID = new TezDAGID("0", 0, 0);
+    TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient = spy(new AMRMClientAsyncForTest(rmClientCore, 100));
@@ -383,25 +383,25 @@ public class TestContainerReuse {
     String []racks = {"/default-rack"};
     Priority priority1 = Priority.newInstance(1);
 
-    TezVertexID vertexID1 = new TezVertexID(dagID, 1);
+    TezVertexID vertexID1 = TezVertexID.getInstance(dagID, 1);
 
     //Vertex 1, Task 1, Attempt 1, host1
-    TezTaskAttemptID taID11 = new TezTaskAttemptID(new TezTaskID(vertexID1, 1), 1);
+    TezTaskAttemptID taID11 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID1, 1), 1);
     TaskAttempt ta11 = mock(TaskAttempt.class);
     AMSchedulerEventTALaunchRequest lrEvent1 = createLaunchRequestEvent(taID11, ta11, resource1, host1, racks, priority1);
 
     //Vertex 1, Task 2, Attempt 1, host1
-    TezTaskAttemptID taID12 = new TezTaskAttemptID(new TezTaskID(vertexID1, 2), 1);
+    TezTaskAttemptID taID12 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID1, 2), 1);
     TaskAttempt ta12 = mock(TaskAttempt.class);
     AMSchedulerEventTALaunchRequest lrEvent2 = createLaunchRequestEvent(taID12, ta12, resource1, host1, racks, priority1);
 
     //Vertex 1, Task 3, Attempt 1, host2
-    TezTaskAttemptID taID13 = new TezTaskAttemptID(new TezTaskID(vertexID1, 3), 1);
+    TezTaskAttemptID taID13 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID1, 3), 1);
     TaskAttempt ta13 = mock(TaskAttempt.class);
     AMSchedulerEventTALaunchRequest lrEvent3 = createLaunchRequestEvent(taID13, ta13, resource1, host2, racks, priority1);
 
     //Vertex 1, Task 4, Attempt 1, host2
-    TezTaskAttemptID taID14 = new TezTaskAttemptID(new TezTaskID(vertexID1, 4), 1);
+    TezTaskAttemptID taID14 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID1, 4), 1);
     TaskAttempt ta14 = mock(TaskAttempt.class);
     AMSchedulerEventTALaunchRequest lrEvent4 = createLaunchRequestEvent(taID14, ta14, resource1, host2, racks, priority1);
 
@@ -482,7 +482,7 @@ public class TestContainerReuse {
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
-    TezDAGID dagID = new TezDAGID("0", 0, 0);
+    TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient =
@@ -529,17 +529,17 @@ public class TestContainerReuse {
 
     Priority priority = Priority.newInstance(3);
 
-    TezVertexID vertexID = new TezVertexID(dagID, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
 
     //Vertex 1, Task 1, Attempt 1, no locality information.
-    TezTaskAttemptID taID11 = new TezTaskAttemptID(new TezTaskID(vertexID, 1), 1);
+    TezTaskAttemptID taID11 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID, 1), 1);
     TaskAttempt ta11 = mock(TaskAttempt.class);
     doReturn(vertexID).when(ta11).getVertexID();
     AMSchedulerEventTALaunchRequest lrEvent11 = createLaunchRequestEvent(
       taID11, ta11, resource1, emptyHosts, racks, priority);
 
     //Vertex1, Task2, Attempt 1,  no locality information.
-    TezTaskAttemptID taID12 = new TezTaskAttemptID(new TezTaskID(vertexID, 2), 1);
+    TezTaskAttemptID taID12 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID, 2), 1);
     TaskAttempt ta12 = mock(TaskAttempt.class);
     doReturn(vertexID).when(ta12).getVertexID();
     AMSchedulerEventTALaunchRequest lrEvent12 = createLaunchRequestEvent(
@@ -604,7 +604,7 @@ public class TestContainerReuse {
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
-    TezDAGID dagID = new TezDAGID("0", 0, 0);
+    TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient =
@@ -652,20 +652,20 @@ public class TestContainerReuse {
     Priority priority1 = Priority.newInstance(3);
     Priority priority2 = Priority.newInstance(4);
 
-    TezVertexID vertexID1 = new TezVertexID(dagID, 1);
-    TezVertexID vertexID2 = new TezVertexID(dagID, 2);
+    TezVertexID vertexID1 = TezVertexID.getInstance(dagID, 1);
+    TezVertexID vertexID2 = TezVertexID.getInstance(dagID, 2);
 
     //Vertex 1, Task 1, Attempt 1, host1
-    TezTaskAttemptID taID11 = new TezTaskAttemptID(
-      new TezTaskID(vertexID1, 1), 1);
+    TezTaskAttemptID taID11 = TezTaskAttemptID.getInstance(
+      TezTaskID.getInstance(vertexID1, 1), 1);
     TaskAttempt ta11 = mock(TaskAttempt.class);
     doReturn(vertexID1).when(ta11).getVertexID();
     AMSchedulerEventTALaunchRequest lrEvent11 = createLaunchRequestEvent(
       taID11, ta11, resource1, host1, racks, priority1);
 
     //Vertex2, Task1, Attempt 1, host1
-    TezTaskAttemptID taID21 = new TezTaskAttemptID(
-      new TezTaskID(vertexID2, 1), 1);
+    TezTaskAttemptID taID21 = TezTaskAttemptID.getInstance(
+      TezTaskID.getInstance(vertexID2, 1), 1);
     TaskAttempt ta21 = mock(TaskAttempt.class);
     doReturn(vertexID2).when(ta21).getVertexID();
     AMSchedulerEventTALaunchRequest lrEvent21 = createLaunchRequestEvent(
@@ -728,7 +728,7 @@ public class TestContainerReuse {
     String[] hosts, String[] racks, Priority priority,
     ContainerContext containerContext) {
     AMSchedulerEventTALaunchRequest lr = new AMSchedulerEventTALaunchRequest(
-      taID, capability, new TaskSpec(taID, "user", "vertexName",
+      taID, capability, new TaskSpec(taID, "vertexName",
       new ProcessorDescriptor("processorClassName"),
       Collections.singletonList(new InputSpec("vertexName",
         new InputDescriptor("inputClassName"), 1)),

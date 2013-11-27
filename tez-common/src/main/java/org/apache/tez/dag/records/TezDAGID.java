@@ -25,6 +25,11 @@ import java.text.NumberFormat;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
+import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
 /**
  * TezDAGID represents the immutable and unique identifier for
  * a Tez DAG.
@@ -37,31 +42,56 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
  */
 public class TezDAGID extends TezID {
 
+  private static LoadingCache<TezDAGID, TezDAGID> dagIdCache = CacheBuilder.newBuilder().softValues().
+      build(
+          new CacheLoader<TezDAGID, TezDAGID>() {
+            @Override
+            public TezDAGID load(TezDAGID key) throws Exception {
+              return key;
+            }
+          }
+      );
+  
   private ApplicationId applicationId;
 
-  public TezDAGID() {
-  }
-
   /**
-   * Constructs a DAGID object from given {@link ApplicationId}.
+   * Get a DAGID object from given {@link ApplicationId}.
    * @param applicationId Application that this dag belongs to
    * @param id the dag number
    */
-  public TezDAGID(ApplicationId applicationId, int id) {
-    super(id);
-    if(applicationId == null) {
-      throw new IllegalArgumentException("applicationId cannot be null");
-    }
-    this.applicationId = applicationId;
+  public static TezDAGID getInstance(ApplicationId applicationId, int id) {
+    // The newly created TezDAGIds are primarily for their hashCode method, and
+    // will be short-lived.
+    // Alternately the cache can be keyed by the hash of the incoming paramters.
+    Preconditions.checkArgument(applicationId != null, "ApplicationID cannot be null");
+    return dagIdCache.getUnchecked(new TezDAGID(applicationId, id));
   }
-
+  
   /**
-   * Constructs a DAGID object from given parts.
+   * Get a DAGID object from given parts.
    * @param yarnRMIdentifier YARN RM identifier
    * @param applicationId application number
    * @param id the dag number
    */
-  public TezDAGID(String yarnRMIdentifier, int appId, int id) {
+  public static TezDAGID getInstance(String yarnRMIdentifier, int appId, int id) {
+    // The newly created TezDAGIds are primarily for their hashCode method, and
+    // will be short-lived.
+    // Alternately the cache can be keyed by the hash of the incoming paramters.
+    Preconditions.checkArgument(yarnRMIdentifier != null, "yarnRMIdentifier cannot be null");
+    return dagIdCache.getUnchecked(new TezDAGID(yarnRMIdentifier, appId, id));
+  }
+  
+  // Public for Writable serialization. Verify if this is actually required.
+  public TezDAGID() {
+  }
+
+  private TezDAGID(ApplicationId applicationId, int id) {
+    super(id);
+    this.applicationId = applicationId;
+  }
+
+  
+  private TezDAGID(String yarnRMIdentifier, int appId, int id) {
     this(ApplicationId.newInstance(Long.valueOf(yarnRMIdentifier),
         appId), id);
   }
@@ -89,11 +119,22 @@ public class TezDAGID extends TezID {
 
 
   @Override
+  // Can't do much about this instance if used via the RPC layer. Any downstream
+  // users can however avoid using this method.
   public void readFields(DataInput in) throws IOException {
+    // ApplicationId could be cached in this case. All of this will change for Protobuf RPC.
     applicationId = ApplicationId.newInstance(in.readLong(), in.readInt());
     super.readFields(in);
   }
 
+  public static TezDAGID readTezDAGID(DataInput in) throws IOException {
+    long clusterId = in.readLong();
+    int appId = in.readInt();
+    int dagIdInt = TezID.readID(in);
+    TezDAGID dagID = getInstance(ApplicationId.newInstance(clusterId, appId), dagIdInt);
+    return dagID;
+  }
+  
   @Override
   public void write(DataOutput out) throws IOException {
     out.writeLong(applicationId.getClusterTimestamp());
@@ -135,7 +176,7 @@ public class TezDAGID extends TezID {
       int appId = tezAppIdFormat.get().parse(split[2]).intValue();
       int id;
       id = tezDagIdFormat.get().parse(split[3]).intValue();
-      return new TezDAGID(rmId, appId, id);
+      return TezDAGID.getInstance(rmId, appId, id);
     } catch (Exception e) {
       e.printStackTrace();
     }

@@ -273,7 +273,7 @@ public class TestAMContainer {
     wc.assignTaskAttempt(wc.taskAttemptID);
     wc.verifyState(AMContainerState.IDLE);
 
-    TezTaskAttemptID taID2 = new TezTaskAttemptID(wc.taskID, 2);
+    TezTaskAttemptID taID2 = TezTaskAttemptID.getInstance(wc.taskID, 2);
     wc.assignTaskAttempt(taID2);
 
     wc.verifyState(AMContainerState.STOP_REQUESTED);
@@ -313,7 +313,7 @@ public class TestAMContainer {
     wc.pullTaskToRun();
     wc.verifyState(AMContainerState.RUNNING);
 
-    TezTaskAttemptID taID2 = new TezTaskAttemptID(wc.taskID, 2);
+    TezTaskAttemptID taID2 = TezTaskAttemptID.getInstance(wc.taskID, 2);
     wc.assignTaskAttempt(taID2);
 
     wc.verifyState(AMContainerState.STOP_REQUESTED);
@@ -352,7 +352,7 @@ public class TestAMContainer {
     wc.pullTaskToRun();
     wc.verifyState(AMContainerState.LAUNCHING);
 
-    TezTaskAttemptID taID2 = new TezTaskAttemptID(wc.taskID, 2);
+    TezTaskAttemptID taID2 = TezTaskAttemptID.getInstance(wc.taskID, 2);
     wc.assignTaskAttempt(taID2);
 
     wc.verifyState(AMContainerState.STOP_REQUESTED);
@@ -579,7 +579,7 @@ public class TestAMContainer {
     wc.containerCompleted();
     wc.verifyState(AMContainerState.COMPLETED);
 
-    TezTaskAttemptID taID2 = new TezTaskAttemptID(wc.taskID, 2);
+    TezTaskAttemptID taID2 = TezTaskAttemptID.getInstance(wc.taskID, 2);
 
     wc.assignTaskAttempt(taID2);
 
@@ -656,7 +656,7 @@ public class TestAMContainer {
     wc.taskAttemptSucceeded(wc.taskAttemptID);
     wc.verifyState(AMContainerState.IDLE);
 
-    TezTaskAttemptID taID2 = new TezTaskAttemptID(wc.taskID, 2);
+    TezTaskAttemptID taID2 = TezTaskAttemptID.getInstance(wc.taskID, 2);
     wc.assignTaskAttempt(taID2);
     wc.pullTaskToRun();
     wc.taskAttemptSucceeded(taID2);
@@ -702,7 +702,7 @@ public class TestAMContainer {
     wc.pullTaskToRun();
     wc.taskAttemptSucceeded(wc.taskAttemptID);
 
-    TezTaskAttemptID taID2 = new TezTaskAttemptID(wc.taskID, 2);
+    TezTaskAttemptID taID2 = TezTaskAttemptID.getInstance(wc.taskID, 2);
     wc.assignTaskAttempt(taID2);
     wc.pullTaskToRun();
     wc.verifyState(AMContainerState.RUNNING);
@@ -748,7 +748,7 @@ public class TestAMContainer {
     wc.pullTaskToRun();
     wc.taskAttemptSucceeded(wc.taskAttemptID);
 
-    TezTaskAttemptID taID2 = new TezTaskAttemptID(wc.taskID, 2);
+    TezTaskAttemptID taID2 = TezTaskAttemptID.getInstance(wc.taskID, 2);
     wc.assignTaskAttempt(taID2);
     wc.pullTaskToRun();
     wc.taskAttemptSucceeded(taID2);
@@ -780,7 +780,7 @@ public class TestAMContainer {
     wc.pullTaskToRun();
     wc.taskAttemptSucceeded(wc.taskAttemptID);
 
-    TezTaskAttemptID taID2 = new TezTaskAttemptID(wc.taskID, 2);
+    TezTaskAttemptID taID2 = TezTaskAttemptID.getInstance(wc.taskID, 2);
     wc.assignTaskAttempt(taID2);
     wc.pullTaskToRun();
     wc.taskAttemptSucceeded(taID2);
@@ -854,10 +854,10 @@ public class TestAMContainer {
       when(appContext.getApplicationAttemptId()).thenReturn(appAttemptID);
       when(appContext.getApplicationID()).thenReturn(applicationID);
 
-      dagID = new TezDAGID(applicationID, 1);
-      vertexID = new TezVertexID(dagID, 1);
-      taskID = new TezTaskID(vertexID, 1);
-      taskAttemptID = new TezTaskAttemptID(taskID, 1);
+      dagID = TezDAGID.getInstance(applicationID, 1);
+      vertexID = TezVertexID.getInstance(dagID, 1);
+      taskID = TezTaskID.getInstance(vertexID, 1);
+      taskAttemptID = TezTaskAttemptID.getInstance(taskID, 1);
 
       taskSpec = mock(TaskSpec.class);
       doReturn(taskAttemptID).when(taskSpec).getTaskAttemptID();

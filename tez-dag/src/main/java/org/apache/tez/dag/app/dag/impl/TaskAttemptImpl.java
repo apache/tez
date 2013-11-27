@@ -32,6 +32,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.util.StringInterner;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -59,7 +60,6 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
-import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
@@ -284,10 +284,8 @@ public class TaskAttemptImpl implements TaskAttempt,
   TaskSpec createRemoteTaskSpec() {
     Vertex vertex = getVertex();
     ProcessorDescriptor procDesc = vertex.getProcessorDescriptor();
-    DAG dag = vertex.getDAG();
     int taskId = getTaskID().getId();
-    return new TaskSpec(getID(), dag.getUserName(),
-        vertex.getName(), procDesc, vertex.getInputSpecList(taskId),
+    return new TaskSpec(getID(), vertex.getName(), procDesc, vertex.getInputSpecList(taskId),
         vertex.getOutputSpecList(taskId));
   }
 
@@ -307,7 +305,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       //result.setShuffleFinishTime(this.reportedStatus.shuffleFinishTime);
       result.setDiagnosticInfo(StringUtils.join(LINE_SEPARATOR, getDiagnostics()));
       //result.setPhase(reportedStatus.phase);
-      //result.setStateString(reportedStatus.stateString);
+      //result.setStateString(reportedStatus.statef);
       result.setCounters(getCounters());
       result.setContainerId(this.getAssignedContainerID());
       result.setNodeManagerHost(trackerName);
@@ -920,16 +918,16 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       ta.containerId = event.getContainerId();
       ta.containerNodeId = container.getNodeId();
-      ta.nodeHttpAddress = container.getNodeHttpAddress();
-      ta.nodeRackName = RackResolver.resolve(ta.containerNodeId.getHost())
-          .getNetworkLocation();
+      ta.nodeHttpAddress = StringInterner.weakIntern(container.getNodeHttpAddress());
+      ta.nodeRackName = StringInterner.weakIntern(RackResolver.resolve(ta.containerNodeId.getHost())
+          .getNetworkLocation());
 
       ta.launchTime = ta.clock.getTime();
 
       // TODO Resolve to host / IP in case of a local address.
       InetSocketAddress nodeHttpInetAddr = NetUtils
           .createSocketAddr(ta.nodeHttpAddress); // TODO: Costly?
-      ta.trackerName = nodeHttpInetAddr.getHostName();
+      ta.trackerName = StringInterner.weakIntern(nodeHttpInetAddr.getHostName());
       ta.httpPort = nodeHttpInetAddr.getPort();
       ta.sendEvent(createJobCounterUpdateEventTALaunched(ta));
 

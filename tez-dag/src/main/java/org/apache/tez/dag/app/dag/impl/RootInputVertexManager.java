@@ -116,7 +116,7 @@ public class RootInputVertexManager implements VertexScheduler {
         Preconditions.checkState(managedVertex.getTasks().size() != 0);
         TezEvent tezEvent = new TezEvent(event, sourceInfo);
         tezEvent.setDestinationInfo(destInfoMap.get(inputName));
-        sendEventToTask(new TezTaskID(managedVertex.getVertexId(),
+        sendEventToTask(TezTaskID.getInstance(managedVertex.getVertexId(),
             ((RootInputDataInformationEvent) event).getIndex()), tezEvent);
       }
     }

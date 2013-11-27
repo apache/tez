@@ -30,11 +30,11 @@ import org.apache.tez.dag.records.TezVertexID;
 public class TezBuilderUtils {
 
   public static TezVertexID newVertexID(TezDAGID dagId, int vertexId) {
-    return new TezVertexID(dagId, vertexId);
+    return TezVertexID.getInstance(dagId, vertexId);
   }
 
   public static TezTaskAttemptID newTaskAttemptId(TezTaskID taskId, int id) {
-    return new TezTaskAttemptID(taskId, id);
+    return TezTaskAttemptID.getInstance(taskId, id);
   }
   
   public static DAGReport newDAGReport() {
@@ -48,7 +48,7 @@ public class TezBuilderUtils {
   }
 
   public static TezTaskID newTaskId(TezDAGID dagId, int vertexId, int taskId) {
-    return new TezTaskID(newVertexID(dagId, vertexId), taskId);
+    return TezTaskID.getInstance(newVertexID(dagId, vertexId), taskId);
   }
 
 }

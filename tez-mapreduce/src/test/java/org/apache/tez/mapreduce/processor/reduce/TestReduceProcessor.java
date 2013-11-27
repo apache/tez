@@ -166,7 +166,6 @@ public class TestReduceProcessor {
     // Now run a reduce
     TaskSpec taskSpec = new TaskSpec(
         TezTestUtils.getMockTaskAttemptId(0, 1, 0, 0),
-        "testUser",
         reduceVertexName,
         reduceProcessorDesc,
         Collections.singletonList(reduceInputSpec),

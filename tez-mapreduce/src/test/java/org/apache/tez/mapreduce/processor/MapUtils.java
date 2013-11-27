@@ -202,7 +202,6 @@ public class MapUtils {
 
     TaskSpec taskSpec = new TaskSpec(
         TezTestUtils.getMockTaskAttemptId(0, 0, mapId, 0),
-        "testuser",
         vertexName,
         mapProcessorDesc,
         inputSpecs,

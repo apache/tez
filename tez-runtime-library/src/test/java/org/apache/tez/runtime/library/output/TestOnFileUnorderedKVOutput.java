@@ -99,10 +99,10 @@ public class TestOnFileUnorderedKVOutput {
     TezUmbilical tezUmbilical = null; // ZZZ TestUmbilical from mapreduce
     String taskVertexName = "currentVertex";
     String destinationVertexName = "destinationVertex";
-    TezDAGID dagID = new TezDAGID("2000", 1, 1);
-    TezVertexID vertexID = new TezVertexID(dagID, 1);
-    TezTaskID taskID = new TezTaskID(vertexID, 1);
-    TezTaskAttemptID taskAttemptID = new TezTaskAttemptID(taskID, 1);
+    TezDAGID dagID = TezDAGID.getInstance("2000", 1, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
+    TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 1);
     TezCounters counters = new TezCounters();
     byte[] userPayload = TezUtils.createUserPayloadFromConf(conf);
     RuntimeTask runtimeTask = null;

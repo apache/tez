@@ -60,11 +60,11 @@ public class TestVertexScheduler {
     conf.setLong(TezConfiguration.TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE, 1000L);
     ShuffleVertexManager scheduler = null;
     EventHandler mockEventHandler = mock(EventHandler.class);
-    TezDAGID dagId = new TezDAGID("1", 1, 1);
+    TezDAGID dagId = TezDAGID.getInstance("1", 1, 1);
     HashMap<Vertex, Edge> mockInputVertices = 
         new HashMap<Vertex, Edge>();
     Vertex mockSrcVertex1 = mock(Vertex.class);
-    TezVertexID mockSrcVertexId1 = new TezVertexID(dagId, 1);
+    TezVertexID mockSrcVertexId1 = TezVertexID.getInstance(dagId, 1);
     EdgeProperty eProp1 = new EdgeProperty(
         EdgeProperty.DataMovementType.SCATTER_GATHER,
         EdgeProperty.DataSourceType.PERSISTED,
@@ -73,7 +73,7 @@ public class TestVertexScheduler {
         new InputDescriptor("in"));
     when(mockSrcVertex1.getVertexId()).thenReturn(mockSrcVertexId1);
     Vertex mockSrcVertex2 = mock(Vertex.class);
-    TezVertexID mockSrcVertexId2 = new TezVertexID(dagId, 2);
+    TezVertexID mockSrcVertexId2 = TezVertexID.getInstance(dagId, 2);
     EdgeProperty eProp2 = new EdgeProperty(
         EdgeProperty.DataMovementType.SCATTER_GATHER,
         EdgeProperty.DataSourceType.PERSISTED,
@@ -82,7 +82,7 @@ public class TestVertexScheduler {
         new InputDescriptor("in"));
     when(mockSrcVertex2.getVertexId()).thenReturn(mockSrcVertexId2);
     Vertex mockSrcVertex3 = mock(Vertex.class);
-    TezVertexID mockSrcVertexId3 = new TezVertexID(dagId, 3);
+    TezVertexID mockSrcVertexId3 = TezVertexID.getInstance(dagId, 3);
     EdgeProperty eProp3 = new EdgeProperty(
         EdgeProperty.DataMovementType.BROADCAST,
         EdgeProperty.DataSourceType.PERSISTED, 
@@ -92,7 +92,7 @@ public class TestVertexScheduler {
     when(mockSrcVertex3.getVertexId()).thenReturn(mockSrcVertexId3);
     
     Vertex mockManagedVertex = mock(Vertex.class);
-    TezVertexID mockManagedVertexId = new TezVertexID(dagId, 4);
+    TezVertexID mockManagedVertexId = TezVertexID.getInstance(dagId, 4);
     when(mockManagedVertex.getVertexId()).thenReturn(mockManagedVertexId);
     when(mockManagedVertex.getInputVertices()).thenReturn(mockInputVertices);
     
@@ -107,13 +107,13 @@ public class TestVertexScheduler {
     Assert.assertTrue(scheduler.bipartiteSources.containsKey(mockSrcVertexId2));
     
     final HashMap<TezTaskID, Task> managedTasks = new HashMap<TezTaskID, Task>();
-    final TezTaskID mockTaskId1 = new TezTaskID(mockManagedVertexId, 0);
+    final TezTaskID mockTaskId1 = TezTaskID.getInstance(mockManagedVertexId, 0);
     managedTasks.put(mockTaskId1, null);
-    final TezTaskID mockTaskId2 = new TezTaskID(mockManagedVertexId, 1);
+    final TezTaskID mockTaskId2 = TezTaskID.getInstance(mockManagedVertexId, 1);
     managedTasks.put(mockTaskId2, null);
-    final TezTaskID mockTaskId3 = new TezTaskID(mockManagedVertexId, 2);
+    final TezTaskID mockTaskId3 = TezTaskID.getInstance(mockManagedVertexId, 2);
     managedTasks.put(mockTaskId3, null);
-    final TezTaskID mockTaskId4 = new TezTaskID(mockManagedVertexId, 3);
+    final TezTaskID mockTaskId4 = TezTaskID.getInstance(mockManagedVertexId, 3);
     managedTasks.put(mockTaskId4, null);
     
     when(mockManagedVertex.getTotalTasks()).thenReturn(managedTasks.size());
@@ -151,13 +151,13 @@ public class TestVertexScheduler {
     when(mockSrcVertex2.getTotalTasks()).thenReturn(2);
 
     TezTaskAttemptID mockSrcAttemptId11 = 
-        new TezTaskAttemptID(new TezTaskID(mockSrcVertexId1, 0), 0);
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(mockSrcVertexId1, 0), 0);
     TezTaskAttemptID mockSrcAttemptId12 = 
-        new TezTaskAttemptID(new TezTaskID(mockSrcVertexId1, 1), 0);
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(mockSrcVertexId1, 1), 0);
     TezTaskAttemptID mockSrcAttemptId21 = 
-        new TezTaskAttemptID(new TezTaskID(mockSrcVertexId2, 0), 0);
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(mockSrcVertexId2, 0), 0);
     TezTaskAttemptID mockSrcAttemptId31 = 
-        new TezTaskAttemptID(new TezTaskID(mockSrcVertexId3, 0), 0);
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(mockSrcVertexId3, 0), 0);
 
     byte[] payload =
         VertexManagerEventPayloadProto.newBuilder().setOutputSize(5000L).build().toByteArray();
@@ -231,11 +231,11 @@ public class TestVertexScheduler {
     Configuration conf = new Configuration();
     ShuffleVertexManager scheduler = null;
     EventHandler mockEventHandler = mock(EventHandler.class);
-    TezDAGID dagId = new TezDAGID("1", 1, 1);
+    TezDAGID dagId = TezDAGID.getInstance("1", 1, 1);
     HashMap<Vertex, Edge> mockInputVertices = 
         new HashMap<Vertex, Edge>();
     Vertex mockSrcVertex1 = mock(Vertex.class);
-    TezVertexID mockSrcVertexId1 = new TezVertexID(dagId, 1);
+    TezVertexID mockSrcVertexId1 = TezVertexID.getInstance(dagId, 1);
     EdgeProperty eProp1 = new EdgeProperty(
         EdgeProperty.DataMovementType.SCATTER_GATHER,
         EdgeProperty.DataSourceType.PERSISTED, 
@@ -244,7 +244,7 @@ public class TestVertexScheduler {
         new InputDescriptor("in"));
     when(mockSrcVertex1.getVertexId()).thenReturn(mockSrcVertexId1);
     Vertex mockSrcVertex2 = mock(Vertex.class);
-    TezVertexID mockSrcVertexId2 = new TezVertexID(dagId, 2);
+    TezVertexID mockSrcVertexId2 = TezVertexID.getInstance(dagId, 2);
     EdgeProperty eProp2 = new EdgeProperty(
         EdgeProperty.DataMovementType.SCATTER_GATHER,
         EdgeProperty.DataSourceType.PERSISTED,
@@ -253,7 +253,7 @@ public class TestVertexScheduler {
         new InputDescriptor("in"));
     when(mockSrcVertex2.getVertexId()).thenReturn(mockSrcVertexId2);
     Vertex mockSrcVertex3 = mock(Vertex.class);
-    TezVertexID mockSrcVertexId3 = new TezVertexID(dagId, 3);
+    TezVertexID mockSrcVertexId3 = TezVertexID.getInstance(dagId, 3);
     EdgeProperty eProp3 = new EdgeProperty(
         EdgeProperty.DataMovementType.BROADCAST,
         EdgeProperty.DataSourceType.PERSISTED, 
@@ -263,7 +263,7 @@ public class TestVertexScheduler {
     when(mockSrcVertex3.getVertexId()).thenReturn(mockSrcVertexId3);
     
     Vertex mockManagedVertex = mock(Vertex.class);
-    TezVertexID mockManagedVertexId = new TezVertexID(dagId, 3);
+    TezVertexID mockManagedVertexId = TezVertexID.getInstance(dagId, 3);
     when(mockManagedVertex.getVertexId()).thenReturn(mockManagedVertexId);
     when(mockManagedVertex.getInputVertices()).thenReturn(mockInputVertices);
     
@@ -287,11 +287,11 @@ public class TestVertexScheduler {
     Assert.assertTrue(scheduler.bipartiteSources.containsKey(mockSrcVertexId2));
     
     HashMap<TezTaskID, Task> managedTasks = new HashMap<TezTaskID, Task>();
-    TezTaskID mockTaskId1 = new TezTaskID(mockManagedVertexId, 0);
+    TezTaskID mockTaskId1 = TezTaskID.getInstance(mockManagedVertexId, 0);
     managedTasks.put(mockTaskId1, null);
-    TezTaskID mockTaskId2 = new TezTaskID(mockManagedVertexId, 1);
+    TezTaskID mockTaskId2 = TezTaskID.getInstance(mockManagedVertexId, 1);
     managedTasks.put(mockTaskId2, null);
-    TezTaskID mockTaskId3 = new TezTaskID(mockManagedVertexId, 2);
+    TezTaskID mockTaskId3 = TezTaskID.getInstance(mockManagedVertexId, 2);
     managedTasks.put(mockTaskId3, null);
     
     when(mockManagedVertex.getTotalTasks()).thenReturn(3);
@@ -344,15 +344,15 @@ public class TestVertexScheduler {
     Assert.assertTrue(scheduledTasks.size() == 3); // all tasks scheduled
 
     TezTaskAttemptID mockSrcAttemptId11 = 
-        new TezTaskAttemptID(new TezTaskID(mockSrcVertexId1, 0), 0);
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(mockSrcVertexId1, 0), 0);
     TezTaskAttemptID mockSrcAttemptId12 = 
-        new TezTaskAttemptID(new TezTaskID(mockSrcVertexId1, 1), 0);
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(mockSrcVertexId1, 1), 0);
     TezTaskAttemptID mockSrcAttemptId21 = 
-        new TezTaskAttemptID(new TezTaskID(mockSrcVertexId2, 0), 0);
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(mockSrcVertexId2, 0), 0);
     TezTaskAttemptID mockSrcAttemptId22 = 
-        new TezTaskAttemptID(new TezTaskID(mockSrcVertexId2, 1), 0);
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(mockSrcVertexId2, 1), 0);
     TezTaskAttemptID mockSrcAttemptId31 = 
-        new TezTaskAttemptID(new TezTaskID(mockSrcVertexId3, 0), 0);
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(mockSrcVertexId3, 0), 0);
     
     // min, max > 0 and min == max
     scheduler = createScheduler(conf, mockManagedVertex, 0.25f, 0.25f);

@@ -474,7 +474,7 @@ public class DAGAppMaster extends AbstractService {
 
   /** Create and initialize (but don't start) a single dag. */
   protected DAG createDAG(DAGPlan dagPB) {
-    TezDAGID dagId = new TezDAGID(appAttemptID.getApplicationId(),
+    TezDAGID dagId = TezDAGID.getInstance(appAttemptID.getApplicationId(),
         dagCounter.incrementAndGet());
 
     // Prepare the TaskAttemptListener server for authentication of Containers

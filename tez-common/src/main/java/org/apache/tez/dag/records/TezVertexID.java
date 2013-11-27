@@ -26,6 +26,11 @@ import java.text.NumberFormat;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 
+import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
 /**
  * TezVertexID represents the immutable and unique identifier for
  * a Vertex in a Tez DAG. Each TezVertexID encompasses multiple Tez Tasks.
@@ -52,8 +57,19 @@ public class TezVertexID extends TezID {
     }
   };
 
+  private static LoadingCache<TezVertexID, TezVertexID> vertexIDCache = CacheBuilder.newBuilder().softValues().
+      build(
+          new CacheLoader<TezVertexID, TezVertexID>() {
+            @Override
+            public TezVertexID load(TezVertexID key) throws Exception {
+              return key;
+            }
+          }
+      );
+  
   private TezDAGID dagId;
 
+  // Public for Writable serialization. Verify if this is actually required.
   public TezVertexID() {
   }
 
@@ -63,11 +79,13 @@ public class TezVertexID extends TezID {
    * @param type the {@link TezTaskType} of the task
    * @param id the tip number
    */
-  public TezVertexID(TezDAGID dagId, int id) {
+  public static TezVertexID getInstance(TezDAGID dagId, int id) {
+    Preconditions.checkArgument(dagId != null, "DagID cannot be null");
+    return vertexIDCache.getUnchecked(new TezVertexID(dagId, id));
+  }
+
+  private TezVertexID(TezDAGID dagId, int id) {
     super(id);
-    if(dagId == null) {
-      throw new IllegalArgumentException("dagId cannot be null");
-    }
     this.dagId = dagId;
   }
 
@@ -98,10 +116,17 @@ public class TezVertexID extends TezID {
   }
 
   @Override
+  // Can't do much about this instance if used via the RPC layer. Any downstream
+  // users can however avoid using this method.
   public void readFields(DataInput in) throws IOException {
-    dagId = new TezDAGID();
-    dagId.readFields(in);
+    dagId = TezDAGID.readTezDAGID(in);
     super.readFields(in);
+  }
+  
+  public static TezVertexID readTezVertexID(DataInput in) throws IOException {
+    TezDAGID dagID = TezDAGID.readTezDAGID(in);
+    int vertexIdInt = TezID.readID(in);
+    return getInstance(dagID, vertexIdInt);
   }
 
   @Override

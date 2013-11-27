@@ -42,9 +42,9 @@ public class IDUtils {
         if(parts[0].equals(TezTaskID.TASK)) {
           ApplicationId appId = ApplicationId.newInstance(
               Long.valueOf(parts[1]), Integer.parseInt(parts[2]));
-          TezDAGID dagId = new TezDAGID(appId, Integer.parseInt(parts[3]));
-          TezVertexID vId = new TezVertexID(dagId, Integer.parseInt(parts[4]));
-          return new TezTaskID(vId, Integer.parseInt(parts[5]));
+          TezDAGID dagId = TezDAGID.getInstance(appId, Integer.parseInt(parts[3]));
+          TezVertexID vId = TezVertexID.getInstance(dagId, Integer.parseInt(parts[4]));
+          return TezTaskID.getInstance(vId, Integer.parseInt(parts[5]));
         } else
           exceptionMsg = "Bad TaskType identifier. TaskId string : " + str
           + " is not properly formed.";
@@ -72,10 +72,10 @@ public class IDUtils {
         if(parts[0].equals(TezTaskAttemptID.ATTEMPT)) {
           ApplicationId appId = ApplicationId.newInstance(
               Long.valueOf(parts[1]), Integer.parseInt(parts[2]));
-          TezDAGID dagId = new TezDAGID(appId, Integer.parseInt(parts[3]));
-          TezVertexID vId = new TezVertexID(dagId, Integer.parseInt(parts[4]));
-          TezTaskID tId = new TezTaskID(vId, Integer.parseInt(parts[5]));
-          return new TezTaskAttemptID(tId, Integer.parseInt(parts[6]));
+          TezDAGID dagId = TezDAGID.getInstance(appId, Integer.parseInt(parts[3]));
+          TezVertexID vId = TezVertexID.getInstance(dagId, Integer.parseInt(parts[4]));
+          TezTaskID tId = TezTaskID.getInstance(vId, Integer.parseInt(parts[5]));
+          return TezTaskAttemptID.getInstance(tId, Integer.parseInt(parts[6]));
         } else
           exceptionMsg = "Bad TaskType identifier. TaskAttemptId string : "
               + str + " is not properly formed.";

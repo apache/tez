@@ -54,15 +54,15 @@ public class IDConverter {
   // FIXME hardcoded assumption that one app is one dag
   public static TezDAGID fromMRJobId(
       org.apache.hadoop.mapreduce.JobID jobId) {
-    return new TezDAGID(ApplicationId.newInstance(
+    return TezDAGID.getInstance(ApplicationId.newInstance(
         Long.valueOf(jobId.getJtIdentifier()), jobId.getId()), 1);
   }
 
   // FIXME hack alert converting objects with hard coded id
   public static TezTaskID
       fromMRTaskId(org.apache.hadoop.mapreduce.TaskID taskid) {
-    return new TezTaskID(
-        new TezVertexID(fromMRJobId(taskid.getJobID()),
+    return TezTaskID.getInstance(
+        TezVertexID.getInstance(fromMRJobId(taskid.getJobID()),
                 (taskid.getTaskType() == TaskType.MAP ? 0 : 1)
             ),
         taskid.getId());
@@ -70,7 +70,7 @@ public class IDConverter {
 
   public static TezTaskAttemptID fromMRTaskAttemptId(
       org.apache.hadoop.mapreduce.TaskAttemptID taskAttemptId) {
-    return new TezTaskAttemptID(
+    return TezTaskAttemptID.getInstance(
         fromMRTaskId(taskAttemptId.getTaskID()),
         taskAttemptId.getId());
   }

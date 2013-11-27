@@ -161,7 +161,7 @@ public class Edge {
         }
         TezTaskID srcTaskId = srcTask.getTaskId();
         int taskAttemptIndex = event.getVersion();
-        TezTaskAttemptID srcTaskAttemptId = new TezTaskAttemptID(srcTaskId,
+        TezTaskAttemptID srcTaskAttemptId = TezTaskAttemptID.getInstance(srcTaskId,
             taskAttemptIndex);
         eventHandler.handle(new TaskAttemptEventOutputFailed(srcTaskAttemptId,
             tezEvent, numConsumers));
