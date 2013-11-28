@@ -44,6 +44,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -156,8 +157,13 @@ public class OrderedWordCount {
         Text.class.getName());
     mapStageConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
         IntWritable.class.getName());
-    mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
-        TextInputFormat.class.getName());
+    if (generateSplitsInClient) {
+      mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
+          TextInputFormat.class.getName());
+    } else {
+      mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, 
+          TezGroupedSplitsInputFormat.class.getName());
+    }
     mapStageConf.set(FileInputFormat.INPUT_DIR, inputPath);
     mapStageConf.setBoolean("mapred.mapper.new-api", true);
 
@@ -206,8 +212,8 @@ public class OrderedWordCount {
     List<Vertex> vertices = new ArrayList<Vertex>();
 
     byte[] mapPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
-    byte[] mapInputPayload =
-        MRHelpers.createMRInputPayload(mapPayload, null);
+    byte[] mapInputPayload = MRHelpers.createMRInputPayloadWithGrouping(mapPayload, 
+            TextInputFormat.class.getName());
     int numMaps = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(mapPayload),
@@ -277,9 +283,10 @@ public class OrderedWordCount {
   }
 
   private static void printUsage() {
-    System.err.println("Usage: orderedwordcount <in> <out> [-generateSplitsInClient true/<false>]");
+    String options = " [-generateSplitsInClient true/<false>]";
+    System.err.println("Usage: orderedwordcount <in> <out>" + options);
     System.err.println("Usage (In Session Mode):"
-        + " orderedwordcount <in1> <out1> ... <inN> <outN> [-generateSplitsInClient true/<false>]");
+        + " orderedwordcount <in1> <out1> ... <inN> <outN>" + options);
   }
 
 
