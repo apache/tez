@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
@@ -39,12 +40,15 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import com.google.common.collect.Lists;
 
 import static org.mockito.Mockito.*;
 
@@ -223,6 +227,19 @@ public class TestVertexScheduler {
     // more completions dont cause recalculation of parallelism
     scheduler.onSourceTaskCompleted(mockSrcAttemptId21);
     verify(mockManagedVertex).setParallelism(eq(2), anyMap());
+    Assert.assertEquals(2, newEdgeManagers.size());
+    
+    EdgeManager edgeManager = newEdgeManagers.values().iterator().next();
+    List<Integer> targets = Lists.newArrayList();
+    DataMovementEvent dmEvent = new DataMovementEvent(1, new byte[0]);
+    edgeManager.routeEventToDestinationTasks(dmEvent, 1, 2, targets);
+    Assert.assertEquals(3, dmEvent.getTargetIndex());
+    Assert.assertEquals(0, targets.get(0).intValue());
+    targets.clear();
+    dmEvent = new DataMovementEvent(2, new byte[0]);
+    edgeManager.routeEventToDestinationTasks(dmEvent, 0, 2, targets);
+    Assert.assertEquals(0, dmEvent.getTargetIndex());
+    Assert.assertEquals(1, targets.get(0).intValue());    
   }
   
   @SuppressWarnings({ "unchecked", "rawtypes" })

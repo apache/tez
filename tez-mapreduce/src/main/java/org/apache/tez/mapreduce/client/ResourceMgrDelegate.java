@@ -144,9 +144,11 @@ public class ResourceMgrDelegate {
   public QueueInfo getQueue(String queueName) throws IOException,
   InterruptedException {
     try {
-      return TypeConverter.fromYarn(
-          client.getQueueInfo(queueName), this.conf);
-    } catch (YarnException e) {
+      org.apache.hadoop.yarn.api.records.QueueInfo queueInfo =
+          client.getQueueInfo(queueName);
+      return (queueInfo == null) ? null : TypeConverter.fromYarn(queueInfo,
+          conf);
+      } catch (YarnException e) {
       throw new IOException(e);
     }
   }

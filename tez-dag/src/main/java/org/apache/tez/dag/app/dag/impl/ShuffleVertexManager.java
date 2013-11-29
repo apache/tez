@@ -131,11 +131,17 @@ public class ShuffleVertexManager implements VertexScheduler {
         int sourceTaskIndex, int numDestinationTasks, List<Integer> taskIndices) {
       int sourceIndex = event.getSourceIndex();
       int destinationTaskIndex = sourceIndex/basePartitionRange;
+      int partitionRange = 1;
+      if(destinationTaskIndex < numDestinationTasks-1) {
+        partitionRange = basePartitionRange;
+      } else {
+        partitionRange = remainderRangeForLastShuffler;
+      }
       
       // all inputs from a source task are next to each other in original order
       int targetIndex = 
-          sourceTaskIndex * basePartitionRange 
-          + sourceIndex % basePartitionRange;
+          sourceTaskIndex * partitionRange 
+          + sourceIndex % partitionRange;
       
       event.setTargetIndex(targetIndex);
       taskIndices.add(new Integer(destinationTaskIndex));
@@ -146,10 +152,15 @@ public class ShuffleVertexManager implements VertexScheduler {
         int sourceTaskIndex, int numDestinationTasks, List<Integer> taskIndices) {
       int sourceIndex = event.getSourceIndex();
       int destinationTaskIndex = sourceIndex/basePartitionRange;
-      
+      int partitionRange = 1;
+      if(destinationTaskIndex < numDestinationTasks-1) {
+        partitionRange = basePartitionRange;
+      } else {
+        partitionRange = remainderRangeForLastShuffler;
+      }
       int targetIndex = 
-          sourceTaskIndex * basePartitionRange 
-          + sourceIndex % basePartitionRange;
+          sourceTaskIndex * partitionRange 
+          + sourceIndex % partitionRange;
       
       event.setTargetIndex(targetIndex);
       taskIndices.add(new Integer(destinationTaskIndex));
