@@ -112,6 +112,10 @@
       <item name="User Meetup Group" href="http://www.meetup.com/Apache-Tez-User-Group"/>
     </menu>
 
+    <menu name="Releases">
+      <item name="0.2.0-incubating" href="http://www.apache.org/dyn/closer.cgi/incubator/tez/tez-0.2.0-incubating/"/>
+    </menu>
+
     <menu name="Contribute">
       <item name="JIRA" href="https://issues.apache.org/jira/browse/TEZ" />
       <item name="Git (Read/Write)" href="https://git-wip-us.apache.org/repos/asf/incubator-tez.git" alt="Use git clone https://git-wip-us.apache.org/repos/asf/incubator-tez.git" />
