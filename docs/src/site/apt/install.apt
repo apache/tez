@@ -15,13 +15,27 @@
 ~~
 Install/Deploy Instructions
 
-  [[i]] Deploy Apache Hadoop using either the 2.1.0-beta release or build the 3.0.0-SNAPSHOT from trunk.
+  [[i]] Deploy Apache Hadoop using either the 2.2.0 release or build the 3.0.0-SNAPSHOT from trunk.
    
     * One thing to note though when compiling Tez is that you will need to change the value of the hadoop.version property in the top-level pom.xml to match the version of the hadoop branch being used.
 
+  [[i]] Build tez using "mvn clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+
+    * If you prefer to run the unit tests, remove skipTests from the command above.
+
+    * If you would like to create a tarball of the release, use "mvn clean package -Dtar -DskipTests=true -Dmaven.javadoc.skip=true"
+
   [[i]] Copy the tez jars and their dependencies into HDFS.
 
+    * The tez jars and dependencies will be found in tez-dist/target/tez-0.2.0-SNAPSHOT/tez-0.2.0-SNAPSHOT if you run the intial command mentioned in step 2.
+
+    * Assuming that the tez jars are put in /apps/ on HDFS, the command would be "hadoop dfs -put tez-dist/target/tez-0.2.0-SNAPSHOT/tez-0.2.0-SNAPSHOT /apps/"
+
+    * Please do not upload the tarball to HDFS, upload only the jars.
+
+
   [[i]] Configure tez-site.xml to set tez.lib.uris to point to the paths in HDFS containing the jars. Please note that the paths are not searched recursively so for <basedir> and <basedir>/lib/, you will need to configure the 2 paths as a comma-separated list.
+    * Assuming you followed step 3, the value would be: "$\{fs.default.name\}/apps/tez-0.2.0-SNAPSHOT,$\{fs.default.name\}/apps/tez-0.2.0-SNAPSHOT/lib/"
 
   [[i]] Modify mapred-site.xml to change "mapreduce.framework.name" property from its default value of "yarn" to "yarn-tez"
 
@@ -34,15 +48,38 @@ Install/Deploy Instructions
   [[i]] Submit a MR job as you normally would using something like:
 
 +---+
-$HADOOP_PREFIX/bin/hadoop jar hadoop-mapreduce-client-jobclient-VERSION-tests.jar sleep -mt 1 -rt 1 -m 1 -r 1
+
+$HADOOP_PREFIX/bin/hadoop jar hadoop-mapreduce-client-jobclient-3.0.0-SNAPSHOT-tests.jar sleep -mt 1 -rt 1 -m 1 -r 1
+
 +---+
 
     This will use the TEZ DAG ApplicationMaster to run the MR job. This can be verified by looking at the AM's logs from the YARN ResourceManager UI.
 
-  [[i]] There is a basic example of using an MRR job in the tez-mapreduce-examples.jar. Refer to OrderedWordCount.java in the source code. To run this example:
+  [[i]] There is a basic example of using an MRR job in the tez-mapreduce-examples.jar. Refer to OrderedWordCount.java
+in the source code. To run this example:
 
 +---+
+
 $HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar orderedwordcount <input> <output>
+
 +---+
 
     This will use the TEZ DAG ApplicationMaster to run the ordered word count job. This job is similar to the word count example except that it also orders all words based on the frequency of occurrence.
+
+    There are multiple variations to run orderedwordcount. You can use it to run multiple DAGs serially on different inputs/outputs. These DAGs could be run separately as different applications or serially within a single TEZ session.
+
++---+
+
+$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar orderedwordcount <input1> <output1> <input2> <output2> <input3> <output3> ...
+
++---+
+
+    The above will run multiple DAGs for each input-output pair.
+
+    To use TEZ sessions, set -DUSE_TEZ_SESSION=true
+
++---+
+
+$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar orderedwordcount -DUSE_TEZ_SESSION=true <input1> <output1> <input2> <output2>
+
++---+
