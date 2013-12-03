@@ -127,7 +127,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.eventsToBeProcessed = new LinkedBlockingQueue<TezEvent>();
     this.state = State.NEW;
     this.appAttemptNumber = appAttemptNumber;
-    int numInitializers = numInputs + numOutputs;
+    int numInitializers = numInputs + numOutputs + 1;
     this.initializerExecutor = Executors.newFixedThreadPool(
         numInitializers,
         new ThreadFactoryBuilder().setDaemon(true)
