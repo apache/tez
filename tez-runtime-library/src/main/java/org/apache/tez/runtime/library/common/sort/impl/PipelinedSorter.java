@@ -328,8 +328,8 @@ public class PipelinedSorter extends ExternalSorter {
           mapOutputFile.getSpillFile(0);
       Path indexFilename =
               mapOutputFile.getSpillIndexFile(0);
-      sameVolRename(filename, finalOutputFile);
-      sameVolRename(indexFilename, finalIndexFile);
+      sameVolRename(filename, mapOutputFile.getOutputFileForWriteInVolume(filename));
+      sameVolRename(indexFilename, mapOutputFile.getOutputIndexFileForWriteInVolume(indexFilename));
       return;
     }
     
