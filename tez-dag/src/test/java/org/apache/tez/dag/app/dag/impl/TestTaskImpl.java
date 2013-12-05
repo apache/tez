@@ -539,7 +539,7 @@ public class TestTaskImpl {
         TaskLocationHint locationHing, boolean isRescheduled,
         Resource resource, ContainerContext containerContext) {
       super(taskId, attemptNumber, eventHandler, tal, conf, clock, thh,
-          appContext, locationHing, isRescheduled, resource, containerContext);
+          appContext, locationHing, isRescheduled, resource, containerContext, false);
     }
 
     @Override

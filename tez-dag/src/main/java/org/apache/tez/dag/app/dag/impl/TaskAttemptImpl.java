@@ -144,6 +144,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   protected final boolean isRescheduled;
   private final Resource taskResource;
   private final ContainerContext containerContext;
+  private final boolean leafVertex;
 
   protected static final FailedTransitionHelper FAILED_HELPER =
       new FailedTransitionHelper();
@@ -154,6 +155,9 @@ public class TaskAttemptImpl implements TaskAttempt,
   private static SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent>
       DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION =
           new DiagnosticInformationUpdater();
+  
+  private static SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent>
+      TERMINATED_AFTER_SUCCESS_HELPER = new TerminatedAfterSuccessHelper(KILLED_HELPER);
 
   private static SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent>
       STATUS_UPDATER = new StatusUpdaterTransition();
@@ -224,8 +228,8 @@ public class TaskAttemptImpl implements TaskAttempt,
         // How will duplicate history events be handled ?
         // TODO Maybe consider not failing REDUCE tasks in this case. Also, MAP_TASKS in case there's only one phase in the job.
         .addTransition(TaskAttemptStateInternal.SUCCEEDED, TaskAttemptStateInternal.SUCCEEDED, TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE, DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-        .addTransition(TaskAttemptStateInternal.SUCCEEDED, TaskAttemptStateInternal.KILLED, TaskAttemptEventType.TA_KILL_REQUEST, new TerminatedAfterSuccessTransition(KILLED_HELPER))
-        .addTransition(TaskAttemptStateInternal.SUCCEEDED, TaskAttemptStateInternal.KILLED, TaskAttemptEventType.TA_NODE_FAILED, new TerminatedAfterSuccessTransition(KILLED_HELPER))
+        .addTransition(TaskAttemptStateInternal.SUCCEEDED, EnumSet.of(TaskAttemptStateInternal.KILLED, TaskAttemptStateInternal.SUCCEEDED), TaskAttemptEventType.TA_KILL_REQUEST, new TerminatedAfterSuccessTransition())
+        .addTransition(TaskAttemptStateInternal.SUCCEEDED, EnumSet.of(TaskAttemptStateInternal.KILLED, TaskAttemptStateInternal.SUCCEEDED), TaskAttemptEventType.TA_NODE_FAILED, new TerminatedAfterSuccessTransition())
         .addTransition(TaskAttemptStateInternal.SUCCEEDED, EnumSet.of(TaskAttemptStateInternal.FAILED, TaskAttemptStateInternal.SUCCEEDED), TaskAttemptEventType.TA_OUTPUT_FAILED, new OutputReportedFailedTransition())
         .addTransition(TaskAttemptStateInternal.SUCCEEDED, TaskAttemptStateInternal.SUCCEEDED, EnumSet.of(TaskAttemptEventType.TA_TIMED_OUT, TaskAttemptEventType.TA_FAIL_REQUEST, TaskAttemptEventType.TA_CONTAINER_TERMINATING, TaskAttemptEventType.TA_CONTAINER_TERMINATED))
 
@@ -239,7 +243,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskAttemptListener tal, Configuration conf, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       TaskLocationHint locationHint, boolean isRescheduled,
-      Resource resource, ContainerContext containerContext) {
+      Resource resource, ContainerContext containerContext, boolean leafVertex) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
@@ -258,6 +262,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.isRescheduled = isRescheduled;
     this.taskResource = resource;
     this.containerContext = containerContext;
+    this.leafVertex = leafVertex;
   }
 
 
@@ -1128,7 +1133,7 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   }
 
-  protected static class TerminatedAfterSuccessTransition extends
+  protected static class TerminatedAfterSuccessHelper extends
       TerminatedBeforeRunningTransition {
 
     @Override
@@ -1138,7 +1143,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       return false;
     }
     
-    public TerminatedAfterSuccessTransition(TerminatedTransitionHelper helper) {
+    public TerminatedAfterSuccessHelper(TerminatedTransitionHelper helper) {
       super(helper);
     }
 
@@ -1148,6 +1153,18 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.sendTaskAttemptCleanupEvent();
     }
 
+  }
+  
+  protected static class TerminatedAfterSuccessTransition implements
+      MultipleArcTransition<TaskAttemptImpl, TaskAttemptEvent, TaskAttemptStateInternal> {
+    @Override
+    public TaskAttemptStateInternal transition(TaskAttemptImpl attempt, TaskAttemptEvent event) {
+      if (attempt.leafVertex) {
+        return TaskAttemptStateInternal.SUCCEEDED;
+      }
+      TaskAttemptImpl.TERMINATED_AFTER_SUCCESS_HELPER.transition(attempt, event);
+      return TaskAttemptStateInternal.KILLED;
+    }
   }
   
   protected static class OutputReportedFailedTransition implements
@@ -1185,8 +1202,9 @@ public class TaskAttemptImpl implements TaskAttempt,
       String message = attempt.getID() + " being failed for too many output errors";
       LOG.info(message);
       attempt.addDiagnosticInfo(message);
+      // Not checking for leafVertex since a READ_ERROR should only be reported for intermediate tasks.
       if (attempt.getInternalState() == TaskAttemptStateInternal.SUCCEEDED) {
-        (new TerminatedAfterSuccessTransition(FAILED_HELPER)).transition(
+        (new TerminatedAfterSuccessHelper(FAILED_HELPER)).transition(
             attempt, event);
         return TaskAttemptStateInternal.FAILED;
       } else {

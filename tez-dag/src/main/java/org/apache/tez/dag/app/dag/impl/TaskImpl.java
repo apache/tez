@@ -114,7 +114,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private static final List<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS =
       new ArrayList(0);
 
-
   // counts the number of attempts that are either running or in a state where
   //  they will come to be running when they get a Container
   private int numberUncompletedAttempts = 0;
@@ -677,7 +676,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   TaskAttemptImpl createAttempt(int attemptNumber) {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
         taskAttemptListener, conf, clock, taskHeartbeatHandler, appContext,
-        locationHint, (failedAttempts > 0), taskResource, containerContext);
+        locationHint, (failedAttempts > 0), taskResource, containerContext, leafVertex);
   }
 
   protected TaskAttempt getSuccessfulAttempt() {
@@ -1083,7 +1082,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     @Override
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
       if (task.leafVertex) {
-        LOG.error("Unexpected event for task of leaf vertex " + event.getType());
+        LOG.error("Unexpected event for task of leaf vertex " + event.getType() + ", taskId: "
+            + task.getTaskId());
         task.internalError(event.getType());
       }
 
