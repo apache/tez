@@ -443,6 +443,10 @@ public class OrderedWordCount {
             true, true);
         LOG.info("DAG " + dagIndex + " completed. "
             + "FinalState=" + dagStatus.getState());
+        if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
+          LOG.info("DAG " + dagIndex + " diagnostics: "
+            + dagStatus.getDiagnostics());
+        }
       }
     } finally {
       fs.delete(stagingDir, true);
