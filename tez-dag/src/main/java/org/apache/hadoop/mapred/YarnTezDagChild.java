@@ -137,7 +137,7 @@ public class YarnTezDagChild {
               // Irrecoverable error unless heartbeat sync can be re-established
               LOG.error("Heartbeat error in communicating with AM. ", e);
               if (e instanceof Error) {
-                LOG.error("Exception of type Error. Exiting now");
+                LOG.error("Exception of type Error. Exiting now", e);
                 ExitUtil.terminate(-1, e);
               }
               heartbeatErrorException = e;
@@ -360,7 +360,7 @@ public class YarnTezDagChild {
           LOG.fatal("Failed to communicate task attempt failure to AM via"
               + " umbilical", t);
           if (t instanceof Error) {
-            LOG.error("Exception of type Error. Exiting now");
+            LOG.error("Exception of type Error. Exiting now", t);
             ExitUtil.terminate(-1, t);
           }
           // FIXME NEWTEZ maybe send a container failed event to AM?
@@ -548,7 +548,7 @@ public class YarnTezDagChild {
     } catch (Throwable throwable) {
       // Heartbeats controlled manually after this.
       if (throwable instanceof Error) {
-        LOG.error("Exception of type Error. Exiting now");
+        LOG.error("Exception of type Error. Exiting now", throwable);
         ExitUtil.terminate(-1, throwable);
       }
       stopped.set(true);
