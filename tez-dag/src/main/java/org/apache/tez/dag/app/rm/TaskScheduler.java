@@ -1094,9 +1094,13 @@ public class TaskScheduler extends AbstractService
           throw new TezUncheckedException("New container " + container.getId()
               + " is already held.");
         }
+        long nextScheduleTime = delayedContainerManager.maxScheduleTimeSeen;
+        if (delayedContainerManager.maxScheduleTimeSeen == -1) {
+          nextScheduleTime = System.currentTimeMillis();
+        }
         Resources.addTo(allocatedResources, container.getResource());
         delayedContainerManager.addDelayedContainer(container,
-            delayedContainerManager.maxScheduleTimeSeen + 1);
+          nextScheduleTime + 1);
       }
     }
     delayedContainerManager.triggerScheduling(false);      

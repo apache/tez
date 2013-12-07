@@ -380,7 +380,7 @@ public class TestTaskScheduler {
   }
   
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  @Test
+  @Test(timeout=10000)
   public void testTaskSchedulerWithReuse() throws Exception {
     RackResolver.init(new YarnConfiguration());
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
