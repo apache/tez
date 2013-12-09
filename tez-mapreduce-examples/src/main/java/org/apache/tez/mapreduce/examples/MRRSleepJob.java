@@ -799,7 +799,7 @@ public class MRRSleepJob extends Configured implements Tool {
     reduceSleepCount = (int)Math.ceil(reduceSleepTime / ((double)recSleepTime));
     iReduceSleepCount = (int)Math.ceil(iReduceSleepTime / ((double)recSleepTime));
 
-    TezConfiguration conf = new TezConfiguration();
+    TezConfiguration conf = new TezConfiguration(getConf());
     FileSystem remoteFs = FileSystem.get(conf);
 
     TezClient tezClient = new TezClient(conf);

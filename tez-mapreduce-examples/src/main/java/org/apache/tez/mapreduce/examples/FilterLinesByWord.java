@@ -209,7 +209,7 @@ public class FilterLinesByWord {
     Vertex stage2Vertex = new Vertex("stage2", new ProcessorDescriptor(
         FilterByWordOutputProcessor.class.getName()).setUserPayload(MRHelpers
         .createUserPayloadFromConf(stage2Conf)), 1,
-        MRHelpers.getMapResource(stage2Conf));
+        MRHelpers.getReduceResource(stage2Conf));
     stage2Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage2Conf)).setTaskLocalResources(commonLocalResources);
     Map<String, String> stage2Env = new HashMap<String, String>();
     MRHelpers.updateEnvironmentForMRTasks(stage2Conf, stage2Env, false);
