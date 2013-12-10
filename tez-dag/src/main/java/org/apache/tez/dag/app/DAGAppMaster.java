@@ -79,6 +79,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
@@ -124,7 +125,6 @@ import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.history.events.AMStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.runtime.library.common.security.JobTokenIdentifier;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.security.TokenCache;
 
@@ -265,12 +265,17 @@ public class DAGAppMaster extends AbstractService {
     containerHeartbeatHandler = createContainerHeartbeatHandler(context, conf);
     addIfService(containerHeartbeatHandler, true);
 
-    JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(UUID
-        .randomUUID().toString()));
+    String sessionTokenUUID = UUID.randomUUID().toString();
+    JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
+        sessionTokenUUID));
     sessionToken = new Token<JobTokenIdentifier>(identifier,
         jobTokenSecretManager);
     sessionToken.setService(identifier.getJobId());
     TokenCache.setJobToken(sessionToken, tokens);
+    // Prepare the TaskAttemptListener server for authentication of Containers
+    // TaskAttemptListener gets the information via jobTokenSecretManager.
+    jobTokenSecretManager.addTokenForJob(sessionTokenUUID, sessionToken);
+    LOG.info("Adding session token to jobTokenSecretManager for sessionTokenUUID: " + sessionTokenUUID);
 
     //service to handle requests to TaskUmbilicalProtocol
     taskAttemptListener = createTaskAttemptListener(context,
@@ -476,13 +481,6 @@ public class DAGAppMaster extends AbstractService {
   protected DAG createDAG(DAGPlan dagPB) {
     TezDAGID dagId = TezDAGID.getInstance(appAttemptID.getApplicationId(),
         dagCounter.incrementAndGet());
-
-    // Prepare the TaskAttemptListener server for authentication of Containers
-    // TaskAttemptListener gets the information via jobTokenSecretManager.
-    String dagIdString = dagId.toString();
-    jobTokenSecretManager.addTokenForJob(dagIdString, sessionToken);
-    LOG.info("Adding job token for " + dagIdString
-        + " to jobTokenSecretManager");
 
     Iterator<PlanKeyValuePair> iter =
         dagPB.getDagKeyValues().getConfKeyValuesList().iterator();
@@ -941,7 +939,6 @@ public class DAGAppMaster extends AbstractService {
         wLock.unlock();
       }
     }
-
   }
 
   private class ServiceWithDependency implements ServiceStateChangeListener {

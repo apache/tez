@@ -35,6 +35,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.security.JobTokenIdentifier;
 
 
 /**

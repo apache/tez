@@ -25,10 +25,12 @@ import java.nio.ByteBuffer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.security.authorize.PolicyProvider;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
@@ -38,6 +40,7 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPBServerImpl;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.DAGClientAMProtocol;
 import org.apache.tez.dag.app.DAGAppMaster.DAGClientHandler;
+import org.apache.tez.dag.app.security.authorize.TezAMPolicyProvider;
 
 import com.google.protobuf.BlockingService;
 
@@ -75,6 +78,14 @@ public class DAGClientServer extends AbstractService {
 
       server = createServer(DAGClientAMProtocolBlockingPB.class, addr, conf,
                             numHandlers, blockingService, portRange);
+      
+      // Enable service authorization?
+      if (conf.getBoolean(
+          CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION,
+          false)) {
+        refreshServiceAcls(conf, new TezAMPolicyProvider());
+      }
+
       server.start();
       bindAddress = NetUtils.getConnectAddress(server);
       LOG.info("Instantiated DAGClientRPCServer at " + bindAddress);
@@ -82,6 +93,10 @@ public class DAGClientServer extends AbstractService {
       LOG.error("Failed to start DAGClientServer: ", e);
       throw new TezUncheckedException(e);
     }
+  }
+
+  private void refreshServiceAcls(Configuration configuration, PolicyProvider policyProvider) {
+    this.server.refreshServiceAcl(configuration, policyProvider);
   }
 
   @Override

@@ -34,7 +34,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.tez.runtime.library.common.security.JobTokenIdentifier;
+import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.sort.impl.IFileInputStream;
 

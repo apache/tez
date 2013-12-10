@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.library.common.security;
+package org.apache.tez.common.security;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -36,7 +36,7 @@ import org.apache.hadoop.security.token.TokenIdentifier;
 @InterfaceStability.Unstable
 public class JobTokenIdentifier extends TokenIdentifier {
   private Text jobid;
-  public final static Text KIND_NAME = new Text("mapreduce.job");
+  public final static Text KIND_NAME = new Text("tez.job");
   
   /**
    * Default constructor

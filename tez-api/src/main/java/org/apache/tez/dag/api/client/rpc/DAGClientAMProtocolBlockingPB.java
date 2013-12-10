@@ -22,7 +22,7 @@ import org.apache.hadoop.ipc.ProtocolInfo;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.DAGClientAMProtocol;
 
 @ProtocolInfo(
-    protocolName = "org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolPB",
+    protocolName = "org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB",
     protocolVersion = 1)
 public interface DAGClientAMProtocolBlockingPB 
                               extends DAGClientAMProtocol.BlockingInterface {

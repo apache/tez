@@ -48,7 +48,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerImpl;
 import org.apache.tez.dag.app.rm.container.AMContainerTask;
-import org.apache.tez.dag.app.security.authorize.MRAMPolicyProvider;
+import org.apache.tez.dag.app.security.authorize.TezAMPolicyProvider;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.impl.TezEvent;
@@ -128,7 +128,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       if (conf.getBoolean(
           CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION,
           false)) {
-        refreshServiceAcls(conf, new MRAMPolicyProvider());
+        refreshServiceAcls(conf, new TezAMPolicyProvider());
       }
 
       server.start();

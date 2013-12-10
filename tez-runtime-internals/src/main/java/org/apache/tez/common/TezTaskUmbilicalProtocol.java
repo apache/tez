@@ -24,19 +24,23 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.ipc.ProtocolInfo;
 import org.apache.hadoop.ipc.VersionedProtocol;
+import org.apache.hadoop.security.token.TokenInfo;
 import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
+import org.apache.tez.runtime.common.security.JobTokenSelector;
 
 /** Protocol that task child process uses to contact its parent process.  The
  * parent is a daemon which which polls the central master for a new map or
  * reduce task and runs it as a child process.  All communication between child
  * and parent is via this protocol. */
+@TokenInfo(JobTokenSelector.class)
 @InterfaceAudience.Private
 @InterfaceStability.Stable
-@ProtocolInfo(protocolName = "TezTaskUmbilicalProtocol", protocolVersion = 1)
+// ProtocolInfo will be required once we move to Hadoop PB RPC
+//@ProtocolInfo(protocolName = "TezTaskUmbilicalProtocol", protocolVersion = 1)
 public interface TezTaskUmbilicalProtocol extends VersionedProtocol {
 
   public static final long versionID = 19L;

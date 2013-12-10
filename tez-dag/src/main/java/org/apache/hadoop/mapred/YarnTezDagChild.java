@@ -65,6 +65,7 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.Limits;
+import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -83,7 +84,6 @@ import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryModule;
-import org.apache.tez.runtime.library.common.security.JobTokenIdentifier;
 import org.apache.tez.runtime.library.common.security.TokenCache;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 
@@ -302,9 +302,9 @@ public class YarnTezDagChild {
         UserGroupInformation.getCurrentUser().getCredentials();
 
     if (LOG.isDebugEnabled()) {
-      LOG.info("Executing with tokens:");
-      for (Token<?> token: credentials.getAllTokens()) {
-        LOG.info(token);
+      LOG.debug("Executing with tokens:");
+      for (Token<?> token : credentials.getAllTokens()) {
+        LOG.debug(token);
       }
     }
 

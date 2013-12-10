@@ -21,15 +21,15 @@ package org.apache.tez.dag.app;
 import java.lang.annotation.Annotation;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.v2.api.MRClientProtocolPB;
 import org.apache.hadoop.security.KerberosInfo;
 import org.apache.hadoop.security.SecurityInfo;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.security.token.TokenInfo;
 import org.apache.hadoop.security.token.TokenSelector;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSelector;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 
-public class MRClientSecurityInfo extends SecurityInfo {
+public class DAGClientSecurityInfo extends SecurityInfo {
 
   @Override
   public KerberosInfo getKerberosInfo(Class<?> protocol, Configuration conf) {
@@ -38,7 +38,7 @@ public class MRClientSecurityInfo extends SecurityInfo {
 
   @Override
   public TokenInfo getTokenInfo(Class<?> protocol, Configuration conf) {
-    if (!protocol.equals(MRClientProtocolPB.class)) {
+    if (!protocol.equals(DAGClientAMProtocolBlockingPB.class)) {
       return null;
     }
     return new TokenInfo() {
