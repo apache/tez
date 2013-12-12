@@ -141,15 +141,18 @@ public class TestVertexImpl {
     public int abortCounter = 0;
     private boolean throwError;
     private boolean throwErrorOnAbort;
+    private boolean throwRuntimeException;
 
     public CountingVertexOutputCommitter(boolean throwError,
-        boolean throwOnAbort) {
+        boolean throwOnAbort,
+        boolean throwRuntimeException) {
       this.throwError = throwError;
       this.throwErrorOnAbort = throwOnAbort;
+      this.throwRuntimeException = throwRuntimeException;
     }
 
     public CountingVertexOutputCommitter() {
-      this(false, false);
+      this(false, false, false);
     }
 
     @Override
@@ -166,7 +169,11 @@ public class TestVertexImpl {
     public void commitVertex() throws IOException {
       ++commitCounter;
       if (throwError) {
-        throw new IOException("I can throwz exceptions in commit");
+        if (!throwRuntimeException) {
+          throw new IOException("I can throwz exceptions in commit");
+        } else {
+          throw new RuntimeException("I can throwz exceptions in commit");
+        }
       }
     }
 
@@ -174,7 +181,11 @@ public class TestVertexImpl {
     public void abortVertex(VertexStatus.State finalState) throws IOException {
       ++abortCounter;
       if (throwErrorOnAbort) {
-        throw new IOException("I can throwz exceptions in abort");
+        if (!throwRuntimeException) {
+          throw new IOException("I can throwz exceptions in abort");
+        } else {
+          throw new RuntimeException("I can throwz exceptions in abort");
+        }
       }
     }
   }
@@ -1429,7 +1440,7 @@ public class TestVertexImpl {
     VertexImpl v = vertices.get("vertex2");
 
     CountingVertexOutputCommitter committer =
-        new CountingVertexOutputCommitter(true, true);
+        new CountingVertexOutputCommitter(true, true, false);
     v.setVertexOutputCommitter(committer);
 
     startVertex(v);
@@ -1451,7 +1462,39 @@ public class TestVertexImpl {
     Assert.assertEquals(0, committer.initCounter); // already done in init
     Assert.assertEquals(0, committer.setupCounter); // already done in init
   }
-  
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testBadCommitter2() {
+    initAllVertices(VertexState.INITED);
+
+    VertexImpl v = vertices.get("vertex2");
+
+    CountingVertexOutputCommitter committer =
+      new CountingVertexOutputCommitter(true, true, true);
+    v.setVertexOutputCommitter(committer);
+
+    startVertex(v);
+
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
+
+    dispatcher.getEventHandler().handle(
+      new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
+    dispatcher.getEventHandler().handle(
+      new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.FAILED, v.getState());
+    Assert.assertEquals(VertexTerminationCause.COMMIT_FAILURE, v.getTerminationCause());
+    Assert.assertEquals(1, committer.commitCounter);
+
+    // FIXME need to verify whether abort needs to be called if commit fails
+    Assert.assertEquals(0, committer.abortCounter);
+    Assert.assertEquals(0, committer.initCounter); // already done in init
+    Assert.assertEquals(0, committer.setupCounter); // already done in init
+  }
+
+
   @Test//(timeout = 5000)
   public void testVertexWithOneToOneSplit() {
     // create a diamond shaped dag with 1-1 edges. 

@@ -1046,10 +1046,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         try {
           if (!vertex.committed.getAndSet(true)) {
             // commit only once
+            LOG.info("Invoking committer commit for vertex, vertexId="
+                + vertex.logIdentifier);
             vertex.committer.commitVertex();
           }
-        } catch (IOException e) {
-          LOG.error("Failed to do commit on vertex, name=" + vertex.getName(), e);
+        } catch (Exception e) {
+          LOG.error("Failed to do commit on vertex, vertexId="
+              + vertex.logIdentifier, e);
           vertex.trySetTerminationCause(VertexTerminationCause.COMMIT_FAILURE);
           return vertex.finished(VertexState.FAILED);
         }
@@ -1162,11 +1165,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       committer = new MRVertexOutputCommitter();
     }
     try {
+      LOG.info("Invoking committer init for vertex, vertexId=" + logIdentifier);
       committer.init(vertexContext);
+      LOG.info("Invoking committer setup for vertex, vertexId="
+          + logIdentifier);
       committer.setupVertex();
-    } catch (IOException e) {
-      LOG.warn("Vertex init failed", e);
-      addDiagnostic("Job init failed : "
+    } catch (Exception e) {
+      LOG.warn("Vertex init failed, vertexId=" + logIdentifier, e);
+      addDiagnostic("Vertex init failed : "
           + StringUtils.stringifyException(e));
       trySetTerminationCause(VertexTerminationCause.INIT_FAILURE);
       abortVertex(VertexStatus.State.FAILED);
@@ -1578,9 +1584,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private void abortVertex(VertexStatus.State finalState) {
     try {
+      LOG.info("Invoking committer abort for vertex, vertexId="
+          + logIdentifier);
       committer.abortVertex(finalState);
-    } catch (IOException e) {
-      LOG.warn("Could not abort vertex, name=" + getName(), e);
+    } catch (Exception e) {
+      LOG.warn("Could not abort vertex, vertexId=" + logIdentifier, e);
     }
 
     if (finishTime == 0) {
