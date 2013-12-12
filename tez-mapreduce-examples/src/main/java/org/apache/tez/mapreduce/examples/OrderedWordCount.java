@@ -44,7 +44,9 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -145,7 +147,9 @@ public class OrderedWordCount {
     }
   }
 
-  private static DAG createDAG(FileSystem fs, Configuration conf,
+  private Credentials credentials = new Credentials();
+  
+  private DAG createDAG(FileSystem fs, Configuration conf,
       Map<String, LocalResource> commonLocalResources, Path stagingDir,
       int dagIndex, String inputPath, String outputPath,
       boolean generateSplitsInClient) throws Exception {
@@ -329,6 +333,7 @@ public class OrderedWordCount {
     TezConfiguration tezConf = new TezConfiguration(conf);
     TezClient tezClient = new TezClient(tezConf);
     ApplicationId appId = tezClient.createApplication();
+    OrderedWordCount instance = new OrderedWordCount();
 
     FileSystem fs = FileSystem.get(conf);
 
@@ -338,6 +343,8 @@ public class OrderedWordCount {
     Path stagingDir = new Path(stagingDirStr);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
     stagingDir = fs.makeQualified(stagingDir);
+    
+    TokenCache.obtainTokensForNamenodes(instance.credentials, new Path[] {stagingDir}, conf);
     TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
 
     tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
@@ -346,9 +353,12 @@ public class OrderedWordCount {
     // No need to add jar containing this class as assumed to be part of
     // the tez jars.
 
+    // TEZ-674 Obtain tokens based on the Input / Output paths. For now assuming staging dir
+    // is the same filesystem as the one used for Input/Output.
+    
     TezSession tezSession = null;
     AMConfiguration amConfig = new AMConfiguration(null,
-        null, tezConf, null);
+        null, tezConf, instance.credentials);
     if (useTezSession) {
       LOG.info("Creating Tez Session");
       TezSessionConfiguration sessionConfig =
@@ -393,7 +403,8 @@ public class OrderedWordCount {
 
         Map<String, LocalResource> localResources =
           new TreeMap<String, LocalResource>();
-        DAG dag = createDAG(fs, conf, localResources,
+        
+        DAG dag = instance.createDAG(fs, conf, localResources,
             stagingDir, dagIndex, inputPath, outputPath,
             generateSplitsInClient);
 

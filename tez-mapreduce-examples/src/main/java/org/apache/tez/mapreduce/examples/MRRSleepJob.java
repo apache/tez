@@ -51,6 +51,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.mapreduce.security.TokenCache;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.util.ClassUtil;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -416,6 +418,8 @@ public class MRRSleepJob extends Configured implements Tool {
     int res = ToolRunner.run(new Configuration(), new MRRSleepJob(), args);
     System.exit(res);
   }
+  
+  private Credentials credentials = new Credentials();
 
   public DAG createDAG(FileSystem remoteFs, Configuration conf,
       ApplicationId appId, Path remoteStagingDir,
@@ -541,6 +545,9 @@ public class MRRSleepJob extends Configured implements Tool {
           throw new TezUncheckedException("Could not generate input splits", e);
         }
       }
+      if (inputSplitInfo.getCredentials() != null) {
+        this.credentials.addAll(inputSplitInfo.getCredentials());
+      }
     }
 
     DAG dag = new DAG("MRRSleepJob");
@@ -553,6 +560,9 @@ public class MRRSleepJob extends Configured implements Tool {
         new Path(remoteStagingDir, "dag_job.jar"));
     remoteFs.copyFromLocalFile(new Path(jarPath), remoteJarPath);
     FileStatus jarFileStatus = remoteFs.getFileStatus(remoteJarPath);
+    
+    TokenCache.obtainTokensForNamenodes(this.credentials, new Path[] { remoteJarPath },
+        mapStageConf);
 
     Map<String, LocalResource> commonLocalResources =
         new HashMap<String, LocalResource>();
@@ -827,7 +837,7 @@ public class MRRSleepJob extends Configured implements Tool {
         MRHelpers.getMRAMJavaOpts(conf));
 
     AMConfiguration amConfig = new AMConfiguration(null,
-        null, conf, null);
+        null, conf, this.credentials);
 
     DAGClient dagClient =
         tezClient.submitDAGApplication(appId, dag, amConfig);

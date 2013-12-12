@@ -39,6 +39,8 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.security.TokenCache;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.util.ClassUtil;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -91,6 +93,7 @@ public class FilterLinesByWord {
   public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, TezException {
     Configuration conf = new Configuration();
     String [] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+    Credentials credentials = new Credentials();
 
     boolean generateSplitsInClient = false;
 
@@ -137,6 +140,7 @@ public class FilterLinesByWord {
     Path remoteJarPath = fs.makeQualified(new Path(stagingDir, "dag_job.jar"));
     fs.copyFromLocalFile(new Path(jarPath), remoteJarPath);
     FileStatus remoteJarStatus = fs.getFileStatus(remoteJarPath);
+    TokenCache.obtainTokensForNamenodes(credentials, new Path[]{remoteJarPath}, conf);
 
     Map<String, LocalResource> commonLocalResources = new TreeMap<String, LocalResource>();
     LocalResource dagJarLocalRsrc = LocalResource.newInstance(
@@ -147,7 +151,7 @@ public class FilterLinesByWord {
 
 
 
-    AMConfiguration amConf = new AMConfiguration(null, commonLocalResources, tezConf, null);
+    AMConfiguration amConf = new AMConfiguration(null, commonLocalResources, tezConf, credentials);
     TezSessionConfiguration sessionConf = new TezSessionConfiguration(amConf, tezConf);
     TezSession tezSession = new TezSession("FilterLinesByWordSession", sessionConf);
     tezSession.start(); // Why do I need to start the TezSession.
@@ -162,6 +166,9 @@ public class FilterLinesByWord {
     InputSplitInfo inputSplitInfo = null;
     if (generateSplitsInClient) {
       inputSplitInfo = MRHelpers.generateInputSplits(stage1Conf, stagingDir);
+      if (inputSplitInfo.getCredentials() != null) {
+        credentials.addAll(inputSplitInfo.getCredentials());
+      }
     }
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage1Conf, null);
 

@@ -21,6 +21,7 @@ package org.apache.tez.mapreduce.hadoop;
 import java.util.List;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.Credentials;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 
@@ -36,12 +37,14 @@ public class InputSplitInfoMem implements InputSplitInfo {
   private final MRSplitsProto splitsProto;
   private final List<TaskLocationHint> taskLocationHints;
   private final int numTasks;
+  private final Credentials credentials;
 
   public InputSplitInfoMem(MRSplitsProto splitsProto,
-      List<TaskLocationHint> taskLocationHints, int numTasks) {
+      List<TaskLocationHint> taskLocationHints, int numTasks, Credentials credentials) {
     this.splitsProto = splitsProto;
     this.taskLocationHints = taskLocationHints;
     this.numTasks = numTasks;
+    this.credentials = credentials;
   }
 
   @Override
@@ -76,4 +79,8 @@ public class InputSplitInfoMem implements InputSplitInfo {
     return this.splitsProto;
   }
 
+  @Override
+  public Credentials getCredentials() {
+    return this.credentials;
+  }
 }

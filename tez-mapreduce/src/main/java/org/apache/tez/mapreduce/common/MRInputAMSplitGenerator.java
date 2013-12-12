@@ -116,7 +116,7 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
           }
         }
         inputSplitInfo = new InputSplitInfoMem(splitsBuilder.build(),
-            locationHints, splits.length);
+            locationHints, splits.length, null);
       } else {
         LOG.info("Grouping mapred api input splits");
         org.apache.hadoop.mapred.InputSplit[] splits = MRHelpers
@@ -142,7 +142,7 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
           }
         }
         inputSplitInfo = new InputSplitInfoMem(splitsBuilder.build(),
-            locationHints, splits.length);
+            locationHints, splits.length, null);
       }
     } else {
       inputSplitInfo = MRHelpers.generateInputSplitsToMem(conf);

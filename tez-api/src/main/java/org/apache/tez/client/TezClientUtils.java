@@ -225,6 +225,12 @@ public class TezClientUtils {
 
     FileSystem fs = TezClientUtils.ensureStagingDirExists(conf,
         amConfig.getStagingDir());
+    Path binaryConfPath =  new Path(amConfig.getStagingDir(),
+        TezConfiguration.TEZ_PB_BINARY_CONF_NAME + "." + appId.toString());
+    binaryConfPath = fs.makeQualified(binaryConfPath);
+    
+    // TODO TEZ-674 - Obtain tokens for the staging dir. Ideally TokenCache should be used,
+    // but that's in a separate module. Similarly Master is in a separate module.
 
     // Setup resource requirements
     Resource capability = Records.newRecord(Resource.class);
@@ -306,8 +312,7 @@ public class TezClientUtils {
     // emit conf as PB file
     Configuration finalTezConf = createFinalTezConfForApp(conf,
       amConfig.getAMConf());
-    Path binaryConfPath =  new Path(amConfig.getStagingDir(),
-        TezConfiguration.TEZ_PB_BINARY_CONF_NAME + "." + appId.toString());
+    
     FSDataOutputStream amConfPBOutBinaryStream = null;
     try {
       ConfigurationProto.Builder confProtoBuilder =

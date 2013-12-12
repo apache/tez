@@ -21,6 +21,7 @@ package org.apache.tez.mapreduce.hadoop;
 import java.util.List;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.Credentials;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 
@@ -40,20 +41,22 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 public class InputSplitInfoDisk implements InputSplitInfo {
 
   /// Splits file
-  private Path splitsFile;
+  private final Path splitsFile;
   /// Meta info file for all the splits information
-  private Path splitsMetaInfoFile;
+  private final Path splitsMetaInfoFile;
   /// Location hints to determine where to run the tasks
-  private List<TaskLocationHint> taskLocationHints;
+  private final List<TaskLocationHint> taskLocationHints;
   /// The num of tasks - same as number of splits generated.
-  private int numTasks;
+  private final int numTasks;
+  private final Credentials credentials;
 
   public InputSplitInfoDisk(Path splitsFile, Path splitsMetaInfoFile, int numTasks,
-      List<TaskLocationHint> taskLocationHints) {
+      List<TaskLocationHint> taskLocationHints, Credentials credentials) {
     this.splitsFile = splitsFile;
     this.splitsMetaInfoFile = splitsMetaInfoFile;
     this.taskLocationHints = taskLocationHints;
     this.numTasks = numTasks;
+    this.credentials = credentials;
   }
 
   /* (non-Javadoc)
@@ -97,6 +100,11 @@ public class InputSplitInfoDisk implements InputSplitInfo {
   public MRSplitsProto getSplitsProto() {
     throw new UnsupportedOperationException("Not supported for Type: "
         + getType());
+  }
+  
+  @Override
+  public Credentials getCredentials() {
+    return this.credentials;
   }
 
 }
