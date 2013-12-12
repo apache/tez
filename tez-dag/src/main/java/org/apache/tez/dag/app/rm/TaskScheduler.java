@@ -110,6 +110,7 @@ public class TaskScheduler extends AbstractService
                                 );
     public void onError(Throwable t);
     public float getProgress();
+    public void preemptContainer(ContainerId containerId);
     public AppFinalStatus getFinalAppStatus();
   }
 
@@ -888,67 +889,75 @@ public class TaskScheduler extends AbstractService
     return null;
   }
 
-  synchronized void preemptIfNeeded() {
-    Resource freeResources = Resources.subtract(totalResources,
-      allocatedResources);
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Allocated resource memory: " + allocatedResources.getMemory() +
-        " cpu:" + allocatedResources.getVirtualCores() + 
-        " delayedContainers: " + delayedContainerManager.delayedContainers.size());
+  void preemptIfNeeded() {
+    ContainerId preemptedContainer = null;
+    synchronized (this) {
+      Resource freeResources = Resources.subtract(totalResources,
+        allocatedResources);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Allocated resource memory: " + allocatedResources.getMemory() +
+          " cpu:" + allocatedResources.getVirtualCores() + 
+          " delayedContainers: " + delayedContainerManager.delayedContainers.size());
+      }
+      assert freeResources.getMemory() >= 0;
+      
+      if (delayedContainerManager.delayedContainers.size() > 0) {
+        // if we are holding onto containers then nothing to preempt from outside
+        return;
+      }
+  
+      CookieContainerRequest highestPriRequest = null;
+      for(CookieContainerRequest request : taskRequests.values()) {
+        if(highestPriRequest == null) {
+          highestPriRequest = request;
+        } else if(isHigherPriority(request.getPriority(),
+                                     highestPriRequest.getPriority())){
+          highestPriRequest = request;
+        }
+      }
+      if(highestPriRequest != null &&
+         !fitsIn(highestPriRequest.getCapability(), freeResources)) {
+        // highest priority request will not fit in existing free resources
+        // free up some more
+        // TODO this is subject to error wrt RM resource normalization
+        Map.Entry<Object, Container> preemptedEntry = null;
+        for(Map.Entry<Object, Container> entry : taskAllocations.entrySet()) {
+          HeldContainer heldContainer = heldContainers.get(entry.getValue().getId());
+          CookieContainerRequest lastTaskInfo = heldContainer.getLastTaskInfo();
+          Priority taskPriority = lastTaskInfo.getPriority();
+          Object signature = lastTaskInfo.getCookie().getContainerSignature();
+          if(!isHigherPriority(highestPriRequest.getPriority(), taskPriority)) {
+            // higher or same priority
+            continue;
+          }
+          if (containerSignatureMatcher.isExactMatch(
+              highestPriRequest.getCookie().getContainerSignature(),
+              signature)) {
+            // exact match with different priorities
+            continue;
+          }
+          if(preemptedEntry == null ||
+             !isHigherPriority(taskPriority, 
+                 preemptedEntry.getValue().getPriority())) {
+            // keep the lower priority or the one added later
+            preemptedEntry = entry;
+          }
+        }
+        if(preemptedEntry != null) {
+          // found something to preempt
+          LOG.info("Preempting task: " + preemptedEntry.getKey() +
+              " to free resource for request: " + highestPriRequest +
+              " . Current free resources: " + freeResources);
+          preemptedContainer = preemptedEntry.getValue().getId();
+          // app client will be notified when after container is killed
+          // and we get its completed container status
+        }
+      }
     }
-    assert freeResources.getMemory() >= 0;
     
-    if (delayedContainerManager.delayedContainers.size() > 0) {
-      // if we are holding onto containers then nothing to preempt from outside
-      return;
-    }
-
-    CookieContainerRequest highestPriRequest = null;
-    for(CookieContainerRequest request : taskRequests.values()) {
-      if(highestPriRequest == null) {
-        highestPriRequest = request;
-      } else if(isHigherPriority(request.getPriority(),
-                                   highestPriRequest.getPriority())){
-        highestPriRequest = request;
-      }
-    }
-    if(highestPriRequest != null &&
-       !fitsIn(highestPriRequest.getCapability(), freeResources)) {
-      // highest priority request will not fit in existing free resources
-      // free up some more
-      // TODO this is subject to error wrt RM resource normalization
-      Map.Entry<Object, Container> preemptedEntry = null;
-      for(Map.Entry<Object, Container> entry : taskAllocations.entrySet()) {
-        HeldContainer heldContainer = heldContainers.get(entry.getValue().getId());
-        CookieContainerRequest lastTaskInfo = heldContainer.getLastTaskInfo();
-        Priority taskPriority = lastTaskInfo.getPriority();
-        Object signature = lastTaskInfo.getCookie().getContainerSignature();
-        if(!isHigherPriority(highestPriRequest.getPriority(), taskPriority)) {
-          // higher or same priority
-          continue;
-        }
-        if (containerSignatureMatcher.isExactMatch(
-            highestPriRequest.getCookie().getContainerSignature(),
-            signature)) {
-          // exact match with different priorities
-          continue;
-        }
-        if(preemptedEntry == null ||
-           !isHigherPriority(taskPriority, 
-               preemptedEntry.getValue().getPriority())) {
-          // keep the lower priority or the one added later
-          preemptedEntry = entry;
-        }
-      }
-      if(preemptedEntry != null) {
-        // found something to preempt
-        LOG.info("Preempting task: " + preemptedEntry.getKey() +
-            " to free resource for request: " + highestPriRequest +
-            " . Current free resources: " + freeResources);
-        deallocateContainer(preemptedEntry.getValue().getId());
-        // app client will be notified when after container is killed
-        // and we get its completed container status
-      }
+    // upcall outside locks
+    if (preemptedContainer != null) {
+      appClientDelegate.preemptContainer(preemptedContainer);
     }
   }
 

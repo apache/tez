@@ -34,6 +34,7 @@ public enum TaskAttemptEventType {
   TA_COMMIT_PENDING,
   TA_DONE,
   TA_FAILED,
+  TA_KILLED,
   TA_TIMED_OUT,
   
 //Producer: Client

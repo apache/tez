@@ -286,6 +286,12 @@ class TestTaskSchedulerHelpers {
       return real.getFinalAppStatus();
     }
 
+    @Override
+    public void preemptContainer(ContainerId cId) {
+      invocations++;
+      real.preemptContainer(cId);
+    }
+
     public void drain() throws InterruptedException, ExecutionException {
       while (completedEvents < invocations) {
         Future f = completionService.poll(5000l, TimeUnit.MILLISECONDS);

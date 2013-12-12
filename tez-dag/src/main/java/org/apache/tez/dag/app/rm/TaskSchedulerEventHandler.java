@@ -31,6 +31,7 @@ import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.ContainerState;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
@@ -515,5 +516,13 @@ public class TaskSchedulerEventHandler extends AbstractService
 
   public void dagCompleted() {
     taskScheduler.resetMatchLocalityForAllHeldContainers();
+  }
+
+  @Override
+  public void preemptContainer(ContainerId containerId) {
+    taskScheduler.deallocateContainer(containerId);
+    // Inform the Containers about completion.
+    sendEvent(new AMContainerEventCompleted(ContainerStatus.newInstance(
+        containerId, ContainerState.COMPLETE, "Container Preempted Internally", -1), true));
   }
 }

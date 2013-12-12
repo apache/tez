@@ -45,6 +45,7 @@ import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptKilled;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminating;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventNodeFailed;
@@ -482,8 +483,13 @@ public class AMContainerImpl implements AMContainer {
       AMContainerEventCompleted event = (AMContainerEventCompleted) cEvent;
       if (container.pendingAttempt != null) {
         String errorMessage = getMessage(container, event);
-        container.sendTerminatedToTaskAttempt(container.pendingAttempt,
-            errorMessage);
+        if (event.isPreempted()) {
+          container.sendKilledToTaskAttempt(container.pendingAttempt,
+              errorMessage);
+        } else {
+          container.sendTerminatedToTaskAttempt(container.pendingAttempt,
+              errorMessage);
+        }
         container.registerFailedAttempt(container.pendingAttempt);
         container.pendingAttempt = null;
         LOG.warn(errorMessage);
@@ -500,7 +506,8 @@ public class AMContainerImpl implements AMContainer {
     public String getMessage(AMContainerImpl container,
         AMContainerEventCompleted event) {
       return "Container" + container.getContainerId()
-          + " COMPLETED while trying to launch. Diagnostics: ["
+          + (event.isPreempted() ? " PREEMPTED" : " COMPLETED")
+          + " while trying to launch. Diagnostics: ["
           + event.getContainerStatus().getDiagnostics() +"]";
     }
   }
@@ -645,7 +652,8 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public String getMessage(
         AMContainerImpl container, AMContainerEventCompleted event) {
-      return "Container " + container.getContainerId() + " COMPLETED"
+      return "Container " + container.getContainerId()
+          + (event.isPreempted() ? " PREEMPTED" : " COMPLETED")
           + " with diagnostics set to ["
           + event.getContainerStatus().getDiagnostics() + "]";
     }
@@ -717,8 +725,13 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventCompleted event = (AMContainerEventCompleted) cEvent;
-      container.sendTerminatedToTaskAttempt(container.runningAttempt,
-          getMessage(container, event));
+      if (event.isPreempted()) {
+        container.sendKilledToTaskAttempt(container.runningAttempt,
+            getMessage(container, event));
+      } else {
+        container.sendTerminatedToTaskAttempt(container.runningAttempt,
+            getMessage(container, event));
+      }
       container.unregisterAttemptFromListener(container.runningAttempt);
       container.registerFailedAttempt(container.runningAttempt);
       container.runningAttempt = null;
@@ -919,6 +932,11 @@ public class AMContainerImpl implements AMContainer {
   protected void sendTerminatedToTaskAttempt(
       TezTaskAttemptID taId, String message) {
     sendEvent(new TaskAttemptEventContainerTerminated(taId, message));
+  }
+  
+  protected void sendKilledToTaskAttempt(
+    TezTaskAttemptID taId, String message) {
+      sendEvent(new TaskAttemptEventAttemptKilled(taId, message));
   }
 
   protected void sendTerminatingToTaskAttempt(TezTaskAttemptID taId,

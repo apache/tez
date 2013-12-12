@@ -675,7 +675,7 @@ public class TestTaskScheduler {
     scheduler.close();
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({ "unchecked", "rawtypes" })
   @Test
   public void testTaskSchedulerPreemption() throws Exception {
     RackResolver.init(new YarnConfiguration());
@@ -689,7 +689,7 @@ public class TestTaskScheduler {
     String appHost = "host";
     int appPort = 0;
     String appUrl = "url";
-    TaskSchedulerWithDrainableAppCallback scheduler =
+    final TaskSchedulerWithDrainableAppCallback scheduler =
       new TaskSchedulerWithDrainableAppCallback(
         mockApp, new PreemptionMatcher(), appHost, appPort,
         appUrl, mockRMClient, mockAppContext);
@@ -830,6 +830,16 @@ public class TestTaskScheduler {
           }
 
         });
+    
+    Mockito.doAnswer(new Answer() {
+      public Object answer(InvocationOnMock invocation) {
+          Object[] args = invocation.getArguments();
+          ContainerId cId = (ContainerId) args[0];
+          scheduler.deallocateContainer(cId);
+          return null;
+      }})
+    .when(mockApp).preemptContainer((ContainerId)any());
+    
     scheduler.onContainersAllocated(containers);
     drainableAppCallback.drain();
     Assert.assertEquals(3072, scheduler.allocatedResources.getMemory());

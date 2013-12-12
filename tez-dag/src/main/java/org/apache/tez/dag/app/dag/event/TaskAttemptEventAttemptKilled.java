@@ -16,32 +16,21 @@
 * limitations under the License.
 */
 
-package org.apache.tez.dag.app.rm.container;
+package org.apache.tez.dag.app.dag.event;
 
-import org.apache.hadoop.yarn.api.records.ContainerStatus;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
-public class AMContainerEventCompleted extends AMContainerEvent {
+public class TaskAttemptEventAttemptKilled extends TaskAttemptEvent 
+  implements DiagnosableEvent {
 
-  private final ContainerStatus containerStatus;
-  private final boolean isPreempted;
-
-  public AMContainerEventCompleted(ContainerStatus containerStatus) {
-    this(containerStatus, false);
-  }
-  
-  public AMContainerEventCompleted(ContainerStatus containerStatus, 
-      boolean isPreempted) {
-    super(containerStatus.getContainerId(), AMContainerEventType.C_COMPLETED);
-    this.containerStatus = containerStatus;
-    this.isPreempted = isPreempted;
+  private final String diagnostics;
+  public TaskAttemptEventAttemptKilled(TezTaskAttemptID id, String diagnostics) {
+    super(id, TaskAttemptEventType.TA_KILLED);
+    this.diagnostics = diagnostics;
   }
 
-  public ContainerStatus getContainerStatus() {
-    return this.containerStatus;
+  @Override
+  public String getDiagnosticInfo() {
+    return diagnostics;
   }
-  
-  public boolean isPreempted() {
-    return isPreempted;
-  }
-
 }

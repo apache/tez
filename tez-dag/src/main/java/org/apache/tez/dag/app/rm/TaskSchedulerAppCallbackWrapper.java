@@ -119,6 +119,11 @@ class TaskSchedulerAppCallbackWrapper implements TaskSchedulerAppCallback {
       throw new TezUncheckedException(e);
     }
   }
+  
+  @Override
+  public void preemptContainer(ContainerId containerId) {
+    completionService.submit(new PreemptContainerCallable(real, containerId));
+  }
 
   @Override
   public AppFinalStatus getFinalAppStatus() {
@@ -271,6 +276,22 @@ class TaskSchedulerAppCallbackWrapper implements TaskSchedulerAppCallback {
     }
   }
 
+  static class PreemptContainerCallable extends TaskSchedulerAppCallbackBase 
+      implements Callable<Void> {
+    private final ContainerId containerId;
+    
+    public PreemptContainerCallable(TaskSchedulerAppCallback app, ContainerId id) {
+      super(app);
+      this.containerId = id;
+    }
+    
+    @Override
+    public Void call() throws Exception {
+      app.preemptContainer(containerId);
+      return null;
+    }
+  }
+  
   static class GetProgressCallable extends TaskSchedulerAppCallbackBase
       implements Callable<Float> {
 
