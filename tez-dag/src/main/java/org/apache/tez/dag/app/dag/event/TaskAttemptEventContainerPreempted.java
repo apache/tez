@@ -20,12 +20,12 @@ package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
-public class TaskAttemptEventAttemptKilled extends TaskAttemptEvent 
+public class TaskAttemptEventContainerPreempted extends TaskAttemptEvent 
   implements DiagnosableEvent {
 
   private final String diagnostics;
-  public TaskAttemptEventAttemptKilled(TezTaskAttemptID id, String diagnostics) {
-    super(id, TaskAttemptEventType.TA_KILLED);
+  public TaskAttemptEventContainerPreempted(TezTaskAttemptID id, String diagnostics) {
+    super(id, TaskAttemptEventType.TA_CONTAINER_PREEMPTED);
     this.diagnostics = diagnostics;
   }
 

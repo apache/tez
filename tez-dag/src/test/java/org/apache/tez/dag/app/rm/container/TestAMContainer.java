@@ -587,7 +587,7 @@ public class TestAMContainer {
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(2);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
         AMSchedulerEventType.S_CONTAINER_COMPLETED,
-        TaskAttemptEventType.TA_KILLED);
+        TaskAttemptEventType.TA_CONTAINER_PREEMPTED);
 
     assertFalse(wc.amContainer.isInErrorState());
 

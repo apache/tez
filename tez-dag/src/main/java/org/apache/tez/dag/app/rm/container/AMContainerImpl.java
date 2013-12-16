@@ -45,7 +45,7 @@ import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptKilled;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerPreempted;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminating;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventNodeFailed;
@@ -484,7 +484,7 @@ public class AMContainerImpl implements AMContainer {
       if (container.pendingAttempt != null) {
         String errorMessage = getMessage(container, event);
         if (event.isPreempted()) {
-          container.sendKilledToTaskAttempt(container.pendingAttempt,
+          container.sendPreemptedToTaskAttempt(container.pendingAttempt,
               errorMessage);
         } else {
           container.sendTerminatedToTaskAttempt(container.pendingAttempt,
@@ -726,7 +726,7 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventCompleted event = (AMContainerEventCompleted) cEvent;
       if (event.isPreempted()) {
-        container.sendKilledToTaskAttempt(container.runningAttempt,
+        container.sendPreemptedToTaskAttempt(container.runningAttempt,
             getMessage(container, event));
       } else {
         container.sendTerminatedToTaskAttempt(container.runningAttempt,
@@ -934,9 +934,9 @@ public class AMContainerImpl implements AMContainer {
     sendEvent(new TaskAttemptEventContainerTerminated(taId, message));
   }
   
-  protected void sendKilledToTaskAttempt(
+  protected void sendPreemptedToTaskAttempt(
     TezTaskAttemptID taId, String message) {
-      sendEvent(new TaskAttemptEventAttemptKilled(taId, message));
+      sendEvent(new TaskAttemptEventContainerPreempted(taId, message));
   }
 
   protected void sendTerminatingToTaskAttempt(TezTaskAttemptID taId,

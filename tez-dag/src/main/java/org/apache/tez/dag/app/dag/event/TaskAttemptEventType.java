@@ -34,7 +34,6 @@ public enum TaskAttemptEventType {
   TA_COMMIT_PENDING,
   TA_DONE,
   TA_FAILED,
-  TA_KILLED,
   TA_TIMED_OUT,
   
 //Producer: Client
@@ -52,6 +51,9 @@ public enum TaskAttemptEventType {
   // shutdown except for once case - likely when the RM decides to kill the
   // container. TODO: Document the case.
   TA_CONTAINER_TERMINATED,
+
+  // Container has either been preempted or will be preempted
+  TA_CONTAINER_PREEMPTED,
 
   // The node running the task attempt failed.
   TA_NODE_FAILED,
