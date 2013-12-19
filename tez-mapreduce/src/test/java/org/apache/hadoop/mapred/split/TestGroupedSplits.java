@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -46,6 +47,8 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.collect.Sets;
 
 import static org.mockito.Mockito.*;
 
@@ -285,7 +288,7 @@ public class TestGroupedSplits {
   }  
   
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  @Test//(timeout=10000)
+  @Test(timeout=10000)
   public void testGroupedSplitSize() throws IOException {
     JobConf job = new JobConf(defaultConf);
     InputFormat mockWrappedFormat = mock(InputFormat.class);
@@ -321,6 +324,38 @@ public class TestGroupedSplits {
     splits = format.getSplits(job, 0);
     Assert.assertEquals(25, splits.length);
     
+  }
+
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @Test(timeout=10000)
+  public void testGroupedSplitWithDuplicates() throws IOException {
+    JobConf job = new JobConf(defaultConf);
+    InputFormat mockWrappedFormat = mock(InputFormat.class);
+    TezGroupedSplitsInputFormat<LongWritable , Text> format = 
+        new TezGroupedSplitsInputFormat<LongWritable, Text>();
+    format.setConf(job);
+    format.setInputFormat(mockWrappedFormat);
+    
+    // put multiple splits with multiple copies in the same location
+    String[] locations = {"common", "common", "common"};
+    int numSplits = 3;
+    InputSplit[] mockSplits = new InputSplit[numSplits];
+    for (int i=0; i<numSplits; i++) {
+      InputSplit mockSplit = mock(InputSplit.class);
+      when(mockSplit.getLength()).thenReturn(10*1000*1000l);
+      when(mockSplit.getLocations()).thenReturn(locations);
+      mockSplits[i] = mockSplit;
+    }
+    when(mockWrappedFormat.getSplits((JobConf)anyObject(), anyInt())).thenReturn(mockSplits);
+    
+    format.setDesiredNumberOfSplits(1);
+    InputSplit[] splits = format.getSplits(job, 1);
+    Assert.assertEquals(1, splits.length);
+    TezGroupedSplit split = (TezGroupedSplit) splits[0];
+    // all 3 splits are present
+    Assert.assertEquals(numSplits, split.wrappedSplits.size());
+    Set<InputSplit> splitSet = Sets.newHashSet(split.wrappedSplits);
+    Assert.assertEquals(numSplits, splitSet.size());
   }
 
 }

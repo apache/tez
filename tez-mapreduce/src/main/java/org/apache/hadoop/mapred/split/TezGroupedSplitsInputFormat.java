@@ -229,16 +229,21 @@ public class TezGroupedSplitsInputFormat<K, V>
 
     // allocation loop here so that we have a good initial size for the lists
     for (String location : distinctLocations.keySet()) {
-      distinctLocations.put(location, new LocationHolder(numSplitsPerLocation));
+      distinctLocations.put(location, new LocationHolder(numSplitsPerLocation+1));
     }
     
+    Set<String> locSet = new HashSet<String>();
     for (InputSplit split : originalSplits) {
+      locSet.clear();
       SplitHolder splitHolder = new SplitHolder(split);
       String[] locations = split.getLocations();
       if (locations == null || locations.length == 0) {
         locations = emptyLocations;
       }
-      for (String location : locations ) {
+      for (String location : locations) {
+        locSet.add(location);
+      }
+      for (String location : locSet) {
         LocationHolder holder = distinctLocations.get(location);
         holder.splits.add(splitHolder);
       }
@@ -333,6 +338,8 @@ public class TezGroupedSplitsInputFormat<K, V>
                 ((doingRackLocal && location != emptyLocation)?location:null));
         for (SplitHolder groupedSplitHolder : group) {
           groupedSplit.addSplit(groupedSplitHolder.split);
+          Preconditions.checkState(groupedSplitHolder.isProcessed == false, 
+              "Duplicates in grouping at location: " + location);
           groupedSplitHolder.isProcessed = true;
           splitsProcessed++;
         }
