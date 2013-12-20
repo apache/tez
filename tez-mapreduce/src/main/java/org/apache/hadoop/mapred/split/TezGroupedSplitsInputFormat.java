@@ -218,6 +218,9 @@ public class TezGroupedSplitsInputFormat<K, V>
         locations = emptyLocations;
       }
       for (String location : locations ) {
+        if (location == null) {
+          location = emptyLocation;
+        }
         distinctLocations.put(location, null);
       }
     }
@@ -241,6 +244,9 @@ public class TezGroupedSplitsInputFormat<K, V>
         locations = emptyLocations;
       }
       for (String location : locations) {
+        if (location == null) {
+          location = emptyLocation;
+        }
         locSet.add(location);
       }
       for (String location : locSet) {
@@ -318,18 +324,20 @@ public class TezGroupedSplitsInputFormat<K, V>
 
         // One split group created
         String[] groupLocation = {location};
-        if (doingRackLocal) {
+        if (location == emptyLocation) {
+          groupLocation = null;
+        } else if (doingRackLocal) {
           for (SplitHolder splitH : group) {
             String[] locations = splitH.split.getLocations();
             if (locations != null) {
               for (String loc : locations) {
-                groupLocationSet.add(loc);
+                if (loc != null) {
+                  groupLocationSet.add(loc);
+                }
               }
             }
           }
           groupLocation = groupLocationSet.toArray(groupLocation);
-        } else if (location == emptyLocation) {
-          groupLocation = null;
         }
         TezGroupedSplit groupedSplit = 
             new TezGroupedSplit(group.size(), wrappedInputFormatName, 
@@ -398,6 +406,9 @@ public class TezGroupedSplitsInputFormat<K, V>
             locations = emptyLocations;
           }
           for (String location : locations ) {
+            if ( location == null) {
+              location = emptyLocation;
+            }
             rackSet.add(locToRackMap.get(location));
           }
           for (String rack : rackSet) {

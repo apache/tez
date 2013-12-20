@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.mapred.split;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -356,6 +358,44 @@ public class TestGroupedSplits {
     Assert.assertEquals(numSplits, split.wrappedSplits.size());
     Set<InputSplit> splitSet = Sets.newHashSet(split.wrappedSplits);
     Assert.assertEquals(numSplits, splitSet.size());
+  }
+  
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @Test(timeout=10000)
+  public void testGroupedSplitWithBadLocations() throws IOException {
+    JobConf job = new JobConf(defaultConf);
+    InputFormat mockWrappedFormat = mock(InputFormat.class);
+    TezGroupedSplitsInputFormat<LongWritable , Text> format = 
+        new TezGroupedSplitsInputFormat<LongWritable, Text>();
+    format.setConf(job);
+    format.setInputFormat(mockWrappedFormat);
+    
+    // put multiple splits with multiple copies in the same location
+    int numSplits = 3;
+    InputSplit[] mockSplits = new InputSplit[numSplits];
+    InputSplit mockSplit1 = mock(InputSplit.class);
+    when(mockSplit1.getLength()).thenReturn(10*1000*1000l);
+    when(mockSplit1.getLocations()).thenReturn(null);
+    mockSplits[0] = mockSplit1;
+    InputSplit mockSplit2 = mock(InputSplit.class);
+    when(mockSplit2.getLength()).thenReturn(10*1000*1000l);
+    when(mockSplit2.getLocations()).thenReturn(new String[] {null});
+    mockSplits[1] = mockSplit2;
+    InputSplit mockSplit3 = mock(InputSplit.class);
+    when(mockSplit3.getLength()).thenReturn(10*1000*1000l);
+    when(mockSplit3.getLocations()).thenReturn(new String[] {null, null});
+    mockSplits[2] = mockSplit3;
+
+    when(mockWrappedFormat.getSplits((JobConf)anyObject(), anyInt())).thenReturn(mockSplits);
+    
+    format.setDesiredNumberOfSplits(1);
+    InputSplit[] splits = format.getSplits(job, 1);
+    Assert.assertEquals(1, splits.length);
+    TezGroupedSplit split = (TezGroupedSplit) splits[0];
+    // all 3 splits are present
+    Assert.assertEquals(numSplits, split.wrappedSplits.size());
+    ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+    split.write(new DataOutputStream(bOut));
   }
 
 }
