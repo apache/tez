@@ -18,8 +18,10 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -76,6 +78,8 @@ import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
@@ -104,6 +108,8 @@ import org.junit.Test;
 import org.mockito.internal.util.collections.Sets;
 
 import com.google.common.collect.Lists;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class TestVertexImpl {
 
@@ -123,13 +129,13 @@ public class TestVertexImpl {
   private Clock clock = new SystemClock();
   private TaskHeartbeatHandler thh;
   private AppContext appContext;
-  private VertexLocationHint vertexLocationHint;
+  private VertexLocationHint vertexLocationHint = null;
   private Configuration conf;
   private Map<String, Edge> edges;
 
+  private TaskAttemptEventDispatcher taskAttemptEventDispatcher;
   private TaskEventDispatcher taskEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
-
   private DagEventDispatcher dagEventDispatcher;
 
   private class CountingVertexOutputCommitter extends
@@ -187,6 +193,18 @@ public class TestVertexImpl {
           throw new RuntimeException("I can throwz exceptions in abort");
         }
       }
+    }
+  }
+
+  private class TaskAttemptEventDispatcher implements EventHandler<TaskAttemptEvent> {
+    @SuppressWarnings("unchecked")
+    @Override
+    public void handle(TaskAttemptEvent event) {
+      VertexImpl vertex = vertexIdMap.get(
+        event.getTaskAttemptID().getTaskID().getVertexID());
+      Task task = vertex.getTask(event.getTaskAttemptID().getTaskID());
+      ((EventHandler<TaskAttemptEvent>)task.getAttempt(
+          event.getTaskAttemptID())).handle(event);
     }
   }
 
@@ -295,25 +313,26 @@ public class TestVertexImpl {
                 .setType(PlanVertexType.NORMAL)
                 .addInputs(
                     RootInputLeafOutputProto.newBuilder()
-                    .setInitializerClassName(initializerClassName)
-                    .setName("input2")
-                    .setEntityDescriptor(
-                        TezEntityDescriptorProto.newBuilder()
-                            .setClassName("InputClazz")
-                            .build()
-                    ).build()
-                )
+                        .setInitializerClassName(initializerClassName)
+                        .setName("input2")
+                        .setEntityDescriptor(
+                            TezEntityDescriptorProto.newBuilder()
+                              .setClassName("InputClazz")
+                              .build()
+                        )
+                        .build()
+                    )
                 .setTaskConfig(
                     PlanTaskConfiguration.newBuilder()
-                    .setNumTasks(-1)
-                    .setVirtualCores(4)
-                    .setMemoryMb(1024)
-                    .setJavaOpts("")
-                    .setTaskModule("x2.y2")
-                    .build()
+                        .setNumTasks(-1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x2.y2")
+                        .build()
                 )
                 .addInEdgeId("e1")
-            .build()
+              .build()
         )
         .addEdge(
             EdgePlan.newBuilder()
@@ -327,7 +346,7 @@ public class TestVertexImpl {
                 .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
                 .build()
             )
-    .build();
+        .build();
     return dag;
   }
   
@@ -692,6 +711,230 @@ public class TestVertexImpl {
     return dag;
   }
 
+  // Create a plan with 3 vertices: A, B, C
+  // A -> B, A -> C, B -> C
+  private DAGPlan createSamplerDAGPlan() {
+    LOG.info("Setting up dag plan");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("TestSamplerDAG")
+        .addVertex(
+          VertexPlan.newBuilder()
+            .setName("A")
+            .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("A.class"))
+            .setType(PlanVertexType.NORMAL)
+            .addTaskLocationHint(
+              PlanTaskLocationHint.newBuilder()
+                .addHost("host1")
+                .addRack("rack1")
+                .build()
+            )
+            .setTaskConfig(
+              PlanTaskConfiguration.newBuilder()
+                .setNumTasks(1)
+                .setVirtualCores(4)
+                .setMemoryMb(1024)
+                .setJavaOpts("")
+                .setTaskModule("A.class")
+                .build()
+            )
+            .addOutEdgeId("A_B")
+            .addOutEdgeId("A_C")
+            .build()
+        )
+        .addVertex(
+          VertexPlan.newBuilder()
+            .setName("B")
+            .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("B.class"))
+            .setType(PlanVertexType.NORMAL)
+            .addTaskLocationHint(
+              PlanTaskLocationHint.newBuilder()
+                .addHost("host2")
+                .addRack("rack2")
+                .build()
+            )
+            .setTaskConfig(
+              PlanTaskConfiguration.newBuilder()
+                .setNumTasks(2)
+                .setVirtualCores(4)
+                .setMemoryMb(1024)
+                .setJavaOpts("")
+                .setTaskModule("")
+                .build()
+            )
+            .addInEdgeId("A_B")
+            .addOutEdgeId("B_C")
+            .build()
+        )
+        .addVertex(
+          VertexPlan.newBuilder()
+            .setName("C")
+            .setType(PlanVertexType.NORMAL)
+            .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("C.class"))
+            .addTaskLocationHint(
+              PlanTaskLocationHint.newBuilder()
+                .addHost("host3")
+                .addRack("rack3")
+                .build()
+            )
+            .setTaskConfig(
+              PlanTaskConfiguration.newBuilder()
+                .setNumTasks(2)
+                .setVirtualCores(4)
+                .setMemoryMb(1024)
+                .setJavaOpts("foo")
+                .setTaskModule("x3.y3")
+                .build()
+            )
+            .addInEdgeId("A_C")
+            .addInEdgeId("B_C")
+            .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("A_B.class"))
+                .setInputVertexName("A")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("A_B.class"))
+                .setOutputVertexName("B")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("A_B")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("A_C"))
+                .setInputVertexName("A")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("A_C.class"))
+                .setOutputVertexName("C")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("A_C")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("B_C.class"))
+                .setInputVertexName("B")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("B_C.class"))
+                .setOutputVertexName("C")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("B_C")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+          )
+        .build();
+
+    return dag;
+  }
+
+  // Create a plan with 3 vertices: A, B, C
+  // A -> C, B -> C
+  private DAGPlan createSamplerDAGPlan2() {
+    LOG.info("Setting up dag plan");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("TestSamplerDAG")
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("A")
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("A.class"))
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host1")
+                        .addRack("rack1")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("A.class")
+                        .build()
+                )
+                .addOutEdgeId("A_C")
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("B")
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("B.class"))
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host2")
+                        .addRack("rack2")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("")
+                        .build()
+                )
+                .addOutEdgeId("B_C")
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("C")
+                .setType(PlanVertexType.NORMAL)
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("C.class"))
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host3")
+                        .addRack("rack3")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("foo")
+                        .setTaskModule("x3.y3")
+                        .build()
+                )
+                .addInEdgeId("A_C")
+                .addInEdgeId("B_C")
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("A_C"))
+                .setInputVertexName("A")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("A_C.class"))
+                .setOutputVertexName("C")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("A_C")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("B_C.class"))
+                .setInputVertexName("B")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("B_C.class"))
+                .setOutputVertexName("C")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("B_C")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .build();
+
+    return dag;
+  }
+
   private void setupVertices() {
     int vCnt = dagPlan.getVertexCount();
     LOG.info("Setting up vertices from dag plan, verticesCnt=" + vCnt);
@@ -701,15 +944,17 @@ public class TestVertexImpl {
       VertexPlan vPlan = dagPlan.getVertex(i);
       String vName = vPlan.getName();
       TezVertexID vertexId = TezVertexID.getInstance(dagId, i+1);
-      VertexImpl v;
+      VertexImpl v = null;
+      VertexLocationHint locationHint = DagTypeConverters.convertFromDAGPlan(
+          vPlan.getTaskLocationHintList());
       if (useCustomInitializer) {
         v = new VertexImplWithCustomInitializer(vertexId, vPlan, vPlan.getName(), conf,
           dispatcher.getEventHandler(), taskAttemptListener, fsTokens,
-          clock, thh, appContext, vertexLocationHint, dispatcher);
+          clock, thh, appContext, locationHint, dispatcher);
       } else {
         v = new VertexImpl(vertexId, vPlan, vPlan.getName(), conf,
             dispatcher.getEventHandler(), taskAttemptListener, fsTokens,
-            clock, thh, appContext, vertexLocationHint);
+            clock, thh, appContext, locationHint);
       }
       vertices.put(vName, v);
       vertexIdMap.put(vertexId, v);
@@ -780,8 +1025,20 @@ public class TestVertexImpl {
     doReturn(dagId).when(dag).getID();
     doReturn(taskScheduler).when(appContext).getTaskScheduler();
     doReturn(Resource.newInstance(102400, 60)).when(taskScheduler).getTotalResources();
+
     setupVertices();
-    
+    when(dag.getVertex(any(TezVertexID.class))).thenAnswer(new Answer<Vertex>() {
+      @Override
+      public Vertex answer(InvocationOnMock invocation) throws Throwable {
+        Object[] args = invocation.getArguments();
+        if (args.length != 1) {
+          return null;
+        }
+        TezVertexID vId = (TezVertexID) args[0];
+        return vertexIdMap.get(vId);
+      }
+    });
+
     // TODO - this test logic is tightly linked to impl DAGImpl code.
     edges = new HashMap<String, Edge>();
     for (EdgePlan edgePlan : dagPlan.getEdgeList()) {
@@ -791,6 +1048,8 @@ public class TestVertexImpl {
     }
 
     parseVertexEdges();
+    taskAttemptEventDispatcher = new TaskAttemptEventDispatcher();
+    dispatcher.register(TaskAttemptEventType.class, taskAttemptEventDispatcher);
     taskEventDispatcher = new TaskEventDispatcher();
     dispatcher.register(TaskEventType.class, taskEventDispatcher);
     vertexEventDispatcher = new VertexEventDispatcher();
@@ -1746,4 +2005,53 @@ public class TestVertexImpl {
     }
   }
 
+  @Test(timeout=5000)
+  public void testInitStartRace() {
+    // Race when a source vertex manages to start before the target vertex has
+    // been initialized
+    setupPreDagCreation();
+    dagPlan = createSamplerDAGPlan();
+    setupPostDagCreation();
+
+    VertexImpl vA = vertices.get("A");
+    VertexImpl vB = vertices.get("B");
+    VertexImpl vC = vertices.get("C");
+
+    dispatcher.getEventHandler().handle(new VertexEvent(vA.getVertexId(),
+      VertexEventType.V_INIT));
+    dispatcher.getEventHandler().handle(new VertexEvent(vA.getVertexId(),
+      VertexEventType.V_START));
+
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, vA.getState());
+    Assert.assertEquals(VertexState.RUNNING, vB.getState());
+    Assert.assertEquals(VertexState.RUNNING, vC.getState());
+  }
+
+  @Test(timeout=5000)
+  public void testInitStartRace2() {
+    // Race when a source vertex manages to start before the target vertex has
+    // been initialized
+    setupPreDagCreation();
+    dagPlan = createSamplerDAGPlan2();
+    setupPostDagCreation();
+
+    VertexImpl vA = vertices.get("A");
+    VertexImpl vB = vertices.get("B");
+    VertexImpl vC = vertices.get("C");
+
+    dispatcher.getEventHandler().handle(new VertexEvent(vA.getVertexId(),
+        VertexEventType.V_INIT));
+    dispatcher.getEventHandler().handle(new VertexEvent(vA.getVertexId(),
+        VertexEventType.V_START));
+    dispatcher.getEventHandler().handle(new VertexEvent(vB.getVertexId(),
+        VertexEventType.V_INIT));
+    dispatcher.getEventHandler().handle(new VertexEvent(vB.getVertexId(),
+        VertexEventType.V_START));
+
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, vA.getState());
+    Assert.assertEquals(VertexState.RUNNING, vB.getState());
+    Assert.assertEquals(VertexState.RUNNING, vC.getState());
+  }
 }

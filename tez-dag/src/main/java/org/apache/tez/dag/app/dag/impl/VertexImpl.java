@@ -211,6 +211,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexState.INITIALIZING, VertexState.FAILED),
               VertexEventType.V_INIT,
               new InitTransition())
+          .addTransition(VertexState.NEW, VertexState.NEW,
+              VertexEventType.V_SOURCE_VERTEX_STARTED,
+              new SourceVertexStartedTransition())
           .addTransition(VertexState.NEW, VertexState.KILLED,
               VertexEventType.V_TERMINATE,
               new TerminateNewVertexTransition())
@@ -322,6 +325,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.TERMINATING, VertexState.TERMINATING,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
@@ -358,6 +362,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.FAILED, VertexState.FAILED,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_TASK_RESCHEDULED,
                   VertexEventType.V_START,
                   VertexEventType.V_ROUTE_EVENT,
@@ -956,8 +961,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       }
 
       if (oldState != getInternalState()) {
-        LOG.info(vertexId + " transitioned from " + oldState + " to "
-                 + getInternalState());
+        LOG.info(logIdentifier + " transitioned from " + oldState + " to "
+            + getInternalState() + " due to event "
+            + event.getType());
       }
     }
 
