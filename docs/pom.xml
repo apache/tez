@@ -54,7 +54,7 @@
             <unsubscribe>mailto:user-unsubscribe@tez.incubator.apache.org
             </unsubscribe>
             <post>mailto:user@tez.incubator.apache.org</post>
-            <archive></archive>
+            <archive>http://mail-archives.apache.org/mod_mbox/incubator-tez-user/</archive>
         </mailingList>
         <mailingList>
             <name>Development list</name>
@@ -63,7 +63,7 @@
             <unsubscribe>mailto:dev-unsubscribe@tez.incubator.apache.org
             </unsubscribe>
             <post>mailto:dev@tez.incubator.apache.org</post>
-            <archive></archive>
+            <archive>http://mail-archives.apache.org/mod_mbox/incubator-tez-dev/</archive>
         </mailingList>
         <mailingList>
             <name>Commit list</name>
@@ -72,7 +72,7 @@
             <unsubscribe>mailto:commits-unsubscribe@tez.incubator.apache.org
             </unsubscribe>
             <post>mailto:commits@tez.incubator.apache.org</post>
-            <archive></archive>
+            <archive>http://mail-archives.apache.org/mod_mbox/incubator-tez-commits/</archive>
         </mailingList>
         <mailingList>
             <name>JIRA Issues list</name>
@@ -81,7 +81,7 @@
             <unsubscribe>mailto:issues-unsubscribe@tez.incubator.apache.org
             </unsubscribe>
             <post>mailto:issues@tez.incubator.apache.org</post>
-            <archive></archive>
+            <archive>http://mail-archives.apache.org/mod_mbox/incubator-tez-issues/</archive>
         </mailingList>
     </mailingLists>
 
