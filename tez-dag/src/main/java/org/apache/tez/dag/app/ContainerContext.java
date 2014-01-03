@@ -17,6 +17,8 @@
 
 package org.apache.tez.dag.app;
 
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -24,6 +26,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.tez.dag.app.dag.Vertex;
 
 import com.google.common.base.Preconditions;
@@ -104,11 +107,8 @@ public class ContainerContext {
       return false;
     }
 
-    return
-      (isSuperSet(this.environment, otherContext.getEnvironment(),
-        "Environment")
-      && isSuperSet(this.localResources, otherContext.getLocalResources(),
-        "LocalResources"));
+    return isSuperSet(this.environment, otherContext.getEnvironment(), "Environment")
+        && localResourcesCompatible(this.localResources, otherContext.getLocalResources());
   }
   
   /**
@@ -117,6 +117,33 @@ public class ContainerContext {
    */
   public boolean isExactMatch(ContainerContext otherContext) {
     return (this.vertex == otherContext.vertex);
+  }
+
+  // TODO Once LRs are handled via YARN, remove this check - and ensure
+  // YarnTezDAGChild knows how to handle the additional types in terms of
+  // classpath modification
+  private static boolean localResourcesCompatible(Map<String, LocalResource> srcLRs,
+      Map<String, LocalResource> reqLRs) {
+    Map<String, LocalResource> reqLRsCopy = new HashMap<String, LocalResource>(reqLRs);
+    for (Entry<String, LocalResource> srcLREntry : srcLRs.entrySet()) {
+      LocalResource requestedLocalResource = reqLRsCopy.remove(srcLREntry.getKey());
+      if (requestedLocalResource != null && !srcLREntry.getValue().equals(requestedLocalResource)) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Cannot match container: Attempting to use same target resource name: "
+              + srcLREntry.getKey()
+              + ", but with different source resources. Already localized: "
+              + srcLREntry.getValue() + ", requested: " + requestedLocalResource);
+        }
+        return false;
+      }
+    }
+    for (Entry<String, LocalResource> additionalLREntry : reqLRsCopy.entrySet()) {
+      LocalResource lr = additionalLREntry.getValue();
+      if (EnumSet.of(LocalResourceType.ARCHIVE, LocalResourceType.PATTERN).contains(lr.getType())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private static <K, V> boolean isSuperSet(Map<K, V> srcMap, Map<K, V> matchMap,

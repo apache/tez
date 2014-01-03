@@ -48,7 +48,6 @@ import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
-import org.apache.tez.dag.app.rm.TaskScheduler.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.container.AMContainerEventAssignTA;
 import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
@@ -56,12 +55,11 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventLaunchRequest;
 import org.apache.tez.dag.app.rm.container.AMContainerEventStopRequest;
 import org.apache.tez.dag.app.rm.container.AMContainerEventTASucceeded;
 import org.apache.tez.dag.app.rm.container.AMContainerState;
+import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.node.AMNodeEventContainerAllocated;
 import org.apache.tez.dag.app.rm.node.AMNodeEventStateChanged;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptEnded;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptSucceeded;
-
-import com.google.common.annotations.VisibleForTesting;
 
 public class TaskSchedulerEventHandler extends AbstractService
                                          implements TaskSchedulerAppCallback,
@@ -79,17 +77,19 @@ public class TaskSchedulerEventHandler extends AbstractService
   // Has a signal (SIGTERM etc) been issued?
   protected volatile boolean isSignalled = false;
   final DAGClientServer clientService;
+  private final ContainerSignatureMatcher containerSignatureMatcher;
 
   BlockingQueue<AMSchedulerEvent> eventQueue
                               = new LinkedBlockingQueue<AMSchedulerEvent>();
 
   @SuppressWarnings("rawtypes")
   public TaskSchedulerEventHandler(AppContext appContext,
-      DAGClientServer clientService, EventHandler eventHandler) {
+      DAGClientServer clientService, EventHandler eventHandler, ContainerSignatureMatcher containerSignatureMatcher) {
     super(TaskSchedulerEventHandler.class.getName());
     this.appContext = appContext;
     this.eventHandler = eventHandler;
     this.clientService = clientService;
+    this.containerSignatureMatcher = containerSignatureMatcher;
   }
 
   public Map<ApplicationAccessType, String> getApplicationAcls() {
@@ -319,7 +319,7 @@ public class TaskSchedulerEventHandler extends AbstractService
 
   protected TaskScheduler createTaskScheduler(String host, int port,
       String trackingUrl, AppContext appContext) {
-    return new TaskScheduler(this, createContainerSignatureMatcher(),
+    return new TaskScheduler(this, this.containerSignatureMatcher,
       host, port, trackingUrl, appContext);
   }
 
@@ -376,11 +376,6 @@ public class TaskSchedulerEventHandler extends AbstractService
     }
   }
 
-  @VisibleForTesting
-  protected ContainerSignatureMatcher createContainerSignatureMatcher() {
-    return new ContainerContextMatcher();
-  }
-
   // TaskSchedulerAppCallback methods
   @Override
   public synchronized void taskAllocated(Object task,
@@ -410,8 +405,8 @@ public class TaskSchedulerEventHandler extends AbstractService
           event.getContainerContext()));
     }
     sendEvent(new DAGEventSchedulerUpdateTAAssigned(taskAttempt, container));
-    sendEvent(new AMContainerEventAssignTA(containerId,
-        taskAttempt.getID(), event.getRemoteTaskSpec()));
+    sendEvent(new AMContainerEventAssignTA(containerId, taskAttempt.getID(),
+        event.getRemoteTaskSpec(), event.getContainerContext().getLocalResources()));
   }
 
   @Override

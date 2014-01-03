@@ -40,6 +40,7 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
@@ -47,12 +48,12 @@ import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.rm.TaskScheduler.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.TaskScheduler.CookieContainerRequest;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
+import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 
 import com.google.common.base.Preconditions;
-
+import com.google.common.collect.Maps;
 
 class TestTaskSchedulerHelpers {
 
@@ -119,7 +120,7 @@ class TestTaskSchedulerHelpers {
         EventHandler eventHandler,
         TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync,
         ContainerSignatureMatcher containerSignatureMatcher) {
-      super(appContext, null, eventHandler);
+      super(appContext, null, eventHandler, containerSignatureMatcher);
       this.amrmClientAsync = amrmClientAsync;
       this.containerSignatureMatcher = containerSignatureMatcher;
     }
@@ -171,13 +172,14 @@ class TestTaskSchedulerHelpers {
       }
     }
 
-    public void verifyInvocation(Class<? extends Event> eventClass) {
+    public Event verifyInvocation(Class<? extends Event> eventClass) {
       for (Event e : events) {
         if (e.getClass().getName().equals(eventClass.getName())) {
-          return;
+          return e;
         }
       }
       fail("Expected Event: " + eventClass.getName() + " not sent");
+      return null;
     }
   }
 
@@ -318,6 +320,12 @@ class TestTaskSchedulerHelpers {
     public boolean isExactMatch(Object cs1, Object cs2) {
       return true;
     }
+
+    @Override
+    public Map<String, LocalResource> getAdditionalResources(Map<String, LocalResource> lr1,
+        Map<String, LocalResource> lr2) {
+      return Maps.newHashMap();
+    }
   }
   
   static class PreemptionMatcher implements ContainerSignatureMatcher {
@@ -334,6 +342,12 @@ class TestTaskSchedulerHelpers {
         return true;
       }
       return false;
+    }
+
+    @Override
+    public Map<String, LocalResource> getAdditionalResources(Map<String, LocalResource> lr1,
+        Map<String, LocalResource> lr2) {
+      return Maps.newHashMap();
     }
   }
   

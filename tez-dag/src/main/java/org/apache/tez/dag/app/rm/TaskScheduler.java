@@ -59,6 +59,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback.AppFinalStatus;
+import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -112,22 +113,6 @@ public class TaskScheduler extends AbstractService
     public float getProgress();
     public void preemptContainer(ContainerId containerId);
     public AppFinalStatus getFinalAppStatus();
-  }
-
-  public interface ContainerSignatureMatcher {
-    /**
-     * Checks the compatibility between the specified container signatures.
-     *
-     * @return true if the first signature is a super set of the second
-     *         signature.
-     */
-    public boolean isSuperSet(Object cs1, Object cs2);
-    
-    /**
-     * Checks if the container signatures match exactly
-     * @return true if exact match
-     */
-    public boolean isExactMatch(Object cs1, Object cs2);
   }
 
   final TezAMRMClientAsync<CookieContainerRequest> amRmClient;

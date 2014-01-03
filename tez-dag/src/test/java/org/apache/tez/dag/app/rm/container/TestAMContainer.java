@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
@@ -47,9 +48,12 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerState;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -70,6 +74,9 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.library.common.security.TokenCache;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+
+import com.google.common.collect.Maps;
+
 
 public class TestAMContainer {
 
@@ -832,6 +839,63 @@ public class TestAMContainer {
     wc.containerCompleted(false);
     wc.verifyNoOutgoingEvents();
   }
+  
+  @Test
+  public void testLocalResourceAddition() {
+    WrappedContainer wc = new WrappedContainer();
+
+    String rsrc1 = "rsrc1";
+    String rsrc2 = "rsrc2";
+    String rsrc3 = "rsrc3";
+
+    Map<String, LocalResource> initialResources = Maps.newHashMap();
+    initialResources.put(rsrc1, createLocalResource(rsrc1));
+
+    wc.launchContainer(initialResources);
+    wc.containerLaunched();
+    wc.assignTaskAttempt(wc.taskAttemptID);
+    AMContainerTask task1 = wc.pullTaskToRun();
+    assertEquals(0, task1.getAdditionalResources().size());
+    wc.taskAttemptSucceeded(wc.taskAttemptID);
+
+    // Add some resources to the next task.
+    Map<String, LocalResource> additionalResources = Maps.newHashMap();
+    additionalResources.put(rsrc2, createLocalResource(rsrc2));
+    additionalResources.put(rsrc3, createLocalResource(rsrc3));
+
+    TezTaskAttemptID taID2 = TezTaskAttemptID.getInstance(wc.taskID, 2);
+    wc.assignTaskAttempt(taID2, additionalResources);
+    AMContainerTask task2 = wc.pullTaskToRun();
+    Map<String, LocalResource> pullTaskAdditionalResources = task2.getAdditionalResources();
+    assertEquals(2, pullTaskAdditionalResources.size());
+    pullTaskAdditionalResources.remove(rsrc2);
+    pullTaskAdditionalResources.remove(rsrc3);
+    assertEquals(0, pullTaskAdditionalResources.size());
+    wc.taskAttemptSucceeded(taID2);
+
+    // Verify Resources registered for this container.
+    Map<String, LocalResource> containerLRs = new HashMap<String, LocalResource>(
+        wc.amContainer.containerLocalResources);
+    assertEquals(3, containerLRs.size());
+    containerLRs.remove(rsrc1);
+    containerLRs.remove(rsrc2);
+    containerLRs.remove(rsrc3);
+    assertEquals(0, containerLRs.size());
+
+    // Try launching another task with the same reosurces as Task2. Verify the
+    // task is not asked to re-localize again.
+    TezTaskAttemptID taID3 = TezTaskAttemptID.getInstance(wc.taskID, 3);
+    wc.assignTaskAttempt(taID3, new HashMap<String, LocalResource>());
+    AMContainerTask task3 = wc.pullTaskToRun();
+    assertEquals(0, task3.getAdditionalResources().size());
+    wc.taskAttemptSucceeded(taID3);
+
+    // Verify references are cleared after a container completes.
+    wc.containerCompleted(false);
+    assertNull(wc.amContainer.clc);
+    assertNull(wc.amContainer.containerLocalResources);
+    assertNull(wc.amContainer.additionalLocalResources);
+  }
 
 
   // TODO Verify diagnostics in most of the tests.
@@ -899,7 +963,7 @@ public class TestAMContainer {
       doReturn(taskAttemptID).when(taskSpec).getTaskAttemptID();
 
       amContainer = new AMContainerImpl(container, chh, tal,
-          appContext);
+          new ContainerContextMatcher(), appContext);
     }
 
     /**
@@ -926,21 +990,28 @@ public class TestAMContainer {
     }
 
     public void launchContainer() {
+      launchContainer(new HashMap<String, LocalResource>());
+    }
+
+    public void launchContainer(Map<String, LocalResource> localResources) {
       reset(eventHandler);
       Credentials credentials = new Credentials();
       @SuppressWarnings("unchecked")
       Token<JobTokenIdentifier> jobToken = mock(Token.class);
       TokenCache.setJobToken(jobToken, credentials);
-      amContainer.handle(new AMContainerEventLaunchRequest(containerID,
-          vertexID, false, new ContainerContext(
-              new HashMap<String, LocalResource>(), credentials,
-              new HashMap<String, String>(), "")));
+      amContainer.handle(new AMContainerEventLaunchRequest(containerID, vertexID, false,
+          new ContainerContext(localResources, credentials, new HashMap<String, String>(), "")));
     }
 
     public void assignTaskAttempt(TezTaskAttemptID taID) {
+      assignTaskAttempt(taID, new HashMap<String, LocalResource>());
+    }
+
+    public void assignTaskAttempt(TezTaskAttemptID taID,
+        Map<String, LocalResource> additionalResources) {
       reset(eventHandler);
-      amContainer.handle(new AMContainerEventAssignTA(containerID, taID,
-          taskSpec));
+      amContainer.handle(new AMContainerEventAssignTA(containerID, taID, taskSpec,
+          additionalResources));
     }
 
     public AMContainerTask pullTaskToRun() {
@@ -1034,5 +1105,11 @@ public class TestAMContainer {
         + " in outgoing event list", expectedTypeList.isEmpty());
     assertTrue("Found unexpected events: " + eventsCopy
         + " in outgoing event list", eventsCopy.isEmpty());
+  }
+  
+  private LocalResource createLocalResource(String name) {
+    LocalResource lr = LocalResource.newInstance(URL.newInstance(null, "localhost", 2321, name),
+        LocalResourceType.FILE, LocalResourceVisibility.APPLICATION, 1, 1000000);
+    return lr;
   }
 }

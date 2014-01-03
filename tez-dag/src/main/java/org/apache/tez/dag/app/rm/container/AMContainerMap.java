@@ -39,14 +39,16 @@ public class AMContainerMap extends AbstractService implements
   private final ContainerHeartbeatHandler chh;
   private final TaskAttemptListener tal;
   private final AppContext context;
+  private final ContainerSignatureMatcher containerSignatureMatcher;
   private final ConcurrentHashMap<ContainerId, AMContainer> containerMap;
 
   public AMContainerMap(ContainerHeartbeatHandler chh, TaskAttemptListener tal,
-      AppContext context) {
+      ContainerSignatureMatcher containerSignatureMatcher, AppContext context) {
     super("AMContainerMaps");
     this.chh = chh;
     this.tal = tal;
     this.context = context;
+    this.containerSignatureMatcher = containerSignatureMatcher;
     this.containerMap = new ConcurrentHashMap<ContainerId, AMContainer>();
   }
 
@@ -61,7 +63,7 @@ public class AMContainerMap extends AbstractService implements
   }
 
   public boolean addContainerIfNew(Container container) {
-    AMContainer amc = new AMContainerImpl(container, chh, tal, context);
+    AMContainer amc = new AMContainerImpl(container, chh, tal, containerSignatureMatcher, context);
     return (containerMap.putIfAbsent(container.getId(), amc) == null);
   }
 

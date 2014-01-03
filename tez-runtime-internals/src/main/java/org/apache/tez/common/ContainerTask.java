@@ -20,21 +20,27 @@ package org.apache.tez.common;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.runtime.api.impl.TaskSpec;
+
+import com.google.common.collect.Maps;
 
 public class ContainerTask implements Writable {
 
   TaskSpec taskSpec;
   boolean shouldDie;
+  private Map<String, TezLocalResource> additionalResources;
 
   public ContainerTask() {
   }
 
-  public ContainerTask(TaskSpec taskSpec, boolean shouldDie) {
+  public ContainerTask(TaskSpec taskSpec, boolean shouldDie, Map<String, TezLocalResource> additionalResources) {
     this.taskSpec = taskSpec;
     this.shouldDie = shouldDie;
+    this.additionalResources = additionalResources;
   }
 
   public TaskSpec getTaskSpec() {
@@ -43,6 +49,10 @@ public class ContainerTask implements Writable {
 
   public boolean shouldDie() {
     return shouldDie;
+  }
+  
+  public Map<String, TezLocalResource> getAdditionalResources() {
+    return this.additionalResources;
   }
 
   @Override
@@ -54,6 +64,15 @@ public class ContainerTask implements Writable {
     } else {
       out.writeBoolean(false);
     }
+    if (additionalResources != null) {
+      out.writeInt(additionalResources.size());
+      for (Entry<String, TezLocalResource> lrEntry : additionalResources.entrySet()) {
+        out.writeUTF(lrEntry.getKey());
+        lrEntry.getValue().write(out);
+      }
+    } else {
+      out.writeInt(-1);
+    }
   }
 
   @Override
@@ -64,11 +83,21 @@ public class ContainerTask implements Writable {
       taskSpec = new TaskSpec();
       taskSpec.readFields(in);
     }
+    int numAdditionalResources = in.readInt();
+    additionalResources = Maps.newHashMap();
+    if (numAdditionalResources != -1) {
+      for (int i = 0 ; i < numAdditionalResources ; i++) {
+        String resourceName = in.readUTF();
+        TezLocalResource localResource = new TezLocalResource();
+        localResource.readFields(in);
+        additionalResources.put(resourceName, localResource);
+      }
+    }
   }
 
   @Override
   public String toString() {
     return "shouldDie: " + shouldDie + ", TaskSpec: "
-        + taskSpec;
+        + taskSpec + ", AdditionalResources: " + additionalResources;
   }
 }

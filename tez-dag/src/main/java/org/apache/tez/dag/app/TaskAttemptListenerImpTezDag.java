@@ -19,7 +19,10 @@ package org.apache.tez.dag.app;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -36,9 +39,12 @@ import org.apache.hadoop.service.AbstractService;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
+import org.apache.tez.common.TezConverterUtils;
+import org.apache.tez.common.TezLocalResource;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -56,12 +62,14 @@ import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
 
+import com.google.common.collect.Maps;
+
 @SuppressWarnings("unchecked")
 public class TaskAttemptListenerImpTezDag extends AbstractService implements
     TezTaskUmbilicalProtocol, TaskAttemptListener {
 
   private static final ContainerTask TASK_FOR_INVALID_JVM = new ContainerTask(
-      null, true);
+      null, true, null);
 
   private static ProceedToCompletionResponse COMPLETION_RESPONSE_NO_WAIT =
       new ProceedToCompletionResponse(true, true);
@@ -211,7 +219,8 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
           } else {
             registerTaskAttempt(taskContext.getTask().getTaskAttemptID(),
                 containerId);
-            task = new ContainerTask(taskContext.getTask(), false);
+            task = new ContainerTask(taskContext.getTask(), false,
+                convertLocalResourceMap(taskContext.getAdditionalResources()));
             context.getEventHandler().handle(
                 new TaskAttemptEventStartedRemotely(taskContext.getTask()
                     .getTaskAttemptID(), containerId, context
@@ -552,4 +561,20 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     }
   }
 
+  private Map<String, TezLocalResource> convertLocalResourceMap(Map<String, LocalResource> ylrs)
+      throws IOException {
+    Map<String, TezLocalResource> tlrs = Maps.newHashMap();
+    if (ylrs != null) {
+      for (Entry<String, LocalResource> ylrEntry : ylrs.entrySet()) {
+        TezLocalResource tlr;
+        try {
+          tlr = TezConverterUtils.convertYarnLocalResourceToTez(ylrEntry.getValue());
+        } catch (URISyntaxException e) {
+         throw new IOException(e);
+        }
+        tlrs.put(ylrEntry.getKey(), tlr);
+      }
+    }
+    return tlrs;
+  }
 }

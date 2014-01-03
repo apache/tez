@@ -33,6 +33,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
@@ -57,6 +58,9 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 //import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+
 @SuppressWarnings("rawtypes")
 public class AMContainerImpl implements AMContainer {
 
@@ -71,6 +75,7 @@ public class AMContainerImpl implements AMContainer {
   private final ContainerHeartbeatHandler containerHeartbeatHandler;
   private final TaskAttemptListener taskAttemptListener;
   protected final EventHandler eventHandler;
+  private final ContainerSignatureMatcher signatureMatcher;
 
   private final List<TezTaskAttemptID> completedAttempts =
       new LinkedList<TezTaskAttemptID>();
@@ -88,7 +93,6 @@ public class AMContainerImpl implements AMContainer {
   // wind down, and an allocation was pending in the AMScheduler. This could
   // be modelled as a separate state.
   private boolean nodeFailed = false;
-  private String nodeFailedMessage;
 
   private TezTaskAttemptID pendingAttempt;
   private TezTaskAttemptID runningAttempt;
@@ -98,13 +102,18 @@ public class AMContainerImpl implements AMContainer {
   private AMContainerTask noAllocationContainerTask;
 
   private static final AMContainerTask NO_MORE_TASKS = new AMContainerTask(
-      true, null);
+      true, null, null);
   private static final AMContainerTask WAIT_TASK = new AMContainerTask(false,
-      null);
+      null, null);
 
   private boolean inError = false;
 
-  private ContainerLaunchContext clc;
+  @VisibleForTesting
+  ContainerLaunchContext clc;
+  @VisibleForTesting
+  Map<String, LocalResource> containerLocalResources;
+  @VisibleForTesting
+  Map<String, LocalResource> additionalLocalResources;
 
   // TODO Consider registering with the TAL, instead of the TAL pulling.
   // Possibly after splitting TAL and ContainerListener.
@@ -186,13 +195,14 @@ public class AMContainerImpl implements AMContainer {
   // Attempting to use a container based purely on reosurces required, etc needs
   // additional change - JvmID, YarnChild, etc depend on TaskType.
   public AMContainerImpl(Container container, ContainerHeartbeatHandler chh,
-      TaskAttemptListener tal, AppContext appContext) {
+      TaskAttemptListener tal, ContainerSignatureMatcher signatureMatcher, AppContext appContext) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
     this.container = container;
     this.containerId = container.getId();
     this.eventHandler = appContext.getEventHandler();
+    this.signatureMatcher = signatureMatcher;
     this.appContext = appContext;
     this.containerHeartbeatHandler = chh;
     this.taskAttemptListener = tal;
@@ -311,9 +321,14 @@ public class AMContainerImpl implements AMContainer {
       this.handle(
           new AMContainerEvent(containerId, AMContainerEventType.C_PULL_TA));
       if (pullAttempt == null) {
+        // As a later optimization, it should be possible for a running container to localize
+        // additional resources before a task is assigned to the container.
         return noAllocationContainerTask;
       } else {
-        return new AMContainerTask(false, remoteTaskMap.remove(pullAttempt));
+        AMContainerTask amContainerTask = new AMContainerTask(false,
+            remoteTaskMap.remove(pullAttempt), this.additionalLocalResources);
+        this.additionalLocalResources = null;
+        return amContainerTask;
       }
     } finally {
       this.pullAttempt = null;
@@ -330,7 +345,12 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventLaunchRequest event = (AMContainerEventLaunchRequest) cEvent;
+      
       ContainerContext containerContext = event.getContainerContext();
+      // Clone - don't use the object that is passed in, since this is likely to
+      // be modified here.
+      container.containerLocalResources = new HashMap<String, LocalResource>(
+          containerContext.getLocalResources());
 
       container.clc = AMContainerHelpers.createContainerLaunchContext(
           container.appContext.getCurrentDAGID(),
@@ -393,11 +413,6 @@ public class AMContainerImpl implements AMContainer {
       SingleArcTransition<AMContainerImpl, AMContainerEvent> {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
-      container.nodeFailed = true;
-      if (cEvent instanceof DiagnosableEvent) {
-        container.nodeFailedMessage = ((DiagnosableEvent) cEvent)
-            .getDiagnosticInfo();
-      }
       // TODO why are these sent. no need to send these now.
       container.sendCompletedToScheduler();
       container.deAllocate();
@@ -444,10 +459,20 @@ public class AMContainerImpl implements AMContainer {
         // only go out after the START_REQUEST.
         return AMContainerState.STOP_REQUESTED;
       }
+      
+      Map<String, LocalResource> taskLocalResources = event.getRemoteTaskLocalResources();
+      Preconditions.checkState(container.additionalLocalResources == null,
+          "No additional resources should be pending when assigning a new task");
+      container.additionalLocalResources = container.signatureMatcher.getAdditionalResources(
+          container.containerLocalResources, taskLocalResources);
+      // Register the additional resources back for this container.
+      container.containerLocalResources.putAll(container.additionalLocalResources);
       container.pendingAttempt = event.getTaskAttemptId();
       if (LOG.isDebugEnabled()) {
         LOG.debug("AssignTA: attempt: " + event.getRemoteTaskSpec());
+        LOG.debug("AdditionalLocalResources: " + container.additionalLocalResources);
       }
+
       container.remoteTaskMap
           .put(event.getTaskAttemptId(), event.getRemoteTaskSpec());
       return container.getState();
@@ -494,6 +519,8 @@ public class AMContainerImpl implements AMContainer {
         container.pendingAttempt = null;
         LOG.warn(errorMessage);
       }
+      container.containerLocalResources = null;
+      container.additionalLocalResources = null;
       container.unregisterFromTAListener();
       container.sendCompletedToScheduler();
       String diag = event.getContainerStatus().getDiagnostics();
@@ -547,7 +574,6 @@ public class AMContainerImpl implements AMContainer {
         container.sendNodeFailureToTA(taId, errorMessage);
       }
       for (TezTaskAttemptID taId : container.completedAttempts) {
-        // TODO XXX: Make sure TaskAttempt knows how to handle kills to REDUCEs.
         container.sendNodeFailureToTA(taId, errorMessage);
       }
 
@@ -833,6 +859,8 @@ public class AMContainerImpl implements AMContainer {
         LOG.info("Container " + container.getContainerId()
             + " exited with diagnostics set to " + diag);
       }
+      container.containerLocalResources = null;
+      container.additionalLocalResources = null;
       container.sendCompletedToScheduler();
     }
   }
@@ -946,7 +974,7 @@ public class AMContainerImpl implements AMContainer {
 
   protected void maybeSendNodeFailureForFailedAssignment(TezTaskAttemptID taId) {
     if (this.nodeFailed) {
-      this.sendNodeFailureToTA(taId, nodeFailedMessage);
+      this.sendNodeFailureToTA(taId, "Node Failed");
     }
   }
 

@@ -25,6 +25,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -62,6 +64,7 @@ import org.apache.log4j.Logger;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezLocalResource;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.Limits;
@@ -71,6 +74,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
+import org.apache.tez.runtime.RuntimeUtils;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
@@ -87,6 +91,7 @@ import org.apache.tez.runtime.common.objectregistry.ObjectRegistryModule;
 import org.apache.tez.runtime.library.common.security.TokenCache;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 
+import com.google.common.collect.Lists;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
@@ -429,6 +434,11 @@ public class YarnTezDagChild {
           return;
         }
         taskCount++;
+        Map<String, TezLocalResource> additionalResources = containerTask.getAdditionalResources();
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Additional Resources added to container: " + additionalResources);
+        }
+        processAdditionalResources(additionalResources, defaultConf);
         final TaskSpec taskSpec = containerTask.getTaskSpec();
         if (LOG.isDebugEnabled()) {
           LOG.debug("New container task context:"
@@ -657,5 +667,33 @@ public class YarnTezDagChild {
     } else {
       return base + "_" + tezTaskAttemptID.toString();
     }
+  }
+  
+  private static void processAdditionalResources(Map<String, TezLocalResource> additionalResources,
+      Configuration conf) throws IOException, TezException {
+    if (additionalResources == null || additionalResources.isEmpty()) {
+      return;
+    }
+
+    LOG.info("Downloading " + additionalResources.size() + "additional resources");
+    List<URL> urls = Lists.newArrayListWithCapacity(additionalResources.size());
+
+    for (Entry<String, TezLocalResource> lrEntry : additionalResources.entrySet()) {
+      Path dFile = downloadResource(lrEntry.getKey(), lrEntry.getValue(), conf);
+      urls.add(dFile.toUri().toURL());
+    }
+    RuntimeUtils.addResourcesToClasspath(urls);
+    LOG.info("Done localizing additional resources");
+  }
+
+  private static Path downloadResource(String destName, TezLocalResource resource,
+      Configuration conf) throws IOException {
+    resource.getUri();
+    FileSystem fs = FileSystem.get(resource.getUri(), conf);
+    Path cwd = new Path(System.getenv(Environment.PWD.name()));
+    Path dFile = new Path(cwd, destName);
+    Path srcPath = new Path(resource.getUri());
+    fs.copyToLocalFile(srcPath, dFile);
+    return dFile.makeQualified(FileSystem.getLocal(conf).getUri(), cwd);
   }
 }

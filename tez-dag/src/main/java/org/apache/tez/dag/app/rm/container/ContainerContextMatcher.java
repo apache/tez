@@ -16,16 +16,20 @@
 * limitations under the License.
 */
 
-package org.apache.tez.dag.app.rm;
+package org.apache.tez.dag.app.rm.container;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.app.ContainerContext;
-import org.apache.tez.dag.app.rm.TaskScheduler.ContainerSignatureMatcher;
 
 import com.google.common.base.Preconditions;
 
 public class ContainerContextMatcher implements ContainerSignatureMatcher {
 
-  private void checkPreConditions(Object cs1, Object cs2) {
+  private void checkArguments(Object cs1, Object cs2) {
     Preconditions.checkNotNull(cs1, "Arguments cannot be null");
     Preconditions.checkNotNull(cs2, "Arguments cannot be null");
     Preconditions.checkArgument(cs1 instanceof ContainerContext
@@ -38,7 +42,7 @@ public class ContainerContextMatcher implements ContainerSignatureMatcher {
   
   @Override
   public boolean isSuperSet(Object cs1, Object cs2) {
-    checkPreConditions(cs1, cs2);
+    checkArguments(cs1, cs2);
     ContainerContext context1 = (ContainerContext) cs1;
     ContainerContext context2 = (ContainerContext) cs2;
 
@@ -47,10 +51,23 @@ public class ContainerContextMatcher implements ContainerSignatureMatcher {
 
   @Override
   public boolean isExactMatch(Object cs1, Object cs2) {
-    checkPreConditions(cs1, cs2);
+    checkArguments(cs1, cs2);
     ContainerContext context1 = (ContainerContext) cs1;
     ContainerContext context2 = (ContainerContext) cs2;
 
     return context1.isExactMatch(context2);
+  }
+
+  @Override
+  public Map<String, LocalResource> getAdditionalResources(Map<String, LocalResource> lr1,
+      Map<String, LocalResource> lr2) {
+    Preconditions.checkNotNull(lr1);
+    Preconditions.checkNotNull(lr2);
+
+    Map<String, LocalResource> c2LocalResources = new HashMap<String, LocalResource>(lr2);
+    for (Entry<String, LocalResource> c1LocalResource : lr1.entrySet()) {
+      c2LocalResources.remove(c1LocalResource.getKey());
+    }
+    return c2LocalResources;
   }
 }

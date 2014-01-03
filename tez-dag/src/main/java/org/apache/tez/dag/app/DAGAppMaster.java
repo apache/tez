@@ -116,6 +116,8 @@ import org.apache.tez.dag.app.rm.NMCommunicatorEventType;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
+import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
+import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.node.AMNodeEventType;
 import org.apache.tez.dag.app.rm.node.AMNodeMap;
 import org.apache.tez.dag.app.taskclean.TaskCleaner;
@@ -126,6 +128,7 @@ import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.history.events.AMStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.runtime.library.common.security.TokenCache;
 
 /**
@@ -167,6 +170,7 @@ public class DAGAppMaster extends AbstractService {
   private final String nmHost;
   private final int nmPort;
   private final int nmHttpPort;
+  private ContainerSignatureMatcher containerSignatureMatcher;
   private AMContainerMap containers;
   private AMNodeMap nodes;
   private AppContext context;
@@ -282,8 +286,9 @@ public class DAGAppMaster extends AbstractService {
         taskHeartbeatHandler, containerHeartbeatHandler);
     addIfService(taskAttemptListener, true);
 
+    containerSignatureMatcher = createContainerSignatureMatcher();
     containers = new AMContainerMap(containerHeartbeatHandler,
-        taskAttemptListener, context);
+        taskAttemptListener, containerSignatureMatcher, context);
     addIfService(containers, true);
     dispatcher.register(AMContainerEventType.class, containers);
 
@@ -308,7 +313,7 @@ public class DAGAppMaster extends AbstractService {
     dispatcher.register(TaskCleaner.EventType.class, taskCleaner);
 
     taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
-        clientRpcServer, dispatcher.getEventHandler());
+        clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher);
     addIfService(taskSchedulerEventHandler, true);
     dispatcher.register(AMSchedulerEventType.class,
         taskSchedulerEventHandler);
@@ -349,6 +354,12 @@ public class DAGAppMaster extends AbstractService {
 
   }
 
+  @VisibleForTesting
+  protected ContainerSignatureMatcher createContainerSignatureMatcher() {
+    return new ContainerContextMatcher();
+  }
+  
+  @VisibleForTesting
   protected Dispatcher createDispatcher() {
     return new AsyncDispatcher();
   }

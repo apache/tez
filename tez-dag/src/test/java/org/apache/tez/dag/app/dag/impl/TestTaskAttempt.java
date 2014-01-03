@@ -80,6 +80,7 @@ import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
+import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -90,7 +91,6 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mortbay.log.Log;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestTaskAttempt {
@@ -380,7 +380,7 @@ public class TestTaskAttempt {
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
-        appCtx);
+        new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container);
 
     doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
@@ -471,7 +471,7 @@ public class TestTaskAttempt {
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
-        appCtx);
+        new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container);
 
     doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
@@ -533,7 +533,7 @@ public class TestTaskAttempt {
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
-        appCtx);
+        new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container);
 
     doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
@@ -619,7 +619,7 @@ public class TestTaskAttempt {
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
-        appCtx);
+        new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container);
 
     doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
@@ -710,7 +710,7 @@ public class TestTaskAttempt {
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
-        appCtx);
+        new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container);
 
     doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
@@ -800,7 +800,7 @@ public class TestTaskAttempt {
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
-        appCtx);
+        new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container);
 
     doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
