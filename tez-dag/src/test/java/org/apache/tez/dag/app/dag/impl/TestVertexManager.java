@@ -52,7 +52,7 @@ import com.google.common.collect.Lists;
 
 import static org.mockito.Mockito.*;
 
-public class TestVertexScheduler {
+public class TestVertexManager {
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
   @Test(timeout = 5000)
@@ -62,7 +62,7 @@ public class TestVertexScheduler {
         TezConfiguration.TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL,
         true);
     conf.setLong(TezConfiguration.TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE, 1000L);
-    ShuffleVertexManager scheduler = null;
+    ShuffleVertexManager manager = null;
     EventHandler mockEventHandler = mock(EventHandler.class);
     TezDAGID dagId = TezDAGID.getInstance("1", 1, 1);
     HashMap<Vertex, Edge> mockInputVertices = 
@@ -105,10 +105,10 @@ public class TestVertexScheduler {
     mockInputVertices.put(mockSrcVertex3, new Edge(eProp3, mockEventHandler));
 
     // check initialization
-    scheduler = createScheduler(conf, mockManagedVertex, 0.1f, 0.1f);
-    Assert.assertTrue(scheduler.bipartiteSources.size() == 2);
-    Assert.assertTrue(scheduler.bipartiteSources.containsKey(mockSrcVertexId1));
-    Assert.assertTrue(scheduler.bipartiteSources.containsKey(mockSrcVertexId2));
+    manager = createManager(conf, mockManagedVertex, 0.1f, 0.1f);
+    Assert.assertTrue(manager.bipartiteSources.size() == 2);
+    Assert.assertTrue(manager.bipartiteSources.containsKey(mockSrcVertexId1));
+    Assert.assertTrue(manager.bipartiteSources.containsKey(mockSrcVertexId2));
     
     final HashMap<TezTaskID, Task> managedTasks = new HashMap<TezTaskID, Task>();
     final TezTaskID mockTaskId1 = TezTaskID.getInstance(mockManagedVertexId, 0);
@@ -146,8 +146,8 @@ public class TestVertexScheduler {
     // source vertices have 0 tasks. immediate start of all managed tasks
     when(mockSrcVertex1.getTotalTasks()).thenReturn(0);
     when(mockSrcVertex2.getTotalTasks()).thenReturn(0);
-    scheduler.onVertexStarted(null);
-    Assert.assertTrue(scheduler.pendingTasks.isEmpty());
+    manager.onVertexStarted(null);
+    Assert.assertTrue(manager.pendingTasks.isEmpty());
     Assert.assertTrue(scheduledTasks.size() == 4); // all tasks scheduled
     scheduledTasks.clear();
     
@@ -167,18 +167,18 @@ public class TestVertexScheduler {
         VertexManagerEventPayloadProto.newBuilder().setOutputSize(5000L).build().toByteArray();
     VertexManagerEvent vmEvent = new VertexManagerEvent("Vertex", payload);
     // parallelism not change due to large data size
-    scheduler = createScheduler(conf, mockManagedVertex, 0.1f, 0.1f);
-    scheduler.onVertexStarted(null);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 4); // no tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasks == 4);
-    scheduler.onVertexManagerEventReceived(vmEvent);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
+    manager = createManager(conf, mockManagedVertex, 0.1f, 0.1f);
+    manager.onVertexStarted(null);
+    Assert.assertTrue(manager.pendingTasks.size() == 4); // no tasks scheduled
+    Assert.assertTrue(manager.numSourceTasks == 4);
+    manager.onVertexManagerEventReceived(vmEvent);
+    manager.onSourceTaskCompleted(mockSrcAttemptId11);
     // managedVertex tasks reduced
     verify(mockManagedVertex, times(0)).setParallelism(anyInt(), anyMap());
-    Assert.assertEquals(0, scheduler.pendingTasks.size()); // all tasks scheduled
+    Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
     Assert.assertEquals(4, scheduledTasks.size());
-    Assert.assertEquals(1, scheduler.numSourceTasksCompleted); // TODO
-    Assert.assertEquals(5000L, scheduler.completedSourceTasksOutputSize);
+    Assert.assertEquals(1, manager.numSourceTasksCompleted); // TODO
+    Assert.assertEquals(5000L, manager.completedSourceTasksOutputSize);
     
     
     // parallelism changed due to small data size
@@ -187,45 +187,45 @@ public class TestVertexScheduler {
         VertexManagerEventPayloadProto.newBuilder().setOutputSize(500L).build().toByteArray();
     vmEvent = new VertexManagerEvent("Vertex", payload);
     
-    scheduler = createScheduler(conf, mockManagedVertex, 0.5f, 0.5f);
-    scheduler.onVertexStarted(null);
-    Assert.assertEquals(4, scheduler.pendingTasks.size()); // no tasks scheduled
-    Assert.assertEquals(4, scheduler.numSourceTasks);
+    manager = createManager(conf, mockManagedVertex, 0.5f, 0.5f);
+    manager.onVertexStarted(null);
+    Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
+    Assert.assertEquals(4, manager.numSourceTasks);
     // task completion from non-bipartite stage does nothing
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId31);
-    Assert.assertEquals(4, scheduler.pendingTasks.size()); // no tasks scheduled
-    Assert.assertEquals(4, scheduler.numSourceTasks);
-    Assert.assertEquals(0, scheduler.numSourceTasksCompleted);
-    scheduler.onVertexManagerEventReceived(vmEvent);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
-    Assert.assertEquals(4, scheduler.pendingTasks.size());
+    manager.onSourceTaskCompleted(mockSrcAttemptId31);
+    Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
+    Assert.assertEquals(4, manager.numSourceTasks);
+    Assert.assertEquals(0, manager.numSourceTasksCompleted);
+    manager.onVertexManagerEventReceived(vmEvent);
+    manager.onSourceTaskCompleted(mockSrcAttemptId11);
+    Assert.assertEquals(4, manager.pendingTasks.size());
     Assert.assertEquals(0, scheduledTasks.size()); // no tasks scheduled
-    Assert.assertEquals(1, scheduler.numSourceTasksCompleted);
-    Assert.assertEquals(1, scheduler.numVertexManagerEventsReceived);
-    Assert.assertEquals(500L, scheduler.completedSourceTasksOutputSize);
+    Assert.assertEquals(1, manager.numSourceTasksCompleted);
+    Assert.assertEquals(1, manager.numVertexManagerEventsReceived);
+    Assert.assertEquals(500L, manager.completedSourceTasksOutputSize);
     // ignore duplicate completion
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
-    Assert.assertEquals(4, scheduler.pendingTasks.size());
+    manager.onSourceTaskCompleted(mockSrcAttemptId11);
+    Assert.assertEquals(4, manager.pendingTasks.size());
     Assert.assertEquals(0, scheduledTasks.size()); // no tasks scheduled
-    Assert.assertEquals(1, scheduler.numSourceTasksCompleted);
-    Assert.assertEquals(500L, scheduler.completedSourceTasksOutputSize);
+    Assert.assertEquals(1, manager.numSourceTasksCompleted);
+    Assert.assertEquals(500L, manager.completedSourceTasksOutputSize);
     
-    scheduler.onVertexManagerEventReceived(vmEvent);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId12);
+    manager.onVertexManagerEventReceived(vmEvent);
+    manager.onSourceTaskCompleted(mockSrcAttemptId12);
     // managedVertex tasks reduced
     verify(mockManagedVertex).setParallelism(eq(2), anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     // TODO improve tests for parallelism
-    Assert.assertEquals(0, scheduler.pendingTasks.size()); // all tasks scheduled
+    Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
     Assert.assertEquals(2, scheduledTasks.size());
     Assert.assertTrue(scheduledTasks.contains(mockTaskId1));
     Assert.assertTrue(scheduledTasks.contains(mockTaskId2));
-    Assert.assertEquals(2, scheduler.numSourceTasksCompleted);
-    Assert.assertEquals(2, scheduler.numVertexManagerEventsReceived);
-    Assert.assertEquals(1000L, scheduler.completedSourceTasksOutputSize);
+    Assert.assertEquals(2, manager.numSourceTasksCompleted);
+    Assert.assertEquals(2, manager.numVertexManagerEventsReceived);
+    Assert.assertEquals(1000L, manager.completedSourceTasksOutputSize);
     
     // more completions dont cause recalculation of parallelism
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId21);
+    manager.onSourceTaskCompleted(mockSrcAttemptId21);
     verify(mockManagedVertex).setParallelism(eq(2), anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     
@@ -246,7 +246,7 @@ public class TestVertexScheduler {
   @Test(timeout = 5000)
   public void testShuffleVertexManagerSlowStart() {
     Configuration conf = new Configuration();
-    ShuffleVertexManager scheduler = null;
+    ShuffleVertexManager manager = null;
     EventHandler mockEventHandler = mock(EventHandler.class);
     TezDAGID dagId = TezDAGID.getInstance("1", 1, 1);
     HashMap<Vertex, Edge> mockInputVertices = 
@@ -287,7 +287,7 @@ public class TestVertexScheduler {
     // fail if there is no bipartite src vertex
     mockInputVertices.put(mockSrcVertex3, new Edge(eProp3, mockEventHandler));
     try {
-      scheduler = createScheduler(conf, mockManagedVertex, 0.1f, 0.1f);
+      manager = createManager(conf, mockManagedVertex, 0.1f, 0.1f);
      Assert.assertFalse(true);
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains(
@@ -298,10 +298,10 @@ public class TestVertexScheduler {
     mockInputVertices.put(mockSrcVertex2, new Edge(eProp2, mockEventHandler));
     
     // check initialization
-    scheduler = createScheduler(conf, mockManagedVertex, 0.1f, 0.1f);
-    Assert.assertTrue(scheduler.bipartiteSources.size() == 2);
-    Assert.assertTrue(scheduler.bipartiteSources.containsKey(mockSrcVertexId1));
-    Assert.assertTrue(scheduler.bipartiteSources.containsKey(mockSrcVertexId2));
+    manager = createManager(conf, mockManagedVertex, 0.1f, 0.1f);
+    Assert.assertTrue(manager.bipartiteSources.size() == 2);
+    Assert.assertTrue(manager.bipartiteSources.containsKey(mockSrcVertexId1));
+    Assert.assertTrue(manager.bipartiteSources.containsKey(mockSrcVertexId2));
     
     HashMap<TezTaskID, Task> managedTasks = new HashMap<TezTaskID, Task>();
     TezTaskID mockTaskId1 = TezTaskID.getInstance(mockManagedVertexId, 0);
@@ -326,8 +326,8 @@ public class TestVertexScheduler {
     // source vertices have 0 tasks. immediate start of all managed tasks
     when(mockSrcVertex1.getTotalTasks()).thenReturn(0);
     when(mockSrcVertex2.getTotalTasks()).thenReturn(0);
-    scheduler.onVertexStarted(null);
-    Assert.assertTrue(scheduler.pendingTasks.isEmpty());
+    manager.onVertexStarted(null);
+    Assert.assertTrue(manager.pendingTasks.isEmpty());
     Assert.assertTrue(scheduledTasks.size() == 3); // all tasks scheduled
     
     when(mockSrcVertex1.getTotalTasks()).thenReturn(2);
@@ -335,7 +335,7 @@ public class TestVertexScheduler {
 
     try {
       // source vertex have some tasks. min < 0.
-      scheduler = createScheduler(conf, mockManagedVertex, -0.1f, 0);
+      manager = createManager(conf, mockManagedVertex, -0.1f, 0);
       Assert.assertTrue(false); // should not come here
     } catch (IllegalArgumentException e) {
       Assert.assertTrue(e.getMessage().contains(
@@ -344,7 +344,7 @@ public class TestVertexScheduler {
     
     try {
       // source vertex have some tasks. min > max
-      scheduler = createScheduler(conf, mockManagedVertex, 0.5f, 0.3f);
+      manager = createManager(conf, mockManagedVertex, 0.5f, 0.3f);
       Assert.assertTrue(false); // should not come here
     } catch (IllegalArgumentException e) {
       Assert.assertTrue(e.getMessage().contains(
@@ -352,12 +352,12 @@ public class TestVertexScheduler {
     }
     
     // source vertex have some tasks. min, max == 0
-    scheduler = createScheduler(conf, mockManagedVertex, 0, 0);
-    scheduler.onVertexStarted(null);
-    Assert.assertTrue(scheduler.numSourceTasks == 4);
-    Assert.assertTrue(scheduler.totalTasksToSchedule == 3);
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 0);
-    Assert.assertTrue(scheduler.pendingTasks.isEmpty());
+    manager = createManager(conf, mockManagedVertex, 0, 0);
+    manager.onVertexStarted(null);
+    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.totalTasksToSchedule == 3);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 0);
+    Assert.assertTrue(manager.pendingTasks.isEmpty());
     Assert.assertTrue(scheduledTasks.size() == 3); // all tasks scheduled
 
     TezTaskAttemptID mockSrcAttemptId11 = 
@@ -372,120 +372,120 @@ public class TestVertexScheduler {
         TezTaskAttemptID.getInstance(TezTaskID.getInstance(mockSrcVertexId3, 0), 0);
     
     // min, max > 0 and min == max
-    scheduler = createScheduler(conf, mockManagedVertex, 0.25f, 0.25f);
-    scheduler.onVertexStarted(null);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasks == 4);
+    manager = createManager(conf, mockManagedVertex, 0.25f, 0.25f);
+    manager.onVertexStarted(null);
+    Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(manager.numSourceTasks == 4);
     // task completion from non-bipartite stage does nothing
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId31);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasks == 4);
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 0);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
-    Assert.assertTrue(scheduler.pendingTasks.isEmpty());
+    manager.onSourceTaskCompleted(mockSrcAttemptId31);
+    Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 0);
+    manager.onSourceTaskCompleted(mockSrcAttemptId11);
+    Assert.assertTrue(manager.pendingTasks.isEmpty());
     Assert.assertTrue(scheduledTasks.size() == 3); // all tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 1);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 1);
     
     // min, max > 0 and min == max == absolute max 1.0
-    scheduler = createScheduler(conf, mockManagedVertex, 1.0f, 1.0f);
-    scheduler.onVertexStarted(null);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasks == 4);
+    manager = createManager(conf, mockManagedVertex, 1.0f, 1.0f);
+    manager.onVertexStarted(null);
+    Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(manager.numSourceTasks == 4);
     // task completion from non-bipartite stage does nothing
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId31);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasks == 4);
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 0);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3);
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 1);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId12);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3);
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 2);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId21);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3);
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 3);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId22);
-    Assert.assertTrue(scheduler.pendingTasks.isEmpty());
+    manager.onSourceTaskCompleted(mockSrcAttemptId31);
+    Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 0);
+    manager.onSourceTaskCompleted(mockSrcAttemptId11);
+    Assert.assertTrue(manager.pendingTasks.size() == 3);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 1);
+    manager.onSourceTaskCompleted(mockSrcAttemptId12);
+    Assert.assertTrue(manager.pendingTasks.size() == 3);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 2);
+    manager.onSourceTaskCompleted(mockSrcAttemptId21);
+    Assert.assertTrue(manager.pendingTasks.size() == 3);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 3);
+    manager.onSourceTaskCompleted(mockSrcAttemptId22);
+    Assert.assertTrue(manager.pendingTasks.isEmpty());
     Assert.assertTrue(scheduledTasks.size() == 3); // all tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 4);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 4);
     
     // min, max > 0 and min == max
-    scheduler = createScheduler(conf, mockManagedVertex, 1.0f, 1.0f);
-    scheduler.onVertexStarted(null);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasks == 4);
+    manager = createManager(conf, mockManagedVertex, 1.0f, 1.0f);
+    manager.onVertexStarted(null);
+    Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(manager.numSourceTasks == 4);
     // task completion from non-bipartite stage does nothing
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId31);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasks == 4);
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 0);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3);
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 1);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId12);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3);
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 2);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId21);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3);
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 3);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId22);
-    Assert.assertTrue(scheduler.pendingTasks.isEmpty());
+    manager.onSourceTaskCompleted(mockSrcAttemptId31);
+    Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 0);
+    manager.onSourceTaskCompleted(mockSrcAttemptId11);
+    Assert.assertTrue(manager.pendingTasks.size() == 3);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 1);
+    manager.onSourceTaskCompleted(mockSrcAttemptId12);
+    Assert.assertTrue(manager.pendingTasks.size() == 3);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 2);
+    manager.onSourceTaskCompleted(mockSrcAttemptId21);
+    Assert.assertTrue(manager.pendingTasks.size() == 3);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 3);
+    manager.onSourceTaskCompleted(mockSrcAttemptId22);
+    Assert.assertTrue(manager.pendingTasks.isEmpty());
     Assert.assertTrue(scheduledTasks.size() == 3); // all tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 4);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 4);
     
     // min, max > and min < max
-    scheduler = createScheduler(conf, mockManagedVertex, 0.25f, 0.75f);
-    scheduler.onVertexStarted(null);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasks == 4);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId12);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 2);
+    manager = createManager(conf, mockManagedVertex, 0.25f, 0.75f);
+    manager.onVertexStarted(null);
+    Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(manager.numSourceTasks == 4);
+    manager.onSourceTaskCompleted(mockSrcAttemptId11);
+    manager.onSourceTaskCompleted(mockSrcAttemptId12);
+    Assert.assertTrue(manager.pendingTasks.size() == 2);
     Assert.assertTrue(scheduledTasks.size() == 1); // 1 task scheduled
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 2);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 2);
     // completion of same task again should not get counted
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId12);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 2);
+    manager.onSourceTaskCompleted(mockSrcAttemptId12);
+    Assert.assertTrue(manager.pendingTasks.size() == 2);
     Assert.assertTrue(scheduledTasks.size() == 1); // 1 task scheduled
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 2);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId21);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 0);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 2);
+    manager.onSourceTaskCompleted(mockSrcAttemptId21);
+    Assert.assertTrue(manager.pendingTasks.size() == 0);
     Assert.assertTrue(scheduledTasks.size() == 2); // 2 tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 3);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 3);
     scheduledTasks.clear();
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId22); // we are done. no action
-    Assert.assertTrue(scheduler.pendingTasks.size() == 0);
+    manager.onSourceTaskCompleted(mockSrcAttemptId22); // we are done. no action
+    Assert.assertTrue(manager.pendingTasks.size() == 0);
     Assert.assertTrue(scheduledTasks.size() == 0); // no task scheduled
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 4);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 4);
 
     // min, max > and min < max
-    scheduler = createScheduler(conf, mockManagedVertex, 0.25f, 1.0f);
-    scheduler.onVertexStarted(null);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(scheduler.numSourceTasks == 4);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId11);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId12);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 2);
+    manager = createManager(conf, mockManagedVertex, 0.25f, 1.0f);
+    manager.onVertexStarted(null);
+    Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(manager.numSourceTasks == 4);
+    manager.onSourceTaskCompleted(mockSrcAttemptId11);
+    manager.onSourceTaskCompleted(mockSrcAttemptId12);
+    Assert.assertTrue(manager.pendingTasks.size() == 2);
     Assert.assertTrue(scheduledTasks.size() == 1); // 1 task scheduled
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 2);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId21);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 1);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 2);
+    manager.onSourceTaskCompleted(mockSrcAttemptId21);
+    Assert.assertTrue(manager.pendingTasks.size() == 1);
     Assert.assertTrue(scheduledTasks.size() == 1); // 1 task scheduled
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 3);
-    scheduler.onSourceTaskCompleted(mockSrcAttemptId22);
-    Assert.assertTrue(scheduler.pendingTasks.size() == 0);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 3);
+    manager.onSourceTaskCompleted(mockSrcAttemptId22);
+    Assert.assertTrue(manager.pendingTasks.size() == 0);
     Assert.assertTrue(scheduledTasks.size() == 1); // no task scheduled
-    Assert.assertTrue(scheduler.numSourceTasksCompleted == 4);
+    Assert.assertTrue(manager.numSourceTasksCompleted == 4);
 
   }
   
-  private ShuffleVertexManager createScheduler(Configuration conf, 
+  private ShuffleVertexManager createManager(Configuration conf, 
       Vertex vertex, float min, float max) {
-    ShuffleVertexManager scheduler = new ShuffleVertexManager(vertex);
+    ShuffleVertexManager manager = new ShuffleVertexManager(vertex);
     conf.setFloat(TezConfiguration.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, min);
     conf.setFloat(TezConfiguration.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, max);
-    scheduler.initialize(conf);
-    return scheduler;
+    manager.initialize(conf);
+    return manager;
   }
 }

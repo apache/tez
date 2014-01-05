@@ -82,7 +82,7 @@ import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.VertexScheduler;
+import org.apache.tez.dag.app.dag.VertexManager;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
@@ -456,7 +456,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private RootInputInitializerRunner rootInputInitializer;
 
-  private VertexScheduler vertexScheduler;
+  private VertexManager vertexManager;
 
   private boolean parallelismSet = false;
   private TezVertexID originalOneToOneSplitSource = null;
@@ -1299,21 +1299,21 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       }
 
       if (hasBipartite) {
-        // setup vertex scheduler
+        // setup vertex manager
         // TODO this needs to consider data size and perhaps API.
         // Currently implicitly BIPARTITE is the only edge type
         LOG.info("Setting vertexManager to ShuffleVertexManager for " + vertex.logIdentifier);
-        vertex.vertexScheduler = new ShuffleVertexManager(vertex);
+        vertex.vertexManager = new ShuffleVertexManager(vertex);
       } else if (vertex.inputsWithInitializers != null) {
         LOG.info("Setting vertexManager to RootInputVertexManager for " + vertex.logIdentifier);
-        vertex.vertexScheduler = new RootInputVertexManager(vertex,
+        vertex.vertexManager = new RootInputVertexManager(vertex,
             vertex.eventHandler);
       } else {
         // schedule all tasks upon vertex start
         LOG.info("Setting vertexManager to ImmediateStartVertexManager for " + vertex.logIdentifier);
-        vertex.vertexScheduler = new ImmediateStartVertexScheduler(vertex);
+        vertex.vertexManager = new ImmediateStartVertexManager(vertex);
       }
-      vertex.vertexScheduler.initialize(vertex.conf);
+      vertex.vertexManager.initialize(vertex.conf);
 
       // Setup tasks early if possible. If the VertexManager is not being used
       // to set parallelism, sending events to Tasks is safe (and less confusing
@@ -1437,7 +1437,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
       VertexEventRootInputInitialized liInitEvent = (VertexEventRootInputInitialized) event;
 
-      vertex.vertexScheduler.onRootVertexInitialized(
+      vertex.vertexManager.onRootVertexInitialized(
           liInitEvent.getInputName(),
           vertex.getAdditionalInputs().get(liInitEvent.getInputName())
               .getDescriptor(), liInitEvent.getEvents());
@@ -1562,7 +1562,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private void startVertex() {
     startedTime = clock.getTime();
-    vertexScheduler.onVertexStarted(pendingReportedSrcCompletions);
+    vertexManager.onVertexStarted(pendingReportedSrcCompletions);
     pendingReportedSrcCompletions.clear();
     logJobHistoryVertexStartedEvent();
 
@@ -1720,7 +1720,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .getTaskAttemptState())) {
         vertex.numSuccessSourceAttemptCompletions++;
         if (vertex.getState() == VertexState.RUNNING) {
-          vertex.vertexScheduler.onSourceTaskCompleted(completionEvent
+          vertex.vertexManager.onSourceTaskCompleted(completionEvent
               .getTaskAttemptId());
         } else {
           vertex.pendingReportedSrcCompletions.add(completionEvent.getTaskAttemptId());
@@ -1938,7 +1938,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           VertexManagerEvent vmEvent = (VertexManagerEvent) tezEvent.getEvent();
           Vertex target = vertex.getDAG().getVertex(vmEvent.getTargetVertexName());
           if (target == vertex) {
-            vertex.vertexScheduler.onVertexManagerEventReceived(vmEvent);
+            vertex.vertexManager.onVertexManagerEventReceived(vmEvent);
           } else {
             vertex.eventHandler.handle(new VertexEventRouteEvent(target
                 .getVertexId(), Collections.singletonList(tezEvent)));
@@ -2196,8 +2196,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   @VisibleForTesting
-  VertexScheduler getVertexScheduler() {
-    return this.vertexScheduler;
+  VertexManager getVertexManager() {
+    return this.vertexManager;
   }
 
   private static void logLocationHints(VertexLocationHint locationHint) {

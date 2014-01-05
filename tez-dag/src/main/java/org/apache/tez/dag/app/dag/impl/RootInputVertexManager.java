@@ -27,7 +27,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.VertexScheduler;
+import org.apache.tez.dag.app.dag.VertexManager;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -44,7 +44,7 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
-public class RootInputVertexManager implements VertexScheduler {
+public class RootInputVertexManager extends VertexManager {
   
   private final Vertex managedVertex;
   private final EventMetaData sourceInfo;

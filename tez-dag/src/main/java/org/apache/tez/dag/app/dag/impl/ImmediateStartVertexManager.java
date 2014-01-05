@@ -23,7 +23,7 @@ import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.VertexScheduler;
+import org.apache.tez.dag.app.dag.VertexManager;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
@@ -31,10 +31,10 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 /**
  * Starts all tasks immediately on vertex start
  */
-public class ImmediateStartVertexScheduler implements VertexScheduler {
+public class ImmediateStartVertexManager extends VertexManager {
   final Vertex managedVertex;
   
-  ImmediateStartVertexScheduler(Vertex vertex) {
+  ImmediateStartVertexManager(Vertex vertex) {
     managedVertex = vertex;
   }
   

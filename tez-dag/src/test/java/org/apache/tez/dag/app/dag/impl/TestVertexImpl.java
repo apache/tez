@@ -1391,14 +1391,14 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testVertexSchedulerInit() {
+  public void testVertexManagerInit() {
     initAllVertices(VertexState.INITED);
     VertexImpl v2 = vertices.get("vertex2");
-    Assert.assertTrue(v2.getVertexScheduler()
-        instanceof ImmediateStartVertexScheduler);
+    Assert.assertTrue(v2.getVertexManager()
+        instanceof ImmediateStartVertexManager);
 
     VertexImpl v6 = vertices.get("vertex6");
-    Assert.assertTrue(v6.getVertexScheduler()
+    Assert.assertTrue(v6.getVertexManager()
         instanceof ShuffleVertexManager);
   }
 
@@ -1776,7 +1776,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITED, v1.getState());
     Assert.assertEquals(numTasks, v1.getTotalTasks());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v1
-        .getVertexScheduler().getClass().getName());
+        .getVertexManager().getClass().getName());
     Assert.assertEquals(v1Hints, v1.getVertexLocationHint().getTaskLocationHints());
     Assert.assertEquals(true, runner1.hasShutDown);
     
@@ -1830,7 +1830,7 @@ public class TestVertexImpl {
 
     Assert.assertEquals(VertexState.FAILED, v1.getState());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v1
-        .getVertexScheduler().getClass().getName());
+        .getVertexManager().getClass().getName());
     Assert.assertEquals(true, runner1.hasShutDown);
     
     VertexImplWithCustomInitializer v2 = (VertexImplWithCustomInitializer) vertices.get("vertex2");
@@ -1840,7 +1840,7 @@ public class TestVertexImpl {
     
     Assert.assertEquals(VertexState.FAILED, v2.getState());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v2
-        .getVertexScheduler().getClass().getName());
+        .getVertexManager().getClass().getName());
     Assert.assertEquals(true, runner2.hasShutDown);
   }
   
@@ -1865,7 +1865,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITED, v1.getState());
     Assert.assertEquals(5, v1.getTotalTasks());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v1
-        .getVertexScheduler().getClass().getName());
+        .getVertexManager().getClass().getName());
     Assert.assertEquals(v1Hints, v1.getVertexLocationHint().getTaskLocationHints());
     Assert.assertEquals(true, runner1.hasShutDown);
     
@@ -1878,7 +1878,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITED, v2.getState());
     Assert.assertEquals(10, v2.getTotalTasks());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v2
-        .getVertexScheduler().getClass().getName());
+        .getVertexManager().getClass().getName());
     Assert.assertEquals(v2Hints, v2.getVertexLocationHint().getTaskLocationHints());
     Assert.assertEquals(true, runner2.hasShutDown);
   }
