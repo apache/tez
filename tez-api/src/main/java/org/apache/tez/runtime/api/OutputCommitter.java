@@ -16,55 +16,56 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.api.committer;
+package org.apache.tez.runtime.api;
+
+import org.apache.tez.dag.api.client.VertexStatus;
 
 import java.io.IOException;
 
-import org.apache.hadoop.classification.InterfaceAudience.Public;
-import org.apache.hadoop.classification.InterfaceStability.Unstable;
-import org.apache.tez.dag.api.client.VertexStatus;
-
-@Public
-@Unstable
-public abstract class VertexOutputCommitter {
+/**
+ * OutputCommitter to "finalize" the output and make it user-visible if needed.
+ * The OutputCommitter is allowed only on a terminal Output.
+ */
+public abstract class OutputCommitter {
 
   /**
-   * Setup up the vertex output committer.
+   * Setup up the Output committer.
    *
-   * @param context Context of the vertex whose output is being written.
-   * @throws IOException
+   * @param context Context of the output that is being acted upon
+   * @throws java.lang.Exception
    */
-  public abstract void init(VertexContext context) throws IOException;
+  public abstract void initialize(OutputCommitterContext context)
+      throws Exception;
 
   /**
-   * For the framework to setup the vertex output during initialization. This is
+   * For the framework to setup the output during initialization. This is
    * called from the application master process for the vertex. This will be
-   * called multiple times, once per dag attempt for each vertex.
+   * called multiple times, once per dag attempt.
    *
-   * @throws IOException if setup fails
+   * @throws java.lang.Exception if setup fails
    */
-  public abstract void setupVertex() throws IOException;
+  public abstract void setupOutput() throws Exception;
 
   /**
-   * For committing vertex's output after successful vertex completion.
-   * Note that this is invoked for vertices with a successful final state.
-   * This is called from the application master process for the entire vertex.
+   * For committing the output after a successful vertex completion.
+   * Note that this is invoked for the outputs of vertices with a successful
+   * final state. This is called from the application master process.
    * This is guaranteed to only be called once.
    * If it throws an exception the entire vertex will fail.
    *
-   * @throws IOException
+   * @throws java.lang.Exception
    */
-  public abstract void commitVertex() throws IOException;
+  public abstract void commitOutput() throws Exception;
 
   /**
    * For aborting an unsuccessful vertex's output. Note that this is invoked for
    * vertices with a final failed state. This is called from the application
-   * master process for the entire vertex. This may be called multiple times.
+   * master process. This may be called multiple times.
    *
-   * @param state final runstate of the vertex
-   * @throws IOException
+   * @param finalState final run-state of the vertex
+   * @throws java.lang.Exception
    */
-  public abstract void abortVertex(VertexStatus.State finalState)
-      throws IOException;
+  public abstract void abortOutput(VertexStatus.State finalState)
+    throws Exception;
 
 }

@@ -63,7 +63,12 @@
      </dependency>
      <dependency>
        <groupId>org.apache.tez</groupId>
-       <artifactId>tez-dag</artifactId>
+       <artifactId>tez-api</artifactId>
+       <scope>provided</scope>
+     </dependency>
+     <dependency>
+       <groupId>org.apache.tez</groupId>
+       <artifactId>tez-mapreduce</artifactId>
        <scope>provided</scope>
      </dependency>
   </dependencies>

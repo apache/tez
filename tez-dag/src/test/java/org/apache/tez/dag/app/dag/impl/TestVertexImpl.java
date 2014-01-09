@@ -23,16 +23,24 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.MRVertexOutputCommitter;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -49,9 +57,6 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.VertexStatus;
-import org.apache.tez.dag.api.committer.NullVertexOutputCommitter;
-import org.apache.tez.dag.api.committer.VertexContext;
-import org.apache.tez.dag.api.committer.VertexOutputCommitter;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -98,6 +103,8 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.OutputCommitter;
+import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.junit.After;
@@ -138,8 +145,8 @@ public class TestVertexImpl {
   private VertexEventDispatcher vertexEventDispatcher;
   private DagEventDispatcher dagEventDispatcher;
 
-  private class CountingVertexOutputCommitter extends
-      VertexOutputCommitter {
+  public static class CountingOutputCommitter extends
+      OutputCommitter {
 
     public int initCounter = 0;
     public int setupCounter = 0;
@@ -149,7 +156,7 @@ public class TestVertexImpl {
     private boolean throwErrorOnAbort;
     private boolean throwRuntimeException;
 
-    public CountingVertexOutputCommitter(boolean throwError,
+    public CountingOutputCommitter(boolean throwError,
         boolean throwOnAbort,
         boolean throwRuntimeException) {
       this.throwError = throwError;
@@ -157,22 +164,29 @@ public class TestVertexImpl {
       this.throwRuntimeException = throwRuntimeException;
     }
 
-    public CountingVertexOutputCommitter() {
+    public CountingOutputCommitter() {
       this(false, false, false);
     }
 
     @Override
-    public void init(VertexContext context) throws IOException {
+    public void initialize(OutputCommitterContext context) throws IOException {
+      if (context.getUserPayload() != null) {
+        CountingOutputCommitterConfig conf =
+            new CountingOutputCommitterConfig(context.getUserPayload());
+        this.throwError = conf.throwError;
+        this.throwErrorOnAbort = conf.throwErrorOnAbort;
+        this.throwRuntimeException = conf.throwRuntimeException;
+      }
       ++initCounter;
     }
 
     @Override
-    public void setupVertex() {
+    public void setupOutput() throws IOException {
       ++setupCounter;
     }
 
     @Override
-    public void commitVertex() throws IOException {
+    public void commitOutput() throws IOException {
       ++commitCounter;
       if (throwError) {
         if (!throwRuntimeException) {
@@ -184,7 +198,7 @@ public class TestVertexImpl {
     }
 
     @Override
-    public void abortVertex(VertexStatus.State finalState) throws IOException {
+    public void abortOutput(VertexStatus.State finalState) throws IOException {
       ++abortCounter;
       if (throwErrorOnAbort) {
         if (!throwRuntimeException) {
@@ -194,6 +208,51 @@ public class TestVertexImpl {
         }
       }
     }
+
+    public static class CountingOutputCommitterConfig implements Writable {
+
+      boolean throwError = false;
+      boolean throwErrorOnAbort = false;
+      boolean throwRuntimeException = false;
+
+      public CountingOutputCommitterConfig() {
+      }
+
+      public CountingOutputCommitterConfig(boolean throwError,
+          boolean throwErrorOnAbort, boolean throwRuntimeException) {
+        this.throwError = throwError;
+        this.throwErrorOnAbort = throwErrorOnAbort;
+        this.throwRuntimeException = throwRuntimeException;
+      }
+
+      public CountingOutputCommitterConfig(byte[] payload) throws IOException {
+        DataInput in = new DataInputStream(new ByteArrayInputStream(payload));
+        this.readFields(in);
+      }
+
+      @Override
+      public void write(DataOutput out) throws IOException {
+        out.writeBoolean(throwError);
+        out.writeBoolean(throwErrorOnAbort);
+        out.writeBoolean(throwRuntimeException);
+      }
+
+      @Override
+      public void readFields(DataInput in) throws IOException {
+        throwError = in.readBoolean();
+        throwErrorOnAbort = in.readBoolean();
+        throwRuntimeException = in.readBoolean();
+      }
+
+      public byte[] toUserPayload() throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DataOutput out = new DataOutputStream(bos);
+        write(out);
+        return bos.toByteArray();
+      }
+
+    }
+
   }
 
   private class TaskAttemptEventDispatcher implements EventHandler<TaskAttemptEvent> {
@@ -605,106 +664,107 @@ public class TestVertexImpl {
             .build()
         )
         .addVertex(
-          VertexPlan.newBuilder()
-            .setName("vertex6")
-            .setType(PlanVertexType.NORMAL)
-            .addTaskLocationHint(
-              PlanTaskLocationHint.newBuilder()
-                .addHost("host6")
-                .addRack("rack6")
-                .build()
-            )
-            .addOutputs(
-                DAGProtos.RootInputLeafOutputProto.newBuilder()
-                    .setEntityDescriptor(
-                      TezEntityDescriptorProto.newBuilder().setClassName("output").build()
-                    )
-                    .setName("outputx")
-            )
-            .setTaskConfig(
-                PlanTaskConfiguration.newBuilder()
-                    .setNumTasks(2)
-                    .setVirtualCores(4)
-                    .setMemoryMb(1024)
-                    .setJavaOpts("")
-                    .setTaskModule("x6.y6")
-                    .build()
+            VertexPlan.newBuilder()
+                .setName("vertex6")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host6")
+                        .addRack("rack6")
+                        .build()
+                )
+                .addOutputs(
+                    DAGProtos.RootInputLeafOutputProto.newBuilder()
+                        .setEntityDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName("output").build()
+                        )
+                        .setName("outputx")
+                        .setInitializerClassName(CountingOutputCommitter.class.getName())
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x6.y6")
+                        .build()
                 )
                 .addInEdgeId("e5")
                 .addInEdgeId("e6")
                 .build()
+        )
+            .addEdge(
+                EdgePlan.newBuilder()
+                    .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3_v1"))
+                    .setInputVertexName("vertex1")
+                    .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
+                    .setOutputVertexName("vertex3")
+                    .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                    .setId("e1")
+                    .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                    .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                    .build()
             )
             .addEdge(
-              EdgePlan.newBuilder()
-                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3_v1"))
-                .setInputVertexName("vertex1")
-                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
-                .setOutputVertexName("vertex3")
-                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-                .setId("e1")
-                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-                .build()
+                EdgePlan.newBuilder()
+                    .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3_v2"))
+                    .setInputVertexName("vertex2")
+                    .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
+                    .setOutputVertexName("vertex3")
+                    .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                    .setId("e2")
+                    .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                    .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                    .build()
             )
             .addEdge(
-              EdgePlan.newBuilder()
-                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3_v2"))
-                .setInputVertexName("vertex2")
-                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
-                .setOutputVertexName("vertex3")
-                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-                .setId("e2")
-                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-                .build()
+                EdgePlan.newBuilder()
+                    .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i4_v3"))
+                    .setInputVertexName("vertex3")
+                    .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o3_v4"))
+                    .setOutputVertexName("vertex4")
+                    .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                    .setId("e3")
+                    .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                    .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                    .build()
             )
             .addEdge(
-              EdgePlan.newBuilder()
-                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i4_v3"))
-                .setInputVertexName("vertex3")
-                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o3_v4"))
-                .setOutputVertexName("vertex4")
-                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-                .setId("e3")
-                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-                .build()
+                EdgePlan.newBuilder()
+                    .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i5_v3"))
+                    .setInputVertexName("vertex3")
+                    .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o3_v5"))
+                    .setOutputVertexName("vertex5")
+                    .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                    .setId("e4")
+                    .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                    .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                    .build()
             )
             .addEdge(
-              EdgePlan.newBuilder()
-                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i5_v3"))
-                .setInputVertexName("vertex3")
-                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o3_v5"))
-                .setOutputVertexName("vertex5")
-                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-                .setId("e4")
-                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-                .build()
+                EdgePlan.newBuilder()
+                    .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i6_v4"))
+                    .setInputVertexName("vertex4")
+                    .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o4"))
+                    .setOutputVertexName("vertex6")
+                    .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                    .setId("e5")
+                    .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                    .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                    .build()
             )
             .addEdge(
-              EdgePlan.newBuilder()
-                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i6_v4"))
-                .setInputVertexName("vertex4")
-                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o4"))
-                .setOutputVertexName("vertex6")
-                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-                .setId("e5")
-                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-                .build()
-            )
-            .addEdge(
-              EdgePlan.newBuilder()
-                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i6_v5"))
-                .setInputVertexName("vertex5")
-                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o5"))
-                .setOutputVertexName("vertex6")
-                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-                .setId("e6")
-                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-                .build()
+                EdgePlan.newBuilder()
+                    .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i6_v5"))
+                    .setInputVertexName("vertex5")
+                    .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o5"))
+                    .setOutputVertexName("vertex6")
+                    .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                    .setId("e6")
+                    .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                    .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                    .build()
             )
             .build();
 
@@ -1382,12 +1442,11 @@ public class TestVertexImpl {
   public void testVertexCommitterInit() {
     initAllVertices(VertexState.INITED);
     VertexImpl v2 = vertices.get("vertex2");
-    Assert.assertTrue(v2.getVertexOutputCommitter()
-        instanceof NullVertexOutputCommitter);
+    Assert.assertNull(v2.getOutputCommitter("output"));
 
     VertexImpl v6 = vertices.get("vertex6");
-    Assert.assertTrue(v6.getVertexOutputCommitter()
-        instanceof MRVertexOutputCommitter);
+    Assert.assertTrue(v6.getOutputCommitter("outputx")
+        instanceof CountingOutputCommitter);
   }
 
   @Test(timeout = 5000)
@@ -1407,12 +1466,11 @@ public class TestVertexImpl {
   public void testVertexTaskFailure() {
     initAllVertices(VertexState.INITED);
 
-    VertexImpl v = vertices.get("vertex2");
+    VertexImpl v = vertices.get("vertex6");
 
-    CountingVertexOutputCommitter committer =
-        new CountingVertexOutputCommitter();
-    v.setVertexOutputCommitter(committer);
     startVertex(v);
+    CountingOutputCommitter committer =
+        (CountingOutputCommitter) v.getOutputCommitter("outputx");
 
     TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
     TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
@@ -1543,10 +1601,6 @@ public class TestVertexImpl {
 
     VertexImpl v = vertices.get("vertex2");
 
-    CountingVertexOutputCommitter committer =
-        new CountingVertexOutputCommitter();
-    v.setVertexOutputCommitter(committer);
-
     startVertex(v);
 
     TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
@@ -1562,13 +1616,11 @@ public class TestVertexImpl {
         new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v.getState());
-    Assert.assertEquals(0, committer.commitCounter);
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-    Assert.assertEquals(1, committer.commitCounter);
 
   }
   
@@ -1579,8 +1631,6 @@ public class TestVertexImpl {
     initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex2");
-
-    v.setVertexOutputCommitter(new NullVertexOutputCommitter());
 
     startVertex(v);
 
@@ -1617,14 +1667,24 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexSuccessToFailedAfterTaskScheduler() {
+  public void testVertexSuccessToFailedAfterTaskScheduler() throws Exception {
     // For downstream failures
-    initAllVertices(VertexState.INITED);
-
     VertexImpl v = vertices.get("vertex2");
 
-    v.setVertexOutputCommitter(new CountingVertexOutputCommitter());
+    List<RootInputLeafOutputProto> outputs =
+        new ArrayList<RootInputLeafOutputProto>();
+    outputs.add(RootInputLeafOutputProto.newBuilder()
+        .setInitializerClassName(CountingOutputCommitter.class.getName())
+        .setName("output_v2")
+        .setEntityDescriptor(
+            TezEntityDescriptorProto.newBuilder()
+                .setUserPayload(ByteString.copyFrom(
+                    new CountingOutputCommitter.CountingOutputCommitterConfig()
+                        .toUserPayload())).build())
+        .build());
+    v.setAdditionalOutputs(outputs);
 
+    initAllVertices(VertexState.INITED);
     startVertex(v);
 
     TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
@@ -1655,13 +1715,11 @@ public class TestVertexImpl {
   public void testVertexCommit() {
     initAllVertices(VertexState.INITED);
 
-    VertexImpl v = vertices.get("vertex2");
-
-    CountingVertexOutputCommitter committer =
-        new CountingVertexOutputCommitter();
-    v.setVertexOutputCommitter(committer);
+    VertexImpl v = vertices.get("vertex6");
 
     startVertex(v);
+    CountingOutputCommitter committer =
+        (CountingOutputCommitter) v.getOutputCommitter("outputx");
 
     TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
     TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
@@ -1682,8 +1740,8 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, committer.commitCounter);
     Assert.assertEquals(0, committer.abortCounter);
-    Assert.assertEquals(0, committer.initCounter); // already done in init
-    Assert.assertEquals(0, committer.setupCounter); // already done in init
+    Assert.assertEquals(1, committer.initCounter);
+    Assert.assertEquals(1, committer.setupCounter);
   }
 
   @Test(timeout = 5000)
@@ -1693,16 +1751,27 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testBadCommitter() {
-    initAllVertices(VertexState.INITED);
-
+  public void testBadCommitter() throws Exception {
     VertexImpl v = vertices.get("vertex2");
 
-    CountingVertexOutputCommitter committer =
-        new CountingVertexOutputCommitter(true, true, false);
-    v.setVertexOutputCommitter(committer);
+    List<RootInputLeafOutputProto> outputs =
+        new ArrayList<RootInputLeafOutputProto>();
+    outputs.add(RootInputLeafOutputProto.newBuilder()
+        .setInitializerClassName(CountingOutputCommitter.class.getName())
+        .setName("output_v2")
+        .setEntityDescriptor(
+            TezEntityDescriptorProto.newBuilder()
+                .setUserPayload(ByteString.copyFrom(
+                    new CountingOutputCommitter.CountingOutputCommitterConfig(
+                        true, true, false).toUserPayload())).build())
+        .build());
+    v.setAdditionalOutputs(outputs);
 
+    initAllVertices(VertexState.INITED);
     startVertex(v);
+
+    CountingOutputCommitter committer =
+        (CountingOutputCommitter) v.getOutputCommitter("output_v2");
 
     TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
     TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
@@ -1714,26 +1783,38 @@ public class TestVertexImpl {
     dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v.getState());
     Assert.assertEquals(VertexTerminationCause.COMMIT_FAILURE, v.getTerminationCause());
+
     Assert.assertEquals(1, committer.commitCounter);
 
     // FIXME need to verify whether abort needs to be called if commit fails
     Assert.assertEquals(0, committer.abortCounter);
-    Assert.assertEquals(0, committer.initCounter); // already done in init
-    Assert.assertEquals(0, committer.setupCounter); // already done in init
+    Assert.assertEquals(1, committer.initCounter);
+    Assert.assertEquals(1, committer.setupCounter);
   }
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testBadCommitter2() {
-    initAllVertices(VertexState.INITED);
-
+  public void testBadCommitter2() throws Exception {
     VertexImpl v = vertices.get("vertex2");
 
-    CountingVertexOutputCommitter committer =
-      new CountingVertexOutputCommitter(true, true, true);
-    v.setVertexOutputCommitter(committer);
+    List<RootInputLeafOutputProto> outputs =
+        new ArrayList<RootInputLeafOutputProto>();
+    outputs.add(RootInputLeafOutputProto.newBuilder()
+        .setInitializerClassName(CountingOutputCommitter.class.getName())
+        .setName("output_v2")
+        .setEntityDescriptor(
+            TezEntityDescriptorProto.newBuilder()
+                .setUserPayload(ByteString.copyFrom(
+                    new CountingOutputCommitter.CountingOutputCommitterConfig(
+                        true, true, true).toUserPayload())).build())
+        .build());
+    v.setAdditionalOutputs(outputs);
 
+    initAllVertices(VertexState.INITED);
     startVertex(v);
+
+    CountingOutputCommitter committer =
+        (CountingOutputCommitter) v.getOutputCommitter("output_v2");
 
     TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
     TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
@@ -1749,8 +1830,8 @@ public class TestVertexImpl {
 
     // FIXME need to verify whether abort needs to be called if commit fails
     Assert.assertEquals(0, committer.abortCounter);
-    Assert.assertEquals(0, committer.initCounter); // already done in init
-    Assert.assertEquals(0, committer.setupCounter); // already done in init
+    Assert.assertEquals(1, committer.initCounter);
+    Assert.assertEquals(1, committer.setupCounter);
   }
 
 

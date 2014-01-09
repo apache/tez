@@ -67,6 +67,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.examples.helpers.SplitsInClientOptionParser;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
@@ -223,9 +224,9 @@ public class FilterLinesByWord {
     stage2Vertex.setTaskEnvironment(stage2Env);
 
     // Configure the Output for stage2
-    stage2Vertex.addOutput("MROutput",
-        new OutputDescriptor(MROutput.class.getName()).setUserPayload(MRHelpers
-            .createUserPayloadFromConf(stage2Conf)));
+    OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
+        .setUserPayload(MRHelpers.createUserPayloadFromConf(stage2Conf));
+    stage2Vertex.addOutput("MROutput", od, MROutputCommitter.class);
 
     DAG dag = new DAG("FilterLinesByWord");
     Edge edge = new Edge(stage1Vertex, stage2Vertex, new EdgeProperty(

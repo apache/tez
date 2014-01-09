@@ -27,10 +27,11 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
+import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 
-public class Vertex { // FIXME rename to Task
+public class Vertex {
 
   private final String vertexName;
   private final ProcessorDescriptor processorDescriptor;
@@ -176,13 +177,19 @@ public class Vertex { // FIXME rename to Task
    *          the name of the output. This will be used when accessing the
    *          output in the {@link LogicalIOProcessor}
    * @param outputDescriptor
+   * @param outputCommitterClazz Class to be used for the OutputCommitter.
+   *                             Can be null.
    * @return
    */
-  // TODO : Add a processing component.
-  public Vertex addOutput(String outputName, OutputDescriptor outputDescriptor) {
+  public Vertex addOutput(String outputName, OutputDescriptor outputDescriptor,
+      Class<? extends OutputCommitter> outputCommitterClazz) {
     additionalOutputs.add(new RootInputLeafOutput<OutputDescriptor>(outputName,
-        outputDescriptor, null));
+        outputDescriptor, outputCommitterClazz));
     return this;
+  }
+
+  public Vertex addOutput(String outputName, OutputDescriptor outputDescriptor) {
+    return addOutput(outputName, outputDescriptor, null);
   }
 
   public String getJavaOpts(){

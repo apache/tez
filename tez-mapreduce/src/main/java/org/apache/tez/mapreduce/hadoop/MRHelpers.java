@@ -71,6 +71,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.mapreduce.combine.MRCombiner;
+import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
@@ -981,7 +982,7 @@ public class MRHelpers {
   public static void addMROutput(Vertex vertex, byte[] userPayload) {
     OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
         .setUserPayload(userPayload);
-    vertex.addOutput("MROutput", od);
+    vertex.addOutput("MROutput", od, MROutputCommitter.class);
   }
   
   @SuppressWarnings("unchecked")

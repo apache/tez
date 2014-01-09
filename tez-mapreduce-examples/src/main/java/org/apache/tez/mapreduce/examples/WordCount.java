@@ -64,6 +64,7 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
+import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -227,7 +228,7 @@ public class WordCount {
     summerVertex.setTaskEnvironment(reduceEnv);
     OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
         .setUserPayload(finalReducePayload);
-    summerVertex.addOutput("MROutput", od);
+    summerVertex.addOutput("MROutput", od, MROutputCommitter.class);
     
     DAG dag = new DAG("WordCount");
     dag.addVertex(tokenizerVertex)

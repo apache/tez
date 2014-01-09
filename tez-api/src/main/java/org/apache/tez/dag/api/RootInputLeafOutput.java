@@ -26,7 +26,7 @@ class  RootInputLeafOutput <T extends TezEntityDescriptor> {
   private final String name;
   private final T descriptor;
   private final Class<?> initializerClazz;
-  
+
   RootInputLeafOutput(String name, T descriptor, Class<?> initializerClazz) {
     this.name = name;
     this.descriptor = descriptor;
@@ -44,4 +44,5 @@ class  RootInputLeafOutput <T extends TezEntityDescriptor> {
   public Class<?> getInitializerClass() {
     return this.initializerClazz;
   }
+
 }

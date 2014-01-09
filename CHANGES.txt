@@ -3,6 +3,10 @@ Apache Tez Change Log
 
 Release 0.3.0 - Unreleased
 
+INCOMPATIBLE CHANGES
+  
+  TEZ-41. Get VertexCommitter from API and remove MRVertexOutputCommitter.
+
 Release 0.2.0 - 2013-11-30
 
   First version.
