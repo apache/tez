@@ -674,6 +674,8 @@ public class MergeManager {
     }
     int maxInMemReduce = (int)Math.min(
         Runtime.getRuntime().maxMemory() * maxRedPer, Integer.MAX_VALUE);
+    LOG.info("Memory allocated for final merge output: " + maxInMemReduce + ", using factor: "
+        + maxRedPer);
     
 
     // merge config params

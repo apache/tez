@@ -46,7 +46,6 @@ import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.TezLocalResource;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
-import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
@@ -70,9 +69,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
   private static final ContainerTask TASK_FOR_INVALID_JVM = new ContainerTask(
       null, true, null);
-
-  private static ProceedToCompletionResponse COMPLETION_RESPONSE_NO_WAIT =
-      new ProceedToCompletionResponse(true, true);
 
   private static final Log LOG = LogFactory
       .getLog(TaskAttemptListenerImpTezDag.class);
@@ -353,55 +349,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
             getTask(taskAttemptId.getTaskID());
     return task.canCommit(taskAttemptId);
   }
-
-  @Override
-  public ProceedToCompletionResponse
-      proceedToCompletion(TezTaskAttemptID taskAttemptId) throws IOException {
-
-    // The async nature of the processing combined with the 1 second interval
-    // between polls (MRTask) implies tasks end up wasting upto 1 second doing
-    // nothing. Similarly for CA_COMMIT.
-
-    /*
-    DAG job = context.getCurrentDAG();
-    Task task =
-        job.getVertex(taskAttemptId.getTaskID().getVertexID()).
-            getTask(taskAttemptId.getTaskID());
-
-    // TODO In-Memory Shuffle
-    if (task.needsWaitAfterOutputConsumable()) {
-      TezTaskAttemptID outputReadyAttempt = task.getOutputConsumableAttempt();
-      if (outputReadyAttempt != null) {
-        if (!outputReadyAttempt.equals(taskAttemptId)) {
-          LOG.info("Telling taksAttemptId: "
-              + taskAttemptId
-              + " to die, since the outputReady atempt for this task is different: "
-              + outputReadyAttempt);
-          return new ProceedToCompletionResponse(true, true);
-        }
-      }
-      boolean reducesDone = true;
-      for (Task rTask : job.getTasks(TaskType.REDUCE).values()) {
-        if (rTask.getState() != TaskState.SUCCEEDED) {
-          // TODO EVENTUALLY - could let the map tasks exit after reduces are
-          // done with the shuffle phase, instead of waiting for the reduces to
-          // complete.
-          reducesDone = false;
-          break;
-        }
-      }
-      if (reducesDone) {
-        return new ProceedToCompletionResponse(false, true);
-      } else {
-        return new ProceedToCompletionResponse(false, false);
-      }
-    } else {
-      return COMPLETION_RESPONSE_NO_WAIT;
-    }
-    */
-    return COMPLETION_RESPONSE_NO_WAIT;
-  }
-
 
   @Override
   public void unregisterTaskAttempt(TezTaskAttemptID attemptId) {

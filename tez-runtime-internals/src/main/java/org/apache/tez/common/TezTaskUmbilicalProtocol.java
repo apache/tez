@@ -22,10 +22,8 @@ import java.io.IOException;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.hadoop.ipc.ProtocolInfo;
 import org.apache.hadoop.ipc.VersionedProtocol;
 import org.apache.hadoop.security.token.TokenInfo;
-import org.apache.tez.common.records.ProceedToCompletionResponse;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
@@ -48,9 +46,6 @@ public interface TezTaskUmbilicalProtocol extends VersionedProtocol {
   ContainerTask getTask(ContainerContext containerContext) throws IOException;
 
   boolean canCommit(TezTaskAttemptID taskid) throws IOException;
-
-  ProceedToCompletionResponse
-      proceedToCompletion(TezTaskAttemptID taskAttemptId) throws IOException;
 
   /// Copies from TezUmbilical until complete re-factor is done
   // TODONEWTEZ

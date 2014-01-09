@@ -120,8 +120,6 @@ import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
 import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.node.AMNodeEventType;
 import org.apache.tez.dag.app.rm.node.AMNodeMap;
-import org.apache.tez.dag.app.taskclean.TaskCleaner;
-import org.apache.tez.dag.app.taskclean.TaskCleanerImpl;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.avro.HistoryEventType;
@@ -177,7 +175,6 @@ public class DAGAppMaster extends AbstractService {
   private Configuration amConf;
   private Dispatcher dispatcher;
   private ContainerLauncher containerLauncher;
-  private TaskCleaner taskCleaner;
   private ContainerHeartbeatHandler containerHeartbeatHandler;
   private TaskHeartbeatHandler taskHeartbeatHandler;
   private TaskAttemptListener taskAttemptListener;
@@ -296,10 +293,6 @@ public class DAGAppMaster extends AbstractService {
     addIfService(nodes, true);
     dispatcher.register(AMNodeEventType.class, nodes);
 
-    //service to do the task cleanup
-    taskCleaner = createTaskCleaner(context);
-    addIfService(taskCleaner, true);
-
     this.dagEventDispatcher = new DagEventDispatcher();
     this.vertexEventDispatcher = new VertexEventDispatcher();
 
@@ -310,7 +303,6 @@ public class DAGAppMaster extends AbstractService {
     dispatcher.register(TaskEventType.class, new TaskEventDispatcher());
     dispatcher.register(TaskAttemptEventType.class,
         new TaskAttemptEventDispatcher());
-    dispatcher.register(TaskCleaner.EventType.class, taskCleaner);
 
     taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
         clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher);
@@ -555,11 +547,6 @@ public class DAGAppMaster extends AbstractService {
             TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT,
             TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT));
     return chh;
-  }
-
-
-  protected TaskCleaner createTaskCleaner(AppContext context) {
-    return new TaskCleanerImpl(context);
   }
 
   protected ContainerLauncher
