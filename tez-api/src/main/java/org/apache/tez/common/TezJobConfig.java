@@ -296,7 +296,7 @@ public class TezJobConfig {
   public static final String TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS = 
       "tez.runtime.intermediate-output.should-compress";
   public static final String TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED = 
-      "tez.runtime.intermdiate-input.is-compressed";
+      "tez.runtime.intermediate-input.is-compressed";
   
   public static final String TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC = 
       "tez.runtime.intermediate-output.compress.codec";
