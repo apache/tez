@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -89,6 +90,7 @@ import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
@@ -125,6 +127,7 @@ import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.history.events.AMStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.utils.Graph;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.runtime.library.common.security.TokenCache;
@@ -501,8 +504,80 @@ public class DAGAppMaster extends AbstractService {
             currentUser.getShortUserName(),
             taskHeartbeatHandler, context);
 
+    if (dagConf.getBoolean(TezConfiguration.TEZ_GENERATE_DAG_VIZ,
+        TezConfiguration.TEZ_GENERATE_DAG_VIZ_DEFAULT)) {
+      generateDAGVizFile(dagId, dagPB);
+    }
+
     return newDag;
   } // end createDag()
+
+  String getShortClassName(String className) {
+    int pos = className.lastIndexOf(".");
+    if (pos != -1 && pos < className.length()-1) {
+      return className.substring(pos+1);
+    }
+    return className;
+  }
+
+  private void generateDAGVizFile(TezDAGID dagId, DAGPlan dagPB) {
+    Graph graph = new Graph(dagPB.getName());
+
+    for (VertexPlan v : dagPB.getVertexList()) {
+      String nodeLabel = v.getName().replace("\\W","_")
+          + "[" + getShortClassName(v.getProcessorDescriptor().getClassName() + "]");
+      Graph.Node n = graph.newNode(v.getName(), nodeLabel);
+      for (DAGProtos.RootInputLeafOutputProto input : v.getInputsList()) {
+        Graph.Node inputNode = graph.getNode(v.getName()
+            + "_" + input.getName());
+        inputNode.setLabel(v.getName() + "[" + input.getName() + "]");
+        inputNode.setShape("box");
+        inputNode.addEdge(n, "Input"
+            + " [inputClass=" + getShortClassName(input.getEntityDescriptor().getClassName())
+            + ", initializer=" + getShortClassName(input.getInitializerClassName()) + "]");
+      }
+      for (DAGProtos.RootInputLeafOutputProto output : v.getOutputsList()) {
+        Graph.Node outputNode = graph.getNode(v.getName()
+            + "_" + output.getName());
+        outputNode.setLabel(v.getName() + "[" + output.getName() + "]");
+        outputNode.setShape("box");
+        n.addEdge(outputNode, "Output"
+            + " [outputClass=" + getShortClassName(output.getEntityDescriptor().getClassName())
+            + ", initializer=" + getShortClassName(output.getInitializerClassName()) + "]");
+      }
+    }
+
+    for (DAGProtos.EdgePlan e : dagPB.getEdgeList()) {
+
+      Graph.Node n = graph.getNode(e.getInputVertexName());
+      n.addEdge(graph.getNode(e.getOutputVertexName()),
+          "["
+          + "input=" + getShortClassName(e.getEdgeSource().getClassName())
+          + ", output=" + getShortClassName(e.getEdgeDestination().getClassName())
+          + ", dataMovement=" + e.getDataMovementType().name().trim()
+          + ", schedulingType=" + e.getSchedulingType().name().trim() + "]");
+    }
+
+    String logDirs = System.getenv(Environment.LOG_DIRS.name());
+    String outputFile = "";
+    if (logDirs != null && !logDirs.isEmpty()) {
+      int pos = logDirs.indexOf(",");
+      if (pos != -1) {
+        outputFile += logDirs.substring(0, pos);
+      } else {
+        outputFile += logDirs;
+      }
+      outputFile += File.separator;
+    }
+    outputFile += dagId.toString() + ".dot";
+
+    try {
+      graph.save(outputFile);
+    } catch (IOException e) {
+      LOG.warn("Error occurred when trying to save graph structure"
+          + " for dag " + dagId.toString(), e);
+    }
+  }
 
   protected void addIfService(Object object, boolean addDispatcher) {
     if (object instanceof Service) {

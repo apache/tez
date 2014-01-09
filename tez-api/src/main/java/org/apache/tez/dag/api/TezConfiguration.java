@@ -295,4 +295,9 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_QUEUE_NAME = 
       TEZ_PREFIX + "queue.name";
+
+  public static final String TEZ_GENERATE_DAG_VIZ =
+      TEZ_PREFIX + "generate.dag.viz";
+  public static final boolean TEZ_GENERATE_DAG_VIZ_DEFAULT = false;
+
 }
