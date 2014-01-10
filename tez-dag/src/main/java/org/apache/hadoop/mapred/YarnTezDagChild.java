@@ -434,6 +434,22 @@ public class YarnTezDagChild {
           return;
         }
         taskCount++;
+
+        // Re-use the UGI only if the Credentials have not changed.
+        if (containerTask.haveCredentialsChanged()) {
+          LOG.info("Refreshing UGI since Credentials have changed");
+          Credentials taskCreds = containerTask.getCredentials();
+          if (taskCreds != null) {
+            LOG.info("Credentials : #Tokens=" + taskCreds.numberOfTokens() + ", #SecretKeys="
+                + taskCreds.numberOfSecretKeys());
+            childUGI = UserGroupInformation.createRemoteUser(System
+                .getenv(ApplicationConstants.Environment.USER.toString()));
+            childUGI.addCredentials(containerTask.getCredentials());
+          } else {
+            LOG.info("Not loading any credentials, since no credentials provided");
+          }
+        }
+
         Map<String, TezLocalResource> additionalResources = containerTask.getAdditionalResources();
         if (LOG.isDebugEnabled()) {
           LOG.debug("Additional Resources added to container: " + additionalResources);
@@ -476,15 +492,12 @@ public class YarnTezDagChild {
 
         // TODO Initiate Java VM metrics
         // JvmMetrics.initSingleton(containerId.toString(), job.getSessionId());
-        childUGI = UserGroupInformation.createRemoteUser(System
-            .getenv(ApplicationConstants.Environment.USER.toString()));
-        // Add tokens to new user so that it may execute its task correctly.
-        childUGI.addCredentials(credentials);
 
         childUGI.doAs(new PrivilegedExceptionAction<Object>() {
           @Override
           public Object run() throws Exception {
             try {
+              setFileSystemWorkingDir(defaultConf);
               LOG.info("Initializing task"
                   + ", taskAttemptId=" + currentTaskAttemptID);
               currentTask.initialize();
@@ -597,7 +610,6 @@ public class YarnTezDagChild {
 
     // FIXME TODONEWTEZ
     conf.setBoolean("ipc.client.tcpnodelay", true);
-    FileSystem.get(conf).setWorkingDirectory(getWorkingDirectory(conf));
 
     String [] localDirs = StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
     conf.setStrings(TezJobConfig.LOCAL_DIRS, localDirs);
@@ -605,6 +617,11 @@ public class YarnTezDagChild {
 
     return new LogicalIOProcessorRuntimeTask(taskSpec, attemptNum, conf,
         tezUmbilical, serviceConsumerMetadata);
+  }
+  
+  // TODONEWTEZ Is this really required ?
+  private static void setFileSystemWorkingDir(Configuration conf) throws IOException {
+    FileSystem.get(conf).setWorkingDirectory(getWorkingDirectory(conf));
   }
 
 

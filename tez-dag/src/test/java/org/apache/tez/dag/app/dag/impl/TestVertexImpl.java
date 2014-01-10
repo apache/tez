@@ -41,7 +41,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -132,7 +132,6 @@ public class TestVertexImpl {
   private Map<TezVertexID, VertexImpl> vertexIdMap;
   private DrainDispatcher dispatcher;
   private TaskAttemptListener taskAttemptListener;
-  private Credentials fsTokens;
   private Clock clock = new SystemClock();
   private TaskHeartbeatHandler thh;
   private AppContext appContext;
@@ -1009,11 +1008,11 @@ public class TestVertexImpl {
           vPlan.getTaskLocationHintList());
       if (useCustomInitializer) {
         v = new VertexImplWithCustomInitializer(vertexId, vPlan, vPlan.getName(), conf,
-          dispatcher.getEventHandler(), taskAttemptListener, fsTokens,
+          dispatcher.getEventHandler(), taskAttemptListener,
           clock, thh, appContext, locationHint, dispatcher);
       } else {
         v = new VertexImpl(vertexId, vPlan, vPlan.getName(), conf,
-            dispatcher.getEventHandler(), taskAttemptListener, fsTokens,
+            dispatcher.getEventHandler(), taskAttemptListener,
             clock, thh, appContext, locationHint);
       }
       vertices.put(vName, v);
@@ -1074,7 +1073,6 @@ public class TestVertexImpl {
 
   public void setupPostDagCreation() {
     dispatcher = new DrainDispatcher();
-    fsTokens = new Credentials();
     appContext = mock(AppContext.class);
     TaskSchedulerEventHandler taskScheduler = mock(TaskSchedulerEventHandler.class);
     DAG dag = mock(DAG.class);
@@ -1984,7 +1982,7 @@ public class TestVertexImpl {
       vId = TezVertexID.getInstance(invalidDagId, 1);
       VertexPlan vPlan = invalidDagPlan.getVertex(0);
       VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
-          dispatcher.getEventHandler(), taskAttemptListener, fsTokens,
+          dispatcher.getEventHandler(), taskAttemptListener,
           clock, thh, appContext, vertexLocationHint);
       vertexIdMap.put(vId, v);
       v.handle(new VertexEvent(vId, VertexEventType.V_INIT));
@@ -2009,10 +2007,10 @@ public class TestVertexImpl {
     public VertexImplWithCustomInitializer(TezVertexID vertexId,
         VertexPlan vertexPlan, String vertexName, Configuration conf,
         EventHandler eventHandler, TaskAttemptListener taskAttemptListener,
-        Credentials credentials, Clock clock, TaskHeartbeatHandler thh,
+        Clock clock, TaskHeartbeatHandler thh,
         AppContext appContext, VertexLocationHint vertexLocationHint, DrainDispatcher dispatcher) {
       super(vertexId, vertexPlan, vertexName, conf, eventHandler,
-          taskAttemptListener, credentials, clock, thh, appContext,
+          taskAttemptListener, clock, thh, appContext,
           vertexLocationHint);
       this.dispatcher = dispatcher;
     }
@@ -2021,8 +2019,12 @@ public class TestVertexImpl {
     protected RootInputInitializerRunner createRootInputInitializerRunner(
         String dagName, String vertexName, TezVertexID vertexID,
         EventHandler eventHandler, int numTasks) {
-      rootInputInitializerRunner = new RootInputInitializerRunnerControlled(dagName, vertexName, vertexID,
-          eventHandler, numTasks, dispatcher);
+      try {
+        rootInputInitializerRunner = new RootInputInitializerRunnerControlled(dagName, vertexName, vertexID,
+            eventHandler, numTasks, dispatcher);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
       return rootInputInitializerRunner;
     }
     
@@ -2043,8 +2045,8 @@ public class TestVertexImpl {
 
     public RootInputInitializerRunnerControlled(String dagName,
         String vertexName, TezVertexID vertexID, EventHandler eventHandler,
-        int numTasks, DrainDispatcher dispatcher) {
-      super(dagName, vertexName, vertexID, eventHandler, numTasks);
+        int numTasks, DrainDispatcher dispatcher) throws IOException {
+      super(dagName, vertexName, vertexID, eventHandler, UserGroupInformation.getCurrentUser(), numTasks);
       this.eventHandler = eventHandler;
       this.dispatcher = dispatcher;
       this.vertexID = vertexID;
@@ -2086,6 +2088,7 @@ public class TestVertexImpl {
     }
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout=5000)
   public void testInitStartRace() {
     // Race when a source vertex manages to start before the target vertex has
@@ -2109,6 +2112,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, vC.getState());
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout=5000)
   public void testInitStartRace2() {
     // Race when a source vertex manages to start before the target vertex has

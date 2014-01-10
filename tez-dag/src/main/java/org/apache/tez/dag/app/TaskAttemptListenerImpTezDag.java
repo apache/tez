@@ -68,7 +68,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     TezTaskUmbilicalProtocol, TaskAttemptListener {
 
   private static final ContainerTask TASK_FOR_INVALID_JVM = new ContainerTask(
-      null, true, null);
+      null, true, null, null, false);
 
   private static final Log LOG = LogFactory
       .getLog(TaskAttemptListenerImpTezDag.class);
@@ -216,7 +216,8 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
             registerTaskAttempt(taskContext.getTask().getTaskAttemptID(),
                 containerId);
             task = new ContainerTask(taskContext.getTask(), false,
-                convertLocalResourceMap(taskContext.getAdditionalResources()));
+                convertLocalResourceMap(taskContext.getAdditionalResources()),
+                taskContext.getCredentials(), taskContext.haveCredentialsChanged());
             context.getEventHandler().handle(
                 new TaskAttemptEventStartedRemotely(taskContext.getTask()
                     .getTaskAttemptID(), containerId, context

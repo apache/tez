@@ -21,15 +21,16 @@ package org.apache.tez.dag.app.rm.container;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
@@ -38,8 +39,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -74,6 +77,8 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.library.common.security.TokenCache;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import com.google.common.collect.Maps;
 
@@ -851,7 +856,7 @@ public class TestAMContainer {
     Map<String, LocalResource> initialResources = Maps.newHashMap();
     initialResources.put(rsrc1, createLocalResource(rsrc1));
 
-    wc.launchContainer(initialResources);
+    wc.launchContainer(initialResources, new Credentials());
     wc.containerLaunched();
     wc.assignTaskAttempt(wc.taskAttemptID);
     AMContainerTask task1 = wc.pullTaskToRun();
@@ -864,7 +869,7 @@ public class TestAMContainer {
     additionalResources.put(rsrc3, createLocalResource(rsrc3));
 
     TezTaskAttemptID taID2 = TezTaskAttemptID.getInstance(wc.taskID, 2);
-    wc.assignTaskAttempt(taID2, additionalResources);
+    wc.assignTaskAttempt(taID2, additionalResources, new Credentials());
     AMContainerTask task2 = wc.pullTaskToRun();
     Map<String, LocalResource> pullTaskAdditionalResources = task2.getAdditionalResources();
     assertEquals(2, pullTaskAdditionalResources.size());
@@ -885,7 +890,7 @@ public class TestAMContainer {
     // Try launching another task with the same reosurces as Task2. Verify the
     // task is not asked to re-localize again.
     TezTaskAttemptID taID3 = TezTaskAttemptID.getInstance(wc.taskID, 3);
-    wc.assignTaskAttempt(taID3, new HashMap<String, LocalResource>());
+    wc.assignTaskAttempt(taID3, new HashMap<String, LocalResource>(), new Credentials());
     AMContainerTask task3 = wc.pullTaskToRun();
     assertEquals(0, task3.getAdditionalResources().size());
     wc.taskAttemptSucceeded(taID3);
@@ -897,6 +902,88 @@ public class TestAMContainer {
     assertNull(wc.amContainer.additionalLocalResources);
   }
 
+  @SuppressWarnings("unchecked")
+  @Test
+  public void testCredentialsTransfer() {
+    WrappedContainerMultipleDAGs wc = new WrappedContainerMultipleDAGs();
+
+    TezDAGID dagID2 = TezDAGID.getInstance("800", 500, 2);
+    TezDAGID dagID3 = TezDAGID.getInstance("800", 500, 3);
+    TezVertexID vertexID2 = TezVertexID.getInstance(dagID2, 1);
+    TezVertexID vertexID3 = TezVertexID.getInstance(dagID3, 1);
+    TezTaskID taskID2 = TezTaskID.getInstance(vertexID2, 1);
+    TezTaskID taskID3 = TezTaskID.getInstance(vertexID3, 1);
+
+    TezTaskAttemptID attempt11 = TezTaskAttemptID.getInstance(wc.taskID, 200);
+    TezTaskAttemptID attempt12 = TezTaskAttemptID.getInstance(wc.taskID, 300);
+    TezTaskAttemptID attempt21 = TezTaskAttemptID.getInstance(taskID2, 200);
+    TezTaskAttemptID attempt22 = TezTaskAttemptID.getInstance(taskID2, 300);
+    TezTaskAttemptID attempt31 = TezTaskAttemptID.getInstance(taskID3, 200);
+    TezTaskAttemptID attempt32 = TezTaskAttemptID.getInstance(taskID3, 300);
+    
+    Map<String, LocalResource> LRs = new HashMap<String, LocalResource>();
+    AMContainerTask fetchedTask = null;
+    
+    Token<TokenIdentifier> amGenToken = mock(Token.class);
+    Token<TokenIdentifier> token1 = mock(Token.class);
+    Token<TokenIdentifier> token3 = mock(Token.class);
+    
+    Credentials containerCredentials = new Credentials();
+    TokenCache.setJobToken(amGenToken, containerCredentials);
+
+    Text token1Name = new Text("tokenDag1");
+    Text token3Name = new Text("tokenDag3");
+    
+    Credentials dag1Credentials = new Credentials();
+    dag1Credentials.addToken(new Text(token1Name), token1);
+    Credentials dag3Credentials = new Credentials();
+    dag3Credentials.addToken(new Text(token3Name), token3);
+    
+    wc.launchContainer(new HashMap<String, LocalResource>(), containerCredentials);
+    wc.containerLaunched();
+    wc.assignTaskAttempt(attempt11, LRs , dag1Credentials);
+    fetchedTask = wc.pullTaskToRun();
+    assertTrue(fetchedTask.haveCredentialsChanged());
+    assertNotNull(fetchedTask.getCredentials());
+    assertNotNull(fetchedTask.getCredentials().getToken(token1Name));
+    wc.taskAttemptSucceeded(attempt11);
+    
+    wc.assignTaskAttempt(attempt12, LRs, dag1Credentials);
+    fetchedTask = wc.pullTaskToRun();
+    assertFalse(fetchedTask.haveCredentialsChanged());
+    assertNull(fetchedTask.getCredentials());
+    wc.taskAttemptSucceeded(attempt12);
+    
+    // Move to running a second DAG, with no credentials.
+    wc.setNewDAGID(dagID2);
+    wc.assignTaskAttempt(attempt21, LRs, null);
+    fetchedTask = wc.pullTaskToRun();
+    assertTrue(fetchedTask.haveCredentialsChanged());
+    assertNull(fetchedTask.getCredentials());
+    wc.taskAttemptSucceeded(attempt21);
+    
+    wc.assignTaskAttempt(attempt22, LRs, null);
+    fetchedTask = wc.pullTaskToRun();
+    assertFalse(fetchedTask.haveCredentialsChanged());
+    assertNull(fetchedTask.getCredentials());
+    wc.taskAttemptSucceeded(attempt22);
+    
+    // Move to running a third DAG, with Credentials this time
+    wc.setNewDAGID(dagID3);
+    wc.assignTaskAttempt(attempt31, LRs , dag3Credentials);
+    fetchedTask = wc.pullTaskToRun();
+    assertTrue(fetchedTask.haveCredentialsChanged());
+    assertNotNull(fetchedTask.getCredentials());
+    assertNotNull(fetchedTask.getCredentials().getToken(token3Name));
+    assertNull(fetchedTask.getCredentials().getToken(token1Name));
+    wc.taskAttemptSucceeded(attempt31);
+    
+    wc.assignTaskAttempt(attempt32, LRs, dag1Credentials);
+    fetchedTask = wc.pullTaskToRun();
+    assertFalse(fetchedTask.haveCredentialsChanged());
+    assertNull(fetchedTask.getCredentials());
+    wc.taskAttemptSucceeded(attempt32);
+  }
 
   // TODO Verify diagnostics in most of the tests.
 
@@ -945,25 +1032,30 @@ public class TestAMContainer {
       tal = mock(TaskAttemptListener.class);
       doReturn(addr).when(tal).getAddress();
 
+      dagID = TezDAGID.getInstance(applicationID, 1);
+      vertexID = TezVertexID.getInstance(dagID, 1);
+      taskID = TezTaskID.getInstance(vertexID, 1);
+      taskAttemptID = TezTaskAttemptID.getInstance(taskID, 1);
+      
       eventHandler = mock(EventHandler.class);
 
       appContext = mock(AppContext.class);
       doReturn(new HashMap<ApplicationAccessType, String>()).when(appContext)
       .getApplicationACLs();
       doReturn(eventHandler).when(appContext).getEventHandler();
-      when(appContext.getApplicationAttemptId()).thenReturn(appAttemptID);
-      when(appContext.getApplicationID()).thenReturn(applicationID);
-
-      dagID = TezDAGID.getInstance(applicationID, 1);
-      vertexID = TezVertexID.getInstance(dagID, 1);
-      taskID = TezTaskID.getInstance(vertexID, 1);
-      taskAttemptID = TezTaskAttemptID.getInstance(taskID, 1);
+      doReturn(appAttemptID).when(appContext).getApplicationAttemptId();
+      doReturn(applicationID).when(appContext).getApplicationID();
+      mockDAGID();
 
       taskSpec = mock(TaskSpec.class);
       doReturn(taskAttemptID).when(taskSpec).getTaskAttemptID();
 
       amContainer = new AMContainerImpl(container, chh, tal,
           new ContainerContextMatcher(), appContext);
+    }
+    
+    protected void mockDAGID() {
+      doReturn(dagID).when(appContext).getCurrentDAGID();
     }
 
     /**
@@ -990,12 +1082,11 @@ public class TestAMContainer {
     }
 
     public void launchContainer() {
-      launchContainer(new HashMap<String, LocalResource>());
+      launchContainer(new HashMap<String, LocalResource>(), new Credentials());
     }
 
-    public void launchContainer(Map<String, LocalResource> localResources) {
+    public void launchContainer(Map<String, LocalResource> localResources, Credentials credentials) {
       reset(eventHandler);
-      Credentials credentials = new Credentials();
       @SuppressWarnings("unchecked")
       Token<JobTokenIdentifier> jobToken = mock(Token.class);
       TokenCache.setJobToken(jobToken, credentials);
@@ -1004,14 +1095,14 @@ public class TestAMContainer {
     }
 
     public void assignTaskAttempt(TezTaskAttemptID taID) {
-      assignTaskAttempt(taID, new HashMap<String, LocalResource>());
+      assignTaskAttempt(taID, new HashMap<String, LocalResource>(), new Credentials());
     }
 
     public void assignTaskAttempt(TezTaskAttemptID taID,
-        Map<String, LocalResource> additionalResources) {
+        Map<String, LocalResource> additionalResources, Credentials credentials) {
       reset(eventHandler);
       amContainer.handle(new AMContainerEventAssignTA(containerID, taID, taskSpec,
-          additionalResources));
+          additionalResources, credentials));
     }
 
     public AMContainerTask pullTaskToRun() {
@@ -1075,6 +1166,25 @@ public class TestAMContainer {
       assertEquals(
           "Expected state: " + state + ", but found: " + amContainer.getState(),
           state, amContainer.getState());
+    }
+  }
+  
+  private static class WrappedContainerMultipleDAGs extends WrappedContainer {
+    
+    private TezDAGID newDAGID = null;
+    
+    @Override
+    protected void mockDAGID() {
+      doAnswer(new Answer<TezDAGID>() {
+        @Override
+        public TezDAGID answer(InvocationOnMock invocation) throws Throwable {
+          return newDAGID == null ? dagID : newDAGID;
+        }
+      }).when(appContext).getCurrentDAGID();
+    }
+    
+    void setNewDAGID(TezDAGID newDAGID) {
+      this.newDAGID = newDAGID;
     }
   }
 

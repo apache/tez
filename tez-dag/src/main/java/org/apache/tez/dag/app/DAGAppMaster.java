@@ -200,7 +200,7 @@ public class DAGAppMaster extends AbstractService {
   private DAGClientHandler clientHandler;
 
   private DAG currentDAG;
-  private Credentials tokens = new Credentials(); // Filled during init
+  private Credentials amTokens = new Credentials(); // Filled during init
   private UserGroupInformation currentUser; // Will be setup during init
 
   private AtomicBoolean sessionStopped = new AtomicBoolean(false);
@@ -275,7 +275,7 @@ public class DAGAppMaster extends AbstractService {
     sessionToken = new Token<JobTokenIdentifier>(identifier,
         jobTokenSecretManager);
     sessionToken.setService(identifier.getJobId());
-    TokenCache.setJobToken(sessionToken, tokens);
+    TokenCache.setJobToken(sessionToken, amTokens);
     // Prepare the TaskAttemptListener server for authentication of Containers
     // TaskAttemptListener gets the information via jobTokenSecretManager.
     jobTokenSecretManager.addTokenForJob(sessionTokenUUID, sessionToken);
@@ -496,11 +496,18 @@ public class DAGAppMaster extends AbstractService {
       PlanKeyValuePair keyValPair = iter.next();
       dagConf.set(keyValPair.getKey(), keyValPair.getValue());
     }
+    
+    // Assuming DAG specific credentials will be available - TEZ-395
+    Credentials dagCredentials = this.amTokens;
+    if (dagCredentials == null) {
+      dagCredentials = new Credentials();
+    }
+    TokenCache.setJobToken(sessionToken, dagCredentials);
 
     // create single dag
     DAG newDag =
         new DAGImpl(dagId, dagConf, dagPB, dispatcher.getEventHandler(),
-            taskAttemptListener, jobTokenSecretManager, tokens, clock,
+            taskAttemptListener, dagCredentials, clock,
             currentUser.getShortUserName(),
             taskHeartbeatHandler, context);
 
@@ -1504,8 +1511,7 @@ public class DAGAppMaster extends AbstractService {
       InterruptedException {
     UserGroupInformation.setConfiguration(conf);
     appMaster.currentUser = UserGroupInformation.getCurrentUser();
-        Credentials credentials =
-        UserGroupInformation.getCurrentUser().getCredentials();
+    Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
 
     UserGroupInformation appMasterUgi = UserGroupInformation
         .createRemoteUser(jobUserName);
@@ -1520,7 +1526,7 @@ public class DAGAppMaster extends AbstractService {
       }
     }
 
-    appMaster.tokens = credentials;
+    appMaster.amTokens = credentials;
 
     appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {
       @Override

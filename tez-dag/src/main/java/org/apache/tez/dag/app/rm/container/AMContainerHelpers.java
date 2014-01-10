@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -41,6 +42,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
@@ -99,34 +101,30 @@ public class AMContainerHelpers {
 
 
     // Tokens
+    
+    // Setup up task credentials buffer
     ByteBuffer taskCredentialsBuffer = ByteBuffer.wrap(new byte[] {});
     try {
-      // Setup up task credentials buffer
-      Credentials taskCredentials = new Credentials();
+      // Setting only the JobToken when launching the container. This is meant to be used for 
+      // communicating with the AM - and is managed by Tez. The rest of the tokens will be sent
+      // along with the task - if required.
+      Credentials containerCredentials = new Credentials();
+      Token<JobTokenIdentifier> jobToken = TokenCache.getJobToken(credentials);
+      TokenCache.setJobToken(jobToken, containerCredentials);
 
-      // Add tokens if they exist.
-      LOG.info("Adding #" + credentials.numberOfTokens() + " tokens and #"
-          + credentials.numberOfSecretKeys()
-          + " secret keys for NM use for launching container");
-      taskCredentials.addAll(credentials);
 
       DataOutputBuffer containerTokens_dob = new DataOutputBuffer();
-      LOG.info("Size of containertokens_dob is "
-          + taskCredentials.numberOfTokens());
-      taskCredentials.writeTokenStorageToStream(containerTokens_dob);
+      containerCredentials.writeTokenStorageToStream(containerTokens_dob);
       taskCredentialsBuffer = ByteBuffer.wrap(containerTokens_dob.getData(), 0,
           containerTokens_dob.getLength());
 
       // Add shuffle token
       LOG.info("Putting shuffle token in serviceData");
       serviceData.put(ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID,
-          ShuffleHandler.serializeServiceData(TokenCache
-              .getJobToken(taskCredentials)));
-
+          ShuffleHandler.serializeServiceData(jobToken));
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }
-
     // Construct the actual Container
     // The null fields are per-container and will be constructed for each
     // container separately.

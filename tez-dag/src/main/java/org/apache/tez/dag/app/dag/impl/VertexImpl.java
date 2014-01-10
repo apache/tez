@@ -17,6 +17,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,11 +38,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.StringInterner;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -429,8 +428,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private long finishTime;
   private float progress;
 
-  private Credentials credentials;
-
   private final TezVertexID vertexId;  //runtime assigned id.
   private final VertexPlan vertexPlan;
 
@@ -455,6 +452,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private RootInputInitializerRunner rootInputInitializer;
 
   private VertexManager vertexManager;
+  
+  private final UserGroupInformation dagUgi;
 
   private boolean parallelismSet = false;
   private TezVertexID originalOneToOneSplitSource = null;
@@ -471,8 +470,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
       String vertexName, Configuration conf, EventHandler eventHandler,
-      TaskAttemptListener taskAttemptListener,
-      Credentials credentials, Clock clock,
+      TaskAttemptListener taskAttemptListener, Clock clock,
       // TODO: Recovery
       //Map<TaskId, TaskInfo> completedTasksFromPreviousRun,
       // TODO Metrics
@@ -496,11 +494,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.readLock = readWriteLock.readLock();
     this.writeLock = readWriteLock.writeLock();
 
-    this.credentials = credentials;
     this.vertexLocationHint = vertexLocationHint;
     if (LOG.isDebugEnabled()) {
       logLocationHints(this.vertexLocationHint);
     }
+
+    this.dagUgi = appContext.getCurrentDAG().getDagUGI();
 
     this.taskResource = DagTypeConverters
         .createResourceRequestFromTaskConfig(vertexPlan.getTaskConfig());
@@ -518,7 +517,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         .getTaskConfig().getJavaOpts() : null;
 
     this.containerContext = new ContainerContext(this.localResources,
-        this.credentials, this.environment, this.javaOpts, this);
+        appContext.getCurrentDAG().getCredentials(), this.environment, this.javaOpts, this);
 
     if (vertexPlan.getInputsCount() > 0) {
       setAdditionalInputs(vertexPlan.getInputsList());
@@ -1016,7 +1015,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.eventHandler.handle(new DAGHistoryEvent(finishEvt));
   }
 
-  static VertexState checkVertexForCompletion(VertexImpl vertex) {
+  static VertexState checkVertexForCompletion(final VertexImpl vertex) {
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Checking for vertex completion"
@@ -1046,12 +1045,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             LOG.info("Invoking committer commit for vertex, vertexId="
                 + vertex.logIdentifier);
             if (vertex.outputCommitters != null) {
-              for (Entry<String, OutputCommitter> entry :
-                  vertex.outputCommitters.entrySet()) {
-                LOG.info("Invoking committer commit for output=" + entry.getKey()
-                    + ", vertexId=" + vertex.logIdentifier);
-                entry.getValue().commitOutput();
-              }
+              vertex.dagUgi.doAs(new PrivilegedExceptionAction<Void>() {
+                @Override
+                public Void run() throws Exception {
+                  for (Entry<String, OutputCommitter> entry : vertex.outputCommitters.entrySet()) {
+                    LOG.info("Invoking committer commit for output=" + entry.getKey()
+                        + ", vertexId=" + vertex.logIdentifier);
+                    entry.getValue().commitOutput();
+                  }
+                  return null;
+                }
+              });
             }
           }
         } catch (Exception e) {
@@ -1183,23 +1187,29 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               + ", vertexId=" + logIdentifier
               + ", committerClass=" + od.getInitializerClassName());
 
-          OutputCommitter outputCommitter = RuntimeUtils.createClazzInstance(
-              od.getInitializerClassName());
-          OutputCommitterContext outputCommitterContext =
-              new OutputCommitterContextImpl(appContext.getApplicationID(),
-                  appContext.getApplicationAttemptId().getAttemptId(),
-                  appContext.getCurrentDAG().getName(),
-                  vertexName,
-                  outputName,
-                  od.getDescriptor().getUserPayload());
+          dagUgi.doAs(new PrivilegedExceptionAction<Void>() {
+            @Override
+            public Void run() throws Exception {
+              OutputCommitter outputCommitter = RuntimeUtils.createClazzInstance(
+                  od.getInitializerClassName());
+              OutputCommitterContext outputCommitterContext =
+                  new OutputCommitterContextImpl(appContext.getApplicationID(),
+                      appContext.getApplicationAttemptId().getAttemptId(),
+                      appContext.getCurrentDAG().getName(),
+                      vertexName,
+                      outputName,
+                      od.getDescriptor().getUserPayload());
 
-          LOG.info("Invoking committer init for output=" + outputName
-              + ", vertexId=" + logIdentifier);
-          outputCommitter.initialize(outputCommitterContext);
-          outputCommitters.put(outputName, outputCommitter);
-          LOG.info("Invoking committer setup for output=" + outputName
-              + ", vertexId=" + logIdentifier);
-          outputCommitter.setupOutput();
+              LOG.info("Invoking committer init for output=" + outputName
+                  + ", vertexId=" + logIdentifier);
+              outputCommitter.initialize(outputCommitterContext);
+              outputCommitters.put(outputName, outputCommitter);
+              LOG.info("Invoking committer setup for output=" + outputName
+                  + ", vertexId=" + logIdentifier);
+              outputCommitter.setupOutput();
+              return null;
+            }
+          });
         }
       } catch (Exception e) {
         LOG.warn("Vertex Committer init failed, vertexId=" + logIdentifier, e);
@@ -1434,7 +1444,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       String dagName, String vertexName, TezVertexID vertexID,
       EventHandler eventHandler, int numTasks) {
     return new RootInputInitializerRunner(dagName, vertexName, vertexID,
-        eventHandler, numTasks);
+        eventHandler, dagUgi, numTasks);
   }
   
   private VertexState initializeVertexInInitializingState() {
@@ -1610,19 +1620,28 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
 
-  private void abortVertex(VertexStatus.State finalState) {
-    LOG.info("Invoking committer abort for vertex, vertexId="
-        + logIdentifier);
+  private void abortVertex(final VertexStatus.State finalState) {
+    LOG.info("Invoking committer abort for vertex, vertexId=" + logIdentifier);
     if (outputCommitters != null) {
-      for (Entry<String, OutputCommitter> entry : outputCommitters.entrySet()) {
-        try {
-          LOG.info("Invoking committer abort for output=" + entry.getKey()
-              + ", vertexId=" + logIdentifier);
-          entry.getValue().abortOutput(finalState);
-        } catch (Exception e) {
-        LOG.warn("Could not abort committer for output=" + entry.getKey()
-            + ", vertexId=" + logIdentifier, e);
-        }
+      try {
+        dagUgi.doAs(new PrivilegedExceptionAction<Void>() {
+          @Override
+          public Void run() {
+            for (Entry<String, OutputCommitter> entry : outputCommitters.entrySet()) {
+              try {
+                LOG.info("Invoking committer abort for output=" + entry.getKey() + ", vertexId="
+                    + logIdentifier);
+                entry.getValue().abortOutput(finalState);
+              } catch (Exception e) {
+                LOG.warn("Could not abort committer for output=" + entry.getKey() + ", vertexId="
+                    + logIdentifier, e);
+              }
+            }
+            return null;
+          }
+        });
+      } catch (Exception e) {
+        throw new TezUncheckedException("Unknown error while attempting VertexCommitter(s) abort", e);
       }
     }
     if (finishTime == 0) {
@@ -2161,10 +2180,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private TezDAGID getDAGId() {
     return getDAG().getID();
-  }
-
-  private ApplicationAttemptId getApplicationAttemptId() {
-    return appContext.getApplicationAttemptId();
   }
 
   public Resource getTaskResource() {

@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.security.Credentials;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 
 import com.google.common.collect.Maps;
@@ -33,14 +34,19 @@ public class ContainerTask implements Writable {
   TaskSpec taskSpec;
   boolean shouldDie;
   private Map<String, TezLocalResource> additionalResources;
+  private Credentials credentials;
+  private boolean credentialsChanged;
 
   public ContainerTask() {
   }
 
-  public ContainerTask(TaskSpec taskSpec, boolean shouldDie, Map<String, TezLocalResource> additionalResources) {
+  public ContainerTask(TaskSpec taskSpec, boolean shouldDie,
+      Map<String, TezLocalResource> additionalResources, Credentials credentials, boolean credentialsChanged) {
     this.taskSpec = taskSpec;
     this.shouldDie = shouldDie;
     this.additionalResources = additionalResources;
+    this.credentials = credentials;
+    this.credentialsChanged = credentialsChanged;
   }
 
   public TaskSpec getTaskSpec() {
@@ -53,6 +59,14 @@ public class ContainerTask implements Writable {
   
   public Map<String, TezLocalResource> getAdditionalResources() {
     return this.additionalResources;
+  }
+  
+  public Credentials getCredentials() {
+    return this.credentials;
+  }
+  
+  public boolean haveCredentialsChanged() {
+    return this.credentialsChanged;
   }
 
   @Override
@@ -72,6 +86,13 @@ public class ContainerTask implements Writable {
       }
     } else {
       out.writeInt(-1);
+    }
+    out.writeBoolean(credentialsChanged);
+    if (credentialsChanged) {
+      out.writeBoolean(credentials != null);
+      if (credentials != null) {
+        credentials.write(out);
+      }
     }
   }
 
@@ -93,11 +114,21 @@ public class ContainerTask implements Writable {
         additionalResources.put(resourceName, localResource);
       }
     }
+    credentialsChanged = in.readBoolean();
+    if (credentialsChanged) {
+      boolean hasCredentials = in.readBoolean();
+      if (hasCredentials) {
+        credentials = new Credentials();
+        credentials.readFields(in);
+      }
+    }
   }
 
   @Override
   public String toString() {
-    return "shouldDie: " + shouldDie + ", TaskSpec: "
-        + taskSpec + ", AdditionalResources: " + additionalResources;
+    return "shouldDie: " + shouldDie + ", TaskSpec: " + taskSpec + ", AdditionalResources: "
+        + additionalResources + ", Credentials: " + credentials == null ? "[null]"
+        : ("[#secretKeys=" + credentials.numberOfSecretKeys() + ", #tokens=" + credentials
+            .numberOfTokens());
   }
 }

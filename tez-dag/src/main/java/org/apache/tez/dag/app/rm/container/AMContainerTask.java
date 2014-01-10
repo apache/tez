@@ -20,6 +20,7 @@ package org.apache.tez.dag.app.rm.container;
 
 import java.util.Map;
 
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 
@@ -27,12 +28,16 @@ public class AMContainerTask {
   private final boolean shouldDie;
   private final Map<String, LocalResource> additionalResources;
   private final TaskSpec tezTask;
+  private final Credentials credentials;
+  private final boolean credentialsChanged;
 
   public AMContainerTask(boolean shouldDie, TaskSpec tezTask,
-      Map<String, LocalResource> additionalResources) {
+      Map<String, LocalResource> additionalResources, Credentials credentials, boolean credentialsChanged) {
     this.shouldDie = shouldDie;
     this.tezTask = tezTask;
     this.additionalResources = additionalResources;
+    this.credentials = credentials;
+    this.credentialsChanged = credentialsChanged;
   }
 
   public boolean shouldDie() {
@@ -45,5 +50,13 @@ public class AMContainerTask {
 
   public Map<String, LocalResource> getAdditionalResources() {
     return this.additionalResources;
+  }
+  
+  public Credentials getCredentials() {
+    return this.credentials;
+  }
+  
+  public boolean haveCredentialsChanged() {
+    return this.credentialsChanged;
   }
 }

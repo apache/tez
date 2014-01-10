@@ -240,10 +240,9 @@ public class TaskAttemptImpl implements TaskAttempt,
         .installTopology();
 
 
-  // TODO Remove TaskAttemptListener from the constructor.
   @SuppressWarnings("rawtypes")
   public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
-      TaskAttemptListener tal, Configuration conf, Clock clock,
+      TaskAttemptListener taskAttemptListener, Configuration conf, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       TaskLocationHint locationHint, boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex) {

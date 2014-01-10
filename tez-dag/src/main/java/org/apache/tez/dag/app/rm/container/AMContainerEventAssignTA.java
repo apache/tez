@@ -19,6 +19,7 @@ package org.apache.tez.dag.app.rm.container;
 
 import java.util.Map;
 
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -30,13 +31,15 @@ public class AMContainerEventAssignTA extends AMContainerEvent {
   // TODO Maybe have tht TAL pull the remoteTask from the TaskAttempt itself ?
   private final TaskSpec remoteTaskSpec;
   private final Map<String, LocalResource> taskLocalResources;
+  private final Credentials credentials;
 
   public AMContainerEventAssignTA(ContainerId containerId, TezTaskAttemptID attemptId,
-      Object remoteTaskSpec, Map<String, LocalResource> taskLocalResources) {
+      Object remoteTaskSpec, Map<String, LocalResource> taskLocalResources, Credentials credentials) {
     super(containerId, AMContainerEventType.C_ASSIGN_TA);
     this.attemptId = attemptId;
     this.remoteTaskSpec = (TaskSpec) remoteTaskSpec;
     this.taskLocalResources = taskLocalResources;
+    this.credentials = credentials;
   }
 
   public TaskSpec getRemoteTaskSpec() {
@@ -49,5 +52,9 @@ public class AMContainerEventAssignTA extends AMContainerEvent {
 
   public TezTaskAttemptID getTaskAttemptId() {
     return this.attemptId;
+  }
+  
+  public Credentials getCredentials() {
+    return this.credentials;
   }
 }

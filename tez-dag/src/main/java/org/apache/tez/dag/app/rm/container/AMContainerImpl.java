@@ -30,6 +30,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -54,6 +55,7 @@ import org.apache.tez.dag.app.rm.AMSchedulerEventContainerCompleted;
 import org.apache.tez.dag.app.rm.AMSchedulerEventDeallocateContainer;
 import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
 import org.apache.tez.dag.app.rm.NMCommunicatorStopRequestEvent;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 //import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -89,6 +91,8 @@ public class AMContainerImpl implements AMContainer {
   private long idleTimeBetweenTasks = 0;
   private long lastTaskFinishTime;
 
+  private TezDAGID lastTaskDAGID;
+  
   // An assign can happen even during wind down. e.g. NodeFailure caused the
   // wind down, and an allocation was pending in the AMScheduler. This could
   // be modelled as a separate state.
@@ -102,9 +106,9 @@ public class AMContainerImpl implements AMContainer {
   private AMContainerTask noAllocationContainerTask;
 
   private static final AMContainerTask NO_MORE_TASKS = new AMContainerTask(
-      true, null, null);
+      true, null, null, null, false);
   private static final AMContainerTask WAIT_TASK = new AMContainerTask(false,
-      null, null);
+      null, null, null, false);
 
   private boolean inError = false;
 
@@ -115,6 +119,9 @@ public class AMContainerImpl implements AMContainer {
   @VisibleForTesting
   Map<String, LocalResource> additionalLocalResources;
 
+  private Credentials credentials;
+  private boolean credentialsChanged = false;
+  
   // TODO Consider registering with the TAL, instead of the TAL pulling.
   // Possibly after splitting TAL and ContainerListener.
 
@@ -325,9 +332,12 @@ public class AMContainerImpl implements AMContainer {
         // additional resources before a task is assigned to the container.
         return noAllocationContainerTask;
       } else {
+        // Avoid sending credentials if credentials have not changed.
         AMContainerTask amContainerTask = new AMContainerTask(false,
-            remoteTaskMap.remove(pullAttempt), this.additionalLocalResources);
+            remoteTaskMap.remove(pullAttempt), this.additionalLocalResources,
+            this.credentialsChanged ? this.credentials : null, this.credentialsChanged);
         this.additionalLocalResources = null;
+        this.credentialsChanged = false;
         return amContainerTask;
       }
     } finally {
@@ -351,6 +361,8 @@ public class AMContainerImpl implements AMContainer {
       // be modified here.
       container.containerLocalResources = new HashMap<String, LocalResource>(
           containerContext.getLocalResources());
+      container.credentials = containerContext.getCredentials();
+      container.credentialsChanged = true;
 
       container.clc = AMContainerHelpers.createContainerLaunchContext(
           container.appContext.getCurrentDAGID(),
@@ -471,6 +483,16 @@ public class AMContainerImpl implements AMContainer {
       if (LOG.isDebugEnabled()) {
         LOG.debug("AssignTA: attempt: " + event.getRemoteTaskSpec());
         LOG.debug("AdditionalLocalResources: " + container.additionalLocalResources);
+      }
+
+      TezDAGID currentDAGID = container.appContext.getCurrentDAGID();
+      if (!currentDAGID.equals(container.lastTaskDAGID)) {
+        // Will be null for the first task.
+        container.credentialsChanged = true;
+        container.credentials = event.getCredentials();
+        container.lastTaskDAGID = currentDAGID;
+      } else {
+        container.credentialsChanged = false;
       }
 
       container.remoteTaskMap

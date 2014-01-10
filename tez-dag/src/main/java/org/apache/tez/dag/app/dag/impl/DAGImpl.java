@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -89,7 +90,6 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -127,6 +127,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final String userName;
   private final String queueName;
   private final AppContext appContext;
+  private final UserGroupInformation dagUGI;
 
   volatile Map<TezVertexID, Vertex> vertices = new HashMap<TezVertexID, Vertex>();
   private Map<String, Edge> edges = new HashMap<String, Edge>();
@@ -328,8 +329,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       DAGPlan jobPlan,
       EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
-      JobTokenSecretManager jobTokenSecretManager,
-      Credentials fsTokenCredentials, Clock clock,
+      Credentials dagCredentials,
+      Clock clock,
       String appUserName,
       TaskHeartbeatHandler thh,
       AppContext appContext) {
@@ -350,7 +351,17 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     this.readLock = readWriteLock.readLock();
     this.writeLock = readWriteLock.writeLock();
 
-    this.credentials = fsTokenCredentials;
+    this.credentials = dagCredentials;
+    if (this.credentials == null) {
+      try {
+        dagUGI = UserGroupInformation.getCurrentUser();
+      } catch (IOException e) {
+        throw new TezUncheckedException("Failed to set UGI for dag based on currentUser", e);
+      }
+    } else {
+      dagUGI = UserGroupInformation.createRemoteUser(this.userName);
+      dagUGI.addCredentials(this.credentials);
+    }
 
     this.aclsManager = new ApplicationACLsManager(conf);
 
@@ -403,6 +414,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   @Override
   public boolean isUber() {
     return isUber;
+  }
+
+  @Override
+  public Credentials getCredentials() {
+    return this.credentials;
+  }
+
+  @Override
+  public UserGroupInformation getDagUGI() {
+    return this.dagUGI;
   }
 
   @Override
@@ -893,10 +914,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
       VertexImpl v = new VertexImpl(
           vertexId, vertexPlan, vertexName, dag.conf,
-          dag.eventHandler, dag.taskAttemptListener,
-          dag.credentials, dag.clock,
-          dag.taskHeartbeatHandler, dag.appContext,
-          vertexLocationHint);
+          dag.eventHandler, dag.taskAttemptListener, 
+          dag.clock, dag.taskHeartbeatHandler,
+          dag.appContext, vertexLocationHint);
       return v;
     }
 
