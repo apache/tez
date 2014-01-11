@@ -48,6 +48,10 @@
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
+    <dependency>
+     <groupId>junit</groupId>
+     <artifactId>junit</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
