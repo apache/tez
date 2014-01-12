@@ -118,6 +118,7 @@ message VertexPlan {
   repeated string outEdgeId = 7;
   repeated RootInputLeafOutputProto inputs = 8;
   repeated RootInputLeafOutputProto outputs = 9;
+  optional TezEntityDescriptorProto vertex_manager_plugin = 10;
 }
 
 message EdgePlan {

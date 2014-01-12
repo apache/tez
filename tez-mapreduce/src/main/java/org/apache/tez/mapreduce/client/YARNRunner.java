@@ -92,8 +92,10 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -428,6 +430,11 @@ public class YARNRunner implements ClientProtocol {
         .setTaskLocalResources(taskLocalResources)
         .setTaskLocationsHint(locations)
         .setJavaOpts(taskJavaOpts);
+    
+    if (!isMap) {
+      vertex.setVertexManagerPlugin(new VertexManagerPluginDescriptor(
+          ShuffleVertexManager.class.getName()));
+    }
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Adding vertex to DAG" + ", vertexName="

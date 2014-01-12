@@ -51,6 +51,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -74,7 +75,6 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.dag.EdgeManager;
 import org.apache.tez.dag.app.dag.RootInputInitializerRunner;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
@@ -98,6 +98,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
+import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -1096,6 +1097,17 @@ public class TestVertexImpl {
         return vertexIdMap.get(vId);
       }
     });
+    when(dag.getVertex(any(String.class))).thenAnswer(new Answer<Vertex>() {
+      @Override
+      public Vertex answer(InvocationOnMock invocation) throws Throwable {
+        Object[] args = invocation.getArguments();
+        if (args.length != 1) {
+          return null;
+        }
+        String vId = (String) args[0];
+        return vertices.get(vId);
+      }
+    });
 
     // TODO - this test logic is tightly linked to impl DAGImpl code.
     edges = new HashMap<String, Edge>();
@@ -1259,8 +1271,8 @@ public class TestVertexImpl {
 
     Vertex v1 = vertices.get("vertex1");
     EdgeManager mockEdgeManager = mock(EdgeManager.class);
-    Map<Vertex, EdgeManager> edgeManager = Collections.singletonMap(
-       v1, mockEdgeManager);
+    Map<String, EdgeManager> edgeManager = Collections.singletonMap(
+       v1.getName(), mockEdgeManager);
     v3.setParallelism(1, edgeManager);
     Assert.assertEquals(1, v3.getTotalTasks());
     Assert.assertEquals(1, tasks.size());
@@ -1392,7 +1404,7 @@ public class TestVertexImpl {
   }
 
   @SuppressWarnings("unchecked")
-  @Test
+  @Test(timeout = 5000)
   public void testVertexKill() {
     initAllVertices(VertexState.INITED);
 
@@ -1451,11 +1463,11 @@ public class TestVertexImpl {
   public void testVertexManagerInit() {
     initAllVertices(VertexState.INITED);
     VertexImpl v2 = vertices.get("vertex2");
-    Assert.assertTrue(v2.getVertexManager()
+    Assert.assertTrue(v2.getVertexManager().getPlugin()
         instanceof ImmediateStartVertexManager);
 
     VertexImpl v6 = vertices.get("vertex6");
-    Assert.assertTrue(v6.getVertexManager()
+    Assert.assertTrue(v6.getVertexManager().getPlugin()
         instanceof ShuffleVertexManager);
   }
 
@@ -1833,7 +1845,7 @@ public class TestVertexImpl {
   }
 
 
-  @Test//(timeout = 5000)
+  @Test(timeout = 5000)
   public void testVertexWithOneToOneSplit() {
     // create a diamond shaped dag with 1-1 edges. 
     // split the source and remaining vertices should split equally
@@ -1855,7 +1867,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITED, v1.getState());
     Assert.assertEquals(numTasks, v1.getTotalTasks());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v1
-        .getVertexManager().getClass().getName());
+        .getVertexManager().getPlugin().getClass().getName());
     Assert.assertEquals(v1Hints, v1.getVertexLocationHint().getTaskLocationHints());
     Assert.assertEquals(true, runner1.hasShutDown);
     
@@ -1909,7 +1921,7 @@ public class TestVertexImpl {
 
     Assert.assertEquals(VertexState.FAILED, v1.getState());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v1
-        .getVertexManager().getClass().getName());
+        .getVertexManager().getPlugin().getClass().getName());
     Assert.assertEquals(true, runner1.hasShutDown);
     
     VertexImplWithCustomInitializer v2 = (VertexImplWithCustomInitializer) vertices.get("vertex2");
@@ -1919,7 +1931,7 @@ public class TestVertexImpl {
     
     Assert.assertEquals(VertexState.FAILED, v2.getState());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v2
-        .getVertexManager().getClass().getName());
+        .getVertexManager().getPlugin().getClass().getName());
     Assert.assertEquals(true, runner2.hasShutDown);
   }
   
@@ -1944,7 +1956,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITED, v1.getState());
     Assert.assertEquals(5, v1.getTotalTasks());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v1
-        .getVertexManager().getClass().getName());
+        .getVertexManager().getPlugin().getClass().getName());
     Assert.assertEquals(v1Hints, v1.getVertexLocationHint().getTaskLocationHints());
     Assert.assertEquals(true, runner1.hasShutDown);
     
@@ -1957,7 +1969,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITED, v2.getState());
     Assert.assertEquals(10, v2.getTotalTasks());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v2
-        .getVertexManager().getClass().getName());
+        .getVertexManager().getPlugin().getClass().getName());
     Assert.assertEquals(v2Hints, v2.getVertexLocationHint().getTaskLocationHints());
     Assert.assertEquals(true, runner2.hasShutDown);
   }
@@ -1973,7 +1985,7 @@ public class TestVertexImpl {
     return locationHints;
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testVertexWithNoTasks() {
     TezVertexID vId = null;
     try {

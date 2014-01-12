@@ -18,13 +18,13 @@
 
 package org.apache.tez.dag.app.dag;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -73,7 +73,7 @@ public interface Vertex extends Comparable<Vertex> {
   VertexStatusBuilder getVertexStatus(Set<StatusGetOpts> statusOptions);
 
 
-  void setParallelism(int parallelism, Map<Vertex, EdgeManager> sourceEdgeManagers);
+  boolean setParallelism(int parallelism, Map<String, EdgeManager> sourceEdgeManagers);
   void setVertexLocationHint(VertexLocationHint vertexLocationHint);
 
   // CHANGE THESE TO LISTS AND MAINTAIN ORDER?
@@ -94,7 +94,7 @@ public interface Vertex extends Comparable<Vertex> {
 
   int getInputVerticesCount();
   int getOutputVerticesCount();
-  void scheduleTasks(Collection<TezTaskID> taskIDs);
+  void scheduleTasks(List<Integer> taskIDs);
   Resource getTaskResource();
 
   ProcessorDescriptor getProcessorDescriptor();

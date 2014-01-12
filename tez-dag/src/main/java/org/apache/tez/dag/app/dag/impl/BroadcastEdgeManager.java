@@ -20,12 +20,12 @@ package org.apache.tez.dag.app.dag.impl;
 
 import java.util.List;
 
-import org.apache.tez.dag.app.dag.EdgeManager;
+import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 
-public class BroadcastEdgeManager extends EdgeManager {
+public class BroadcastEdgeManager implements EdgeManager {
 
   @Override
   public int getNumDestinationTaskInputs(int numSourceTasks, 

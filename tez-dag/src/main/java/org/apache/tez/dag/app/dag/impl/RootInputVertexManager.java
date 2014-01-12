@@ -18,19 +18,18 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import java.util.EnumSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint;
+import org.apache.tez.dag.api.VertexManagerPlugin;
+import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.VertexManager;
-import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
-import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
@@ -44,42 +43,48 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
-public class RootInputVertexManager extends VertexManager {
+@SuppressWarnings("rawtypes")
+public class RootInputVertexManager implements VertexManagerPlugin {
+
+  VertexManagerPluginContext context;
+  private EventMetaData sourceInfo;
+  private Map<String, EventMetaData> destInfoMap;
   
-  private final Vertex managedVertex;
-  private final EventMetaData sourceInfo;
-  private final Map<String, EventMetaData> destInfoMap;
-  @SuppressWarnings("rawtypes")
-  private final EventHandler eventHandler;
+  Vertex deleteVertex;
+  EventHandler deleteHandler;
   
-  @SuppressWarnings("rawtypes")
-  public RootInputVertexManager(Vertex vertex, EventHandler eventHandler) {
-    this.managedVertex = vertex;
-    this.eventHandler = eventHandler;
-    this.sourceInfo = new EventMetaData(EventProducerConsumerType.INPUT,
-        vertex.getName(), "NULL", null);
-    Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> inputs = this.managedVertex
-        .getAdditionalInputs();
+  public RootInputVertexManager(Vertex v, EventHandler h) {
+    deleteVertex = v;
+    deleteHandler = h;
+  }
+
+  @Override
+  public void initialize(byte[] payload, VertexManagerPluginContext context) {
+    this.context = context;
+    Set<String> inputs = this.context.getVertexInputNames();
     this.destInfoMap = Maps.newHashMapWithExpectedSize(inputs.size());
-    for (RootInputLeafOutputDescriptor input : inputs.values()) {
+    for (String inputName : inputs) {
       EventMetaData destInfo = new EventMetaData(
-          EventProducerConsumerType.INPUT, vertex.getName(),
-          input.getEntityName(), null);
-      destInfoMap.put(input.getEntityName(), destInfo);
+          EventProducerConsumerType.INPUT, context.getVertexName(),
+          inputName, null);
+      destInfoMap.put(inputName, destInfo);
     }
+    this.sourceInfo = new EventMetaData(EventProducerConsumerType.INPUT,
+        context.getVertexName(), "NULL", null);
   }
 
   @Override
-  public void initialize(Configuration conf) {
+  public void onVertexStarted(Map<String, List<Integer>> completions) {
+    int numTasks = context.getVertexNumTasks(context.getVertexName());
+    List<Integer> scheduledTasks = new ArrayList<Integer>(numTasks);
+    for (int i=0; i<numTasks; ++i) {
+      scheduledTasks.add(new Integer(i));
+    }
+    context.scheduleVertexTasks(scheduledTasks);
   }
 
   @Override
-  public void onVertexStarted(List<TezTaskAttemptID> completions) {
-    managedVertex.scheduleTasks(managedVertex.getTasks().keySet());
-  }
-
-  @Override
-  public void onSourceTaskCompleted(TezTaskAttemptID attemptId) {
+  public void onSourceTaskCompleted(String srcVertexName, Integer attemptId) {
   }
 
   @Override
@@ -90,20 +95,18 @@ public class RootInputVertexManager extends VertexManager {
   public void onRootVertexInitialized(String inputName,
       InputDescriptor inputDescriptor, List<Event> events) {
     boolean dataInformationEventSeen = false;
-    Preconditions.checkState(EnumSet.of(VertexState.INITIALIZING,
-        VertexState.NEW).contains(managedVertex.getState()));
     for (Event event : events) {
       if (event instanceof RootInputConfigureVertexTasksEvent) {
         // No tasks should have been started yet. Checked by initial state check.
         Preconditions.checkState(dataInformationEventSeen == false);
         Preconditions
             .checkState(
-                managedVertex.getTotalTasks() == -1,
+                context.getVertexNumTasks(context.getVertexName()) == -1,
                 "Parallelism for the vertex should be set to -1 if the InputInitializer is setting parallelism");
         RootInputConfigureVertexTasksEvent cEvent = (RootInputConfigureVertexTasksEvent) event;
-        managedVertex.setVertexLocationHint(new VertexLocationHint(cEvent
+        context.setVertexLocationHint(new VertexLocationHint(cEvent
             .getNumTasks(), cEvent.getTaskLocationHints()));
-        managedVertex.setParallelism(cEvent.getNumTasks(), null);
+        context.setVertexParallelism(cEvent.getNumTasks(), null);
       }
       if (event instanceof RootInputUpdatePayloadEvent) {
         // No tasks should have been started yet. Checked by initial state check.
@@ -113,10 +116,10 @@ public class RootInputVertexManager extends VertexManager {
       } else if (event instanceof RootInputDataInformationEvent) {
         dataInformationEventSeen = true;
         // # Tasks should have been set by this point.
-        Preconditions.checkState(managedVertex.getTasks().size() != 0);
+        Preconditions.checkState(context.getVertexNumTasks(context.getVertexName()) != 0);
         TezEvent tezEvent = new TezEvent(event, sourceInfo);
         tezEvent.setDestinationInfo(destInfoMap.get(inputName));
-        sendEventToTask(TezTaskID.getInstance(managedVertex.getVertexId(),
+        sendEventToTask(TezTaskID.getInstance(deleteVertex.getVertexId(),
             ((RootInputDataInformationEvent) event).getIndex()), tezEvent);
       }
     }
@@ -124,7 +127,7 @@ public class RootInputVertexManager extends VertexManager {
 
   @SuppressWarnings("unchecked")
   private void sendEventToTask(TezTaskID taskId, TezEvent tezEvent) {
-    eventHandler.handle(new TaskEventAddTezEvent(taskId, tezEvent));
+    deleteHandler.handle(new TaskEventAddTezEvent(taskId, tezEvent));
   }
 
 }

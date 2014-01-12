@@ -18,37 +18,43 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.VertexManager;
-import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.api.VertexManagerPlugin;
+import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 /**
  * Starts all tasks immediately on vertex start
  */
-public class ImmediateStartVertexManager extends VertexManager {
-  final Vertex managedVertex;
+public class ImmediateStartVertexManager implements VertexManagerPlugin {
   
-  ImmediateStartVertexManager(Vertex vertex) {
-    managedVertex = vertex;
+  private VertexManagerPluginContext context;
+  
+  ImmediateStartVertexManager() {
   }
   
   @Override
-  public void onVertexStarted(List<TezTaskAttemptID> completions) {
-    managedVertex.scheduleTasks(managedVertex.getTasks().keySet());
+  public void onVertexStarted(Map<String, List<Integer>> completions) {
+    int numTasks = context.getVertexNumTasks(context.getVertexName());
+    List<Integer> scheduledTasks = new ArrayList<Integer>(numTasks);
+    for (int i=0; i<numTasks; ++i) {
+      scheduledTasks.add(new Integer(i));
+    }
+    context.scheduleVertexTasks(scheduledTasks);
   }
 
   @Override
-  public void onSourceTaskCompleted(TezTaskAttemptID attemptId) {
+  public void onSourceTaskCompleted(String srcVertexName, Integer attemptId) {
   }
 
   @Override
-  public void initialize(Configuration conf) {    
+  public void initialize(byte[] payload, VertexManagerPluginContext context) {
+    this.context = context;
   }
 
   @Override

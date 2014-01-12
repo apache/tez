@@ -53,6 +53,7 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -60,6 +61,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
@@ -72,13 +74,11 @@ import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.dag.EdgeManager;
 import org.apache.tez.dag.app.dag.RootInputInitializerRunner;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.VertexManager;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
@@ -108,6 +108,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventOneToOneSourceSplit;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
+import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -777,11 +778,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   // TODO Create InputReadyVertexManager that schedules when there is something
   // to read and use that as default instead of ImmediateStart.TEZ-480
   @Override
-  public void scheduleTasks(Collection<TezTaskID> taskIDs) {
+  public void scheduleTasks(List<Integer> taskIDs) {
     readLock.lock();
     try {
-      for (TezTaskID taskID : taskIDs) {
-        eventHandler.handle(new TaskEvent(taskID,
+      for (Integer taskID : taskIDs) {
+        if (tasks.size() <= taskID.intValue()) {
+          throw new TezUncheckedException(
+              "Invalid taskId: " + taskID + " for vertex: " + vertexName);
+        }
+        eventHandler.handle(new TaskEvent(
+            TezTaskID.getInstance(vertexId, taskID.intValue()),
             TaskEventType.T_SCHEDULE));
       }
     } finally {
@@ -790,19 +796,22 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   @Override
-  public void setParallelism(int parallelism,
-      Map<Vertex, EdgeManager> sourceEdgeManagers) {
+  public boolean setParallelism(int parallelism,
+      Map<String, EdgeManager> sourceEdgeManagers) {
     writeLock.lock();
     try {
-      Preconditions.checkState(parallelismSet == false,
-          "Parallelism can only be set dynamically once per vertex");
+      if (parallelismSet == true) {
+        LOG.info("Parallelism can only be set dynamically once per vertex");
+        return false;
+      }
+      
       parallelismSet = true;
 
       // Input initializer expected to set parallelism.
       if (numTasks == -1) {
         Preconditions
             .checkArgument(sourceEdgeManagers == null,
-                "SourceEdge managers cannot be set when determining initial parallelism");
+                "Source edge managers cannot be set when determining initial parallelism");
         this.numTasks = parallelism;
         this.createTasks();
         LOG.info("Vertex " + getVertexId() + 
@@ -818,8 +827,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               "Increasing parallelism is not supported");
         }
         if (parallelism == numTasks) {
-          LOG.info("Ingoring setParallelism to current value: " + parallelism);
-          return;
+          LOG.info("setParallelism same as current value: " + parallelism);
+          Preconditions
+          .checkArgument(sourceEdgeManagers != null,
+              "Source edge managers must be set when not changing parallelism");
         }
   
         // start buffering incoming events so that we can re-route existing events
@@ -860,12 +871,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   
         // set new edge managers
         if(sourceEdgeManagers != null) {
-          for(Map.Entry<Vertex, EdgeManager> entry : sourceEdgeManagers.entrySet()) {
-            Vertex sourceVertex = entry.getKey();
+          for(Map.Entry<String, EdgeManager> entry : sourceEdgeManagers.entrySet()) {
+            LOG.info("Replacing edge manager for source:"
+                + entry.getKey() + " destination: " + getVertexId());
+            Vertex sourceVertex = appContext.getCurrentDAG().getVertex(entry.getKey());
             EdgeManager edgeManager = entry.getValue();
             Edge edge = sourceVertices.get(sourceVertex);
-            LOG.info("Replacing edge manager for source:"
-                + sourceVertex.getVertexId() + " destination: " + getVertexId());
             edge.setEdgeManager(edgeManager);
           }
         }
@@ -909,7 +920,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     } finally {
       writeLock.unlock();
     }
-
+    
+    return true;
   }
 
   public void setVertexLocationHint(VertexLocationHint vertexLocationHint) {
@@ -1315,7 +1327,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         }
       }
 
-      // TODO get this from API
       boolean hasBipartite = false;
       if (vertex.sourceVertices != null) {
         for (Edge edge : vertex.sourceVertices.values()) {
@@ -1325,28 +1336,45 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           }
         }
       }
-
+      
       if (hasBipartite && vertex.inputsWithInitializers != null) {
         LOG.fatal("A vertex with an Initial Input and a Shuffle Input are not supported at the moment");
         return vertex.finished(VertexState.FAILED);
       }
-
-      if (hasBipartite) {
-        // setup vertex manager
-        // TODO this needs to consider data size and perhaps API.
-        // Currently implicitly BIPARTITE is the only edge type
-        LOG.info("Setting vertexManager to ShuffleVertexManager for " + vertex.logIdentifier);
-        vertex.vertexManager = new ShuffleVertexManager(vertex);
-      } else if (vertex.inputsWithInitializers != null) {
-        LOG.info("Setting vertexManager to RootInputVertexManager for " + vertex.logIdentifier);
-        vertex.vertexManager = new RootInputVertexManager(vertex,
-            vertex.eventHandler);
+      
+      boolean hasUserVertexManager = vertex.vertexPlan.hasVertexManagerPlugin();
+      
+      if (hasUserVertexManager) {
+        VertexManagerPluginDescriptor pluginDesc = DagTypeConverters
+            .convertVertexManagerPluginDescriptorFromDAGPlan(vertex.vertexPlan
+                .getVertexManagerPlugin());
+        LOG.info("Setting user vertex manager plugin: "
+            + pluginDesc.getClassName() + " on vertex: " + vertex.getName());
+        vertex.vertexManager = new VertexManager(pluginDesc, vertex, vertex.appContext);
       } else {
-        // schedule all tasks upon vertex start
-        LOG.info("Setting vertexManager to ImmediateStartVertexManager for " + vertex.logIdentifier);
-        vertex.vertexManager = new ImmediateStartVertexManager(vertex);
+        if (hasBipartite) {
+          // setup vertex manager
+          // TODO this needs to consider data size and perhaps API.
+          // Currently implicitly BIPARTITE is the only edge type
+          LOG.info("Setting vertexManager to ShuffleVertexManager for "
+              + vertex.logIdentifier);
+          vertex.vertexManager = new VertexManager(new ShuffleVertexManager(),
+              vertex, vertex.appContext);
+        } else if (vertex.inputsWithInitializers != null) {
+          LOG.info("Setting vertexManager to RootInputVertexManager for "
+              + vertex.logIdentifier);
+          vertex.vertexManager = new VertexManager(new RootInputVertexManager(
+              vertex, vertex.eventHandler), vertex, vertex.appContext);
+        } else {
+          // schedule all tasks upon vertex start. Default behavior.
+          LOG.info("Setting vertexManager to ImmediateStartVertexManager for "
+              + vertex.logIdentifier);
+          vertex.vertexManager = new VertexManager(
+              new ImmediateStartVertexManager(), vertex, vertex.appContext);
+        }
       }
-      vertex.vertexManager.initialize(vertex.conf);
+      
+      vertex.vertexManager.initialize();
 
       // Setup tasks early if possible. If the VertexManager is not being used
       // to set parallelism, sending events to Tasks is safe (and less confusing

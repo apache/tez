@@ -413,6 +413,11 @@ public class DAG { // FIXME rename to Topology
           }
         }
       }
+      
+      if (vertex.getVertexManagerPlugin() != null) {
+        vertexBuilder.setVertexManagerPlugin(DagTypeConverters
+            .convertToDAGPlan(vertex.getVertexManagerPlugin()));
+      }
 
       for (String inEdgeId : vertex.getInputEdgeIds()) {
         vertexBuilder.addInEdgeId(inEdgeId);

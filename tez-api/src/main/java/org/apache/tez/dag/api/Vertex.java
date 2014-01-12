@@ -45,6 +45,7 @@ public class Vertex {
                       = new ArrayList<RootInputLeafOutput<InputDescriptor>>();
   private final List<RootInputLeafOutput<OutputDescriptor>> additionalOutputs 
                       = new ArrayList<RootInputLeafOutput<OutputDescriptor>>();
+  private VertexManagerPluginDescriptor vertexManagerPlugin;
 
   private final List<Vertex> inputVertices = new ArrayList<Vertex>();
   private final List<Vertex> outputVertices = new ArrayList<Vertex>();
@@ -191,6 +192,20 @@ public class Vertex {
   public Vertex addOutput(String outputName, OutputDescriptor outputDescriptor) {
     return addOutput(outputName, outputDescriptor, null);
   }
+  
+  /**
+   * Specifies a {@link VertexManagerPlugin} for the vertex. This plugin can be
+   * used to modify the parallelism or reconfigure the vertex at runtime using
+   * user defined code embedded in the plugin
+   * 
+   * @param vertexManagerPluginDescriptor
+   * @return Vertex
+   */
+  public Vertex setVertexManagerPlugin(
+      VertexManagerPluginDescriptor vertexManagerPluginDescriptor) {
+    this.vertexManagerPlugin = vertexManagerPluginDescriptor;
+    return this;
+  }
 
   public String getJavaOpts(){
 	  return javaOpts;
@@ -199,6 +214,10 @@ public class Vertex {
   @Override
   public String toString() {
     return "[" + vertexName + " : " + processorDescriptor.getClassName() + "]";
+  }
+  
+  VertexManagerPluginDescriptor getVertexManagerPlugin() {
+    return vertexManagerPlugin;
   }
 
   void addInputVertex(Vertex inputVertex, String edgeId) {
