@@ -20,6 +20,7 @@ package org.apache.tez.dag.api.client;
 
 import java.util.List;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProto;
@@ -58,26 +59,29 @@ public class VertexStatusBuilder extends VertexStatus {
     return getBuilder().build();
   }
 
-  private VertexStatusStateProto getProtoState(VertexState state) {
+  @VisibleForTesting
+  static VertexStatusStateProto getProtoState(VertexState state) {
     switch(state) {
-    case NEW:
-    case INITIALIZING:
-    case INITED:
-      return VertexStatusStateProto.VERTEX_INITED;
-    case RUNNING:
-      return VertexStatusStateProto.VERTEX_RUNNING;
-    case SUCCEEDED:
-      return VertexStatusStateProto.VERTEX_SUCCEEDED;
-    case FAILED:
-      return VertexStatusStateProto.VERTEX_FAILED;
-    case KILLED:
-      return VertexStatusStateProto.VERTEX_KILLED;
-    case TERMINATING:
-      return VertexStatusStateProto.VERTEX_TERMINATING;
-    case ERROR:
-      return VertexStatusStateProto.VERTEX_ERROR;
-    default:
-      throw new TezUncheckedException("Unsupported value for VertexState : " + state);
+      case NEW:
+        return VertexStatusStateProto.VERTEX_NEW;
+      case INITIALIZING:
+        return VertexStatusStateProto.VERTEX_INITIALIZING;
+      case INITED:
+        return VertexStatusStateProto.VERTEX_INITED;
+      case RUNNING:
+        return VertexStatusStateProto.VERTEX_RUNNING;
+      case SUCCEEDED:
+        return VertexStatusStateProto.VERTEX_SUCCEEDED;
+      case FAILED:
+        return VertexStatusStateProto.VERTEX_FAILED;
+      case KILLED:
+        return VertexStatusStateProto.VERTEX_KILLED;
+      case TERMINATING:
+        return VertexStatusStateProto.VERTEX_TERMINATING;
+      case ERROR:
+        return VertexStatusStateProto.VERTEX_ERROR;
+      default:
+        throw new TezUncheckedException("Unsupported value for VertexState : " + state);
     }
   }
 

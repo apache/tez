@@ -21,21 +21,25 @@ package org.apache.tez.dag.api.client;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProtoOrBuilder;
 import org.apache.tez.dag.api.TezUncheckedException;
 
 public class VertexStatus {
 
   public enum State {
+    NEW,
+    INITIALIZING,
     INITED,
     RUNNING,
     SUCCEEDED,
-    KILLED,
     FAILED,
+    KILLED,
     ERROR,
-    TERMINATING,
+    TERMINATING
   }
 
   VertexStatusProtoOrBuilder proxy = null;
@@ -48,24 +52,33 @@ public class VertexStatus {
   }
 
   public State getState() {
-    switch(proxy.getState()) {
-    case VERTEX_INITED:
-      return VertexStatus.State.INITED;
-    case VERTEX_RUNNING:
-      return VertexStatus.State.RUNNING;
-    case VERTEX_SUCCEEDED:
-      return VertexStatus.State.SUCCEEDED;
-    case VERTEX_FAILED:
-      return VertexStatus.State.FAILED;
-    case VERTEX_KILLED:
-      return VertexStatus.State.KILLED;
-    case VERTEX_ERROR:
-      return VertexStatus.State.ERROR;
-    case VERTEX_TERMINATING:
-      return VertexStatus.State.TERMINATING;
-    default:
-      throw new TezUncheckedException(
-        "Unsupported value for VertexStatus.State : " + proxy.getState());
+    return getState(proxy.getState());
+  }
+
+  @VisibleForTesting
+  static State getState(DAGProtos.VertexStatusStateProto stateProto) {
+    switch(stateProto) {
+      case VERTEX_NEW:
+        return VertexStatus.State.NEW;
+      case VERTEX_INITIALIZING:
+        return VertexStatus.State.INITIALIZING;
+      case VERTEX_INITED:
+        return VertexStatus.State.INITED;
+      case VERTEX_RUNNING:
+        return VertexStatus.State.RUNNING;
+      case VERTEX_SUCCEEDED:
+        return VertexStatus.State.SUCCEEDED;
+      case VERTEX_FAILED:
+        return VertexStatus.State.FAILED;
+      case VERTEX_KILLED:
+        return VertexStatus.State.KILLED;
+      case VERTEX_ERROR:
+        return VertexStatus.State.ERROR;
+      case VERTEX_TERMINATING:
+        return VertexStatus.State.TERMINATING;
+      default:
+        throw new TezUncheckedException(
+            "Unsupported value for VertexStatus.State : " + stateProto);
     }
   }
 
