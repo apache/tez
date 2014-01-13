@@ -26,15 +26,12 @@ import org.apache.tez.dag.records.TezVertexID;
 public class AMContainerEventLaunchRequest extends AMContainerEvent {
 
   private final TezVertexID vertexId;
-  private final boolean shouldProfile;
   private final ContainerContext containerContext;
 
   public AMContainerEventLaunchRequest(ContainerId containerId,
-      TezVertexID vertexId, boolean shouldProfile,
-      ContainerContext containerContext) {
+      TezVertexID vertexId, ContainerContext containerContext) {
     super(containerId, AMContainerEventType.C_LAUNCH_REQUEST);
     this.vertexId = vertexId;
-    this.shouldProfile = shouldProfile;
     this.containerContext = containerContext;
   }
 
@@ -46,10 +43,6 @@ public class AMContainerEventLaunchRequest extends AMContainerEvent {
     return this.vertexId;
   }
 
-  public boolean shouldProfile() {
-    return this.shouldProfile;
-  }
-  
   public ContainerContext getContainerContext() {
     return this.containerContext;
   }

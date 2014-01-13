@@ -1,0 +1,119 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.tez.dag.app.rm.container;
+
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+
+import static org.junit.Assert.*;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.hadoop.yarn.api.records.Priority;
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.Token;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.ContainerHeartbeatHandler;
+import org.apache.tez.dag.app.TaskAttemptListener;
+import org.junit.Test;
+
+public class TestAMContainerMap {
+
+  @Test
+  public void testAMContainerMap() throws IOException {
+    ContainerHeartbeatHandler chh = mockContainerHeartBeatHandler();
+    TaskAttemptListener tal = mockTaskAttemptListener();
+    AppContext context = mockAppContext();
+    AMContainerMap amContainerMap = new AMContainerMap(chh, tal, new ContainerContextMatcher(),
+        context);
+
+    Configuration conf = new Configuration();
+    conf.set(TezConfiguration.TEZ_PROFILE_CONTAINER_LIST, "2, 4");
+    conf.set(TezConfiguration.TEZ_PROFILE_JVM_OPTS, "testJvmOpts");
+
+    amContainerMap.init(conf);
+    amContainerMap.start();
+
+    ContainerId cId1 = mockContainerId(1);
+    ContainerId cId2 = mockContainerId(2);
+    ContainerId cId3 = mockContainerId(3);
+    ContainerId cId4 = mockContainerId(4);
+
+    amContainerMap.addContainerIfNew(mockContainer(cId1));
+    amContainerMap.addContainerIfNew(mockContainer(cId2));
+    amContainerMap.addContainerIfNew(mockContainer(cId3));
+    amContainerMap.addContainerIfNew(mockContainer(cId4));
+
+    AMContainerImpl amContainer = (AMContainerImpl) amContainerMap.get(cId1);
+    assertFalse(amContainer.shouldProfile);
+    assertNull(amContainer.profileJavaOpts);
+
+    amContainer = (AMContainerImpl) amContainerMap.get(cId2);
+    assertTrue(amContainer.shouldProfile);
+    assertEquals("testJvmOpts", amContainer.profileJavaOpts);
+
+    amContainer = (AMContainerImpl) amContainerMap.get(cId3);
+    assertFalse(amContainer.shouldProfile);
+    assertNull(amContainer.profileJavaOpts);
+
+    amContainer = (AMContainerImpl) amContainerMap.get(cId4);
+    assertTrue(amContainer.shouldProfile);
+    assertEquals("testJvmOpts", amContainer.profileJavaOpts);
+
+    amContainerMap.close();
+  }
+
+  private ContainerHeartbeatHandler mockContainerHeartBeatHandler() {
+    return mock(ContainerHeartbeatHandler.class);
+  }
+
+  private TaskAttemptListener mockTaskAttemptListener() {
+    TaskAttemptListener tal = mock(TaskAttemptListener.class);
+    InetSocketAddress socketAddr = new InetSocketAddress("localhost", 21000);
+    doReturn(socketAddr).when(tal).getAddress();
+    return tal;
+  }
+
+  private AppContext mockAppContext() {
+    AppContext appContext = mock(AppContext.class);
+    return appContext;
+  }
+
+  private ContainerId mockContainerId(int cId) {
+    ApplicationId appId = ApplicationId.newInstance(1000, 1);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
+    ContainerId containerId = ContainerId.newInstance(appAttemptId, cId);
+    return containerId;
+  }
+
+  private Container mockContainer(ContainerId containerId) {
+    NodeId nodeId = NodeId.newInstance("localhost", 43255);
+    Container container = Container.newInstance(containerId, nodeId, "localhost:33333",
+        Resource.newInstance(1024, 1), Priority.newInstance(1), mock(Token.class));
+    return container;
+  }
+}

@@ -322,7 +322,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     return new TaskScheduler(this, this.containerSignatureMatcher,
       host, port, trackingUrl, appContext);
   }
-
+  
   @Override
   public synchronized void serviceStart() {
     // FIXME hack alert how is this supposed to support multiple DAGs?
@@ -395,13 +395,9 @@ public class TaskSchedulerEventHandler extends AbstractService
     // because the deallocateTask downcall may have raced with the
     // taskAllocated() upcall
     assert task.equals(taskAttempt);
-    if (appContext.getAllContainers().get(containerId).getState()
-        == AMContainerState.ALLOCATED) {
-
-      sendEvent(new AMContainerEventLaunchRequest(
-          containerId,
-          taskAttempt.getVertexID(),
-          false,
+    
+    if (appContext.getAllContainers().get(containerId).getState() == AMContainerState.ALLOCATED) {
+      sendEvent(new AMContainerEventLaunchRequest(containerId, taskAttempt.getVertexID(),
           event.getContainerContext()));
     }
     sendEvent(new DAGEventSchedulerUpdateTAAssigned(taskAttempt, container));

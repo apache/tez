@@ -70,6 +70,7 @@ public class TezRuntimeChildJVM {
       String tokenIdentifier,
       int applicationAttemptNumber,
       boolean shouldProfile,
+      String profileOpts,
       String javaOpts) {
 
     Vector<String> vargs = new Vector<String>(9);
@@ -79,21 +80,13 @@ public class TezRuntimeChildJVM {
     //set custom javaOpts
     vargs.add(javaOpts);
 
-//[Debug Task] Current simplest way to attach debugger to  Tez Child Task
-// Uncomment the following, then launch a regular job
-// Works best on one-box configured with a single container (hence one task at a time).
-//    LOG.error(" !!!!!!!!! Launching Child-Task in debug/suspend mode.  Attach to port 8003 !!!!!!!!");
-//    vargs.add("-Xdebug -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=8003,server=y,suspend=y");
-
     Path childTmpDir = new Path(Environment.PWD.$(),
         YarnConfiguration.DEFAULT_CONTAINER_TEMP_DIR);
     vargs.add("-Djava.io.tmpdir=" + childTmpDir);
 
     // FIXME Setup the log4j properties
-
-    // Decision to profile needs to be made in the scheduler.
-    if (shouldProfile) {
-      // FIXME add support for profiling
+    if (shouldProfile && profileOpts != null) {
+      vargs.add(profileOpts);
     }
 
     // Add main class and its arguments
@@ -109,6 +102,7 @@ public class TezRuntimeChildJVM {
     vargs.add("1>" + getTaskLogFile(LogName.STDOUT));
     vargs.add("2>" + getTaskLogFile(LogName.STDERR));
 
+    // TODO Is this StringBuilder really required ? YARN already accepts a list of commands.
     // Final commmand
     StringBuilder mergedCommand = new StringBuilder();
     for (CharSequence str : vargs) {

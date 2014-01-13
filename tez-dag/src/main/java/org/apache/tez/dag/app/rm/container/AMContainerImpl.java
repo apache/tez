@@ -78,6 +78,10 @@ public class AMContainerImpl implements AMContainer {
   private final TaskAttemptListener taskAttemptListener;
   protected final EventHandler eventHandler;
   private final ContainerSignatureMatcher signatureMatcher;
+  @VisibleForTesting
+  final boolean shouldProfile;
+  @VisibleForTesting
+  final String profileJavaOpts;
 
   private final List<TezTaskAttemptID> completedAttempts =
       new LinkedList<TezTaskAttemptID>();
@@ -112,8 +116,6 @@ public class AMContainerImpl implements AMContainer {
 
   private boolean inError = false;
 
-  @VisibleForTesting
-  ContainerLaunchContext clc;
   @VisibleForTesting
   Map<String, LocalResource> containerLocalResources;
   @VisibleForTesting
@@ -202,7 +204,8 @@ public class AMContainerImpl implements AMContainer {
   // Attempting to use a container based purely on reosurces required, etc needs
   // additional change - JvmID, YarnChild, etc depend on TaskType.
   public AMContainerImpl(Container container, ContainerHeartbeatHandler chh,
-      TaskAttemptListener tal, ContainerSignatureMatcher signatureMatcher, AppContext appContext) {
+      TaskAttemptListener tal, ContainerSignatureMatcher signatureMatcher,
+      boolean shouldProfile, String profileJavaOpts, AppContext appContext) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
@@ -214,6 +217,8 @@ public class AMContainerImpl implements AMContainer {
     this.containerHeartbeatHandler = chh;
     this.taskAttemptListener = tal;
     this.failedAssignments = new LinkedList<TezTaskAttemptID>();
+    this.shouldProfile = shouldProfile;
+    this.profileJavaOpts = profileJavaOpts;
 
     this.noAllocationContainerTask = WAIT_TASK;
     this.stateMachine = stateMachineFactory.make(this);
@@ -364,26 +369,22 @@ public class AMContainerImpl implements AMContainer {
       container.credentials = containerContext.getCredentials();
       container.credentialsChanged = true;
 
-      container.clc = AMContainerHelpers.createContainerLaunchContext(
+      ContainerLaunchContext clc = AMContainerHelpers.createContainerLaunchContext(
           container.appContext.getCurrentDAGID(),
           container.appContext.getApplicationACLs(),
           container.getContainerId(),
           containerContext.getLocalResources(),
           containerContext.getEnvironment(),
           containerContext.getJavaOpts(),
-          container.taskAttemptListener, containerContext.getCredentials(),
-          event.shouldProfile(), container.appContext);
+          container.taskAttemptListener.getAddress(), containerContext.getCredentials(),
+          container.shouldProfile, container.profileJavaOpts, container.appContext);
 
       // Registering now, so that in case of delayed NM response, the child
       // task is not told to die since the TAL does not know about the container.
       container.registerWithTAListener();
-      container.sendStartRequestToNM();
+      container.sendStartRequestToNM(clc);
       LOG.info("Sending Launch Request for Container with id: " +
           container.container.getId());
-      // Forget about the clc to save resources. At some point, part of the clc
-      // info may need to be exposed to the scheduler to figure out whether a
-      // container can be used for a specific TaskAttempt.
-      container.clc = null;
     }
   }
 
@@ -1004,7 +1005,7 @@ public class AMContainerImpl implements AMContainer {
     sendEvent(new TaskAttemptEventNodeFailed(taId, message));
   }
 
-  protected void sendStartRequestToNM() {
+  protected void sendStartRequestToNM(ContainerLaunchContext clc) {
     sendEvent(new NMCommunicatorLaunchRequestEvent(clc, container));
   }
 

@@ -48,6 +48,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerState;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -69,6 +70,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventNodeFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.NMCommunicatorEventType;
+import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -897,7 +899,6 @@ public class TestAMContainer {
 
     // Verify references are cleared after a container completes.
     wc.containerCompleted(false);
-    assertNull(wc.amContainer.clc);
     assertNull(wc.amContainer.containerLocalResources);
     assertNull(wc.amContainer.additionalLocalResources);
   }
@@ -984,6 +985,20 @@ public class TestAMContainer {
     assertNull(fetchedTask.getCredentials());
     wc.taskAttemptSucceeded(attempt32);
   }
+  
+  @SuppressWarnings("rawtypes")
+  @Test
+  public void testContainerProfiling() {
+    WrappedContainer wc = new WrappedContainer(true, "profileString");
+    wc.launchContainer();
+    List<Event> events = wc.verifyCountAndGetOutgoingEvents(1);
+    Event event = events.get(0);
+    assertTrue(event instanceof NMCommunicatorLaunchRequestEvent);
+    NMCommunicatorLaunchRequestEvent lrEvent = (NMCommunicatorLaunchRequestEvent) event;
+    ContainerLaunchContext clc = lrEvent.getContainerLaunchContext();
+    assertNotNull(clc);
+    assertTrue(clc.getCommands().get(0).contains("profileString"));
+  }
 
   // TODO Verify diagnostics in most of the tests.
 
@@ -1015,7 +1030,7 @@ public class TestAMContainer {
 
     public AMContainerImpl amContainer;
 
-    public WrappedContainer() {
+    public WrappedContainer(boolean shouldProfile, String profileString) {
       applicationID = ApplicationId.newInstance(rmIdentifier, 1);
       appAttemptID = ApplicationAttemptId.newInstance(applicationID, 1);
       containerID = ContainerId.newInstance(appAttemptID, 1);
@@ -1051,7 +1066,11 @@ public class TestAMContainer {
       doReturn(taskAttemptID).when(taskSpec).getTaskAttemptID();
 
       amContainer = new AMContainerImpl(container, chh, tal,
-          new ContainerContextMatcher(), appContext);
+          new ContainerContextMatcher(), shouldProfile, profileString, appContext);
+    }
+    
+    public WrappedContainer() {
+      this(false, null);
     }
     
     protected void mockDAGID() {
@@ -1090,7 +1109,7 @@ public class TestAMContainer {
       @SuppressWarnings("unchecked")
       Token<JobTokenIdentifier> jobToken = mock(Token.class);
       TokenCache.setJobToken(jobToken, credentials);
-      amContainer.handle(new AMContainerEventLaunchRequest(containerID, vertexID, false,
+      amContainer.handle(new AMContainerEventLaunchRequest(containerID, vertexID,
           new ContainerContext(localResources, credentials, new HashMap<String, String>(), "")));
     }
 

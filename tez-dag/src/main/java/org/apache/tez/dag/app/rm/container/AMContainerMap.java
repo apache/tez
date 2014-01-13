@@ -19,20 +19,23 @@
 package org.apache.tez.dag.app.rm.container;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskAttemptListener;
 
-public class AMContainerMap extends AbstractService implements
-    EventHandler<AMContainerEvent> {
+public class AMContainerMap extends AbstractService implements EventHandler<AMContainerEvent> {
 
   private static final Log LOG = LogFactory.getLog(AMContainerMap.class);
 
@@ -41,6 +44,8 @@ public class AMContainerMap extends AbstractService implements
   private final AppContext context;
   private final ContainerSignatureMatcher containerSignatureMatcher;
   private final ConcurrentHashMap<ContainerId, AMContainer> containerMap;
+  private Set<Integer> profileContainerSet;
+  private String commonProfileJavaOpts;
 
   public AMContainerMap(ContainerHeartbeatHandler chh, TaskAttemptListener tal,
       ContainerSignatureMatcher containerSignatureMatcher, AppContext context) {
@@ -53,9 +58,30 @@ public class AMContainerMap extends AbstractService implements
   }
 
   @Override
+  public synchronized void serviceInit(Configuration conf) {
+    Collection<String> profileContainers = getConfig().getTrimmedStringCollection(
+        TezConfiguration.TEZ_PROFILE_CONTAINER_LIST);
+    if (profileContainers != null && !profileContainers.isEmpty()) {
+      profileContainerSet = new HashSet<Integer>();
+      for (String containerNum : profileContainers) {
+        profileContainerSet.add(Integer.parseInt(containerNum));
+      }
+      commonProfileJavaOpts = conf.get(TezConfiguration.TEZ_PROFILE_JVM_OPTS);
+      if (!profileContainerSet.isEmpty()
+          && (commonProfileJavaOpts == null || commonProfileJavaOpts.isEmpty())) {
+        LOG.warn("Profiling specified for " + profileContainerSet.size()
+            + " containers, but no profiling string specified. "
+            + TezConfiguration.TEZ_PROFILE_JVM_OPTS + " needs to be set");
+      }
+      LOG.info("Containers to be profile: " + profileContainerSet );
+    }
+    
+  }
+
+  @Override
   public void handle(AMContainerEvent event) {
     AMContainer container = containerMap.get(event.getContainerId());
-    if(container != null) {
+    if (container != null) {
       container.handle(event);
     } else {
       LOG.info("Event for unknown container: " + event.getContainerId());
@@ -63,7 +89,10 @@ public class AMContainerMap extends AbstractService implements
   }
 
   public boolean addContainerIfNew(Container container) {
-    AMContainer amc = new AMContainerImpl(container, chh, tal, containerSignatureMatcher, context);
+    boolean shouldProfile = profileContainerSet == null ? false : profileContainerSet
+        .contains(container.getId().getId());
+    AMContainer amc = new AMContainerImpl(container, chh, tal, containerSignatureMatcher,
+        shouldProfile, shouldProfile ? commonProfileJavaOpts : null, context);
     return (containerMap.putIfAbsent(container.getId(), amc) == null);
   }
 

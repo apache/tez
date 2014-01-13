@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.rm.container;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +46,6 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.utils.TezRuntimeChildJVM;
 import org.apache.tez.runtime.library.common.security.TokenCache;
@@ -142,8 +142,8 @@ public class AMContainerHelpers {
       Map<String, LocalResource> localResources,
       Map<String, String> vertexEnv,
       String javaOpts,
-      TaskAttemptListener taskAttemptListener, Credentials credentials,
-      boolean shouldProfile, AppContext appContext) {
+      InetSocketAddress taskAttemptListenerAddress, Credentials credentials,
+      boolean shouldProfile, String profileOpts, AppContext appContext) {
 
     ContainerLaunchContext commonContainerSpec = null;
     synchronized (commonContainerSpecLock) {
@@ -178,12 +178,11 @@ public class AMContainerHelpers {
     myEnv.putAll(env);
     myEnv.putAll(vertexEnv);
 
-    // Set up the launch command
     List<String> commands = TezRuntimeChildJVM.getVMCommand(
-        taskAttemptListener.getAddress(), containerId.toString(),
+        taskAttemptListenerAddress, containerId.toString(),
         appContext.getApplicationID().toString(),
         appContext.getApplicationAttemptId().getAttemptId(),
-        shouldProfile, javaOpts);
+        shouldProfile, profileOpts, javaOpts);
 
     // Duplicate the ByteBuffers for access by multiple containers.
     Map<String, ByteBuffer> myServiceData = new HashMap<String, ByteBuffer>();

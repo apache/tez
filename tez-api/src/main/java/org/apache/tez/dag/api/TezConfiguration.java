@@ -268,5 +268,15 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_GENERATE_DAG_VIZ =
       TEZ_PREFIX + "generate.dag.viz";
   public static final boolean TEZ_GENERATE_DAG_VIZ_DEFAULT = false;
+  
+  /**
+   * Comma separated list of containers which should be profiled.
+   */
+  public static final String TEZ_PROFILE_CONTAINER_LIST = TEZ_PREFIX + "profile.container.list";
+  
+  /**
+   * The string to be added to the JVM command line for containers being profiled.
+   */
+  public static final String TEZ_PROFILE_JVM_OPTS = TEZ_PREFIX + "profile.jvm.opts";
 
 }
