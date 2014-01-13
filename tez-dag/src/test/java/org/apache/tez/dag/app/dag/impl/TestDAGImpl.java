@@ -497,6 +497,7 @@ public class TestDAGImpl {
     dispatcher = new DrainDispatcher();
     fsTokens = new Credentials();
     appContext = mock(AppContext.class);
+    doReturn(conf).when(appContext).getAMConf();
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
     doReturn(dagId).when(appContext).getCurrentDAGID();
     dag = new DAGImpl(dagId, conf, dagPlan,

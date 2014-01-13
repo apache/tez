@@ -1087,6 +1087,7 @@ public class TestVertexImpl {
     doReturn(ugi).when(dag).getDagUGI();
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
     doReturn(dag).when(appContext).getCurrentDAG();
+    doReturn(conf).when(appContext).getAMConf();
     doReturn(new Credentials()).when(dag).getCredentials();
     doReturn(DAGPlan.getDefaultInstance()).when(dag).getJobPlan();
     doReturn(dagId).when(appContext).getCurrentDAGID();
