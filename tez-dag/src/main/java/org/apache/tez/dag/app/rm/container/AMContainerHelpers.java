@@ -34,7 +34,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -43,7 +42,6 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.records.TezDAGID;
@@ -103,25 +101,27 @@ public class AMContainerHelpers {
     // Tokens
     
     // Setup up task credentials buffer
-    ByteBuffer taskCredentialsBuffer = ByteBuffer.wrap(new byte[] {});
+    ByteBuffer containerCredentialsBuffer = ByteBuffer.wrap(new byte[] {});
     try {
-      // Setting only the JobToken when launching the container. This is meant to be used for 
-      // communicating with the AM - and is managed by Tez. The rest of the tokens will be sent
-      // along with the task - if required.
       Credentials containerCredentials = new Credentials();
-      Token<JobTokenIdentifier> jobToken = TokenCache.getJobToken(credentials);
-      TokenCache.setJobToken(jobToken, containerCredentials);
+      
+      // All Credentials need to be set so that YARN can localize the resources
+      // correctly, even though they may not be used by all tasks which will run
+      // on this container.
 
+      LOG.info("Adding #" + credentials.numberOfTokens() + " tokens and #"
+          + credentials.numberOfSecretKeys() + " secret keys for NM use for launching container");
+      containerCredentials.addAll(credentials);
 
       DataOutputBuffer containerTokens_dob = new DataOutputBuffer();
       containerCredentials.writeTokenStorageToStream(containerTokens_dob);
-      taskCredentialsBuffer = ByteBuffer.wrap(containerTokens_dob.getData(), 0,
+      containerCredentialsBuffer = ByteBuffer.wrap(containerTokens_dob.getData(), 0,
           containerTokens_dob.getLength());
 
       // Add shuffle token
       LOG.info("Putting shuffle token in serviceData");
       serviceData.put(ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID,
-          ShuffleHandler.serializeServiceData(jobToken));
+          ShuffleHandler.serializeServiceData(TokenCache.getJobToken(containerCredentials)));
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }
@@ -130,7 +130,7 @@ public class AMContainerHelpers {
     // container separately.
     ContainerLaunchContext container =
         ContainerLaunchContext.newInstance(localResources, environment, null,
-            serviceData, taskCredentialsBuffer, applicationACLs);
+            serviceData, containerCredentialsBuffer, applicationACLs);
     return container;
   }
 
