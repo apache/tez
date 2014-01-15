@@ -126,9 +126,28 @@ public class ContainerTask implements Writable {
 
   @Override
   public String toString() {
-    return "shouldDie: " + shouldDie + ", TaskSpec: " + taskSpec + ", AdditionalResources: "
-        + additionalResources + ", Credentials: " + credentials == null ? "[null]"
-        : ("[#secretKeys=" + credentials.numberOfSecretKeys() + ", #tokens=" + credentials
-            .numberOfTokens());
+    StringBuilder sb = new StringBuilder();
+    sb.append("shouldDie: ").append(shouldDie);
+    sb.append(", TaskSpec: ");
+    if (taskSpec == null) {
+      sb.append("none");
+    } else {
+      sb.append(taskSpec);
+    }
+    sb.append(", additionalResources: ");
+    if (additionalResources == null) {
+      sb.append("none");
+    } else {
+      sb.append(additionalResources);
+    }
+    sb.append(", credentialsChanged: ").append(credentialsChanged);
+    sb.append(", credentials: ");
+    if (credentials == null) {
+      sb.append("none");
+    } else {
+      sb.append("#tokens=").append(credentials.numberOfTokens())
+      .append(", #secretKeys: ").append(credentials.numberOfSecretKeys());
+    }
+    return sb.toString();
   }
 }
