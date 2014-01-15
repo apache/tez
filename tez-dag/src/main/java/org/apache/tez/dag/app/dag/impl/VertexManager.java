@@ -70,7 +70,7 @@ public class VertexManager {
 
     @Override
     public int getVertexNumTasks(String vertexName) {
-      return managedVertex.getTotalTasks();
+      return appContext.getCurrentDAG().getVertex(vertexName).getTotalTasks();
     }
 
     @Override
