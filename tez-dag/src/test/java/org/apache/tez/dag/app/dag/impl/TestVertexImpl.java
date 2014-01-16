@@ -2111,7 +2111,7 @@ public class TestVertexImpl {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testInitStartRace() {
     // Race when a source vertex manages to start before the target vertex has
     // been initialized
@@ -2135,7 +2135,7 @@ public class TestVertexImpl {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testInitStartRace2() {
     // Race when a source vertex manages to start before the target vertex has
     // been initialized

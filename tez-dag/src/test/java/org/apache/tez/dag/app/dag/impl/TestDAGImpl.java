@@ -550,13 +550,13 @@ public class TestDAGImpl {
     Assert.assertEquals(DAGState.RUNNING, impl.getState());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testDAGInit() {
     initDAG(dag);
     Assert.assertEquals(6, dag.getTotalVertices());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testDAGStart() {
     initDAG(dag);
     startDAG(dag);
@@ -585,7 +585,7 @@ public class TestDAGImpl {
   }
 
   @SuppressWarnings("unchecked")
-  @Test
+  @Test(timeout = 5000)
   public void testVertexCompletion() {
     initDAG(dag);
     startDAG(dag);
@@ -604,7 +604,7 @@ public class TestDAGImpl {
   }
   
   @SuppressWarnings("unchecked")
-  @Test
+  @Test(timeout = 5000)
   public void testVertexReRunning() {
     initDAG(dag);
     dag.dagScheduler = mock(DAGScheduler.class);
@@ -664,7 +664,7 @@ public class TestDAGImpl {
   }
 
   @SuppressWarnings("unchecked")
-  @Test
+  @Test(timeout = 5000)
   public void testKillRunningDAG() {
     initDAG(dag);
     startDAG(dag);
@@ -698,7 +698,7 @@ public class TestDAGImpl {
   }
 
   @SuppressWarnings("unchecked")
-  @Test
+  @Test(timeout = 5000)
   public void testInvalidEvent() {
     dispatcher.getEventHandler().handle(
         new DAGEvent(dagId, DAGEventType.DAG_START));
@@ -707,7 +707,7 @@ public class TestDAGImpl {
   }
 
   @SuppressWarnings("unchecked")
-  @Test
+  @Test(timeout = 5000)
   @Ignore // Duplicate completions from a vertex would be a bug. Invalid test.
   public void testVertexSuccessfulCompletionUpdates() {
     initDAG(dag);
@@ -738,7 +738,7 @@ public class TestDAGImpl {
   }
 
   @SuppressWarnings("unchecked")
-  @Test
+  @Test(timeout = 5000)
   public void testVertexFailureHandling() {
     initDAG(dag);
     startDAG(dag);
@@ -773,7 +773,7 @@ public class TestDAGImpl {
   //   DAG is in KILLED state, with killTrigger = USER_KILL
   //   Each vertex had kill triggered but raced ahead and ends in SUCCEEDED state.
   @SuppressWarnings("unchecked")
-  @Test
+  @Test(timeout = 5000)
   public void testDAGKill() {
     initDAG(dag);
     startDAG(dag);
@@ -804,7 +804,7 @@ public class TestDAGImpl {
   // job kill races with most vertices succeeding and one directly killed.
   // because the job.kill() happens before the direct kill, the vertex has kill_trigger=DAG_KILL
   @SuppressWarnings("unchecked")
-  @Test
+  @Test(timeout = 5000)
   public void testDAGKillPending() {
     initDAG(dag);
     startDAG(dag);
@@ -835,19 +835,19 @@ public class TestDAGImpl {
     Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testDiagnosticUpdates() {
     // FIXME need to implement
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testCounterUpdates() {
     // FIXME need to implement
   }
 
   @Ignore
   @SuppressWarnings("unchecked")
-  @Test
+  @Test(timeout = 5000)
   public void testOutofBandFailureForMRRScheduler() {
     initDAG(mrrDag);
     dispatcher.await();
