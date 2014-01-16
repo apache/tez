@@ -200,7 +200,7 @@ public class DAGAppMaster extends AbstractService {
 
   private DAG currentDAG;
   private Credentials amTokens = new Credentials(); // Filled during init
-  private UserGroupInformation currentUser; // Will be setup during init
+  private UserGroupInformation appMasterUgi;
 
   private AtomicBoolean sessionStopped = new AtomicBoolean(false);
   private long sessionTimeoutInterval;
@@ -507,7 +507,7 @@ public class DAGAppMaster extends AbstractService {
     DAG newDag =
         new DAGImpl(dagId, dagConf, dagPB, dispatcher.getEventHandler(),
             taskAttemptListener, dagCredentials, clock,
-            currentUser.getShortUserName(),
+            appMasterUgi.getShortUserName(),
             taskHeartbeatHandler, context);
 
     if (dagConf.getBoolean(TezConfiguration.TEZ_GENERATE_DAG_VIZ,
@@ -1509,12 +1509,11 @@ public class DAGAppMaster extends AbstractService {
       final Configuration conf, String jobUserName) throws IOException,
       InterruptedException {
     UserGroupInformation.setConfiguration(conf);
-    appMaster.currentUser = UserGroupInformation.getCurrentUser();
     Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
 
-    UserGroupInformation appMasterUgi = UserGroupInformation
+    appMaster.appMasterUgi = UserGroupInformation
         .createRemoteUser(jobUserName);
-    appMasterUgi.addCredentials(credentials);
+    appMaster.appMasterUgi.addCredentials(credentials);
 
     // Now remove the AM->RM token so tasks don't have it
     Iterator<Token<?>> iter = credentials.getAllTokens().iterator();
@@ -1527,7 +1526,7 @@ public class DAGAppMaster extends AbstractService {
 
     appMaster.amTokens = credentials;
 
-    appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {
+    appMaster.appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {
       @Override
       public Object run() throws Exception {
         appMaster.init(conf);
