@@ -60,11 +60,11 @@ class TaskSchedulerAppCallbackWrapper implements TaskSchedulerAppCallback {
       ExecutorService executorService) {
     this.real = real;
     this.executorService = executorService;
-    this.completionService = craeteAppCallbackCompletionService();
+    this.completionService = createAppCallbackCompletionService();
   }
 
   @VisibleForTesting
-  CompletionService craeteAppCallbackCompletionService() {
+  CompletionService createAppCallbackCompletionService() {
     return new ExecutorCompletionService(this.executorService);
   }
 
