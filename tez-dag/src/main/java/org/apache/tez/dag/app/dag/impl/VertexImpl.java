@@ -1051,6 +1051,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     if (vertex.completedTaskCount == vertex.tasks.size()) {
       //Only succeed if tasks complete successfully and no terminationCause is registered.
       if(vertex.succeededTaskCount == vertex.tasks.size() && vertex.terminationCause == null) {
+        LOG.info("Vertex succeeded: " + vertex.logIdentifier);
         try {
           if (!vertex.committed.getAndSet(true)) {
             // commit only once
@@ -1130,9 +1131,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
    * Set the terminationCause and send a kill-message to all tasks.
    * The task-kill messages are only sent once.
    */
-  void enactKill(VertexTerminationCause trigger,
+  void tryEnactKill(VertexTerminationCause trigger,
       TaskTerminationCause taskterminationCause) {
     if(trySetTerminationCause(trigger)){
+      LOG.info("Killing tasks in vertex: " + logIdentifier + " due to trigger: "
+          + trigger);
       for (Task task : tasks.values()) {
         eventHandler.handle(
             new TaskEventTermination(task.getTaskId(), taskterminationCause));
@@ -1765,9 +1768,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       VertexEventTermination vet = (VertexEventTermination) event;
       VertexTerminationCause trigger = vet.getTerminationCause();
       switch(trigger){
-        case DAG_KILL : vertex.enactKill(trigger, TaskTerminationCause.DAG_KILL); break;
-        case OTHER_VERTEX_FAILURE: vertex.enactKill(trigger, TaskTerminationCause.OTHER_VERTEX_FAILURE); break;
-        case OWN_TASK_FAILURE: vertex.enactKill(trigger, TaskTerminationCause.OTHER_TASK_FAILURE); break;
+        case DAG_KILL : vertex.tryEnactKill(trigger, TaskTerminationCause.DAG_KILL); break;
+        case OWN_TASK_FAILURE: vertex.tryEnactKill(trigger, TaskTerminationCause.OTHER_TASK_FAILURE); break;
+        case ROOT_INPUT_INIT_FAILURE:
+        case COMMIT_FAILURE:
+        case INVALID_NUM_OF_TASKS: 
+        case INIT_FAILURE:
+        case INTERNAL_ERROR:
+        case OTHER_VERTEX_FAILURE: vertex.tryEnactKill(trigger, TaskTerminationCause.OTHER_VERTEX_FAILURE); break;
         default://should not occur
           throw new TezUncheckedException("VertexKilledTransition: event.terminationCause is unexpected: " + trigger);
       }
@@ -1841,7 +1849,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       if (taskEvent.getState() == TaskState.SUCCEEDED) {
         taskSucceeded(vertex, task);
       } else if (taskEvent.getState() == TaskState.FAILED) {
-        vertex.enactKill(VertexTerminationCause.OWN_TASK_FAILURE, TaskTerminationCause.OTHER_TASK_FAILURE);
+        LOG.info("Failing vertex: " + vertex.logIdentifier + 
+            " because task failed: " + taskEvent.getTaskID());
+        vertex.tryEnactKill(VertexTerminationCause.OWN_TASK_FAILURE, TaskTerminationCause.OTHER_TASK_FAILURE);
         forceTransitionToKillWait = true;
         taskFailed(vertex, task);
       } else if (taskEvent.getState() == TaskState.KILLED) {
@@ -1915,7 +1925,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       LOG.info(vertex.getVertexId() + " failed due to post-commit rescheduling of "
           + ((VertexEventTaskReschedule)event).getTaskID());
       // terminate any running tasks
-      vertex.enactKill(VertexTerminationCause.OWN_TASK_FAILURE,
+      vertex.tryEnactKill(VertexTerminationCause.OWN_TASK_FAILURE,
           TaskTerminationCause.OWN_TASK_FAILURE);
       // since the DAG thinks this vertex is completed it must be notified of
       // an error

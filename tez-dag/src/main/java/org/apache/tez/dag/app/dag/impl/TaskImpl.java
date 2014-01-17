@@ -1054,6 +1054,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           task.addAndScheduleAttempt();
         }
       } else {
+        LOG.info("Failing task: " + task.getTaskId()
+            + ", currentFailedAttempts: " + task.failedAttempts + ", maxAttempts: "
+            + task.maxAttempts);
         task.handleTaskAttemptCompletion(
             ((TaskEventTAUpdate) event).getTaskAttemptID(),
             TaskAttemptStateInternal.FAILED);
