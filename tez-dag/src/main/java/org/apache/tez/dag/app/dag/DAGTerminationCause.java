@@ -36,5 +36,8 @@ public enum DAGTerminationCause {
   /** DAG failed during init. */
   INIT_FAILURE,
   
+  /** DAG failed during output commit. */
+  COMMIT_FAILURE,
+  
   INTERNAL_ERROR
 }

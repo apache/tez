@@ -23,6 +23,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -35,6 +39,7 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.oldrecords.TaskState;
+import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataMovementType;
@@ -43,6 +48,7 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSchedulingType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
+import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
@@ -69,16 +75,20 @@ import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.app.dag.impl.TestVertexImpl.CountingOutputCommitter;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.OutputCommitter;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import com.google.protobuf.ByteString;
 
 public class TestDAGImpl {
 
@@ -187,6 +197,14 @@ public class TestDAGImpl {
                     .setTaskModule("x1.y1")
                     .build()
                     )
+                .addOutputs(
+                    DAGProtos.RootInputLeafOutputProto.newBuilder()
+                    .setEntityDescriptor(
+                        TezEntityDescriptorProto.newBuilder().setClassName("output1").build()
+                    )
+                    .setName("output1")
+                    .setInitializerClassName(CountingOutputCommitter.class.getName())
+                 )
                     .addOutEdgeId("e1")
                     .build()
             )
@@ -202,14 +220,22 @@ public class TestDAGImpl {
                 )
                 .setTaskConfig(
                     PlanTaskConfiguration.newBuilder()
-                    .setNumTasks(2)
+                    .setNumTasks(1)
                     .setVirtualCores(4)
                     .setMemoryMb(1024)
                     .setJavaOpts("")
                     .setTaskModule("x2.y2")
                     .build()
                     )
-                    .addInEdgeId("e1")
+                .addOutputs(
+                    DAGProtos.RootInputLeafOutputProto.newBuilder()
+                    .setEntityDescriptor(
+                        TezEntityDescriptorProto.newBuilder().setClassName("output2").build()
+                    )
+                    .setName("output2")
+                    .setInitializerClassName(CountingOutputCommitter.class.getName())
+                 )
+                   .addInEdgeId("e1")
                     .addOutEdgeId("e2")
                     .build()
             )
@@ -226,15 +252,23 @@ public class TestDAGImpl {
                 )
                 .setTaskConfig(
                     PlanTaskConfiguration.newBuilder()
-                    .setNumTasks(2)
+                    .setNumTasks(1)
                     .setVirtualCores(4)
                     .setMemoryMb(1024)
                     .setJavaOpts("foo")
                     .setTaskModule("x3.y3")
                     .build()
                     )
-                    .addInEdgeId("e2")
-                    .build()
+               .addOutputs(
+                    DAGProtos.RootInputLeafOutputProto.newBuilder()
+                    .setEntityDescriptor(
+                        TezEntityDescriptorProto.newBuilder().setClassName("output3").build()
+                    )
+                    .setName("output3")
+                    .setInitializerClassName(CountingOutputCommitter.class.getName())
+               )
+               .addInEdgeId("e2")
+               .build()
             )
         .addEdge(
             EdgePlan.newBuilder()
@@ -511,6 +545,7 @@ public class TestDAGImpl {
         dispatcher.getEventHandler(),  taskAttemptListener,
         fsTokens, clock, "user", thh,
         mrrAppContext);
+    doReturn(conf).when(mrrAppContext).getAMConf();
     doReturn(mrrDag).when(mrrAppContext).getCurrentDAG();
     doReturn(appAttemptId).when(mrrAppContext).getApplicationAttemptId();
     taskEventDispatcher = new TaskEventDispatcher();
@@ -605,6 +640,217 @@ public class TestDAGImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
+  public void testDAGCompletionWithCommitSuccess() {
+    // all vertices completed -> DAG completion and commit
+    initDAG(mrrDag);
+    dispatcher.await();
+    startDAG(mrrDag);
+    dispatcher.await();
+    for (int i=0; i<2; ++i) {
+      Vertex v = mrrDag.getVertex("vertex"+(i+1));
+      dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
+          TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
+      dispatcher.await();
+      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+    }
+    
+    // no commit yet
+    for (Vertex v : mrrDag.vertices.values()) {
+      for (OutputCommitter c : v.getOutputCommitters().values()) {
+        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        Assert.assertEquals(0, committer.abortCounter);
+        Assert.assertEquals(0, committer.commitCounter);
+        Assert.assertEquals(1, committer.initCounter);
+        Assert.assertEquals(1, committer.setupCounter);
+      }
+    }
+    
+    // dag completion and commit
+    Vertex v = mrrDag.getVertex("vertex3");
+    dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
+        TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+    Assert.assertEquals(3, mrrDag.getSuccessfulVertices());
+    Assert.assertEquals(DAGState.SUCCEEDED, mrrDag.getState());
+    
+    for (Vertex vertex : mrrDag.vertices.values()) {
+      for (OutputCommitter c : vertex.getOutputCommitters().values()) {
+        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        Assert.assertEquals(0, committer.abortCounter);
+        Assert.assertEquals(1, committer.commitCounter);
+        Assert.assertEquals(1, committer.initCounter);
+        Assert.assertEquals(1, committer.setupCounter);
+      }
+    }
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test(timeout=5000)
+  public void testDAGCompletionWithCommitFailure() throws IOException {
+    // all vertices completed -> DAG completion and commit
+    initDAG(mrrDag);
+    dispatcher.await();
+    // committer for bad vertex will throw exception
+    Vertex badVertex = mrrDag.getVertex("vertex3");
+    List<RootInputLeafOutputProto> outputs =
+        new ArrayList<RootInputLeafOutputProto>();
+    outputs.add(RootInputLeafOutputProto.newBuilder()
+        .setInitializerClassName(CountingOutputCommitter.class.getName())
+        .setName("output3")
+        .setEntityDescriptor(
+            TezEntityDescriptorProto.newBuilder()
+                .setUserPayload(ByteString.copyFrom(
+                    new CountingOutputCommitter.CountingOutputCommitterConfig(
+                        true, false, false).toUserPayload())).build())
+        .build());
+    badVertex.setAdditionalOutputs(outputs);
+    
+    startDAG(mrrDag);
+    dispatcher.await();
+    for (int i=0; i<2; ++i) {
+      Vertex v = mrrDag.getVertex("vertex"+(i+1));
+      dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
+          TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
+      dispatcher.await();
+      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+    }
+    
+    // no commit yet
+    for (Vertex v : mrrDag.vertices.values()) {
+      for (OutputCommitter c : v.getOutputCommitters().values()) {
+        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        Assert.assertEquals(0, committer.abortCounter);
+        Assert.assertEquals(0, committer.commitCounter);
+        Assert.assertEquals(1, committer.initCounter);
+        Assert.assertEquals(1, committer.setupCounter);
+      }
+    }
+    
+    // dag completion and commit. Exception causes all outputs to be aborted
+    Vertex v = mrrDag.getVertex("vertex3");
+    dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
+        TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+    Assert.assertEquals(3, mrrDag.getSuccessfulVertices());
+    Assert.assertEquals(DAGState.FAILED, mrrDag.getState());
+    Assert.assertEquals(DAGTerminationCause.COMMIT_FAILURE, mrrDag.getTerminationCause());
+    
+    for (Vertex vertex : mrrDag.vertices.values()) {
+      for (OutputCommitter c : vertex.getOutputCommitters().values()) {
+        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        Assert.assertEquals(1, committer.abortCounter);
+        Assert.assertEquals(1, committer.initCounter);
+        Assert.assertEquals(1, committer.setupCounter);
+      }
+    }
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test(timeout=5000)
+  public void testDAGErrorAbortAllOutputs() {
+    // error on a vertex -> dag error -> all outputs aborted.
+    initDAG(mrrDag);
+    dispatcher.await();
+    startDAG(mrrDag);
+    dispatcher.await();
+    for (int i=0; i<2; ++i) {
+      Vertex v = mrrDag.getVertex("vertex"+(i+1));
+      dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
+          TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
+      dispatcher.await();
+      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+    }
+    
+    // no commit yet
+    for (Vertex v : mrrDag.vertices.values()) {
+      for (OutputCommitter c : v.getOutputCommitters().values()) {
+        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        Assert.assertEquals(0, committer.abortCounter);
+        Assert.assertEquals(0, committer.commitCounter);
+        Assert.assertEquals(1, committer.initCounter);
+        Assert.assertEquals(1, committer.setupCounter);
+      }
+    }
+    
+    // vertex error -> dag error -> abort all outputs
+    Vertex v = mrrDag.getVertex("vertex3");
+    dispatcher.getEventHandler().handle(new VertexEvent(
+        v.getVertexId(), VertexEventType.V_INTERNAL_ERROR));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.ERROR, v.getState());
+    Assert.assertEquals(DAGState.ERROR, mrrDag.getState());
+    
+    for (Vertex vertex : mrrDag.vertices.values()) {
+      for (OutputCommitter c : vertex.getOutputCommitters().values()) {
+        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        Assert.assertEquals(1, committer.abortCounter);
+        Assert.assertEquals(0, committer.commitCounter);
+        Assert.assertEquals(1, committer.initCounter);
+        Assert.assertEquals(1, committer.setupCounter);
+      }
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout=5000)
+  public void testDAGErrorAbortNonSuccessfulOutputs() {
+    // vertex success -> vertex output commit. failed dag aborts only non-successful vertices
+    conf.setBoolean(TezConfiguration.TEZ_AM_ABORT_ALL_OUTPUTS_ON_DAG_FAILURE, false);
+    initDAG(mrrDag);
+    dispatcher.await();
+    startDAG(mrrDag);
+    dispatcher.await();
+    for (int i=0; i<2; ++i) {
+      Vertex v = mrrDag.getVertex("vertex"+(i+1));
+      dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
+          TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
+      dispatcher.await();
+      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+      for (OutputCommitter c : v.getOutputCommitters().values()) {
+        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        Assert.assertEquals(0, committer.abortCounter);
+        Assert.assertEquals(1, committer.commitCounter);
+        Assert.assertEquals(1, committer.initCounter);
+        Assert.assertEquals(1, committer.setupCounter);
+      }
+    }
+    
+    // error on vertex -> dag error -> successful vertex output not aborted
+    Vertex errorVertex = mrrDag.getVertex("vertex3");
+    dispatcher.getEventHandler().handle(new VertexEvent(
+        errorVertex.getVertexId(), VertexEventType.V_INTERNAL_ERROR));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.ERROR, errorVertex.getState());
+    
+    dispatcher.await();
+    Assert.assertEquals(DAGState.ERROR, mrrDag.getState());
+    
+    for (Vertex vertex : mrrDag.vertices.values()) {
+      for (OutputCommitter c : vertex.getOutputCommitters().values()) {
+        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        if (vertex == errorVertex) {
+          Assert.assertEquals(1, committer.abortCounter);
+          Assert.assertEquals(0, committer.commitCounter);
+          Assert.assertEquals(1, committer.initCounter);
+          Assert.assertEquals(1, committer.setupCounter);
+        } else {
+          Assert.assertEquals(0, committer.abortCounter);
+          Assert.assertEquals(1, committer.commitCounter);
+          Assert.assertEquals(1, committer.initCounter);
+          Assert.assertEquals(1, committer.setupCounter);          
+        }
+      }
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout=5000)
   public void testVertexReRunning() {
     initDAG(dag);
     dag.dagScheduler = mock(DAGScheduler.class);

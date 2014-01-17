@@ -1015,7 +1015,7 @@ public class TestVertexImpl {
       } else {
         v = new VertexImpl(vertexId, vPlan, vPlan.getName(), conf,
             dispatcher.getEventHandler(), taskAttemptListener,
-            clock, thh, appContext, locationHint);
+            clock, thh, true, appContext, locationHint);
       }
       vertices.put(vName, v);
       vertexIdMap.put(vertexId, v);
@@ -2005,7 +2005,7 @@ public class TestVertexImpl {
       VertexPlan vPlan = invalidDagPlan.getVertex(0);
       VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
           dispatcher.getEventHandler(), taskAttemptListener,
-          clock, thh, appContext, vertexLocationHint);
+          clock, thh, true, appContext, vertexLocationHint);
       vertexIdMap.put(vId, v);
       v.handle(new VertexEvent(vId, VertexEventType.V_INIT));
       dispatcher.await();
@@ -2032,8 +2032,8 @@ public class TestVertexImpl {
         Clock clock, TaskHeartbeatHandler thh,
         AppContext appContext, VertexLocationHint vertexLocationHint, DrainDispatcher dispatcher) {
       super(vertexId, vertexPlan, vertexName, conf, eventHandler,
-          taskAttemptListener, clock, thh, appContext,
-          vertexLocationHint);
+          taskAttemptListener, clock, thh, true,
+          appContext, vertexLocationHint);
       this.dispatcher = dispatcher;
     }
 

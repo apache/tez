@@ -20,8 +20,6 @@ package org.apache.tez.runtime.api;
 
 import org.apache.tez.dag.api.client.VertexStatus;
 
-import java.io.IOException;
-
 /**
  * OutputCommitter to "finalize" the output and make it user-visible if needed.
  * The OutputCommitter is allowed only on a terminal Output.
@@ -47,22 +45,25 @@ public abstract class OutputCommitter {
   public abstract void setupOutput() throws Exception;
 
   /**
-   * For committing the output after a successful vertex completion.
-   * Note that this is invoked for the outputs of vertices with a successful
-   * final state. This is called from the application master process.
-   * This is guaranteed to only be called once.
-   * If it throws an exception the entire vertex will fail.
-   *
+   * For committing the output after successful completion of tasks that write
+   * the output. Note that this is invoked for the outputs of vertices whose
+   * tasks have successfully completed. This is called from the application
+   * master process. Based on user configuration, commit is called at the end of
+   * the DAG execution for all outputs or immediately upon completion of all the
+   * tasks that produced the output. This is guaranteed to only be called once.
+   * 
    * @throws java.lang.Exception
    */
   public abstract void commitOutput() throws Exception;
 
   /**
-   * For aborting an unsuccessful vertex's output. Note that this is invoked for
-   * vertices with a final failed state. This is called from the application
-   * master process. This may be called multiple times.
-   *
-   * @param finalState final run-state of the vertex
+   * For aborting an output. Note that this is invoked for vertices with a final
+   * non-successful state. This is also called to abort a previously committed
+   * output in the case of a post-commit failure. This is called from the
+   * application master process. This may be called multiple times.
+   * 
+   * @param finalState
+   *          final run-state of the vertex
    * @throws java.lang.Exception
    */
   public abstract void abortOutput(VertexStatus.State finalState)

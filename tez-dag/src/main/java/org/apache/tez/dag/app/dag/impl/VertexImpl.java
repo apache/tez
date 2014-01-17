@@ -460,6 +460,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private TezVertexID originalOneToOneSplitSource = null;
 
   private AtomicBoolean committed = new AtomicBoolean(false);
+  private AtomicBoolean aborted = new AtomicBoolean(false);
+  private boolean commitVertexOutputs = false;
+  
   private VertexLocationHint vertexLocationHint;
   private Map<String, LocalResource> localResources;
   private Map<String, String> environment;
@@ -472,21 +475,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
       String vertexName, Configuration conf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener, Clock clock,
-      // TODO: Recovery
-      //Map<TaskId, TaskInfo> completedTasksFromPreviousRun,
-      // TODO Metrics
-      //MRAppMetrics metrics,
-      TaskHeartbeatHandler thh,
+      TaskHeartbeatHandler thh, boolean commitVertexOutputs, 
       AppContext appContext, VertexLocationHint vertexLocationHint) {
     this.vertexId = vertexId;
     this.vertexPlan = vertexPlan;
     this.vertexName = StringInterner.weakIntern(vertexName);
     this.conf = conf;
-    //this.metrics = metrics;
     this.clock = clock;
-    // TODO: Recovery
-    //this.completedTasksFromPreviousRun = completedTasksFromPreviousRun;
     this.appContext = appContext;
+    this.commitVertexOutputs = commitVertexOutputs;
 
     this.taskAttemptListener = taskAttemptListener;
     this.taskHeartbeatHandler = thh;
@@ -1053,7 +1050,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       if(vertex.succeededTaskCount == vertex.tasks.size() && vertex.terminationCause == null) {
         LOG.info("Vertex succeeded: " + vertex.logIdentifier);
         try {
-          if (!vertex.committed.getAndSet(true)) {
+          if (vertex.commitVertexOutputs && !vertex.committed.getAndSet(true)) {
             // commit only once
             LOG.info("Invoking committer commit for vertex, vertexId="
                 + vertex.logIdentifier);
@@ -1179,11 +1176,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   private VertexState initializeVertex() {
-    // FIXME how do we decide vertex needs a committer?
-    // Answer: Do commit for every vertex
-    // for now, only for leaf vertices
-    // TODO TEZ-41 make commmitter type configurable per vertex
-
     if (!this.additionalOutputSpecs.isEmpty()) {
       try {
         LOG.info("Invoking committer inits for vertex, vertexId=" + logIdentifier);
@@ -1652,6 +1644,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   private void abortVertex(final VertexStatus.State finalState) {
+    if (this.aborted.getAndSet(true)) {
+      LOG.info("Ignoring multiple aborts for vertex: " + logIdentifier);
+      return;
+    }
     LOG.info("Invoking committer abort for vertex, vertexId=" + logIdentifier);
     if (outputCommitters != null) {
       try {
@@ -1912,8 +1908,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     @Override
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
-      if (vertex.outputCommitters == null
-          || vertex.outputCommitters.isEmpty()) {
+      if (vertex.outputCommitters == null // no committer
+          || vertex.outputCommitters.isEmpty() // no committer
+          || !vertex.commitVertexOutputs) { // committer does not commit on vertex success
         LOG.info(vertex.getVertexId() + " back to running due to rescheduling "
             + ((VertexEventTaskReschedule)event).getTaskID());
         (new TaskRescheduledTransition()).transition(vertex, event);
@@ -2119,6 +2116,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       additionalInputSpecs.add(inputSpec);
     }
 
+  }
+  
+  @Override
+  public Map<String, OutputCommitter> getOutputCommitters() {
+    return outputCommitters;
   }
 
   @Private

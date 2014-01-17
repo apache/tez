@@ -38,6 +38,7 @@ import org.apache.tez.dag.app.dag.impl.Edge;
 import org.apache.tez.dag.app.dag.impl.RootInputLeafOutputDescriptor;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 
@@ -82,6 +83,8 @@ public interface Vertex extends Comparable<Vertex> {
 
   Map<Vertex, Edge> getInputVertices();
   Map<Vertex, Edge> getOutputVertices();
+  
+  Map<String, OutputCommitter> getOutputCommitters();
 
   void setAdditionalInputs(List<RootInputLeafOutputProto> inputs);
   void setAdditionalOutputs(List<RootInputLeafOutputProto> outputs);

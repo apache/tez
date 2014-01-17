@@ -20,8 +20,6 @@ package org.apache.tez.runtime.api;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
-import java.util.List;
-
 /**
  * Context through which the OutputCommitter can access all the relevant
  * information that it needs.
