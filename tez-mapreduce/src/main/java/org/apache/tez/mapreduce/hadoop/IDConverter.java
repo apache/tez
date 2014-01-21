@@ -43,6 +43,11 @@ public class IDConverter {
         taskid.getVertexID().getId() == 0 ? TaskType.MAP : TaskType.REDUCE,
         taskid.getId());
   }
+  
+  public static TaskID toMRTaskIdForOutput(TezTaskID taskid) {
+    return org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl
+        .createMockTaskAttemptIDFromTezTaskId(taskid, (taskid.getVertexID().getId() == 0));
+  }
 
   public static TaskAttemptID toMRTaskAttemptId(
       TezTaskAttemptID taskAttemptId) {

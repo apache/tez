@@ -48,7 +48,7 @@ public interface TezTaskContext {
   public int getDAGAttemptNumber();
 
   /**
-   * Get the index of this Task
+   * Get the index of this Task among the tasks of this vertex
    * @return Task Index
    */
   public int getTaskIndex();
@@ -70,6 +70,13 @@ public interface TezTaskContext {
    * @return Vertex Name
    */
   public String getTaskVertexName();
+  
+  /**
+   * Get the index of this task's vertex in the set of vertices in the DAG. This 
+   * is consistent and valid across all tasks/vertices in the same DAG.
+   * @return index
+   */
+  public int getTaskVertexIndex();
 
   public TezCounters getCounters();
 

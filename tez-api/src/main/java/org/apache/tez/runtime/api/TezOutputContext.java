@@ -29,5 +29,12 @@ public interface TezOutputContext extends TezTaskContext {
    * @return Name of the Destination Vertex
    */
   public String getDestinationVertexName();
+  
+  /**
+   * Get the index of the output in the set of all outputs for the task. The 
+   * index will be consistent and valid only among the tasks of this vertex.
+   * @return index
+   */
+  public int getOutputIndex();
 
 }

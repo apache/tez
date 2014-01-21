@@ -143,13 +143,17 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     
     int numTasks = 0;
     
+    int inputIndex = 0;
     for (InputSpec inputSpec : taskSpec.getInputs()) {
-      this.initializerCompletionService.submit(new InitializeInputCallable(inputSpec));
+      this.initializerCompletionService.submit(
+          new InitializeInputCallable(inputSpec, inputIndex++));
       numTasks++;
     }
     
+    int outputIndex = 0;
     for (OutputSpec outputSpec : taskSpec.getOutputs()) {
-      this.initializerCompletionService.submit(new InitializeOutputCallable(outputSpec));
+      this.initializerCompletionService.submit(
+          new InitializeOutputCallable(outputSpec, outputIndex++));
       numTasks++;
     }
     // Shutdown after all tasks complete.
@@ -238,9 +242,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private class InitializeInputCallable implements Callable<Void> {
 
     private final InputSpec inputSpec;
+    private final int inputIndex;
 
-    public InitializeInputCallable(InputSpec inputSpec) {
+    public InitializeInputCallable(InputSpec inputSpec, int inputIndex) {
       this.inputSpec = inputSpec;
+      this.inputIndex = inputIndex;
     }
 
     @Override
@@ -248,7 +254,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       LOG.info("Initializing Input using InputSpec: " + inputSpec);
       String edgeName = inputSpec.getSourceVertexName();
       LogicalInput input = createInput(inputSpec);
-      TezInputContext inputContext = createInputContext(inputSpec);
+      TezInputContext inputContext = createInputContext(inputSpec, inputIndex);
       inputsMap.put(edgeName, input);
       inputContextMap.put(edgeName, inputContext);
 
@@ -269,9 +275,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private class InitializeOutputCallable implements Callable<Void> {
 
     private final OutputSpec outputSpec;
+    private final int outputIndex;
 
-    public InitializeOutputCallable(OutputSpec outputSpec) {
+    public InitializeOutputCallable(OutputSpec outputSpec, int outputIndex) {
       this.outputSpec = outputSpec;
+      this.outputIndex = outputIndex;
     }
 
     @Override
@@ -279,7 +287,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       LOG.info("Initializing Output using OutputSpec: " + outputSpec);
       String edgeName = outputSpec.getDestinationVertexName();
       LogicalOutput output = createOutput(outputSpec);
-      TezOutputContext outputContext = createOutputContext(outputSpec);
+      TezOutputContext outputContext = createOutputContext(outputSpec, outputIndex);
       outputsMap.put(edgeName, output);
       outputContextMap.put(edgeName, outputContext);
 
@@ -307,11 +315,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         + processorDescriptor.getClassName());
   }
 
-  private TezInputContext createInputContext(InputSpec inputSpec) {
+  private TezInputContext createInputContext(InputSpec inputSpec, int inputIndex) {
     TezInputContext inputContext = new TezInputContextImpl(tezConf,
         appAttemptNumber, tezUmbilical, taskSpec.getVertexName(),
         inputSpec.getSourceVertexName(), taskSpec.getTaskAttemptID(),
-        tezCounters,
+        tezCounters, inputIndex,
         inputSpec.getInputDescriptor().getUserPayload() == null ? taskSpec
             .getProcessorDescriptor().getUserPayload() : inputSpec
             .getInputDescriptor().getUserPayload(), this,
@@ -319,11 +327,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     return inputContext;
   }
 
-  private TezOutputContext createOutputContext(OutputSpec outputSpec) {
+  private TezOutputContext createOutputContext(OutputSpec outputSpec, int outputIndex) {
     TezOutputContext outputContext = new TezOutputContextImpl(tezConf,
         appAttemptNumber, tezUmbilical, taskSpec.getVertexName(),
         outputSpec.getDestinationVertexName(), taskSpec.getTaskAttemptID(),
-        tezCounters,
+        tezCounters, outputIndex,
         outputSpec.getOutputDescriptor().getUserPayload() == null ? taskSpec
             .getProcessorDescriptor().getUserPayload() : outputSpec
             .getOutputDescriptor().getUserPayload(), this,

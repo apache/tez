@@ -23,8 +23,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
-import org.apache.hadoop.mapreduce.TaskID;
 import org.apache.hadoop.mapreduce.TaskType;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.mapreduce.common.Utils;
 import org.apache.tez.runtime.api.TezTaskContext;
 
@@ -38,19 +41,52 @@ public class TaskAttemptContextImpl
 
   private final TezTaskContext taskContext;
   private final Reporter reporter;
-
-  // FIXME we need to use DAG Id but we are using App Id
-  public TaskAttemptContextImpl(Configuration conf,
-      TezTaskContext taskContext, boolean isMap, Reporter reporter) {
-    // TODO NEWTEZ Can the jt Identifier string be taskContext.getUniqueId ?
-    this(conf, new TaskAttemptID(
-        new TaskID(String.valueOf(taskContext.getApplicationId()
-            .getClusterTimestamp()), taskContext.getApplicationId().getId(),
-            isMap ? TaskType.MAP : TaskType.REDUCE,
-            taskContext.getTaskIndex()),
-            taskContext.getTaskAttemptNumber()), taskContext, reporter);
+  
+  public static org.apache.hadoop.mapred.TaskAttemptID createMockTaskAttemptID(
+      TezTaskContext taskContext, boolean isMap) {
+    return new org.apache.hadoop.mapred.TaskAttemptID(
+        new org.apache.hadoop.mapred.TaskID(String.valueOf(taskContext
+            .getApplicationId().getClusterTimestamp())
+            + String.valueOf(taskContext.getTaskVertexIndex()), taskContext
+            .getApplicationId().getId(),
+            isMap ? TaskType.MAP : TaskType.REDUCE, taskContext.getTaskIndex()),
+        taskContext.getTaskAttemptNumber());
+  }
+  
+  public static org.apache.hadoop.mapred.TaskAttemptID 
+    createMockTaskAttemptIDFromTezTaskAttemptId(TezTaskAttemptID tezTaId, boolean isMap) {
+    TezVertexID vId = tezTaId.getTaskID().getVertexID();
+    ApplicationId appId = vId.getDAGId().getApplicationId();
+    return new org.apache.hadoop.mapred.TaskAttemptID(
+        new org.apache.hadoop.mapred.TaskID(String.valueOf(appId.getClusterTimestamp())
+            + String.valueOf(vId.getId()), appId.getId(),
+            isMap ? TaskType.MAP : TaskType.REDUCE, tezTaId.getTaskID().getId()),
+        tezTaId.getId());
+  }
+  
+  public static org.apache.hadoop.mapred.TaskID 
+    createMockTaskAttemptIDFromTezTaskId(TezTaskID tezTaId, boolean isMap) {
+    TezVertexID vId = tezTaId.getVertexID();
+    ApplicationId appId = vId.getDAGId().getApplicationId();
+    return new org.apache.hadoop.mapred.TaskID(String.valueOf(appId.getClusterTimestamp())
+            + String.valueOf(vId.getId()), appId.getId(),
+            isMap ? TaskType.MAP : TaskType.REDUCE, tezTaId.getId());
   }
 
+  // FIXME we need to use DAG Id but we are using App Id
+  public TaskAttemptContextImpl(Configuration conf, 
+      TezTaskContext taskContext, boolean isMap, Reporter reporter) {
+    // TODO NEWTEZ Can the jt Identifier string be taskContext.getUniqueId ?
+    this(conf, createMockTaskAttemptID(taskContext, isMap), taskContext, reporter);
+  }
+
+  //FIXME we need to use DAG Id but we are using App Id
+   public TaskAttemptContextImpl(Configuration conf, TaskAttemptID attemptId, 
+       TezTaskContext taskContext, boolean isMap, Reporter reporter) {
+     // TODO NEWTEZ Can the jt Identifier string be taskContext.getUniqueId ?
+     this(conf, attemptId, taskContext, reporter);
+   }
+ 
   public TaskAttemptContextImpl(Configuration conf, TaskAttemptID taId, TezTaskContext context, Reporter reporter) {
     super(conf, taId);
     this.taskContext = context;

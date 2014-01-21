@@ -117,7 +117,7 @@ public class TestOnFileUnorderedKVOutput {
     
     TezOutputContext outputContext = new TezOutputContextImpl(conf,
         appAttemptNumber, tezUmbilical, taskVertexName, destinationVertexName,
-        taskAttemptID, counters, userPayload, runtimeTask,
+        taskAttemptID, counters, 0, userPayload, runtimeTask,
         null, auxEnv);
 
     List<Event> events = null;

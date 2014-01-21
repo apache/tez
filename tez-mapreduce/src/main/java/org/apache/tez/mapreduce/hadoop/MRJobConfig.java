@@ -637,6 +637,9 @@ public interface MRJobConfig {
   @InterfaceAudience.Private
   static final String HS_DELEGATION_TOKEN_REQUIRED
       = "mapreduce.history.server.delegationtoken.required";
+  
+  public static final String MROUTPUT_FILE_NAME_PREFIX
+      = MR_TEZ_PREFIX + "mroutput.file-name.prefix";
 
   // MRR related config properties
 

@@ -45,16 +45,4 @@ public class TezTestUtils {
             jobId), vertexId),
             taskId);
   }
-  
-  public static TezDAGID getMockJobId(int jobId) {
-    return TezDAGID.getInstance(
-        ApplicationId.newInstance(0, jobId), jobId);
-  }
-  
-  public static TezVertexID getMockVertexId(int jobId, int vId) {
-    return TezVertexID.getInstance(
-        TezDAGID.getInstance(
-            ApplicationId.newInstance(0, jobId), jobId),
-            vId);
-  }
 }

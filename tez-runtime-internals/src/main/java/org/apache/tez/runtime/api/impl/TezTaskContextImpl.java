@@ -106,6 +106,10 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     return taskVertexName;
   }
 
+  @Override
+  public int getTaskVertexIndex() {
+    return taskAttemptID.getTaskID().getVertexID().getId();
+  }
 
   @Override
   public TezCounters getCounters() {

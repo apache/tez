@@ -192,7 +192,7 @@ public class WordCount {
     finalReduceConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
         TextOutputFormat.class.getName());
     finalReduceConf.set(FileOutputFormat.OUTDIR, outputPath);
-    finalReduceConf.setBoolean("mapred.mapper.new-api", true);
+    finalReduceConf.setBoolean("mapred.mapper.new-api", false);
 
     MultiStageMRConfToTezTranslator.translateVertexConfToTez(finalReduceConf,
         mapStageConf);

@@ -38,12 +38,13 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   private final byte[] userPayload;
   private final String destinationVertexName;
   private final EventMetaData sourceInfo;
+  private final int outputIndex;
 
   @Private
   public TezOutputContextImpl(Configuration conf, int appAttemptNumber,
       TezUmbilical tezUmbilical, String taskVertexName,
       String destinationVertexName,
-      TezTaskAttemptID taskAttemptID, TezCounters counters,
+      TezTaskAttemptID taskAttemptID, TezCounters counters, int outputIndex,
       byte[] userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv) {
@@ -51,6 +52,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv);
     this.userPayload = userPayload;
+    this.outputIndex = outputIndex;
     this.destinationVertexName = destinationVertexName;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.OUTPUT,
         taskVertexName, destinationVertexName, taskAttemptID);
@@ -79,6 +81,11 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   @Override
   public void fatalError(Throwable exception, String message) {
     super.signalFatalError(exception, message, sourceInfo);
+  }
+
+  @Override
+  public int getOutputIndex() {
+    return outputIndex;
   }
 
 }

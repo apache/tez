@@ -38,18 +38,20 @@ public class TezInputContextImpl extends TezTaskContextImpl
   private final byte[] userPayload;
   private final String sourceVertexName;
   private final EventMetaData sourceInfo;
+  private final int inputIndex;
 
   @Private
   public TezInputContextImpl(Configuration conf, int appAttemptNumber,
       TezUmbilical tezUmbilical, String taskVertexName,
       String sourceVertexName, TezTaskAttemptID taskAttemptID,
-      TezCounters counters, byte[] userPayload,
+      TezCounters counters, int inputIndex, byte[] userPayload,
       RuntimeTask runtimeTask, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv) {
     super(conf, appAttemptNumber, taskVertexName, taskAttemptID,
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv);
     this.userPayload = userPayload;
+    this.inputIndex = inputIndex;
     this.sourceVertexName = sourceVertexName;
     this.sourceInfo = new EventMetaData(
         EventProducerConsumerType.INPUT, taskVertexName, sourceVertexName,
@@ -69,6 +71,11 @@ public class TezInputContextImpl extends TezTaskContextImpl
   @Override
   public byte[] getUserPayload() {
     return userPayload;
+  }
+  
+  @Override
+  public int getInputIndex() {
+    return inputIndex;
   }
 
   @Override

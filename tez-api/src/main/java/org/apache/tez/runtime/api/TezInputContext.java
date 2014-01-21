@@ -28,5 +28,12 @@ public interface TezInputContext extends TezTaskContext {
    * @return Name of the Source Vertex
    */
   public String getSourceVertexName();
+  
+  /**
+   * Get the index of the input in the set of all inputs for the task. The 
+   * index will be consistent and valid only among the tasks of this vertex.
+   * @return index
+   */
+  public int getInputIndex();
 
 }

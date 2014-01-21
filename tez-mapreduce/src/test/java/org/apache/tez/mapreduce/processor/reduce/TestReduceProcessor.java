@@ -196,9 +196,10 @@ public class TestReduceProcessor {
     // Only a task commit happens, hence the data is still in the temporary directory.
     Path reduceOutputDir = new Path(new Path(workDir, "output"),
         "_temporary/0/" + IDConverter
-            .toMRTaskId(TezTestUtils.getMockTaskId(0, 1, 0)));
-    Path reduceOutputFile = new Path(reduceOutputDir, "part-00000");
-
+            .toMRTaskIdForOutput(TezTestUtils.getMockTaskId(0, 1, 0)));
+    
+    Path reduceOutputFile = new Path(reduceOutputDir, "part-v001-o000-00000");
+    
     SequenceFile.Reader reader = new SequenceFile.Reader(localFs,
         reduceOutputFile, reduceConf);
 

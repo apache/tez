@@ -34,11 +34,9 @@ import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.TaskAttemptID;
-import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormatCounter;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
@@ -59,12 +57,9 @@ public class MROutput implements LogicalOutput {
 
   private static final Log LOG = LogFactory.getLog(MROutput.class);
 
-  private static final NumberFormat NUMBER_FORMAT = NumberFormat.getInstance();
-  static {
-    NUMBER_FORMAT.setMinimumIntegerDigits(5);
-    NUMBER_FORMAT.setGroupingUsed(false);
-  }
-
+  private final NumberFormat taskNumberFormat = NumberFormat.getInstance();
+  private final NumberFormat nonTaskNumberFormat = NumberFormat.getInstance();
+  
   private TezOutputContext outputContext;
   private JobConf jobConf;
   boolean useNewApi;
@@ -95,6 +90,10 @@ public class MROutput implements LogicalOutput {
   public List<Event> initialize(TezOutputContext outputContext)
       throws IOException, InterruptedException {
     LOG.info("Initializing Simple Output");
+    taskNumberFormat.setMinimumIntegerDigits(5);
+    taskNumberFormat.setGroupingUsed(false);
+    nonTaskNumberFormat.setMinimumIntegerDigits(3);
+    nonTaskNumberFormat.setGroupingUsed(false);
     this.outputContext = outputContext;
     Configuration conf = TezUtils.createConfFromUserPayload(
         outputContext.getUserPayload());
@@ -104,18 +103,21 @@ public class MROutput implements LogicalOutput {
         false);
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         outputContext.getDAGAttemptNumber());
-    TaskAttemptID taskAttemptId = new TaskAttemptID(new TaskID(Long.toString(
-      outputContext.getApplicationId().getClusterTimestamp()),
-      outputContext.getApplicationId().getId(),
-      (isMapperOutput ? TaskType.MAP : TaskType.REDUCE),
-      outputContext.getTaskIndex()),
-      outputContext.getTaskAttemptNumber());
+    TaskAttemptID taskAttemptId = org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl
+        .createMockTaskAttemptID(outputContext, isMapperOutput);
     jobConf.set(JobContext.TASK_ATTEMPT_ID, taskAttemptId.toString());
     jobConf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString());
     jobConf.setBoolean(JobContext.TASK_ISMAP, isMapperOutput);
     jobConf.setInt(JobContext.TASK_PARTITION,
       taskAttemptId.getTaskID().getId());
     jobConf.set(JobContext.ID, taskAttemptId.getJobID().toString());
+    
+    if (useNewApi) {
+      // set the output part name to have a unique prefix
+      if (jobConf.get("mapreduce.output.basename") == null) {
+        jobConf.set("mapreduce.output.basename", getOutputFileNamePrefix());
+      }
+    }
 
     outputRecordCounter = outputContext.getCounters().findCounter(
         TaskCounter.MAP_OUTPUT_RECORDS);
@@ -123,7 +125,7 @@ public class MROutput implements LogicalOutput {
         FileOutputFormatCounter.BYTES_WRITTEN);
 
     if (useNewApi) {
-      newApiTaskAttemptContext = createTaskAttemptContext();
+      newApiTaskAttemptContext = createTaskAttemptContext(taskAttemptId);
       try {
         newOutputFormat =
             ReflectionUtils.newInstance(
@@ -233,8 +235,8 @@ public class MROutput implements LogicalOutput {
     }
   }
 
-  private TaskAttemptContext createTaskAttemptContext() {
-    return new TaskAttemptContextImpl(this.jobConf, outputContext,
+  private TaskAttemptContext createTaskAttemptContext(TaskAttemptID attemptId) {
+    return new TaskAttemptContextImpl(this.jobConf, attemptId, outputContext,
         isMapperOutput, null);
   }
 
@@ -246,9 +248,21 @@ public class MROutput implements LogicalOutput {
     }
     return bytesWritten;
   }
+  
+  private String getOutputFileNamePrefix() {
+    String prefix = jobConf.get(MRJobConfig.MROUTPUT_FILE_NAME_PREFIX);
+    if (prefix == null) {
+      prefix = "part-v" + 
+          nonTaskNumberFormat.format(outputContext.getTaskVertexIndex()) +  
+          "-o" + nonTaskNumberFormat.format(outputContext.getOutputIndex());
+    }
+    return prefix;
+  }
 
   private String getOutputName() {
-    return "part-" + NUMBER_FORMAT.format(outputContext.getTaskIndex());
+    // give a unique prefix to the output name
+    return getOutputFileNamePrefix() + 
+        "-" + taskNumberFormat.format(outputContext.getTaskIndex());
   }
 
   @Override
