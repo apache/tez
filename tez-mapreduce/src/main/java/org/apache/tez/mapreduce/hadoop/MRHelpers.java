@@ -731,22 +731,6 @@ public class MRHelpers {
 
   /**
    * Called to specify that grouping of input splits be performed by Tez
-   * The configurationBytes conf should have the input format class configuration 
-   * set to the TezGroupedSplitsInputFormat. The real input format class name 
-   * should be passed as an argument to this method.
-   */
-  public static byte[] createMRInputPayloadWithGrouping(byte[] configurationBytes,
-      MRSplitsProto mrSplitsProto, String inputFormatName) throws IOException {
-    Preconditions.checkArgument(configurationBytes != null,
-        "Configuration bytes must be specified");
-    Preconditions.checkArgument(inputFormatName != null, 
-        "InputFormat must be specified");
-    return createMRInputPayload(ByteString
-        .copyFrom(configurationBytes), mrSplitsProto, inputFormatName);    
-  }
-
-  /**
-   * Called to specify that grouping of input splits be performed by Tez
    * The conf should have the input format class configuration 
    * set to the TezGroupedSplitsInputFormat. The real input format class name 
    * should be passed as an argument to this method.

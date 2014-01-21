@@ -9,6 +9,9 @@ INCOMPATIBLE CHANGES
  
   TEZ-41. Get VertexCommitter from API and remove MRVertexOutputCommitter.
 
+  TEZ-650. MRHelpers.createMRInputPayloadWithGrouping() methods should not
+  take an MRSplitsProto argument.
+
 Release 0.2.0 - 2013-11-30
 
   First version.
