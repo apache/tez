@@ -129,6 +129,7 @@ public class VertexManager {
     }
     if (payload == null) {
       // Ease of use. If no payload present then give the common configuration
+      // TODO TEZ-744 Don't do this - AMConf should not be used to configure vertexManagers.
       try {
         payload = TezUtils.createUserPayloadFromConf(appContext.getAMConf());
       } catch (IOException e) {

@@ -18,21 +18,14 @@
 
 package org.apache.tez.dag.api;
 
-import org.apache.hadoop.classification.InterfaceAudience.Private;
+public class EdgeManagerDescriptor extends TezEntityDescriptor {
 
-public class InputDescriptor extends TezEntityDescriptor {
-
-  @Private // for Writable
-  public InputDescriptor() {
-    super();
-  }
-
-  public InputDescriptor(String inputClassName) {
-    super(inputClassName);
+  public EdgeManagerDescriptor(String edgeManagerClassName) {
+    super(edgeManagerClassName);
   }
 
   @Override
-  public InputDescriptor setUserPayload(byte[] userPayload) {
+  public EdgeManagerDescriptor setUserPayload(byte[] userPayload) {
     this.userPayload = userPayload;
     return this;
   }

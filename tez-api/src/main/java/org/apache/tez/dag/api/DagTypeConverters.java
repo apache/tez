@@ -108,6 +108,7 @@ public class DagTypeConverters {
       case ONE_TO_ONE : return PlanEdgeDataMovementType.ONE_TO_ONE;
       case BROADCAST : return PlanEdgeDataMovementType.BROADCAST;
       case SCATTER_GATHER : return PlanEdgeDataMovementType.SCATTER_GATHER;
+      case CUSTOM: return PlanEdgeDataMovementType.CUSTOM;
       default : throw new RuntimeException("unknown 'dataMovementType': " + type);
     }
   }
@@ -223,13 +224,23 @@ public class DagTypeConverters {
   }
 
   public static EdgeProperty createEdgePropertyMapFromDAGPlan(EdgePlan edge) {
-    return new EdgeProperty(
-        convertFromDAGPlan(edge.getDataMovementType()),
-        convertFromDAGPlan(edge.getDataSourceType()),
-        convertFromDAGPlan(edge.getSchedulingType()),
-        convertOutputDescriptorFromDAGPlan(edge.getEdgeSource()),
-        convertInputDescriptorFromDAGPlan(edge.getEdgeDestination())
-    );
+    if (edge.getDataMovementType() == PlanEdgeDataMovementType.CUSTOM) {
+      return new EdgeProperty(
+          (edge.hasEdgeManager() ? convertEdgeManagerDescriptorFromDAGPlan(edge.getEdgeManager()) : null),
+          convertFromDAGPlan(edge.getDataSourceType()),
+          convertFromDAGPlan(edge.getSchedulingType()),
+          convertOutputDescriptorFromDAGPlan(edge.getEdgeSource()),
+          convertInputDescriptorFromDAGPlan(edge.getEdgeDestination())
+      );
+    } else {
+      return new EdgeProperty(
+          convertFromDAGPlan(edge.getDataMovementType()),
+          convertFromDAGPlan(edge.getDataSourceType()),
+          convertFromDAGPlan(edge.getSchedulingType()),
+          convertOutputDescriptorFromDAGPlan(edge.getEdgeSource()),
+          convertInputDescriptorFromDAGPlan(edge.getEdgeDestination())
+      );
+    }
   }
 
   public static Resource createResourceRequestFromTaskConfig(
@@ -299,6 +310,16 @@ public class DagTypeConverters {
       bb = proto.getUserPayload().toByteArray();
     }
     return new VertexManagerPluginDescriptor(className).setUserPayload(bb);
+  }
+
+  public static EdgeManagerDescriptor convertEdgeManagerDescriptorFromDAGPlan(
+      TezEntityDescriptorProto proto) {
+    String className = proto.getClassName();
+    byte[] bb = null;
+    if (proto.hasUserPayload()) {
+      bb = proto.getUserPayload().toByteArray();
+    }
+    return new EdgeManagerDescriptor(className).setUserPayload(bb);
   }
 
   public static ProcessorDescriptor convertProcessorDescriptorFromDAGPlan(

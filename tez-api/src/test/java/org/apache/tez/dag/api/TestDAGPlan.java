@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -47,7 +48,7 @@ public class TestDAGPlan {
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder(); //TODO: doesn't seem to be deleting this folder automatically as expected.
 
-  @Test
+  @Test(timeout = 5000)
   public void testBasicJobPlanSerde() throws IOException {
 
     DAGPlan job = DAGPlan.newBuilder()
@@ -92,7 +93,42 @@ public class TestDAGPlan {
    Assert.assertEquals(job, inJob);
   }
 
-  @Test
+  @Test(timeout = 5000)
+  public void testEdgeManagerSerde() {
+    DAG dag = new DAG("testDag");
+    ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1")
+        .setUserPayload("processor1Bytes".getBytes());
+    ProcessorDescriptor pd2 = new ProcessorDescriptor("processor2")
+        .setUserPayload("processor2Bytes".getBytes());
+    Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
+    Vertex v2 = new Vertex("v2", pd2, 1, Resource.newInstance(1024, 1));
+    v1.setJavaOpts("").setTaskEnvironment(new HashMap<String, String>())
+        .setTaskLocalResources(new HashMap<String, LocalResource>());
+    v2.setJavaOpts("").setTaskEnvironment(new HashMap<String, String>())
+        .setTaskLocalResources(new HashMap<String, LocalResource>());
+
+    InputDescriptor inputDescriptor = new InputDescriptor("input").setUserPayload("inputBytes"
+        .getBytes());
+    OutputDescriptor outputDescriptor = new OutputDescriptor("output").setUserPayload("outputBytes"
+        .getBytes());
+    Edge edge = new Edge(v1, v2, new EdgeProperty(
+        new EdgeManagerDescriptor("emClass").setUserPayload("emPayload".getBytes()),
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, outputDescriptor, inputDescriptor));
+
+    dag.addVertex(v1).addVertex(v2).addEdge(edge);
+
+    DAGPlan dagProto = dag.createDag(new TezConfiguration());
+
+    EdgeProperty edgeProperty = DagTypeConverters.createEdgePropertyMapFromDAGPlan(dagProto
+        .getEdgeList().get(0));
+
+    EdgeManagerDescriptor emDesc = edgeProperty.getEdgeManagerDescriptor();
+    Assert.assertNotNull(emDesc);
+    Assert.assertEquals("emClass", emDesc.getClassName());
+    Assert.assertTrue(Arrays.equals("emPayload".getBytes(), emDesc.getUserPayload()));
+  }
+
+  @Test(timeout = 5000)
   public void testUserPayloadSerde() {
     DAG dag = new DAG("testDag");
     ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1").
@@ -136,7 +172,7 @@ public class TestDAGPlan {
     assertEquals("inputBytes", new String(edgeProto.getEdgeDestination()
         .getUserPayload().toByteArray()));
     assertEquals("input", edgeProto.getEdgeDestination().getClassName());
-
+             
     assertEquals("outputBytes", new String(edgeProto.getEdgeSource()
         .getUserPayload().toByteArray()));
     assertEquals("output", edgeProto.getEdgeSource().getClassName());

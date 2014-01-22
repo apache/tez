@@ -56,6 +56,27 @@ public class TestDAGVerify {
     dag.verify();
   }
 
+  @Test
+  public void testVerifyCustomEdge() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Edge e1 = new Edge(v1, v2,
+        new EdgeProperty(new EdgeManagerDescriptor("emClass"),
+            DataSourceType.PERSISTED,
+            SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addEdge(e1);
+    dag.verify();
+  }
+
   @Test  
   public void testVerifyOneToOne() {
     Vertex v1 = new Vertex("v1",

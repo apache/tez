@@ -28,8 +28,25 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
  * This interface defines the routing of the event between tasks of producer and 
  * consumer vertices. The routing is bi-directional. Users can customize the 
  * routing by providing an implementation of this interface.
+ * 
+ * Implementations must provide a 0 argument public constructor.
  */
 public interface EdgeManager {
+  
+  /**
+   * Initializes the EdgeManager. This method is called in the following
+   * circumstances </p> 1. when initializing an Edge Manager for the first time.
+   * </p> 2. When an EdgeManager is replaced at runtime. At this point, an
+   * EdgeManager instance is created and setup by the user. The initialize
+   * method will be called with the original {@link EdgeManagerContext} when the
+   * edgeManager is replaced.
+   * 
+   * @param edgeManagerContext
+   *          the context within which this EdgeManager will run. Includes
+   *          information like configuration which the user may have specified
+   *          while setting up the edge.
+   */
+  public void initialize(EdgeManagerContext edgeManagerContext);
   
   /**
    * Get the number of inputs on the destination task

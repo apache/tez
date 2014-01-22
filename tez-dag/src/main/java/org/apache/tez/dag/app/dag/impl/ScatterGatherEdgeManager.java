@@ -21,11 +21,17 @@ package org.apache.tez.dag.app.dag.impl;
 import java.util.List;
 
 import org.apache.tez.dag.api.EdgeManager;
+import org.apache.tez.dag.api.EdgeManagerContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 
 public class ScatterGatherEdgeManager implements EdgeManager {
+
+  @Override
+  public void initialize(EdgeManagerContext edgeManagerContext) {
+    // Nothing to do.
+  }
 
   @Override
   public int getNumDestinationTaskInputs(int numSourceTasks,

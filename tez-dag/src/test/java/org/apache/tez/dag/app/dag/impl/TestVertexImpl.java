@@ -30,7 +30,9 @@ import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -109,6 +111,7 @@ import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.tez.test.EdgeManagerForTest;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -140,6 +143,7 @@ public class TestVertexImpl {
   private VertexLocationHint vertexLocationHint = null;
   private Configuration conf;
   private Map<String, Edge> edges;
+  private byte[] edgePayload = "EP".getBytes();
 
   private TaskAttemptEventDispatcher taskAttemptEventDispatcher;
   private TaskEventDispatcher taskEventDispatcher;
@@ -701,7 +705,12 @@ public class TestVertexImpl {
                     .setInputVertexName("vertex1")
                     .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
                     .setOutputVertexName("vertex3")
-                    .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                    .setDataMovementType(PlanEdgeDataMovementType.CUSTOM)
+                    .setEdgeManager(
+                        TezEntityDescriptorProto.newBuilder()
+                        .setClassName(EdgeManagerForTest.class.getName())
+                        .setUserPayload(ByteString.copyFrom(edgePayload))
+                        .build())
                     .setId("e1")
                     .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
                     .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
@@ -1128,6 +1137,11 @@ public class TestVertexImpl {
     }
 
     parseVertexEdges();
+    
+    for (Edge edge : edges.values()) {
+      edge.initialize();
+    }
+    
     taskAttemptEventDispatcher = new TaskAttemptEventDispatcher();
     dispatcher.register(TaskAttemptEventType.class, taskAttemptEventDispatcher);
     taskEventDispatcher = new TaskEventDispatcher();
@@ -1290,6 +1304,31 @@ public class TestVertexImpl {
     Assert.assertTrue(tasks.keySet().iterator().next().equals(firstTask));
 
     Assert.assertTrue(v3.sourceVertices.get(v1).getEdgeManager() == mockEdgeManager);
+  }
+
+  @Test(timeout = 5000)
+  public void testSetCustomEdgeManager() throws UnsupportedEncodingException {
+    initAllVertices(VertexState.INITED);
+    Edge edge = edges.get("e1");
+    EdgeManager em = edge.getEdgeManager();
+    EdgeManagerForTest originalEm = (EdgeManagerForTest) em;
+    Assert.assertEquals(true, originalEm.isCreatedByFramework());
+    Assert.assertTrue(Arrays.equals(edgePayload, originalEm.getEdgeManagerContext()
+        .getUserPayload()));
+
+    em = EdgeManagerForTest.createInstance();
+    Vertex v1 = vertices.get("vertex1");
+    Vertex v3 = vertices.get("vertex3"); // Vertex3 linked to v1 (v1 src, v3
+                                         // dest)
+    Map<String, EdgeManager> edgeManagers = Collections.singletonMap(v1.getName(), em);
+    v3.setParallelism(v3.getTotalTasks() - 1, edgeManagers); // Must decrease.
+
+    EdgeManagerForTest edgeManagerPostSet = (EdgeManagerForTest) edge.getEdgeManager();
+    Assert.assertEquals(false, edgeManagerPostSet.isCreatedByFramework());
+
+    // Ensure initialize() is called with the correct payload
+    Assert.assertTrue(Arrays.equals(originalEm.getEdgeManagerContext().getUserPayload(),
+        edgeManagerPostSet.getEdgeManagerContext().getUserPayload()));
   }
 
   @SuppressWarnings("unchecked")

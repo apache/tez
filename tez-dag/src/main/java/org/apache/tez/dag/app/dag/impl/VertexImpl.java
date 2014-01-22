@@ -2138,7 +2138,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.additionalOutputs = Maps.newHashMapWithExpectedSize(outputs.size());
     this.outputCommitters = Maps.newHashMapWithExpectedSize(outputs.size());
     for (RootInputLeafOutputProto output : outputs) {
-
       OutputDescriptor od = DagTypeConverters
           .convertOutputDescriptorFromDAGPlan(output.getEntityDescriptor());
 

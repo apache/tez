@@ -18,22 +18,28 @@
 
 package org.apache.tez.dag.api;
 
-import org.apache.hadoop.classification.InterfaceAudience.Private;
+/**
+ * Context information provided to Edge plugins on initialization.
+ *
+ */
+public interface EdgeManagerContext {
+  
+  /**
+   * Returns the byte payload specified by the user for the edge.
+   * @return the byte payload specified by the user
+   */
+  public byte[] getUserPayload();
+  
+  /**
+   * Returns the source vertex name 
+   * @return the source vertex name
+   */
+  public String getSrcVertexName();
+  
+  /**
+   * Returns the destination vertex name
+   * @return the destination vertex name
+   */
+  public String getDestVertexName();
 
-public class InputDescriptor extends TezEntityDescriptor {
-
-  @Private // for Writable
-  public InputDescriptor() {
-    super();
-  }
-
-  public InputDescriptor(String inputClassName) {
-    super(inputClassName);
-  }
-
-  @Override
-  public InputDescriptor setUserPayload(byte[] userPayload) {
-    this.userPayload = userPayload;
-    return this;
-  }
 }

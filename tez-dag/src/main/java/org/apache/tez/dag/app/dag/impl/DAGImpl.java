@@ -51,10 +51,12 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.ProgressBuilder;
@@ -1009,7 +1011,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         return dag.finished(DAGState.FAILED);
       }
 
-      // create the vertices
+      // create the vertices`
       for (int i=0; i < dag.numVertices; ++i) {
         String vertexName = dag.getJobPlan().getVertex(i).getName();
         VertexImpl v = createVertex(dag, vertexName, i);
@@ -1022,6 +1024,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       // setup the dag
       for (Vertex v : dag.vertices.values()) {
         parseVertexEdges(dag, edgePlans, v);
+      }
+
+      // Initialize the edges, now that the payload and vertices have been set.
+      for (Edge e : dag.edges.values()) {
+        e.initialize();
       }
 
       assignDAGScheduler(dag);
@@ -1037,6 +1044,19 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       for (EdgePlan edgePlan : dag.getJobPlan().getEdgeList()) {
         EdgeProperty edgeProperty = DagTypeConverters
             .createEdgePropertyMapFromDAGPlan(edgePlan);
+        
+        // If CUSTOM without an edge manager, setup a fake edge manager. Avoid
+        // referencing the fake edge manager within the API module.
+        if (edgeProperty.getDataMovementType() == DataMovementType.CUSTOM
+            && edgeProperty.getEdgeManagerDescriptor() == null) {
+          EdgeManagerDescriptor edgeDesc = new EdgeManagerDescriptor(
+              NullEdgeManager.class.getName());
+          EdgeProperty ep = new EdgeProperty(edgeDesc, edgeProperty.getDataSourceType(),
+              edgeProperty.getSchedulingType(), edgeProperty.getEdgeSource(),
+              edgeProperty.getEdgeDestination());
+          edgeProperty = ep;
+        }
+        
         // edge manager may be also set via API when using custom edge type
         dag.edges.put(edgePlan.getId(),
             new Edge(edgeProperty, dag.getEventHandler()));

@@ -24,14 +24,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.EdgeManager;
+import org.apache.tez.dag.api.EdgeManagerContext;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.runtime.RuntimeUtils;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
@@ -44,7 +48,36 @@ import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
 public class Edge {
 
+  static class EdgeManagerContextImpl implements EdgeManagerContext {
+
+    private final String srcVertexName;
+    private final String destVertexName;
+    private final byte[] userPayload;
+
+    EdgeManagerContextImpl(String srcVertexName, String destVertexName, byte[] userPayload) {
+      this.srcVertexName = srcVertexName;
+      this.destVertexName = destVertexName;
+      this.userPayload = userPayload;
+    }
+
+    @Override
+    public byte[] getUserPayload() {
+      return userPayload;
+    }
+
+    @Override
+    public String getSrcVertexName() {
+      return srcVertexName;
+    }
+
+    @Override
+    public String getDestVertexName() {
+      return destVertexName;
+    }
+  }
+
   private EdgeProperty edgeProperty;
+  private EdgeManagerContext edgeManagerContext;
   private EdgeManager edgeManager;
   @SuppressWarnings("rawtypes")
   private EventHandler eventHandler;
@@ -68,13 +101,27 @@ public class Edge {
     case SCATTER_GATHER:
       edgeManager = new ScatterGatherEdgeManager();
       break;
+    case CUSTOM:
+      String edgeManagerClassName = edgeProperty.getEdgeManagerDescriptor().getClassName();
+      edgeManager = RuntimeUtils.createClazzInstance(edgeManagerClassName);
+      break;
     default:
       String message = "Unknown edge data movement type: "
           + edgeProperty.getDataMovementType();
       throw new TezUncheckedException(message);
     }
   }
-  
+
+  public void initialize() {
+    byte[] bb = null;
+    if (edgeProperty.getDataMovementType() == DataMovementType.CUSTOM) {
+      bb = edgeProperty.getEdgeManagerDescriptor().getUserPayload();
+    }
+    edgeManagerContext = new EdgeManagerContextImpl(sourceVertex.getName(),
+        destinationVertex.getName(), bb);
+    edgeManager.initialize(edgeManagerContext);
+  }
+
   public EdgeProperty getEdgeProperty() {
     return this.edgeProperty;
   }
@@ -88,6 +135,7 @@ public class Edge {
       throw new TezUncheckedException("Edge manager cannot be null");
     }
     this.edgeManager = edgeManager;
+    this.edgeManager.initialize(edgeManagerContext);
   }
   
   public void setSourceVertex(Vertex sourceVertex) {
@@ -232,5 +280,4 @@ public class Edge {
   private void sendEventToTask(TezTaskID taskId, TezEvent tezEvent) {
     eventHandler.handle(new TaskEventAddTezEvent(taskId, tezEvent));
   }
-  
 }

@@ -39,6 +39,7 @@ enum PlanEdgeDataMovementType {
   ONE_TO_ONE = 0;
   BROADCAST = 1;
   SCATTER_GATHER = 2;
+  CUSTOM = 3;
 }
 
 enum PlanEdgeDataSourceType {
@@ -130,6 +131,7 @@ message EdgePlan {
   required PlanEdgeSchedulingType schedulingType = 6;
   optional TezEntityDescriptorProto edge_source = 7;
   optional TezEntityDescriptorProto edge_destination = 8;
+  optional TezEntityDescriptorProto edge_manager = 9;
 }
 
 message ConfigurationProto {

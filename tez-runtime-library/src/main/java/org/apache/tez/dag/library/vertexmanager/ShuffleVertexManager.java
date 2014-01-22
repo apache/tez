@@ -31,6 +31,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeManager;
+import org.apache.tez.dag.api.EdgeManagerContext;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -124,6 +125,11 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
       this.numDestinationTasks = numDestinationTasks;
       this.basePartitionRange = basePartitionRange;
       this.remainderRangeForLastShuffler = remainderPartitionForLastShuffler;
+    }
+
+    @Override
+    public void initialize(EdgeManagerContext edgeManagerContext) {
+      // Nothing to do. This class isn't currently designed to be used at the DAG API level.
     }
 
     @Override
