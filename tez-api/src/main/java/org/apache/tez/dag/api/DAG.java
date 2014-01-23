@@ -30,6 +30,7 @@ import java.util.Stack;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -55,6 +56,7 @@ public class DAG { // FIXME rename to Topology
   final BiMap<String, Vertex> vertices;
   final List<Edge> edges;
   final String name;
+  Credentials credentials;
 
   public DAG(String name) {
     this.vertices = HashBiMap.<String, Vertex>create();
@@ -73,6 +75,11 @@ public class DAG { // FIXME rename to Topology
 
   public synchronized Vertex getVertex(String vertexName) {
     return vertices.get(vertexName);
+  }
+  
+  public synchronized DAG setCredentials(Credentials credentials) {
+    this.credentials = credentials;
+    return this;
   }
 
   @Private
@@ -462,6 +469,9 @@ public class DAG { // FIXME rename to Topology
         confProtoBuilder.addConfKeyValues(kvp);
       }
       dagBuilder.setDagKeyValues(confProtoBuilder);
+    }
+    if (credentials != null) {
+      dagBuilder.setCredentialsBinary(DagTypeConverters.convertCredentialsToProto(credentials));
     }
 
     return dagBuilder.build();

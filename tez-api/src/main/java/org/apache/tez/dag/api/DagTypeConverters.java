@@ -17,6 +17,8 @@
  */
 package org.apache.tez.dag.api;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,6 +29,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DataInputByteBuffer;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -64,6 +68,7 @@ import org.apache.tez.dag.api.records.DAGProtos.TezCountersProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.ByteString.Output;
 
 public class DagTypeConverters {
 
@@ -503,6 +508,35 @@ public class DagTypeConverters {
       opts.add(convertStatusGetOptsFromProto(proto));
     }
     return opts;
+  }
+
+  public static ByteString convertCredentialsToProto(Credentials credentials) {
+    if (credentials == null) {
+      return null;
+    }
+    Output output = ByteString.newOutput();
+    DataOutputStream dos = new DataOutputStream(output);
+    try {
+      credentials.writeTokenStorageToStream(dos);
+      return output.toByteString();
+    } catch (IOException e) {
+      throw new TezUncheckedException("Failed to serialize Credentials", e);
+    }
+  }
+
+  public static Credentials convertByteStringToCredentials(ByteString byteString) {
+    if (byteString == null) {
+      return null;
+    }
+    DataInputByteBuffer dib = new DataInputByteBuffer();
+    dib.reset(byteString.asReadOnlyByteBuffer());
+    Credentials credentials = new Credentials();
+    try {
+      credentials.readTokenStorageStream(dib);
+      return credentials;
+    } catch (IOException e) {
+      throw new TezUncheckedException("Failed to deserialize Credentials", e);
+    }
   }
 
 }

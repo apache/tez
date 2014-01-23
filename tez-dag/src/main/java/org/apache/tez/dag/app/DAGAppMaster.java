@@ -495,10 +495,11 @@ public class DAGAppMaster extends AbstractService {
       PlanKeyValuePair keyValPair = iter.next();
       dagConf.set(keyValPair.getKey(), keyValPair.getValue());
     }
-    
-    // Assuming DAG specific credentials will be available - TEZ-395
-    Credentials dagCredentials = this.amTokens;
-    if (dagCredentials == null) {
+
+    Credentials dagCredentials = null;
+    if (dagPB.hasCredentialsBinary()) {
+      dagCredentials = DagTypeConverters.convertByteStringToCredentials(dagPB.getCredentialsBinary());
+    } else {
       dagCredentials = new Credentials();
     }
     TokenCache.setJobToken(sessionToken, dagCredentials);

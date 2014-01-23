@@ -27,6 +27,10 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -187,5 +191,49 @@ public class TestDAGPlan {
     byte[] ob = edgeProperty.getEdgeSource().getUserPayload();
     assertEquals("outputBytes", new String(ob));
     assertEquals("output", edgeProperty.getEdgeSource().getClassName());
+  }
+  
+  @Test (timeout=5000)
+  public void testCredentialsSerde() {
+    DAG dag = new DAG("testDag");
+    ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1").
+        setUserPayload("processor1Bytes".getBytes());
+    ProcessorDescriptor pd2 = new ProcessorDescriptor("processor2").
+        setUserPayload("processor2Bytes".getBytes());
+    Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
+    Vertex v2 = new Vertex("v2", pd2, 1, Resource.newInstance(1024, 1));
+    v1.setJavaOpts("").setTaskEnvironment(new HashMap<String, String>())
+        .setTaskLocalResources(new HashMap<String, LocalResource>());
+    v2.setJavaOpts("").setTaskEnvironment(new HashMap<String, String>())
+        .setTaskLocalResources(new HashMap<String, LocalResource>());
+
+    InputDescriptor inputDescriptor = new InputDescriptor("input").
+        setUserPayload("inputBytes".getBytes());
+    OutputDescriptor outputDescriptor = new OutputDescriptor("output").
+        setUserPayload("outputBytes".getBytes());
+    Edge edge = new Edge(v1, v2, new EdgeProperty(
+        DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL, outputDescriptor, inputDescriptor));
+
+    dag.addVertex(v1).addVertex(v2).addEdge(edge);
+
+    Credentials dagCredentials = new Credentials();
+    Token<TokenIdentifier> token1 = new Token<TokenIdentifier>();
+    Token<TokenIdentifier> token2 = new Token<TokenIdentifier>();
+    dagCredentials.addToken(new Text("Token1"), token1);
+    dagCredentials.addToken(new Text("Token2"), token2);
+    
+    dag.setCredentials(dagCredentials);
+
+    DAGPlan dagProto = dag.createDag(new TezConfiguration());
+
+    assertTrue(dagProto.hasCredentialsBinary());
+    
+    Credentials fetchedCredentials = DagTypeConverters.convertByteStringToCredentials(dagProto
+        .getCredentialsBinary());
+    
+    assertEquals(2, fetchedCredentials.numberOfTokens());
+    assertNotNull(fetchedCredentials.getToken(new Text("Token1")));
+    assertNotNull(fetchedCredentials.getToken(new Text("Token2")));
   }
 }
