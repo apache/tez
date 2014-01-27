@@ -34,6 +34,7 @@ import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
+import org.apache.tez.runtime.library.common.sort.impl.PipelinedSorter;
 import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
@@ -60,12 +61,19 @@ public class OnFileSortedOutput implements LogicalOutput {
       throws IOException {
     this.startTime = System.nanoTime();
     this.outputContext = outputContext;
-    sorter = new DefaultSorter();
     this.conf = TezUtils.createConfFromUserPayload(outputContext.getUserPayload());
     // Initializing this parametr in this conf since it is used in multiple
     // places (wherever LocalDirAllocator is used) - TezTaskOutputFiles,
     // TezMerger, etc.
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS, outputContext.getWorkDirs());
+    
+    if (this.conf.getInt(TezJobConfig.TEZ_RUNTIME_SORT_THREADS,
+        TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_THREADS) > 1) {
+      sorter = new PipelinedSorter();
+    } else {
+      sorter = new DefaultSorter();
+    }
+    
     sorter.initialize(outputContext, conf, numOutputs);
     return Collections.emptyList();
   }
