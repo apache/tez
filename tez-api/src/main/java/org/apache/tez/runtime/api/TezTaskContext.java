@@ -102,7 +102,7 @@ public interface TezTaskContext {
    * Returns an identifier which is unique to the specific Input, Processor or
    * Output
    *
-   * @return
+   * @return a unique identifier
    */
   public String getUniqueIdentifier();
 

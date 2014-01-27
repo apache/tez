@@ -227,7 +227,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   /**
    * Create a local reduce input file name.
    *
-   * @param attemptIdentifier an identifier for a task. The attempt information is ignored.
+   * @param srcTaskId an identifier for a task
    * @param size the size of the file
    * @return path
    * @throws IOException

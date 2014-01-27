@@ -213,7 +213,7 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
   /**
    * Create a local reduce input file name.
    *
-   * @param mapId a map task id
+   * @param taskId a task id
    * @param size the size of the file
    * @return path
    * @throws IOException

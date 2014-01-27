@@ -38,7 +38,7 @@ public interface Processor {
       throws Exception;
 
   /**
-   * Handles user and system generated {@link Events}s.
+   * Handles user and system generated {@link Event}s.
    *
    * @param processorEvents
    *          the list of {@link Event}s

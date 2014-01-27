@@ -35,7 +35,7 @@ public interface Output {
    *
    * @param outputContext
    *          the {@link TezOutputContext}
-   * @return
+   * @return list of events that were generated during initialization
    * @throws Exception
    *           if an error occurs
    */
@@ -45,14 +45,14 @@ public interface Output {
   /**
    * Gets an instance of the {@link Writer} in an <code>Output</code>
    *
-   * @return
+   * @return Gets an instance of the {@link Writer} in an <code>Output</code>
    * @throws Exception
    *           if an error occurs
    */
   public Writer getWriter() throws Exception;
 
   /**
-   * Handles user and system generated {@link Events}s, which typically carry
+   * Handles user and system generated {@link Event}s, which typically carry
    * information such as a downstream vertex being ready to consume input.
    *
    * @param outputEvents
@@ -63,7 +63,7 @@ public interface Output {
   /**
    * Closes the <code>Output</code>
    *
-   * @return
+   * @return list of events that were generated during close
    * @throws Exception
    *           if an error occurs
    */

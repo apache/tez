@@ -22,8 +22,7 @@ import org.apache.hadoop.classification.InterfaceStability.Evolving;
 
 
 /**
- * Meant for user configurable job properties. For others look at {@link Constants}
- *
+ * Meant for user configurable job properties.
  */
 
 // TODO EVENTUALLY A description for each property.

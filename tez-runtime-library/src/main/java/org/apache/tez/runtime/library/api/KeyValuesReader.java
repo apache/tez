@@ -47,13 +47,13 @@ public interface KeyValuesReader extends Reader {
   
   /**
    * Returns the current key
-   * @return
+   * @return the current key
    */
   public Object getCurrentKey() throws IOException;
   
   /**
    * Returns an Iterable view of the values associated with the current key
-   * @return
+   * @return an Iterable view of the values associated with the current key
    */
   public Iterable<Object> getCurrentValues() throws IOException;
 }

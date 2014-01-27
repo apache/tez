@@ -45,7 +45,7 @@ public interface Partitioner {
    * @param key key
    * @param value value
    * @param numPartitions number of partitions
-   * @return
+   * @return partition for the given key/value
    */
   int getPartition(Object key, Object value, int numPartitions);
   

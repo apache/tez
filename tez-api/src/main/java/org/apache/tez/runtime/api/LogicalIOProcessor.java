@@ -27,7 +27,7 @@ import java.util.Map;
 public interface LogicalIOProcessor extends Processor {
 
   /**
-   * Runs the {@link LogicalProcessor}
+   * Runs the {@link Processor}
    * 
    * @param inputs
    *          a map of the source vertex name to {@link LogicalInput} - one per

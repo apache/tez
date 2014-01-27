@@ -47,7 +47,6 @@ public interface ObjectRegistry {
 
   /**
    * Delete the object associated with the provided key
-   * @param lifeCycle What life-cycle is the Object valid for
    * @param key Key to find object
    * @return True if an object was found and removed
    */

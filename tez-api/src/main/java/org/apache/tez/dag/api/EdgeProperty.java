@@ -161,18 +161,14 @@ public class EdgeProperty {
   }
   
   /**
-   * Returns the {@link InputDescriptor} which will consume data from the edge.
-   * 
-   * @return
+   * @return the {@link InputDescriptor} which will consume data from the edge.
    */
   public InputDescriptor getEdgeDestination() {
     return inputDescriptor;
   }
   
   /**
-   * Returns the {@link OutputDescriptor} which produces data on the edge.
-   * 
-   * @return
+   * @return the {@link OutputDescriptor} which produces data on the edge.
    */
   public OutputDescriptor getEdgeSource() {
     return outputDescriptor;

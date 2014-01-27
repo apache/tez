@@ -370,7 +370,6 @@ public class IFile {
     /**
      * Construct an IFile Reader.
      * 
-     * @param conf Configuration File 
      * @param fs  FileSystem
      * @param file Path of the file to be opened. This file should have
      *             checksum bytes for the data at the end of the file.
@@ -390,7 +389,6 @@ public class IFile {
     /**
      * Construct an IFile Reader.
      * 
-     * @param conf Configuration File 
      * @param in   The input stream
      * @param length Length of the data in the stream, including the checksum
      *               bytes.

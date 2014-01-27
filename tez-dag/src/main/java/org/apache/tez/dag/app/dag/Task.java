@@ -68,7 +68,8 @@ public interface Task {
    * Get the attempt id which has reported in as output ready. null if not
    * applicable.
    * 
-   * @return
+   * @return the attempt id which has reported in as output ready. null if not
+   * applicable.
    */
   TezTaskAttemptID getOutputConsumableAttempt();
   

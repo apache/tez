@@ -136,7 +136,7 @@ public class MultiStageMRConfToTezTranslator {
    *          The tez configuration for the source vertex.
    * @param destVertex
    *          The tez configuration for the destination vertex.
-   * @return
+   * @return the output Configuration object for the edge
    */
   @LimitedPrivate("Hive, Pig")
   @Unstable
@@ -156,7 +156,7 @@ public class MultiStageMRConfToTezTranslator {
    *          The tez configuration for the source vertex.
    * @param destVertex
    *          The tez configuration for the destination vertex.
-   * @return
+   * @return the input Configuration object for the edge
    */
   @LimitedPrivate("Hive, Pig")
   @Unstable
@@ -210,7 +210,7 @@ public class MultiStageMRConfToTezTranslator {
    * configurations.
    * 
    * @param conf
-   * @return
+   * @return list of complete stage configurations given Conifiguration
    */
   @Private
   public static Configuration[] getStageConfs(Configuration conf) {

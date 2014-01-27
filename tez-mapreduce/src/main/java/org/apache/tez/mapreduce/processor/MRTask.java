@@ -445,7 +445,6 @@ public abstract class MRTask {
 
   /**
    * Send a status update to the task tracker
-   * @param umbilical
    * @throws IOException
    */
   public void statusUpdate() throws IOException, InterruptedException {

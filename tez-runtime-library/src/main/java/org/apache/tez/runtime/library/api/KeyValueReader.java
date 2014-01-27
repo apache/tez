@@ -47,12 +47,13 @@ public interface KeyValueReader extends Reader {
   
   /**
    * Returns the current key
-   * @return
+   * @return the current key
    */
   public Object getCurrentKey() throws IOException;
   
   
   /**
+   * Returns the current value
    * @return the current value
    * @throws IOException
    */

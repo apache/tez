@@ -35,7 +35,7 @@ public interface Input {
    *
    * @param inputContext
    *          the {@link TezInputContext}
-   * @return
+   * @return list of events that were generated during initialization
    * @throws Exception
    *           if an error occurs
    */
@@ -45,14 +45,14 @@ public interface Input {
   /**
    * Gets an instance of the {@link Reader} for this <code>Output</code>
    *
-   * @return
+   * @return Gets an instance of the {@link Reader} for this <code>Output</code>
    * @throws Exception
    *           if an error occurs
    */
   public Reader getReader() throws Exception;
 
   /**
-   * Handles user and system generated {@link Events}s, which typically carry
+   * Handles user and system generated {@link Event}s, which typically carry
    * information such as an output being available on the previous vertex.
    *
    * @param inputEvents
@@ -63,7 +63,7 @@ public interface Input {
   /**
    * Closes the <code>Input</code>
    *
-   * @return
+   * @return list of events that were generated during close
    * @throws Exception
    *           if an error occurs
    */

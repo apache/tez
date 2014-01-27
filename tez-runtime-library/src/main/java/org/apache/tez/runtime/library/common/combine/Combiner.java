@@ -31,7 +31,7 @@ import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
  * using the TEZ_RUNTIME_COMBINER_CLASS attribute in {@link TezJobConfig}
  * 
  * 
- * Partitioners need to provide a single argument ({@link TezTaskContext})
+ * Partitioners need to provide a single argument ({@link TezRawKeyValueIterator})
  * constructor.
  */
 @Unstable

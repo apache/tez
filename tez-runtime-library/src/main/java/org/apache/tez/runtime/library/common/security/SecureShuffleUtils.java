@@ -53,7 +53,7 @@ public class SecureShuffleUtils {
   /**
    * calculate hash of msg
    * @param msg
-   * @return
+   * @return byte array containing computed hash of message
    */
   private static byte[] generateByteHash(byte[] msg, SecretKey key) {
     return JobTokenSecretManager.computeHash(msg, key);

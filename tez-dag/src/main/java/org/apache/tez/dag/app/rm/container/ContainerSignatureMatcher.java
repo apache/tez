@@ -39,9 +39,9 @@ public interface ContainerSignatureMatcher {
   /**
    * Gets additional resources specified in lr2, which are not present for lr1
    * 
-   * @param lr11
-   * @param lr22
-   * @return
+   * @param lr1
+   * @param lr2
+   * @return additional resources specified in lr2, which are not present for lr1
    */
   public Map<String, LocalResource> getAdditionalResources(Map<String, LocalResource> lr1,
       Map<String, LocalResource> lr2);

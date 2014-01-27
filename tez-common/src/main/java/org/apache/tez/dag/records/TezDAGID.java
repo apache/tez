@@ -70,7 +70,7 @@ public class TezDAGID extends TezID {
   /**
    * Get a DAGID object from given parts.
    * @param yarnRMIdentifier YARN RM identifier
-   * @param applicationId application number
+   * @param appId application number
    * @param id the dag number
    */
   public static TezDAGID getInstance(String yarnRMIdentifier, int appId, int id) {

@@ -171,7 +171,7 @@ public class TezClientUtils {
   /**
    * Verify or create the Staging area directory on the configured Filesystem
    * @param stagingArea Staging area directory path
-   * @return
+   * @return the FileSytem for the staging area directory
    * @throws IOException
    */
   public static FileSystem ensureStagingDirExists(Configuration conf,
@@ -213,7 +213,7 @@ public class TezClientUtils {
    * @param amName Name for the application
    * @param amConfig AM Configuration
    * @param tezJarResources Resources to be used by the AM
-   * @return
+   * @return an ApplicationSubmissionContext to launch a Tez AM
    * @throws IOException
    * @throws YarnException
    */
@@ -539,7 +539,7 @@ public class TezClientUtils {
    * @param fs FileSystem object
    * @param p Path of resource to localize
    * @param type LocalResource Type
-   * @return
+   * @return a YARN LocalResource for the given Path
    * @throws IOException
    */
   static LocalResource createLocalResource(FileSystem fs, Path p,

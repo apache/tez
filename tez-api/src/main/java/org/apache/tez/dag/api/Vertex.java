@@ -150,7 +150,7 @@ public class Vertex {
    *          each of it's tasks. </p> If a {@link TezRootInputInitializer} is
    *          meant to determine the parallelism of the vertex, the initial
    *          vertex parallelism should be set to -1.
-   * @return
+   * @return this Vertex
    */
   public Vertex addInput(String inputName, InputDescriptor inputDescriptor,
       Class<? extends TezRootInputInitializer> inputInitializer) {
@@ -180,7 +180,7 @@ public class Vertex {
    * @param outputDescriptor
    * @param outputCommitterClazz Class to be used for the OutputCommitter.
    *                             Can be null.
-   * @return
+   * @return this Vertex
    */
   public Vertex addOutput(String outputName, OutputDescriptor outputDescriptor,
       Class<? extends OutputCommitter> outputCommitterClazz) {
@@ -199,7 +199,7 @@ public class Vertex {
    * user defined code embedded in the plugin
    * 
    * @param vertexManagerPluginDescriptor
-   * @return Vertex
+   * @return this Vertex
    */
   public Vertex setVertexManagerPlugin(
       VertexManagerPluginDescriptor vertexManagerPluginDescriptor) {

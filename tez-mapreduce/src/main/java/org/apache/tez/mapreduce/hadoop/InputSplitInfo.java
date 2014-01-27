@@ -76,7 +76,7 @@ public interface InputSplitInfo {
   
   /**
    * Get {@link Credentials} which may be required to access the splits.
-   * @return
+   * @return {@link Credentials} which may be required to access the splits.
    */
   public abstract Credentials getCredentials();
 }

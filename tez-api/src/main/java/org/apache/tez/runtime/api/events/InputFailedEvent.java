@@ -50,7 +50,6 @@ public class InputFailedEvent extends Event{
    * User Event constructor
    * @param sourceIndex Index to identify the physical edge of the input/output
    * that generated the event
-   * @param userPayload User Payload of the User Event
    */
   public InputFailedEvent(int sourceIndex) {
     this.sourceIndex = sourceIndex;

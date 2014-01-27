@@ -73,9 +73,8 @@ public class TezTaskID extends TezID {
   }
 
   /**
-   * Constructs a TaskID object from given {@link MRxApplicationID}.
-   * @param jobId JobID that this tip belongs to
-   * @param type the {@link TezTaskType} of the task
+   * Constructs a TezTaskID object from given {@link TezVertexID}.
+   * @param vertexID the vertexID object for this TezTaskID
    * @param id the tip number
    */
   public static TezTaskID getInstance(TezVertexID vertexID, int id) {

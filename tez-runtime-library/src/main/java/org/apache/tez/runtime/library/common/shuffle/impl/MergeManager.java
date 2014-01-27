@@ -287,7 +287,6 @@ public class MergeManager {
   
   /**
    * Unconditional Reserve is used by the Memory-to-Memory thread
-   * @return
    */
   private synchronized MapOutput unconditionalReserve(
       InputAttemptIdentifier srcAttemptIdentifier, long requestedSize, boolean primaryMapOutput) {

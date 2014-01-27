@@ -40,7 +40,7 @@ import com.google.common.cache.LoadingCache;
  * Second part is the task attempt number. <br>
  * <p>
  * Applications should never construct or parse TaskAttemptID strings
- * , but rather use appropriate constructors or {@link #forName(String)}
+ * , but rather use appropriate constructors or {@link Class#forName(String)}
  * method.
  *
  * @see TezTaskID
@@ -67,7 +67,7 @@ public class TezTaskAttemptID extends TezID {
   
   /**
    * Constructs a TaskAttemptID object from given {@link TezTaskID}.  
-   * @param taskId TaskID that this task belongs to  
+   * @param taskID TaskID that this task belongs to  
    * @param id the task attempt number
    */
   public static TezTaskAttemptID getInstance(TezTaskID taskID, int id) {

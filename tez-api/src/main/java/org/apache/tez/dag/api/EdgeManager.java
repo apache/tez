@@ -94,8 +94,8 @@ public interface EdgeManager {
 
   /**
    * Get the number of destination tasks that consume data from the source task
-   * @sourceTaskIndex Source task index
-   * @numDestinationTasks Total number of destination tasks
+   * @param sourceTaskIndex Source task index
+   * @param numDestinationTasks Total number of destination tasks
    */
   public int getDestinationConsumerTaskNumber(int sourceTaskIndex, int numDestinationTasks);
   
