@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -79,6 +80,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
+import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.history.DAGHistoryEvent;
@@ -89,12 +91,16 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
+import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
+import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
+import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 
 public class TaskAttemptImpl implements TaskAttempt,
     EventHandler<TaskAttemptEvent> {
@@ -138,7 +144,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   
   private Set<TezTaskAttemptID> uniquefailedOutputReports = 
       new HashSet<TezTaskAttemptID>();
-  private static final double MAX_ALLOWED_OUTPUT_FAILURES_FRACTION = 0.5;
+  private static final double MAX_ALLOWED_OUTPUT_FAILURES_FRACTION = 0.25;
 
   protected final TaskLocationHint locationHint;
   protected final boolean isRescheduled;
@@ -508,7 +514,8 @@ public class TaskAttemptImpl implements TaskAttempt,
       if (oldState != getInternalState()) {
           LOG.info(attemptId + " TaskAttempt Transitioned from "
            + oldState + " to "
-           + getInternalState());
+           + getInternalState() + " due to event "
+           + event.getType());
       }
     } finally {
       writeLock.unlock();
@@ -1203,14 +1210,28 @@ public class TaskAttemptImpl implements TaskAttempt,
       
       // If needed we can also use the absolute number of reported output errors
       // If needed we can launch a background task without failing this task
-      // If needed we can consider only running consumer tasks
       // to generate a copy of the output just in case.
+      // If needed we can consider only running consumer tasks
       if (failureFraction <= MAX_ALLOWED_OUTPUT_FAILURES_FRACTION) {
         return attempt.getInternalState();
       }
       String message = attempt.getID() + " being failed for too many output errors";
       LOG.info(message);
       attempt.addDiagnosticInfo(message);
+      // send input failed event
+      Vertex vertex = attempt.getVertex();
+      Map<Vertex, Edge> edges = vertex.getOutputVertices();
+      if (edges != null && !edges.isEmpty()) {
+        List<TezEvent> tezIfEvents = Lists.newArrayListWithCapacity(edges.size());
+        for (Vertex edgeVertex : edges.keySet()) {
+          tezIfEvents.add(new TezEvent(new InputFailedEvent(), 
+              new EventMetaData(EventProducerConsumerType.SYSTEM, 
+                  vertex.getName(), 
+                  edgeVertex.getName(), 
+                  attempt.getID())));
+        }
+        attempt.sendEvent(new VertexEventRouteEvent(vertex.getVertexId(), tezIfEvents));
+      }
       // Not checking for leafVertex since a READ_ERROR should only be reported for intermediate tasks.
       if (attempt.getInternalState() == TaskAttemptStateInternal.SUCCEEDED) {
         (new TerminatedAfterSuccessHelper(FAILED_HELPER)).transition(

@@ -341,6 +341,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               new TaskRescheduledAfterVertexSuccessTransition())
 
           // Ignore-able events
+          .addTransition(
+              VertexState.SUCCEEDED, VertexState.SUCCEEDED,
+              // accumulate these in case we get restarted
+              VertexEventType.V_ROUTE_EVENT,
+              ROUTE_EVENT_TRANSITION)
           .addTransition(VertexState.SUCCEEDED, VertexState.SUCCEEDED,
               EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
@@ -349,8 +354,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   // We should have been in RUNNING state if we had triggered the
                   // reruns.
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
-                  // accumulate these in case we get restarted
-                  VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_TASK_COMPLETED))
 
           // Transitions from FAILED state

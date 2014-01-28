@@ -99,6 +99,7 @@ import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDAGFinished;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
@@ -1289,7 +1290,12 @@ public class DAGAppMaster extends AbstractService {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(DAGEvent event) {
-      ((EventHandler<DAGEvent>)context.getCurrentDAG()).handle(event);
+      DAG dag = context.getCurrentDAG();
+      int eventDagIndex = event.getDAGId().getId();
+      if (dag == null || eventDagIndex != dag.getID().getId()) {
+        return; // event not relevant any more
+      }
+      ((EventHandler<DAGEvent>)dag).handle(event);
     }
   }
 
@@ -1297,8 +1303,15 @@ public class DAGAppMaster extends AbstractService {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskEvent event) {
+      DAG dag = context.getCurrentDAG();
+      int eventDagIndex = 
+          event.getTaskID().getVertexID().getDAGId().getId();
+      if (dag == null || eventDagIndex != dag.getID().getId()) {
+        return; // event not relevant any more
+      }
+      
       Task task =
-          context.getCurrentDAG().getVertex(event.getTaskID().getVertexID()).
+          dag.getVertex(event.getTaskID().getVertexID()).
               getTask(event.getTaskID());
       ((EventHandler<TaskEvent>)task).handle(event);
     }
@@ -1310,6 +1323,11 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public void handle(TaskAttemptEvent event) {
       DAG dag = context.getCurrentDAG();
+      int eventDagIndex = 
+          event.getTaskAttemptID().getTaskID().getVertexID().getDAGId().getId();
+      if (dag == null || eventDagIndex != dag.getID().getId()) {
+        return; // event not relevant any more
+      }
       Task task =
           dag.getVertex(event.getTaskAttemptID().getTaskID().getVertexID()).
               getTask(event.getTaskAttemptID().getTaskID());
@@ -1324,7 +1342,13 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public void handle(VertexEvent event) {
       DAG dag = context.getCurrentDAG();
-      org.apache.tez.dag.app.dag.Vertex vertex =
+      int eventDagIndex = 
+          event.getVertexId().getDAGId().getId();
+      if (dag == null || eventDagIndex != dag.getID().getId()) {
+        return; // event not relevant any more
+      }
+      
+      Vertex vertex =
           dag.getVertex(event.getVertexId());
       ((EventHandler<VertexEvent>) vertex).handle(event);
     }
@@ -1476,6 +1500,7 @@ public class DAGAppMaster extends AbstractService {
       }
     }
 
+    LOG.info("Running DAG: " + dagPlan.getName());
     // Job name is the same as the app name until we support multiple dags
     // for an app later
     appName = dagPlan.getName();

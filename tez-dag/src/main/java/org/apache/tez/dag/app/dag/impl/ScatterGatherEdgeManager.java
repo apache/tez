@@ -55,9 +55,8 @@ public class ScatterGatherEdgeManager implements EdgeManager {
   @Override
   public void routeEventToDestinationTasks(InputFailedEvent event,
       int sourceTaskIndex, int numDestinationTasks, List<Integer> taskIndices) {
-    int destinationTaskIndex = event.getSourceIndex();
     event.setTargetIndex(sourceTaskIndex);
-    taskIndices.add(new Integer(destinationTaskIndex));
+    addAllDestinationTaskIndices(numDestinationTasks, taskIndices);
   }
 
   @Override
@@ -71,4 +70,10 @@ public class ScatterGatherEdgeManager implements EdgeManager {
     return numDestTasks;
   }
   
+  void addAllDestinationTaskIndices(int numDestinationTasks, List<Integer> taskIndices) {
+    for(int i=0; i<numDestinationTasks; ++i) {
+      taskIndices.add(new Integer(i));
+    }    
+  }
+
 }

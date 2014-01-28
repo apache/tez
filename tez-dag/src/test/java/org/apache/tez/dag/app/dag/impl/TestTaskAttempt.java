@@ -65,6 +65,7 @@ import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
+import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
@@ -917,21 +918,21 @@ public class TestTaskAttempt {
     TezTaskAttemptID mockDestId1 = mock(TezTaskAttemptID.class);
     when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId1);
     TezEvent tzEvent = new TezEvent(mockReEvent, mockMeta);
-    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 3));
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 4));
     
     // failure threshold not met. state is SUCCEEDED
     assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
         TaskAttemptState.SUCCEEDED);
     
     // sending same error again doesnt change anything
-    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 3));
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 4));
     assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
         TaskAttemptState.SUCCEEDED);
 
     // different destination attempt reports error. now threshold crossed
     TezTaskAttemptID mockDestId2 = mock(TezTaskAttemptID.class);
     when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId2);    
-    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 3));
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 4));
     
     assertEquals("Task attempt is not in FAILED state", taImpl.getState(),
         TaskAttemptState.FAILED);
@@ -992,6 +993,13 @@ public class TestTaskAttempt {
       super(taskId, attemptNumber, eventHandler, tal, conf,
           clock, taskHeartbeatHandler, appContext,
           locationHint, isRescheduled, resource, containerContext, leafVertex);
+    }
+    
+    Vertex mockVertex = mock(Vertex.class);
+    
+    @Override
+    protected Vertex getVertex() {
+      return mockVertex;
     }
 
     @Override

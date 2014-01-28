@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.dag.api.EdgeManagerContext;
-import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -243,17 +242,17 @@ public class Edge {
               sourceTaskIndex, destinationVertex.getTotalTasks(),
               destTaskIndices);
         }
+        EventMetaData destMeta = new EventMetaData(EventProducerConsumerType.INPUT, 
+            destinationVertex.getName(), 
+            sourceVertex.getName(), 
+            null);
+        if (isDataMovementEvent) {
+          destMeta.setIndex(((DataMovementEvent)event).getTargetIndex());
+        } else {
+          destMeta.setIndex(((InputFailedEvent)event).getTargetIndex());
+        }
+        tezEvent.setDestinationInfo(destMeta);
         for(Integer destTaskIndex : destTaskIndices) {
-          EventMetaData destMeta = new EventMetaData(EventProducerConsumerType.INPUT, 
-              destinationVertex.getName(), 
-              sourceVertex.getName(), 
-              null); // will be filled by Task when sending the event. Is it needed?
-          if (isDataMovementEvent) {
-            destMeta.setIndex(((DataMovementEvent)event).getTargetIndex());
-          } else {
-            destMeta.setIndex(((InputFailedEvent)event).getTargetIndex());
-          }
-          tezEvent.setDestinationInfo(destMeta);
           Task destTask = destinationVertex.getTask(destTaskIndex);
           if (destTask == null) {
             throw new TezUncheckedException("Unexpected null task." +

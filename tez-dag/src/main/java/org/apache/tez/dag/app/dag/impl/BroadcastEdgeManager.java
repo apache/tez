@@ -65,9 +65,9 @@ public class BroadcastEdgeManager implements EdgeManager {
     return event.getIndex();
   }
   
-  void addAllDestinationTaskIndices(int numDestinationTasks, List<Integer> taskIndeces) {
+  void addAllDestinationTaskIndices(int numDestinationTasks, List<Integer> taskIndices) {
     for(int i=0; i<numDestinationTasks; ++i) {
-      taskIndeces.add(new Integer(i));
+      taskIndices.add(new Integer(i));
     }    
   }
 

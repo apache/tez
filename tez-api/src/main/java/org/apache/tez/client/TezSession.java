@@ -47,6 +47,7 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequest
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
 import com.google.protobuf.ServiceException;
 
 public class TezSession {
@@ -141,6 +142,10 @@ public class TezSession {
         .createEnvironment(sessionConfig.getYarnConfiguration());
     for (Vertex v : dag.getVertices()) {
       Map<String, String> taskEnv = v.getTaskEnvironment();
+      if (taskEnv == null) {
+        taskEnv = Maps.newHashMap();
+        v.setTaskEnvironment(taskEnv);
+      }
       for (Map.Entry<String, String> entry : environment.entrySet()) {
         String key = entry.getKey();
         String value = entry.getValue();

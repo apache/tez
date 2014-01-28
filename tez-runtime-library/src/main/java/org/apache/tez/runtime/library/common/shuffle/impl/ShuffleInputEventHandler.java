@@ -87,7 +87,7 @@ public class ShuffleInputEventHandler {
   }
   
   private void processTaskFailedEvent(InputFailedEvent ifEvent) {
-    InputAttemptIdentifier taIdentifier = new InputAttemptIdentifier(ifEvent.getSourceIndex(), ifEvent.getVersion());
+    InputAttemptIdentifier taIdentifier = new InputAttemptIdentifier(ifEvent.getTargetIndex(), ifEvent.getVersion());
     scheduler.obsoleteMapOutput(taIdentifier);
     LOG.info("Obsoleting output of src-task: " + taIdentifier);
   }

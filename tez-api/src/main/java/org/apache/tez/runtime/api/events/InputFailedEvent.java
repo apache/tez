@@ -33,7 +33,7 @@ public class InputFailedEvent extends Event{
    * Index(i) of the i-th (physical) Input or Output that generated the data.
    * For a Processor-generated event, this is ignored.
    */
-  private final int sourceIndex;
+  private int sourceIndex;
 
   /**
    * Index(i) of the i-th (physical) Input or Output that is meant to receive
@@ -45,17 +45,12 @@ public class InputFailedEvent extends Event{
    * Version number to indicate what attempt generated this Event
    */
   private int version;
-
-  /**
-   * User Event constructor
-   * @param sourceIndex Index to identify the physical edge of the input/output
-   * that generated the event
-   */
-  public InputFailedEvent(int sourceIndex) {
-    this.sourceIndex = sourceIndex;
-  }
-
+  
   @Private
+  public InputFailedEvent() {
+  }
+  
+  @Private // for Writable
   public InputFailedEvent(int sourceIndex,
       int targetIndex,
       int version) {

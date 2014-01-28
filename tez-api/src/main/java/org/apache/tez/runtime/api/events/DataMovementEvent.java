@@ -66,9 +66,11 @@ public final class DataMovementEvent extends Event {
   @Private
   public DataMovementEvent(int sourceIndex,
       int targetIndex,
+      int version,
       byte[] userPayload) {
     this.userPayload = userPayload;
     this.sourceIndex = sourceIndex;
+    this.version = version;
     this.targetIndex = targetIndex;
   }
 

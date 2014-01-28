@@ -879,6 +879,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     
     eventHandler.handle(new DAGAppMasterEventDAGFinished(getID(), finalState));
 
+    LOG.info("DAG: " + getID() + " finished with state: " + finalState);
     return finalState;
   }
   
