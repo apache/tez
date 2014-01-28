@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.library.common.security;
+package org.apache.tez.common.security;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -35,7 +35,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.security.JobTokenIdentifier;
 
 
 /**
@@ -44,8 +43,8 @@ import org.apache.tez.common.security.JobTokenIdentifier;
  * The secrets can be stored just before submission of jobs and read during
  * the task execution.  
  */
-@InterfaceAudience.Public
-@InterfaceStability.Evolving
+@InterfaceAudience.Private
+@InterfaceStability.Unstable
 public class TokenCache {
   
   private static final Log LOG = LogFactory.getLog(TokenCache.class);

@@ -42,11 +42,11 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.utils.TezRuntimeChildJVM;
-import org.apache.tez.runtime.library.common.security.TokenCache;
 import org.apache.tez.runtime.library.common.shuffle.server.ShuffleHandler;
 
 import com.google.common.annotations.VisibleForTesting;

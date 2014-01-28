@@ -308,7 +308,9 @@ public class TezJobConfig {
   // TODO This should be in DAGConfiguration
   /* config for tracking the local file where all the credentials for the job
    * credentials.
+   * Currently not supported.
    */
+  @Private
   public static final String DAG_CREDENTIALS_BINARY =  "tez.dag.credentials.binary";
   
   public static final String TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED = "tez.runtime.broadcast.data-via-events.enabled";

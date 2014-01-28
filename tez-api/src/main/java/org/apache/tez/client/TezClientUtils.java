@@ -48,6 +48,7 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -70,6 +71,7 @@ import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Level;
+import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.SessionNotRunning;
@@ -228,9 +230,6 @@ public class TezClientUtils {
     Path binaryConfPath =  new Path(amConfig.getStagingDir(),
         TezConfiguration.TEZ_PB_BINARY_CONF_NAME + "." + appId.toString());
     binaryConfPath = fs.makeQualified(binaryConfPath);
-    
-    // TODO TEZ-674 - Obtain tokens for the staging dir. Ideally TokenCache should be used,
-    // but that's in a separate module. Similarly Master is in a separate module.
 
     // Setup resource requirements
     Resource capability = Records.newRecord(Resource.class);
@@ -246,12 +245,17 @@ public class TezClientUtils {
 
     ByteBuffer securityTokens = null;
     // Setup security tokens
-    if (amConfig.getCredentials() != null) {
-      DataOutputBuffer dob = new DataOutputBuffer();
-      amConfig.getCredentials().writeTokenStorageToStream(dob);
-      securityTokens = ByteBuffer.wrap(dob.getData(), 0,
-          dob.getLength());
+    Credentials credentials = amConfig.getCredentials();
+    if (credentials == null) {
+      credentials = new Credentials();
     }
+
+    // Obtain Credentials for the staging dir.
+    TokenCache.obtainTokensForNamenodes(credentials, new Path[] { binaryConfPath }, conf);
+
+    DataOutputBuffer dob = new DataOutputBuffer();
+    credentials.writeTokenStorageToStream(dob);
+    securityTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
 
     // Setup the command to run the AM
     List<String> vargs = new ArrayList<String>(8);

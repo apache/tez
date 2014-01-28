@@ -80,6 +80,7 @@ import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
+import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
@@ -129,7 +130,6 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.utils.Graph;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.tez.runtime.library.common.security.TokenCache;
 
 /**
  * The Map-Reduce Application Master.

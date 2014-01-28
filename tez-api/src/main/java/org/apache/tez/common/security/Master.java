@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.library.common.security;
+package org.apache.tez.common.security;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
