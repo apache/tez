@@ -48,18 +48,17 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-
+import org.apache.commons.collections4.bidimap.DualLinkedHashBidiMap;
+import org.apache.commons.collections4.BidiMap;
 
 public class DAG { // FIXME rename to Topology
-  final BiMap<String, Vertex> vertices;
+  final BidiMap<String, Vertex> vertices;
   final List<Edge> edges;
   final String name;
   Credentials credentials;
 
   public DAG(String name) {
-    this.vertices = HashBiMap.<String, Vertex>create();
+    this.vertices = new DualLinkedHashBidiMap<String, Vertex>();
     this.edges = new ArrayList<Edge>();
     this.name = name;
   }

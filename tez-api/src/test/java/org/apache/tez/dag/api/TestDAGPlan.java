@@ -176,7 +176,7 @@ public class TestDAGPlan {
     assertEquals("inputBytes", new String(edgeProto.getEdgeDestination()
         .getUserPayload().toByteArray()));
     assertEquals("input", edgeProto.getEdgeDestination().getClassName());
-             
+
     assertEquals("outputBytes", new String(edgeProto.getEdgeSource()
         .getUserPayload().toByteArray()));
     assertEquals("output", edgeProto.getEdgeSource().getClassName());
@@ -192,7 +192,78 @@ public class TestDAGPlan {
     assertEquals("outputBytes", new String(ob));
     assertEquals("output", edgeProperty.getEdgeSource().getClassName());
   }
-  
+
+  @Test(timeout = 5000)
+  public void userVertexOrderingIsMaintained() {
+    DAG dag = new DAG("testDag");
+    ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1").
+        setUserPayload("processor1Bytes".getBytes());
+    ProcessorDescriptor pd2 = new ProcessorDescriptor("processor2").
+        setUserPayload("processor2Bytes".getBytes());
+    ProcessorDescriptor pd3 = new ProcessorDescriptor("processor3").
+        setUserPayload("processor3Bytes".getBytes());
+    Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
+    Vertex v2 = new Vertex("v2", pd2, 1, Resource.newInstance(1024, 1));
+    Vertex v3 = new Vertex("v3", pd3, 1, Resource.newInstance(1024, 1));
+    v1.setJavaOpts("").setTaskEnvironment(new HashMap<String, String>())
+        .setTaskLocalResources(new HashMap<String, LocalResource>());
+    v2.setJavaOpts("").setTaskEnvironment(new HashMap<String, String>())
+        .setTaskLocalResources(new HashMap<String, LocalResource>());
+    v3.setJavaOpts("").setTaskEnvironment(new HashMap<String, String>())
+        .setTaskLocalResources(new HashMap<String, LocalResource>());
+
+    InputDescriptor inputDescriptor = new InputDescriptor("input").
+        setUserPayload("inputBytes".getBytes());
+    OutputDescriptor outputDescriptor = new OutputDescriptor("output").
+        setUserPayload("outputBytes".getBytes());
+    Edge edge = new Edge(v1, v2, new EdgeProperty(
+        DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL, outputDescriptor, inputDescriptor));
+
+    dag.addVertex(v1).addVertex(v2).addEdge(edge).addVertex(v3);
+
+    DAGPlan dagProto = dag.createDag(new TezConfiguration());
+
+    assertEquals(3, dagProto.getVertexCount());
+    assertEquals(1, dagProto.getEdgeCount());
+
+    VertexPlan v1Proto = dagProto.getVertex(0);
+    VertexPlan v2Proto = dagProto.getVertex(1);
+    VertexPlan v3Proto = dagProto.getVertex(2);
+    EdgePlan edgeProto = dagProto.getEdge(0);
+
+    assertEquals("processor1Bytes", new String(v1Proto.getProcessorDescriptor()
+        .getUserPayload().toByteArray()));
+    assertEquals("processor1", v1Proto.getProcessorDescriptor().getClassName());
+
+    assertEquals("processor2Bytes", new String(v2Proto.getProcessorDescriptor()
+        .getUserPayload().toByteArray()));
+    assertEquals("processor2", v2Proto.getProcessorDescriptor().getClassName());
+
+    assertEquals("processor3Bytes", new String(v3Proto.getProcessorDescriptor()
+        .getUserPayload().toByteArray()));
+    assertEquals("processor3", v3Proto.getProcessorDescriptor().getClassName());
+
+    assertEquals("inputBytes", new String(edgeProto.getEdgeDestination()
+        .getUserPayload().toByteArray()));
+    assertEquals("input", edgeProto.getEdgeDestination().getClassName());
+
+    assertEquals("outputBytes", new String(edgeProto.getEdgeSource()
+        .getUserPayload().toByteArray()));
+    assertEquals("output", edgeProto.getEdgeSource().getClassName());
+
+    EdgeProperty edgeProperty = DagTypeConverters
+        .createEdgePropertyMapFromDAGPlan(dagProto.getEdgeList().get(0));
+
+    byte[] ib = edgeProperty.getEdgeDestination().getUserPayload();
+    assertEquals("inputBytes", new String(ib));
+    assertEquals("input", edgeProperty.getEdgeDestination().getClassName());
+
+    byte[] ob = edgeProperty.getEdgeSource().getUserPayload();
+    assertEquals("outputBytes", new String(ob));
+    assertEquals("output", edgeProperty.getEdgeSource().getClassName());
+  }
+
   @Test (timeout=5000)
   public void testCredentialsSerde() {
     DAG dag = new DAG("testDag");
