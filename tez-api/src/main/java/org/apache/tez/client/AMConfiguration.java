@@ -38,6 +38,17 @@ public class AMConfiguration {
   private final TezConfiguration amConf;
   private final Credentials credentials;
 
+  /**
+   * @param env
+   *          environment for the AM
+   * @param localResources
+   *          localResources which are required to run the AM
+   * @param conf
+   * @param credentials
+   *          credentials which will be needed in the AM. This includes
+   *          credentials which will be required to localize the specified
+   *          localResources.
+   */
   public AMConfiguration(Map<String, String> env,
       Map<String, LocalResource> localResources,
       TezConfiguration conf, Credentials credentials) {

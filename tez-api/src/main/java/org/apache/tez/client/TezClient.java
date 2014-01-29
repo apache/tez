@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -81,9 +82,16 @@ public class TezClient {
       DAG dag, AMConfiguration amConfig)
           throws TezException, IOException {
     try {
-      ApplicationSubmissionContext appContext =
-          TezClientUtils.createApplicationSubmissionContext(conf, appId, dag,
-              dag.getName(), amConfig, getTezJarResources());
+      // Use the AMCredentials object in client mode, since this won't be re-used.
+      // Ensures we don't fetch credentially unnecessarily if the user has already provided them.
+      Credentials credentials = amConfig.getCredentials();
+      if (credentials == null) {
+        credentials = new Credentials();
+      }
+      // Add credentials for tez-local resources.
+      Map<String, LocalResource> tezJarResources = getTezJarResources(credentials);
+      ApplicationSubmissionContext appContext = TezClientUtils.createApplicationSubmissionContext(
+          conf, appId, dag, dag.getName(), amConfig, tezJarResources, credentials);
       LOG.info("Submitting DAG to YARN"
           + ", applicationId=" + appId);
       yarnClient.submitApplication(appContext);
@@ -108,10 +116,10 @@ public class TezClient {
     }
   }
 
-  private synchronized Map<String, LocalResource> getTezJarResources()
+  private synchronized Map<String, LocalResource> getTezJarResources(Credentials credentials)
       throws IOException {
     if (tezJarResources == null) {
-      tezJarResources = TezClientUtils.setupTezJarsLocalResources(conf);
+      tezJarResources = TezClientUtils.setupTezJarsLocalResources(conf, credentials);
     }
     return tezJarResources;
   }

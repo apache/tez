@@ -17,11 +17,13 @@
  */
 package org.apache.tez.dag.api;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -48,6 +50,7 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 
+import com.google.common.base.Preconditions;
 import org.apache.commons.collections4.bidimap.DualLinkedHashBidiMap;
 import org.apache.commons.collections4.BidiMap;
 
@@ -55,7 +58,9 @@ public class DAG { // FIXME rename to Topology
   final BidiMap<String, Vertex> vertices;
   final List<Edge> edges;
   final String name;
+  final List<URI> urisForCredentials = new LinkedList<URI>();
   Credentials credentials;
+  
 
   public DAG(String name) {
     this.vertices = new DualLinkedHashBidiMap<String, Vertex>();
@@ -76,11 +81,60 @@ public class DAG { // FIXME rename to Topology
     return vertices.get(vertexName);
   }
   
+  /**
+   * One of the methods that can be used to provide information about required
+   * Credentials when running on a secure cluster. A combination of this and
+   * addURIsForCredentials should be used to specify information about all
+   * credentials required by a DAG. AM specific credentials are not used when
+   * executing a DAG.
+   * 
+   * Set credentials which will be required to run this dag. This method can be
+   * used if the client has already obtained some or all of the required
+   * credentials.
+   * 
+   * @param credentials
+   * @return
+   */
   public synchronized DAG setCredentials(Credentials credentials) {
     this.credentials = credentials;
     return this;
   }
 
+  @Private
+  public synchronized Credentials getCredentials() {
+    return this.credentials;
+  }
+
+  /**
+   * One of the methods that can be used to provide information about required
+   * Credentials when running on a secure cluster. A combination of this and
+   * setCredentials should be used to specify information about all
+   * credentials required by a DAG. AM specific credentials are not used when
+   * executing a DAG.
+   * 
+   * This method can be used to specify a list of URIs for which Credentials need to be
+   * obtained so that the job can run.
+   * An incremental list of URIs can be provided by making multiple calls to the method.
+   *  
+   * @param uris a list of {@link URI}s
+   * @return the DAG instance being used
+   */
+  public synchronized DAG addURIsForCredentials(List<URI> uris) {
+    Preconditions.checkNotNull(uris, "URIs cannot be null");
+    urisForCredentials.addAll(uris);
+    return this;
+  }
+
+  /**
+   * 
+   * @return an unmodifiable list representing the URIs for which credentials
+   *         are required.
+   */
+  @Private
+  public synchronized List<URI> getURIsForCredentials() {
+    return Collections.unmodifiableList(urisForCredentials);
+  }
+  
   @Private
   public synchronized Set<Vertex> getVertices() {
     return Collections.unmodifiableSet(this.vertices.values());

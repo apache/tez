@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
@@ -41,9 +42,9 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusResponseProto;
-import org.apache.tez.dag.api.client.rpc.DAGClientRPCImpl;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientRPCImpl;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -60,6 +61,8 @@ public class TezSession {
   private YarnClient yarnClient;
   private boolean sessionStarted = false;
   private boolean sessionStopped = false;
+  /** Tokens which will be required for all DAGs submitted to this session. */
+  private Credentials sessionCredentials = new Credentials();
 
   public TezSession(String sessionName,
       ApplicationId applicationId,
@@ -86,7 +89,7 @@ public class TezSession {
 
     Map<String, LocalResource> tezJarResources =
         TezClientUtils.setupTezJarsLocalResources(
-          sessionConfig.getTezConfiguration());
+          sessionConfig.getTezConfiguration(), sessionCredentials);
 
     if (sessionConfig.getSessionResources() != null
       && !sessionConfig.getSessionResources().isEmpty()) {
@@ -103,7 +106,7 @@ public class TezSession {
           TezClientUtils.createApplicationSubmissionContext(
               sessionConfig.getTezConfiguration(), applicationId,
               null, sessionName, sessionConfig.getAMConfiguration(),
-              tezJarResources);
+              tezJarResources, sessionCredentials);
       // Set Tez Sessions to not retry on AM crashes
       appContext.setMaxAppAttempts(1);
       yarnClient.submitApplication(appContext);
@@ -137,7 +140,9 @@ public class TezSession {
         + ", sessionName=" + sessionName
         + ", applicationId=" + applicationId);
 
-    // setup env
+    // Obtain DAG specific credentials.
+    TezClientUtils.setupDAGCredentials(dag, sessionCredentials, sessionConfig.getTezConfiguration());
+
     Map<String, String> environment = TezClientUtils
         .createEnvironment(sessionConfig.getYarnConfiguration());
     for (Vertex v : dag.getVertices()) {

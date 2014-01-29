@@ -34,6 +34,8 @@ import java.util.TreeMap;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -87,6 +89,10 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 
 public class TezClientUtils {
 
@@ -101,13 +107,19 @@ public class TezClientUtils {
 
   /**
    * Setup LocalResource map for Tez jars based on provided Configuration
-   * @param conf Configuration to use to access Tez jars' locations
+   * 
+   * @param conf
+   *          Configuration to use to access Tez jars' locations
+   * @param credentials
+   *          a credentials instance into which tokens for the Tez local
+   *          resources will be populated
    * @return Map of LocalResources to use when launching Tez AM
    * @throws IOException
    */
   static Map<String, LocalResource> setupTezJarsLocalResources(
-      TezConfiguration conf)
+      TezConfiguration conf, Credentials credentials)
       throws IOException {
+    Preconditions.checkNotNull(credentials, "A non-null credentials object should be specified");
     Map<String, LocalResource> tezJarResources =
         new TreeMap<String, LocalResource>();
 
@@ -120,6 +132,8 @@ public class TezClientUtils {
           + ", " + TezConfiguration.TEZ_LIB_URIS
           + " is not defined in the configurartion");
     }
+    
+    List<Path> tezJarPaths = Lists.newArrayListWithCapacity(tezJarUris.length);
 
     for (String tezJarUri : tezJarUris) {
       URI uri;
@@ -139,6 +153,8 @@ public class TezClientUtils {
       }
       Path p = new Path(uri);
       FileSystem pathfs = p.getFileSystem(conf);
+      p = pathfs.makeQualified(p);
+      tezJarPaths.add(p);
       RemoteIterator<LocatedFileStatus> iter = pathfs.listFiles(p, false);
       while (iter.hasNext()) {
         LocatedFileStatus fStatus = iter.next();
@@ -163,9 +179,14 @@ public class TezClientUtils {
                 fStatus.getModificationTime()));
       }
     }
+
     if (tezJarResources.isEmpty()) {
       LOG.warn("No tez jars found in configured locations"
           + ". Ignoring for now. Errors may occur");
+    } else {
+      // Obtain credentials.
+      TokenCache.obtainTokensForNamenodes(credentials,
+          tezJarPaths.toArray(new Path[tezJarPaths.size()]), conf);
     }
     return tezJarResources;
   }
@@ -208,6 +229,48 @@ public class TezClientUtils {
   }
 
   /**
+   * Obtains tokens for the DAG based on the list of URIs setup in the DAG. The
+   * fetched credentials are populated back into the DAG and can be retrieved
+   * via dag.getCredentials
+   * 
+   * @param dag
+   *          the dag for which credentials need to be setup
+   * @param sessionCredentials
+   *          session credentials which have already been obtained, and will be
+   *          required for the DAG
+   * @param conf
+   * @throws IOException
+   */
+  @Private
+  static void setupDAGCredentials(DAG dag, Credentials sessionCredentials,
+      Configuration conf) throws IOException {
+
+    Preconditions.checkNotNull(sessionCredentials);
+    Credentials dagCredentials = dag.getCredentials();
+    if (dagCredentials == null) {
+      dagCredentials = new Credentials();
+      dag.setCredentials(dagCredentials);
+    }
+    // All session creds are required for the DAG.
+    dagCredentials.mergeAll(sessionCredentials);
+    
+    // Add additional credentials based on any URIs that the user may have specified.
+    
+    // Obtain Credentials for any paths that the user may have configured.
+    List<URI> uris = dag.getURIsForCredentials();
+    if (uris != null && !uris.isEmpty()) {
+      Iterator<Path> pathIter = Iterators.transform(uris.iterator(), new Function<URI, Path>() {
+        @Override
+        public Path apply(@Nullable URI input) {
+          return new Path(input);
+        }
+      });
+      Path[] paths = Iterators.toArray(pathIter, Path.class);
+      TokenCache.obtainTokensForNamenodes(dagCredentials, paths, conf);
+    }
+  }
+
+  /**
    * Create an ApplicationSubmissionContext to launch a Tez AM
    * @param conf TezConfiguration
    * @param appId Application Id
@@ -215,16 +278,18 @@ public class TezClientUtils {
    * @param amName Name for the application
    * @param amConfig AM Configuration
    * @param tezJarResources Resources to be used by the AM
+   * @param sessionCredentials the credential object which will be populated with session specific
    * @return an ApplicationSubmissionContext to launch a Tez AM
    * @throws IOException
    * @throws YarnException
    */
   static ApplicationSubmissionContext createApplicationSubmissionContext(
       TezConfiguration conf, ApplicationId appId, DAG dag, String amName,
-      AMConfiguration amConfig,
-      Map<String, LocalResource> tezJarResources)
+      AMConfiguration amConfig, Map<String, LocalResource> tezJarResources,
+      Credentials sessionCreds)
           throws IOException, YarnException{
 
+    Preconditions.checkNotNull(sessionCreds);
     FileSystem fs = TezClientUtils.ensureStagingDirExists(conf,
         amConfig.getStagingDir());
     Path binaryConfPath =  new Path(amConfig.getStagingDir(),
@@ -243,19 +308,30 @@ public class TezClientUtils {
       LOG.debug("AppMaster capability = " + capability);
     }
 
+    // Setup required Credentials for the AM launch. DAG specific credentials
+    // are handled separately.
     ByteBuffer securityTokens = null;
     // Setup security tokens
-    Credentials credentials = amConfig.getCredentials();
-    if (credentials == null) {
-      credentials = new Credentials();
+    Credentials amLaunchCredentials = new Credentials();
+    if (amConfig.getCredentials() != null) {
+      amLaunchCredentials.addAll(amConfig.getCredentials());
     }
 
-    // Obtain Credentials for the staging dir.
-    TokenCache.obtainTokensForNamenodes(credentials, new Path[] { binaryConfPath }, conf);
+    // Add Staging dir creds to the list of session credentials.
+    TokenCache.obtainTokensForNamenodes(sessionCreds, new Path[] {binaryConfPath}, conf);
+
+    // Add session specific credentials to the AM credentials.
+    amLaunchCredentials.mergeAll(sessionCreds);
 
     DataOutputBuffer dob = new DataOutputBuffer();
-    credentials.writeTokenStorageToStream(dob);
+    amLaunchCredentials.writeTokenStorageToStream(dob);
     securityTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+
+    // Need to set credentials based on DAG and the URIs which have been set for the DAG.
+
+    if (dag != null) {
+      setupDAGCredentials(dag, sessionCreds, conf);
+    }
 
     // Setup the command to run the AM
     List<String> vargs = new ArrayList<String>(8);
@@ -308,6 +384,7 @@ public class TezClientUtils {
     Map<String, LocalResource> localResources =
         new TreeMap<String, LocalResource>();
 
+    // Not fetching credentials for AMLocalResources. Expect this to be provided via AMCredentials.
     if (amConfig.getLocalResources() != null) {
       localResources.putAll(amConfig.getLocalResources());
     }
