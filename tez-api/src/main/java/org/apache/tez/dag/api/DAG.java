@@ -108,15 +108,19 @@ public class DAG { // FIXME rename to Topology
   /**
    * One of the methods that can be used to provide information about required
    * Credentials when running on a secure cluster. A combination of this and
-   * setCredentials should be used to specify information about all
-   * credentials required by a DAG. AM specific credentials are not used when
-   * executing a DAG.
+   * setCredentials should be used to specify information about all credentials
+   * required by a DAG. AM specific credentials are not used when executing a
+   * DAG.
    * 
-   * This method can be used to specify a list of URIs for which Credentials need to be
-   * obtained so that the job can run.
-   * An incremental list of URIs can be provided by making multiple calls to the method.
-   *  
-   * @param uris a list of {@link URI}s
+   * This method can be used to specify a list of URIs for which Credentials
+   * need to be obtained so that the job can run. An incremental list of URIs
+   * can be provided by making multiple calls to the method.
+   * 
+   * Currently, credentials can only be fetched for HDFS and other
+   * {@link FileSystem} implementations.
+   * 
+   * @param uris
+   *          a list of {@link URI}s
    * @return the DAG instance being used
    */
   public synchronized DAG addURIsForCredentials(List<URI> uris) {
