@@ -30,7 +30,7 @@ import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezOutputContext;
-import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
@@ -134,10 +134,9 @@ public class OnFileSortedOutput implements LogicalOutput {
     List<Event> events = Lists.newArrayListWithCapacity(numOutputs+1);
     events.add(vmEvent);
 
-    for (int i = 0; i < numOutputs; i++) {
-      DataMovementEvent event = new DataMovementEvent(i, payloadBytes);
-      events.add(event);
-    }
+    CompositeDataMovementEvent csdme = new CompositeDataMovementEvent(0, numOutputs, payloadBytes);
+    events.add(csdme);
+
     return events;
   }
 }

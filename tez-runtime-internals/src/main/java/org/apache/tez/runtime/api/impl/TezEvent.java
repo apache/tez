@@ -25,7 +25,9 @@ import java.io.IOException;
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.EventProtos.CompositeEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.DataMovementEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.InputFailedEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.InputReadErrorEventProto;
@@ -61,6 +63,8 @@ public class TezEvent implements Writable {
     this.setSourceInfo(sourceInfo);
     if (event instanceof DataMovementEvent) {
       eventType = EventType.DATA_MOVEMENT_EVENT;
+    } else if (event instanceof CompositeDataMovementEvent) {
+      eventType = EventType.COMPOSITE_DATA_MOVEMENT_EVENT;
     } else if (event instanceof VertexManagerEvent) {
       eventType = EventType.VERTEX_MANAGER_EVENT;
     } else if (event instanceof InputReadErrorEvent) {
@@ -128,6 +132,16 @@ public class TezEvent implements Writable {
           dmBuilder.setUserPayload(ByteString.copyFrom(dmEvt.getUserPayload()));
         }
         eventBytes = dmBuilder.build().toByteArray();
+        break;
+      case COMPOSITE_DATA_MOVEMENT_EVENT:
+        CompositeDataMovementEvent cEvent = (CompositeDataMovementEvent) event;
+        CompositeEventProto.Builder cBuilder = CompositeEventProto.newBuilder();
+        cBuilder.setStartIndex(cEvent.getSourceIndexStart());
+        cBuilder.setEndIndex(cEvent.getSourceIndexEnd());
+        if (cEvent.getUserPayload() != null) {
+          cBuilder.setUserPayload(ByteString.copyFrom(cEvent.getUserPayload()));
+        }
+        eventBytes = cBuilder.build().toByteArray();
         break;
       case VERTEX_MANAGER_EVENT:
         VertexManagerEvent vmEvt = (VertexManagerEvent) event;
@@ -204,6 +218,11 @@ public class TezEvent implements Writable {
             dmProto.getTargetIndex(),
             dmProto.getVersion(),
             dmProto.getUserPayload() != null ? dmProto.getUserPayload().toByteArray() : null);
+        break;
+      case COMPOSITE_DATA_MOVEMENT_EVENT:
+        CompositeEventProto cProto = CompositeEventProto.parseFrom(eventBytes);
+        event = new CompositeDataMovementEvent(cProto.getStartIndex(), cProto.getEndIndex(),
+            cProto.hasUserPayload() ? cProto.getUserPayload().toByteArray() : null);
         break;
       case VERTEX_MANAGER_EVENT:
         VertexManagerEventProto vmProto =

@@ -34,8 +34,6 @@ import java.util.TreeMap;
 import java.util.Vector;
 import java.util.Map.Entry;
 
-import javax.annotation.Nullable;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -261,7 +259,7 @@ public class TezClientUtils {
     if (uris != null && !uris.isEmpty()) {
       Iterator<Path> pathIter = Iterators.transform(uris.iterator(), new Function<URI, Path>() {
         @Override
-        public Path apply(@Nullable URI input) {
+        public Path apply(URI input) {
           return new Path(input);
         }
       });

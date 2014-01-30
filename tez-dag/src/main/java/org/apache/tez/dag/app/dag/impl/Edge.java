@@ -36,6 +36,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.RuntimeUtils;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
@@ -85,6 +86,7 @@ public class Edge {
   private List<TezEvent> sourceEventBuffer = new ArrayList<TezEvent>();
   private Vertex sourceVertex;
   private Vertex destinationVertex; // this may end up being a list for shared edge
+  private EventMetaData destinationMetaInfo;
 
   @SuppressWarnings("rawtypes")
   public Edge(EdgeProperty edgeProperty, EventHandler eventHandler) {
@@ -119,6 +121,10 @@ public class Edge {
     edgeManagerContext = new EdgeManagerContextImpl(sourceVertex.getName(),
         destinationVertex.getName(), bb);
     edgeManager.initialize(edgeManagerContext);
+    destinationMetaInfo = new EventMetaData(EventProducerConsumerType.INPUT, 
+        destinationVertex.getName(), 
+        sourceVertex.getName(), 
+        null);
   }
 
   public EdgeProperty getEdgeProperty() {
@@ -222,11 +228,25 @@ public class Edge {
     }
   }
   
+
+  private void handleCompositeDataMovementEvent(TezEvent tezEvent) {
+    CompositeDataMovementEvent compEvent = (CompositeDataMovementEvent) tezEvent.getEvent();
+    EventMetaData srcInfo = tezEvent.getSourceInfo();
+    
+    for (DataMovementEvent dmEvent : compEvent.getEvents()) {
+      TezEvent newEvent = new TezEvent(dmEvent, srcInfo);
+      sendTezEventToDestinationTasks(newEvent);
+    }
+  }
+  
   public void sendTezEventToDestinationTasks(TezEvent tezEvent) {
     if (!bufferEvents.get()) {
       List<Integer> destTaskIndices = new ArrayList<Integer>();
       boolean isDataMovementEvent = true;
       switch (tezEvent.getEventType()) {
+      case COMPOSITE_DATA_MOVEMENT_EVENT:
+        handleCompositeDataMovementEvent(tezEvent);
+        break;
       case INPUT_FAILED_EVENT:
         isDataMovementEvent = false;
       case DATA_MOVEMENT_EVENT:
@@ -242,16 +262,7 @@ public class Edge {
               sourceTaskIndex, destinationVertex.getTotalTasks(),
               destTaskIndices);
         }
-        EventMetaData destMeta = new EventMetaData(EventProducerConsumerType.INPUT, 
-            destinationVertex.getName(), 
-            sourceVertex.getName(), 
-            null);
-        if (isDataMovementEvent) {
-          destMeta.setIndex(((DataMovementEvent)event).getTargetIndex());
-        } else {
-          destMeta.setIndex(((InputFailedEvent)event).getTargetIndex());
-        }
-        tezEvent.setDestinationInfo(destMeta);
+        tezEvent.setDestinationInfo(destinationMetaInfo);
         for(Integer destTaskIndex : destTaskIndices) {
           Task destTask = destinationVertex.getTask(destTaskIndex);
           if (destTask == null) {

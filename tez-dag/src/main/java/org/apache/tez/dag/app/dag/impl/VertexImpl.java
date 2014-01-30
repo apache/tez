@@ -116,12 +116,14 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.RuntimeUtils;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
+import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
@@ -1983,17 +1985,18 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               + tezEvent.getEventType());
         }
         EventMetaData sourceMeta = tezEvent.getSourceInfo();
-        boolean isDataMovementEvent = true;
         switch(tezEvent.getEventType()) {
         case INPUT_FAILED_EVENT:
-          isDataMovementEvent = false;
         case DATA_MOVEMENT_EVENT:
+        case COMPOSITE_DATA_MOVEMENT_EVENT:
           {
             if (isEventFromVertex(vertex, sourceMeta)) {
               // event from this vertex. send to destination vertex
               TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
-              if (isDataMovementEvent) {
+              if (tezEvent.getEventType() == EventType.DATA_MOVEMENT_EVENT) {
                 ((DataMovementEvent) tezEvent.getEvent()).setVersion(srcTaId.getId());
+              } else if (tezEvent.getEventType() == EventType.COMPOSITE_DATA_MOVEMENT_EVENT) { 
+                ((CompositeDataMovementEvent) tezEvent.getEvent()).setVersion(srcTaId.getId());
               } else {
                 ((InputFailedEvent) tezEvent.getEvent()).setVersion(srcTaId.getId());
               }
