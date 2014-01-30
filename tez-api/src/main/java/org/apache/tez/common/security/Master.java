@@ -39,6 +39,8 @@ public class Master {
     return conf.get(YarnConfiguration.RM_PRINCIPAL);
   }
 
+  
+  // This needs to go into YARN
   public static InetSocketAddress getMasterAddress(Configuration conf) {
     return conf
         .getSocketAddr(YarnConfiguration.RM_ADDRESS,

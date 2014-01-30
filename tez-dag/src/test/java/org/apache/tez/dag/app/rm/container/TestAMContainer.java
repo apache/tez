@@ -930,7 +930,7 @@ public class TestAMContainer {
     Token<TokenIdentifier> token3 = mock(Token.class);
     
     Credentials containerCredentials = new Credentials();
-    TokenCache.setJobToken(amGenToken, containerCredentials);
+    TokenCache.setSessionToken(amGenToken, containerCredentials);
 
     Text token1Name = new Text("tokenDag1");
     Text token3Name = new Text("tokenDag3");
@@ -1108,7 +1108,7 @@ public class TestAMContainer {
       reset(eventHandler);
       @SuppressWarnings("unchecked")
       Token<JobTokenIdentifier> jobToken = mock(Token.class);
-      TokenCache.setJobToken(jobToken, credentials);
+      TokenCache.setSessionToken(jobToken, credentials);
       amContainer.handle(new AMContainerEventLaunchRequest(containerID, vertexID,
           new ContainerContext(localResources, credentials, new HashMap<String, String>(), "")));
     }

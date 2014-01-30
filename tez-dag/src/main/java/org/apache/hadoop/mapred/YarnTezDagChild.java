@@ -324,7 +324,7 @@ public class YarnTezDagChild {
     UserGroupInformation taskOwner =
       UserGroupInformation.createRemoteUser(tokenIdentifier);
 
-    Token<JobTokenIdentifier> jobToken = TokenCache.getJobToken(credentials);
+    Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
     SecurityUtil.setTokenService(jobToken, address);
     taskOwner.addToken(jobToken);
     // Will jobToken change across DAGs ?

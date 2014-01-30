@@ -185,7 +185,7 @@ public class TezClientUtils {
           + ". Ignoring for now. Errors may occur");
     } else {
       // Obtain credentials.
-      TokenCache.obtainTokensForNamenodes(credentials,
+      TokenCache.obtainTokensForFileSystems(credentials,
           tezJarPaths.toArray(new Path[tezJarPaths.size()]), conf);
     }
     return tezJarResources;
@@ -266,7 +266,7 @@ public class TezClientUtils {
         }
       });
       Path[] paths = Iterators.toArray(pathIter, Path.class);
-      TokenCache.obtainTokensForNamenodes(dagCredentials, paths, conf);
+      TokenCache.obtainTokensForFileSystems(dagCredentials, paths, conf);
     }
   }
 
@@ -318,7 +318,7 @@ public class TezClientUtils {
     }
 
     // Add Staging dir creds to the list of session credentials.
-    TokenCache.obtainTokensForNamenodes(sessionCreds, new Path[] {binaryConfPath}, conf);
+    TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[] {binaryConfPath}, conf);
 
     // Add session specific credentials to the AM credentials.
     amLaunchCredentials.mergeAll(sessionCreds);

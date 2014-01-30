@@ -304,15 +304,7 @@ public class TezJobConfig {
 
   public static final String TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS = 
       "tez.runtime.intermediate-input.key.secondary.comparator.class";
-  
-  // TODO This should be in DAGConfiguration
-  /* config for tracking the local file where all the credentials for the job
-   * credentials.
-   * Currently not supported.
-   */
-  @Private
-  public static final String DAG_CREDENTIALS_BINARY =  "tez.dag.credentials.binary";
-  
+
   public static final String TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED = "tez.runtime.broadcast.data-via-events.enabled";
   public static final boolean TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED_DEFAULT = false;
   

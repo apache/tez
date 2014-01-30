@@ -275,7 +275,7 @@ public class DAGAppMaster extends AbstractService {
     sessionToken = new Token<JobTokenIdentifier>(identifier,
         jobTokenSecretManager);
     sessionToken.setService(identifier.getJobId());
-    TokenCache.setJobToken(sessionToken, amTokens);
+    TokenCache.setSessionToken(sessionToken, amTokens);
     // Prepare the TaskAttemptListener server for authentication of Containers
     // TaskAttemptListener gets the information via jobTokenSecretManager.
     jobTokenSecretManager.addTokenForJob(sessionTokenUUID, sessionToken);
@@ -503,7 +503,8 @@ public class DAGAppMaster extends AbstractService {
     } else {
       dagCredentials = new Credentials();
     }
-    TokenCache.setJobToken(sessionToken, dagCredentials);
+    // TODO Does this move to the client in case of work-preserving recovery.
+    TokenCache.setSessionToken(sessionToken, dagCredentials);
 
     // create single dag
     DAG newDag =

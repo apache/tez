@@ -205,7 +205,7 @@ public abstract class MRTask {
     // Set it in conf, so as to be able to be used the the OutputCommitter.
 
     // Not needed. This is probably being set via the source/consumer meta
-    Token<JobTokenIdentifier> jobToken = TokenCache.getJobToken(credentials);
+    Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
     if (jobToken != null) {
       // Will MR ever run without a job token.
       SecretKey sk = JobTokenSecretManager.createSecretKey(jobToken
@@ -216,11 +216,6 @@ public abstract class MRTask {
     }
 
     configureLocalDirs();
-
-    if (jobConf.get(TezJobConfig.DAG_CREDENTIALS_BINARY) != null) {
-      jobConf.set(MRJobConfig.MAPREDUCE_JOB_CREDENTIALS_BINARY,
-          jobConf.get(TezJobConfig.DAG_CREDENTIALS_BINARY));
-    }
 
     // Set up the DistributedCache related configs
     setupDistributedCacheConfig(jobConf);

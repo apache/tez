@@ -34,7 +34,6 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
-import org.apache.tez.common.TezJobConfig;
 
 
 /**
@@ -69,32 +68,22 @@ public class TokenCache {
    * @param conf configuration
    * @throws IOException
    */
-  public static void obtainTokensForNamenodes(Credentials credentials,
+  public static void obtainTokensForFileSystems(Credentials credentials,
       Path[] ps, Configuration conf) throws IOException {
     if (!UserGroupInformation.isSecurityEnabled()) {
       return;
     }
-    obtainTokensForNamenodesInternal(credentials, ps, conf);
+    obtainTokensForFileSystemsInternal(credentials, ps, conf);
   }
 
-  /**
-   * Remove jobtoken referrals which don't make sense in the context
-   * of the task execution.
-   *
-   * @param conf
-   */
-  public static void cleanUpTokenReferral(Configuration conf) {
-    conf.unset(TezJobConfig.DAG_CREDENTIALS_BINARY);
-  }
-
-  static void obtainTokensForNamenodesInternal(Credentials credentials,
+  static void obtainTokensForFileSystemsInternal(Credentials credentials,
       Path[] ps, Configuration conf) throws IOException {
     Set<FileSystem> fsSet = new HashSet<FileSystem>();
     for(Path p: ps) {
       fsSet.add(p.getFileSystem(conf));
     }
     for (FileSystem fs : fsSet) {
-      obtainTokensForNamenodesInternal(fs, credentials, conf);
+      obtainTokensForFileSystemsInternal(fs, credentials, conf);
     }
   }
 
@@ -106,14 +95,14 @@ public class TokenCache {
    * @param conf
    * @throws IOException
    */
-  static void obtainTokensForNamenodesInternal(FileSystem fs, 
+  static void obtainTokensForFileSystemsInternal(FileSystem fs, 
       Credentials credentials, Configuration conf) throws IOException {
+    // TODO Change this to use YARN utilities once YARN-1664 is fixed.
     String delegTokenRenewer = Master.getMasterPrincipal(conf);
     if (delegTokenRenewer == null || delegTokenRenewer.length() == 0) {
       throw new IOException(
           "Can't get Master Kerberos principal for use as renewer");
     }
-    mergeBinaryTokens(credentials, conf);
 
     final Token<?> tokens[] = fs.addDelegationTokens(delegTokenRenewer,
                                                      credentials);
@@ -124,82 +113,24 @@ public class TokenCache {
     }
   }
 
-  private static void mergeBinaryTokens(Credentials creds, Configuration conf) {
-    String binaryTokenFilename =
-        conf.get(TezJobConfig.DAG_CREDENTIALS_BINARY);
-    if (binaryTokenFilename != null) {
-      Credentials binary;
-      try {
-        binary = Credentials.readTokenStorageFile(
-            new Path("file:///" +  binaryTokenFilename), conf);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-      // supplement existing tokens with the tokens in the binary file
-      creds.mergeAll(binary);
-    }
-  }
-  
-  /**
-   * file name used on HDFS for generated job token
-   */
-  @InterfaceAudience.Private
-  public static final String JOB_TOKEN_HDFS_FILE = "jobToken";
+  private static final Text SESSION_TOKEN = new Text("SessionToken");
 
   /**
-   * conf setting for job tokens cache file name
-   */
-  @InterfaceAudience.Private
-  public static final String JOB_TOKENS_FILENAME = "mapreduce.job.jobTokenFile";
-  private static final Text JOB_TOKEN = new Text("JobToken");
-  private static final Text SHUFFLE_TOKEN = new Text("MapReduceShuffleToken");
-  
-  /**
-   * load job token from a file
-   * @param conf
-   * @throws IOException
-   */
-  @InterfaceAudience.Private
-  public static Credentials loadTokens(String jobTokenFile, Configuration conf) 
-  throws IOException {
-    Path localJobTokenFile = new Path ("file:///" + jobTokenFile);
-
-    Credentials ts = Credentials.readTokenStorageFile(localJobTokenFile, conf);
-
-    if(LOG.isDebugEnabled()) {
-      LOG.debug("Task: Loaded jobTokenFile from: "+
-          localJobTokenFile.toUri().getPath() 
-          +"; num of sec keys  = " + ts.numberOfSecretKeys() +
-          " Number of tokens " +  ts.numberOfTokens());
-    }
-    return ts;
-  }
-  /**
-   * store job token
+   * store session specific token
    * @param t
    */
   @InterfaceAudience.Private
-  public static void setJobToken(Token<? extends TokenIdentifier> t, 
+  public static void setSessionToken(Token<? extends TokenIdentifier> t, 
       Credentials credentials) {
-    credentials.addToken(JOB_TOKEN, t);
+    credentials.addToken(SESSION_TOKEN, t);
   }
   /**
    * 
-   * @return job token
+   * @return session token
    */
   @SuppressWarnings("unchecked")
   @InterfaceAudience.Private
-  public static Token<JobTokenIdentifier> getJobToken(Credentials credentials) {
-    return (Token<JobTokenIdentifier>) credentials.getToken(JOB_TOKEN);
-  }
-
-  @InterfaceAudience.Private
-  public static void setShuffleSecretKey(byte[] key, Credentials credentials) {
-    credentials.addSecretKey(SHUFFLE_TOKEN, key);
-  }
-
-  @InterfaceAudience.Private
-  public static byte[] getShuffleSecretKey(Credentials credentials) {
-    return getSecretKey(credentials, SHUFFLE_TOKEN);
+  public static Token<JobTokenIdentifier> getSessionToken(Credentials credentials) {
+    return (Token<JobTokenIdentifier>) credentials.getToken(SESSION_TOKEN);
   }
 }
