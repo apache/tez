@@ -65,6 +65,8 @@ import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
+import org.apache.tez.dag.api.records.DAGProtos.PlanGroupInputEdgeInfo;
+import org.apache.tez.dag.api.records.DAGProtos.PlanVertexGroupInfo;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataMovementType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataSourceType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSchedulingType;
@@ -98,6 +100,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.app.dag.impl.DAGImpl.VertexGroupInfo;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.avro.HistoryEventType;
@@ -112,6 +115,7 @@ import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.test.EdgeManagerForTest;
+import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -120,6 +124,8 @@ import org.junit.Test;
 import org.mockito.internal.util.collections.Sets;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -143,6 +149,7 @@ public class TestVertexImpl {
   private VertexLocationHint vertexLocationHint = null;
   private Configuration conf;
   private Map<String, Edge> edges;
+  private Map<String, VertexGroupInfo> vertexGroups;
   private byte[] edgePayload = "EP".getBytes();
 
   private TaskAttemptEventDispatcher taskAttemptEventDispatcher;
@@ -899,6 +906,103 @@ public class TestVertexImpl {
 
     return dag;
   }
+  
+  // Create a plan with 3 vertices: A, B, C. Group(A,B)->C
+  private DAGPlan createVertexGroupDAGPlan() {
+    LOG.info("Setting up group dag plan");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("TestGroupDAG")
+        .addVertex(
+          VertexPlan.newBuilder()
+            .setName("A")
+            .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("A.class"))
+            .setType(PlanVertexType.NORMAL)
+            .setTaskConfig(
+              PlanTaskConfiguration.newBuilder()
+                .setNumTasks(1)
+                .setVirtualCores(4)
+                .setMemoryMb(1024)
+                .setJavaOpts("")
+                .setTaskModule("A.class")
+                .build()
+            )
+            .addOutEdgeId("A_C")
+            .build()
+        )
+        .addVertex(
+          VertexPlan.newBuilder()
+            .setName("B")
+            .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("B.class"))
+            .setType(PlanVertexType.NORMAL)
+            .setTaskConfig(
+              PlanTaskConfiguration.newBuilder()
+                .setNumTasks(2)
+                .setVirtualCores(4)
+                .setMemoryMb(1024)
+                .setJavaOpts("")
+                .setTaskModule("")
+                .build()
+            )
+            .addOutEdgeId("B_C")
+            .build()
+        )
+        .addVertex(
+          VertexPlan.newBuilder()
+            .setName("C")
+            .setType(PlanVertexType.NORMAL)
+            .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("C.class"))
+            .setTaskConfig(
+              PlanTaskConfiguration.newBuilder()
+                .setNumTasks(2)
+                .setVirtualCores(4)
+                .setMemoryMb(1024)
+                .setJavaOpts("foo")
+                .setTaskModule("x3.y3")
+                .build()
+            )
+            .addInEdgeId("A_C")
+            .addInEdgeId("B_C")
+            .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("A_C"))
+                .setInputVertexName("A")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("A_C.class"))
+                .setOutputVertexName("C")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("A_C")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("B_C.class"))
+                .setInputVertexName("B")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("B_C.class"))
+                .setOutputVertexName("C")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("B_C")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+          )
+         .addVertexGroups(
+              PlanVertexGroupInfo.newBuilder().
+                setGroupName("Group").
+                addGroupMembers("A").
+                addGroupMembers("B").
+                addEdgeMergedInputs(
+                    PlanGroupInputEdgeInfo.newBuilder().setDestVertexName("C").
+                    setMergedInput(
+                        TezEntityDescriptorProto.newBuilder().
+                          setClassName("Group.class")
+                          .build()).build()))
+        .build();
+
+    return dag;
+  }
 
   // Create a plan with 3 vertices: A, B, C
   // A -> C, B -> C
@@ -1024,7 +1128,7 @@ public class TestVertexImpl {
       } else {
         v = new VertexImpl(vertexId, vPlan, vPlan.getName(), conf,
             dispatcher.getEventHandler(), taskAttemptListener,
-            clock, thh, true, appContext, locationHint);
+            clock, thh, true, appContext, locationHint, vertexGroups);
       }
       vertices.put(vName, v);
       vertexIdMap.put(vertexId, v);
@@ -1104,6 +1208,11 @@ public class TestVertexImpl {
     doReturn(taskScheduler).when(appContext).getTaskScheduler();
     doReturn(Resource.newInstance(102400, 60)).when(taskScheduler).getTotalResources();
 
+    vertexGroups = Maps.newHashMap();
+    for (PlanVertexGroupInfo groupInfo : dagPlan.getVertexGroupsList()) {
+      vertexGroups.put(groupInfo.getGroupName(), new VertexGroupInfo(groupInfo));
+    }
+    
     setupVertices();
     when(dag.getVertex(any(TezVertexID.class))).thenAnswer(new Answer<Vertex>() {
       @Override
@@ -2044,7 +2153,7 @@ public class TestVertexImpl {
       VertexPlan vPlan = invalidDagPlan.getVertex(0);
       VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
           dispatcher.getEventHandler(), taskAttemptListener,
-          clock, thh, true, appContext, vertexLocationHint);
+          clock, thh, true, appContext, vertexLocationHint, null);
       vertexIdMap.put(vId, v);
       v.handle(new VertexEvent(vId, VertexEventType.V_INIT));
       dispatcher.await();
@@ -2072,7 +2181,7 @@ public class TestVertexImpl {
         AppContext appContext, VertexLocationHint vertexLocationHint, DrainDispatcher dispatcher) {
       super(vertexId, vertexPlan, vertexName, conf, eventHandler,
           taskAttemptListener, clock, thh, true,
-          appContext, vertexLocationHint);
+          appContext, vertexLocationHint, null);
       this.dispatcher = dispatcher;
     }
 
@@ -2149,6 +2258,34 @@ public class TestVertexImpl {
     }
   }
 
+  @SuppressWarnings("unchecked")
+  @Test(timeout=5000)
+  public void testVertexGroupInput() {
+    setupPreDagCreation();
+    dagPlan = createVertexGroupDAGPlan();
+    setupPostDagCreation();
+
+    VertexImpl vA = vertices.get("A");
+    VertexImpl vB = vertices.get("B");
+    VertexImpl vC = vertices.get("C");
+
+    dispatcher.getEventHandler().handle(new VertexEvent(vA.getVertexId(),
+      VertexEventType.V_INIT));
+    dispatcher.getEventHandler().handle(new VertexEvent(vB.getVertexId(),
+        VertexEventType.V_INIT));
+    dispatcher.await();
+    
+    Assert.assertNull(vA.getGroupInputSpecList(0));
+    Assert.assertNull(vB.getGroupInputSpecList(0));
+    
+    List<GroupInputSpec> groupInSpec = vC.getGroupInputSpecList(0);
+    Assert.assertEquals(1, groupInSpec.size());
+    Assert.assertEquals("Group", groupInSpec.get(0).getGroupName());
+    Assert.assertTrue(groupInSpec.get(0).getGroupVertices().contains("A"));
+    Assert.assertTrue(groupInSpec.get(0).getGroupVertices().contains("B"));
+    groupInSpec.get(0).getMergedInputDescriptor().getClassName().equals("Group.class");
+  }
+  
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testInitStartRace() {

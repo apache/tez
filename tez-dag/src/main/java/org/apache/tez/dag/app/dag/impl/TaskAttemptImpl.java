@@ -297,8 +297,9 @@ public class TaskAttemptImpl implements TaskAttempt,
     Vertex vertex = getVertex();
     ProcessorDescriptor procDesc = vertex.getProcessorDescriptor();
     int taskId = getTaskID().getId();
-    return new TaskSpec(getID(), vertex.getName(), procDesc, vertex.getInputSpecList(taskId),
-        vertex.getOutputSpecList(taskId));
+    return new TaskSpec(getID(), vertex.getName(), procDesc, 
+        vertex.getInputSpecList(taskId), vertex.getOutputSpecList(taskId), 
+        vertex.getGroupInputSpecList(taskId));
   }
 
   @Override

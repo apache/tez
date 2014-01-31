@@ -174,7 +174,7 @@ public class DagTypeConverters {
     }
     return new VertexLocationHint(outputList.size(), outputList);
   }
-
+  
   // notes re HDFS URL handling:
   //   Resource URLs in the protobuf message are strings of the form hdfs://host:port/path
   //   org.apache.hadoop.fs.Path.Path  is actually a URI type that allows any scheme

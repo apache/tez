@@ -28,6 +28,8 @@ import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
+import com.google.common.collect.Lists;
+
 public class TaskSpec implements Writable {
 
   private TezTaskAttemptID taskAttemptId;
@@ -35,18 +37,21 @@ public class TaskSpec implements Writable {
   private ProcessorDescriptor processorDescriptor;
   private List<InputSpec> inputSpecList;
   private List<OutputSpec> outputSpecList;
+  private List<GroupInputSpec> groupInputSpecList;
 
   public TaskSpec() {
   }
 
   public TaskSpec(TezTaskAttemptID taskAttemptID,
       String vertexName, ProcessorDescriptor processorDescriptor,
-      List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList) {
+      List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList, 
+      List<GroupInputSpec> groupInputSpecList) {
     this.taskAttemptId = taskAttemptID;
     this.vertexName = StringInterner.weakIntern(vertexName);
     this.processorDescriptor = processorDescriptor;
     this.inputSpecList = inputSpecList;
     this.outputSpecList = outputSpecList;
+    this.groupInputSpecList = groupInputSpecList;
   }
 
   public String getVertexName() {
@@ -68,6 +73,10 @@ public class TaskSpec implements Writable {
   public List<OutputSpec> getOutputs() {
     return outputSpecList;
   }
+  
+  public List<GroupInputSpec> getGroupInputs() {
+    return groupInputSpecList;
+  }
 
   @Override
   public void write(DataOutput out) throws IOException {
@@ -82,12 +91,20 @@ public class TaskSpec implements Writable {
     for (OutputSpec outputSpec : outputSpecList) {
       outputSpec.write(out);
     }
+    if (groupInputSpecList != null && !groupInputSpecList.isEmpty()) {
+      out.writeBoolean(true);
+      out.writeInt(groupInputSpecList.size());
+      for (GroupInputSpec group : groupInputSpecList) {
+        group.write(out);
+      }
+    } else {
+      out.writeBoolean(false);
+    }
   }
 
   @Override
   public void readFields(DataInput in) throws IOException {
     taskAttemptId = TezTaskAttemptID.readTezTaskAttemptID(in);
-    // TODO ZZZ Intern this.
     vertexName = StringInterner.weakIntern(in.readUTF());
     // TODO TEZ-305 convert this to PB
     processorDescriptor = new ProcessorDescriptor();
@@ -105,6 +122,16 @@ public class TaskSpec implements Writable {
       OutputSpec outputSpec = new OutputSpec();
       outputSpec.readFields(in);
       outputSpecList.add(outputSpec);
+    }
+    boolean hasGroupInputs = in.readBoolean();
+    if (hasGroupInputs) {
+      int numGroups = in.readInt();
+      groupInputSpecList = Lists.newArrayListWithCapacity(numGroups);
+      for (int i=0; i<numGroups; ++i) {
+        GroupInputSpec group = new GroupInputSpec();
+        group.readFields(in);
+        groupInputSpecList.add(group);
+      }
     }
   }
 
@@ -125,6 +152,13 @@ public class TaskSpec implements Writable {
       sb.append("{" + i.toString() + "}, ");
     }
     sb.append("]");
+    if (groupInputSpecList != null && !groupInputSpecList.isEmpty()) {
+      sb.append(" groupInputSpecList=[");
+      for (GroupInputSpec group : groupInputSpecList) {
+        sb.append("{" + group.toString() + "}, ");
+      }
+      sb.append("]");
+    }
     return sb.toString();
   }
 

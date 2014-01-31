@@ -88,6 +88,18 @@ message PlanTaskLocationHint {
   repeated string host = 2;
 }
 
+message PlanGroupInputEdgeInfo {
+  required string dest_vertex_name = 1;
+  required TezEntityDescriptorProto merged_input = 2;
+}
+
+message PlanVertexGroupInfo {
+  optional string group_name = 1;
+  repeated string group_members = 2;
+  repeated string outputs = 3;
+  repeated PlanGroupInputEdgeInfo edge_merged_inputs = 4;
+}
+
 message PlanTaskConfiguration {
   required int32 numTasks = 1;
   required int32 memoryMb = 2;
@@ -144,6 +156,7 @@ message DAGPlan {
   repeated EdgePlan edge = 3;
   optional ConfigurationProto dagKeyValues = 4;
   optional bytes credentials_binary = 5;
+  repeated PlanVertexGroupInfo vertex_groups = 6;
 }
 
 // DAG monitoring messages

@@ -33,11 +33,21 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.DrainDispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.tez.dag.api.GroupInputEdge;
+import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -112,14 +122,20 @@ public class TestDAGImpl {
   private DAGPlan mrrDagPlan;
   private DAGImpl mrrDag;
   private TezDAGID mrrDagId;
+  private AppContext groupAppContext;
+  private DAGPlan groupDagPlan;
+  private DAGImpl groupDag;
+  private TezDAGID groupDagId;
 
   private class DagEventDispatcher implements EventHandler<DAGEvent> {
     @Override
     public void handle(DAGEvent event) {
       if (event.getDAGId().equals(dagId)) {
         dag.handle(event);
-      }  else if (event.getDAGId().equals(mrrDagId)) {
+      } else if (event.getDAGId().equals(mrrDagId)) {
         mrrDag.handle(event);
+      } else if (event.getDAGId().equals(groupDagId)) {
+        groupDag.handle(event);
       } else {
         throw new RuntimeException("Invalid event, unknown dag"
             + ", dagId=" + event.getDAGId());
@@ -143,8 +159,8 @@ public class TestDAGImpl {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskEvent event) {
-      DAGImpl handler = event.getTaskID().getVertexID().getDAGId().equals(dagId) ?
-          dag : mrrDag;
+      TezDAGID id = event.getTaskID().getVertexID().getDAGId();
+      DAGImpl handler = id.equals(dagId) ? dag : (id.equals(mrrDagId) ? mrrDag : groupDag);
       Vertex vertex = handler.getVertex(event.getTaskID().getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       ((EventHandler<TaskEvent>)task).handle(event);
@@ -157,8 +173,8 @@ public class TestDAGImpl {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(VertexEvent event) {
-      DAGImpl handler = event.getVertexId().getDAGId().equals(dagId) ?
-          dag : mrrDag;
+      TezDAGID id = event.getVertexId().getDAGId();
+      DAGImpl handler = id.equals(dagId) ? dag : (id.equals(mrrDagId) ? mrrDag : groupDag);
       Vertex vertex = handler.getVertex(event.getVertexId());
       ((EventHandler<VertexEvent>) vertex).handle(event);
     }
@@ -297,6 +313,54 @@ public class TestDAGImpl {
       .build();
 
     return dag;
+  }
+  
+  public static class TotalCountingOutputCommitter extends CountingOutputCommitter {
+    static int totalCommitCounter = 0;
+    public TotalCountingOutputCommitter() {
+      super();
+    }
+    @Override
+    public void commitOutput() throws IOException {
+      ++totalCommitCounter;
+      super.commitOutput();
+    }
+  }
+  
+  // Create a plan with 3 vertices: A, B, C. Group(A,B)->C
+  private DAGPlan createGroupDAGPlan() {
+    LOG.info("Setting up group dag plan");
+    int dummyTaskCount = 1;
+    Resource dummyTaskResource = Resource.newInstance(1, 1);
+    org.apache.tez.dag.api.Vertex v1 = new org.apache.tez.dag.api.Vertex("vertex1",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    org.apache.tez.dag.api.Vertex v2 = new org.apache.tez.dag.api.Vertex("vertex2",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    org.apache.tez.dag.api.Vertex v3 = new org.apache.tez.dag.api.Vertex("vertex3",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    
+    DAG dag = new DAG("testDag");
+    String groupName1 = "uv12";
+    org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
+    OutputDescriptor outDesc = new OutputDescriptor("output.class");
+    uv12.addOutput("uvOut", outDesc, TotalCountingOutputCommitter.class);
+    v3.addOutput("uvOut", outDesc, TotalCountingOutputCommitter.class);
+    
+    GroupInputEdge e1 = new GroupInputEdge(uv12, v3,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")), 
+            new InputDescriptor("merge.class"));
+    
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addVertex(v3);
+    dag.addEdge(e1);
+    return dag.createDag(conf);
   }
 
   private DAGPlan createTestDAGPlan() {
@@ -548,6 +612,16 @@ public class TestDAGImpl {
     doReturn(conf).when(mrrAppContext).getAMConf();
     doReturn(mrrDag).when(mrrAppContext).getCurrentDAG();
     doReturn(appAttemptId).when(mrrAppContext).getApplicationAttemptId();
+    groupAppContext = mock(AppContext.class);
+    groupDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 3);
+    groupDagPlan = createGroupDAGPlan();
+    groupDag = new DAGImpl(groupDagId, conf, groupDagPlan,
+        dispatcher.getEventHandler(),  taskAttemptListener,
+        fsTokens, clock, "user", thh,
+        groupAppContext);
+    doReturn(conf).when(groupAppContext).getAMConf();
+    doReturn(groupDag).when(groupAppContext).getCurrentDAG();
+    doReturn(appAttemptId).when(groupAppContext).getApplicationAttemptId();
     taskEventDispatcher = new TaskEventDispatcher();
     dispatcher.register(TaskEventType.class, taskEventDispatcher);
     vertexEventDispatcher = new VertexEventDispatcher();
@@ -637,6 +711,28 @@ public class TestDAGImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, dag.getSuccessfulVertices());
   }
+  
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testGroupDAGCompletionWithCommitSuccess() {
+    // should have only 2 commits. 1 vertex3 commit and 1 group commit.
+    initDAG(groupDag);
+    startDAG(groupDag);
+    dispatcher.await();
+
+    for (int i=0; i<3; ++i) {
+      Vertex v = groupDag.getVertex("vertex"+(i+1));
+      dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
+          TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
+      dispatcher.await();
+      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+      Assert.assertEquals(i+1, groupDag.getSuccessfulVertices());
+    }
+    
+    Assert.assertEquals(3, groupDag.getSuccessfulVertices());
+    Assert.assertEquals(DAGState.SUCCEEDED, groupDag.getState());
+    Assert.assertEquals(2, TotalCountingOutputCommitter.totalCommitCounter);
+  }  
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)

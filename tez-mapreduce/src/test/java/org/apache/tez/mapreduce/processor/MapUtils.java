@@ -205,7 +205,7 @@ public class MapUtils {
         vertexName,
         mapProcessorDesc,
         inputSpecs,
-        outputSpecs);
+        outputSpecs, null);
 
     Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
     serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,

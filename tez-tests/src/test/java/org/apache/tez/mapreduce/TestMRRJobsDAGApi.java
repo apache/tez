@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce;
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -26,6 +27,7 @@ import java.util.Random;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -59,6 +61,7 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
@@ -73,6 +76,7 @@ import org.apache.tez.mapreduce.examples.MRRSleepJob.MRRSleepJobPartitioner;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.SleepInputFormat;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.SleepMapper;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.SleepReducer;
+import org.apache.tez.mapreduce.examples.UnionExample;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
@@ -529,5 +533,27 @@ public class TestMRRJobsDAGApi {
 
     return LocalResource.newInstance(resourceURL, type, visibility,
         resourceSize, resourceModificationTime);
+  }
+  
+  @Test(timeout = 60000)
+  public void testVertexGroups() throws Exception {
+    LOG.info("Running Group Test");
+    Path inPath = new Path(TEST_ROOT_DIR, "in");
+    Path outPath = new Path(TEST_ROOT_DIR, "out");
+    FSDataOutputStream out = remoteFs.create(inPath);
+    OutputStreamWriter writer = new OutputStreamWriter(out);
+    writer.write("abcd ");
+    writer.write("efgh ");
+    writer.write("abcd ");
+    writer.write("efgh ");
+    writer.close();
+    out.close();
+    
+    UnionExample job = new UnionExample();
+    if (job.run(inPath.toString(), outPath.toString(), mrrTezCluster.getConfig())) {
+      LOG.info("Success VertexGroups Test");
+    } else {
+      throw new TezUncheckedException("VertexGroups Test Failed");
+    }
   }
 }

@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,6 +42,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -49,11 +51,13 @@ import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.Output;
 import org.apache.tez.runtime.api.Processor;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
@@ -67,6 +71,8 @@ import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 @Private
@@ -83,6 +89,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final List<OutputSpec> outputSpecs;
   private final ConcurrentHashMap<String, LogicalOutput> outputsMap;
   private final ConcurrentHashMap<String, TezOutputContext> outputContextMap;
+  
+  private final List<GroupInputSpec> groupInputSpecs;
+  private ConcurrentHashMap<String, LogicalInput> groupInputsMap;
   
   private final ProcessorDescriptor processorDescriptor;
   private final LogicalIOProcessor processor;
@@ -134,6 +143,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
             .setNameFormat("Initializer %d").build());
     this.initializerCompletionService = new ExecutorCompletionService<Void>(
         this.initializerExecutor);
+    this.groupInputSpecs = taskSpec.getGroupInputs();
   }
 
   public void initialize() throws Exception {
@@ -179,14 +189,31 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
     LOG.info("All initializers finished");
 
+    // group inputs depend on inputs beings initialized. So must be done after.
+    initializeGroupInputs();
+    
+    Set<String> groupInputs = Sets.newHashSet();
     // Construct Inputs/Outputs map argument for processor.run()
-    for (InputSpec inputSpec : inputSpecs) {
-      LogicalInput input = inputsMap.get(inputSpec.getSourceVertexName());
-      runInputMap.put(inputSpec.getSourceVertexName(), input);
+    // first add the group inputs
+    if (groupInputSpecs !=null && !groupInputSpecs.isEmpty()) {
+      for (GroupInputSpec groupInputSpec : groupInputSpecs) {
+        runInputMap.put(groupInputSpec.getGroupName(), 
+                                 groupInputsMap.get(groupInputSpec.getGroupName()));
+        groupInputs.addAll(groupInputSpec.getGroupVertices());
+      }
     }
+    // then add the non-grouped inputs
+    for (InputSpec inputSpec : inputSpecs) {
+      if (!groupInputs.contains(inputSpec.getSourceVertexName())) {
+        LogicalInput input = inputsMap.get(inputSpec.getSourceVertexName());
+        runInputMap.put(inputSpec.getSourceVertexName(), input);
+      }
+    }
+    
     for (OutputSpec outputSpec : outputSpecs) {
       LogicalOutput output = outputsMap.get(outputSpec.getDestinationVertexName());
-      runOutputMap.put(outputSpec.getDestinationVertexName(), output);
+      String outputName = outputSpec.getDestinationVertexName();
+      runOutputMap.put(outputName, output);
     }
     
     // TODO Maybe close initialized inputs / outputs in case of failure to
@@ -305,6 +332,23 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
   }
 
+  private void initializeGroupInputs() {
+    if (groupInputSpecs != null && !groupInputSpecs.isEmpty()) {
+     groupInputsMap = new ConcurrentHashMap<String, LogicalInput>(groupInputSpecs.size());
+     for (GroupInputSpec groupInputSpec : groupInputSpecs) {
+        LOG.info("Initializing GroupInput using GroupInputSpec: " + groupInputSpec);
+        MergedLogicalInput groupInput = (MergedLogicalInput) createInputFromDescriptor(
+            groupInputSpec.getMergedInputDescriptor());
+        List<Input> inputs = Lists.newArrayListWithCapacity(groupInputSpec.getGroupVertices().size());
+        for (String groupVertex : groupInputSpec.getGroupVertices()) {
+          inputs.add(inputsMap.get(groupVertex));
+        }
+        groupInput.initialize(inputs);
+        groupInputsMap.put(groupInputSpec.getGroupName(), groupInput);
+      }
+    }
+  }
+  
   private void initializeLogicalIOProcessor() throws Exception {
     LOG.info("Initializing processor" + ", processorClassName="
         + processorDescriptor.getClassName());
@@ -349,16 +393,19 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   private LogicalInput createInput(InputSpec inputSpec) {
     LOG.info("Creating Input");
-    Input input = RuntimeUtils.createClazzInstance(inputSpec
-        .getInputDescriptor().getClassName());
+    return createInputFromDescriptor(inputSpec.getInputDescriptor());
+  }
+
+  private LogicalInput createInputFromDescriptor(InputDescriptor inputDesc) {
+    Input input = RuntimeUtils.createClazzInstance(inputDesc.getClassName());
     if (!(input instanceof LogicalInput)) {
-      throw new TezUncheckedException(input.getClass().getName()
+      throw new TezUncheckedException(inputDesc.getClass().getName()
           + " is not a sub-type of LogicalInput."
           + " Only LogicalInput sub-types supported by LogicalIOProcessor.");
     }
     return (LogicalInput)input;
   }
-
+  
   private LogicalOutput createOutput(OutputSpec outputSpec) {
     LOG.info("Creating Output");
     Output output = RuntimeUtils.createClazzInstance(outputSpec

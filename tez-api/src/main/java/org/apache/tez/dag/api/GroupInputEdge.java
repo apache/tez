@@ -19,24 +19,43 @@ package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
-public class Edge {
+public class GroupInputEdge {
 
-  private final Vertex inputVertex;
+  private final VertexGroup inputVertexGroup;
   private final Vertex outputVertex;
   private final EdgeProperty edgeProperty;
+  private final InputDescriptor mergedInput;
 
   // InputVertex(EdgeInput) ----- Edge ----- OutputVertex(EdgeOutput)]
-  public Edge(Vertex inputVertex, 
-               Vertex outputVertex, 
-               EdgeProperty edgeProperty) {
-    this.inputVertex = inputVertex;
+  /**
+   * An Edge that connects a VertexGroup to a destination Vertex. The framework
+   * takes care of connecting the VertexGroup members with the destination
+   * vertex. The tasks of the destination vertex see only 1 input named after
+   * the VertexGroup instead of individual inputs from group members. These
+   * individual inputs are merged using the mergedInput before presenting them
+   * to the destination task.
+   * 
+   * @param inputVertexGroup source VertexGroup
+   * @param outputVertex destination Vertex
+   * @param edgeProperty edge properties
+   * @param mergedInput MergedLogicalInput 
+   */
+  public GroupInputEdge(VertexGroup inputVertexGroup, 
+      Vertex outputVertex, 
+      EdgeProperty edgeProperty,
+      InputDescriptor mergedInput) {
+    this.inputVertexGroup = inputVertexGroup;
     this.outputVertex = outputVertex;
     this.edgeProperty = edgeProperty;
+    if (mergedInput == null) {
+      throw new TezUncheckedException(
+          "Merged input must be specified when using GroupInputEdge");
+    }
+    this.mergedInput = mergedInput;
   }
-  
-  // RENAME to source and destination
-  public Vertex getInputVertex() {
-    return inputVertex;
+
+  public VertexGroup getInputVertexGroup() {
+    return inputVertexGroup;
   }
 
   public Vertex getOutputVertex() {
@@ -47,6 +66,10 @@ public class Edge {
     return edgeProperty;
   }
   
+  InputDescriptor getMergedInput() {
+    return mergedInput;
+  }
+
   /*
    * Used to identify the edge in the configuration
    */
@@ -57,7 +80,7 @@ public class Edge {
  
   @Override
   public String toString() {
-    return inputVertex + " -> " + outputVertex + " (" + edgeProperty + ")";
+    return inputVertexGroup + " -> " + outputVertex + " (" + edgeProperty + ")";
   }
   
 }

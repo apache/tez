@@ -93,6 +93,7 @@ public class MROutputCommitter extends OutputCommitter {
     committer.abortJob(jobContext, jobState);
   }
 
+  @SuppressWarnings("rawtypes")
   private org.apache.hadoop.mapreduce.OutputCommitter
       getOutputCommitter(OutputCommitterContext context) {
 

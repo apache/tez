@@ -37,12 +37,15 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.VertexGroup.GroupInfo;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
+import org.apache.tez.dag.api.records.DAGProtos.PlanGroupInputEdgeInfo;
+import org.apache.tez.dag.api.records.DAGProtos.PlanVertexGroupInfo;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResource;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
@@ -53,18 +56,20 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import com.google.common.base.Preconditions;
 import org.apache.commons.collections4.bidimap.DualLinkedHashBidiMap;
 import org.apache.commons.collections4.BidiMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class DAG { // FIXME rename to Topology
-  final BidiMap<String, Vertex> vertices;
-  final List<Edge> edges;
+  final BidiMap<String, Vertex> vertices = 
+      new DualLinkedHashBidiMap<String, Vertex>();
+  final Set<Edge> edges = Sets.newHashSet();
   final String name;
   final List<URI> urisForCredentials = new LinkedList<URI>();
   Credentials credentials;
-  
+  Set<VertexGroup> vertexGroups = Sets.newHashSet();
+  Set<GroupInputEdge> groupInputEdges = Sets.newHashSet();
 
   public DAG(String name) {
-    this.vertices = new DualLinkedHashBidiMap<String, Vertex>();
-    this.edges = new ArrayList<Edge>();
     this.name = name;
   }
 
@@ -98,6 +103,12 @@ public class DAG { // FIXME rename to Topology
   public synchronized DAG setCredentials(Credentials credentials) {
     this.credentials = credentials;
     return this;
+  }
+  
+  public synchronized VertexGroup createVertexGroup(String name, Vertex... members) {
+    VertexGroup uv = new VertexGroup(name, members);
+    vertexGroups.add(uv);
+    return uv;
   }
 
   @Private
@@ -159,16 +170,65 @@ public class DAG { // FIXME rename to Topology
         "Edge " + edge + " already defined!");
     }
 
-    // Inform the vertices
-    edge.getInputVertex().addOutputVertex(edge.getOutputVertex(), edge.getId());
-    edge.getOutputVertex().addInputVertex(edge.getInputVertex(), edge.getId());
+    // inform the vertices
+    edge.getInputVertex().addOutputVertex(edge.getOutputVertex(), edge);
+    edge.getOutputVertex().addInputVertex(edge.getInputVertex(), edge);
 
     edges.add(edge);
     return this;
   }
+  
+  public synchronized DAG addEdge(GroupInputEdge edge) {
+    // Sanity checks
+    if (!vertexGroups.contains(edge.getInputVertexGroup())) {
+      throw new IllegalArgumentException(
+        "Input vertex " + edge.getInputVertexGroup() + " doesn't exist!");
+    }
+    if (!vertices.containsValue(edge.getOutputVertex())) {
+      throw new IllegalArgumentException(
+        "Output vertex " + edge.getOutputVertex() + " doesn't exist!");
+    }
+    if (groupInputEdges.contains(edge)) {
+      throw new IllegalArgumentException(
+        "Edge " + edge + " already defined!");
+    }
 
+    VertexGroup av = edge.getInputVertexGroup();
+    av.addOutputVertex(edge.getOutputVertex(), edge);
+    groupInputEdges.add(edge);
+    return this;
+  }
+  
   public String getName() {
     return this.name;
+  }
+  
+  private void processEdgesAndGroups() throws IllegalStateException {
+    // process all VertexGroups by transferring outgoing connections to the members
+    
+    // add edges between VertexGroup members and destination vertices
+    List<Edge> newEdges = Lists.newLinkedList();
+    for (GroupInputEdge e : groupInputEdges) {
+      Vertex  dstVertex = e.getOutputVertex();
+      VertexGroup uv = e.getInputVertexGroup();
+      for (Vertex member : uv.getMembers()) {
+        newEdges.add(new Edge(member, dstVertex, e.getEdgeProperty()));
+      }
+      dstVertex.addGroupInput(uv.getGroupName(), uv.getGroupInfo());
+    }
+    
+    for (Edge e : newEdges) {
+      addEdge(e);
+    }
+    
+    // add outputs to VertexGroup members
+    for(VertexGroup av : vertexGroups) {
+      for (RootInputLeafOutput<OutputDescriptor> output : av.getOutputs()) {
+        for (Vertex member : av.getMembers()) {
+          member.addAdditionalOutput(output);
+        }
+      }
+    }
   }
 
   // AnnotatedVertex is used by verify()
@@ -179,13 +239,11 @@ public class DAG { // FIXME rename to Topology
     int lowlink; //for Tarjan's algorithm
     boolean onstack; //for Tarjan's algorithm
 
-    int outDegree;
 
     private AnnotatedVertex(Vertex v) {
       this.v = v;
       index = -1;
       lowlink = -1;
-      outDegree = 0;
     }
   }
 
@@ -217,6 +275,8 @@ public class DAG { // FIXME rename to Topology
       throw new IllegalStateException("Invalid dag containing 0 vertices");
     }
 
+    processEdgesAndGroups();
+    
     // check for valid vertices, duplicate vertex names,
     // and prepare for cycle detection
     Map<String, AnnotatedVertex> vertexMap = new HashMap<String, AnnotatedVertex>();
@@ -315,7 +375,6 @@ public class DAG { // FIXME rename to Topology
 
     if (restricted) {
       for (Edge e : edges) {
-        vertexMap.get(e.getInputVertex().getVertexName()).outDegree++;
         if (e.getEdgeProperty().getDataSourceType() !=
           DataSourceType.PERSISTED) {
           throw new IllegalStateException(
@@ -399,6 +458,25 @@ public class DAG { // FIXME rename to Topology
     DAGPlan.Builder dagBuilder = DAGPlan.newBuilder();
 
     dagBuilder.setName(this.name);
+    
+    if (!vertexGroups.isEmpty()) {
+      for (VertexGroup av : vertexGroups) {
+        GroupInfo groupInfo = av.getGroupInfo();
+        PlanVertexGroupInfo.Builder groupBuilder = PlanVertexGroupInfo.newBuilder();
+        groupBuilder.setGroupName(groupInfo.getGroupName());
+        for (Vertex v : groupInfo.getMembers()) {
+          groupBuilder.addGroupMembers(v.getVertexName());
+        }
+        groupBuilder.addAllOutputs(groupInfo.outputs);
+        for (Map.Entry<String, InputDescriptor> entry : 
+             groupInfo.edgeMergedInputs.entrySet()) {
+          groupBuilder.addEdgeMergedInputs(
+              PlanGroupInputEdgeInfo.newBuilder().setDestVertexName(entry.getKey()).
+              setMergedInput(DagTypeConverters.convertToDAGPlan(entry.getValue())));
+        }
+        dagBuilder.addVertexGroups(groupBuilder); 
+      }
+    }
 
     for (Vertex vertex : vertices.values()) {
       VertexPlan.Builder vertexBuilder = VertexPlan.newBuilder();
@@ -452,7 +530,7 @@ public class DAG { // FIXME rename to Topology
           taskConfigBuilder.addLocalResource(localResourcesBuilder);
         }
       }
-
+      
       if (vertex.getTaskEnvironment() != null) {
         for (String key : vertex.getTaskEnvironment().keySet()) {
           PlanKeyValuePair.Builder envSettingBuilder = PlanKeyValuePair.newBuilder();

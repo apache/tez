@@ -25,11 +25,14 @@ import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.dag.api.VertexGroup.GroupInfo;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+
+import com.google.common.collect.Maps;
 
 public class Vertex {
 
@@ -51,8 +54,9 @@ public class Vertex {
   private final List<Vertex> outputVertices = new ArrayList<Vertex>();
   private final List<String> inputEdgeIds = new ArrayList<String>();
   private final List<String> outputEdgeIds = new ArrayList<String>();
+  private final Map<String, GroupInfo> groupInputs = Maps.newHashMap();
+  
   private String javaOpts = "";
-
 
   public Vertex(String vertexName,
       ProcessorDescriptor processorDescriptor,
@@ -188,6 +192,11 @@ public class Vertex {
         outputDescriptor, outputCommitterClazz));
     return this;
   }
+  
+  Vertex addAdditionalOutput(RootInputLeafOutput<OutputDescriptor> output) {
+    additionalOutputs.add(output);
+    return this;
+  }
 
   public Vertex addOutput(String outputName, OutputDescriptor outputDescriptor) {
     return addOutput(outputName, outputDescriptor, null);
@@ -220,16 +229,28 @@ public class Vertex {
     return vertexManagerPlugin;
   }
 
-  void addInputVertex(Vertex inputVertex, String edgeId) {
+  Map<String, GroupInfo> getGroupInputs() {
+    return groupInputs;
+  }
+  
+  void addGroupInput(String groupName, GroupInfo groupInputInfo) {
+    if (groupInputs.put(groupName, groupInputInfo) != null) {
+      throw new IllegalStateException(
+          "Vertex: " + getVertexName() + 
+          " already has group input with name:" + groupName);
+    }
+  }
+
+  void addInputVertex(Vertex inputVertex, Edge edge) {
     inputVertices.add(inputVertex);
-    inputEdgeIds.add(edgeId);
+    inputEdgeIds.add(edge.getId());
   }
 
-  void addOutputVertex(Vertex outputVertex, String edgeId) {
+  void addOutputVertex(Vertex outputVertex, Edge edge) {
     outputVertices.add(outputVertex);
-    outputEdgeIds.add(edgeId);
+    outputEdgeIds.add(edge.getId());
   }
-
+  
   public List<Vertex> getInputVertices() {
     return Collections.unmodifiableList(inputVertices);
   }

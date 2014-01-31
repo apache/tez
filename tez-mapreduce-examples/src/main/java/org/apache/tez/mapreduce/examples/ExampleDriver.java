@@ -82,6 +82,8 @@ public class ExampleDriver {
           "MRR Sleep Job");
       pgd.addClass("orderedwordcount", OrderedWordCount.class,
           "Word Count with words sorted on frequency");
+      pgd.addClass("unionexample", UnionExample.class,
+          "Union example");
       pgd.addClass("filterLinesByWord", FilterLinesByWord.class,
           "Filters lines by the specified word using broadcast edge");
       pgd.addClass("filterLinesByWordOneToOne", FilterLinesByWordOneToOne.class,

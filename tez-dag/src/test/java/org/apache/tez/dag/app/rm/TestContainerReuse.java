@@ -900,7 +900,7 @@ public class TestContainerReuse {
       Collections.singletonList(new InputSpec("vertexName",
         new InputDescriptor("inputClassName"), 1)),
       Collections.singletonList(new OutputSpec("vertexName",
-        new OutputDescriptor("outputClassName"), 1))), ta, hosts, racks,
+        new OutputDescriptor("outputClassName"), 1)), null), ta, hosts, racks,
       priority, containerContext);
     return lr;
   }

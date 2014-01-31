@@ -39,6 +39,7 @@ import org.apache.tez.dag.app.dag.impl.RootInputLeafOutputDescriptor;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.OutputCommitter;
+import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 
@@ -94,6 +95,10 @@ public interface Vertex extends Comparable<Vertex> {
 
   List<InputSpec> getInputSpecList(int taskIndex);
   List<OutputSpec> getOutputSpecList(int taskIndex);
+  
+  List<GroupInputSpec> getGroupInputSpecList(int taskIndex);
+  void addSharedOutputs(Set<String> outputs);
+  Set<String> getSharedOutputs();
 
   int getInputVerticesCount();
   int getOutputVerticesCount();

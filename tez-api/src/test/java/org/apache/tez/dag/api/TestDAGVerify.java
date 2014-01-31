@@ -414,6 +414,136 @@ public class TestDAGVerify {
     dag.addEdge(e2);
     dag.verify();
   }
+  
+  @Test
+  public void testVertexGroupWithMultipleOutputEdges() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v3 = new Vertex("v3",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v4 = new Vertex("v4",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    
+    DAG dag = new DAG("testDag");
+    VertexGroup uv12 = dag.createVertexGroup("uv12", v1, v2);
+    OutputDescriptor outDesc = new OutputDescriptor();
+    uv12.addOutput("uvOut", outDesc, null);
+    
+    GroupInputEdge e1 = new GroupInputEdge(uv12, v3,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")),
+            new InputDescriptor("dummy input class"));
+    
+    GroupInputEdge e2 = new GroupInputEdge(uv12, v4,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")),
+            new InputDescriptor("dummy input class"));
+
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addVertex(v3);
+    dag.addVertex(v4);
+    dag.addEdge(e1);
+    dag.addEdge(e2);
+    dag.verify();
+    
+    Assert.assertEquals(2, v1.getOutputVertices().size());
+    Assert.assertEquals(2, v2.getOutputVertices().size());
+    Assert.assertTrue(v1.getOutputVertices().contains(v3));
+    Assert.assertTrue(v1.getOutputVertices().contains(v4));
+    Assert.assertTrue(v2.getOutputVertices().contains(v3));
+    Assert.assertTrue(v2.getOutputVertices().contains(v4));
+  }
+  
+  @Test
+  public void testVertexGroup() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v3 = new Vertex("v3",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v4 = new Vertex("v4",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v5 = new Vertex("v5",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    
+    DAG dag = new DAG("testDag");
+    String groupName1 = "uv12";
+    VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
+    OutputDescriptor outDesc = new OutputDescriptor();
+    uv12.addOutput("uvOut", outDesc, null);
+    
+    String groupName2 = "uv23";
+    VertexGroup uv23 = dag.createVertexGroup(groupName2, v2, v3);
+    
+    GroupInputEdge e1 = new GroupInputEdge(uv12, v4,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")),
+            new InputDescriptor("dummy input class"));
+    GroupInputEdge e2 = new GroupInputEdge(uv23, v5,
+        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")),
+            new InputDescriptor("dummy input class"));
+    
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addVertex(v3);
+    dag.addVertex(v4);
+    dag.addVertex(v5);
+    dag.addEdge(e1);
+    dag.addEdge(e2);
+    dag.verify();
+
+    // for the first Group v1 and v2 should get connected to v4 and also have 1 output
+    // for the second Group v2 and v3 should get connected to v5
+    // the Group place holders should disappear
+    Assert.assertNull(dag.getVertex(uv12.getGroupName()));
+    Assert.assertNull(dag.getVertex(uv23.getGroupName()));
+    Assert.assertFalse(dag.edges.contains(e1));
+    Assert.assertFalse(dag.edges.contains(e2));
+    Assert.assertEquals(1, v1.getOutputs().size());
+    Assert.assertEquals(1, v2.getOutputs().size());
+    Assert.assertEquals(outDesc, v1.getOutputs().get(0).getDescriptor());
+    Assert.assertEquals(outDesc, v2.getOutputs().get(0).getDescriptor());
+    Assert.assertEquals(1, v1.getOutputVertices().size());
+    Assert.assertEquals(1, v3.getOutputVertices().size());
+    Assert.assertEquals(2, v2.getOutputVertices().size());
+    Assert.assertTrue(v1.getOutputVertices().contains(v4));
+    Assert.assertTrue(v3.getOutputVertices().contains(v5));
+    Assert.assertTrue(v2.getOutputVertices().contains(v4));
+    Assert.assertTrue(v2.getOutputVertices().contains(v5));
+    Assert.assertEquals(2, v4.getInputVertices().size());
+    Assert.assertTrue(v4.getInputVertices().contains(v1));
+    Assert.assertTrue(v4.getInputVertices().contains(v2));
+    Assert.assertEquals(2, v5.getInputVertices().size());
+    Assert.assertTrue(v5.getInputVertices().contains(v2));
+    Assert.assertTrue(v5.getInputVertices().contains(v3));
+    Assert.assertEquals(1, v4.getGroupInputs().size());
+    Assert.assertTrue(v4.getGroupInputs().containsKey(groupName1));
+    Assert.assertEquals(1, v5.getGroupInputs().size());
+    Assert.assertTrue(v5.getGroupInputs().containsKey(groupName2));
+    Assert.assertEquals(2, dag.vertexGroups.size());
+  }
 
   //   v1
   //  |  |
