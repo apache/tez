@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezOutputContext;
@@ -32,6 +33,11 @@ import com.google.common.collect.Lists;
 
 public class TestOutput implements LogicalOutput {
   private static final Log LOG = LogFactory.getLog(TestOutput.class);
+  
+  public static OutputDescriptor getOutputDesc(byte[] payload) {
+    return new OutputDescriptor(TestOutput.class.getName()).
+        setUserPayload(payload);
+  }
   
   int numOutputs;
   TezOutputContext outputContext;

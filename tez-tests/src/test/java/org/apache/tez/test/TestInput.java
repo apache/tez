@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -72,41 +73,46 @@ public class TestInput implements LogicalInput {
   /**
    * Enable failure for this logical input
    */
-  public static String TEZ_AM_FAILING_INPUT_DO_FAIL =
-      "tez.am.failing-input.do-fail";
+  public static String TEZ_FAILING_INPUT_DO_FAIL =
+      "tez.failing-input.do-fail";
   /**
    * Logical input will exit (and cause task failure) after reporting failure to 
    * read.
    */
-  public static String TEZ_AM_FAILING_INPUT_DO_FAIL_AND_EXIT =
-      "tez.am.failing-input.do-fail-and-exit";
+  public static String TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT =
+      "tez.failing-input.do-fail-and-exit";
   /**
    * Which physical inputs to fail. This is a comma separated list of +ve integers.
    * -1 means fail all.
    */
-  public static String TEZ_AM_FAILING_INPUT_FAILING_INPUT_INDEX =
-      "tez.am.failing-input.failing-input-index";
+  public static String TEZ_FAILING_INPUT_FAILING_INPUT_INDEX =
+      "tez.failing-input.failing-input-index";
   /**
    * Up to which version of the above physical inputs to fail. 0 will fail the 
    * first version. 1 will fail the first and second versions. And so on.
    */
-  public static String TEZ_AM_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT =
-      "tez.am.failing-input.failing-upto-input-attempt";
+  public static String TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT =
+      "tez.failing-input.failing-upto-input-attempt";
   /**
    * Indices of the tasks in the first for which this input will fail. Comma 
    * separated list of +ve integers. -1 means all tasks. E.g. 0 means the first
    * task in the vertex will have failing inputs.
    */
   public static String TEZ_AM_FAILING_INPUT_FAILING_TASK_INDEX =
-      "tez.am.failing-input.failing-task-index";
+      "tez.failing-input.failing-task-index";
   /**
    * Which task attempts will fail the input. This is a comma separated list of
    * +ve integers. -1 means all will fail. E.g. specifying 1 means the first
    * attempt will not fail the input but a re-run (the second attempt) will
    * trigger input failure. So this can be used to simulate cascading failures.
    */
-  public static String TEZ_AM_FAILING_INPUT_FAILING_TASK_ATTEMPT =
-      "tez.am.failing-input.failing-task-attempt";
+  public static String TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT =
+      "tez.failing-input.failing-task-attempt";
+  
+  public static InputDescriptor getInputDesc(byte[] payload) {
+    return new InputDescriptor(TestInput.class.getName()).
+        setUserPayload(payload);
+  }
 
   public int doRead() {
     boolean done = true;
@@ -185,9 +191,9 @@ public class TestInput implements LogicalInput {
     if (inputContext.getUserPayload() != null) {
       String vName = inputContext.getTaskVertexName();
       conf = MRHelpers.createConfFromUserPayload(inputContext.getUserPayload());
-      doFail = conf.getBoolean(getVertexConfName(TEZ_AM_FAILING_INPUT_DO_FAIL, vName), false);
+      doFail = conf.getBoolean(getVertexConfName(TEZ_FAILING_INPUT_DO_FAIL, vName), false);
       doFailAndExit = conf.getBoolean(
-          getVertexConfName(TEZ_AM_FAILING_INPUT_DO_FAIL_AND_EXIT, vName), false);
+          getVertexConfName(TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, vName), false);
       LOG.info("doFail: " + doFail + " doFailAndExit: " + doFailAndExit);
       if (doFail) {
         for (String failingIndex : 
@@ -198,16 +204,16 @@ public class TestInput implements LogicalInput {
         }
         for (String failingIndex : 
           conf.getTrimmedStringCollection(
-              getVertexConfName(TEZ_AM_FAILING_INPUT_FAILING_TASK_ATTEMPT, vName))) {
+              getVertexConfName(TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, vName))) {
           LOG.info("Adding failing task attempt: " + failingIndex);
           failingTaskAttempts.add(Integer.valueOf(failingIndex));
         }
         failingInputUpto = conf.getInt(
-            getVertexConfName(TEZ_AM_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, vName), 0);
+            getVertexConfName(TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, vName), 0);
         LOG.info("Adding failing input upto: " + failingInputUpto);
         for (String failingIndex : 
           conf.getTrimmedStringCollection(
-              getVertexConfName(TEZ_AM_FAILING_INPUT_FAILING_INPUT_INDEX, vName))) {
+              getVertexConfName(TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, vName))) {
           LOG.info("Adding failing input index: " + failingIndex);
           failingInputIndices.add(Integer.valueOf(failingIndex));
         }

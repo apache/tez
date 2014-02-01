@@ -28,7 +28,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezSession;
@@ -40,15 +39,11 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.OutputDescriptor;
-import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -63,7 +58,6 @@ public class TestFaultTolerance {
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestFaultTolerance.class.getName() + "-tmpDir";
   
-  private static Resource defaultResource = Resource.newInstance(100, 0);
   private static TezSession tezSession = null;
   
   @BeforeClass
@@ -135,226 +129,133 @@ public class TestFaultTolerance {
     Assert.assertEquals(finalState, dagStatus.getState());
   }
   
-  ProcessorDescriptor getProcDesc(byte[] payload) {
-    return new ProcessorDescriptor(TestProcessor.class.getName()).
-        setUserPayload(payload);
-  }
-  
-  InputDescriptor getInputDesc(byte[] payload) {
-    return new InputDescriptor(TestInput.class.getName()).
-        setUserPayload(payload);
-  }
-  
-  OutputDescriptor getOutputDesc(byte[] payload) {
-    return new OutputDescriptor(TestOutput.class.getName()).
-        setUserPayload(payload);
-  }
-  
   @Test (timeout=60000)
   public void testBasicSuccessScatterGather() throws Exception {
-    DAG dag = new DAG("testBasicSuccessScatterGather");
-    Vertex v1 = new Vertex("v1", getProcDesc(null), 2, defaultResource);
-    Vertex v2 = new Vertex("v2", getProcDesc(null), 2, defaultResource);
-    dag.addVertex(v1).addVertex(v2).addEdge(new Edge(v1, v2, 
-        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
-            DataSourceType.PERSISTED, 
-            SchedulingType.SEQUENTIAL, 
-            getOutputDesc(null), 
-            getInputDesc(null))));
+    DAG dag = SimpleTestDAG.createDAG("testBasicSuccessScatterGather", null);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
   @Test (timeout=60000)
   public void testBasicSuccessBroadcast() throws Exception {
     DAG dag = new DAG("testBasicSuccessBroadcast");
-    Vertex v1 = new Vertex("v1", getProcDesc(null), 2, defaultResource);
-    Vertex v2 = new Vertex("v2", getProcDesc(null), 2, defaultResource);
+    Vertex v1 = new Vertex("v1", TestProcessor.getProcDesc(null), 2, SimpleTestDAG.defaultResource);
+    Vertex v2 = new Vertex("v2", TestProcessor.getProcDesc(null), 2, SimpleTestDAG.defaultResource);
     dag.addVertex(v1).addVertex(v2).addEdge(new Edge(v1, v2, 
         new EdgeProperty(DataMovementType.BROADCAST, 
             DataSourceType.PERSISTED, 
             SchedulingType.SEQUENTIAL, 
-            getOutputDesc(null), 
-            getInputDesc(null))));
+            TestOutput.getOutputDesc(null), 
+            TestInput.getInputDesc(null))));
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
   @Test (timeout=60000)
   public void testBasicTaskFailure() throws Exception {
-    Configuration testConf = new Configuration();
+    Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestProcessor.getVertexConfName(
-        TestProcessor.TEZ_AM_FAILING_PROCESSOR_DO_FAIL, "v1"), true);
+        TestProcessor.TEZ_FAILING_PROCESSOR_DO_FAIL, "v1"), true);
     testConf.set(TestProcessor.getVertexConfName(
-        TestProcessor.TEZ_AM_FAILING_PROCESSOR_FAILING_TASK_INDEX, "v1"), "0");
+        TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_TASK_INDEX, "v1"), "0");
     testConf.setInt(TestProcessor.getVertexConfName(
-        TestProcessor.TEZ_AM_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "v1"), 0);
+        TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "v1"), 0);
     
-    byte[] payload = MRHelpers.createUserPayloadFromConf(testConf);
-    
-    DAG dag = new DAG("testBasicTaskFailure");
-    Vertex v1 = new Vertex("v1", getProcDesc(payload), 2, defaultResource);
-    Vertex v2 = new Vertex("v2", getProcDesc(payload), 2, defaultResource);
-    dag.addVertex(v1).addVertex(v2).addEdge(new Edge(v1, v2, 
-        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
-            DataSourceType.PERSISTED, 
-            SchedulingType.SEQUENTIAL, 
-            getOutputDesc(null), 
-            getInputDesc(null))));
+    DAG dag = SimpleTestDAG.createDAG("testBasicTaskFailure", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
   @Test (timeout=60000)
   public void testTaskMultipleFailures() throws Exception {
-    Configuration testConf = new Configuration();
+    Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestProcessor.getVertexConfName(
-        TestProcessor.TEZ_AM_FAILING_PROCESSOR_DO_FAIL, "v1"), true);
+        TestProcessor.TEZ_FAILING_PROCESSOR_DO_FAIL, "v1"), true);
     testConf.set(TestProcessor.getVertexConfName(
-        TestProcessor.TEZ_AM_FAILING_PROCESSOR_FAILING_TASK_INDEX, "v1"), "0,1");
+        TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_TASK_INDEX, "v1"), "0,1");
     testConf.setInt(TestProcessor.getVertexConfName(
-        TestProcessor.TEZ_AM_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "v1"), 1);
+        TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "v1"), 1);
     
-    byte[] payload = MRHelpers.createUserPayloadFromConf(testConf);
-    
-    DAG dag = new DAG("testTaskMultipleFailures");
-    Vertex v1 = new Vertex("v1", getProcDesc(payload), 2, defaultResource);
-    Vertex v2 = new Vertex("v2", getProcDesc(payload), 2, defaultResource);
-    dag.addVertex(v1).addVertex(v2).addEdge(new Edge(v1, v2, 
-        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
-            DataSourceType.PERSISTED, 
-            SchedulingType.SEQUENTIAL, 
-            getOutputDesc(null), 
-            getInputDesc(null))));
+    DAG dag = SimpleTestDAG.createDAG("testTaskMultipleFailures", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
   @Test (timeout=60000)
   public void testTaskMultipleFailuresDAGFail() throws Exception {
-    Configuration testConf = new Configuration();
+    Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestProcessor.getVertexConfName(
-        TestProcessor.TEZ_AM_FAILING_PROCESSOR_DO_FAIL, "v1"), true);
+        TestProcessor.TEZ_FAILING_PROCESSOR_DO_FAIL, "v1"), true);
     testConf.set(TestProcessor.getVertexConfName(
-        TestProcessor.TEZ_AM_FAILING_PROCESSOR_FAILING_TASK_INDEX, "v1"), "0");
+        TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_TASK_INDEX, "v1"), "0");
     testConf.setInt(TestProcessor.getVertexConfName(
-        TestProcessor.TEZ_AM_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "v1"), -1);
+        TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "v1"), -1);
     
-    byte[] payload = MRHelpers.createUserPayloadFromConf(testConf);
-    
-    DAG dag = new DAG("testTaskMultipleFailuresDAGFail");
-    Vertex v1 = new Vertex("v1", getProcDesc(payload), 2, defaultResource);
-    Vertex v2 = new Vertex("v2", getProcDesc(payload), 2, defaultResource);
-    dag.addVertex(v1).addVertex(v2).addEdge(new Edge(v1, v2, 
-        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
-            DataSourceType.PERSISTED, 
-            SchedulingType.SEQUENTIAL, 
-            getOutputDesc(null), 
-            getInputDesc(null))));
+    DAG dag = SimpleTestDAG.createDAG("testTaskMultipleFailuresDAGFail", testConf);
     runDAGAndVerify(dag, DAGStatus.State.FAILED);
   }
   
   @Test (timeout=60000)
   public void testBasicInputFailureWithExit() throws Exception {
-    Configuration testConf = new Configuration();
+    Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_DO_FAIL, "v2"), true);
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
     testConf.setBoolean(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_DO_FAIL_AND_EXIT, "v2"), true);
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, "v2"), true);
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_AM_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "1");
     testConf.set(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
     testConf.set(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "0");
+        TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "0");
     
-    byte[] payload = MRHelpers.createUserPayloadFromConf(testConf);
-    
-    DAG dag = new DAG("testBasicInputFailureWithExit");
-    Vertex v1 = new Vertex("v1", getProcDesc(null), 2, defaultResource);
-    Vertex v2 = new Vertex("v2", getProcDesc(null), 2, defaultResource);
-    dag.addVertex(v1).addVertex(v2).addEdge(new Edge(v1, v2, 
-        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
-            DataSourceType.PERSISTED, 
-            SchedulingType.SEQUENTIAL, 
-            getOutputDesc(null), 
-            getInputDesc(payload))));
+    DAG dag = SimpleTestDAG.createDAG("testBasicInputFailureWithExit", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
   @Test (timeout=60000)
   public void testBasicInputFailureWithoutExit() throws Exception {
-    Configuration testConf = new Configuration();
+    Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_DO_FAIL, "v2"), true);
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_AM_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "1");
     testConf.set(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
     testConf.set(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "0");
+        TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "0");
     
-    byte[] payload = MRHelpers.createUserPayloadFromConf(testConf);
-    
-    DAG dag = new DAG("testBasicInputFailureWithoutExit");
-    Vertex v1 = new Vertex("v1", getProcDesc(null), 2, defaultResource);
-    Vertex v2 = new Vertex("v2", getProcDesc(null), 2, defaultResource);
-    dag.addVertex(v1).addVertex(v2).addEdge(new Edge(v1, v2, 
-        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
-            DataSourceType.PERSISTED, 
-            SchedulingType.SEQUENTIAL, 
-            getOutputDesc(null), 
-            getInputDesc(payload))));
+    DAG dag = SimpleTestDAG.createDAG("testBasicInputFailureWithoutExit", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
   @Test (timeout=60000)
   public void testMultipleInputFailureWithoutExit() throws Exception {
-    Configuration testConf = new Configuration();
+    Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_DO_FAIL, "v2"), true);
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_AM_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "0,1");
     testConf.set(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
     testConf.set(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "-1");
+        TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "-1");
     
-    byte[] payload = MRHelpers.createUserPayloadFromConf(testConf);
-    
-    DAG dag = new DAG("testMultipleInputFailureWithoutExit");
-    Vertex v1 = new Vertex("v1", getProcDesc(null), 2, defaultResource);
-    Vertex v2 = new Vertex("v2", getProcDesc(null), 2, defaultResource);
-    dag.addVertex(v1).addVertex(v2).addEdge(new Edge(v1, v2, 
-        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
-            DataSourceType.PERSISTED, 
-            SchedulingType.SEQUENTIAL, 
-            getOutputDesc(null), 
-            getInputDesc(payload))));
+    DAG dag = SimpleTestDAG.createDAG("testMultipleInputFailureWithoutExit", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
   @Test (timeout=60000)
   public void testMultiVersionInputFailureWithoutExit() throws Exception {
-    Configuration testConf = new Configuration();
+    Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_DO_FAIL, "v2"), true);
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_AM_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "1");
     testConf.set(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
     testConf.set(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "0");
+        TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "0");
     testConf.setInt(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v2"), 1);
+        TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v2"), 1);
     
-    byte[] payload = MRHelpers.createUserPayloadFromConf(testConf);
-    
-    DAG dag = new DAG("testMultiVersionInputFailureWithoutExit");
-    Vertex v1 = new Vertex("v1", getProcDesc(null), 2, defaultResource);
-    Vertex v2 = new Vertex("v2", getProcDesc(null), 2, defaultResource);
-    dag.addVertex(v1).addVertex(v2).addEdge(new Edge(v1, v2, 
-        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
-            DataSourceType.PERSISTED, 
-            SchedulingType.SEQUENTIAL, 
-            getOutputDesc(null), 
-            getInputDesc(payload))));
+    DAG dag = SimpleTestDAG.createDAG("testMultiVersionInputFailureWithoutExit", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 

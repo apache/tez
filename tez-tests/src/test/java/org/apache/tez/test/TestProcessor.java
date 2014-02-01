@@ -25,6 +25,7 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
@@ -59,25 +60,30 @@ public class TestProcessor implements LogicalIOProcessor {
   /**
    * Enable failure for this processor
    */
-  public static String TEZ_AM_FAILING_PROCESSOR_DO_FAIL =
-      "tez.am.failing-processor.do-fail";
+  public static String TEZ_FAILING_PROCESSOR_DO_FAIL =
+      "tez.failing-processor.do-fail";
   /**
    * Time to sleep in the processor in milliseconds.
    */
-  public static String TEZ_AM_FAILING_PROCESSOR_SLEEP_MS =
-      "tez.am.failing-processor.sleep-ms";
+  public static String TEZ_FAILING_PROCESSOR_SLEEP_MS =
+      "tez.failing-processor.sleep-ms";
   /**
    * The indices of tasks in the vertex for which the processor will fail. This 
    * is a comma-separated list of +ve integeres. -1 means all fail.
    */
-  public static String TEZ_AM_FAILING_PROCESSOR_FAILING_TASK_INDEX =
-      "tez.am.failing-processor.failing-task-index";
+  public static String TEZ_FAILING_PROCESSOR_FAILING_TASK_INDEX =
+      "tez.failing-processor.failing-task-index";
   /**
    * Up to which attempt of the tasks will fail. Specifying 0 means the first
    * attempt will fail. 1 means first and second attempt will fail. And so on.
    */
-  public static String TEZ_AM_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT =
-      "tez.am.failing-processor.failing-upto-task-attempt";
+  public static String TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT =
+      "tez.failing-processor.failing-upto-task-attempt";
+  
+  public static ProcessorDescriptor getProcDesc(byte[] payload) {
+    return new ProcessorDescriptor(TestProcessor.class.getName()).
+        setUserPayload(payload);
+  }
 
   void throwException(String msg) {
     RuntimeException e = new RuntimeException(msg);
@@ -97,19 +103,19 @@ public class TestProcessor implements LogicalIOProcessor {
       conf = MRHelpers.createConfFromUserPayload(processorContext
           .getUserPayload());
       doFail = conf.getBoolean(
-          getVertexConfName(TEZ_AM_FAILING_PROCESSOR_DO_FAIL, vName), false);
+          getVertexConfName(TEZ_FAILING_PROCESSOR_DO_FAIL, vName), false);
       sleepMs = conf.getLong(
-          getVertexConfName(TEZ_AM_FAILING_PROCESSOR_SLEEP_MS, vName), 0);
+          getVertexConfName(TEZ_FAILING_PROCESSOR_SLEEP_MS, vName), 0);
       LOG.info("doFail: " + doFail);
       if (doFail) {
         for (String failingIndex : conf
             .getTrimmedStringCollection(
-                getVertexConfName(TEZ_AM_FAILING_PROCESSOR_FAILING_TASK_INDEX, vName))) {
+                getVertexConfName(TEZ_FAILING_PROCESSOR_FAILING_TASK_INDEX, vName))) {
           LOG.info("Adding failing task index: " + failingIndex);
           failingTaskIndices.add(Integer.valueOf(failingIndex));
         }
         failingTaskAttemptUpto = conf.getInt(
-            getVertexConfName(TEZ_AM_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, vName), 0);
+            getVertexConfName(TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, vName), 0);
         LOG.info("Adding failing attempt : " + failingTaskAttemptUpto + 
             " dag: " + processorContext.getDAGName());
       }
