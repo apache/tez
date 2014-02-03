@@ -417,32 +417,6 @@ public class TestTaskImpl {
 
     assertTaskSucceededState();
   }
-
-  @Test
-  public void testSpeculativeTaskAttemptSucceedsEvenIfFirstFails() {
-    TezTaskID taskId = getNewTaskID();
-    scheduleTaskAttempt(taskId);
-    launchTaskAttempt(mockTask.getLastAttempt().getID());
-    updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
-
-    // Add a speculative task attempt that succeeds
-    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
-        TaskEventType.T_ADD_SPEC_ATTEMPT));
-    launchTaskAttempt(mockTask.getLastAttempt().getID());
-    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
-        TaskEventType.T_ATTEMPT_SUCCEEDED));
-
-    // The task should now have succeeded
-    assertTaskSucceededState();
-
-    // Now fail the first task attempt, after the second has succeeded
-    mockTask.handle(new TaskEventTAUpdate(mockTask.getAttemptList().get(0)
-        .getID(), TaskEventType.T_ATTEMPT_FAILED));
-
-    // The task should still be in the succeeded state
-    assertTaskSucceededState();
-
-  }
   
   @SuppressWarnings("rawtypes")
   @Test

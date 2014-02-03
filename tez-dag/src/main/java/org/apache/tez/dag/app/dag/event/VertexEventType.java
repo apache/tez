@@ -35,9 +35,6 @@ public enum VertexEventType {
   V_SOURCE_TASK_ATTEMPT_COMPLETED,
   V_SOURCE_VERTEX_STARTED,
   
-  //Producer:Speculator
-  V_ADD_SPEC_ATTEMPT,
-
   //Producer:Task
   V_TASK_COMPLETED,
   V_TASK_RESCHEDULED,
