@@ -199,7 +199,7 @@ public class TestFaultTolerance {
     testConf.setBoolean(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, "v2"), true);
     testConf.set(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "1");
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "1");
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
     testConf.set(TestInput.getVertexConfName(
@@ -215,7 +215,7 @@ public class TestFaultTolerance {
     testConf.setBoolean(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
     testConf.set(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "1");
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "1");
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
     testConf.set(TestInput.getVertexConfName(
@@ -231,7 +231,7 @@ public class TestFaultTolerance {
     testConf.setBoolean(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
     testConf.set(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "0,1");
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "0,1");
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
     testConf.set(TestInput.getVertexConfName(
@@ -247,7 +247,7 @@ public class TestFaultTolerance {
     testConf.setBoolean(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
     testConf.set(TestInput.getVertexConfName(
-        TestInput.TEZ_AM_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "1");
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "1");
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
     testConf.set(TestInput.getVertexConfName(

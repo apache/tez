@@ -98,7 +98,7 @@ public class TestInput implements LogicalInput {
    * separated list of +ve integers. -1 means all tasks. E.g. 0 means the first
    * task in the vertex will have failing inputs.
    */
-  public static String TEZ_AM_FAILING_INPUT_FAILING_TASK_INDEX =
+  public static String TEZ_FAILING_INPUT_FAILING_TASK_INDEX =
       "tez.failing-input.failing-task-index";
   /**
    * Which task attempts will fail the input. This is a comma separated list of
@@ -198,7 +198,7 @@ public class TestInput implements LogicalInput {
       if (doFail) {
         for (String failingIndex : 
           conf.getTrimmedStringCollection(
-              getVertexConfName(TEZ_AM_FAILING_INPUT_FAILING_TASK_INDEX, vName))) {
+              getVertexConfName(TEZ_FAILING_INPUT_FAILING_TASK_INDEX, vName))) {
           LOG.info("Adding failing task index: " + failingIndex);
           failingTaskIndices.add(Integer.valueOf(failingIndex));
         }
