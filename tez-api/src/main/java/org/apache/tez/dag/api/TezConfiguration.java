@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 
 public class TezConfiguration extends Configuration {
@@ -283,4 +284,10 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_PROFILE_JVM_OPTS = TEZ_PREFIX + "profile.jvm.opts";
 
+  /**
+   * The service id for the NodeManager plugin used to share intermediate data
+   * between vertices.
+   */
+  @Private
+  public static final String TEZ_SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
 }
