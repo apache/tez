@@ -169,7 +169,7 @@ public class TestTaskAttempt {
         new TaskAttemptImpl.ScheduleTaskattemptTransition();
 
     EventHandler eventHandler = mock(EventHandler.class);
-    String hosts[] = new String[] { "192.168.1.1", "host2", "host3" };
+    String hosts[] = new String[] { "127.0.0.1", "host2", "host3" };
     Set<String> resolved = new TreeSet<String>(
         Arrays.asList(new String[]{ "host1", "host2", "host3" }));
     TaskLocationHint locationHint = new TaskLocationHint(
