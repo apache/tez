@@ -50,6 +50,7 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
@@ -98,7 +99,6 @@ import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.runtime.api.OutputCommitter;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -142,7 +142,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   // TODO Metrics
   //private final MRAppMetrics metrics;
   private final String userName;
-  private final String queueName;
   private final AppContext appContext;
   private final UserGroupInformation dagUGI;
 
@@ -383,7 +382,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     this.userName = appUserName;
     this.clock = clock;
     this.appContext = appContext;
-    this.queueName = conf.get(MRJobConfig.QUEUE_NAME, "default");
 
     this.taskAttemptListener = taskAttemptListener;
     this.taskHeartbeatHandler = thh;
@@ -983,11 +981,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   @Override
   public String getUserName() {
     return userName;
-  }
-
-  @Override
-  public String getQueueName() {
-    return queueName;
   }
 
   @Override

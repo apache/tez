@@ -22,8 +22,8 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.security.authorize.PolicyProvider;
 import org.apache.hadoop.security.authorize.Service;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 /**
  * {@link PolicyProvider} for YARN MapReduce protocols.
@@ -35,11 +35,11 @@ public class TezAMPolicyProvider extends PolicyProvider {
   private static final Service[] tezApplicationMasterServices = 
       new Service[] {
     new Service(
-        MRJobConfig.MR_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL,
-        TezTaskUmbilicalProtocol.class),
+        TezConfiguration.TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL,
+          TezTaskUmbilicalProtocol.class),
     new Service(
-        MRJobConfig.MR_AM_SECURITY_SERVICE_AUTHORIZATION_CLIENT,
-        DAGClientAMProtocolBlockingPB.class)
+    	TezConfiguration.TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_CLIENT,
+          DAGClientAMProtocolBlockingPB.class)
   };
 
   @Override

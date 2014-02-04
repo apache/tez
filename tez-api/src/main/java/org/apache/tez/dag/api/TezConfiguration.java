@@ -54,10 +54,10 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_ABORT_ALL_OUTPUTS_ON_DAG_FAILURE =
       TEZ_AM_PREFIX + "abort-all-outputs-on-dag-failure";
   public static final boolean TEZ_AM_ABORT_ALL_OUTPUTS_ON_DAG_FAILURE_DEFAULT = true;
-  
+		  
   public static final String TEZ_AM_JAVA_OPTS = TEZ_AM_PREFIX
       + "java.opts";
-  public static final String DEFAULT_TEZ_AM_JAVA_OPTS = " -Xmx1024m ";
+  public static final String TEZ_AM_JAVA_OPTS_DEFAULT = " -Xmx1024m ";
 
   public static final String TEZ_AM_CANCEL_DELEGATION_TOKEN = TEZ_AM_PREFIX +
       "am.complete.cancel.delegation.tokens";
@@ -67,6 +67,29 @@ public class TezConfiguration extends Configuration {
       TEZ_AM_PREFIX + "task.listener.thread-count";
   public static final int TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
 
+  /*
+   * MR AM Service Authorization
+   * These are the same as MR which allows Tez to run in secure
+   * mode without configuring service ACLs
+   */
+  public static final String   
+  TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL =
+      "security.job.task.protocol.acl";
+  public static final String   
+  TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_CLIENT =
+      "security.job.client.protocol.acl";
+
+  /**
+   * Upper limit on the number of threads user to launch containers in the app
+   * master. Expect level config, you shouldn't be needing it in most cases.
+   */
+  public static final String TEZ_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT =
+    TEZ_AM_PREFIX+"containerlauncher.thread-count-limit";
+
+  public static final int TEZ_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT_DEFAULT = 
+    500;
+
+  
   // TODO Some of the DAG properties are job specific and not AM specific. Rename accordingly.
   // TODO Are any of these node blacklisting properties required. (other than for MR compat)
   public static final String TEZ_AM_MAX_TASK_FAILURES_PER_NODE = TEZ_AM_PREFIX
@@ -139,6 +162,9 @@ public class TezConfiguration extends Configuration {
       + "max-events-per-heartbeat.max";
   public static final int TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT = 100;
 
+  public static final String TASK_TIMEOUT = TEZ_TASK_PREFIX + "timeout";
+
+  public static final String TASK_HEARTBEAT_TIMEOUT_MS = TEZ_TASK_PREFIX + "heartbeat.timeout-ms";
   /**
    * Configuration to specify whether container should be reused.
    */

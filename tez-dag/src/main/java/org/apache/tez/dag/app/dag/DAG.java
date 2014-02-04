@@ -64,7 +64,6 @@ public interface DAG {
   float getProgress();
   boolean isUber();
   String getUserName();
-  String getQueueName();
 
   Configuration getConf();
 
