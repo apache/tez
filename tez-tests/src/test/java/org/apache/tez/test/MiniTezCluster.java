@@ -91,7 +91,8 @@ public class MiniTezCluster extends MiniYARNCluster {
       LOG.info(message);
       throw new TezUncheckedException(message);
     } else {
-      conf.set(TezConfiguration.TEZ_LIB_URIS, "file://" + appJarFile.getAbsolutePath());
+      conf.set(TezConfiguration.TEZ_LIB_URIS, 
+          "file://" + new Path(appJarFile.getAbsolutePath()).toUri().getPath());
       LOG.info("Set TEZ-LIB-URI to: " + conf.get(TezConfiguration.TEZ_LIB_URIS));
     }
 
