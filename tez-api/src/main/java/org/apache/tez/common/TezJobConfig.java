@@ -291,16 +291,27 @@ public class TezJobConfig {
       "tez.runtime.intermediate-output.value.class";
   public static final String TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS = 
       "tez.runtime.intermediate-input.value.class";
-  
+
+
+  /** Whether intermediate output should be compressed or not */
   public static final String TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS = 
       "tez.runtime.intermediate-output.should-compress";
+  /** Whether intermediate input is compressed */
   public static final String TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED = 
       "tez.runtime.intermediate-input.is-compressed";
-  
+  /**
+   * The coded to be used if compressing intermediate output. Only applicable if
+   * tez.runtime.intermediate-output.should-compress is enabled.
+   */
   public static final String TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC = 
       "tez.runtime.intermediate-output.compress.codec";
+  /**
+   * The coded to be used when reading intermediate compressed input. Only
+   * applicable if tez.runtime.intermediate-input.is-compressed is enabled.
+   */
   public static final String TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC = 
       "tez.runtime.intermediate-input.compress.codec";
+
 
   public static final String TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS = 
       "tez.runtime.intermediate-input.key.secondary.comparator.class";

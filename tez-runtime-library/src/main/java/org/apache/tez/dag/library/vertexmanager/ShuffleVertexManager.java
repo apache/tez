@@ -57,12 +57,22 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
   
   private static final String TEZ_AM_PREFIX = "tez.am.";
   
+  /**
+   * In case of a ScatterGather connection, the fraction of source tasks which
+   * should complete before tasks for the current vertex are scheduled
+   */
   public static final String
   TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION = TEZ_AM_PREFIX
   + "shuffle-vertex-manager.min-src-fraction";
   public static final float
     TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT = 0.25f;
   
+  /**
+   * In case of a ScatterGather connection, once this fraction of source tasks
+   * have completed, all tasks on the current vertex can be scheduled. Number of
+   * tasks ready for scheduling on the current vertex scales linearly between
+   * min-fraction and max-fraction
+   */
   public static final String
     TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION = TEZ_AM_PREFIX
     + "shuffle-vertex-manager.max-src-fraction";

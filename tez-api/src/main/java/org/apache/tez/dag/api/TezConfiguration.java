@@ -41,6 +41,7 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_PREFIX = TEZ_PREFIX + "am.";
   public static final String TEZ_TASK_PREFIX = TEZ_PREFIX + "task.";
 
+  /** The staging dir used while submitting DAGs */
   public static final String TEZ_AM_STAGING_DIR = TEZ_PREFIX + "staging-dir";
   public static final String TEZ_AM_STAGING_DIR_DEFAULT = "/tmp/tez/staging";
 
@@ -54,7 +55,8 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_ABORT_ALL_OUTPUTS_ON_DAG_FAILURE =
       TEZ_AM_PREFIX + "abort-all-outputs-on-dag-failure";
   public static final boolean TEZ_AM_ABORT_ALL_OUTPUTS_ON_DAG_FAILURE_DEFAULT = true;
-		  
+
+  /** Java options for the Tez AppMaster process. */
   public static final String TEZ_AM_JAVA_OPTS = TEZ_AM_PREFIX
       + "java.opts";
   public static final String TEZ_AM_JAVA_OPTS_DEFAULT = " -Xmx1024m ";
@@ -123,6 +125,7 @@ public class TezConfiguration extends Configuration {
       TEZ_AM_PREFIX + "client.am.port-range";
 
 
+  /** The amount of memory to be used by the AppMaster */
   public static final String TEZ_AM_RESOURCE_MEMORY_MB = TEZ_AM_PREFIX
       + "resource.memory.mb";
   public static final int TEZ_AM_RESOURCE_MEMORY_MB_DEFAULT = 1536;
@@ -146,10 +149,12 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_PLAN_REMOTE_PATH = TEZ_AM_PREFIX
       + "dag-am-plan.remote.path";
 
+  /** The maximum heartbeat interval between the AM and RM in milliseconds */
   public static final String TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX = TEZ_AM_PREFIX
       + "am-rm.heartbeat.interval-ms.max";
   public static final int TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX_DEFAULT = 1000;
 
+  /** The maximum amount of time, in milliseconds, to wait before a task asks an AM for another task. */
   public static final String TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX = TEZ_TASK_PREFIX
       + "get-task.sleep.interval-ms.max";
   public static final int TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT = 200;
@@ -190,12 +195,21 @@ public class TezConfiguration extends Configuration {
   public static final boolean
       TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED_DEFAULT = false;
 
+  /**
+   * The amount of time to wait before assigning a container to the next level
+   * of locality. NODE - RACK - NON_LOCAL
+   */
   public static final String
       TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS =
       TEZ_AM_PREFIX + "container.reuse.locality.delay-allocation-millis";
   public static final long
     TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS_DEFAULT = 1000l;
 
+  /**
+   * The amount of time to hold on to a container if no task can be assigned to
+   * it immediately. Only active when reuse is enabled. Set to -1 to never
+   * release a container in a session.
+   */
   public static final String TEZ_AM_CONTAINER_SESSION_DELAY_ALLOCATION_MILLIS =
     TEZ_AM_PREFIX + "container.session.delay-allocation-millis";
   public static final long
@@ -216,8 +230,8 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_CONTAINER_OUT_FILE_NAME = "stdout";
 
 
-  public static final String TEZ_LIB_URIS =
-      TEZ_PREFIX + "lib.uris";
+  /** The location of the Tez libraries which will be localized for DAGs */
+  public static final String TEZ_LIB_URIS = TEZ_PREFIX + "lib.uris";
 
   public static final String TEZ_APPLICATION_TYPE = "TEZ";
 
@@ -230,15 +244,27 @@ public class TezConfiguration extends Configuration {
       "grouping.by-count";
   public static final boolean TEZ_AM_GROUPING_SPLIT_BY_COUNT_DEFAULT = false;
   
+  /**
+   * The multiplier for available queue capacity when determining number of
+   * tasks for a Vertex. 1.7 with 100% queue available implies generating a
+   * number of tasks roughly equal to 170% of the available containers on the
+   * queue
+   */
   public static final String TEZ_AM_GROUPING_SPLIT_WAVES = TEZ_AM_PREFIX +
       "grouping.split-waves";
   public static float TEZ_AM_GROUPING_SPLIT_WAVES_DEFAULT = 1.5f;
   
+  /**
+   * Upper bound on the size (in bytes) of a grouped split, to avoid generating excessively large splits.
+   */
   public static final String TEZ_AM_GROUPING_SPLIT_MAX_SIZE = TEZ_AM_PREFIX +
       "grouping.max-size";
   public static long TEZ_AM_GROUPING_SPLIT_MAX_SIZE_DEFAULT = 
       1024*1024*1024L;
 
+  /**
+   * Lower bound on the size (in bytes) of a grouped split, to avoid generating too many splits.
+   */
   public static final String TEZ_AM_GROUPING_SPLIT_MIN_SIZE = TEZ_AM_PREFIX +
       "grouping.min-size";
   public static long TEZ_AM_GROUPING_SPLIT_MIN_SIZE_DEFAULT = 
