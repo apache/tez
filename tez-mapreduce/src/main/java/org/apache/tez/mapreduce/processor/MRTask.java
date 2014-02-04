@@ -224,7 +224,9 @@ public abstract class MRTask {
   private void configureLocalDirs() throws IOException {
     // TODO NEWTEZ Is most of this functionality required ?
     jobConf.setStrings(TezJobConfig.LOCAL_DIRS, processorContext.getWorkDirs());
-    jobConf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, System.getenv(Environment.PWD.name()));
+    if (jobConf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR) == null) {
+      jobConf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, System.getenv(Environment.PWD.name()));
+    }
 
     jobConf.setStrings(MRConfig.LOCAL_DIR, processorContext.getWorkDirs());
 
