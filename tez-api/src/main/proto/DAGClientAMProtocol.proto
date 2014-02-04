@@ -87,6 +87,13 @@ message GetAMStatusResponseProto {
   required TezSessionStatusProto status = 1;
 }
 
+message PreWarmRequestProto {
+  optional PreWarmContextProto pre_warm_context = 1;
+}
+
+message PreWarmResponseProto {
+}
+
 service DAGClientAMProtocol {
   rpc getAllDAGs (GetAllDAGsRequestProto) returns (GetAllDAGsResponseProto);
   rpc getDAGStatus (GetDAGStatusRequestProto) returns (GetDAGStatusResponseProto);
@@ -95,4 +102,5 @@ service DAGClientAMProtocol {
   rpc submitDAG (SubmitDAGRequestProto) returns (SubmitDAGResponseProto);
   rpc shutdownSession (ShutdownSessionRequestProto) returns (ShutdownSessionResponseProto);
   rpc getAMStatus (GetAMStatusRequestProto) returns (GetAMStatusResponseProto);
+  rpc preWarm (PreWarmRequestProto) returns (PreWarmResponseProto);
 }

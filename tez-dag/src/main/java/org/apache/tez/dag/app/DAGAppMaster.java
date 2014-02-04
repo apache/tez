@@ -21,7 +21,6 @@ package org.apache.tez.dag.app;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -47,8 +46,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.Credentials;
@@ -77,6 +74,7 @@ import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -394,14 +392,20 @@ public class DAGAppMaster extends AbstractService {
         lastDAGCompletionTime = clock.getTime();
         switch(finishEvt.getDAGState()) {
         case SUCCEEDED:
-          successfulDAGs.incrementAndGet();
+          if (!currentDAG.getName().equals("PreWarmDAG")) {
+            successfulDAGs.incrementAndGet();
+          }
           break;
         case ERROR:
         case FAILED:
-          failedDAGs.incrementAndGet();
+          if (!currentDAG.getName().equals("PreWarmDAG")) {
+            failedDAGs.incrementAndGet();
+          }
           break;
         case KILLED:
-          killedDAGs.incrementAndGet();
+          if (!currentDAG.getName().equals("PreWarmDAG")) {
+            killedDAGs.incrementAndGet();
+          }
           break;
         default:
           LOG.fatal("Received a DAG Finished Event with state="
@@ -804,6 +808,49 @@ public class DAGAppMaster extends AbstractService {
     return currentDAG.getID().toString();
   }
 
+  synchronized void startPreWarmContainers(PreWarmContext preWarmContext)
+      throws TezException {
+    // Check if there is a running DAG
+    if(currentDAG != null
+        && !state.equals(DAGAppMasterState.IDLE)) {
+      throw new TezException("App master already running a DAG");
+    }
+
+    // Kill current pre-warm DAG if needed
+    // Launch new pre-warm DAG
+
+    org.apache.tez.dag.api.DAG dag =
+      new org.apache.tez.dag.api.DAG("PreWarmDAG");
+    if (preWarmContext.getLocationHints().getNumTasks() <= 0) {
+      LOG.warn("Ignoring pre-warm context as invalid numContainers specified: "
+          + preWarmContext.getLocationHints().getNumTasks());
+      return;
+    }
+    org.apache.tez.dag.api.Vertex preWarmVertex = new
+        org.apache.tez.dag.api.Vertex("PreWarmVertex",
+      preWarmContext.getProcessorDescriptor(),
+      preWarmContext.getLocationHints().getNumTasks(), preWarmContext.getResource());
+    if (preWarmContext.getEnvironment() != null) {
+      preWarmVertex.setTaskEnvironment(preWarmContext.getEnvironment());
+    }
+    if (preWarmContext.getLocalResources() != null) {
+      preWarmVertex.setTaskLocalResources(preWarmContext.getLocalResources());
+    }
+    if (preWarmContext.getLocationHints() != null) {
+      preWarmVertex.setTaskLocationsHint(
+        preWarmContext.getLocationHints().getTaskLocationHints());
+    }
+    if (preWarmContext.getJavaOpts() != null) {
+      preWarmVertex.setJavaOpts(preWarmContext.getJavaOpts());
+    }
+    dag.addVertex(preWarmVertex);
+    LOG.info("Pre-warming containers"
+        + ", processor=" + preWarmContext.getProcessorDescriptor().getClassName()
+        + ", numContainers=" + preWarmContext.getLocationHints().getNumTasks()
+        + ", containerResource=" + preWarmContext.getResource());
+    startDAG(dag.createDag(amConf));
+  }
+
   public class DAGClientHandler {
 
     public List<String> getAllDAGs() throws TezException {
@@ -886,6 +933,12 @@ public class DAGAppMaster extends AbstractService {
       }
       return TezSessionStatus.INITIALIZING;
     }
+
+    public synchronized void preWarmContainers(PreWarmContext preWarmContext)
+        throws TezException {
+      startPreWarmContainers(preWarmContext);
+    }
+
   }
 
   private class RunningAppContext implements AppContext {
@@ -1214,65 +1267,17 @@ public class DAGAppMaster extends AbstractService {
     if (!isSession) {
       startDAG();
     } else {
-      boolean preWarmContainersEnabled = amConf.getBoolean(
-        TezConfiguration.TEZ_SESSION_PRE_WARM_ENABLED,
-        TezConfiguration.TEZ_SESSION_PRE_WARM_ENABLED_DEFAULT);
+      LOG.info("In Session mode. Waiting for DAG over RPC");
+      this.state = DAGAppMasterState.IDLE;
 
-      boolean ranPreWarmContainersDAG = false;
-      if (preWarmContainersEnabled) {
-        ranPreWarmContainersDAG = runPreWarmContainersDAG();
-      }
-
-      if (!ranPreWarmContainersDAG) {
-        LOG.info("In Session mode. Waiting for DAG over RPC");
-        this.state = DAGAppMasterState.IDLE;
-
-        this.dagSubmissionTimer = new Timer(true);
-        this.dagSubmissionTimer.scheduleAtFixedRate(new TimerTask() {
-          @Override
-          public void run() {
-            checkAndHandleSessionTimeout();
-          }
-        }, sessionTimeoutInterval, sessionTimeoutInterval / 10);
-      }
+      this.dagSubmissionTimer = new Timer(true);
+      this.dagSubmissionTimer.scheduleAtFixedRate(new TimerTask() {
+        @Override
+        public void run() {
+          checkAndHandleSessionTimeout();
+        }
+      }, sessionTimeoutInterval, sessionTimeoutInterval / 10);
     }
-  }
-
-  private boolean runPreWarmContainersDAG() throws Exception {
-
-    InputStream dagPBBinaryStream = null;
-    try {
-      DAGPlan preWarmDAGPlan = null;
-      String preWarmDAGPlanPathStr =
-        amConf.get(TezConfiguration.TEZ_PRE_WARM_PB_PLAN_BINARY_PATH);
-      if (preWarmDAGPlanPathStr == null
-            || preWarmDAGPlanPathStr.isEmpty()) {
-        LOG.info("No path to pre-warm DAG plan specified");
-        return false;
-      }
-
-      LOG.info("Trying to run pre-warm DAG plan from specified path: "
-          + preWarmDAGPlanPathStr);
-
-      FileSystem fs = FileSystem.get(amConf);
-      Path preWarmDAGPlanPath = new Path(preWarmDAGPlanPathStr);
-      if (!fs.exists(preWarmDAGPlanPath)) {
-        LOG.info("Could not find pre-warm DAG plan file, path="
-          + preWarmDAGPlanPathStr);
-        return false;
-      }
-
-      // Read the protobuf-based pre-warm DAG plan
-      dagPBBinaryStream = fs.open(preWarmDAGPlanPath);
-      preWarmDAGPlan = DAGPlan.parseFrom(dagPBBinaryStream);
-      startDAG(preWarmDAGPlan);
-
-    } finally {
-      if (dagPBBinaryStream != null) {
-        dagPBBinaryStream.close();
-      }
-    }
-    return true;
   }
 
   @Override

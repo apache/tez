@@ -24,13 +24,16 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.Apps;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DAGSubmissionTimedOut;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -40,6 +43,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
@@ -63,6 +67,7 @@ public class TezSession {
   private boolean sessionStopped = false;
   /** Tokens which will be required for all DAGs submitted to this session. */
   private Credentials sessionCredentials = new Credentials();
+  private long clientTimeout;
 
   public TezSession(String sessionName,
       ApplicationId applicationId,
@@ -90,6 +95,10 @@ public class TezSession {
     Map<String, LocalResource> tezJarResources =
         TezClientUtils.setupTezJarsLocalResources(
           sessionConfig.getTezConfiguration(), sessionCredentials);
+
+    clientTimeout = sessionConfig.getTezConfiguration().getInt(
+        TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS,
+        TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS_DEFAULT);
 
     if (sessionConfig.getSessionResources() != null
       && !sessionConfig.getSessionResources().isEmpty()) {
@@ -129,64 +138,44 @@ public class TezSession {
    */
   public synchronized DAGClient submitDAG(DAG dag)
     throws TezException, IOException, InterruptedException {
-    if (!sessionStarted) {
-      throw new SessionNotRunning("Session not started");
-    } else if (sessionStopped) {
-      throw new SessionNotRunning("Session stopped");
-    }
+    verifySessionStateForSubmission();
 
     String dagId;
     LOG.info("Submitting dag to TezSession"
-        + ", sessionName=" + sessionName
-        + ", applicationId=" + applicationId);
+      + ", sessionName=" + sessionName
+      + ", applicationId=" + applicationId);
 
     // Obtain DAG specific credentials.
     TezClientUtils.setupDAGCredentials(dag, sessionCredentials, sessionConfig.getTezConfiguration());
 
-    Map<String, String> environment = TezClientUtils
-        .createEnvironment(sessionConfig.getYarnConfiguration());
+    // setup env
+    String classpath = TezClientUtils
+        .getFrameworkClasspath(sessionConfig.getYarnConfiguration());
     for (Vertex v : dag.getVertices()) {
       Map<String, String> taskEnv = v.getTaskEnvironment();
       if (taskEnv == null) {
         taskEnv = Maps.newHashMap();
         v.setTaskEnvironment(taskEnv);
       }
-      for (Map.Entry<String, String> entry : environment.entrySet()) {
-        String key = entry.getKey();
-        String value = entry.getValue();
-        if (!taskEnv.containsKey(key)) {
-          taskEnv.put(key, value);
-        }
-      }
+      Apps.addToEnvironment(taskEnv,
+          ApplicationConstants.Environment.CLASSPATH.name(),
+          classpath);
     }
     
     DAGPlan dagPlan = dag.createDag(sessionConfig.getTezConfiguration());
     SubmitDAGRequestProto requestProto =
         SubmitDAGRequestProto.newBuilder().setDAGPlan(dagPlan).build();
 
-    DAGClientAMProtocolBlockingPB proxy;
-    long startTime = System.currentTimeMillis();
-    int timeout = sessionConfig.getTezConfiguration().getInt(
-        TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS,
-        TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS_DEFAULT);
-    long endTime = startTime + (timeout * 1000);
-    while (true) {
-      proxy = TezClientUtils.getSessionAMProxy(yarnClient,
-          sessionConfig.getYarnConfiguration(), applicationId);
-      if (proxy != null) {
-        break;
+    DAGClientAMProtocolBlockingPB proxy = waitForProxy();
+    if (proxy == null) {
+      try {
+        LOG.warn("DAG submission to session timed out, stopping session");
+        stop();
+      } catch (Throwable t) {
+        LOG.info("Got an exception when trying to stop session", t);
       }
-      Thread.sleep(100l);
-      if (timeout != -1 && System.currentTimeMillis() > endTime) {
-        try {
-          LOG.warn("DAG submission to session timed out, stopping session");
-          stop();
-        } catch (Throwable t) {
-          LOG.info("Got an exception when trying to stop session", t);
-        }
-        throw new DAGSubmissionTimedOut("Could not submit DAG to Tez Session"
-            + ", timed out after " + timeout + " seconds");
-      }
+      throw new DAGSubmissionTimedOut("Could not submit DAG to Tez Session"
+          + ", timed out after " + clientTimeout + " seconds");
     }
 
     try {
@@ -285,6 +274,87 @@ public class TezSession {
       throw new TezException(e);
     }
     return TezSessionStatus.INITIALIZING;
+  }
+
+  /**
+   * Inform the Session to pre-warm containers for upcoming DAGs.
+   * Can be invoked multiple times on the same session.
+   * A subsequent call will release containers that are not compatible with the
+   * new context.
+   * This function can only be invoked if there is no DAG running on the Session
+   * This function can be a no-op if the Session already holds the required
+   * number of containers.
+   * @param context Context for the pre-warm containers.
+   */
+  @Private
+  @InterfaceStability.Unstable
+  public void preWarm(PreWarmContext context)
+      throws IOException, TezException, InterruptedException {
+    verifySessionStateForSubmission();
+
+    try {
+      DAGClientAMProtocolBlockingPB proxy = waitForProxy();
+      if (proxy == null) {
+        throw new SessionNotRunning("Could not connect to Session within client"
+            + " timeout interval, timeoutSecs=" + clientTimeout);
+      }
+
+      String classpath = TezClientUtils
+        .getFrameworkClasspath(sessionConfig.getYarnConfiguration());
+      Map<String, String> contextEnv = context.getEnvironment();
+      Apps.addToEnvironment(contextEnv,
+        ApplicationConstants.Environment.CLASSPATH.name(),
+        classpath);
+
+      DAGClientAMProtocolRPC.PreWarmRequestProto.Builder
+        preWarmReqProtoBuilder =
+          DAGClientAMProtocolRPC.PreWarmRequestProto.newBuilder();
+      preWarmReqProtoBuilder.setPreWarmContext(
+        DagTypeConverters.convertPreWarmContextToProto(context));
+      proxy.preWarm(null, preWarmReqProtoBuilder.build());
+      while (true) {
+        try {
+          Thread.sleep(1000);
+          TezSessionStatus status = getSessionStatus();
+          if (status.equals(TezSessionStatus.READY)) {
+            break;
+          } else if (status.equals(TezSessionStatus.SHUTDOWN)) {
+            throw new SessionNotRunning("Could not connect to Session");
+          }
+        } catch (InterruptedException e) {
+          return;
+        }
+      }
+    } catch (ServiceException e) {
+      throw new TezException(e);
+    }
+  }
+
+  private DAGClientAMProtocolBlockingPB waitForProxy()
+      throws IOException, TezException, InterruptedException {
+    long startTime = System.currentTimeMillis();
+    long endTime = startTime + (clientTimeout * 1000);
+    DAGClientAMProtocolBlockingPB proxy = null;
+    while (true) {
+      proxy = TezClientUtils.getSessionAMProxy(yarnClient,
+          sessionConfig.getYarnConfiguration(), applicationId);
+      if (proxy != null) {
+        break;
+      }
+      Thread.sleep(100l);
+      if (clientTimeout != -1 && System.currentTimeMillis() > endTime) {
+        break;
+      }
+    }
+    return proxy;
+  }
+
+  private void verifySessionStateForSubmission() throws SessionNotRunning {
+    if (!sessionStarted) {
+      throw new SessionNotRunning("Session not started");
+    } else if (sessionStopped) {
+      throw new SessionNotRunning("Session stopped");
+    }
   }
 
 }

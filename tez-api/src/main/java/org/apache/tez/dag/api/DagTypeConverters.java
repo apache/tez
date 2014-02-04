@@ -38,6 +38,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
@@ -61,11 +62,13 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceVisibility;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
+import org.apache.tez.dag.api.records.DAGProtos.PreWarmContextProto;
 import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCounterGroupProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCounterProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCountersProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
+import org.apache.tez.dag.api.records.DAGProtos.VertexLocationHintProto;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ByteString.Output;
@@ -537,6 +540,103 @@ public class DagTypeConverters {
     } catch (IOException e) {
       throw new TezUncheckedException("Failed to deserialize Credentials", e);
     }
+  }
+
+  public static VertexLocationHint convertVertexLocationHintFromProto(
+    VertexLocationHintProto proto) {
+    List<TaskLocationHint> outputList = new ArrayList<TaskLocationHint>(
+      proto.getTaskLocationHintsCount());
+    for(PlanTaskLocationHint inputHint : proto.getTaskLocationHintsList()){
+      TaskLocationHint outputHint = new TaskLocationHint(
+        new HashSet<String>(inputHint.getHostList()),
+        new HashSet<String>(inputHint.getRackList()));
+      outputList.add(outputHint);
+    }
+
+    return new VertexLocationHint(proto.getNumTasks(), outputList);
+  }
+
+  public static VertexLocationHintProto convertVertexLocationHintToProto(
+      VertexLocationHint vertexLocationHint) {
+    VertexLocationHintProto.Builder builder =
+      VertexLocationHintProto.newBuilder();
+    builder.setNumTasks(vertexLocationHint.getNumTasks());
+    if (vertexLocationHint.getTaskLocationHints() != null) {
+      for (TaskLocationHint taskLocationHint :
+        vertexLocationHint.getTaskLocationHints()) {
+        PlanTaskLocationHint.Builder taskLHBuilder =
+          PlanTaskLocationHint.newBuilder();
+        if (taskLocationHint.getDataLocalHosts() != null) {
+          taskLHBuilder.addAllHost(taskLocationHint.getDataLocalHosts());
+        }
+        if (taskLocationHint.getRacks() != null) {
+          taskLHBuilder.addAllRack(taskLocationHint.getRacks());
+        }
+        builder.addTaskLocationHints(taskLHBuilder.build());
+      }
+    }
+    return builder.build();
+  }
+
+  public static PreWarmContextProto convertPreWarmContextToProto(
+      PreWarmContext preWarmContext) {
+    PreWarmContextProto.Builder builder = PreWarmContextProto.newBuilder();
+    builder.setProcessorDescriptor(
+      DagTypeConverters.convertToDAGPlan(
+        preWarmContext.getProcessorDescriptor()));
+    builder.setMemoryMb(preWarmContext.getResource().getMemory());
+    builder.setVirtualCores(preWarmContext.getResource().getVirtualCores());
+    if (preWarmContext.getLocalResources() != null) {
+      builder.setLocalResources(
+        DagTypeConverters.convertFromLocalResources(
+          preWarmContext.getLocalResources()));
+    }
+    if (preWarmContext.getEnvironment() != null) {
+      for (Map.Entry<String, String> entry :
+          preWarmContext.getEnvironment().entrySet()) {
+        builder.addEnvironmentSetting(
+          PlanKeyValuePair.newBuilder()
+            .setKey(entry.getKey())
+            .setValue(entry.getValue())
+            .build());
+      }
+    }
+    if (preWarmContext.getLocationHints() != null) {
+      builder.setLocationHints(
+        DagTypeConverters.convertVertexLocationHintToProto(
+          preWarmContext.getLocationHints()));
+    }
+    if (preWarmContext.getJavaOpts() != null) {
+      builder.setJavaOpts(preWarmContext.getJavaOpts());
+    }
+    return builder.build();
+  }
+
+  public static PreWarmContext convertPreWarmContextFromProto(
+      PreWarmContextProto proto) {
+    VertexLocationHint vertexLocationHint = null;
+    if (proto.hasLocationHints()) {
+      vertexLocationHint =
+          DagTypeConverters.convertVertexLocationHintFromProto(
+              proto.getLocationHints());
+    }
+    PreWarmContext context = new PreWarmContext(
+      DagTypeConverters.convertProcessorDescriptorFromDAGPlan(
+        proto.getProcessorDescriptor()),
+        Resource.newInstance(proto.getMemoryMb(), proto.getVirtualCores()),
+        vertexLocationHint);
+    if (proto.hasLocalResources()) {
+      context.setLocalResources(
+        DagTypeConverters.convertFromPlanLocalResources(
+          proto.getLocalResources()));
+    }
+    context.setEnvironment(
+      DagTypeConverters.createEnvironmentMapFromDAGPlan(
+        proto.getEnvironmentSettingList()));
+    if (proto.hasJavaOpts()) {
+      context.setJavaOpts(proto.getJavaOpts());
+    }
+    return context;
   }
 
 }

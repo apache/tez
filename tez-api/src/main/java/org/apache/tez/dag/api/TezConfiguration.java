@@ -277,19 +277,6 @@ public class TezConfiguration extends Configuration {
       300;
 
   /**
-   * Session pre-warm related configuration options
-   */
-
-  public static final String TEZ_SESSION_PRE_WARM_PREFIX =
-    TEZ_SESSION_PREFIX + "pre-warm.";
-  public static final String TEZ_SESSION_PRE_WARM_ENABLED =
-    TEZ_SESSION_PRE_WARM_PREFIX + "enabled";
-  public static final boolean TEZ_SESSION_PRE_WARM_ENABLED_DEFAULT = false;
-
-  public static final String TEZ_PRE_WARM_PB_PLAN_BINARY_PATH =
-      TEZ_SESSION_PRE_WARM_PREFIX + "dag-plan.pb.path";
-
-  /**
    * The queue name for all jobs being submitted as part of a session, or for
    * non session jobs.
    */

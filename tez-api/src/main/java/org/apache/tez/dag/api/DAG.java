@@ -97,8 +97,8 @@ public class DAG { // FIXME rename to Topology
    * used if the client has already obtained some or all of the required
    * credentials.
    * 
-   * @param credentials
-   * @return
+   * @param credentials Credentials for the DAG
+   * @return this
    */
   public synchronized DAG setCredentials(Credentials credentials) {
     this.credentials = credentials;
@@ -128,7 +128,7 @@ public class DAG { // FIXME rename to Topology
    * can be provided by making multiple calls to the method.
    * 
    * Currently, credentials can only be fetched for HDFS and other
-   * {@link FileSystem} implementations.
+   * {@link org.apache.hadoop.fs.FileSystem} implementations.
    * 
    * @param uris
    *          a list of {@link URI}s

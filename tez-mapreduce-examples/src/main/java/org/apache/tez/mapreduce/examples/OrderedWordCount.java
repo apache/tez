@@ -18,6 +18,7 @@
 
 package org.apache.tez.mapreduce.examples;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -49,9 +50,13 @@ import org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.util.Apps;
 import org.apache.tez.client.AMConfiguration;
+import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezSession;
@@ -69,6 +74,7 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -83,6 +89,7 @@ import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.processor.SleepProcessor;
 
 /**
  * An MRR job built on top of word count to return words sorted by
@@ -216,8 +223,8 @@ public class OrderedWordCount {
     List<Vertex> vertices = new ArrayList<Vertex>();
 
     byte[] mapPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
-    byte[] mapInputPayload = MRHelpers.createMRInputPayloadWithGrouping(mapPayload, 
-            TextInputFormat.class.getName());
+    byte[] mapInputPayload = MRHelpers.createMRInputPayloadWithGrouping(mapPayload,
+      TextInputFormat.class.getName());
     int numMaps = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(mapPayload),
@@ -407,6 +414,45 @@ public class OrderedWordCount {
         DAG dag = instance.createDAG(fs, conf, localResources,
             stagingDir, dagIndex, inputPath, outputPath,
             generateSplitsInClient);
+
+        boolean doPreWarm = dagIndex == 1 && useTezSession
+            && conf.getBoolean("PRE_WARM_SESSION", true);
+        int preWarmNumContainers = 0;
+        if (doPreWarm) {
+          preWarmNumContainers = conf.getInt("PRE_WARM_NUM_CONTAINERS", 0);
+          if (preWarmNumContainers <= 0) {
+            doPreWarm = false;
+          }
+        }
+        if (doPreWarm) {
+          LOG.info("Pre-warming Session");
+          VertexLocationHint vertexLocationHint =
+              new VertexLocationHint(preWarmNumContainers, null);
+          ProcessorDescriptor sleepProcDescriptor =
+            new ProcessorDescriptor(SleepProcessor.class.getName());
+          SleepProcessor.SleepProcessorConfig sleepProcessorConfig =
+            new SleepProcessor.SleepProcessorConfig(4000);
+          sleepProcDescriptor.setUserPayload(
+            sleepProcessorConfig.toUserPayload());
+          PreWarmContext context = new PreWarmContext(sleepProcDescriptor,
+            dag.getVertex("initialmap").getTaskResource(),
+              vertexLocationHint);
+
+          Map<String, LocalResource> contextLocalRsrcs =
+            new TreeMap<String, LocalResource>();
+          contextLocalRsrcs.putAll(
+            dag.getVertex("initialmap").getTaskLocalResources());
+          Map<String, String> contextEnv = new TreeMap<String, String>();
+          contextEnv.putAll(dag.getVertex("initialmap").getTaskEnvironment());
+          String contextJavaOpts =
+            dag.getVertex("initialmap").getJavaOpts();
+          context
+            .setLocalResources(contextLocalRsrcs)
+            .setJavaOpts(contextJavaOpts)
+            .setEnvironment(contextEnv);
+
+          tezSession.preWarm(context);
+        }
 
         if (useTezSession) {
           LOG.info("Waiting for TezSession to get into ready state");

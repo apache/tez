@@ -371,7 +371,10 @@ public class TezClientUtils {
 
     // Setup the CLASSPATH in environment
     // i.e. add { Hadoop jars, job jar, CWD } to classpath.
-    Map<String, String> environment = createEnvironment(conf);
+    String classpath = getFrameworkClasspath(conf);
+
+    Map<String, String> environment = new TreeMap<String, String>();
+    environment.put(Environment.CLASSPATH.name(), classpath);
 
     if (amConfig.getEnv() != null) {
       for (Map.Entry<String, String> entry : amConfig.getEnv().entrySet()) {
@@ -537,14 +540,14 @@ public class TezClientUtils {
     appContext.setAMContainerSpec(amContainer);
     
     appContext.setMaxAppAttempts(
-        finalTezConf.getInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 
-            TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT));
+      finalTezConf.getInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS,
+        TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT));
 
     return appContext;
 
   }
   
-  static Map<String, String> createEnvironment(Configuration conf) {
+  static String getFrameworkClasspath(Configuration conf) {
     Map<String, String> environment = new HashMap<String, String>();
 
     Apps.addToEnvironment(environment,
@@ -562,7 +565,7 @@ public class TezClientUtils {
       Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
           c.trim());
     }
-    return environment;
+    return environment.get(Environment.CLASSPATH.name());
   }
 
   @VisibleForTesting
@@ -711,7 +714,9 @@ public class TezClientUtils {
           serviceAddr);
       userUgi.addToken(token);
     }
-    LOG.debug("Connecting to " + serviceAddr);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Connecting to Tez AM at " + serviceAddr);
+    }
     DAGClientAMProtocolBlockingPB proxy = null;
     try {
       proxy = userUgi.doAs(new PrivilegedExceptionAction<DAGClientAMProtocolBlockingPB>() {

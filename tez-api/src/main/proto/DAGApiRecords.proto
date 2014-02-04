@@ -234,3 +234,18 @@ message TezCountersProto {
 enum StatusGetOptsProto {
   GET_COUNTERS = 0;
 }
+
+message VertexLocationHintProto {
+  optional int32 num_tasks = 1;
+  repeated PlanTaskLocationHint task_location_hints = 2;
+}
+
+message PreWarmContextProto {
+  optional TezEntityDescriptorProto processor_descriptor = 1;
+  required int32 memoryMb = 2;
+  required int32 virtualCores = 3;
+  optional VertexLocationHintProto location_hints = 4;
+  optional PlanLocalResourcesProto localResources = 5;
+  repeated PlanKeyValuePair environmentSetting = 6;
+  optional string java_opts = 7;
+}

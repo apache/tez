@@ -27,7 +27,6 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
-import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAllDAGsRequestProto;
@@ -36,6 +35,8 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequ
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusResponseProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.PreWarmRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.PreWarmResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
@@ -148,6 +149,20 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
           DagTypeConverters.convertTezSessionStatusToProto(sessionStatus))
           .build();
     } catch(TezException e) {
+      throw wrapException(e);
+    }
+  }
+
+  @Override
+  public DAGClientAMProtocolRPC.PreWarmResponseProto preWarm(
+    RpcController controller,
+    PreWarmRequestProto request) throws ServiceException {
+    try {
+      real.preWarmContainers(
+        DagTypeConverters.convertPreWarmContextFromProto(
+          request.getPreWarmContext()));
+      return PreWarmResponseProto.newBuilder().build();
+    } catch (TezException e) {
       throw wrapException(e);
     }
   }
