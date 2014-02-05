@@ -896,7 +896,7 @@ public class TestDAGImpl {
   @Test(timeout=5000)
   public void testDAGErrorAbortNonSuccessfulOutputs() {
     // vertex success -> vertex output commit. failed dag aborts only non-successful vertices
-    conf.setBoolean(TezConfiguration.TEZ_AM_ABORT_ALL_OUTPUTS_ON_DAG_FAILURE, false);
+    conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
     initDAG(mrrDag);
     dispatcher.await();
     startDAG(mrrDag);

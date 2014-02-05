@@ -52,9 +52,9 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_LOG_LEVEL = TEZ_AM_PREFIX+"log.level";
   public static final String TEZ_AM_LOG_LEVEL_DEFAULT = "INFO";
 
-  public static final String TEZ_AM_ABORT_ALL_OUTPUTS_ON_DAG_FAILURE =
-      TEZ_AM_PREFIX + "abort-all-outputs-on-dag-failure";
-  public static final boolean TEZ_AM_ABORT_ALL_OUTPUTS_ON_DAG_FAILURE_DEFAULT = true;
+  public static final String TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS =
+      TEZ_AM_PREFIX + "commit-all-outputs-on-dag-success";
+  public static final boolean TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT = true;
 
   /** Java options for the Tez AppMaster process. */
   public static final String TEZ_AM_JAVA_OPTS = TEZ_AM_PREFIX

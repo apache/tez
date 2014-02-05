@@ -133,7 +133,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   
   private volatile boolean committedOrAborted = false;
   private volatile boolean allOutputsCommitted = false;
-  boolean abortAllOutputsOnFailure = true;
+  boolean commitAllOutputsOnSuccess = true;
 
   @VisibleForTesting
   DAGScheduler dagScheduler;
@@ -662,7 +662,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     LOG.info("Calling DAG commit/abort for dag: " + getID());
     this.committedOrAborted = true;
     
-    boolean successfulOutputsAlreadyCommitted = !abortAllOutputsOnFailure;
+    boolean successfulOutputsAlreadyCommitted = !commitAllOutputsOnSuccess;
     boolean failedWhileCommitting = false;
     if (dagSucceeded && !successfulOutputsAlreadyCommitted) {
       // commit all shared outputs
@@ -743,8 +743,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         for (Map.Entry<String, OutputCommitter> entry : outputCommitters
             .entrySet()) {
           final OutputCommitter committer = entry.getValue();
-          if (abortAllOutputsOnFailure // abort all outputs on failure
-              || vertex.getState() != VertexState.SUCCEEDED // always abort non-successful outputs
+          if (commitAllOutputsOnSuccess // commit all outputs on success
+              || vertex.getState() != VertexState.SUCCEEDED // never commit unsuccessful outputs
               ) {
             LOG.info("Aborting output: " + entry.getKey() + " for vertex: "
                 + vertex.getVertexId());
@@ -1067,9 +1067,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       //dag.metrics.preparingJob(dag);
 
       dag.initTime = dag.clock.getTime();
-      dag.abortAllOutputsOnFailure = dag.conf.getBoolean(
-          TezConfiguration.TEZ_AM_ABORT_ALL_OUTPUTS_ON_DAG_FAILURE,
-          TezConfiguration.TEZ_AM_ABORT_ALL_OUTPUTS_ON_DAG_FAILURE_DEFAULT);
+      dag.commitAllOutputsOnSuccess = dag.conf.getBoolean(
+          TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
+          TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT);
 
       // If we have no vertices, fail the dag
       dag.numVertices = dag.getJobPlan().getVertexCount();
@@ -1179,7 +1179,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           vertexId, vertexPlan, vertexName, dag.conf,
           dag.eventHandler, dag.taskAttemptListener, 
           dag.clock, dag.taskHeartbeatHandler,
-          !dag.abortAllOutputsOnFailure, dag.appContext, vertexLocationHint,
+          !dag.commitAllOutputsOnSuccess, dag.appContext, vertexLocationHint,
           dag.vertexGroups);
       return v;
     }
@@ -1402,7 +1402,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private boolean vertexSucceeded(Vertex vertex) {
     numSuccessfulVertices++;
     boolean failedCommit = false;
-    if (!abortAllOutputsOnFailure) {
+    if (!commitAllOutputsOnSuccess) {
       // committing successful outputs immediately. check for shared outputs
       List<VertexGroupInfo> groupsList = vertexGroupInfo.get(vertex.getName());
       if (groupsList != null) {
@@ -1453,7 +1453,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       + ", vertexName=" + vertex.getName()
       + ", vertexId=" + vertex.getVertexId());
     
-    if (!abortAllOutputsOnFailure) {
+    if (!commitAllOutputsOnSuccess) {
       // partial output may already have been committed. fail if so
       List<VertexGroupInfo> groupList = vertexGroupInfo.get(vertex.getName());
       if (groupList != null) {
