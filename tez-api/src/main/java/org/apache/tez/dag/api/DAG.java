@@ -19,6 +19,7 @@ package org.apache.tez.dag.api;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,7 +65,7 @@ public class DAG { // FIXME rename to Topology
       new DualLinkedHashBidiMap<String, Vertex>();
   final Set<Edge> edges = Sets.newHashSet();
   final String name;
-  final List<URI> urisForCredentials = new LinkedList<URI>();
+  final Collection<URI> urisForCredentials = new HashSet<URI>();
   Credentials credentials;
   Set<VertexGroup> vertexGroups = Sets.newHashSet();
   Set<GroupInputEdge> groupInputEdges = Sets.newHashSet();
@@ -134,7 +135,7 @@ public class DAG { // FIXME rename to Topology
    *          a list of {@link URI}s
    * @return the DAG instance being used
    */
-  public synchronized DAG addURIsForCredentials(List<URI> uris) {
+  public synchronized DAG addURIsForCredentials(Collection<URI> uris) {
     Preconditions.checkNotNull(uris, "URIs cannot be null");
     urisForCredentials.addAll(uris);
     return this;
@@ -146,8 +147,8 @@ public class DAG { // FIXME rename to Topology
    *         are required.
    */
   @Private
-  public synchronized List<URI> getURIsForCredentials() {
-    return Collections.unmodifiableList(urisForCredentials);
+  public synchronized Collection<URI> getURIsForCredentials() {
+    return Collections.unmodifiableCollection(urisForCredentials);
   }
   
   @Private

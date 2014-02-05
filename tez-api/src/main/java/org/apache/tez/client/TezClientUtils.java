@@ -26,6 +26,7 @@ import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -255,7 +256,7 @@ public class TezClientUtils {
     // Add additional credentials based on any URIs that the user may have specified.
     
     // Obtain Credentials for any paths that the user may have configured.
-    List<URI> uris = dag.getURIsForCredentials();
+    Collection<URI> uris = dag.getURIsForCredentials();
     if (uris != null && !uris.isEmpty()) {
       Iterator<Path> pathIter = Iterators.transform(uris.iterator(), new Function<URI, Path>() {
         @Override
