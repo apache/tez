@@ -27,7 +27,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileContext;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.mapred.ShuffleHandler;
 import org.apache.hadoop.mapreduce.v2.jobhistory.JobHistoryUtils;
 import org.apache.hadoop.service.Service;
@@ -82,19 +85,26 @@ public class MiniTezCluster extends MiniYARNCluster {
       // nothing defined. set quick delete value
       conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
     }
+    
+    File appJarLocalFile = new File(MiniTezCluster.APPJAR);
 
-    File appJarFile = new File(MiniTezCluster.APPJAR);
-
-    if (!appJarFile.exists()) {
+    if (!appJarLocalFile.exists()) {
       String message = "TezAppJar " + MiniTezCluster.APPJAR
           + " not found. Exiting.";
       LOG.info(message);
       throw new TezUncheckedException(message);
-    } else {
-      conf.set(TezConfiguration.TEZ_LIB_URIS, 
-          "file://" + new Path(appJarFile.getAbsolutePath()).toUri().getPath());
-      LOG.info("Set TEZ-LIB-URI to: " + conf.get(TezConfiguration.TEZ_LIB_URIS));
     }
+    
+    FileSystem fs = FileSystem.get(conf);
+    Path testRootDir = fs.makeQualified(new Path("target", getName() + "-tmpDir"));
+    Path appRemoteJar = new Path(testRootDir, "TezAppJar.jar");
+    // Copy AppJar and make it private.
+    Path appMasterJar = new Path(MiniTezCluster.APPJAR);
+    fs.copyFromLocalFile(appMasterJar, appRemoteJar);
+    fs.setPermission(appRemoteJar, new FsPermission("744"));
+
+    conf.set(TezConfiguration.TEZ_LIB_URIS, appRemoteJar.toUri().toString());
+    LOG.info("Set TEZ-LIB-URI to: " + conf.get(TezConfiguration.TEZ_LIB_URIS));
 
     // VMEM monitoring disabled, PMEM monitoring enabled.
     conf.setBoolean(YarnConfiguration.NM_PMEM_CHECK_ENABLED, false);
@@ -105,6 +115,21 @@ public class MiniTezCluster extends MiniYARNCluster {
     try {
       Path stagingPath = FileContext.getFileContext(conf).makeQualified(
           new Path(conf.get(MRJobConfig.MR_AM_STAGING_DIR)));
+      /*
+       * Re-configure the staging path on Windows if the file system is localFs.
+       * We need to use a absolute path that contains the drive letter. The unit
+       * test could run on a different drive than the AM. We can run into the
+       * issue that job files are localized to the drive where the test runs on,
+       * while the AM starts on a different drive and fails to find the job
+       * metafiles. Using absolute path can avoid this ambiguity.
+       */
+      if (Path.WINDOWS) {
+        if (LocalFileSystem.class.isInstance(stagingPath.getFileSystem(conf))) {
+          conf.set(MRJobConfig.MR_AM_STAGING_DIR,
+              new File(conf.get(MRJobConfig.MR_AM_STAGING_DIR))
+                  .getAbsolutePath());
+        }
+      }
       FileContext fc=FileContext.getFileContext(stagingPath.toUri(), conf);
       if (fc.util().exists(stagingPath)) {
         LOG.info(stagingPath + " exists! deleting...");
