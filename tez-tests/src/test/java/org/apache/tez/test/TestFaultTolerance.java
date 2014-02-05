@@ -44,6 +44,9 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.test.dag.SixLevelsFailingDAG;
+import org.apache.tez.test.dag.ThreeLevelsFailingDAG;
+import org.apache.tez.test.dag.TwoLevelsFailingDAG;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -256,6 +259,53 @@ public class TestFaultTolerance {
         TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v2"), 1);
     
     DAG dag = SimpleTestDAG.createDAG("testMultiVersionInputFailureWithoutExit", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+  
+  @Test (timeout=60000)
+  public void testTwoLevelsFailingDAGSuccess() throws Exception {
+    Configuration testConf = new Configuration();
+    DAG dag = TwoLevelsFailingDAG.createDAG("testTwoLevelsFailingDAGSuccess", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+  
+  @Test (timeout=60000)
+  public void testThreeLevelsFailingDAGSuccess() throws Exception {
+    Configuration testConf = new Configuration();
+    DAG dag = ThreeLevelsFailingDAG.createDAG("testThreeLevelsFailingDAGSuccess", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+  
+  @Test (timeout=60000)
+  public void testSixLevelsFailingDAGSuccess() throws Exception {
+    Configuration testConf = new Configuration();
+    DAG dag = SixLevelsFailingDAG.createDAG("testSixLevelsFailingDAGSuccess", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+  
+  @Test (timeout=60000)
+  public void testThreeLevelsFailingDAG2VerticesHaveFailedAttemptsDAGSucceeds() throws Exception {
+    Configuration testConf = new Configuration();
+    //set maximum number of task attempts to 4
+    testConf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_ATTEMPTS, 4);
+    //l2v1 failure
+    testConf.setBoolean(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_DO_FAIL, "l2v1"), true);
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_TASK_INDEX, "l2v1"), "1");
+    //3 attempts fail
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "l2v1"), 2);
+    
+    //l3v1 failure
+    testConf.setBoolean(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_DO_FAIL, "l3v1"), true);
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_TASK_INDEX, "l3v1"), "0");
+    //3 attempts fail
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "l3v1"), 2);
+    DAG dag = ThreeLevelsFailingDAG.createDAG("testThreeLevelsFailingDAG2VerticesHaveFailedAttemptsDAGSucceeds", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
