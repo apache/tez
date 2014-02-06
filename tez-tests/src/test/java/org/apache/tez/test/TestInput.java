@@ -128,8 +128,8 @@ public class TestInput implements LogicalInput {
             e.printStackTrace();
           }
         }
-        LOG.info("Done for inputReady: " + inputReady.get());
         lastInputReadyValue = inputReady.get();
+        LOG.info("Done for inputReady: " + lastInputReadyValue);
       }
       if (doFail) {
         if (
@@ -250,16 +250,19 @@ public class TestInput implements LogicalInput {
       }
     }
     if (numCompletedInputs == numInputs) {
+      int maxInputVersionSeen = -1;  
       for (int i=0; i<numInputs; ++i) {
         if (completedInputVersion[i] < 0) {
           LOG.info("Not received completion for input " + i);
           return;
+        } else if (maxInputVersionSeen < completedInputVersion[i]) {
+          maxInputVersionSeen = completedInputVersion[i];
         }
       }
       LOG.info("Received all inputs");
       synchronized (inputReady) {
-        int newVal = inputReady.incrementAndGet();
-        LOG.info("Notifying done with " + newVal);
+        inputReady.set(maxInputVersionSeen);
+        LOG.info("Notifying done with " + maxInputVersionSeen);
         inputReady.notifyAll();
       }
     }

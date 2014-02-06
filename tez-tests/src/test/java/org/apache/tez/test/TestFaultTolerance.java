@@ -308,5 +308,54 @@ public class TestFaultTolerance {
     DAG dag = ThreeLevelsFailingDAG.createDAG("testThreeLevelsFailingDAG2VerticesHaveFailedAttemptsDAGSucceeds", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
+  
+  /**
+   * Test input failure.
+   * v1-task0    v1-task1
+   * |       \ /     |
+   * v2-task0    v2-task1
+   * 
+   * Use maximum allowed failed attempt of 4 (default value during session creation).
+   * v1-task1-attempt0 fails. Attempt 1 succeeds.
+   * v2-task0-attempt0 runs. Its input1-inputversion0 fails. 
+   * This will trigger rerun of v1-task1.
+   * v1-task1-attempt2 is re-run and succeeds.
+   * v2-task0-attempt0 (no attempt bump) runs. Check its input1. 
+   * The input version is now 1. The attempt will now succeed.
+   * @throws Exception
+   */
+  @Test (timeout=60000)
+  public void testInputFailureCausesRerunAttemptWithinMaxAttemptSuccess() throws Exception {
+    Configuration testConf = new Configuration();
+    //at v1, task 1 has attempt 0 failing. Attempt 1 succeeds. 1 attempt fails so far.
+    testConf.setBoolean(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_DO_FAIL, "v1"), true);
+    testConf.set(TestProcessor.getVertexConfName(
+        TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_TASK_INDEX, "v1"), "1");
+    testConf.setInt(TestProcessor.getVertexConfName(
+        TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "v1"), 0);
+    //at v2, task 0 attempt 0 input 1 input-version 0 fails.
+    //This will trigger re-run of v1's task 1. 
+    //At v1, attempt 2 will kicks off. This attempt is still ok because 
+    //failed attempt so far at v1-task1 is 1 (not greater than 4).
+    testConf.setBoolean(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "0");
+    //at v2, attempt 0 have input failures.
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "1");
+    //at v2-task0-attempt0/1-input1 has input failure at input version 0 only.
+    testConf.setInt(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v2"), 1);
+  
+    DAG dag = SimpleTestDAG.createDAG(
+            "testInputFailureCausesRerunAttemptWithinMaxAttemptSuccess", testConf);
+    //Job should succeed.
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+  
 
 }
