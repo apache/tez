@@ -28,9 +28,11 @@ import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
 import java.util.Map.Entry;
@@ -264,8 +266,25 @@ public class TezClientUtils {
           return new Path(input);
         }
       });
+
       Path[] paths = Iterators.toArray(pathIter, Path.class);
       TokenCache.obtainTokensForFileSystems(dagCredentials, paths, conf);
+    }
+
+    // Obtain Credentials for the local resources configured on the DAG
+    try {
+      Set<Path> lrPaths = new HashSet<Path>();
+      for (Vertex v: dag.getVertices()) {
+        for (LocalResource lr: v.getTaskLocalResources().values()) {
+          lrPaths.add(ConverterUtils.getPathFromYarnURL(lr.getResource()));
+        }
+      }
+
+      Path[] paths = lrPaths.toArray(new Path[lrPaths.size()]);
+      TokenCache.obtainTokensForFileSystems(dagCredentials, paths, conf);
+
+    } catch (URISyntaxException e) {
+      throw new IOException(e);
     }
   }
 
