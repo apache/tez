@@ -506,39 +506,35 @@ public class DAG { // FIXME rename to Topology
 
       taskConfigBuilder.setTaskModule(vertex.getVertexName());
       PlanLocalResource.Builder localResourcesBuilder = PlanLocalResource.newBuilder();
-      if (vertex.getTaskLocalResources() != null) {
-        localResourcesBuilder.clear();
-        for (Entry<String, LocalResource> entry :
-          vertex.getTaskLocalResources().entrySet()) {
-          String key = entry.getKey();
-          LocalResource lr = entry.getValue();
-          localResourcesBuilder.setName(key);
-          localResourcesBuilder.setUri(
-            DagTypeConverters.convertToDAGPlan(lr.getResource()));
-          localResourcesBuilder.setSize(lr.getSize());
-          localResourcesBuilder.setTimeStamp(lr.getTimestamp());
-          localResourcesBuilder.setType(
-            DagTypeConverters.convertToDAGPlan(lr.getType()));
-          localResourcesBuilder.setVisibility(
-            DagTypeConverters.convertToDAGPlan(lr.getVisibility()));
-          if (lr.getType() == LocalResourceType.PATTERN) {
-            if (lr.getPattern() == null || lr.getPattern().isEmpty()) {
-              throw new TezUncheckedException("LocalResource type set to pattern"
-                + " but pattern is null or empty");
-            }
-            localResourcesBuilder.setPattern(lr.getPattern());
+      localResourcesBuilder.clear();
+      for (Entry<String, LocalResource> entry :
+             vertex.getTaskLocalResources().entrySet()) {
+        String key = entry.getKey();
+        LocalResource lr = entry.getValue();
+        localResourcesBuilder.setName(key);
+        localResourcesBuilder.setUri(
+          DagTypeConverters.convertToDAGPlan(lr.getResource()));
+        localResourcesBuilder.setSize(lr.getSize());
+        localResourcesBuilder.setTimeStamp(lr.getTimestamp());
+        localResourcesBuilder.setType(
+          DagTypeConverters.convertToDAGPlan(lr.getType()));
+        localResourcesBuilder.setVisibility(
+          DagTypeConverters.convertToDAGPlan(lr.getVisibility()));
+        if (lr.getType() == LocalResourceType.PATTERN) {
+          if (lr.getPattern() == null || lr.getPattern().isEmpty()) {
+            throw new TezUncheckedException("LocalResource type set to pattern"
+              + " but pattern is null or empty");
           }
-          taskConfigBuilder.addLocalResource(localResourcesBuilder);
+          localResourcesBuilder.setPattern(lr.getPattern());
         }
+        taskConfigBuilder.addLocalResource(localResourcesBuilder);
       }
       
-      if (vertex.getTaskEnvironment() != null) {
-        for (String key : vertex.getTaskEnvironment().keySet()) {
-          PlanKeyValuePair.Builder envSettingBuilder = PlanKeyValuePair.newBuilder();
-          envSettingBuilder.setKey(key);
-          envSettingBuilder.setValue(vertex.getTaskEnvironment().get(key));
-          taskConfigBuilder.addEnvironmentSetting(envSettingBuilder);
-        }
+      for (String key : vertex.getTaskEnvironment().keySet()) {
+        PlanKeyValuePair.Builder envSettingBuilder = PlanKeyValuePair.newBuilder();
+        envSettingBuilder.setKey(key);
+        envSettingBuilder.setValue(vertex.getTaskEnvironment().get(key));
+        taskConfigBuilder.addEnvironmentSetting(envSettingBuilder);
       }
 
       if (vertex.getTaskLocationsHint() != null) {

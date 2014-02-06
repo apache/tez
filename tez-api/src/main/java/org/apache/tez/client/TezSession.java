@@ -153,10 +153,6 @@ public class TezSession {
         .getFrameworkClasspath(sessionConfig.getYarnConfiguration());
     for (Vertex v : dag.getVertices()) {
       Map<String, String> taskEnv = v.getTaskEnvironment();
-      if (taskEnv == null) {
-        taskEnv = Maps.newHashMap();
-        v.setTaskEnvironment(taskEnv);
-      }
       Apps.addToEnvironment(taskEnv,
           ApplicationConstants.Environment.CLASSPATH.name(),
           classpath);

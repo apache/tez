@@ -20,6 +20,7 @@ package org.apache.tez.dag.api;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,8 +43,8 @@ public class Vertex {
   private final int parallelism;
   private VertexLocationHint taskLocationsHint;
   private final Resource taskResource;
-  private Map<String, LocalResource> taskLocalResources;
-  private Map<String, String> taskEnvironment;
+  private Map<String, LocalResource> taskLocalResources = new HashMap<String, LocalResource>();
+  private Map<String, String> taskEnvironment = new HashMap<String, String>();
   private final List<RootInputLeafOutput<InputDescriptor>> additionalInputs 
                       = new ArrayList<RootInputLeafOutput<InputDescriptor>>();
   private final List<RootInputLeafOutput<OutputDescriptor>> additionalOutputs 
@@ -107,7 +108,11 @@ public class Vertex {
   }
 
   public Vertex setTaskLocalResources(Map<String, LocalResource> localResources) {
-    this.taskLocalResources = localResources;
+    if (localResources == null) {
+      this.taskLocalResources = new HashMap<String, LocalResource>();
+    } else {
+      this.taskLocalResources = localResources;
+    }
     return this;
   }
 
@@ -116,7 +121,12 @@ public class Vertex {
   }
 
   public Vertex setTaskEnvironment(Map<String, String> environment) {
-    this.taskEnvironment = environment;
+    if (environment == null) {
+      this.taskEnvironment = new HashMap<String, String>();
+    }
+    else {
+      this.taskEnvironment = environment;
+    }
     return this;
   }
 

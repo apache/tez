@@ -477,18 +477,12 @@ public class TezClientUtils {
     if(dag != null) {
 
       for (Vertex v : dag.getVertices()) {
-        if (v.getTaskLocalResources() == null) {
-          v.setTaskLocalResources(new TreeMap<String, LocalResource>());
-        }
         if (tezJarResources != null) {
           v.getTaskLocalResources().putAll(tezJarResources);
         }
         v.getTaskLocalResources().put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
             binaryConfLRsrc);
 
-        if (v.getTaskEnvironment() == null) {
-          v.setTaskEnvironment(new TreeMap<String, String>());
-        }
         Map<String, String> taskEnv = v.getTaskEnvironment();
         for (Map.Entry<String, String> entry : environment.entrySet()) {
           String key = entry.getKey();
