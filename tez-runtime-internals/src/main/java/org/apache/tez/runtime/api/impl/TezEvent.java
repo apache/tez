@@ -23,6 +23,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
+import org.apache.tez.common.ProtoConverters;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
@@ -124,24 +125,14 @@ public class TezEvent implements Writable {
       byte[] eventBytes = null;
       switch (eventType) {
       case DATA_MOVEMENT_EVENT:
-        DataMovementEvent dmEvt = (DataMovementEvent) event;
-        DataMovementEventProto.Builder dmBuilder = DataMovementEventProto.newBuilder();
-        dmBuilder.setSourceIndex(dmEvt.getSourceIndex()).
-        setTargetIndex(dmEvt.getTargetIndex()).setVersion(dmEvt.getVersion());
-        if (dmEvt.getUserPayload() != null) {
-          dmBuilder.setUserPayload(ByteString.copyFrom(dmEvt.getUserPayload()));
-        }
-        eventBytes = dmBuilder.build().toByteArray();
+        eventBytes =
+            ProtoConverters.convertDataMovementEventToProto(
+                (DataMovementEvent) event).toByteArray();
         break;
       case COMPOSITE_DATA_MOVEMENT_EVENT:
-        CompositeDataMovementEvent cEvent = (CompositeDataMovementEvent) event;
-        CompositeEventProto.Builder cBuilder = CompositeEventProto.newBuilder();
-        cBuilder.setStartIndex(cEvent.getSourceIndexStart());
-        cBuilder.setEndIndex(cEvent.getSourceIndexEnd());
-        if (cEvent.getUserPayload() != null) {
-          cBuilder.setUserPayload(ByteString.copyFrom(cEvent.getUserPayload()));
-        }
-        eventBytes = cBuilder.build().toByteArray();
+        eventBytes =
+            ProtoConverters.convertCompositeDataMovementEventToProto(
+                (CompositeDataMovementEvent) event).toByteArray();
         break;
       case VERTEX_MANAGER_EVENT:
         VertexManagerEvent vmEvt = (VertexManagerEvent) event;
@@ -178,14 +169,8 @@ public class TezEvent implements Writable {
             .setVersion(ifEvt.getVersion()).build().toByteArray();
         break;
       case ROOT_INPUT_DATA_INFORMATION_EVENT:
-        RootInputDataInformationEvent liEvent = (RootInputDataInformationEvent) event;
-        RootInputDataInformationEventProto.Builder riBuilder =
-            RootInputDataInformationEventProto.newBuilder();
-        riBuilder.setIndex(liEvent.getIndex());
-        if (liEvent.getUserPayload() != null) {
-          riBuilder.setUserPayload(ByteString.copyFrom(liEvent.getUserPayload()));
-        }
-        eventBytes = riBuilder.build().toByteArray();
+        eventBytes = ProtoConverters.convertRootInputDataInformationEventToProto(
+            (RootInputDataInformationEvent) event).toByteArray();
         break;
       default:
         throw new TezUncheckedException("Unknown TezEvent"
@@ -214,15 +199,11 @@ public class TezEvent implements Writable {
       case DATA_MOVEMENT_EVENT:
         DataMovementEventProto dmProto =
             DataMovementEventProto.parseFrom(eventBytes);
-        event = new DataMovementEvent(dmProto.getSourceIndex(),
-            dmProto.getTargetIndex(),
-            dmProto.getVersion(),
-            dmProto.getUserPayload() != null ? dmProto.getUserPayload().toByteArray() : null);
+        event = ProtoConverters.convertDataMovementEventFromProto(dmProto);
         break;
       case COMPOSITE_DATA_MOVEMENT_EVENT:
         CompositeEventProto cProto = CompositeEventProto.parseFrom(eventBytes);
-        event = new CompositeDataMovementEvent(cProto.getStartIndex(), cProto.getEndIndex(),
-            cProto.hasUserPayload() ? cProto.getUserPayload().toByteArray() : null);
+        event = ProtoConverters.convertCompositeDataMovementEventFromProto(cProto);
         break;
       case VERTEX_MANAGER_EVENT:
         VertexManagerEventProto vmProto =
@@ -253,8 +234,7 @@ public class TezEvent implements Writable {
       case ROOT_INPUT_DATA_INFORMATION_EVENT:
         RootInputDataInformationEventProto difProto = RootInputDataInformationEventProto
             .parseFrom(eventBytes);
-        event = new RootInputDataInformationEvent(difProto.getIndex(), 
-            difProto.getUserPayload() != null ? difProto.getUserPayload().toByteArray() : null);
+        event = ProtoConverters.convertRootInputDataInformationEventFromProto(difProto);
         break;
       default:
         // RootInputUpdatePayload event not wrapped in a TezEvent.

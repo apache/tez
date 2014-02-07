@@ -18,30 +18,11 @@
 
 package org.apache.tez.dag.history;
 
-import org.apache.hadoop.yarn.event.AbstractEvent;
-import org.apache.tez.dag.records.TezDAGID;
+import java.io.IOException;
+import java.io.OutputStream;
 
-public class DAGHistoryEvent extends AbstractEvent<HistoryEventType>{
+public interface SummaryEvent {
 
-  private final HistoryEvent historyEvent;
-  private final TezDAGID dagID;
+  public void toSummaryProtoStream(OutputStream outputStream) throws IOException;
 
-  public DAGHistoryEvent(TezDAGID dagID,
-      HistoryEvent historyEvent) {
-    super(historyEvent.getEventType());
-    this.dagID = dagID;
-    this.historyEvent = historyEvent;
-  }
-
-  public DAGHistoryEvent(HistoryEvent historyEvent) {
-    this(null, historyEvent);
-  }
-
-  public HistoryEvent getHistoryEvent() {
-    return historyEvent;
-  }
-
-  public TezDAGID getDagID() {
-    return this.dagID;
-  }
 }

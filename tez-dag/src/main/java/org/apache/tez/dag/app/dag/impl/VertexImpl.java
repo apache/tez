@@ -107,7 +107,9 @@ import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventOneToOneSourceSplit;
 import org.apache.tez.dag.app.dag.impl.DAGImpl.VertexGroupInfo;
 import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.events.VertexDataMovementEventsGeneratedEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
+import org.apache.tez.dag.history.events.VertexInitializedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.dag.records.TezDAGID;
@@ -786,6 +788,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
 
+  @Override
+  public AppContext getAppContext() {
+    return this.appContext;
+  }
+
   // TODO Create InputReadyVertexManager that schedules when there is something
   // to read and use that as default instead of ImmediateStart.TEZ-480
   @Override
@@ -1014,11 +1021,19 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
 
-  void logJobHistoryVertexStartedEvent() {
-    VertexStartedEvent startEvt = new VertexStartedEvent(vertexId, vertexName,
-        initTimeRequested, initedTime, startTimeRequested, startedTime, numTasks,
+  void logJobHistoryVertexInitializedEvent() {
+    VertexInitializedEvent initEvt = new VertexInitializedEvent(vertexId, vertexName,
+        initTimeRequested, initedTime, numTasks,
         getProcessorName());
-    this.eventHandler.handle(new DAGHistoryEvent(startEvt));
+    this.appContext.getHistoryHandler().handle(
+        new DAGHistoryEvent(getDAGId(), initEvt));
+  }
+
+  void logJobHistoryVertexStartedEvent() {
+    VertexStartedEvent startEvt = new VertexStartedEvent(vertexId,
+        startTimeRequested, startedTime);
+    this.appContext.getHistoryHandler().handle(
+        new DAGHistoryEvent(getDAGId(), startEvt));
   }
 
   void logJobHistoryVertexFinishedEvent() {
@@ -1027,7 +1042,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         vertexName, initTimeRequested, initedTime, startTimeRequested,
         startedTime, finishTime, VertexStatus.State.SUCCEEDED, "",
         getAllCounters());
-    this.eventHandler.handle(new DAGHistoryEvent(finishEvt));
+    this.appContext.getHistoryHandler().handle(
+        new DAGHistoryEvent(getDAGId(), finishEvt));
   }
 
   void logJobHistoryVertexFailedEvent(VertexStatus.State state) {
@@ -1035,7 +1051,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         vertexName, initTimeRequested, initedTime, startTimeRequested,
         startedTime, clock.getTime(), state, StringUtils.join(LINE_SEPARATOR,
             getDiagnostics()), getAllCounters());
-    this.eventHandler.handle(new DAGHistoryEvent(finishEvt));
+    this.appContext.getHistoryHandler().handle(
+        new DAGHistoryEvent(getDAGId(), finishEvt));
   }
 
   static VertexState checkVertexForCompletion(final VertexImpl vertex) {
@@ -1250,6 +1267,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     // TODO: Metrics
     initedTime = clock.getTime();
 
+    logJobHistoryVertexInitializedEvent();
     return VertexState.INITED;
   }
 
@@ -2008,6 +2026,29 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     public void transition(VertexImpl vertex, VertexEvent event) {
       VertexEventRouteEvent rEvent = (VertexEventRouteEvent) event;
       List<TezEvent> tezEvents = rEvent.getEvents();
+
+      if (vertex.getAppContext().isRecoveryEnabled()
+          && !tezEvents.isEmpty()) {
+        List<TezEvent> dataMovementEvents =
+            Lists.newArrayList();
+        for (TezEvent tezEvent : tezEvents) {
+          if (!isEventFromVertex(vertex, tezEvent.getSourceInfo())) {
+            continue;
+          }
+          if  (tezEvent.getEventType().equals(EventType.COMPOSITE_DATA_MOVEMENT_EVENT)
+            || tezEvent.getEventType().equals(EventType.DATA_MOVEMENT_EVENT)
+            || tezEvent.getEventType().equals(EventType.ROOT_INPUT_DATA_INFORMATION_EVENT)) {
+            dataMovementEvents.add(tezEvent);
+          }
+        }
+        if (!dataMovementEvents.isEmpty()) {
+          VertexDataMovementEventsGeneratedEvent historyEvent =
+              new VertexDataMovementEventsGeneratedEvent(vertex.vertexId,
+                  dataMovementEvents);
+          vertex.appContext.getHistoryHandler().handle(
+              new DAGHistoryEvent(vertex.getDAGId(), historyEvent));
+        }
+      }
       for(TezEvent tezEvent : tezEvents) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Vertex: " + vertex.getName() + " routing event: "

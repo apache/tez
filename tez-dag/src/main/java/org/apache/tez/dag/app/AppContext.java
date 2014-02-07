@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -32,6 +33,7 @@ import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.node.AMNodeMap;
+import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TezDAGID;
 
 
@@ -81,4 +83,11 @@ public interface AppContext {
   boolean isSession();
 
   DAGAppMasterState getAMState();
+
+  HistoryEventHandler getHistoryHandler();
+
+  Path getCurrentRecoveryDir();
+
+  boolean isRecoveryEnabled();
+
 }

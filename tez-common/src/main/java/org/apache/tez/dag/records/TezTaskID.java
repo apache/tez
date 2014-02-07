@@ -25,7 +25,6 @@ import java.text.NumberFormat;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.tez.dag.records.TezVertexID;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
@@ -46,7 +45,7 @@ import com.google.common.cache.LoadingCache;
 public class TezTaskID extends TezID {
   public static final String TASK = "task";
   
-  protected static final ThreadLocal<NumberFormat> idFormat = new ThreadLocal<NumberFormat>() {
+  static final ThreadLocal<NumberFormat> tezTaskIdFormat = new ThreadLocal<NumberFormat>() {
     @Override
     public NumberFormat initialValue() {
       NumberFormat fmt = NumberFormat.getInstance();
@@ -125,7 +124,7 @@ public class TezTaskID extends TezID {
   protected StringBuilder appendTo(StringBuilder builder) {
     return vertexId.appendTo(builder).
                  append(SEPARATOR).
-                 append(idFormat.get().format(id));
+                 append(tezTaskIdFormat.get().format(id));
   }
 
   @Override
@@ -151,6 +150,25 @@ public class TezTaskID extends TezID {
   public void write(DataOutput out) throws IOException {
     vertexId.write(out);
     super.write(out);
+  }
+
+  public static TezTaskID fromString(String taskIdStr) {
+    try {
+      String[] split = taskIdStr.split("_");
+      String rmId = split[1];
+      int appId = TezDAGID.tezAppIdFormat.get().parse(split[2]).intValue();
+      int dagId = TezDAGID.tezDagIdFormat.get().parse(split[3]).intValue();
+      int vId = TezVertexID.tezVertexIdFormat.get().parse(split[4]).intValue();
+      int id = tezTaskIdFormat.get().parse(split[5]).intValue();
+
+      return TezTaskID.getInstance(
+              TezVertexID.getInstance(
+                  TezDAGID.getInstance(rmId, appId, dagId),
+                  vId), id);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return null;
   }
 
 }

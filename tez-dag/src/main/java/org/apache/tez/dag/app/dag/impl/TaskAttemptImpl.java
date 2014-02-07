@@ -768,7 +768,8 @@ public class TaskAttemptImpl implements TaskAttempt,
         attemptId, getTask().getVertex().getName(),
         launchTime, containerId, containerNodeId,
         inProgressLogsUrl, completedLogsUrl);
-    eventHandler.handle(new DAGHistoryEvent(startEvt));
+    this.appContext.getHistoryHandler().handle(
+        new DAGHistoryEvent(getDAGID(), startEvt));
   }
 
   @SuppressWarnings("unchecked")
@@ -781,7 +782,8 @@ public class TaskAttemptImpl implements TaskAttempt,
         getFinishTime(), TaskAttemptState.SUCCEEDED, "",
         getCounters());
     // FIXME how do we store information regd completion events
-    eventHandler.handle(new DAGHistoryEvent(finishEvt));
+    this.appContext.getHistoryHandler().handle(
+        new DAGHistoryEvent(getDAGID(), finishEvt));
   }
 
   @SuppressWarnings("unchecked")
@@ -794,7 +796,8 @@ public class TaskAttemptImpl implements TaskAttempt,
             LINE_SEPARATOR, getDiagnostics()),
         getCounters());
     // FIXME how do we store information regd completion events
-    eventHandler.handle(new DAGHistoryEvent(finishEvt));
+    this.appContext.getHistoryHandler().handle(
+        new DAGHistoryEvent(getDAGID(), finishEvt));
   }
 
   //////////////////////////////////////////////////////////////////////////////

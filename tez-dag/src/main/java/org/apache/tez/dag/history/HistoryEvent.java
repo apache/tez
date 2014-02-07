@@ -18,14 +18,24 @@
 
 package org.apache.tez.dag.history;
 
-import org.apache.tez.dag.history.avro.HistoryEventType;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public interface HistoryEvent {
 
   HistoryEventType getEventType();
 
-  Object getBlob();
+  public JSONObject convertToATSJSON() throws JSONException;
 
-  void setBlob(Object blob);
+  public boolean isRecoveryEvent();
 
+  public boolean isHistoryEvent();
+
+  public void toProtoStream(OutputStream outputStream) throws IOException;
+
+  public void fromProtoStream(InputStream inputStream) throws IOException;
 }

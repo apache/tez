@@ -320,6 +320,9 @@ public class OrderedWordCount {
     boolean useTezSession = conf.getBoolean("USE_TEZ_SESSION", true);
     long interJobSleepTimeout = conf.getInt("INTER_JOB_SLEEP_INTERVAL", 0)
         * 1000;
+
+    boolean retainStagingDir = conf.getBoolean("RETAIN_STAGING_DIR", false);
+
     if (((otherArgs.length%2) != 0)
         || (!useTezSession && otherArgs.length != 2)) {
       printUsage();
@@ -506,7 +509,9 @@ public class OrderedWordCount {
         }
       }
     } finally {
-      fs.delete(stagingDir, true);
+      if (!retainStagingDir) {
+        fs.delete(stagingDir, true);
+      }
       if (useTezSession) {
         tezSession.stop();
       }

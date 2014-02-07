@@ -16,32 +16,13 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.history;
+package org.apache.tez.dag.history.ats;
 
-import org.apache.hadoop.yarn.event.AbstractEvent;
-import org.apache.tez.dag.records.TezDAGID;
-
-public class DAGHistoryEvent extends AbstractEvent<HistoryEventType>{
-
-  private final HistoryEvent historyEvent;
-  private final TezDAGID dagID;
-
-  public DAGHistoryEvent(TezDAGID dagID,
-      HistoryEvent historyEvent) {
-    super(historyEvent.getEventType());
-    this.dagID = dagID;
-    this.historyEvent = historyEvent;
-  }
-
-  public DAGHistoryEvent(HistoryEvent historyEvent) {
-    this(null, historyEvent);
-  }
-
-  public HistoryEvent getHistoryEvent() {
-    return historyEvent;
-  }
-
-  public TezDAGID getDagID() {
-    return this.dagID;
-  }
+public enum EntityTypes {
+  TEZ_APPLICATION_ATTEMPT,
+  TEZ_CONTAINER_ID,
+  TEZ_DAG_ID,
+  TEZ_VERTEX_ID,
+  TEZ_TASK_ID,
+  TEZ_TASK_ATTEMPT_ID,
 }

@@ -329,4 +329,25 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   public static final String TEZ_SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
+
+
+  @Private
+  public static final String TEZ_PREWARM_DAG_NAME_PREFIX = "TezPreWarmDAG";
+
+  public static final String YARN_ATS_ENABLED =
+      TEZ_PREFIX + "yarn.ats.enabled";
+  public static final boolean YARN_ATS_ENABLED_DEFAULT = false;
+
+  public static final String DAG_RECOVERY_ENABLED =
+      TEZ_PREFIX + "dag.recovery.enabled";
+  public static final boolean DAG_RECOVERY_ENABLED_DEFAULT = false;
+
+  public static final String DAG_RECOVERY_FILE_IO_BUFFER_SIZE =
+      TEZ_PREFIX + "dag.recovery.io.buffer.size";
+  public static final int DAG_RECOVERY_FILE_IO_BUFFER_SIZE_DEFAULT = 8192;
+
+  public static final String DAG_RECOVERY_DATA_DIR_NAME = "recovery";
+  public static final String DAG_RECOVERY_SUMMARY_FILE_SUFFIX = ".summary";
+  public static final String DAG_RECOVERY_RECOVER_FILE_SUFFIX = ".recovery";
+
 }

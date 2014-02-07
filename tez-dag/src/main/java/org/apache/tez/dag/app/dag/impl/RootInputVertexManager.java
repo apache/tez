@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +31,8 @@ import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
+import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.events.VertexDataMovementEventsGeneratedEvent;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
@@ -119,6 +122,19 @@ public class RootInputVertexManager implements VertexManagerPlugin {
         Preconditions.checkState(context.getVertexNumTasks(context.getVertexName()) != 0);
         TezEvent tezEvent = new TezEvent(event, sourceInfo);
         tezEvent.setDestinationInfo(destInfoMap.get(inputName));
+        // FIXME the event should be sent via the context and not directly to a
+        // task
+        // FIXME event handler should not exposed to plugins
+
+        if (deleteVertex.getAppContext().isRecoveryEnabled()) {
+          VertexDataMovementEventsGeneratedEvent historyEvent =
+              new VertexDataMovementEventsGeneratedEvent(deleteVertex.getVertexId(),
+                  Arrays.asList(tezEvent));
+          // FIXME should not have access to app context
+          deleteVertex.getAppContext().getHistoryHandler().handle(
+              new DAGHistoryEvent(deleteVertex.getDAG().getID(), historyEvent));
+        }
+
         sendEventToTask(TezTaskID.getInstance(deleteVertex.getVertexId(),
             ((RootInputDataInformationEvent) event).getIndex()), tezEvent);
       }

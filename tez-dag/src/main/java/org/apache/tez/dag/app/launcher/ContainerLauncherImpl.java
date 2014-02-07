@@ -172,8 +172,9 @@ public class ContainerLauncherImpl extends AbstractService implements
         context.getEventHandler().handle(
             new AMContainerEventLaunched(containerID));
         ContainerLaunchedEvent lEvt = new ContainerLaunchedEvent(
-            containerID, clock.getTime());
-        context.getEventHandler().handle(new DAGHistoryEvent(lEvt));
+            containerID, clock.getTime(), context.getApplicationAttemptId());
+        context.getHistoryHandler().handle(new DAGHistoryEvent(
+            context.getCurrentDAGID(), lEvt));
 
         this.state = ContainerState.RUNNING;
       } catch (Throwable t) {

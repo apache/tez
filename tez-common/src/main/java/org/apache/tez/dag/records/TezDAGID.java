@@ -144,7 +144,7 @@ public class TezDAGID extends TezID {
 
   // DO NOT CHANGE THIS. DAGClient replicates this code to create DAG id string
   public static final String DAG = "dag";
-  protected static final ThreadLocal<NumberFormat> tezAppIdFormat = new ThreadLocal<NumberFormat>() {
+  static final ThreadLocal<NumberFormat> tezAppIdFormat = new ThreadLocal<NumberFormat>() {
     @Override
     public NumberFormat initialValue() {
       NumberFormat fmt = NumberFormat.getInstance();
@@ -154,7 +154,7 @@ public class TezDAGID extends TezID {
     }
   };
   
-  protected static final ThreadLocal<NumberFormat> tezDagIdFormat = new ThreadLocal<NumberFormat>() {
+  static final ThreadLocal<NumberFormat> tezDagIdFormat = new ThreadLocal<NumberFormat>() {
     @Override
     public NumberFormat initialValue() {
       NumberFormat fmt = NumberFormat.getInstance();

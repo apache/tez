@@ -1,0 +1,144 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+option java_package = "org.apache.tez.dag.recovery.records";
+option java_outer_classname = "RecoveryProtos";
+option java_generate_equals_and_hash = true;
+
+import "DAGApiRecords.proto";
+import "Events.proto";
+
+message AMLaunchedProto {
+  optional string application_attempt_id = 1;
+  optional int64 app_submit_time = 2;
+  optional int64 launch_time = 3;
+}
+
+message AMStartedProto {
+  optional string application_attempt_id = 1;
+  optional int64 start_time = 2;
+}
+
+message ContainerLaunchedProto {
+  optional string application_attempt_id = 1;
+  optional string container_id = 2;
+  optional int64 launch_time = 3;
+}
+message DAGSubmittedProto {
+  optional string dag_id = 1;
+  optional DAGPlan dag_plan = 2;
+  optional int64 submit_time = 3;
+  optional string application_attempt_id = 4;
+}
+
+message DAGInitializedProto {
+  optional string dag_id = 1;
+  optional int64 init_time = 2;
+}
+
+message DAGStartedProto {
+  optional string dag_id = 1;
+  optional int64 start_time = 3;
+}
+
+message DAGFinishedProto {
+  optional string dag_id = 1;
+  optional int64 finish_time = 2;
+  optional int32 state = 3;
+  optional string diagnostics = 4;
+  optional TezCountersProto counters = 5;
+}
+
+message VertexInitializedProto {
+  optional string vertex_name = 1;
+  optional string vertex_id = 2;
+  optional int64 init_requested_time = 3;
+  optional int64 init_time = 4;
+  optional int64 num_tasks = 5;
+}
+
+message VertexStartedProto {
+  optional string vertex_name = 1;
+  optional string vertex_id = 2;
+  optional int64 start_requested_time = 3;
+  optional int64 start_time = 4;
+}
+
+message VertexFinishedProto {
+  optional string vertex_name = 1;
+  optional string vertex_id = 2;
+  optional int64 finish_time = 3;
+  optional int32 state = 4;
+  optional string diagnostics = 5;
+  optional TezCountersProto counters = 6;
+}
+
+message TaskStartedProto {
+  optional string task_id = 1;
+  optional int64 scheduled_time = 2;
+  optional int64 launch_time = 3;
+}
+
+message TaskFinishedProto {
+  optional string task_id = 1;
+  optional int64 finish_time = 2;
+  optional int32 state = 3;
+  optional string diagnostics = 4;
+  optional TezCountersProto counters = 5;
+}
+
+message TaskAttemptStartedProto {
+  optional string task_attempt_id = 1;
+  optional int64 start_time = 2;
+  optional string container_id = 3;
+  optional string node_id = 4;
+}
+
+message TaskAttemptFinishedProto {
+  optional string task_attempt_id = 1;
+  optional int64 finish_time = 2;
+  optional int32 state = 3;
+  optional string diagnostics = 4;
+  optional TezCountersProto counters = 5;
+}
+
+message EventMetaDataProto {
+  optional int32 producer_consumer_type = 1;
+  optional string task_vertex_name = 2;
+  optional string edge_vertex_name = 3;
+  optional string task_attempt_id = 4;
+}
+
+message TezDataMovementEventProto {
+  optional EventMetaDataProto source_info = 1;
+  optional EventMetaDataProto destination_info = 2;
+  optional DataMovementEventProto data_movement_event = 3;
+  optional CompositeEventProto composite_data_movement_event = 4;
+  optional RootInputDataInformationEventProto root_input_data_information_event = 5;
+}
+
+message VertexDataMovementEventsGeneratedProto {
+  optional string vertex_id = 1;
+  repeated TezDataMovementEventProto tez_data_movement_event = 2;
+}
+
+message SummaryEventProto {
+  optional string dag_id = 1;
+  optional int64 timestamp = 2;
+  optional int32 event_type = 3;
+}

@@ -102,8 +102,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.DAGImpl.VertexGroupInfo;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
-import org.apache.tez.dag.history.DAGHistoryEvent;
-import org.apache.tez.dag.history.avro.HistoryEventType;
+import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -156,6 +155,7 @@ public class TestVertexImpl {
   private TaskEventDispatcher taskEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
   private DagEventDispatcher dagEventDispatcher;
+  private HistoryEventHandler historyEventHandler;
 
   public static class CountingOutputCommitter extends
       OutputCommitter {
@@ -300,12 +300,6 @@ public class TestVertexImpl {
         count = eventCount.get(event.getType()) + 1;
       }
       eventCount.put(event.getType(), count);
-    }
-  }
-
-  private class HistoryHandler implements EventHandler<DAGHistoryEvent> {
-    @Override
-    public void handle(DAGHistoryEvent event) {
     }
   }
 
@@ -1189,6 +1183,7 @@ public class TestVertexImpl {
   public void setupPostDagCreation() {
     dispatcher = new DrainDispatcher();
     appContext = mock(AppContext.class);
+    historyEventHandler = mock(HistoryEventHandler.class);
     TaskSchedulerEventHandler taskScheduler = mock(TaskSchedulerEventHandler.class);
     UserGroupInformation ugi;
     try {
@@ -1207,6 +1202,7 @@ public class TestVertexImpl {
     doReturn(dagId).when(dag).getID();
     doReturn(taskScheduler).when(appContext).getTaskScheduler();
     doReturn(Resource.newInstance(102400, 60)).when(taskScheduler).getTotalResources();
+    doReturn(historyEventHandler).when(appContext).getHistoryHandler();
 
     vertexGroups = Maps.newHashMap();
     for (PlanVertexGroupInfo groupInfo : dagPlan.getVertexGroupsList()) {
@@ -1259,7 +1255,6 @@ public class TestVertexImpl {
     dispatcher.register(VertexEventType.class, vertexEventDispatcher);
     dagEventDispatcher = new DagEventDispatcher();
     dispatcher.register(DAGEventType.class, dagEventDispatcher);
-    dispatcher.register(HistoryEventType.class, new HistoryHandler());
     dispatcher.init(conf);
     dispatcher.start();
   }

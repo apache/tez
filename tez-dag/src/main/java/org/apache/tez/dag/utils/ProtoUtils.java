@@ -16,32 +16,19 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.history;
+package org.apache.tez.dag.utils;
 
-import org.apache.hadoop.yarn.event.AbstractEvent;
+import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos;
 
-public class DAGHistoryEvent extends AbstractEvent<HistoryEventType>{
+public class ProtoUtils {
 
-  private final HistoryEvent historyEvent;
-  private final TezDAGID dagID;
-
-  public DAGHistoryEvent(TezDAGID dagID,
-      HistoryEvent historyEvent) {
-    super(historyEvent.getEventType());
-    this.dagID = dagID;
-    this.historyEvent = historyEvent;
-  }
-
-  public DAGHistoryEvent(HistoryEvent historyEvent) {
-    this(null, historyEvent);
-  }
-
-  public HistoryEvent getHistoryEvent() {
-    return historyEvent;
-  }
-
-  public TezDAGID getDagID() {
-    return this.dagID;
+  public static RecoveryProtos.SummaryEventProto toSummaryEventProto(
+      TezDAGID dagID, long timestamp, HistoryEventType historyEventType) {
+    return RecoveryProtos.SummaryEventProto.newBuilder()
+        .setDagId(dagID.toString())
+        .setTimestamp(timestamp)
+        .setEventType(historyEventType.ordinal()).build();
   }
 }

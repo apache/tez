@@ -50,7 +50,6 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
@@ -95,6 +94,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
+import org.apache.tez.dag.history.events.DAGInitializedEvent;
 import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
@@ -821,17 +821,22 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     this.setFinishTime();
     DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
         finishTime, DAGStatus.State.SUCCEEDED, "", getAllCounters());
-    this.eventHandler.handle(
-        new DAGHistoryEvent(finishEvt));
+    this.appContext.getHistoryHandler().handle(
+        new DAGHistoryEvent(dagId, finishEvt));
   }
 
   void logJobHistoryInitedEvent() {
-    // FIXME should we have more information in this event?
-    // numVertices, etc?
+    DAGInitializedEvent initEvt = new DAGInitializedEvent(this.dagId,
+        this.initTime);
+    this.appContext.getHistoryHandler().handle(
+        new DAGHistoryEvent(dagId, initEvt));
+  }
+
+  void logJobHistoryStartedEvent() {
     DAGStartedEvent startEvt = new DAGStartedEvent(this.dagId,
-        this.initTime, this.startTime);
-    this.eventHandler.handle(
-        new DAGHistoryEvent(startEvt));
+        this.startTime);
+    this.appContext.getHistoryHandler().handle(
+        new DAGHistoryEvent(dagId, startEvt));
   }
 
   void logJobHistoryUnsuccesfulEvent(DAGStatus.State state) {
@@ -839,8 +844,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         clock.getTime(), state,
         StringUtils.join(LINE_SEPARATOR, getDiagnostics()),
         getAllCounters());
-    this.eventHandler.handle(
-        new DAGHistoryEvent(finishEvt));
+    this.appContext.getHistoryHandler().handle(
+        new DAGHistoryEvent(dagId, finishEvt));
   }
 
   static DAGState checkDAGForCompletion(DAGImpl dag) {
@@ -1135,6 +1140,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
       // TODO Metrics
       //dag.metrics.endPreparingJob(dag);
+      dag.logJobHistoryInitedEvent();
       return DAGState.INITED;
 
 
@@ -1227,7 +1233,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     @Override
     public void transition(DAGImpl dag, DAGEvent event) {
       dag.startTime = dag.clock.getTime();
-      dag.logJobHistoryInitedEvent();
+      dag.logJobHistoryStartedEvent();
       // TODO Metrics
       //job.metrics.runningJob(job);
 

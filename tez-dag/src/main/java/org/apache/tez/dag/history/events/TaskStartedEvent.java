@@ -19,20 +19,35 @@
 package org.apache.tez.dag.history.events;
 
 import org.apache.tez.dag.history.HistoryEvent;
-import org.apache.tez.dag.history.avro.HistoryEventType;
-import org.apache.tez.dag.history.avro.TaskStarted;
+import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.history.ats.EntityTypes;
+import org.apache.tez.dag.history.utils.ATSConstants;
 import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskStartedProto;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class TaskStartedEvent implements HistoryEvent {
 
-  private TaskStarted datum = new TaskStarted();
+  private TezTaskID taskID;
+  private String vertexName;
+  private long scheduledTime;
+  private long startTime;
 
   public TaskStartedEvent(TezTaskID taskId,
-      String vertexName, long scheduledTime, long launchTime) {
-    datum.vertexName = vertexName;
-    datum.taskId = taskId.toString();
-    datum.scheduledTime = scheduledTime;
-    datum.launchTime = launchTime;
+      String vertexName, long scheduledTime, long startTime) {
+    this.vertexName = vertexName;
+    this.taskID = taskId;
+    this.scheduledTime = scheduledTime;
+    this.startTime = startTime;
+  }
+
+  public TaskStartedEvent() {
   }
 
   @Override
@@ -41,21 +56,80 @@ public class TaskStartedEvent implements HistoryEvent {
   }
 
   @Override
-  public Object getBlob() {
-    // TODO Auto-generated method stub
-    return this.toString();
+  public JSONObject convertToATSJSON() throws JSONException {
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put(ATSConstants.ENTITY, taskID.toString());
+    jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_TASK_ID.name());
+
+    // Related entities
+    JSONArray relatedEntities = new JSONArray();
+    JSONObject vertexEntity = new JSONObject();
+    vertexEntity.put(ATSConstants.ENTITY, taskID.getVertexID().toString());
+    vertexEntity.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_VERTEX_ID.name());
+    relatedEntities.put(vertexEntity);
+    jsonObject.put(ATSConstants.RELATED_ENTITIES, relatedEntities);
+
+    // Events
+    JSONArray events = new JSONArray();
+    JSONObject startEvent = new JSONObject();
+    startEvent.put(ATSConstants.TIMESTAMP, startTime);
+    startEvent.put(ATSConstants.EVENT_TYPE,
+        HistoryEventType.TASK_STARTED.name());
+    events.put(startEvent);
+    jsonObject.put(ATSConstants.EVENTS, events);
+    
+    // Other info
+    // TODO fix schedule/launch time to be events
+    JSONObject otherInfo = new JSONObject();
+    otherInfo.put(ATSConstants.START_TIME, startTime);
+    otherInfo.put(ATSConstants.SCHEDULED_TIME, scheduledTime);
+
+    jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
+
+    return jsonObject;
   }
 
   @Override
-  public void setBlob(Object blob) {
-    this.datum = (TaskStarted) blob;
+  public boolean isRecoveryEvent() {
+    return false;
+  }
+
+  @Override
+  public boolean isHistoryEvent() {
+    return true;
+  }
+
+  public TaskStartedProto toProto() {
+    return TaskStartedProto.newBuilder()
+        .setTaskId(taskID.toString())
+        .setLaunchTime(startTime)
+        .setScheduledTime(scheduledTime)
+        .build();
+  }
+
+  public void fromProto(TaskStartedProto proto) {
+    this.taskID = TezTaskID.fromString(proto.getTaskId());
+    this.startTime = proto.getLaunchTime();
+    this.scheduledTime = proto.getScheduledTime();
+  }
+
+  @Override
+  public void toProtoStream(OutputStream outputStream) throws IOException {
+    toProto().writeDelimitedTo(outputStream);
+  }
+
+  @Override
+  public void fromProtoStream(InputStream inputStream) throws IOException {
+    TaskStartedProto proto = TaskStartedProto.parseDelimitedFrom(inputStream);
+    fromProto(proto);
   }
 
   @Override
   public String toString() {
-    return "vertexName=" + datum.vertexName
-        + ", taskId=" + datum.taskId
-        + ", scheduledTime=" + datum.scheduledTime
-        + ", launchTime=" + datum.launchTime;
+    return "vertexName=" + vertexName
+        + ", taskId=" + taskID.toString()
+        + ", scheduledTime=" + scheduledTime
+        + ", launchTime=" + startTime;
   }
+
 }

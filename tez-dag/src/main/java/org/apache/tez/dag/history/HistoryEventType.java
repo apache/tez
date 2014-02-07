@@ -18,30 +18,20 @@
 
 package org.apache.tez.dag.history;
 
-import org.apache.hadoop.yarn.event.AbstractEvent;
-import org.apache.tez.dag.records.TezDAGID;
-
-public class DAGHistoryEvent extends AbstractEvent<HistoryEventType>{
-
-  private final HistoryEvent historyEvent;
-  private final TezDAGID dagID;
-
-  public DAGHistoryEvent(TezDAGID dagID,
-      HistoryEvent historyEvent) {
-    super(historyEvent.getEventType());
-    this.dagID = dagID;
-    this.historyEvent = historyEvent;
-  }
-
-  public DAGHistoryEvent(HistoryEvent historyEvent) {
-    this(null, historyEvent);
-  }
-
-  public HistoryEvent getHistoryEvent() {
-    return historyEvent;
-  }
-
-  public TezDAGID getDagID() {
-    return this.dagID;
-  }
+public enum HistoryEventType {
+  AM_LAUNCHED,
+  AM_STARTED,
+  DAG_SUBMITTED,
+  DAG_INITIALIZED,
+  DAG_STARTED,
+  DAG_FINISHED,
+  VERTEX_INITIALIZED,
+  VERTEX_STARTED,
+  VERTEX_FINISHED,
+  TASK_STARTED,
+  TASK_FINISHED,
+  TASK_ATTEMPT_STARTED,
+  TASK_ATTEMPT_FINISHED,
+  CONTAINER_LAUNCHED,
+  VERTEX_DATA_MOVEMENT_EVENTS_GENERATED
 }

@@ -86,8 +86,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.CountingOutputCommitter;
-import org.apache.tez.dag.history.DAGHistoryEvent;
-import org.apache.tez.dag.history.avro.HistoryEventType;
+import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
@@ -126,6 +125,7 @@ public class TestDAGImpl {
   private DAGPlan groupDagPlan;
   private DAGImpl groupDag;
   private TezDAGID groupDagId;
+  private HistoryEventHandler historyEventHandler;
 
   private class DagEventDispatcher implements EventHandler<DAGEvent> {
     @Override
@@ -140,12 +140,6 @@ public class TestDAGImpl {
         throw new RuntimeException("Invalid event, unknown dag"
             + ", dagId=" + event.getDAGId());
       }
-    }
-  }
-
-  private class HistoryHandler implements EventHandler<DAGHistoryEvent> {
-    @Override
-    public void handle(DAGHistoryEvent event) {
     }
   }
 
@@ -595,9 +589,11 @@ public class TestDAGImpl {
     dispatcher = new DrainDispatcher();
     fsTokens = new Credentials();
     appContext = mock(AppContext.class);
+    historyEventHandler = mock(HistoryEventHandler.class);
     doReturn(conf).when(appContext).getAMConf();
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
     doReturn(dagId).when(appContext).getCurrentDAGID();
+    doReturn(historyEventHandler).when(appContext).getHistoryHandler();
     dag = new DAGImpl(dagId, conf, dagPlan,
         dispatcher.getEventHandler(),  taskAttemptListener,
         fsTokens, clock, "user", thh, appContext);
@@ -612,6 +608,7 @@ public class TestDAGImpl {
     doReturn(conf).when(mrrAppContext).getAMConf();
     doReturn(mrrDag).when(mrrAppContext).getCurrentDAG();
     doReturn(appAttemptId).when(mrrAppContext).getApplicationAttemptId();
+    doReturn(historyEventHandler).when(mrrAppContext).getHistoryHandler();
     groupAppContext = mock(AppContext.class);
     groupDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 3);
     groupDagPlan = createGroupDAGPlan();
@@ -622,14 +619,13 @@ public class TestDAGImpl {
     doReturn(conf).when(groupAppContext).getAMConf();
     doReturn(groupDag).when(groupAppContext).getCurrentDAG();
     doReturn(appAttemptId).when(groupAppContext).getApplicationAttemptId();
+    doReturn(historyEventHandler).when(groupAppContext).getHistoryHandler();
     taskEventDispatcher = new TaskEventDispatcher();
     dispatcher.register(TaskEventType.class, taskEventDispatcher);
     vertexEventDispatcher = new VertexEventDispatcher();
     dispatcher.register(VertexEventType.class, vertexEventDispatcher);
     dagEventDispatcher = new DagEventDispatcher();
     dispatcher.register(DAGEventType.class, dagEventDispatcher);
-    dispatcher.register(HistoryEventType.class,
-        new HistoryHandler());
     dagFinishEventHandler = new DAGFinishEventHandler();
     dispatcher.register(DAGAppMasterEventType.class, dagFinishEventHandler);
     dispatcher.register(TaskEventType.class, new TaskEventHandler());

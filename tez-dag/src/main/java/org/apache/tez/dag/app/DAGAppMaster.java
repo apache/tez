@@ -46,6 +46,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.Credentials;
@@ -123,12 +125,15 @@ import org.apache.tez.dag.app.rm.node.AMNodeEventType;
 import org.apache.tez.dag.app.rm.node.AMNodeMap;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
-import org.apache.tez.dag.history.avro.HistoryEventType;
+import org.apache.tez.dag.history.events.AMLaunchedEvent;
 import org.apache.tez.dag.history.events.AMStartedEvent;
+import org.apache.tez.dag.history.events.DAGSubmittedEvent;
+import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.utils.Graph;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
 import com.google.common.annotations.VisibleForTesting;
+import org.codehaus.jettison.json.JSONException;
 
 /**
  * The Map-Reduce Application Master.
@@ -205,6 +210,11 @@ public class DAGAppMaster extends AbstractService {
   private long sessionTimeoutInterval;
   private long lastDAGCompletionTime;
   private Timer dagSubmissionTimer;
+  private boolean recoveryEnabled;
+  private Path recoveryDataDir;
+  private Path currentRecoveryDataDir;
+  private FileSystem recoveryFS;
+  private int recoveryBufferSize;
 
   // DAG Counter
   private final AtomicInteger dagCounter = new AtomicInteger();
@@ -318,11 +328,22 @@ public class DAGAppMaster extends AbstractService {
 
     historyEventHandler = new HistoryEventHandler(context);
     addIfService(historyEventHandler, true);
-    dispatcher.register(HistoryEventType.class, historyEventHandler);
 
     this.sessionTimeoutInterval = 1000 * amConf.getInt(
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT);
+
+    recoveryDataDir = FileSystem.get(conf).makeQualified(new Path(
+        conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
+            TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT),
+              this.appAttemptID.getApplicationId().toString() +
+                  File.separator + TezConfiguration.DAG_RECOVERY_DATA_DIR_NAME));
+    currentRecoveryDataDir = new Path(recoveryDataDir,
+        Integer.toString(this.appAttemptID.getAttemptId()));
+    recoveryFS = FileSystem.get(recoveryDataDir.toUri(), conf);
+    recoveryBufferSize = conf.getInt(
+        TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE,
+        TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE_DEFAULT);
 
     if (isSession) {
       FileInputStream sessionResourcesStream = null;
@@ -340,8 +361,16 @@ public class DAGAppMaster extends AbstractService {
       }
     }
 
+    recoveryEnabled = conf.getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
+        TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT);
+
     initServices(conf);
     super.serviceInit(conf);
+
+    AMLaunchedEvent launchedEvent = new AMLaunchedEvent(appAttemptID,
+        startTime, appSubmitTime);
+    historyEventHandler.handle(
+        new DAGHistoryEvent(launchedEvent));
 
     this.state = DAGAppMasterState.INITED;
 
@@ -392,18 +421,21 @@ public class DAGAppMaster extends AbstractService {
         lastDAGCompletionTime = clock.getTime();
         switch(finishEvt.getDAGState()) {
         case SUCCEEDED:
-          if (!currentDAG.getName().equals("PreWarmDAG")) {
+          if (!currentDAG.getName().startsWith(
+              TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
             successfulDAGs.incrementAndGet();
           }
           break;
         case ERROR:
         case FAILED:
-          if (!currentDAG.getName().equals("PreWarmDAG")) {
+          if (!currentDAG.getName().startsWith(
+              TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
             failedDAGs.incrementAndGet();
           }
           break;
         case KILLED:
-          if (!currentDAG.getName().equals("PreWarmDAG")) {
+          if (!currentDAG.getName().startsWith(
+              TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
             killedDAGs.incrementAndGet();
           }
           break;
@@ -487,10 +519,16 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  /** Create and initialize (but don't start) a single dag. */
   protected DAG createDAG(DAGPlan dagPB) {
-    TezDAGID dagId = TezDAGID.getInstance(appAttemptID.getApplicationId(),
-        dagCounter.incrementAndGet());
+    return createDAG(dagPB, null);
+  }
+
+  /** Create and initialize (but don't start) a single dag. */
+  protected DAG createDAG(DAGPlan dagPB, TezDAGID dagId) {
+    if (dagId == null) {
+      dagId = TezDAGID.getInstance(appAttemptID.getApplicationId(),
+          dagCounter.incrementAndGet());
+    }
 
     Iterator<PlanKeyValuePair> iter =
         dagPB.getDagKeyValues().getConfKeyValuesList().iterator();
@@ -516,6 +554,15 @@ public class DAGAppMaster extends AbstractService {
             taskAttemptListener, dagCredentials, clock,
             appMasterUgi.getShortUserName(),
             taskHeartbeatHandler, context);
+
+    try {
+      if (LOG.isDebugEnabled()) {
+        LOG.info("JSON dump for submitted DAG, dagId=" + dagId.toString()
+            + ", json=" + DAGUtils.generateSimpleJSONPlan(dagPB).toString());
+      }
+    } catch (JSONException e) {
+      LOG.warn("Failed to generate json for DAG", e);
+    }
 
     if (dagConf.getBoolean(TezConfiguration.TEZ_GENERATE_DAG_VIZ,
         TezConfiguration.TEZ_GENERATE_DAG_VIZ_DEFAULT)) {
@@ -820,7 +867,9 @@ public class DAGAppMaster extends AbstractService {
     // Launch new pre-warm DAG
 
     org.apache.tez.dag.api.DAG dag =
-      new org.apache.tez.dag.api.DAG("PreWarmDAG");
+      new org.apache.tez.dag.api.DAG(
+          TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX +
+              Integer.toString(dagCounter.get() + 1));
     if (preWarmContext.getLocationHints().getNumTasks() <= 0) {
       LOG.warn("Ignoring pre-warm context as invalid numContainers specified: "
           + preWarmContext.getLocationHints().getNumTasks());
@@ -1044,6 +1093,21 @@ public class DAGAppMaster extends AbstractService {
     }
 
     @Override
+    public HistoryEventHandler getHistoryHandler() {
+      return historyEventHandler;
+    }
+
+    @Override
+    public Path getCurrentRecoveryDir() {
+      return currentRecoveryDataDir;
+    }
+
+    @Override
+    public boolean isRecoveryEnabled() {
+      return recoveryEnabled;
+    }
+
+    @Override
     public Map<ApplicationAccessType, String> getApplicationACLs() {
       if (getServiceState() != STATE.STARTED) {
         throw new TezUncheckedException(
@@ -1258,8 +1322,8 @@ public class DAGAppMaster extends AbstractService {
 
     this.appsStartTime = clock.getTime();
     AMStartedEvent startEvent = new AMStartedEvent(appAttemptID,
-        startTime, appsStartTime, appSubmitTime);
-    dispatcher.getEventHandler().handle(
+        appsStartTime);
+    historyEventHandler.handle(
         new DAGHistoryEvent(startEvent));
 
     this.lastDAGCompletionTime = clock.getTime();
@@ -1270,6 +1334,14 @@ public class DAGAppMaster extends AbstractService {
       LOG.info("In Session mode. Waiting for DAG over RPC");
       this.state = DAGAppMasterState.IDLE;
 
+      if (recoveryEnabled) {
+        if (this.appAttemptID.getAttemptId() > 0) {
+          // Recovery data and copy over into new recovery dir
+          this.state = DAGAppMasterState.RECOVERING;
+          // TODO
+        }
+      }
+
       this.dagSubmissionTimer = new Timer(true);
       this.dagSubmissionTimer.scheduleAtFixedRate(new TimerTask() {
         @Override
@@ -1277,8 +1349,10 @@ public class DAGAppMaster extends AbstractService {
           checkAndHandleSessionTimeout();
         }
       }, sessionTimeoutInterval, sessionTimeoutInterval / 10);
+
     }
   }
+
 
   @Override
   public synchronized void serviceStop() throws Exception {
@@ -1370,7 +1444,8 @@ public class DAGAppMaster extends AbstractService {
   }
 
   private synchronized void checkAndHandleSessionTimeout() {
-    if (this.state.equals(DAGAppMasterState.RUNNING)
+    if (EnumSet.of(DAGAppMasterState.RUNNING,
+        DAGAppMasterState.RECOVERING).contains(this.state)
         || sessionStopped.get()) {
       // DAG running or session already completed, cannot timeout session
       return;
@@ -1497,6 +1572,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   private void startDAG(DAGPlan dagPlan) {
+    long submitTime = this.clock.getTime();
     this.state = DAGAppMasterState.RUNNING;
     if (LOG.isDebugEnabled()) {
       LOG.debug("Running a DAG with " + dagPlan.getVertexCount()
@@ -1513,6 +1589,9 @@ public class DAGAppMaster extends AbstractService {
 
     // /////////////////// Create the job itself.
     DAG newDAG = createDAG(dagPlan);
+    DAGSubmittedEvent submittedEvent = new DAGSubmittedEvent(newDAG.getID(),
+        submitTime, dagPlan, this.appAttemptID);
+    historyEventHandler.handle(new DAGHistoryEvent(newDAG.getID(), submittedEvent));
     startDAG(newDAG);
   }
 

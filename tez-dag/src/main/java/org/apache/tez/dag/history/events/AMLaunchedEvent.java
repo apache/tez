@@ -19,13 +19,12 @@
 package org.apache.tez.dag.history.events;
 
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.ats.EntityTypes;
 import org.apache.tez.dag.history.utils.ATSConstants;
-import org.apache.tez.dag.recovery.records.RecoveryProtos.ContainerLaunchedProto;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.AMLaunchedProto;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -34,70 +33,72 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class ContainerLaunchedEvent implements HistoryEvent {
+public class AMLaunchedEvent implements HistoryEvent {
 
-  private ContainerId containerId;
-  private long launchTime;
   private ApplicationAttemptId applicationAttemptId;
+  private long launchTime;
+  private long appSubmitTime;
 
-  public ContainerLaunchedEvent() {
+  public AMLaunchedEvent() {
   }
 
-  public ContainerLaunchedEvent(ContainerId containerId,
-      long launchTime,
-      ApplicationAttemptId applicationAttemptId) {
-    this.containerId = containerId;
+  public AMLaunchedEvent(ApplicationAttemptId appAttemptId,
+      long launchTime, long appSubmitTime) {
+    this.applicationAttemptId = appAttemptId;
     this.launchTime = launchTime;
-    this.applicationAttemptId = applicationAttemptId;
+    this.appSubmitTime = appSubmitTime;
   }
 
   @Override
   public HistoryEventType getEventType() {
-    return HistoryEventType.CONTAINER_LAUNCHED;
+    return HistoryEventType.AM_LAUNCHED;
   }
 
   @Override
   public JSONObject convertToATSJSON() throws JSONException {
     JSONObject jsonObject = new JSONObject();
     jsonObject.put(ATSConstants.ENTITY,
-        "tez_" + containerId.toString());
+        "tez_" + applicationAttemptId.toString());
     jsonObject.put(ATSConstants.ENTITY_TYPE,
-        EntityTypes.TEZ_CONTAINER_ID.name());
+        EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
 
+    // Related Entities
     JSONArray relatedEntities = new JSONArray();
+    JSONObject appEntity = new JSONObject();
+    appEntity.put(ATSConstants.ENTITY,
+        applicationAttemptId.getApplicationId().toString());
+    appEntity.put(ATSConstants.ENTITY_TYPE,
+        ATSConstants.APPLICATION_ID);
     JSONObject appAttemptEntity = new JSONObject();
     appAttemptEntity.put(ATSConstants.ENTITY,
         applicationAttemptId.toString());
     appAttemptEntity.put(ATSConstants.ENTITY_TYPE,
-        EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
-
-    JSONObject containerEntity = new JSONObject();
-    containerEntity.put(ATSConstants.ENTITY, containerId.toString());
-    containerEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.CONTAINER_ID);
-
+        ATSConstants.APPLICATION_ATTEMPT_ID);
+    relatedEntities.put(appEntity);
     relatedEntities.put(appAttemptEntity);
-    relatedEntities.put(containerEntity);
     jsonObject.put(ATSConstants.RELATED_ENTITIES, relatedEntities);
 
     // TODO decide whether this goes into different events,
     // event info or other info.
     JSONArray events = new JSONArray();
-    JSONObject launchEvent = new JSONObject();
-    launchEvent.put(ATSConstants.TIMESTAMP, launchTime);
-    launchEvent.put(ATSConstants.EVENT_TYPE,
-        HistoryEventType.CONTAINER_LAUNCHED.name());
-    events.put(launchEvent);
+    JSONObject initEvent = new JSONObject();
+    initEvent.put(ATSConstants.TIMESTAMP, launchTime);
+    initEvent.put(ATSConstants.EVENT_TYPE,
+        HistoryEventType.AM_LAUNCHED.name());
+    events.put(initEvent);
     jsonObject.put(ATSConstants.EVENTS, events);
 
-    // TODO add other container info here? or assume AHS will have this?
-    // TODO container logs?
+    // Other info to tag with Tez AM
+    JSONObject otherInfo = new JSONObject();
+    otherInfo.put(ATSConstants.APP_SUBMIT_TIME, appSubmitTime);
+    jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;
   }
 
   @Override
   public boolean isRecoveryEvent() {
-    return false;
+    return true;
   }
 
   @Override
@@ -105,19 +106,26 @@ public class ContainerLaunchedEvent implements HistoryEvent {
     return true;
   }
 
-  public ContainerLaunchedProto toProto() {
-    return ContainerLaunchedProto.newBuilder()
-        .setApplicationAttemptId(applicationAttemptId.toString())
-        .setContainerId(containerId.toString())
+  @Override
+  public String toString() {
+    return "appAttemptId=" + applicationAttemptId
+        + ", appSubmitTime=" + appSubmitTime
+        + ", launchTime=" + launchTime;
+  }
+
+  public AMLaunchedProto toProto() {
+    return AMLaunchedProto.newBuilder()
+        .setApplicationAttemptId(this.applicationAttemptId.toString())
+        .setAppSubmitTime(appSubmitTime)
         .setLaunchTime(launchTime)
         .build();
   }
 
-  public void fromProto(ContainerLaunchedProto proto) {
-    this.containerId = ConverterUtils.toContainerId(proto.getContainerId());
-    launchTime = proto.getLaunchTime();
-    this.applicationAttemptId = ConverterUtils.toApplicationAttemptId(
-        proto.getApplicationAttemptId());
+  public void fromProto(AMLaunchedProto proto) {
+    this.applicationAttemptId =
+        ConverterUtils.toApplicationAttemptId(proto.getApplicationAttemptId());
+    this.launchTime = proto.getLaunchTime();
+    this.appSubmitTime = proto.getAppSubmitTime();
   }
 
   @Override
@@ -127,15 +135,8 @@ public class ContainerLaunchedEvent implements HistoryEvent {
 
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
-    ContainerLaunchedProto proto =
-        ContainerLaunchedProto.parseDelimitedFrom(inputStream);
+    AMLaunchedProto proto = AMLaunchedProto.parseDelimitedFrom(inputStream);
     fromProto(proto);
-  }
-
-  @Override
-  public String toString() {
-    return "containerId=" + containerId
-        + ", launchTime=" + launchTime;
   }
 
 }

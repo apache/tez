@@ -19,17 +19,32 @@
 package org.apache.tez.dag.history.events;
 
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.history.HistoryEvent;
-import org.apache.tez.dag.history.avro.HistoryEventType;
-import org.apache.tez.dag.history.avro.TaskAttemptFinished;
+import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.history.ats.EntityTypes;
+import org.apache.tez.dag.history.utils.ATSConstants;
+import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskAttemptFinishedProto;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class TaskAttemptFinishedEvent implements HistoryEvent {
 
-  private TaskAttemptFinished datum = new TaskAttemptFinished();
-  // FIXME remove this when we have a proper history
-  private final TezCounters tezCounters;
+  private TezTaskAttemptID taskAttemptId;
+  private String vertexName;
+  private long startTime;
+  private long finishTime;
+  private TaskAttemptState state;
+  private String diagnostics;
+  private TezCounters tezCounters;
 
   public TaskAttemptFinishedEvent(TezTaskAttemptID taId,
       String vertexName,
@@ -38,13 +53,16 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
       TaskAttemptState state,
       String diagnostics,
       TezCounters counters) {
-    datum.taskAttemptId = taId.toString();
-    datum.vertexName = vertexName;
-    datum.startTime = startTime;
-    datum.finishTime = finishTime;
-    datum.status = state.name();
-    datum.diagnostics = diagnostics;
+    this.taskAttemptId = taId;
+    this.vertexName = vertexName;
+    this.startTime = startTime;
+    this.finishTime = finishTime;
+    this.state = state;
+    this.diagnostics = diagnostics;
     tezCounters = counters;
+  }
+
+  public TaskAttemptFinishedEvent() {
   }
 
   @Override
@@ -53,27 +71,87 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
   }
 
   @Override
-  public Object getBlob() {
-    // TODO Auto-generated method stub
-    return this.toString();
+  public JSONObject convertToATSJSON() throws JSONException {
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put(ATSConstants.ENTITY, taskAttemptId.toString());
+    jsonObject.put(ATSConstants.ENTITY_TYPE,
+        EntityTypes.TEZ_TASK_ATTEMPT_ID.name());
+
+    // Events
+    JSONArray events = new JSONArray();
+    JSONObject finishEvent = new JSONObject();
+    finishEvent.put(ATSConstants.TIMESTAMP, finishTime);
+    finishEvent.put(ATSConstants.EVENT_TYPE,
+        HistoryEventType.TASK_ATTEMPT_FINISHED.name());
+    events.put(finishEvent);
+    jsonObject.put(ATSConstants.EVENTS, events);
+
+    JSONObject otherInfo = new JSONObject();
+    otherInfo.put(ATSConstants.START_TIME, startTime);
+    otherInfo.put(ATSConstants.FINISH_TIME, finishTime);
+    otherInfo.put(ATSConstants.TIME_TAKEN, (finishTime - startTime));
+    otherInfo.put(ATSConstants.STATUS, state.name());
+    otherInfo.put(ATSConstants.DIAGNOSTICS, diagnostics);
+    otherInfo.put(ATSConstants.COUNTERS,
+        DAGUtils.convertCountersToJSON(this.tezCounters));
+    jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
+
+    return jsonObject;
   }
 
   @Override
-  public void setBlob(Object blob) {
-    this.datum = (TaskAttemptFinished) blob;
+  public boolean isRecoveryEvent() {
+    return true;
+  }
+
+  @Override
+  public boolean isHistoryEvent() {
+    return true;
+  }
+
+  public TaskAttemptFinishedProto toProto() {
+    return TaskAttemptFinishedProto.newBuilder()
+        .setTaskAttemptId(taskAttemptId.toString())
+        .setState(state.ordinal())
+        .setDiagnostics(diagnostics)
+        .setFinishTime(finishTime)
+        .setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters))
+        .build();
+  }
+
+  public void fromProto(TaskAttemptFinishedProto proto) {
+    this.taskAttemptId = TezTaskAttemptID.fromString(proto.getTaskAttemptId());
+    this.finishTime = proto.getFinishTime();
+    this.state = TaskAttemptState.values()[proto.getState()];
+    this.diagnostics = proto.getDiagnostics();
+    this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
+        proto.getCounters());
+  }
+
+  @Override
+  public void toProtoStream(OutputStream outputStream) throws IOException {
+    toProto().writeDelimitedTo(outputStream);
+  }
+
+  @Override
+  public void fromProtoStream(InputStream inputStream) throws IOException {
+    TaskAttemptFinishedProto proto =
+        TaskAttemptFinishedProto.parseDelimitedFrom(inputStream);
+    fromProto(proto);
   }
 
   @Override
   public String toString() {
-    return "vertexName=" + datum.vertexName
-        + ", taskAttemptId=" + datum.taskAttemptId
-        + ", startTime=" + datum.startTime
-        + ", finishTime=" + datum.finishTime
-        + ", timeTaken=" + (datum.finishTime - datum.startTime)
-        + ", status=" + datum.status
-        + ", diagnostics=" + datum.diagnostics
+    return "vertexName=" + vertexName
+        + ", taskAttemptId=" + taskAttemptId
+        + ", startTime=" + startTime
+        + ", finishTime=" + finishTime
+        + ", timeTaken=" + (finishTime - startTime)
+        + ", status=" + state.name()
+        + ", diagnostics=" + diagnostics
         + ", counters="
         + tezCounters.toString()
             .replaceAll("\\n", ", ").replaceAll("\\s+", " ");
   }
+
 }

@@ -19,25 +19,33 @@
 package org.apache.tez.dag.history.events;
 
 import org.apache.tez.dag.history.HistoryEvent;
-import org.apache.tez.dag.history.avro.HistoryEventType;
-import org.apache.tez.dag.history.avro.VertexStarted;
+import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.history.ats.EntityTypes;
+import org.apache.tez.dag.history.utils.ATSConstants;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexStartedProto;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class VertexStartedEvent implements HistoryEvent {
 
-  private VertexStarted datum = new VertexStarted();
+  private TezVertexID vertexID;
+  private long startRequestedTime;
+  private long startTime;
+
+  public VertexStartedEvent() {
+  }
 
   public VertexStartedEvent(TezVertexID vertexId,
-      String vertexName, long initRequestedTime, long initedTime, long startRequestedTime, long startTime,
-      long numTasks, String processorName) {
-    datum.vertexName = vertexName;
-    datum.vertexId = vertexId.toString();
-    datum.initRequestedTime = initRequestedTime;
-    datum.initedTime = initedTime;
-    datum.startRequestedTime = startRequestedTime;
-    datum.startedTime = startTime;
-    datum.numTasks = numTasks;
-    datum.processorName = processorName;
+      long startRequestedTime, long startTime) {
+    this.vertexID = vertexId;
+    this.startRequestedTime = startRequestedTime;
+    this.startTime = startTime;
   }
 
   @Override
@@ -46,25 +54,78 @@ public class VertexStartedEvent implements HistoryEvent {
   }
 
   @Override
-  public Object getBlob() {
-    // TODO Auto-generated method stub
-    return this.toString();
+  public JSONObject convertToATSJSON() throws JSONException {
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put(ATSConstants.ENTITY, vertexID.toString());
+    jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_VERTEX_ID.name());
+
+    // Related entities
+    JSONArray relatedEntities = new JSONArray();
+    JSONObject vertexEntity = new JSONObject();
+    vertexEntity.put(ATSConstants.ENTITY, vertexID.getDAGId().toString());
+    vertexEntity.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_DAG_ID.name());
+    relatedEntities.put(vertexEntity);
+    jsonObject.put(ATSConstants.RELATED_ENTITIES, relatedEntities);
+
+    // Events
+    JSONArray events = new JSONArray();
+    JSONObject startEvent = new JSONObject();
+    startEvent.put(ATSConstants.TIMESTAMP, startTime);
+    startEvent.put(ATSConstants.EVENT_TYPE,
+        HistoryEventType.VERTEX_STARTED.name());
+    events.put(startEvent);
+    jsonObject.put(ATSConstants.EVENTS, events);
+
+    // Other info
+    // TODO fix requested times to be events
+    JSONObject otherInfo = new JSONObject();
+    otherInfo.put(ATSConstants.START_REQUESTED_TIME, startRequestedTime);
+    otherInfo.put(ATSConstants.START_TIME, startTime);
+    jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
+
+    return jsonObject;
   }
 
   @Override
-  public void setBlob(Object blob) {
-    this.datum = (VertexStarted) blob;
+  public boolean isRecoveryEvent() {
+    return false;
+  }
+
+  @Override
+  public boolean isHistoryEvent() {
+    return true;
+  }
+
+  public VertexStartedProto toProto() {
+    return VertexStartedProto.newBuilder()
+        .setVertexId(vertexID.toString())
+        .setStartRequestedTime(startRequestedTime)
+        .setStartTime(startTime)
+        .build();
+  }
+
+  public void fromProto(VertexStartedProto proto) {
+    this.vertexID = TezVertexID.fromString(proto.getVertexId());
+    this.startRequestedTime = proto.getStartRequestedTime();
+    this.startTime = proto.getStartTime();
+  }
+
+  @Override
+  public void toProtoStream(OutputStream outputStream) throws IOException {
+    toProto().writeDelimitedTo(outputStream);
+  }
+
+  @Override
+  public void fromProtoStream(InputStream inputStream) throws IOException {
+    VertexStartedProto proto = VertexStartedProto.parseDelimitedFrom(inputStream);
+    fromProto(proto);
   }
 
   @Override
   public String toString() {
-    return "vertexName=" + datum.vertexName
-        + ", vertexId=" + datum.vertexId
-        + ", initRequestedTime=" + datum.initRequestedTime
-        + ", initedTime=" + datum.initedTime
-        + ", startRequestedTime=" + datum.startRequestedTime
-        + ", startedTime=" + datum.startedTime
-        + ", numTasks=" + datum.numTasks
-        + ", processorName=" + datum.processorName;
+    return "vertexId=" + vertexID
+        + ", startRequestedTime=" + startRequestedTime
+        + ", startedTime=" + startTime;
   }
+
 }

@@ -19,27 +19,44 @@
 package org.apache.tez.dag.history.events;
 
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.history.HistoryEvent;
-import org.apache.tez.dag.history.avro.HistoryEventType;
-import org.apache.tez.dag.history.avro.TaskFinished;
+import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.history.ats.EntityTypes;
+import org.apache.tez.dag.history.utils.ATSConstants;
+import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskFinishedProto;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class TaskFinishedEvent implements HistoryEvent {
 
-  private TaskFinished datum = new TaskFinished();
-  // FIXME remove this when we have a proper history
-  private final TezCounters tezCounters;
+  private TezTaskID taskID;
+  private String vertexName;
+  private long startTime;
+  private long finishTime;
+  private TaskState state;
+  private TezCounters tezCounters;
 
-  public TaskFinishedEvent(TezTaskID taskId,
+  public TaskFinishedEvent(TezTaskID taskID,
       String vertexName, long startTime, long finishTime,
       TaskState state, TezCounters counters) {
-    datum.vertexName = vertexName;
-    datum.taskId = taskId.toString();
-    datum.startTime = startTime;
-    datum.finishTime = finishTime;
-    datum.status = state.name();
-    tezCounters = counters;
+    this.vertexName = vertexName;
+    this.taskID = taskID;
+    this.startTime = startTime;
+    this.finishTime = finishTime;
+    this.state = state;
+    this.tezCounters = counters;
+  }
+
+  public TaskFinishedEvent() {
   }
 
   @Override
@@ -48,26 +65,82 @@ public class TaskFinishedEvent implements HistoryEvent {
   }
 
   @Override
-  public Object getBlob() {
-    // TODO Auto-generated method stub
-    return this.toString();
+  public JSONObject convertToATSJSON() throws JSONException {
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put(ATSConstants.ENTITY, taskID.toString());
+    jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_TASK_ID.name());
+
+    // Events
+    JSONArray events = new JSONArray();
+    JSONObject finishEvent = new JSONObject();
+    finishEvent.put(ATSConstants.TIMESTAMP, finishTime);
+    finishEvent.put(ATSConstants.EVENT_TYPE,
+        HistoryEventType.TASK_FINISHED.name());
+    events.put(finishEvent);
+    jsonObject.put(ATSConstants.EVENTS, events);
+
+    JSONObject otherInfo = new JSONObject();
+    otherInfo.put(ATSConstants.START_TIME, startTime);
+    otherInfo.put(ATSConstants.FINISH_TIME, finishTime);
+    otherInfo.put(ATSConstants.TIME_TAKEN, (finishTime - startTime));
+    otherInfo.put(ATSConstants.STATUS, state.name());
+    otherInfo.put(ATSConstants.COUNTERS,
+        DAGUtils.convertCountersToJSON(this.tezCounters));
+
+    jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
+
+    return jsonObject;
   }
 
   @Override
-  public void setBlob(Object blob) {
-    this.datum = (TaskFinished) blob;
+  public boolean isRecoveryEvent() {
+    return true;
+  }
+
+  @Override
+  public boolean isHistoryEvent() {
+    return true;
+  }
+
+  public TaskFinishedProto toProto() {
+    return TaskFinishedProto.newBuilder()
+        .setTaskId(taskID.toString())
+        .setState(state.ordinal())
+        .setFinishTime(finishTime)
+        .setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters))
+        .build();
+  }
+
+  public void fromProto(TaskFinishedProto proto) {
+    this.taskID = TezTaskID.fromString(proto.getTaskId());
+    this.finishTime = proto.getFinishTime();
+    this.state = TaskState.values()[proto.getState()];
+    this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
+        proto.getCounters());
+  }
+
+  @Override
+  public void toProtoStream(OutputStream outputStream) throws IOException {
+    toProto().writeDelimitedTo(outputStream);
+  }
+
+  @Override
+  public void fromProtoStream(InputStream inputStream) throws IOException {
+    TaskFinishedProto proto = TaskFinishedProto.parseDelimitedFrom(inputStream);
+    fromProto(proto);
   }
 
   @Override
   public String toString() {
-    return "vertexName=" + datum.vertexName
-        + ", taskId=" + datum.taskId
-        + ", startTime=" + datum.startTime
-        + ", finishTime=" + datum.finishTime
-        + ", timeTaken=" + (datum.finishTime - datum.startTime)
-        + ", status=" + datum.status
+    return "vertexName=" + vertexName
+        + ", taskId=" + taskID
+        + ", startTime=" + startTime
+        + ", finishTime=" + finishTime
+        + ", timeTaken=" + (finishTime - startTime)
+        + ", status=" + state.name()
         + ", counters="
         + tezCounters.toString()
             .replaceAll("\\n", ", ").replaceAll("\\s+", " ");
   }
+
 }

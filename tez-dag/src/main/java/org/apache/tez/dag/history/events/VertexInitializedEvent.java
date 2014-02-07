@@ -18,16 +18,12 @@
 
 package org.apache.tez.dag.history.events;
 
-import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.ats.EntityTypes;
 import org.apache.tez.dag.history.utils.ATSConstants;
-import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexFinishedProto;
+import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -36,41 +32,32 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class VertexFinishedEvent implements HistoryEvent {
+public class VertexInitializedEvent implements HistoryEvent {
 
   private TezVertexID vertexID;
   private String vertexName;
   private long initRequestedTime;
   private long initedTime;
-  private long startRequestedTime;
-  private long startTime;
-  private long finishTime;
-  private VertexStatus.State state;
-  private String diagnostics;
-  private TezCounters tezCounters;
+  private long numTasks;
+  private String processorName;
 
-  public VertexFinishedEvent(TezVertexID vertexId,
-      String vertexName, long initRequestedTime, long initedTime, long startRequestedTime, long startedTime, long finishTime,
-      VertexStatus.State state, String diagnostics,
-      TezCounters counters) {
+  public VertexInitializedEvent() {
+  }
+
+  public VertexInitializedEvent(TezVertexID vertexId,
+      String vertexName, long initRequestedTime, long initedTime,
+      long numTasks, String processorName) {
     this.vertexName = vertexName;
     this.vertexID = vertexId;
     this.initRequestedTime = initRequestedTime;
     this.initedTime = initedTime;
-    this.startRequestedTime = startRequestedTime;
-    this.startTime = startedTime;
-    this.finishTime = finishTime;
-    this.state = state;
-    this.diagnostics = diagnostics;
-    tezCounters = counters;
-  }
-
-  public VertexFinishedEvent() {
+    this.numTasks = numTasks;
+    this.processorName = processorName;
   }
 
   @Override
   public HistoryEventType getEventType() {
-    return HistoryEventType.VERTEX_FINISHED;
+    return HistoryEventType.VERTEX_INITIALIZED;
   }
 
   @Override
@@ -79,22 +66,31 @@ public class VertexFinishedEvent implements HistoryEvent {
     jsonObject.put(ATSConstants.ENTITY, vertexID.toString());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_VERTEX_ID.name());
 
+    // Related entities
+    JSONArray relatedEntities = new JSONArray();
+    JSONObject vertexEntity = new JSONObject();
+    vertexEntity.put(ATSConstants.ENTITY, vertexID.getDAGId().toString());
+    vertexEntity.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_DAG_ID.name());
+    relatedEntities.put(vertexEntity);
+    jsonObject.put(ATSConstants.RELATED_ENTITIES, relatedEntities);
+
     // Events
     JSONArray events = new JSONArray();
-    JSONObject finishEvent = new JSONObject();
-    finishEvent.put(ATSConstants.TIMESTAMP, finishTime);
-    finishEvent.put(ATSConstants.EVENT_TYPE,
-        HistoryEventType.VERTEX_FINISHED.name());
-    events.put(finishEvent);
+    JSONObject initEvent = new JSONObject();
+    initEvent.put(ATSConstants.TIMESTAMP, initedTime);
+    initEvent.put(ATSConstants.EVENT_TYPE,
+        HistoryEventType.VERTEX_INITIALIZED.name());
+    events.put(initEvent);
     jsonObject.put(ATSConstants.EVENTS, events);
 
+    // Other info
+    // TODO fix requested times to be events
     JSONObject otherInfo = new JSONObject();
-    otherInfo.put(ATSConstants.FINISH_TIME, finishTime);
-    otherInfo.put(ATSConstants.TIME_TAKEN, (finishTime - startTime));
-    otherInfo.put(ATSConstants.STATUS, state.name());
-    otherInfo.put(ATSConstants.DIAGNOSTICS, diagnostics);
-    otherInfo.put(ATSConstants.COUNTERS,
-        DAGUtils.convertCountersToJSON(this.tezCounters));
+    otherInfo.put(ATSConstants.VERTEX_NAME, vertexName);
+    otherInfo.put(ATSConstants.INIT_REQUESTED_TIME, initRequestedTime);
+    otherInfo.put(ATSConstants.INIT_TIME, initedTime);
+    otherInfo.put(ATSConstants.NUM_TASKS, numTasks);
+    otherInfo.put(ATSConstants.PROCESSOR_CLASS_NAME, processorName);
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;
@@ -110,25 +106,22 @@ public class VertexFinishedEvent implements HistoryEvent {
     return true;
   }
 
-  public VertexFinishedProto toProto() {
-    return VertexFinishedProto.newBuilder()
-        .setVertexName(vertexName)
+  public RecoveryProtos.VertexInitializedProto toProto() {
+    return RecoveryProtos.VertexInitializedProto.newBuilder()
         .setVertexId(vertexID.toString())
-        .setState(state.ordinal())
-        .setDiagnostics(diagnostics)
-        .setFinishTime(finishTime)
-        .setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters))
+        .setVertexName(vertexName)
+        .setInitRequestedTime(initRequestedTime)
+        .setInitTime(initedTime)
+        .setNumTasks(numTasks)
         .build();
   }
 
-  public void fromProto(VertexFinishedProto proto) {
-    this.vertexName = proto.getVertexName();
+  public void fromProto(RecoveryProtos.VertexInitializedProto proto) {
     this.vertexID = TezVertexID.fromString(proto.getVertexId());
-    this.finishTime = proto.getFinishTime();
-    this.state = VertexStatus.State.values()[proto.getState()];
-    this.diagnostics = proto.getDiagnostics();
-    this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
-        proto.getCounters());
+    this.vertexName = proto.getVertexName();
+    this.initRequestedTime = proto.getInitRequestedTime();
+    this.initedTime = proto.getInitTime();
+    this.numTasks = proto.getNumTasks();
   }
 
   @Override
@@ -138,7 +131,8 @@ public class VertexFinishedEvent implements HistoryEvent {
 
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
-    VertexFinishedProto proto = VertexFinishedProto.parseDelimitedFrom(inputStream);
+    RecoveryProtos.VertexInitializedProto proto =
+        RecoveryProtos.VertexInitializedProto.parseDelimitedFrom(inputStream);
     fromProto(proto);
   }
 
@@ -148,15 +142,8 @@ public class VertexFinishedEvent implements HistoryEvent {
         + ", vertexId=" + vertexID
         + ", initRequestedTime=" + initRequestedTime
         + ", initedTime=" + initedTime
-        + ", startRequestedTime=" + startRequestedTime
-        + ", startedTime=" + startTime
-        + ", finishTime=" + finishTime
-        + ", timeTaken=" + (finishTime - startTime)
-        + ", status=" + state.name()
-        + ", diagnostics=" + diagnostics
-        + ", counters="
-        + tezCounters.toString()
-            .replaceAll("\\n", ", ").replaceAll("\\s+", " ");
+        + ", numTasks=" + numTasks
+        + ", processorName=" + processorName;
   }
 
 }

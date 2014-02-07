@@ -20,17 +20,26 @@ package org.apache.tez.dag.history;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.service.AbstractService;
-import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.service.CompositeService;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.history.ats.ATSService;
+import org.apache.tez.dag.history.recovery.RecoveryService;
 import org.apache.tez.dag.records.TezDAGID;
 
-public class HistoryEventHandler extends AbstractService
-implements EventHandler<DAGHistoryEvent> {
+import java.util.concurrent.atomic.AtomicBoolean;
+
+public class HistoryEventHandler extends CompositeService {
 
   private static Log LOG = LogFactory.getLog(HistoryEventHandler.class);
 
   private final AppContext context;
+  private boolean yarnATSEnabled;
+  private AtomicBoolean stopped = new AtomicBoolean(false);
+  private ATSService atsService;
+  private RecoveryService recoveryService;
+  private boolean recoveryEnabled;
 
   public HistoryEventHandler(AppContext context) {
     super(HistoryEventHandler.class.getName());
@@ -38,26 +47,63 @@ implements EventHandler<DAGHistoryEvent> {
   }
 
   @Override
-  public void serviceStart() {
+  public void serviceInit(Configuration conf) throws Exception {
+    LOG.info("Initializing HistoryEventHandler");
+    this.yarnATSEnabled = context.getAMConf().getBoolean(TezConfiguration.YARN_ATS_ENABLED,
+        TezConfiguration.YARN_ATS_ENABLED_DEFAULT);
+    this.recoveryEnabled = context.getAMConf().getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
+        TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT);
+    if (yarnATSEnabled) {
+      atsService = new ATSService();
+      addService(atsService);
+    }
+    if (recoveryEnabled) {
+      recoveryService = new RecoveryService(context);
+      addService(recoveryService);
+    }
+    super.serviceInit(conf);
+  }
+
+  @Override
+  public void serviceStart() throws Exception {
     LOG.info("Starting HistoryEventHandler");
+    super.serviceStart();
   }
 
   @Override
-  public void serviceStop() {
+  public void serviceStop() throws Exception {
     LOG.info("Stopping HistoryEventHandler");
+    super.serviceStop();
   }
 
-  @Override
   public void handle(DAGHistoryEvent event) {
-    TezDAGID dagId = context.getCurrentDAGID();
+    TezDAGID dagId = event.getDagID();
     String dagIdStr = "N/A";
     if(dagId != null) {
-      dagIdStr = context.getCurrentDAGID().toString();
+      dagIdStr = dagId.toString();
     }
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Handling history event"
+          + ", eventType=" + event.getHistoryEvent().getEventType());
+    }
+    if (recoveryEnabled && event.getHistoryEvent().isRecoveryEvent()) {
+      recoveryService.handle(event);
+    }
+    if (yarnATSEnabled && event.getHistoryEvent().isHistoryEvent()) {
+      atsService.handle(event);
+    }
+
+    // TODO at some point we should look at removing this once
+    // there is a UI in place
     LOG.info("[HISTORY]"
         + "[DAG:" + dagIdStr + "]"
         + "[Event:" + event.getType().name() + "]"
-        + ": " + event.getHistoryEvent().getBlob().toString());
+        + ": " + event.getHistoryEvent().toString());
   }
+
+
+
+
 
 }

@@ -20,11 +20,8 @@ package org.apache.tez.dag.history.events;
 
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
-import org.apache.tez.dag.history.ats.EntityTypes;
-import org.apache.tez.dag.history.utils.ATSConstants;
 import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGStartedProto;
-import org.codehaus.jettison.json.JSONArray;
+import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -32,46 +29,29 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class DAGStartedEvent implements HistoryEvent {
+// TODO fix class
+public class DAGInitializedEvent implements HistoryEvent {
 
   private TezDAGID dagID;
-  private long startTime;
+  private long initTime;
 
-  public DAGStartedEvent() {
+  public DAGInitializedEvent() {
   }
 
-  public DAGStartedEvent(TezDAGID dagID, long startTime) {
+  public DAGInitializedEvent(TezDAGID dagID, long initTime) {
     this.dagID = dagID;
-    this.startTime = startTime;
+    this.initTime = initTime;
   }
 
   @Override
   public HistoryEventType getEventType() {
-    return HistoryEventType.DAG_STARTED;
+    return HistoryEventType.DAG_INITIALIZED;
   }
 
   @Override
   public JSONObject convertToATSJSON() throws JSONException {
-    JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY,
-        dagID.toString());
-    jsonObject.put(ATSConstants.ENTITY_TYPE,
-        EntityTypes.TEZ_DAG_ID.name());
-
-    // Related Entities not needed as should have been done in
-    // dag submission event
-
-    // TODO decide whether this goes into different events,
-    // event info or other info.
-    JSONArray events = new JSONArray();
-    JSONObject startEvent = new JSONObject();
-    startEvent.put(ATSConstants.TIMESTAMP, startTime);
-    startEvent.put(ATSConstants.EVENT_TYPE,
-        HistoryEventType.DAG_STARTED.name());
-    events.put(startEvent);
-    jsonObject.put(ATSConstants.EVENTS, events);
-
-    return jsonObject;
+    // TODO
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -84,16 +64,22 @@ public class DAGStartedEvent implements HistoryEvent {
     return true;
   }
 
-  public DAGStartedProto toProto() {
-    return DAGStartedProto.newBuilder()
+  @Override
+  public String toString() {
+    return "dagID=" + dagID
+        + ", initTime=" + initTime;
+  }
+
+  public RecoveryProtos.DAGInitializedProto toProto() {
+    return RecoveryProtos.DAGInitializedProto.newBuilder()
         .setDagId(dagID.toString())
-        .setStartTime(startTime)
+        .setInitTime(initTime)
         .build();
   }
 
-  public void fromProto(DAGStartedProto proto) {
+  public void fromProto(RecoveryProtos.DAGInitializedProto proto) {
     this.dagID = TezDAGID.fromString(proto.getDagId());
-    this.startTime = proto.getStartTime();
+    this.initTime = proto.getInitTime();
   }
 
   @Override
@@ -103,14 +89,9 @@ public class DAGStartedEvent implements HistoryEvent {
 
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
-    DAGStartedProto proto = DAGStartedProto.parseDelimitedFrom(inputStream);
+    RecoveryProtos.DAGInitializedProto proto =
+        RecoveryProtos.DAGInitializedProto.parseDelimitedFrom(inputStream);
     fromProto(proto);
-  }
-
-  @Override
-  public String toString() {
-    return "dagID=" + dagID
-        + ", startTime=" + startTime;
   }
 
 }
