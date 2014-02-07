@@ -18,6 +18,7 @@
 
 package org.apache.tez.test;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -26,7 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClientUtils;
@@ -57,20 +58,28 @@ public class TestFaultTolerance {
 
   private static Configuration conf = new Configuration();
   private static MiniTezCluster miniTezCluster;
-  private static FileSystem remoteFs;
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestFaultTolerance.class.getName() + "-tmpDir";
+  protected static MiniDFSCluster dfsCluster;
   
   private static TezSession tezSession = null;
   
   @BeforeClass
   public static void setup() throws Exception {
     LOG.info("Starting mini clusters");
+    FileSystem remoteFs = null;
+    try {
+      conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
+      dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(1)
+          .format(true).racks(null).build();
+      remoteFs = dfsCluster.getFileSystem();
+    } catch (IOException io) {
+      throw new RuntimeException("problem starting mini dfs cluster", io);
+    }
     if (miniTezCluster == null) {
       miniTezCluster = new MiniTezCluster(TestFaultTolerance.class.getName(),
           4, 1, 1);
       Configuration miniTezconf = new Configuration(conf);
-      remoteFs = new RawLocalFileSystem();
       miniTezconf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
       miniTezCluster.init(miniTezconf);
       miniTezCluster.start();
@@ -103,8 +112,9 @@ public class TestFaultTolerance {
       miniTezCluster.stop();
       miniTezCluster = null;
     }
-    if (remoteFs != null) {
-      remoteFs.close();
+    if (dfsCluster != null) {
+      dfsCluster.shutdown();
+      dfsCluster = null;
     }
   }
   

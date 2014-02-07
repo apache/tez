@@ -98,10 +98,10 @@ public class MiniTezCluster extends MiniYARNCluster {
     FileSystem fs = FileSystem.get(conf);
     Path testRootDir = fs.makeQualified(new Path("target", getName() + "-tmpDir"));
     Path appRemoteJar = new Path(testRootDir, "TezAppJar.jar");
-    // Copy AppJar and make it private.
+    // Copy AppJar and make it public.
     Path appMasterJar = new Path(MiniTezCluster.APPJAR);
     fs.copyFromLocalFile(appMasterJar, appRemoteJar);
-    fs.setPermission(appRemoteJar, new FsPermission("744"));
+    fs.setPermission(appRemoteJar, new FsPermission("777"));
 
     conf.set(TezConfiguration.TEZ_LIB_URIS, appRemoteJar.toUri().toString());
     LOG.info("Set TEZ-LIB-URI to: " + conf.get(TezConfiguration.TEZ_LIB_URIS));
