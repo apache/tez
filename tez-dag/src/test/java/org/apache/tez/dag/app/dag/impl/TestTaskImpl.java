@@ -254,6 +254,51 @@ public class TestTaskImpl {
     scheduleTaskAttempt(taskId);
     killTask(taskId);
   }
+  
+  /**
+   * {@link TaskState#RUNNING}->{@link TaskState#KILLED}
+   */
+  @Test
+  public void testKillRunningTask() {
+    LOG.info("--- START: testKillRunningTask ---");
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    killTask(taskId);
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
+        TaskEventType.T_ATTEMPT_KILLED));
+    assertEquals(TaskStateInternal.KILLED, mockTask.getInternalState());
+  }
+  
+  /**
+   * {@link TaskState#RUNNING}->{@link TaskState#KILLED}
+   */
+  @Test
+  public void testKillRunningTaskButAttemptSucceeds() {
+    LOG.info("--- START: testKillRunningTaskButAttemptSucceeds ---");
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    killTask(taskId);
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
+        TaskEventType.T_ATTEMPT_SUCCEEDED));
+    assertEquals(TaskStateInternal.KILLED, mockTask.getInternalState());
+  }
+  
+  /**
+   * {@link TaskState#RUNNING}->{@link TaskState#KILLED}
+   */
+  @Test
+  public void testKillRunningTaskButAttemptFails() {
+    LOG.info("--- START: testKillRunningTaskButAttemptFails ---");
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    killTask(taskId);
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
+        TaskEventType.T_ATTEMPT_FAILED));
+    assertEquals(TaskStateInternal.KILLED, mockTask.getInternalState());
+  }
 
   @Test
   /**

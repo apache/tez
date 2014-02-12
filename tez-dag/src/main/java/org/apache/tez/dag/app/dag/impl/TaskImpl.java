@@ -193,7 +193,15 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(TaskStateInternal.KILL_WAIT,
         EnumSet.of(TaskStateInternal.KILL_WAIT, TaskStateInternal.KILLED),
         TaskEventType.T_ATTEMPT_KILLED,
-        new KillWaitAttemptKilledTransition())
+        new KillWaitAttemptCompletedTransition())
+    .addTransition(TaskStateInternal.KILL_WAIT,
+        EnumSet.of(TaskStateInternal.KILL_WAIT, TaskStateInternal.KILLED),
+        TaskEventType.T_ATTEMPT_FAILED,
+        new KillWaitAttemptCompletedTransition())
+    .addTransition(TaskStateInternal.KILL_WAIT,
+        EnumSet.of(TaskStateInternal.KILL_WAIT, TaskStateInternal.KILLED),
+        TaskEventType.T_ATTEMPT_SUCCEEDED,
+        new KillWaitAttemptCompletedTransition())
     .addTransition(TaskStateInternal.KILL_WAIT, TaskStateInternal.KILL_WAIT,
         TaskEventType.T_ADD_TEZ_EVENT, ADD_TEZ_EVENT_TRANSITION)
     // Ignore-able transitions.
@@ -204,8 +212,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             TaskEventType.T_TERMINATE,
             TaskEventType.T_ATTEMPT_LAUNCHED,
             TaskEventType.T_ATTEMPT_OUTPUT_CONSUMABLE,
-            TaskEventType.T_ATTEMPT_FAILED,
-            TaskEventType.T_ATTEMPT_SUCCEEDED,
             TaskEventType.T_ADD_SPEC_ATTEMPT))
 
     // Transitions from SUCCEEDED state
@@ -987,7 +993,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           castEvent.getTaskAttemptID(),
           TaskAttemptStateInternal.KILLED);
       task.finishedAttempts++;
-      // we don't need a new event if we already have a spare
+      // we KillWaitAttemptCompletedTransitionready have a spare
       if (--task.numberUncompletedAttempts == 0
           && task.successfulAttempt == null) {
         task.addAndScheduleAttempt();
@@ -996,10 +1002,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
 
-  private static class KillWaitAttemptKilledTransition implements
+  private static class KillWaitAttemptCompletedTransition implements
       MultipleArcTransition<TaskImpl, TaskEvent, TaskStateInternal> {
-
-    protected TaskStateInternal finalState = TaskStateInternal.KILLED;
 
     @Override
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
@@ -1010,15 +1014,16 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // check whether all attempts are finished
       if (task.finishedAttempts == task.attempts.size()) {
         if (task.historyTaskStartGenerated) {
-          task.logJobHistoryTaskFailedEvent(getExternalState(finalState));
+          task.logJobHistoryTaskFailedEvent(getExternalState(TaskStateInternal.KILLED));
         } else {
           LOG.debug("Not generating HistoryFinish event since start event not" +
           		" generated for task: " + task.getTaskId());
         }
 
         task.eventHandler.handle(
-            new VertexEventTaskCompleted(task.taskId, getExternalState(finalState)));
-        return finalState;
+            new VertexEventTaskCompleted(
+                task.taskId, getExternalState(TaskStateInternal.KILLED)));
+        return TaskStateInternal.KILLED;
       }
       return task.getInternalState();
     }
