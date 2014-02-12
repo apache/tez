@@ -80,6 +80,12 @@ public class OnFileSortedOutput implements LogicalOutput {
   }
 
   @Override
+  public List<Event> start() {
+    // TODO TEZ-815 To be fixed in a subsequent jira if required.
+    return null;
+  }
+
+  @Override
   public KeyValueWriter getWriter() throws IOException {
     return new KeyValueWriter() {
       @Override

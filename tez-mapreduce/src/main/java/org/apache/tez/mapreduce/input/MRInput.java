@@ -157,6 +157,12 @@ public class MRInput implements LogicalInput {
     initializeInternal();
     return null;
   }
+  
+  @Override
+  public List<Event> start() {
+    // TODO TEZ-815 To be fixed in a subsequent jira if required.
+    return null;
+  }
 
   @Private
   void initializeInternal() throws IOException {

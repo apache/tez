@@ -34,7 +34,8 @@ public class RuntimeUtils {
   
   private static final Map<String, Class<?>> CLAZZ_CACHE = new ConcurrentHashMap<String, Class<?>>();
 
-  private static Class<?> getClazz(String className) {
+  @Private
+  public static Class<?> getClazz(String className) {
     Class<?> clazz = CLAZZ_CACHE.get(className);
     if (clazz == null) {
       try {

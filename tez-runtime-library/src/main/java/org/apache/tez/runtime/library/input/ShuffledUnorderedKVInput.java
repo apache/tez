@@ -66,6 +66,12 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   }
 
   @Override
+  public List<Event> start() {
+    // TODO TEZ-815 To be fixed in a subsequent jira if required.
+    return null;
+  }
+
+  @Override
   public KeyValueReader getReader() throws Exception {
     if (numInputs == 0) {
       return new KeyValueReader() {

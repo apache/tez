@@ -85,6 +85,12 @@ public class ShuffledMergedInput implements LogicalInput {
     return Collections.emptyList();
   }
 
+  @Override
+  public List<Event> start() {
+    // TODO TEZ-815 To be fixed in a subsequent jira if required.
+    return null;
+  }
+
   /**
    * Check if the input is ready for consumption
    *

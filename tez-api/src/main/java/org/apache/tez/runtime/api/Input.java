@@ -43,6 +43,22 @@ public interface Input {
       throws Exception;
 
   /**
+   * Start any processing that the Input may need to perform. This, for now, is
+   * always invoked by the framework.
+   * 
+   * The implementation of Input is expected to be non blocking. Inputs should
+   * see this as a signal to start processing, but must return control to the
+   * framework before the Processor actually starts.
+   * 
+   * Inputs should be written to handle multiple start invocations - typically
+   * honoring only the first one.
+   * 
+   * @return list of events that were generated during start
+   * @throws Exception
+   */
+  public List<Event> start() throws Exception;
+  
+  /**
    * Gets an instance of the {@link Reader} for this <code>Output</code>
    *
    * @return Gets an instance of the {@link Reader} for this <code>Output</code>

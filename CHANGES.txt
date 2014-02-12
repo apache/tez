@@ -12,6 +12,8 @@ INCOMPATIBLE CHANGES
   TEZ-650. MRHelpers.createMRInputPayloadWithGrouping() methods should not
   take an MRSplitsProto argument.
 
+  TEZ-827. Separate initialize and start operations on Inputs/Outputs.
+
 Release 0.2.0 - 2013-11-30
 
   First version.

@@ -35,5 +35,4 @@ public interface TezInputContext extends TezTaskContext {
    * @return index
    */
   public int getInputIndex();
-
 }

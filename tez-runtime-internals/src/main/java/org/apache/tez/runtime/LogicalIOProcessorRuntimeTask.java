@@ -150,6 +150,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     initialMemoryDistributor = new MemoryDistributor(numInputs, numOutputs, tezConf);
   }
 
+  /**
+   * @throws Exception
+   */
   public void initialize() throws Exception {
     LOG.info("Initializing LogicalProcessorIORuntimeTask");
     Preconditions.checkState(this.state == State.NEW, "Already initialized");
@@ -170,8 +173,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
           new InitializeOutputCallable(outputSpec, outputIndex++));
       numTasks++;
     }
-    // Shutdown after all tasks complete.
-    this.initializerExecutor.shutdown();
     
     // Initialize processor in the current thread.
     initializeLogicalIOProcessor();
@@ -192,11 +193,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       }
     }
     LOG.info("All initializers finished");
-    initialMemoryDistributor.makeInitialAllocations();
-
     // group inputs depend on inputs beings initialized. So must be done after.
     initializeGroupInputs();
+    // Grouped input start will be controlled by the start of the GroupedInput
     
+    // Construct the set of groupedInputs up front so that start is not invoked on them.
     Set<String> groupInputs = Sets.newHashSet();
     // Construct Inputs/Outputs map argument for processor.run()
     // first add the group inputs
@@ -207,6 +208,59 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         groupInputs.addAll(groupInputSpec.getGroupVertices());
       }
     }
+
+    initialMemoryDistributor.makeInitialAllocations();
+
+    LOG.info("Starting Inputs/Outputs");
+    int numAutoStarts = 0;
+    for (InputSpec inputSpec : inputSpecs) {
+      if (groupInputs.contains(inputSpec.getSourceVertexName())) {
+        LOG.info("Ignoring " + inputSpec.getSourceVertexName()
+            + " for start, since it will be controlled via it's Group");
+        continue;
+      }
+      numAutoStarts++;
+      this.initializerCompletionService.submit(new StartInputCallable(inputsMap.get(inputSpec
+          .getSourceVertexName()), inputSpec.getSourceVertexName(), taskSpec.getVertexName()));
+    }
+
+    if (groupInputSpecs != null) {
+      for (GroupInputSpec group : groupInputSpecs) {
+        numAutoStarts++;
+        this.initializerCompletionService.submit(new StartInputCallable(groupInputsMap.get(group
+            .getGroupName()), group.getGroupName(), taskSpec.getVertexName()));
+      }
+    }
+
+    for (OutputSpec outputSpec : outputSpecs) {
+      numAutoStarts++;
+      this.initializerCompletionService
+          .submit(new StartOutputCallable(outputsMap.get(outputSpec.getDestinationVertexName()),
+              outputContextMap.get(outputSpec.getDestinationVertexName())));
+    }
+
+    // Shutdown after all tasks complete.
+    this.initializerExecutor.shutdown();
+    
+    completedTasks = 0;
+    LOG.info("Num IOs determined for AutoStart: " + numAutoStarts);
+    while (completedTasks < numAutoStarts) {
+      LOG.info("Waiting for " + (numAutoStarts - completedTasks) + " IOs to start");
+      Future<Void> future = initializerCompletionService.take();
+      try {
+        future.get();
+        completedTasks++;
+      } catch (ExecutionException e) {
+        if (e.getCause() instanceof Exception) {
+          throw (Exception) e.getCause();
+        } else {
+          throw new Exception(e);
+        }
+      }
+    }
+
+    
+
     // then add the non-grouped inputs
     for (InputSpec inputSpec : inputSpecs) {
       if (!groupInputs.contains(inputSpec.getSourceVertexName())) {
@@ -214,7 +268,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         runInputMap.put(inputSpec.getSourceVertexName(), input);
       }
     }
-    
+
     for (OutputSpec outputSpec : outputSpecs) {
       LogicalOutput output = outputsMap.get(outputSpec.getDestinationVertexName());
       String outputName = outputSpec.getDestinationVertexName();
@@ -300,6 +354,49 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
           inputContext.getTaskVertexName(), inputContext.getSourceVertexName(),
           taskSpec.getTaskAttemptID());
       LOG.info("Initialized Input with src edge: " + edgeName);
+      return null;
+    }
+  }
+
+  private class StartInputCallable implements Callable<Void> {
+    private final LogicalInput input;
+    private final String srcVertexName;
+    private final String taskVertexName;
+    
+    public StartInputCallable(LogicalInput input, String srcVertexName, String taskVertexName) {
+      this.input = input;
+      this.srcVertexName = srcVertexName;
+      this.taskVertexName = taskVertexName;
+    }
+    
+    @Override
+    public Void call() throws Exception {
+      LOG.info("Starting Input with src edge: " + srcVertexName);
+      List<Event> events = input.start();
+      sendTaskGeneratedEvents(events, EventProducerConsumerType.INPUT, taskVertexName,
+          srcVertexName, taskSpec.getTaskAttemptID());
+      LOG.info("Started Input with src edge: " + srcVertexName);
+      return null;
+    }
+  }
+
+  private class StartOutputCallable implements Callable<Void> {
+    private final LogicalOutput output;
+    private final TezOutputContext outputContext;
+    
+    public StartOutputCallable(LogicalOutput output, TezOutputContext outputContext) {
+      this.output = output;
+      this.outputContext = outputContext;
+    }
+    
+    @Override
+    public Void call() throws Exception {
+      LOG.info("Starting Output with dest edge: " + outputContext.getDestinationVertexName());
+      List<Event> events = output.start();
+      sendTaskGeneratedEvents(events, EventProducerConsumerType.OUTPUT,
+          outputContext.getTaskVertexName(), outputContext.getDestinationVertexName(),
+          taskSpec.getTaskAttemptID());
+      LOG.info("Started Output with dest edge: " + outputContext.getDestinationVertexName());
       return null;
     }
   }

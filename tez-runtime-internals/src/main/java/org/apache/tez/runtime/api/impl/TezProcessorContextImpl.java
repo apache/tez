@@ -84,5 +84,4 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
   public boolean canCommit() throws IOException {
     return tezUmbilical.canCommit(this.taskAttemptID);
   }
-
 }

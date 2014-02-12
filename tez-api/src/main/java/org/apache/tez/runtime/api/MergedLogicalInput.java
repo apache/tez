@@ -30,7 +30,7 @@ public abstract class MergedLogicalInput implements LogicalInput {
 
   private List<Input> inputs;
   
-  public void initialize(List<Input> inputs) {
+  public final void initialize(List<Input> inputs) {
     this.inputs = inputs;
   }
   
@@ -41,6 +41,14 @@ public abstract class MergedLogicalInput implements LogicalInput {
   @Override
   public final List<Event> initialize(TezInputContext inputContext) throws Exception {
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public List<Event> start() throws Exception {
+    for (Input input : inputs) {
+      input.start();
+    }
+    return null;
   }
 
   @Override

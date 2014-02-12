@@ -190,6 +190,12 @@ public class MROutput implements LogicalOutput {
         + ", using_new_api: " + useNewApi);
     return null;
   }
+  
+  @Override
+  public List<Event> start() {
+    // TODO TEZ-815 To be fixed in a subsequent jira if required.
+    return null;
+  }
 
   public void initCommitter(JobConf job, boolean useNewApi)
       throws IOException, InterruptedException {

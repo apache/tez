@@ -88,6 +88,12 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
   }
 
   @Override
+  public List<Event> start() {
+    // TODO TEZ-815 To be fixed in a subsequent jira if required.
+    return null;
+  }
+
+  @Override
   public KeyValueWriter getWriter() throws Exception {
     return kvWriter;
   }

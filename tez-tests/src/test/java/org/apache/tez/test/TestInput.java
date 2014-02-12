@@ -224,6 +224,12 @@ public class TestInput implements LogicalInput {
   }
 
   @Override
+  public List<Event> start() {
+    // TODO TEZ-815 To be fixed in a subsequent jira if required.
+    return null;
+  }
+
+  @Override
   public Reader getReader() throws Exception {
     return null;
   }
