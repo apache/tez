@@ -68,7 +68,10 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
         .getUserPayload());
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS,
         outputContext.getWorkDirs());
-    
+
+    // TEZ 815. Fix this. Not used until there's a separation between init and start.
+    this.outputContext.requestInitialMemory(0l, null);
+
     this.dataViaEventsEnabled = conf.getBoolean(
         TezJobConfig.TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED,
         TezJobConfig.TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED_DEFAULT);

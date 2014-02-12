@@ -46,6 +46,7 @@ public class TestOutput implements LogicalOutput {
   public List<Event> initialize(TezOutputContext outputContext)
       throws Exception {
     this.outputContext = outputContext;
+    this.outputContext.requestInitialMemory(0l, null); //Mandatory call. Fix null in TEZ-815.
     return null;
   }
 

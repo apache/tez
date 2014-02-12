@@ -19,6 +19,7 @@
 package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 
 public class TezConfiguration extends Configuration {
@@ -166,6 +167,23 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT = TEZ_TASK_PREFIX
       + "max-events-per-heartbeat.max";
   public static final int TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT = 100;
+  
+  /**
+   * Whether to scale down memory requested by each component if the total
+   * exceeds the available JVM memory
+   */
+  @Unstable
+  public static final String TEZ_TASK_SCALE_MEMORY_ENABLED = TEZ_TASK_PREFIX
+      + "scale.memory.enabled";
+  public static final boolean TEZ_TASK_SCALE_MEMORY_ENABLED_DEFAULT = true;
+  
+  /**
+   * The fraction of the JVM memory which will not be considered for allocation.
+   * No defaults, since there are pre-existing defaults based on different scenarios.
+   */
+  @Unstable
+  public static final String TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION = TEZ_TASK_PREFIX
+      + "scale.memory.reserve-fraction";
 
   public static final String TASK_TIMEOUT = TEZ_TASK_PREFIX + "timeout";
 

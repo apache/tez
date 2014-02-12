@@ -26,6 +26,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
@@ -51,7 +52,7 @@ public class BroadcastInputManager implements FetchedInputAllocator,
 
   private volatile long usedMemory = 0;
 
-  public BroadcastInputManager(String uniqueIdentifier, Configuration conf) {
+  public BroadcastInputManager(String uniqueIdentifier, Configuration conf, TezInputContext inputContext) {
     this.conf = conf;
 
     this.fileNameAllocator = new TezTaskOutputFiles(conf,
@@ -69,8 +70,15 @@ public class BroadcastInputManager implements FetchedInputAllocator,
     }
 
     // Allow unit tests to fix Runtime memory
-    this.memoryLimit = (long) (conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,
+    long memReq = (long) (conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,
         Math.min(Runtime.getRuntime().maxMemory(), Integer.MAX_VALUE)) * maxInMemCopyUse);
+    
+    // TEZ 815. Fix this. Not used until there's a separation between init and start.
+    inputContext.requestInitialMemory(memReq, null);
+    long memAlloc = memReq;
+    
+    this.memoryLimit = memAlloc;
+    LOG.info("RequestedMem=" + memReq + ", Allocated: " + this.memoryLimit);
 
     final float singleShuffleMemoryLimitPercent = conf.getFloat(
         TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT,

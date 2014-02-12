@@ -18,7 +18,9 @@
 
 package org.apache.tez.runtime.library.broadcast.input;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+
 import java.io.IOException;
 import java.util.UUID;
 
@@ -26,6 +28,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput;
 import org.junit.Test;
@@ -50,7 +53,10 @@ public class TestBroadcastInputManager {
     long inMemThreshold = (long) (bufferPercent * jvmMax);
     LOG.info("InMemThreshold: " + inMemThreshold);
     
-    BroadcastInputManager inputManager = new BroadcastInputManager(UUID.randomUUID().toString(), conf);
+    TezInputContext mockInputContext = mock(TezInputContext.class);
+    BroadcastInputManager inputManager = new BroadcastInputManager(UUID.randomUUID().toString(),
+        conf, mockInputContext);
+    
     
     long requestSize = (long) (0.4f * inMemThreshold);
     long compressedSize = 1l;

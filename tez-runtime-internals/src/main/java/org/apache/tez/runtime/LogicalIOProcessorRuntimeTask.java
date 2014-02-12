@@ -68,6 +68,7 @@ import org.apache.tez.runtime.api.impl.TezOutputContextImpl;
 import org.apache.tez.runtime.api.impl.TezProcessorContextImpl;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
+import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -96,6 +97,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final ProcessorDescriptor processorDescriptor;
   private final LogicalIOProcessor processor;
   private TezProcessorContext processorContext;
+  
+  private final MemoryDistributor initialMemoryDistributor;
 
   /** Maps which will be provided to the processor run method */
   private final LinkedHashMap<String, LogicalInput> runInputMap;
@@ -136,7 +139,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.eventsToBeProcessed = new LinkedBlockingQueue<TezEvent>();
     this.state = State.NEW;
     this.appAttemptNumber = appAttemptNumber;
-    int numInitializers = numInputs + numOutputs + 1;
+    int numInitializers = numInputs + numOutputs; // Processor is initialized in the main thread.
     this.initializerExecutor = Executors.newFixedThreadPool(
         numInitializers,
         new ThreadFactoryBuilder().setDaemon(true)
@@ -144,6 +147,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.initializerCompletionService = new ExecutorCompletionService<Void>(
         this.initializerExecutor);
     this.groupInputSpecs = taskSpec.getGroupInputs();
+    initialMemoryDistributor = new MemoryDistributor(numInputs, numOutputs, tezConf);
   }
 
   public void initialize() throws Exception {
@@ -188,6 +192,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       }
     }
     LOG.info("All initializers finished");
+    initialMemoryDistributor.makeInitialAllocations();
 
     // group inputs depend on inputs beings initialized. So must be done after.
     initializeGroupInputs();
@@ -367,7 +372,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         inputSpec.getInputDescriptor().getUserPayload() == null ? taskSpec
             .getProcessorDescriptor().getUserPayload() : inputSpec
             .getInputDescriptor().getUserPayload(), this,
-        serviceConsumerMetadata, System.getenv());
+        serviceConsumerMetadata, System.getenv(), initialMemoryDistributor,
+        inputSpec.getInputDescriptor());
     return inputContext;
   }
 
@@ -379,7 +385,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         outputSpec.getOutputDescriptor().getUserPayload() == null ? taskSpec
             .getProcessorDescriptor().getUserPayload() : outputSpec
             .getOutputDescriptor().getUserPayload(), this,
-        serviceConsumerMetadata, System.getenv());
+        serviceConsumerMetadata, System.getenv(), initialMemoryDistributor,
+        outputSpec.getOutputDescriptor());
     return outputContext;
   }
 
@@ -387,7 +394,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     TezProcessorContext processorContext = new TezProcessorContextImpl(tezConf,
         appAttemptNumber, tezUmbilical, taskSpec.getVertexName(), taskSpec.getTaskAttemptID(),
         tezCounters, processorDescriptor.getUserPayload(), this,
-        serviceConsumerMetadata, System.getenv());
+        serviceConsumerMetadata, System.getenv(), initialMemoryDistributor,
+        processorDescriptor);
     return processorContext;
   }
 

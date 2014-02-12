@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.library.output;
 
+import static org.mockito.Mockito.mock;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -38,6 +39,7 @@ import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -48,6 +50,7 @@ import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.impl.TezOutputContextImpl;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
+import org.apache.tez.runtime.common.resources.MemoryDistributor;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
@@ -96,7 +99,7 @@ public class TestOnFileUnorderedKVOutput {
     conf.setStrings(TezJobConfig.LOCAL_DIRS, workDir.toString());
 
     int appAttemptNumber = 1;
-    TezUmbilical tezUmbilical = null; // ZZZ TestUmbilical from mapreduce
+    TezUmbilical tezUmbilical = null;
     String taskVertexName = "currentVertex";
     String destinationVertexName = "destinationVertex";
     TezDAGID dagID = TezDAGID.getInstance("2000", 1, 1);
@@ -114,11 +117,11 @@ public class TestOnFileUnorderedKVOutput {
     bb.position(0);
     AuxiliaryServiceHelper.setServiceDataIntoEnv(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, bb, auxEnv);
 
-    
+
     TezOutputContext outputContext = new TezOutputContextImpl(conf,
         appAttemptNumber, tezUmbilical, taskVertexName, destinationVertexName,
         taskAttemptID, counters, 0, userPayload, runtimeTask,
-        null, auxEnv);
+        null, auxEnv, new MemoryDistributor(1, 1, conf) , mock(OutputDescriptor.class));
 
     List<Event> events = null;
 

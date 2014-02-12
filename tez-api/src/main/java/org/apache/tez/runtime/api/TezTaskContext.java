@@ -134,4 +134,23 @@ public interface TezTaskContext {
    * @return a ByteBuffer representing the meta-data
    */
   public ByteBuffer getServiceProviderMetaData(String serviceName);
+  
+  /**
+   * Request a specific amount of memory during initialization
+   * (initialize(..*Context)) The requester is notified of allocation via the
+   * provided callback handler.
+   * 
+   * Currently, (post TEZ-668) the caller will be informed about the available
+   * memory after initialization (I/P/O initialize(...)), and before the
+   * start/run invocation. There will be no other invocations on the callback.
+   * 
+   * This method can be called only once by any component. Calling it multiple
+   * times from within the same component will result in an error.
+   * 
+   * @param size
+   *          request size in bytes.
+   * @param callbackHandler
+   *          the callback handler to be invoked once memory is assigned
+   */
+  public void requestInitialMemory(long size, MemoryUpdateCallback callbackHandler);
 }

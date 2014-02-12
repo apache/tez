@@ -118,8 +118,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     final float spillper = this.conf.getFloat(
         TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT,
         TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_SPILL_PERCENT);
-    final int sortmb = this.conf.getInt(TezJobConfig.TEZ_RUNTIME_IO_SORT_MB,
-        TezJobConfig.DEFAULT_TEZ_RUNTIME_IO_SORT_MB);
+    final int sortmb = this.availableMemory;
     if (spillper > (float) 1.0 || spillper <= (float) 0.0) {
       throw new IOException("Invalid \""
           + TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT + "\": " + spillper);

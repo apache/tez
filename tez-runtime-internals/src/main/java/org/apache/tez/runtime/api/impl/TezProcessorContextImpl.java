@@ -26,11 +26,13 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
+import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
 public class TezProcessorContextImpl extends TezTaskContextImpl
   implements TezProcessorContext {
@@ -43,10 +45,11 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
       TezTaskAttemptID taskAttemptID, TezCounters counters,
       byte[] userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
-      Map<String, String> auxServiceEnv) {
+      Map<String, String> auxServiceEnv, MemoryDistributor memDist,
+      ProcessorDescriptor processorDescriptor) {
     super(conf, appAttemptNumber, vertexName, taskAttemptID,
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
-        auxServiceEnv);
+        auxServiceEnv, memDist, processorDescriptor);
     this.userPayload = userPayload;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.PROCESSOR,
         taskVertexName, "", taskAttemptID);

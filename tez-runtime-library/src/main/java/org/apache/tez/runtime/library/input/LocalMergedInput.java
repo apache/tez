@@ -36,6 +36,7 @@ public class LocalMergedInput extends ShuffledMergedInputLegacy {
   @Override
   public List<Event> initialize(TezInputContext inputContext) throws IOException {
     this.inputContext = inputContext;
+    this.inputContext.requestInitialMemory(0l, null); // mandatory call. Fix in TEZ-815
     this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
 
     if (numInputs == 0) {

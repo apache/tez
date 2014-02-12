@@ -47,7 +47,7 @@ import com.google.common.collect.Lists;
  * written to it and persists it to a file.
  */
 public class OnFileSortedOutput implements LogicalOutput {
-  
+
   protected ExternalSorter sorter;
   protected Configuration conf;
   protected int numOutputs;
@@ -56,6 +56,7 @@ public class OnFileSortedOutput implements LogicalOutput {
   private long endTime;
   
   
+    
   @Override
   public List<Event> initialize(TezOutputContext outputContext)
       throws IOException {

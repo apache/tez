@@ -152,7 +152,7 @@ public class BroadcastShuffleManager implements FetcherCallback {
     this.ifileBufferSize = conf.getInt("io.file.buffer.size",
         TezJobConfig.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
     
-    this.inputManager = new BroadcastInputManager(inputContext.getUniqueIdentifier(), conf);
+    this.inputManager = new BroadcastInputManager(inputContext.getUniqueIdentifier(), conf, inputContext);
     this.inputEventHandler = new BroadcastShuffleInputEventHandler(
         inputContext, this, this.inputManager, codec, ifileReadAhead,
         ifileReadAheadLength);

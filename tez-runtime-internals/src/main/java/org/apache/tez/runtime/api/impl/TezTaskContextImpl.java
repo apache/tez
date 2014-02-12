@@ -30,9 +30,12 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TezEntityDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
+import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.TezTaskContext;
+import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
 public abstract class TezTaskContextImpl implements TezTaskContext {
 
@@ -49,13 +52,16 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
   private final int appAttemptNumber;
   private final Map<String, String> auxServiceEnv;
+  protected final MemoryDistributor initialMemoryDistributor;
+  protected final TezEntityDescriptor descriptor;
 
   @Private
   public TezTaskContextImpl(Configuration conf, int appAttemptNumber,
       String taskVertexName, TezTaskAttemptID taskAttemptID,
       TezCounters counters, RuntimeTask runtimeTask,
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
-      Map<String, String> auxServiceEnv) {
+      Map<String, String> auxServiceEnv, MemoryDistributor memDist,
+      TezEntityDescriptor descriptor) {
     this.conf = conf;
     this.taskVertexName = taskVertexName;
     this.taskAttemptID = taskAttemptID;
@@ -71,6 +77,8 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     this.auxServiceEnv = auxServiceEnv;
     this.uniqueIdentifier = String.format("%s_%05d", taskAttemptID.toString(),
         generateId());
+    this.initialMemoryDistributor = memDist;
+    this.descriptor = descriptor;
   }
 
   @Override
@@ -138,6 +146,17 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
         serviceName, auxServiceEnv);
   }
 
+  @Override
+  public void requestInitialMemory(long size, MemoryUpdateCallback callbackHandler) {
+    this.initialMemoryDistributor.requestMemory(size, new MemoryUpdateCallback() {
+      @Override
+      public void memoryAssigned(long assignedSize) {
+        // Filler for this patch.
+        // TODO TEZ-815 implement this properly.
+      }
+    }, this, descriptor);
+  }
+
   protected void signalFatalError(Throwable t, String message,
       EventMetaData sourceInfo) {
     runtimeTask.setFatalError(t, message);
@@ -154,7 +173,7 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     }
     tezUmbilical.signalFatalError(taskAttemptID, diagnostics, sourceInfo);
   }
-  
+
   private int generateId() {
     return ID_GEN.incrementAndGet();
   }

@@ -102,10 +102,7 @@ public class PipelinedSorter extends ExternalSorter {
       this.conf.getFloat(
           TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT, 
           TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_SPILL_PERCENT);
-    final int sortmb = 
-        this.conf.getInt(
-            TezJobConfig.TEZ_RUNTIME_IO_SORT_MB, 
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_IO_SORT_MB);
+    final int sortmb = this.availableMemory;
     indexCacheMemoryLimit = this.conf.getInt(TezJobConfig.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES,
                                        TezJobConfig.DEFAULT_TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
     if (spillper > (float)1.0 || spillper <= (float)0.0) {

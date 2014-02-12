@@ -81,6 +81,8 @@ public abstract class ExternalSorter {
   protected boolean ifileReadAhead;
   protected int ifileReadAheadLength;
   protected int ifileBufferSize;
+  
+  protected int availableMemory;
 
   protected IndexedSorter sorter;
 
@@ -101,6 +103,19 @@ public abstract class ExternalSorter {
 
     rfs = ((LocalFileSystem)FileSystem.getLocal(this.conf)).getRaw();
 
+    int reqMemory = 
+        this.conf.getInt(
+            TezJobConfig.TEZ_RUNTIME_IO_SORT_MB, 
+            TezJobConfig.DEFAULT_TEZ_RUNTIME_IO_SORT_MB);
+    long reqBytes = reqMemory << 20;
+    // TEZ 815. Fix this. Not used until there's a separation between init and start.
+    outputContext.requestInitialMemory(reqBytes, null);
+    long availBytes = reqBytes;
+    
+    this.availableMemory = (int) (availBytes >> 20);
+    
+    LOG.info("io.sort.mb requested: " + reqMemory + ", Allocated: " + availableMemory);
+    
     // sorter
     sorter = ReflectionUtils.newInstance(this.conf.getClass(
         TezJobConfig.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, QuickSort.class,

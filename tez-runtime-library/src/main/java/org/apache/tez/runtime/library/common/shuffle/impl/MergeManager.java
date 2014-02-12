@@ -45,6 +45,7 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.Constants;
@@ -113,6 +114,8 @@ public class MergeManager {
   private final int ifileReadAheadLength;
   private final int ifileBufferSize;
 
+  private final int postMergeMemLimit;
+  
   public MergeManager(Configuration conf, 
                       FileSystem localFS,
                       LocalDirAllocator localDirAllocator,  
@@ -168,11 +171,41 @@ public class MergeManager {
     }
 
     // Allow unit tests to fix Runtime memory
-    this.memoryLimit = 
-      (long)(conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,
-          Math.min(Runtime.getRuntime().maxMemory(), Integer.MAX_VALUE))
-        * maxInMemCopyUse);
- 
+    long memLimit = (long) (conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,
+        Math.min(Runtime.getRuntime().maxMemory(), Integer.MAX_VALUE)) * maxInMemCopyUse);
+    
+    LOG.info("Shuffle Memory Required: " + memLimit + ", based on INPUT_BUFFER_factor: " + maxInMemCopyUse);
+
+    float maxRedPer = conf.getFloat(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT,
+        TezJobConfig.DEFAULT_TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
+    if (maxRedPer > 1.0 || maxRedPer < 0.0) {
+      throw new TezUncheckedException(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT + maxRedPer);
+    }
+    // TODO maxRedBuffer should be a long.
+    int maxRedBuffer = (int) Math.min(Runtime.getRuntime().maxMemory() * maxRedPer,
+        Integer.MAX_VALUE);
+    LOG.info("Memory required for final merged output: " + maxRedBuffer + ", using factor: " + maxRedPer);
+
+    long reqMem = Math.max(maxRedBuffer, memLimit);
+    // TEZ 815. Fix this. Not used until there's a separation between init and start.
+    inputContext.requestInitialMemory(reqMem, null);
+    long availableMem = reqMem;
+    
+    if (availableMem < memLimit) {
+      this.memoryLimit = availableMem;
+    } else {
+      this.memoryLimit = memLimit;
+    }
+    
+    if (availableMem < maxRedBuffer) {
+      this.postMergeMemLimit = (int) availableMem;
+    } else {
+      this.postMergeMemLimit = maxRedBuffer;
+    }
+    
+    LOG.info("FinalMemoryAllocation: ShuffleMemory=" + this.memoryLimit + ", postMergeMem: "
+        + this.postMergeMemLimit);
+
     this.ioSortFactor = 
         conf.getInt(
             TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR, 
@@ -663,18 +696,7 @@ public class MergeManager {
              inMemoryMapOutputs.size() + " in-memory map-outputs and " + 
              onDiskMapOutputs.size() + " on-disk map-outputs");
     
-    final float maxRedPer =
-      job.getFloat(
-          TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT,
-          TezJobConfig.DEFAULT_TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
-    if (maxRedPer > 1.0 || maxRedPer < 0.0) {
-      throw new IOException(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT +
-                            maxRedPer);
-    }
-    int maxInMemReduce = (int)Math.min(
-        Runtime.getRuntime().maxMemory() * maxRedPer, Integer.MAX_VALUE);
-    LOG.info("Memory allocated for final merge output: " + maxInMemReduce + ", using factor: "
-        + maxRedPer);
+    
     
 
     // merge config params
@@ -692,7 +714,7 @@ public class MergeManager {
       int srcTaskId = inMemoryMapOutputs.get(0).getAttemptIdentifier().getInputIdentifier().getSrcTaskIndex();
       inMemToDiskBytes = createInMemorySegments(inMemoryMapOutputs, 
                                                 memDiskSegments,
-                                                maxInMemReduce);
+                                                this.postMergeMemLimit);
       final int numMemDiskSegments = memDiskSegments.size();
       if (numMemDiskSegments > 0 &&
             ioSortFactor > onDiskMapOutputs.size()) {

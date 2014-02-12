@@ -26,11 +26,13 @@ import java.util.Map;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
+import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
 public class TezOutputContextImpl extends TezTaskContextImpl
     implements TezOutputContext {
@@ -47,10 +49,11 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       TezTaskAttemptID taskAttemptID, TezCounters counters, int outputIndex,
       byte[] userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
-      Map<String, String> auxServiceEnv) {
+      Map<String, String> auxServiceEnv, MemoryDistributor memDist,
+      OutputDescriptor outputDescriptor) {
     super(conf, appAttemptNumber, taskVertexName, taskAttemptID,
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
-        auxServiceEnv);
+        auxServiceEnv, memDist, outputDescriptor);
     this.userPayload = userPayload;
     this.outputIndex = outputIndex;
     this.destinationVertexName = destinationVertexName;
@@ -87,5 +90,4 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   public int getOutputIndex() {
     return outputIndex;
   }
-
 }

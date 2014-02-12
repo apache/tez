@@ -188,6 +188,7 @@ public class TestInput implements LogicalInput {
   @Override
   public List<Event> initialize(TezInputContext inputContext) throws Exception {
     this.inputContext = inputContext;
+    this.inputContext.requestInitialMemory(0l, null); //Mandatory call. Fix null in TEZ-815.
     if (inputContext.getUserPayload() != null) {
       String vName = inputContext.getTaskVertexName();
       conf = MRHelpers.createConfFromUserPayload(inputContext.getUserPayload());
