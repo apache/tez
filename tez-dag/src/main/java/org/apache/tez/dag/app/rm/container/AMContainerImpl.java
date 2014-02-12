@@ -140,61 +140,191 @@ public class AMContainerImpl implements AMContainer {
       new StateMachineFactory<AMContainerImpl, AMContainerState, AMContainerEventType, AMContainerEvent>(
       AMContainerState.ALLOCATED)
 
-        .addTransition(AMContainerState.ALLOCATED, AMContainerState.LAUNCHING, AMContainerEventType.C_LAUNCH_REQUEST, new LaunchRequestTransition())
-        .addTransition(AMContainerState.ALLOCATED, AMContainerState.COMPLETED, AMContainerEventType.C_ASSIGN_TA, new AssignTaskAttemptAtAllocatedTransition())
-        .addTransition(AMContainerState.ALLOCATED, AMContainerState.COMPLETED, AMContainerEventType.C_COMPLETED, new CompletedAtAllocatedTransition())
-        .addTransition(AMContainerState.ALLOCATED, AMContainerState.COMPLETED, AMContainerEventType.C_STOP_REQUEST, new StopRequestAtAllocatedTransition())
-        .addTransition(AMContainerState.ALLOCATED, AMContainerState.COMPLETED, AMContainerEventType.C_NODE_FAILED, new NodeFailedAtAllocatedTransition())
-        .addTransition(AMContainerState.ALLOCATED, AMContainerState.COMPLETED, EnumSet.of(AMContainerEventType.C_LAUNCHED, AMContainerEventType.C_LAUNCH_FAILED, AMContainerEventType.C_PULL_TA, AMContainerEventType.C_TA_SUCCEEDED, AMContainerEventType.C_NM_STOP_SENT, AMContainerEventType.C_NM_STOP_FAILED, AMContainerEventType.C_TIMED_OUT), new ErrorTransition())
+      .addTransition(AMContainerState.ALLOCATED, AMContainerState.LAUNCHING,
+          AMContainerEventType.C_LAUNCH_REQUEST, new LaunchRequestTransition())
+      .addTransition(AMContainerState.ALLOCATED, AMContainerState.COMPLETED,
+          AMContainerEventType.C_ASSIGN_TA,
+          new AssignTaskAttemptAtAllocatedTransition())
+      .addTransition(AMContainerState.ALLOCATED, AMContainerState.COMPLETED,
+          AMContainerEventType.C_COMPLETED,
+          new CompletedAtAllocatedTransition())
+      .addTransition(AMContainerState.ALLOCATED, AMContainerState.COMPLETED,
+          AMContainerEventType.C_STOP_REQUEST,
+          new StopRequestAtAllocatedTransition())
+      .addTransition(AMContainerState.ALLOCATED, AMContainerState.COMPLETED,
+          AMContainerEventType.C_NODE_FAILED,
+          new NodeFailedAtAllocatedTransition())
+      .addTransition(
+          AMContainerState.ALLOCATED,
+          AMContainerState.COMPLETED,
+          EnumSet.of(AMContainerEventType.C_LAUNCHED,
+              AMContainerEventType.C_LAUNCH_FAILED,
+              AMContainerEventType.C_PULL_TA,
+              AMContainerEventType.C_TA_SUCCEEDED,
+              AMContainerEventType.C_NM_STOP_SENT,
+              AMContainerEventType.C_NM_STOP_FAILED,
+              AMContainerEventType.C_TIMED_OUT), new ErrorTransition())
 
-        .addTransition(AMContainerState.LAUNCHING, EnumSet.of(AMContainerState.LAUNCHING, AMContainerState.STOP_REQUESTED), AMContainerEventType.C_ASSIGN_TA, new AssignTaskAttemptTransition())
-        .addTransition(AMContainerState.LAUNCHING, AMContainerState.IDLE, AMContainerEventType.C_LAUNCHED, new LaunchedTransition())
-        .addTransition(AMContainerState.LAUNCHING, AMContainerState.STOPPING, AMContainerEventType.C_LAUNCH_FAILED, new LaunchFailedTransition())
-        // TODO CREUSE : Maybe, consider sending back an attempt if the container asks for one in this state. Waiting for a LAUNCHED event from the NMComm may delay the task allocation.
-        .addTransition(AMContainerState.LAUNCHING, AMContainerState.LAUNCHING, AMContainerEventType.C_PULL_TA) // Is assuming the pullAttempt will be null.
-        .addTransition(AMContainerState.LAUNCHING, AMContainerState.COMPLETED, AMContainerEventType.C_COMPLETED, new CompletedAtLaunchingTransition())
-        .addTransition(AMContainerState.LAUNCHING, AMContainerState.STOP_REQUESTED, AMContainerEventType.C_STOP_REQUEST, new StopRequestAtLaunchingTransition())
-        .addTransition(AMContainerState.LAUNCHING, AMContainerState.STOPPING, AMContainerEventType.C_NODE_FAILED, new NodeFailedAtLaunchingTransition())
-        .addTransition(AMContainerState.LAUNCHING, AMContainerState.STOP_REQUESTED, EnumSet.of(AMContainerEventType.C_LAUNCH_REQUEST, AMContainerEventType.C_TA_SUCCEEDED, AMContainerEventType.C_NM_STOP_SENT, AMContainerEventType.C_NM_STOP_FAILED, AMContainerEventType.C_TIMED_OUT), new ErrorAtLaunchingTransition())
+      .addTransition(
+          AMContainerState.LAUNCHING,
+          EnumSet.of(AMContainerState.LAUNCHING,
+              AMContainerState.STOP_REQUESTED),
+          AMContainerEventType.C_ASSIGN_TA, new AssignTaskAttemptTransition())
+      .addTransition(AMContainerState.LAUNCHING, AMContainerState.IDLE,
+          AMContainerEventType.C_LAUNCHED, new LaunchedTransition())
+      .addTransition(AMContainerState.LAUNCHING, AMContainerState.STOPPING,
+          AMContainerEventType.C_LAUNCH_FAILED, new LaunchFailedTransition())
+      // TODO CREUSE : Maybe, consider sending back an attempt if the container
+      // asks for one in this state. Waiting for a LAUNCHED event from the
+      // NMComm may delay the task allocation.
+      .addTransition(AMContainerState.LAUNCHING, AMContainerState.LAUNCHING,
+          AMContainerEventType.C_PULL_TA)
+      // Is assuming the pullAttempt will be null.
+      .addTransition(AMContainerState.LAUNCHING, AMContainerState.COMPLETED,
+          AMContainerEventType.C_COMPLETED,
+          new CompletedAtLaunchingTransition())
+      .addTransition(AMContainerState.LAUNCHING,
+          AMContainerState.STOP_REQUESTED, AMContainerEventType.C_STOP_REQUEST,
+          new StopRequestAtLaunchingTransition())
+      .addTransition(AMContainerState.LAUNCHING, AMContainerState.STOPPING,
+          AMContainerEventType.C_NODE_FAILED,
+          new NodeFailedAtLaunchingTransition())
+      .addTransition(
+          AMContainerState.LAUNCHING,
+          AMContainerState.STOP_REQUESTED,
+          EnumSet.of(AMContainerEventType.C_LAUNCH_REQUEST,
+              AMContainerEventType.C_TA_SUCCEEDED,
+              AMContainerEventType.C_NM_STOP_SENT,
+              AMContainerEventType.C_NM_STOP_FAILED,
+              AMContainerEventType.C_TIMED_OUT),
+          new ErrorAtLaunchingTransition())
 
-        .addTransition(AMContainerState.IDLE, EnumSet.of(AMContainerState.IDLE, AMContainerState.STOP_REQUESTED), AMContainerEventType.C_ASSIGN_TA, new AssignTaskAttemptAtIdleTransition())
-        .addTransition(AMContainerState.IDLE, EnumSet.of(AMContainerState.RUNNING, AMContainerState.IDLE), AMContainerEventType.C_PULL_TA, new PullTAAtIdleTransition())
-        .addTransition(AMContainerState.IDLE, AMContainerState.COMPLETED, AMContainerEventType.C_COMPLETED, new CompletedAtIdleTransition())
-        .addTransition(AMContainerState.IDLE, AMContainerState.STOP_REQUESTED, AMContainerEventType.C_STOP_REQUEST, new StopRequestAtIdleTransition())
-        .addTransition(AMContainerState.IDLE, AMContainerState.STOP_REQUESTED, AMContainerEventType.C_TIMED_OUT, new TimedOutAtIdleTransition())
-        .addTransition(AMContainerState.IDLE, AMContainerState.STOPPING, AMContainerEventType.C_NODE_FAILED, new NodeFailedAtIdleTransition())
-        .addTransition(AMContainerState.IDLE, AMContainerState.STOP_REQUESTED, EnumSet.of(AMContainerEventType.C_LAUNCH_REQUEST, AMContainerEventType.C_LAUNCHED, AMContainerEventType.C_LAUNCH_FAILED, AMContainerEventType.C_TA_SUCCEEDED, AMContainerEventType.C_NM_STOP_SENT, AMContainerEventType.C_NM_STOP_FAILED), new ErrorAtIdleTransition())
+      .addTransition(AMContainerState.IDLE,
+          EnumSet.of(AMContainerState.IDLE, AMContainerState.STOP_REQUESTED),
+          AMContainerEventType.C_ASSIGN_TA,
+          new AssignTaskAttemptAtIdleTransition())
+      .addTransition(AMContainerState.IDLE,
+          EnumSet.of(AMContainerState.RUNNING, AMContainerState.IDLE),
+          AMContainerEventType.C_PULL_TA, new PullTAAtIdleTransition())
+      .addTransition(AMContainerState.IDLE, AMContainerState.COMPLETED,
+          AMContainerEventType.C_COMPLETED, new CompletedAtIdleTransition())
+      .addTransition(AMContainerState.IDLE, AMContainerState.STOP_REQUESTED,
+          AMContainerEventType.C_STOP_REQUEST,
+          new StopRequestAtIdleTransition())
+      .addTransition(AMContainerState.IDLE, AMContainerState.STOP_REQUESTED,
+          AMContainerEventType.C_TIMED_OUT, new TimedOutAtIdleTransition())
+      .addTransition(AMContainerState.IDLE, AMContainerState.STOPPING,
+          AMContainerEventType.C_NODE_FAILED, new NodeFailedAtIdleTransition())
+      .addTransition(
+          AMContainerState.IDLE,
+          AMContainerState.STOP_REQUESTED,
+          EnumSet.of(AMContainerEventType.C_LAUNCH_REQUEST,
+              AMContainerEventType.C_LAUNCHED,
+              AMContainerEventType.C_LAUNCH_FAILED,
+              AMContainerEventType.C_TA_SUCCEEDED,
+              AMContainerEventType.C_NM_STOP_SENT,
+              AMContainerEventType.C_NM_STOP_FAILED),
+          new ErrorAtIdleTransition())
 
-        .addTransition(AMContainerState.RUNNING, AMContainerState.STOP_REQUESTED, AMContainerEventType.C_ASSIGN_TA, new AssignTaskAttemptAtRunningTransition())
-        .addTransition(AMContainerState.RUNNING, AMContainerState.RUNNING, AMContainerEventType.C_PULL_TA)
-        .addTransition(AMContainerState.RUNNING, AMContainerState.IDLE, AMContainerEventType.C_TA_SUCCEEDED, new TASucceededAtRunningTransition())
-        .addTransition(AMContainerState.RUNNING, AMContainerState.COMPLETED, AMContainerEventType.C_COMPLETED, new CompletedAtRunningTransition())
-        .addTransition(AMContainerState.RUNNING, AMContainerState.STOP_REQUESTED, AMContainerEventType.C_STOP_REQUEST, new StopRequestAtRunningTransition())
-        .addTransition(AMContainerState.RUNNING, AMContainerState.STOP_REQUESTED, AMContainerEventType.C_TIMED_OUT, new TimedOutAtRunningTransition())
-        .addTransition(AMContainerState.RUNNING, AMContainerState.STOPPING, AMContainerEventType.C_NODE_FAILED, new NodeFailedAtRunningTransition())
-        .addTransition(AMContainerState.RUNNING, AMContainerState.STOP_REQUESTED, EnumSet.of(AMContainerEventType.C_LAUNCH_REQUEST, AMContainerEventType.C_LAUNCHED, AMContainerEventType.C_LAUNCH_FAILED, AMContainerEventType.C_NM_STOP_SENT, AMContainerEventType.C_NM_STOP_FAILED), new ErrorAtRunningTransition())
+      .addTransition(AMContainerState.RUNNING, AMContainerState.STOP_REQUESTED,
+          AMContainerEventType.C_ASSIGN_TA,
+          new AssignTaskAttemptAtRunningTransition())
+      .addTransition(AMContainerState.RUNNING, AMContainerState.RUNNING,
+          AMContainerEventType.C_PULL_TA)
+      .addTransition(AMContainerState.RUNNING, AMContainerState.IDLE,
+          AMContainerEventType.C_TA_SUCCEEDED,
+          new TASucceededAtRunningTransition())
+      .addTransition(AMContainerState.RUNNING, AMContainerState.COMPLETED,
+          AMContainerEventType.C_COMPLETED, new CompletedAtRunningTransition())
+      .addTransition(AMContainerState.RUNNING, AMContainerState.STOP_REQUESTED,
+          AMContainerEventType.C_STOP_REQUEST,
+          new StopRequestAtRunningTransition())
+      .addTransition(AMContainerState.RUNNING, AMContainerState.STOP_REQUESTED,
+          AMContainerEventType.C_TIMED_OUT, new TimedOutAtRunningTransition())
+      .addTransition(AMContainerState.RUNNING, AMContainerState.STOPPING,
+          AMContainerEventType.C_NODE_FAILED,
+          new NodeFailedAtRunningTransition())
+      .addTransition(
+          AMContainerState.RUNNING,
+          AMContainerState.STOP_REQUESTED,
+          EnumSet.of(AMContainerEventType.C_LAUNCH_REQUEST,
+              AMContainerEventType.C_LAUNCHED,
+              AMContainerEventType.C_LAUNCH_FAILED,
+              AMContainerEventType.C_NM_STOP_SENT,
+              AMContainerEventType.C_NM_STOP_FAILED),
+          new ErrorAtRunningTransition())
 
-        .addTransition(AMContainerState.STOP_REQUESTED, AMContainerState.STOP_REQUESTED, AMContainerEventType.C_ASSIGN_TA, new AssignTAAtWindDownTransition())
-        .addTransition(AMContainerState.STOP_REQUESTED, AMContainerState.STOP_REQUESTED, AMContainerEventType.C_PULL_TA, new PullTAAfterStopTransition())
-        .addTransition(AMContainerState.STOP_REQUESTED, AMContainerState.COMPLETED, AMContainerEventType.C_COMPLETED, new CompletedAtWindDownTransition())
-        .addTransition(AMContainerState.STOP_REQUESTED, AMContainerState.STOPPING, AMContainerEventType.C_NM_STOP_SENT)
-        .addTransition(AMContainerState.STOP_REQUESTED, AMContainerState.STOPPING, AMContainerEventType.C_NM_STOP_FAILED, new NMStopRequestFailedTransition())
-        .addTransition(AMContainerState.STOP_REQUESTED, AMContainerState.STOPPING, AMContainerEventType.C_NODE_FAILED, new NodeFailedAtNMStopRequestedTransition())
-        .addTransition(AMContainerState.STOP_REQUESTED, AMContainerState.STOP_REQUESTED, EnumSet.of(AMContainerEventType.C_LAUNCHED, AMContainerEventType.C_LAUNCH_FAILED, AMContainerEventType.C_TA_SUCCEEDED, AMContainerEventType.C_STOP_REQUEST, AMContainerEventType.C_TIMED_OUT))
-        .addTransition(AMContainerState.STOP_REQUESTED, AMContainerState.STOP_REQUESTED, AMContainerEventType.C_LAUNCH_REQUEST, new ErrorAtNMStopRequestedTransition())
+      .addTransition(AMContainerState.STOP_REQUESTED,
+          AMContainerState.STOP_REQUESTED, AMContainerEventType.C_ASSIGN_TA,
+          new AssignTAAtWindDownTransition())
+      .addTransition(AMContainerState.STOP_REQUESTED,
+          AMContainerState.STOP_REQUESTED, AMContainerEventType.C_PULL_TA,
+          new PullTAAfterStopTransition())
+      .addTransition(AMContainerState.STOP_REQUESTED,
+          AMContainerState.COMPLETED, AMContainerEventType.C_COMPLETED,
+          new CompletedAtWindDownTransition())
+      .addTransition(AMContainerState.STOP_REQUESTED,
+          AMContainerState.STOPPING, AMContainerEventType.C_NM_STOP_SENT)
+      .addTransition(AMContainerState.STOP_REQUESTED,
+          AMContainerState.STOPPING, AMContainerEventType.C_NM_STOP_FAILED,
+          new NMStopRequestFailedTransition())
+      .addTransition(AMContainerState.STOP_REQUESTED,
+          AMContainerState.STOPPING, AMContainerEventType.C_NODE_FAILED,
+          new NodeFailedAtNMStopRequestedTransition())
+      .addTransition(
+          AMContainerState.STOP_REQUESTED,
+          AMContainerState.STOP_REQUESTED,
+          EnumSet.of(AMContainerEventType.C_LAUNCHED,
+              AMContainerEventType.C_LAUNCH_FAILED,
+              AMContainerEventType.C_TA_SUCCEEDED,
+              AMContainerEventType.C_STOP_REQUEST,
+              AMContainerEventType.C_TIMED_OUT))
+      .addTransition(AMContainerState.STOP_REQUESTED,
+          AMContainerState.STOP_REQUESTED,
+          AMContainerEventType.C_LAUNCH_REQUEST,
+          new ErrorAtNMStopRequestedTransition())
 
-        .addTransition(AMContainerState.STOPPING, AMContainerState.STOPPING, AMContainerEventType.C_ASSIGN_TA, new AssignTAAtWindDownTransition())
-        .addTransition(AMContainerState.STOPPING, AMContainerState.STOPPING, AMContainerEventType.C_PULL_TA, new PullTAAfterStopTransition())
-        // TODO This transition is wrong. Should be a noop / error.
-        .addTransition(AMContainerState.STOPPING, AMContainerState.COMPLETED, AMContainerEventType.C_COMPLETED, new CompletedAtWindDownTransition())
-        .addTransition(AMContainerState.STOPPING, AMContainerState.STOPPING, AMContainerEventType.C_NODE_FAILED, new NodeFailedBaseTransition())
-        .addTransition(AMContainerState.STOPPING, AMContainerState.STOPPING, EnumSet.of(AMContainerEventType.C_LAUNCHED, AMContainerEventType.C_LAUNCH_FAILED, AMContainerEventType.C_TA_SUCCEEDED, AMContainerEventType.C_STOP_REQUEST, AMContainerEventType.C_NM_STOP_SENT, AMContainerEventType.C_NM_STOP_FAILED, AMContainerEventType.C_TIMED_OUT))
-        .addTransition(AMContainerState.STOPPING, AMContainerState.STOPPING, AMContainerEventType.C_LAUNCH_REQUEST, new ErrorAtStoppingTransition())
+      .addTransition(AMContainerState.STOPPING, AMContainerState.STOPPING,
+          AMContainerEventType.C_ASSIGN_TA, new AssignTAAtWindDownTransition())
+      .addTransition(AMContainerState.STOPPING, AMContainerState.STOPPING,
+          AMContainerEventType.C_PULL_TA, new PullTAAfterStopTransition())
+      // TODO This transition is wrong. Should be a noop / error.
+      .addTransition(AMContainerState.STOPPING, AMContainerState.COMPLETED,
+          AMContainerEventType.C_COMPLETED, new CompletedAtWindDownTransition())
+      .addTransition(AMContainerState.STOPPING, AMContainerState.STOPPING,
+          AMContainerEventType.C_NODE_FAILED, new NodeFailedBaseTransition())
+      .addTransition(
+          AMContainerState.STOPPING,
+          AMContainerState.STOPPING,
+          EnumSet.of(AMContainerEventType.C_LAUNCHED,
+              AMContainerEventType.C_LAUNCH_FAILED,
+              AMContainerEventType.C_TA_SUCCEEDED,
+              AMContainerEventType.C_STOP_REQUEST,
+              AMContainerEventType.C_NM_STOP_SENT,
+              AMContainerEventType.C_NM_STOP_FAILED,
+              AMContainerEventType.C_TIMED_OUT))
+      .addTransition(AMContainerState.STOPPING, AMContainerState.STOPPING,
+          AMContainerEventType.C_LAUNCH_REQUEST,
+          new ErrorAtStoppingTransition())
 
-        .addTransition(AMContainerState.COMPLETED, AMContainerState.COMPLETED, AMContainerEventType.C_ASSIGN_TA, new AssignTAAtCompletedTransition())
-        .addTransition(AMContainerState.COMPLETED, AMContainerState.COMPLETED, AMContainerEventType.C_PULL_TA, new PullTAAfterStopTransition())
-        .addTransition(AMContainerState.COMPLETED, AMContainerState.COMPLETED, AMContainerEventType.C_NODE_FAILED, new NodeFailedBaseTransition())
-        .addTransition(AMContainerState.COMPLETED, AMContainerState.COMPLETED, EnumSet.of(AMContainerEventType.C_LAUNCH_REQUEST, AMContainerEventType.C_LAUNCHED, AMContainerEventType.C_LAUNCH_FAILED, AMContainerEventType.C_TA_SUCCEEDED, AMContainerEventType.C_COMPLETED, AMContainerEventType.C_STOP_REQUEST, AMContainerEventType.C_NM_STOP_SENT, AMContainerEventType.C_NM_STOP_FAILED, AMContainerEventType.C_TIMED_OUT))
+      .addTransition(AMContainerState.COMPLETED, AMContainerState.COMPLETED,
+          AMContainerEventType.C_ASSIGN_TA, new AssignTAAtCompletedTransition())
+      .addTransition(AMContainerState.COMPLETED, AMContainerState.COMPLETED,
+          AMContainerEventType.C_PULL_TA, new PullTAAfterStopTransition())
+      .addTransition(AMContainerState.COMPLETED, AMContainerState.COMPLETED,
+          AMContainerEventType.C_NODE_FAILED, new NodeFailedBaseTransition())
+      .addTransition(
+          AMContainerState.COMPLETED,
+          AMContainerState.COMPLETED,
+          EnumSet.of(AMContainerEventType.C_LAUNCH_REQUEST,
+              AMContainerEventType.C_LAUNCHED,
+              AMContainerEventType.C_LAUNCH_FAILED,
+              AMContainerEventType.C_TA_SUCCEEDED,
+              AMContainerEventType.C_COMPLETED,
+              AMContainerEventType.C_STOP_REQUEST,
+              AMContainerEventType.C_NM_STOP_SENT,
+              AMContainerEventType.C_NM_STOP_FAILED,
+              AMContainerEventType.C_TIMED_OUT))
 
         .installTopology();
 

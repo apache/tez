@@ -177,70 +177,288 @@ public class TaskAttemptImpl implements TaskAttempt,
             <TaskAttemptImpl, TaskAttemptStateInternal, TaskAttemptEventType, TaskAttemptEvent>
             (TaskAttemptStateInternal.NEW)
 
-        .addTransition(TaskAttemptStateInternal.NEW, TaskAttemptStateInternal.START_WAIT, TaskAttemptEventType.TA_SCHEDULE, new ScheduleTaskattemptTransition())
-        .addTransition(TaskAttemptStateInternal.NEW, TaskAttemptStateInternal.NEW, TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE, DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-        .addTransition(TaskAttemptStateInternal.NEW, TaskAttemptStateInternal.FAILED, TaskAttemptEventType.TA_FAIL_REQUEST, new TerminateTransition(FAILED_HELPER))
-        .addTransition(TaskAttemptStateInternal.NEW, TaskAttemptStateInternal.KILLED, TaskAttemptEventType.TA_KILL_REQUEST, new TerminateTransition(KILLED_HELPER))
+      .addTransition(TaskAttemptStateInternal.NEW,
+          TaskAttemptStateInternal.START_WAIT,
+          TaskAttemptEventType.TA_SCHEDULE, new ScheduleTaskattemptTransition())
+      .addTransition(TaskAttemptStateInternal.NEW,
+          TaskAttemptStateInternal.NEW,
+          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
+          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
+      .addTransition(TaskAttemptStateInternal.NEW,
+          TaskAttemptStateInternal.FAILED,
+          TaskAttemptEventType.TA_FAIL_REQUEST,
+          new TerminateTransition(FAILED_HELPER))
+      .addTransition(TaskAttemptStateInternal.NEW,
+          TaskAttemptStateInternal.KILLED,
+          TaskAttemptEventType.TA_KILL_REQUEST,
+          new TerminateTransition(KILLED_HELPER))
 
-        .addTransition(TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.RUNNING, TaskAttemptEventType.TA_STARTED_REMOTELY, new StartedTransition())
-        .addTransition(TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.START_WAIT, TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE, DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-        .addTransition(TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptEventType.TA_FAIL_REQUEST, new TerminatedBeforeRunningTransition(FAILED_HELPER))
-        .addTransition(TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.KILL_IN_PROGRESS, TaskAttemptEventType.TA_KILL_REQUEST, new TerminatedBeforeRunningTransition(KILLED_HELPER))
-        .addTransition(TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.KILL_IN_PROGRESS, TaskAttemptEventType.TA_NODE_FAILED, new NodeFailedBeforeRunningTransition())
-        .addTransition(TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptEventType.TA_CONTAINER_TERMINATING, new ContainerTerminatingBeforeRunningTransition())
-        .addTransition(TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.FAILED, TaskAttemptEventType.TA_CONTAINER_TERMINATED, new ContainerCompletedBeforeRunningTransition())
-        .addTransition(TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.KILLED, TaskAttemptEventType.TA_CONTAINER_PREEMPTED, new ContainerCompletedBeforeRunningTransition(KILLED_HELPER))
+      .addTransition(TaskAttemptStateInternal.START_WAIT,
+          TaskAttemptStateInternal.RUNNING,
+          TaskAttemptEventType.TA_STARTED_REMOTELY, new StartedTransition())
+      .addTransition(TaskAttemptStateInternal.START_WAIT,
+          TaskAttemptStateInternal.START_WAIT,
+          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
+          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
+      .addTransition(TaskAttemptStateInternal.START_WAIT,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_FAIL_REQUEST,
+          new TerminatedBeforeRunningTransition(FAILED_HELPER))
+      .addTransition(TaskAttemptStateInternal.START_WAIT,
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptEventType.TA_KILL_REQUEST,
+          new TerminatedBeforeRunningTransition(KILLED_HELPER))
+      .addTransition(TaskAttemptStateInternal.START_WAIT,
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptEventType.TA_NODE_FAILED,
+          new NodeFailedBeforeRunningTransition())
+      .addTransition(TaskAttemptStateInternal.START_WAIT,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATING,
+          new ContainerTerminatingBeforeRunningTransition())
+      .addTransition(TaskAttemptStateInternal.START_WAIT,
+          TaskAttemptStateInternal.FAILED,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATED,
+          new ContainerCompletedBeforeRunningTransition())
+      .addTransition(TaskAttemptStateInternal.START_WAIT,
+          TaskAttemptStateInternal.KILLED,
+          TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+          new ContainerCompletedBeforeRunningTransition(KILLED_HELPER))
 
-        .addTransition(TaskAttemptStateInternal.RUNNING, TaskAttemptStateInternal.RUNNING, TaskAttemptEventType.TA_STATUS_UPDATE, STATUS_UPDATER)
-        .addTransition(TaskAttemptStateInternal.RUNNING, TaskAttemptStateInternal.RUNNING, TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE, DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-        .addTransition(TaskAttemptStateInternal.RUNNING, TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptEventType.TA_OUTPUT_CONSUMABLE, new OutputConsumableTransition()) //Optional, may not come in for all tasks.
-        .addTransition(TaskAttemptStateInternal.RUNNING, TaskAttemptStateInternal.SUCCEEDED, TaskAttemptEventType.TA_DONE, new SucceededTransition())
-        .addTransition(TaskAttemptStateInternal.RUNNING, TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptEventType.TA_FAILED, new TerminatedWhileRunningTransition(FAILED_HELPER))
-        .addTransition(TaskAttemptStateInternal.RUNNING, TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptEventType.TA_TIMED_OUT, new TerminatedWhileRunningTransition(FAILED_HELPER))
-        .addTransition(TaskAttemptStateInternal.RUNNING, TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptEventType.TA_FAIL_REQUEST, new TerminatedWhileRunningTransition(FAILED_HELPER))
-        .addTransition(TaskAttemptStateInternal.RUNNING, TaskAttemptStateInternal.KILL_IN_PROGRESS, TaskAttemptEventType.TA_KILL_REQUEST, new TerminatedWhileRunningTransition(KILLED_HELPER))
-        .addTransition(TaskAttemptStateInternal.RUNNING, TaskAttemptStateInternal.KILL_IN_PROGRESS, TaskAttemptEventType.TA_NODE_FAILED, new TerminatedWhileRunningTransition(KILLED_HELPER))
-        .addTransition(TaskAttemptStateInternal.RUNNING, TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptEventType.TA_CONTAINER_TERMINATING, new TerminatedWhileRunningTransition(FAILED_HELPER))
-        .addTransition(TaskAttemptStateInternal.RUNNING, TaskAttemptStateInternal.FAILED, TaskAttemptEventType.TA_CONTAINER_TERMINATED, new ContainerCompletedWhileRunningTransition())
-        .addTransition(TaskAttemptStateInternal.RUNNING, TaskAttemptStateInternal.KILLED, TaskAttemptEventType.TA_CONTAINER_PREEMPTED, new ContainerCompletedWhileRunningTransition(KILLED_HELPER))
-        .addTransition(TaskAttemptStateInternal.RUNNING, EnumSet.of(TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptStateInternal.RUNNING), TaskAttemptEventType.TA_OUTPUT_FAILED, new OutputReportedFailedTransition())
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.RUNNING,
+          TaskAttemptEventType.TA_STATUS_UPDATE, STATUS_UPDATER)
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.RUNNING,
+          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
+          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
+          new OutputConsumableTransition())
+      // Optional, may not come in for all tasks.
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.SUCCEEDED, TaskAttemptEventType.TA_DONE,
+          new SucceededTransition())
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_FAILED,
+          new TerminatedWhileRunningTransition(FAILED_HELPER))
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_TIMED_OUT,
+          new TerminatedWhileRunningTransition(FAILED_HELPER))
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_FAIL_REQUEST,
+          new TerminatedWhileRunningTransition(FAILED_HELPER))
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptEventType.TA_KILL_REQUEST,
+          new TerminatedWhileRunningTransition(KILLED_HELPER))
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptEventType.TA_NODE_FAILED,
+          new TerminatedWhileRunningTransition(KILLED_HELPER))
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATING,
+          new TerminatedWhileRunningTransition(FAILED_HELPER))
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.FAILED,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATED,
+          new ContainerCompletedWhileRunningTransition())
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.KILLED,
+          TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+          new ContainerCompletedWhileRunningTransition(KILLED_HELPER))
+      .addTransition(
+          TaskAttemptStateInternal.RUNNING,
+          EnumSet.of(TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+              TaskAttemptStateInternal.RUNNING),
+          TaskAttemptEventType.TA_OUTPUT_FAILED,
+          new OutputReportedFailedTransition())
 
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptEventType.TA_STATUS_UPDATE, STATUS_UPDATER)
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE, DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptEventType.TA_OUTPUT_CONSUMABLE) // Stuck RPC. The client retries in a loop.
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptStateInternal.SUCCEEDED, TaskAttemptEventType.TA_DONE, new SucceededTransition())
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptEventType.TA_FAILED,  new TerminatedWhileRunningTransition(FAILED_HELPER))
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptEventType.TA_TIMED_OUT,  new TerminatedWhileRunningTransition(FAILED_HELPER))
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptEventType.TA_FAIL_REQUEST,  new TerminatedWhileRunningTransition(FAILED_HELPER))
-        // TODO CREUSE Ensure TaskCompletionEvents are updated to reflect this. Something needs to go out to the job.
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptStateInternal.KILL_IN_PROGRESS, TaskAttemptEventType.TA_KILL_REQUEST, new TerminatedWhileRunningTransition(KILLED_HELPER))
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptStateInternal.KILL_IN_PROGRESS, TaskAttemptEventType.TA_NODE_FAILED, new TerminatedWhileRunningTransition(KILLED_HELPER))
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptEventType.TA_CONTAINER_TERMINATING, new TerminatedWhileRunningTransition(FAILED_HELPER))
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptStateInternal.FAILED, TaskAttemptEventType.TA_CONTAINER_TERMINATED, new ContainerCompletedBeforeRunningTransition())
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, TaskAttemptStateInternal.KILLED, TaskAttemptEventType.TA_CONTAINER_PREEMPTED, new ContainerCompletedBeforeRunningTransition(KILLED_HELPER))
-        .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE, EnumSet.of(TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptStateInternal.OUTPUT_CONSUMABLE), TaskAttemptEventType.TA_OUTPUT_FAILED, new OutputReportedFailedTransition())
+      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptEventType.TA_STATUS_UPDATE, STATUS_UPDATER)
+      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
+          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
+      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptEventType.TA_OUTPUT_CONSUMABLE)
+      // Stuck RPC. The client retries in a loop.
+      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptStateInternal.SUCCEEDED, TaskAttemptEventType.TA_DONE,
+          new SucceededTransition())
+      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_FAILED,
+          new TerminatedWhileRunningTransition(FAILED_HELPER))
+      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_TIMED_OUT,
+          new TerminatedWhileRunningTransition(FAILED_HELPER))
+      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_FAIL_REQUEST,
+          new TerminatedWhileRunningTransition(FAILED_HELPER))
+      // TODO CREUSE Ensure TaskCompletionEvents are updated to reflect this.
+      // Something needs to go out to the job.
+      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptEventType.TA_KILL_REQUEST,
+          new TerminatedWhileRunningTransition(KILLED_HELPER))
+      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptEventType.TA_NODE_FAILED,
+          new TerminatedWhileRunningTransition(KILLED_HELPER))
+      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATING,
+          new TerminatedWhileRunningTransition(FAILED_HELPER))
+      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptStateInternal.FAILED,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATED,
+          new ContainerCompletedBeforeRunningTransition())
+      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          TaskAttemptStateInternal.KILLED,
+          TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+          new ContainerCompletedBeforeRunningTransition(KILLED_HELPER))
+      .addTransition(
+          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
+          EnumSet.of(TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+              TaskAttemptStateInternal.OUTPUT_CONSUMABLE),
+          TaskAttemptEventType.TA_OUTPUT_FAILED,
+          new OutputReportedFailedTransition())
 
-        .addTransition(TaskAttemptStateInternal.KILL_IN_PROGRESS, TaskAttemptStateInternal.KILLED, TaskAttemptEventType.TA_CONTAINER_TERMINATED, new ContainerCompletedWhileTerminating())
-        .addTransition(TaskAttemptStateInternal.KILL_IN_PROGRESS, TaskAttemptStateInternal.KILL_IN_PROGRESS, TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE, DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-        .addTransition(TaskAttemptStateInternal.KILL_IN_PROGRESS, TaskAttemptStateInternal.KILL_IN_PROGRESS, EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY, TaskAttemptEventType.TA_CONTAINER_PREEMPTED, TaskAttemptEventType.TA_STATUS_UPDATE, TaskAttemptEventType.TA_OUTPUT_CONSUMABLE, TaskAttemptEventType.TA_COMMIT_PENDING, TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED, TaskAttemptEventType.TA_TIMED_OUT, TaskAttemptEventType.TA_FAIL_REQUEST, TaskAttemptEventType.TA_KILL_REQUEST, TaskAttemptEventType.TA_NODE_FAILED, TaskAttemptEventType.TA_CONTAINER_TERMINATING, TaskAttemptEventType.TA_OUTPUT_FAILED))
+      .addTransition(TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptStateInternal.KILLED,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATED,
+          new ContainerCompletedWhileTerminating())
+      .addTransition(TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
+          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
+      .addTransition(
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY,
+              TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+              TaskAttemptEventType.TA_STATUS_UPDATE,
+              TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
+              TaskAttemptEventType.TA_COMMIT_PENDING,
+              TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
+              TaskAttemptEventType.TA_TIMED_OUT,
+              TaskAttemptEventType.TA_FAIL_REQUEST,
+              TaskAttemptEventType.TA_KILL_REQUEST,
+              TaskAttemptEventType.TA_NODE_FAILED,
+              TaskAttemptEventType.TA_CONTAINER_TERMINATING,
+              TaskAttemptEventType.TA_OUTPUT_FAILED))
 
-        .addTransition(TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptStateInternal.FAILED, TaskAttemptEventType.TA_CONTAINER_TERMINATED, new ContainerCompletedWhileTerminating())
-        .addTransition(TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE, DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-        .addTransition(TaskAttemptStateInternal.FAIL_IN_PROGRESS, TaskAttemptStateInternal.FAIL_IN_PROGRESS, EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY, TaskAttemptEventType.TA_CONTAINER_PREEMPTED, TaskAttemptEventType.TA_STATUS_UPDATE, TaskAttemptEventType.TA_OUTPUT_CONSUMABLE, TaskAttemptEventType.TA_COMMIT_PENDING, TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED, TaskAttemptEventType.TA_TIMED_OUT, TaskAttemptEventType.TA_FAIL_REQUEST, TaskAttemptEventType.TA_KILL_REQUEST, TaskAttemptEventType.TA_NODE_FAILED, TaskAttemptEventType.TA_CONTAINER_TERMINATING, TaskAttemptEventType.TA_OUTPUT_FAILED))
+      .addTransition(TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptStateInternal.FAILED,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATED,
+          new ContainerCompletedWhileTerminating())
+      .addTransition(TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
+          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
+      .addTransition(
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY,
+              TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+              TaskAttemptEventType.TA_STATUS_UPDATE,
+              TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
+              TaskAttemptEventType.TA_COMMIT_PENDING,
+              TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
+              TaskAttemptEventType.TA_TIMED_OUT,
+              TaskAttemptEventType.TA_FAIL_REQUEST,
+              TaskAttemptEventType.TA_KILL_REQUEST,
+              TaskAttemptEventType.TA_NODE_FAILED,
+              TaskAttemptEventType.TA_CONTAINER_TERMINATING,
+              TaskAttemptEventType.TA_OUTPUT_FAILED))
 
-        .addTransition(TaskAttemptStateInternal.KILLED, TaskAttemptStateInternal.KILLED, TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE, DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-        .addTransition(TaskAttemptStateInternal.KILLED, TaskAttemptStateInternal.KILLED, EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY, TaskAttemptEventType.TA_SCHEDULE, TaskAttemptEventType.TA_CONTAINER_PREEMPTED, TaskAttemptEventType.TA_STATUS_UPDATE, TaskAttemptEventType.TA_OUTPUT_CONSUMABLE, TaskAttemptEventType.TA_COMMIT_PENDING, TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED, TaskAttemptEventType.TA_TIMED_OUT, TaskAttemptEventType.TA_FAIL_REQUEST, TaskAttemptEventType.TA_KILL_REQUEST, TaskAttemptEventType.TA_NODE_FAILED, TaskAttemptEventType.TA_CONTAINER_TERMINATING, TaskAttemptEventType.TA_CONTAINER_TERMINATED, TaskAttemptEventType.TA_OUTPUT_FAILED))
+      .addTransition(TaskAttemptStateInternal.KILLED,
+          TaskAttemptStateInternal.KILLED,
+          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
+          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
+      .addTransition(
+          TaskAttemptStateInternal.KILLED,
+          TaskAttemptStateInternal.KILLED,
+          EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY,
+              TaskAttemptEventType.TA_SCHEDULE,
+              TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+              TaskAttemptEventType.TA_STATUS_UPDATE,
+              TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
+              TaskAttemptEventType.TA_COMMIT_PENDING,
+              TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
+              TaskAttemptEventType.TA_TIMED_OUT,
+              TaskAttemptEventType.TA_FAIL_REQUEST,
+              TaskAttemptEventType.TA_KILL_REQUEST,
+              TaskAttemptEventType.TA_NODE_FAILED,
+              TaskAttemptEventType.TA_CONTAINER_TERMINATING,
+              TaskAttemptEventType.TA_CONTAINER_TERMINATED,
+              TaskAttemptEventType.TA_OUTPUT_FAILED))
 
-        .addTransition(TaskAttemptStateInternal.FAILED, TaskAttemptStateInternal.FAILED, TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE, DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-        .addTransition(TaskAttemptStateInternal.FAILED, TaskAttemptStateInternal.FAILED, EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY, TaskAttemptEventType.TA_SCHEDULE, TaskAttemptEventType.TA_CONTAINER_PREEMPTED, TaskAttemptEventType.TA_STATUS_UPDATE, TaskAttemptEventType.TA_OUTPUT_CONSUMABLE, TaskAttemptEventType.TA_COMMIT_PENDING, TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED, TaskAttemptEventType.TA_TIMED_OUT, TaskAttemptEventType.TA_FAIL_REQUEST, TaskAttemptEventType.TA_KILL_REQUEST, TaskAttemptEventType.TA_NODE_FAILED, TaskAttemptEventType.TA_CONTAINER_TERMINATING, TaskAttemptEventType.TA_CONTAINER_TERMINATED, TaskAttemptEventType.TA_OUTPUT_FAILED))
+      .addTransition(TaskAttemptStateInternal.FAILED,
+          TaskAttemptStateInternal.FAILED,
+          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
+          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
+      .addTransition(
+          TaskAttemptStateInternal.FAILED,
+          TaskAttemptStateInternal.FAILED,
+          EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY,
+              TaskAttemptEventType.TA_SCHEDULE,
+              TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+              TaskAttemptEventType.TA_STATUS_UPDATE,
+              TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
+              TaskAttemptEventType.TA_COMMIT_PENDING,
+              TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
+              TaskAttemptEventType.TA_TIMED_OUT,
+              TaskAttemptEventType.TA_FAIL_REQUEST,
+              TaskAttemptEventType.TA_KILL_REQUEST,
+              TaskAttemptEventType.TA_NODE_FAILED,
+              TaskAttemptEventType.TA_CONTAINER_TERMINATING,
+              TaskAttemptEventType.TA_CONTAINER_TERMINATED,
+              TaskAttemptEventType.TA_OUTPUT_FAILED))
 
-        // How will duplicate history events be handled ?
-        // TODO Maybe consider not failing REDUCE tasks in this case. Also, MAP_TASKS in case there's only one phase in the job.
-        .addTransition(TaskAttemptStateInternal.SUCCEEDED, TaskAttemptStateInternal.SUCCEEDED, TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE, DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-        .addTransition(TaskAttemptStateInternal.SUCCEEDED, EnumSet.of(TaskAttemptStateInternal.KILLED, TaskAttemptStateInternal.SUCCEEDED), TaskAttemptEventType.TA_KILL_REQUEST, new TerminatedAfterSuccessTransition())
-        .addTransition(TaskAttemptStateInternal.SUCCEEDED, EnumSet.of(TaskAttemptStateInternal.KILLED, TaskAttemptStateInternal.SUCCEEDED), TaskAttemptEventType.TA_NODE_FAILED, new TerminatedAfterSuccessTransition())
-        .addTransition(TaskAttemptStateInternal.SUCCEEDED, EnumSet.of(TaskAttemptStateInternal.FAILED, TaskAttemptStateInternal.SUCCEEDED), TaskAttemptEventType.TA_OUTPUT_FAILED, new OutputReportedFailedTransition())
-        .addTransition(TaskAttemptStateInternal.SUCCEEDED, TaskAttemptStateInternal.SUCCEEDED, EnumSet.of(TaskAttemptEventType.TA_TIMED_OUT, TaskAttemptEventType.TA_FAIL_REQUEST, TaskAttemptEventType.TA_CONTAINER_TERMINATING, TaskAttemptEventType.TA_CONTAINER_TERMINATED, TaskAttemptEventType.TA_CONTAINER_PREEMPTED))
+      // How will duplicate history events be handled ?
+      // TODO Maybe consider not failing REDUCE tasks in this case. Also,
+      // MAP_TASKS in case there's only one phase in the job.
+      .addTransition(TaskAttemptStateInternal.SUCCEEDED,
+          TaskAttemptStateInternal.SUCCEEDED,
+          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
+          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
+      .addTransition(
+          TaskAttemptStateInternal.SUCCEEDED,
+          EnumSet.of(TaskAttemptStateInternal.KILLED,
+              TaskAttemptStateInternal.SUCCEEDED),
+          TaskAttemptEventType.TA_KILL_REQUEST,
+          new TerminatedAfterSuccessTransition())
+      .addTransition(
+          TaskAttemptStateInternal.SUCCEEDED,
+          EnumSet.of(TaskAttemptStateInternal.KILLED,
+              TaskAttemptStateInternal.SUCCEEDED),
+          TaskAttemptEventType.TA_NODE_FAILED,
+          new TerminatedAfterSuccessTransition())
+      .addTransition(
+          TaskAttemptStateInternal.SUCCEEDED,
+          EnumSet.of(TaskAttemptStateInternal.FAILED,
+              TaskAttemptStateInternal.SUCCEEDED),
+          TaskAttemptEventType.TA_OUTPUT_FAILED,
+          new OutputReportedFailedTransition())
+      .addTransition(
+          TaskAttemptStateInternal.SUCCEEDED,
+          TaskAttemptStateInternal.SUCCEEDED,
+          EnumSet.of(TaskAttemptEventType.TA_TIMED_OUT,
+              TaskAttemptEventType.TA_FAIL_REQUEST,
+              TaskAttemptEventType.TA_CONTAINER_TERMINATING,
+              TaskAttemptEventType.TA_CONTAINER_TERMINATED,
+              TaskAttemptEventType.TA_CONTAINER_PREEMPTED))
 
         .installTopology();
 
