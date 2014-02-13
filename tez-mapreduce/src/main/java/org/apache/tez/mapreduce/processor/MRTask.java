@@ -42,6 +42,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
+import org.apache.hadoop.mapred.FileOutputCommitter;
+import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.RawKeyValueIterator;
@@ -77,7 +79,8 @@ import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.hadoop.mapreduce.JobContextImpl;
-import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.mapreduce.output.MROutputLegacy;
+import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.library.common.Constants;
@@ -102,6 +105,9 @@ public abstract class MRTask {
   protected TaskAttemptID taskAttemptId;
   protected Progress progress = new Progress();
   protected SecretKey jobTokenSecret;
+  
+  LogicalInput input;
+  LogicalOutput output;
 
   boolean isMap;
 
@@ -334,8 +340,13 @@ public abstract class MRTask {
     return this.processorContext;
   }
 
-  public void initTask() throws IOException,
+  public void initTask(LogicalOutput output) throws IOException,
                                 InterruptedException {
+    // By this time output has been initialized
+    this.output = output;
+    if (output instanceof MROutputLegacy) {
+      committer = ((MROutputLegacy)output).getOutputCommitter();
+    }
     this.mrReporter = new MRTaskReporter(processorContext);
     this.useNewApi = jobConf.getUseNewMapper();
     TezDAGID dagId = IDConverter.fromMRTaskAttemptId(taskAttemptId).getTaskID()
@@ -364,14 +375,6 @@ public abstract class MRTask {
   public State getState() {
     // TODO Auto-generated method stub
     return null;
-  }
-
-  public OutputCommitter getCommitter() {
-    return committer;
-  }
-
-  public void setCommitter(OutputCommitter committer) {
-    this.committer = committer;
   }
 
   public TezCounters getCounters() { return counters; }
@@ -415,15 +418,15 @@ public abstract class MRTask {
       InterruptedException {
   }
 
-  public void done(LogicalOutput output) throws IOException, InterruptedException {
+  public void done() throws IOException, InterruptedException {
     updateCounters();
 
     LOG.info("Task:" + taskAttemptId + " is done."
         + " And is in the process of committing");
     // TODO change this to use the new context
     // TODO TEZ Interaciton between Commit and OutputReady. Merge ?
-    if (output instanceof MROutput) {
-      MROutput sOut = (MROutput)output;
+    if (output instanceof MROutputLegacy) {
+      MROutputLegacy sOut = (MROutputLegacy)output;
       if (sOut.isCommitRequired()) {
         //wait for commit approval and commit
         // TODO EVENTUALLY - Commit is not required for map tasks.
@@ -456,7 +459,7 @@ public abstract class MRTask {
     statusUpdate();
   }
 
-  private void commit(MROutput output) throws IOException {
+  private void commit(MROutputLegacy output) throws IOException {
     int retries = 3;
     while (true) {
       // This will loop till the AM asks for the task to be killed. As
@@ -493,7 +496,7 @@ public abstract class MRTask {
   }
 
   private
-  void discardOutput(MROutput output) {
+  void discardOutput(MROutputLegacy output) {
     try {
       output.abort();
     } catch (IOException ioe)  {
@@ -657,7 +660,9 @@ public abstract class MRTask {
     statusUpdate();
     LOG.info("Runnning cleanup for the task");
     // do the cleanup
-    committer.abortTask(taskAttemptContext);
+    if (output instanceof MROutputLegacy) {
+      ((MROutputLegacy) output).abort();
+    }
   }
 
   public void localizeConfiguration(JobConf jobConf)
@@ -667,6 +672,18 @@ public abstract class MRTask {
     jobConf.setInt(JobContext.TASK_PARTITION,
         taskAttemptId.getTaskID().getId());
     jobConf.set(JobContext.ID, taskAttemptId.getJobID().toString());
+    
+    jobConf.setBoolean(MRJobConfig.TASK_ISMAP, isMap);
+    
+    Path outputPath = FileOutputFormat.getOutputPath(jobConf);
+    if (outputPath != null) {
+      if ((committer instanceof FileOutputCommitter)) {
+        FileOutputFormat.setWorkOutputPath(jobConf, 
+          ((FileOutputCommitter)committer).getTaskAttemptPath(taskAttemptContext));
+      } else {
+        FileOutputFormat.setWorkOutputPath(jobConf, outputPath);
+      }
+    }
   }
 
   public abstract TezCounter getOutputRecordsCounter();

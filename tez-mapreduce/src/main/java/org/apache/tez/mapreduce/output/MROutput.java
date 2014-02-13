@@ -84,7 +84,7 @@ public class MROutput implements LogicalOutput {
 
   private boolean isMapperOutput;
 
-  private OutputCommitter committer;
+  protected OutputCommitter committer;
 
   @Override
   public List<Event> initialize(TezOutputContext outputContext)

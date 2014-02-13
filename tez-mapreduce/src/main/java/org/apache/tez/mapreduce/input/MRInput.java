@@ -105,7 +105,7 @@ public class MRInput implements LogicalInput {
   private InputFormat oldInputFormat;
   @SuppressWarnings("rawtypes")
   protected RecordReader oldRecordReader;
-  private InputSplit oldInputSplit;
+  protected InputSplit oldInputSplit;
 
   protected TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
   

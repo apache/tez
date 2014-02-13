@@ -371,7 +371,7 @@ public class TestMRRJobsDAGApi {
     Vertex stage3Vertex = new Vertex("reduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName()).setUserPayload(stage3Payload),
         1, Resource.newInstance(256, 1));
-    MRHelpers.addMROutput(stage3Vertex, stage3Payload);
+    MRHelpers.addMROutputLegacy(stage3Vertex, stage3Payload);
 
     Map<String, LocalResource> commonLocalResources = new HashMap<String, LocalResource>();
     Map<String, String> commonEnv = createCommonEnv();

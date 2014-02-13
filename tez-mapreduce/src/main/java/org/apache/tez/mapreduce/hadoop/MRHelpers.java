@@ -74,6 +74,7 @@ import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
@@ -952,7 +953,14 @@ public class MRHelpers {
         .setUserPayload(userPayload);
     vertex.addOutput("MROutput", od, MROutputCommitter.class);
   }
-  
+
+  @Private
+  public static void addMROutputLegacy(Vertex vertex, byte[] userPayload) {
+    OutputDescriptor od = new OutputDescriptor(MROutputLegacy.class.getName())
+        .setUserPayload(userPayload);
+    vertex.addOutput("MROutput", od, MROutputCommitter.class);
+  }
+
   @SuppressWarnings("unchecked")
   public static InputSplit createOldFormatSplitFromUserPayload(
       MRSplitProto splitProto, SerializationFactory serializationFactory)

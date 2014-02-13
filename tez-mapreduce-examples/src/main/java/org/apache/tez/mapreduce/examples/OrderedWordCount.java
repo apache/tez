@@ -273,7 +273,7 @@ public class OrderedWordCount {
     Map<String, String> reduceEnv = new HashMap<String, String>();
     MRHelpers.updateEnvironmentForMRTasks(finalReduceConf, reduceEnv, false);
     finalReduceVertex.setTaskEnvironment(reduceEnv);
-    MRHelpers.addMROutput(finalReduceVertex, finalReducePayload);
+    MRHelpers.addMROutputLegacy(finalReduceVertex, finalReducePayload);
     vertices.add(finalReduceVertex);
 
     DAG dag = new DAG("OrderedWordCount" + dagIndex);

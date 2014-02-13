@@ -414,7 +414,7 @@ public class YARNRunner implements ClientProtocol {
     }
     // Map only jobs.
     if (stageNum == totalStages -1) {
-      MRHelpers.addMROutput(vertex, vertexUserPayload);
+      MRHelpers.addMROutputLegacy(vertex, vertexUserPayload);
     }
 
     Map<String, String> taskEnv = new HashMap<String, String>();

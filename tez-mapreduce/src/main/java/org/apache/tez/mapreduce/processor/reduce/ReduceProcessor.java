@@ -37,7 +37,7 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 import org.apache.tez.runtime.api.Event;
@@ -95,8 +95,6 @@ implements LogicalIOProcessor {
 
     LOG.info("Running reduce: " + processorContext.getUniqueIdentifier());
 
-    initTask();
-
     if (outputs.size() <= 0 || outputs.size() > 1) {
       throw new IOException("Invalid number of outputs"
           + ", outputCount=" + outputs.size());
@@ -109,6 +107,8 @@ implements LogicalIOProcessor {
 
     LogicalInput in = inputs.values().iterator().next();
     LogicalOutput out = outputs.values().iterator().next();
+
+    initTask(out);
 
     this.statusUpdate();
 
@@ -133,12 +133,12 @@ implements LogicalIOProcessor {
     KeyValuesReader kvReader = shuffleInput.getReader();
 
     KeyValueWriter kvWriter = null;
-    if((out instanceof MROutput)) {
-      kvWriter = ((MROutput) out).getWriter();
+    if((out instanceof MROutputLegacy)) {
+      kvWriter = ((MROutputLegacy) out).getWriter();
     } else if ((out instanceof OnFileSortedOutput)) {
       kvWriter = ((OnFileSortedOutput) out).getWriter();
     } else {
-      throw new IOException("Illegal input to reduce: " + in.getClass());
+      throw new IOException("Illegal output to reduce: " + in.getClass());
     }
 
     if (useNewApi) {
@@ -157,7 +157,7 @@ implements LogicalIOProcessor {
           kvReader, comparator, keyClass, valueClass, kvWriter);
     }
 
-    done(out);
+    done();
   }
 
   void runOldReducer(JobConf job,

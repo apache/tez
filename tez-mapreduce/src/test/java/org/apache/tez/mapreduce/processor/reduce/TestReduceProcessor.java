@@ -52,6 +52,7 @@ import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.MapUtils;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
@@ -161,9 +162,11 @@ public class TestReduceProcessor {
     ProcessorDescriptor reduceProcessorDesc = new ProcessorDescriptor(
         ReduceProcessor.class.getName()).setUserPayload(TezUtils.createUserPayloadFromConf(reduceConf));
     
-    InputSpec reduceInputSpec = new InputSpec(mapVertexName, new InputDescriptor(LocalMergedInput.class.getName()), 1);
-    OutputSpec reduceOutputSpec = new OutputSpec("NullDestinationVertex", new OutputDescriptor(MROutput.class.getName()), 1);
-    
+    InputSpec reduceInputSpec = new InputSpec(mapVertexName,
+        new InputDescriptor(LocalMergedInput.class.getName()), 1);
+    OutputSpec reduceOutputSpec = new OutputSpec("NullDestinationVertex",
+        new OutputDescriptor(MROutputLegacy.class.getName()), 1);
+
     // Now run a reduce
     TaskSpec taskSpec = new TaskSpec(
         TezTestUtils.getMockTaskAttemptId(0, 1, 0, 0),

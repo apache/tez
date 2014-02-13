@@ -25,12 +25,15 @@ import java.util.Map.Entry;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.FileSplit;
+import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.MapRunnable;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.split.TezGroupedSplit;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.map.WrappedMapper;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -40,7 +43,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.mapreduce.hadoop.mapreduce.MapContextImpl;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
-import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 import org.apache.tez.runtime.api.Event;
@@ -89,8 +92,6 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
 
     LOG.info("Running map: " + processorContext.getUniqueIdentifier());
 
-    initTask();
-
     if (inputs.size() != 1
         || outputs.size() != 1) {
       throw new IOException("Cannot handle multiple inputs or outputs"
@@ -100,10 +101,12 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     LogicalInput in = inputs.values().iterator().next();
     LogicalOutput out = outputs.values().iterator().next();
 
+    initTask(out);
+
     // Sanity check
     if (!(in instanceof MRInputLegacy)) {
       throw new IOException(new TezException(
-          "Only Simple Input supported. Input: " + in.getClass()));
+          "Only MRInputLegacy supported. Input: " + in.getClass()));
     }
     MRInputLegacy input = (MRInputLegacy)in;
     input.init();
@@ -115,10 +118,12 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     }
 
     KeyValueWriter kvWriter = null;
-    if (!(out instanceof OnFileSortedOutput)) {
-      kvWriter = ((MROutput)out).getWriter();
-    } else {
+    if ((out instanceof MROutputLegacy)) {
+      kvWriter = ((MROutputLegacy)out).getWriter();
+    } else if ((out instanceof OnFileSortedOutput)){
       kvWriter = ((OnFileSortedOutput)out).getWriter();
+    } else {
+      throw new IOException("Illegal output to map: " + in.getClass());
     }
 
     if (useNewApi) {
@@ -127,7 +132,35 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
       runOldMapper(jobConf, mrReporter, input, kvWriter);
     }
 
-    done(out);
+    done();
+  }
+  
+
+  /**
+   * Update the job with details about the file split
+   * @param job the job configuration to update
+   * @param inputSplit the file split
+   */
+  private void updateJobWithSplit(final JobConf job, InputSplit inputSplit) {
+    if (inputSplit instanceof FileSplit) {
+      FileSplit fileSplit = (FileSplit) inputSplit;
+      job.set(JobContext.MAP_INPUT_FILE, fileSplit.getPath().toString());
+      job.setLong(JobContext.MAP_INPUT_START, fileSplit.getStart());
+      job.setLong(JobContext.MAP_INPUT_PATH, fileSplit.getLength());
+    }
+    LOG.info("Processing mapred split: " + inputSplit);
+  }
+  
+  private void updateJobWithSplit(
+      final JobConf job, org.apache.hadoop.mapreduce.InputSplit inputSplit) {
+    if (inputSplit instanceof org.apache.hadoop.mapreduce.lib.input.FileSplit) {
+      org.apache.hadoop.mapreduce.lib.input.FileSplit fileSplit = 
+          (org.apache.hadoop.mapreduce.lib.input.FileSplit) inputSplit;
+      job.set(JobContext.MAP_INPUT_FILE, fileSplit.getPath().toString());
+      job.setLong(JobContext.MAP_INPUT_START, fileSplit.getStart());
+      job.setLong(JobContext.MAP_INPUT_PATH, fileSplit.getLength());
+    }
+    LOG.info("Processing mapreduce split: " + inputSplit);
   }
 
   void runOldMapper(
@@ -141,6 +174,10 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     // Done only for MRInput.
     // TODO use new method in MRInput to get required info
     //input.initialize(job, master);
+    
+    InputSplit inputSplit = input.getOldInputSplit();
+    
+    updateJobWithSplit(job, inputSplit);
 
     RecordReader in = new OldRecordReader(input);
 
@@ -188,13 +225,15 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
         new NewOutputCollector(out);
 
     org.apache.hadoop.mapreduce.InputSplit split = in.getNewInputSplit();
+    
+    updateJobWithSplit(job, split);
 
     org.apache.hadoop.mapreduce.MapContext
     mapContext =
     new MapContextImpl(
         job, taskAttemptId,
         input, output,
-        getCommitter(),
+        committer,
         processorContext, split, reporter);
 
     org.apache.hadoop.mapreduce.Mapper.Context mapperContext =
