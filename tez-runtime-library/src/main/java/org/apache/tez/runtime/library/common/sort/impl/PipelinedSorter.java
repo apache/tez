@@ -34,7 +34,6 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -44,7 +43,6 @@ import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.IndexedSorter;
 import org.apache.hadoop.util.Progress;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
@@ -92,8 +90,8 @@ public class PipelinedSorter extends ExternalSorter {
   private int totalIndexCacheMemory;
   private int indexCacheMemoryLimit;
 
-  public void initialize(TezOutputContext outputContext, Configuration conf, int numOutputs) throws IOException {
-    super.initialize(outputContext, conf, numOutputs);
+  @Override
+  public void start() throws IOException {
     
     partitionBits = bitcount(partitions)+1;
    
@@ -102,7 +100,7 @@ public class PipelinedSorter extends ExternalSorter {
       this.conf.getFloat(
           TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT, 
           TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_SPILL_PERCENT);
-    final int sortmb = this.availableMemory;
+    final int sortmb = this.availableMemoryMb;
     indexCacheMemoryLimit = this.conf.getInt(TezJobConfig.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES,
                                        TezJobConfig.DEFAULT_TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
     if (spillper > (float)1.0 || spillper <= (float)0.0) {

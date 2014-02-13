@@ -18,6 +18,7 @@
 package org.apache.tez.mapreduce.input;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -120,8 +121,7 @@ public class MRInput implements LogicalInput {
   @Override
   public List<Event> initialize(TezInputContext inputContext) throws IOException {
     this.inputContext = inputContext;
-    // TEZ 815. Fix this. Not used until there's a separation between init and start.
-    inputContext.requestInitialMemory(0l, null);
+    this.inputContext.requestInitialMemory(0l, null); //mandatory call
     MRInputUserPayloadProto mrUserPayload =
       MRHelpers.parseMRInputPayload(inputContext.getUserPayload());
     Preconditions.checkArgument(mrUserPayload.hasSplits() == false,
@@ -160,8 +160,7 @@ public class MRInput implements LogicalInput {
   
   @Override
   public List<Event> start() {
-    // TODO TEZ-815 To be fixed in a subsequent jira if required.
-    return null;
+    return Collections.emptyList();
   }
 
   @Private

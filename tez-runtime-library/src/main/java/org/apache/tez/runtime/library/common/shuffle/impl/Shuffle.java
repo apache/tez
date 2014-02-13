@@ -42,6 +42,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
@@ -51,38 +52,53 @@ import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * Usage: Create instance, setInitialMemoryAllocated(long), run()
+ *
+ */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public class Shuffle implements ExceptionReporter {
+public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
   
   private static final Log LOG = LogFactory.getLog(Shuffle.class);
   private static final int PROGRESS_FREQUENCY = 2000;
   
   private final Configuration conf;
   private final TezInputContext inputContext;
-  private final ShuffleClientMetrics metrics;
+  private final int numInputs;
+  
+  private ShuffleClientMetrics metrics;
 
-  private final ShuffleInputEventHandler eventHandler;
-  private final ShuffleScheduler scheduler;
-  private final MergeManager merger;
+  private ShuffleInputEventHandler eventHandler;
+  private ShuffleScheduler scheduler;
+  private MergeManager merger;
   private Throwable throwable = null;
   private String throwingThreadName = null;
-  private final int numInputs;
-  private final SecretKey jobTokenSecret;
-  private final CompressionCodec codec;
-  private final boolean ifileReadAhead;
-  private final int ifileReadAheadLength;
+  
+  private SecretKey jobTokenSecret;
+  private CompressionCodec codec;
+  private boolean ifileReadAhead;
+  private int ifileReadAheadLength;
+  
+  private volatile long initialMemoryAvailable = -1;
 
   private FutureTask<TezRawKeyValueIterator> runShuffleFuture;
 
   public Shuffle(TezInputContext inputContext, Configuration conf, int numInputs) throws IOException {
     this.inputContext = inputContext;
     this.conf = conf;
+    this.numInputs = numInputs;
+    long initialMemRequested = MergeManager.getInitialMemoryRequirement(conf,
+        inputContext.getTotalMemoryAvailableToTask());
+    inputContext.requestInitialMemory(initialMemRequested, this);
+  }
+
+  private void configureAndStart() throws IOException {
+    Preconditions.checkState(initialMemoryAvailable != -1,
+        "Initial Available memory must be configured before starting");
     this.metrics = new ShuffleClientMetrics(inputContext.getDAGName(),
         inputContext.getTaskVertexName(), inputContext.getTaskIndex(),
         this.conf, UserGroupInformation.getCurrentUser().getShortUserName());
-            
-    this.numInputs = numInputs;
     
     this.jobTokenSecret = ShuffleUtils
         .getJobTokenSecretFromTokenBytes(inputContext
@@ -151,6 +167,8 @@ public class Shuffle implements ExceptionReporter {
           reduceCombineInputCounter,
           mergedMapOutputsCounter,
           this);
+    merger.setInitialMemoryAvailable(initialMemoryAvailable);
+    merger.configureAndStart();
   }
 
   public void handleEvents(List<Event> events) {
@@ -195,7 +213,8 @@ public class Shuffle implements ExceptionReporter {
     return kvIter;
   }
 
-  public void run() {
+  public void run() throws IOException {
+    configureAndStart();
     RunShuffleCallable runShuffle = new RunShuffleCallable();
     runShuffleFuture = new FutureTask<TezRawKeyValueIterator>(runShuffle);
     new Thread(runShuffleFuture, "ShuffleMergeRunner").start();
@@ -274,6 +293,11 @@ public class Shuffle implements ExceptionReporter {
     ShuffleError(String msg, Throwable t) {
       super(msg, t);
     }
+  }
+
+  @Override
+  public void memoryAssigned(long assignedSize) {
+    this.initialMemoryAvailable = assignedSize;
   }
 
 }

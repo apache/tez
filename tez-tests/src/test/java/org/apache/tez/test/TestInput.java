@@ -18,6 +18,7 @@
 
 package org.apache.tez.test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -188,7 +189,7 @@ public class TestInput implements LogicalInput {
   @Override
   public List<Event> initialize(TezInputContext inputContext) throws Exception {
     this.inputContext = inputContext;
-    this.inputContext.requestInitialMemory(0l, null); //Mandatory call. Fix null in TEZ-815.
+    this.inputContext.requestInitialMemory(0l, null); //Mandatory call.
     if (inputContext.getUserPayload() != null) {
       String vName = inputContext.getTaskVertexName();
       conf = MRHelpers.createConfFromUserPayload(inputContext.getUserPayload());
@@ -220,13 +221,12 @@ public class TestInput implements LogicalInput {
         }
       }
     }
-    return null;
+    return Collections.emptyList();
   }
 
   @Override
   public List<Event> start() {
-    // TODO TEZ-815 To be fixed in a subsequent jira if required.
-    return null;
+    return Collections.emptyList();
   }
 
   @Override

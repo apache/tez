@@ -64,8 +64,6 @@ public class ShuffleInputEventHandler {
   }
 
   private void processDataMovementEvent(DataMovementEvent dmEvent) {
-    // FIXME TODO NEWTEZ
-    // Preconditions.checkState(shuffleRangeSet == true, "Shuffle Range must be set before a DataMovementEvent is processed");
     DataMovementEventPayloadProto shufflePayload;
     try {
       shufflePayload = DataMovementEventPayloadProto.parseFrom(dmEvent.getUserPayload());

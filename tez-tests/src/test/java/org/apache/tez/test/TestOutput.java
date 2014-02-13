@@ -18,6 +18,7 @@
 
 package org.apache.tez.test;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -46,14 +47,13 @@ public class TestOutput implements LogicalOutput {
   public List<Event> initialize(TezOutputContext outputContext)
       throws Exception {
     this.outputContext = outputContext;
-    this.outputContext.requestInitialMemory(0l, null); //Mandatory call. Fix null in TEZ-815.
-    return null;
+    this.outputContext.requestInitialMemory(0l, null); //Mandatory call
+    return Collections.emptyList();
   }
 
   @Override
   public List<Event> start() {
-    // TODO TEZ-815 To be fixed in a subsequent jira if required.
-    return null;
+    return Collections.emptyList();
   }
 
   @Override

@@ -69,8 +69,7 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS,
         outputContext.getWorkDirs());
 
-    // TEZ 815. Fix this. Not used until there's a separation between init and start.
-    this.outputContext.requestInitialMemory(0l, null);
+    this.outputContext.requestInitialMemory(0l, null); // mandatory call
 
     this.dataViaEventsEnabled = conf.getBoolean(
         TezJobConfig.TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED,
@@ -89,8 +88,7 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
 
   @Override
   public List<Event> start() {
-    // TODO TEZ-815 To be fixed in a subsequent jira if required.
-    return null;
+    return Collections.emptyList();
   }
 
   @Override

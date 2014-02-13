@@ -90,8 +90,7 @@ public class MROutput implements LogicalOutput {
   public List<Event> initialize(TezOutputContext outputContext)
       throws IOException, InterruptedException {
     LOG.info("Initializing Simple Output");
-    // TEZ 815. Fix this. Not used until there's a separation between init and start.
-    outputContext.requestInitialMemory(0l, null);
+    outputContext.requestInitialMemory(0l, null); //mandatory call
     taskNumberFormat.setMinimumIntegerDigits(5);
     taskNumberFormat.setGroupingUsed(false);
     nonTaskNumberFormat.setMinimumIntegerDigits(3);
@@ -193,7 +192,6 @@ public class MROutput implements LogicalOutput {
   
   @Override
   public List<Event> start() {
-    // TODO TEZ-815 To be fixed in a subsequent jira if required.
     return null;
   }
 

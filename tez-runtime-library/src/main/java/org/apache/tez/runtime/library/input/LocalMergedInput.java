@@ -36,7 +36,7 @@ public class LocalMergedInput extends ShuffledMergedInputLegacy {
   @Override
   public List<Event> initialize(TezInputContext inputContext) throws IOException {
     this.inputContext = inputContext;
-    this.inputContext.requestInitialMemory(0l, null); // mandatory call. Fix in TEZ-815
+    this.inputContext.requestInitialMemory(0l, null); // mandatory call.
     this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
 
     if (numInputs == 0) {
@@ -46,6 +46,11 @@ public class LocalMergedInput extends ShuffledMergedInputLegacy {
     LocalShuffle localShuffle = new LocalShuffle(inputContext, conf, numInputs);
     rawIter = localShuffle.run();
     createValuesIterator();
+    return Collections.emptyList();
+  }
+  
+  @Override
+  public List<Event> start() throws IOException {
     return Collections.emptyList();
   }
 

@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.library.input;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -34,7 +35,6 @@ import org.apache.tez.runtime.library.broadcast.input.BroadcastKVReader;
 import org.apache.tez.runtime.library.broadcast.input.BroadcastShuffleManager;
 
 import com.google.common.base.Preconditions;
-
 public class ShuffledUnorderedKVInput implements LogicalInput {
 
   private static final Log LOG = LogFactory.getLog(ShuffledUnorderedKVInput.class);
@@ -60,15 +60,14 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
 
     this.shuffleManager = new BroadcastShuffleManager(inputContext, conf,
         numInputs);
-    this.shuffleManager.run();
-    this.kvReader = this.shuffleManager.createReader();
-    return null;
+    return Collections.emptyList();
   }
 
   @Override
-  public List<Event> start() {
-    // TODO TEZ-815 To be fixed in a subsequent jira if required.
-    return null;
+  public List<Event> start() throws IOException {
+    this.shuffleManager.run();
+    this.kvReader = this.shuffleManager.createReader();
+    return Collections.emptyList();
   }
 
   @Override

@@ -32,7 +32,7 @@ public class LocalOnFileSorterOutput extends OnFileSortedOutput {
 
   private static final Log LOG = LogFactory.getLog(LocalOnFileSorterOutput.class);
 
-  
+
 
   @Override
   public List<Event> close() throws IOException {

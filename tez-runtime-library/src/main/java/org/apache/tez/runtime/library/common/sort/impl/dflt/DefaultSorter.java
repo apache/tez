@@ -31,7 +31,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -40,7 +39,6 @@ import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
@@ -111,14 +109,12 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   private int indexCacheMemoryLimit;
 
   @Override
-  public void initialize(TezOutputContext outputContext, Configuration conf, int numOutputs) throws IOException { 
-    super.initialize(outputContext, conf, numOutputs);
-    
+  public void start() throws IOException {
     // sanity checks
     final float spillper = this.conf.getFloat(
         TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT,
         TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_SPILL_PERCENT);
-    final int sortmb = this.availableMemory;
+    final int sortmb = this.availableMemoryMb;
     if (spillper > (float) 1.0 || spillper <= (float) 0.0) {
       throw new IOException("Invalid \""
           + TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT + "\": " + spillper);

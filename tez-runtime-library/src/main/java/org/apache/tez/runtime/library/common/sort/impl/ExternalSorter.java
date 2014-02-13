@@ -42,6 +42,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.common.ConfigUtils;
@@ -53,7 +54,7 @@ import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.apache.tez.runtime.library.hadoop.compat.NullProgressable;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
-public abstract class ExternalSorter {
+public abstract class ExternalSorter implements MemoryUpdateCallback {
 
   private static final Log LOG = LogFactory.getLog(ExternalSorter.class);
 
@@ -81,8 +82,8 @@ public abstract class ExternalSorter {
   protected boolean ifileReadAhead;
   protected int ifileReadAheadLength;
   protected int ifileBufferSize;
-  
-  protected int availableMemory;
+
+  protected volatile int availableMemoryMb;
 
   protected IndexedSorter sorter;
 
@@ -96,6 +97,7 @@ public abstract class ExternalSorter {
   protected TezCounter fileOutputByteCounter;
   protected TezCounter spilledRecordsCounter;
 
+  @Private
   public void initialize(TezOutputContext outputContext, Configuration conf, int numOutputs) throws IOException {
     this.outputContext = outputContext;
     this.conf = conf;
@@ -108,14 +110,9 @@ public abstract class ExternalSorter {
             TezJobConfig.TEZ_RUNTIME_IO_SORT_MB, 
             TezJobConfig.DEFAULT_TEZ_RUNTIME_IO_SORT_MB);
     long reqBytes = reqMemory << 20;
-    // TEZ 815. Fix this. Not used until there's a separation between init and start.
-    outputContext.requestInitialMemory(reqBytes, null);
-    long availBytes = reqBytes;
-    
-    this.availableMemory = (int) (availBytes >> 20);
-    
-    LOG.info("io.sort.mb requested: " + reqMemory + ", Allocated: " + availableMemory);
-    
+    outputContext.requestInitialMemory(reqBytes, this);
+    LOG.info("Requested SortBufferSize (io.sort.mb): " + reqMemory);
+
     // sorter
     sorter = ReflectionUtils.newInstance(this.conf.getClass(
         TezJobConfig.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, QuickSort.class,
@@ -170,6 +167,13 @@ public abstract class ExternalSorter {
     this.partitioner = TezRuntimeUtils.instantiatePartitioner(this.conf);
     this.combiner = TezRuntimeUtils.instantiateCombiner(this.conf, outputContext);
   }
+  
+  /**
+   * Used to start the actual Output. Typically, this involves allocating
+   * buffers, starting required threads, etc
+   */
+  @Private
+  public abstract void start() throws Exception;
 
   /**
    * Exception indicating that the allocated sort buffer is insufficient to hold
@@ -223,5 +227,10 @@ public abstract class ExternalSorter {
 
   public ShuffleHeader getShuffleHeader(int reduce) {
     throw new UnsupportedOperationException("getShuffleHeader isn't supported!");
+  }
+  
+  @Override
+  public void memoryAssigned(long assignedSize) {
+    this.availableMemoryMb = (int) (assignedSize >> 20);
   }
 }

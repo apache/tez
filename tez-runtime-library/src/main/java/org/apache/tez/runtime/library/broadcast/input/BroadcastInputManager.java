@@ -22,11 +22,11 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
@@ -36,25 +36,43 @@ import org.apache.tez.runtime.library.shuffle.common.FetchedInputAllocator;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInputCallback;
 import org.apache.tez.runtime.library.shuffle.common.MemoryFetchedInput;
 
+import com.google.common.base.Preconditions;
+
+/**
+ * Usage: Create instance, setInitialMemoryAvailable(long), configureAndStart()
+ *
+ */
+@Private
 public class BroadcastInputManager implements FetchedInputAllocator,
     FetchedInputCallback {
 
   private static final Log LOG = LogFactory.getLog(BroadcastInputManager.class);
   
   private final Configuration conf;
+  private final String uniqueIdentifier;
 
-  private final TezTaskOutputFiles fileNameAllocator;
-  private final LocalDirAllocator localDirAllocator;
+  private TezTaskOutputFiles fileNameAllocator;
+  private LocalDirAllocator localDirAllocator;
 
   // Configuration parameters
-  private final long memoryLimit;
-  private final long maxSingleShuffleLimit;
+  private long memoryLimit;
+  private long maxSingleShuffleLimit;
 
   private volatile long usedMemory = 0;
+  
+  private long maxAvailableTaskMemory;
+  private long initialMemoryAvailable =-1l;
 
-  public BroadcastInputManager(String uniqueIdentifier, Configuration conf, TezInputContext inputContext) {
-    this.conf = conf;
+  public BroadcastInputManager(String uniqueIdentifier, Configuration conf, long maxTaskAvailableMemory) {
+    this.conf = conf;    
+    this.uniqueIdentifier = uniqueIdentifier;
+    this.maxAvailableTaskMemory = maxTaskAvailableMemory;
+  }
 
+  @Private
+  void configureAndStart() {
+    Preconditions.checkState(initialMemoryAvailable != -1,
+        "Initial memory must be configured before starting");
     this.fileNameAllocator = new TezTaskOutputFiles(conf,
         uniqueIdentifier);
     this.localDirAllocator = new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
@@ -71,13 +89,14 @@ public class BroadcastInputManager implements FetchedInputAllocator,
 
     // Allow unit tests to fix Runtime memory
     long memReq = (long) (conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,
-        Math.min(Runtime.getRuntime().maxMemory(), Integer.MAX_VALUE)) * maxInMemCopyUse);
+        Math.min(maxAvailableTaskMemory, Integer.MAX_VALUE)) * maxInMemCopyUse);
     
-    // TEZ 815. Fix this. Not used until there's a separation between init and start.
-    inputContext.requestInitialMemory(memReq, null);
-    long memAlloc = memReq;
-    
-    this.memoryLimit = memAlloc;
+    if (memReq <= this.initialMemoryAvailable) {
+      this.memoryLimit = memReq;
+    } else {
+      this.memoryLimit = initialMemoryAvailable;
+    }
+
     LOG.info("RequestedMem=" + memReq + ", Allocated: " + this.memoryLimit);
 
     final float singleShuffleMemoryLimitPercent = conf.getFloat(
@@ -94,6 +113,26 @@ public class BroadcastInputManager implements FetchedInputAllocator,
     
     LOG.info("BroadcastInputManager -> " + "MemoryLimit: " + 
     this.memoryLimit + ", maxSingleMemLimit: " + this.maxSingleShuffleLimit);
+  }
+  
+  @Private
+  static long getInitialMemoryReq(Configuration conf, long maxAvailableTaskMemory) {
+    final float maxInMemCopyUse = conf.getFloat(
+        TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT,
+        TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT);
+    if (maxInMemCopyUse > 1.0 || maxInMemCopyUse < 0.0) {
+      throw new IllegalArgumentException("Invalid value for "
+          + TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT + ": "
+          + maxInMemCopyUse);
+    }
+    long memReq = (long) (conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,
+        Math.min(maxAvailableTaskMemory, Integer.MAX_VALUE)) * maxInMemCopyUse);
+    return memReq;
+  }
+
+  @Private
+  void setInitialMemoryAvailable(long available) {
+    this.initialMemoryAvailable = available;
   }
 
   @Override

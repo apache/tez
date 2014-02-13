@@ -38,6 +38,7 @@ import org.apache.tez.runtime.library.common.ValuesIterator;
 import org.apache.tez.runtime.library.common.shuffle.impl.Shuffle;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
+
 /**
  * <code>ShuffleMergedInput</code> in a {@link LogicalInput} which shuffles
  * intermediate sorted data, merges them and provides key/<values> to the
@@ -78,17 +79,15 @@ public class ShuffledMergedInput implements LogicalInput {
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS,
         inputContext.getWorkDirs());
 
-    // Start the shuffle - copy and merge.
     shuffle = new Shuffle(inputContext, this.conf, numInputs);
-    shuffle.run();
-
     return Collections.emptyList();
   }
 
   @Override
-  public List<Event> start() {
-    // TODO TEZ-815 To be fixed in a subsequent jira if required.
-    return null;
+  public List<Event> start() throws IOException {
+    // Start the shuffle - copy and merge
+    shuffle.run();
+    return Collections.emptyList();
   }
 
   /**
@@ -207,15 +206,4 @@ public class ShuffledMergedInput implements LogicalInput {
 
   }
 
-  // This functionality is currently broken. If there's inputs which need to be
-  // written to disk, there's a possibility that inputs from the different
-  // sources could clobber each others' output. Also the current structures do
-  // not have adequate information to de-dupe these (vertex name)
-//  public void mergeWith(ShuffledMergedInput other) {
-//    this.numInputs += other.getNumPhysicalInputs();
-//  }
-//
-//  public int getNumPhysicalInputs() {
-//    return this.numInputs;
-//  }
 }

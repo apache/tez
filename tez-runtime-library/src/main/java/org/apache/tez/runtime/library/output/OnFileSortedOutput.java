@@ -80,9 +80,9 @@ public class OnFileSortedOutput implements LogicalOutput {
   }
 
   @Override
-  public List<Event> start() {
-    // TODO TEZ-815 To be fixed in a subsequent jira if required.
-    return null;
+  public List<Event> start() throws Exception {
+    sorter.start();
+    return Collections.emptyList();
   }
 
   @Override

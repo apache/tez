@@ -147,10 +147,23 @@ public interface TezTaskContext {
    * This method can be called only once by any component. Calling it multiple
    * times from within the same component will result in an error.
    * 
+   * Each Input / Output must request memory. For Inputs / Outputs which do not
+   * have a specific ask, a null callback handler can be specified with a
+   * request size of 0.
+   * 
    * @param size
    *          request size in bytes.
    * @param callbackHandler
    *          the callback handler to be invoked once memory is assigned
    */
   public void requestInitialMemory(long size, MemoryUpdateCallback callbackHandler);
+  
+  /**
+   * Gets the total memory available to all components of the running task. This
+   * values will always be constant, and does not factor in any allocations.
+   * 
+   * @return the total available memory for all components of the task
+   */
+  public long getTotalMemoryAvailableToTask();
+    
 }

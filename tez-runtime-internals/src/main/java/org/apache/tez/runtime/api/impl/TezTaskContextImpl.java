@@ -37,6 +37,8 @@ import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.TezTaskContext;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
+import com.google.common.base.Preconditions;
+
 public abstract class TezTaskContextImpl implements TezTaskContext {
 
   private static final AtomicInteger ID_GEN = new AtomicInteger(10000);
@@ -148,15 +150,25 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
 
   @Override
   public void requestInitialMemory(long size, MemoryUpdateCallback callbackHandler) {
-    this.initialMemoryDistributor.requestMemory(size, new MemoryUpdateCallback() {
-      @Override
-      public void memoryAssigned(long assignedSize) {
-        // Filler for this patch.
-        // TODO TEZ-815 implement this properly.
-      }
-    }, this, descriptor);
+    // Nulls allowed since all IOs have to make this call.
+    if (callbackHandler == null) {
+      Preconditions.checkArgument(size == 0,
+          "A Null callback handler can only be used with a request size of 0");
+      callbackHandler = new MemoryUpdateCallback() {
+        @Override
+        public void memoryAssigned(long assignedSize) {
+          
+        }
+      };
+    }
+    this.initialMemoryDistributor.requestMemory(size, callbackHandler, this, this.descriptor);
   }
 
+  @Override
+  public long getTotalMemoryAvailableToTask() {
+    return Runtime.getRuntime().maxMemory();
+  }
+  
   protected void signalFatalError(Throwable t, String message,
       EventMetaData sourceInfo) {
     runtimeTask.setFatalError(t, message);

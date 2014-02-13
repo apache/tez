@@ -113,9 +113,9 @@ class ShuffleScheduler {
     this.failedShuffleCounter = failedShuffleCounter;
     this.startTime = System.currentTimeMillis();
     this.lastProgressTime = startTime;
-    referee.start();
     this.maxFailedUniqueFetches = Math.min(numberOfInputs,
         this.maxFailedUniqueFetches);
+    referee.start();
     this.maxFetchFailuresBeforeReporting = 
         conf.getInt(
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES, 

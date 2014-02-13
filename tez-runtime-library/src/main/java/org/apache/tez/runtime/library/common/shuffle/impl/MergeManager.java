@@ -59,6 +59,12 @@ import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 import org.apache.tez.runtime.library.hadoop.compat.NullProgressable;
 
+import com.google.common.base.Preconditions;
+
+/**
+ * Usage. Create instance. setInitialMemoryAvailable(long), configureAndStart()
+ *
+ */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 @SuppressWarnings(value={"rawtypes"})
@@ -77,24 +83,26 @@ public class MergeManager {
   
   Set<MapOutput> inMemoryMergedMapOutputs = 
     new TreeSet<MapOutput>(new MapOutput.MapOutputComparator());
-  private final IntermediateMemoryToMemoryMerger memToMemMerger;
+  private IntermediateMemoryToMemoryMerger memToMemMerger;
 
   Set<MapOutput> inMemoryMapOutputs = 
     new TreeSet<MapOutput>(new MapOutput.MapOutputComparator());
-  private final InMemoryMerger inMemoryMerger;
+  private InMemoryMerger inMemoryMerger;
   
   Set<Path> onDiskMapOutputs = new TreeSet<Path>();
-  private final OnDiskMerger onDiskMerger;
+  private OnDiskMerger onDiskMerger;
   
-  private final long memoryLimit;
+  private  long memoryLimit;
+  private int postMergeMemLimit;
   private long usedMemory;
   private long commitMemory;
-  private final long maxSingleShuffleLimit;
+  private int ioSortFactor;
+  private long maxSingleShuffleLimit;
   
-  private final int memToMemMergeOutputsThreshold; 
-  private final long mergeThreshold;
+  private int memToMemMergeOutputsThreshold; 
+  private long mergeThreshold;
   
-  private final int ioSortFactor;
+  private long initialMemoryAvailable = -1;
 
   private final ExceptionReporter exceptionReporter;
   
@@ -106,16 +114,18 @@ public class MergeManager {
 
   private final TezCounter mergedMapOutputsCounter;
   
-  private final CompressionCodec codec;
+  private CompressionCodec codec;
   
   private volatile boolean finalMergeComplete = false;
   
-  private final boolean ifileReadAhead;
-  private final int ifileReadAheadLength;
-  private final int ifileBufferSize;
+  private boolean ifileReadAhead;
+  private int ifileReadAheadLength;
+  private int ifileBufferSize;
 
-  private final int postMergeMemLimit;
-  
+
+  /**
+   * Construct the MergeManager. Must call start before it becomes usable.
+   */
   public MergeManager(Configuration conf, 
                       FileSystem localFS,
                       LocalDirAllocator localDirAllocator,  
@@ -140,6 +150,16 @@ public class MergeManager {
     this.localFS = localFS;
     this.rfs = ((LocalFileSystem)localFS).getRaw();
 
+  }
+  
+  void setInitialMemoryAvailable(long available) {
+    this.initialMemoryAvailable = available;
+  }
+  
+  @Private
+  void configureAndStart() {
+    Preconditions.checkState(initialMemoryAvailable != -1,
+        "Initial available memory must be configured before starting");
     if (ConfigUtils.isIntermediateInputCompressed(conf)) {
       Class<? extends CompressionCodec> codecClass =
           ConfigUtils.getIntermediateInputCompressorClass(conf, DefaultCodec.class);
@@ -160,6 +180,7 @@ public class MergeManager {
     this.ifileBufferSize = conf.getInt("io.file.buffer.size",
         TezJobConfig.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
 
+    // Figure out initial memory req start
     final float maxInMemCopyUse =
       conf.getFloat(
           TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, 
@@ -172,9 +193,7 @@ public class MergeManager {
 
     // Allow unit tests to fix Runtime memory
     long memLimit = (long) (conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,
-        Math.min(Runtime.getRuntime().maxMemory(), Integer.MAX_VALUE)) * maxInMemCopyUse);
-    
-    LOG.info("Shuffle Memory Required: " + memLimit + ", based on INPUT_BUFFER_factor: " + maxInMemCopyUse);
+        Math.min(inputContext.getTotalMemoryAvailableToTask(), Integer.MAX_VALUE)) * maxInMemCopyUse);
 
     float maxRedPer = conf.getFloat(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT,
         TezJobConfig.DEFAULT_TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
@@ -182,29 +201,25 @@ public class MergeManager {
       throw new TezUncheckedException(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT + maxRedPer);
     }
     // TODO maxRedBuffer should be a long.
-    int maxRedBuffer = (int) Math.min(Runtime.getRuntime().maxMemory() * maxRedPer,
+    int maxRedBuffer = (int) Math.min(inputContext.getTotalMemoryAvailableToTask() * maxRedPer,
         Integer.MAX_VALUE);
-    LOG.info("Memory required for final merged output: " + maxRedBuffer + ", using factor: " + maxRedPer);
-
-    long reqMem = Math.max(maxRedBuffer, memLimit);
-    // TEZ 815. Fix this. Not used until there's a separation between init and start.
-    inputContext.requestInitialMemory(reqMem, null);
-    long availableMem = reqMem;
+    // Figure out initial memory req end
     
-    if (availableMem < memLimit) {
-      this.memoryLimit = availableMem;
+    if (this.initialMemoryAvailable < memLimit) {
+      this.memoryLimit = this.initialMemoryAvailable;
     } else {
       this.memoryLimit = memLimit;
     }
-    
-    if (availableMem < maxRedBuffer) {
-      this.postMergeMemLimit = (int) availableMem;
+
+    if (this.initialMemoryAvailable < maxRedBuffer) {
+      this.postMergeMemLimit = (int) this.initialMemoryAvailable;
     } else {
       this.postMergeMemLimit = maxRedBuffer;
     }
-    
-    LOG.info("FinalMemoryAllocation: ShuffleMemory=" + this.memoryLimit + ", postMergeMem: "
-        + this.postMergeMemLimit);
+
+    LOG.info("InitialRequest: ShuffleMem=" + memLimit + ", postMergeMem=" + maxRedBuffer
+        + ", RuntimeTotalAvailable=" + this.initialMemoryAvailable + "Updated to: ShuffleMem="
+        + this.memoryLimit + ", postMergeMem: " + this.postMergeMemLimit);
 
     this.ioSortFactor = 
         conf.getInt(
@@ -264,6 +279,41 @@ public class MergeManager {
     
     this.onDiskMerger = new OnDiskMerger(this);
     this.onDiskMerger.start();
+  }
+  
+  /**
+   * Exposing this to get an initial memory ask without instantiating the object.
+   */
+  @Private
+  static long getInitialMemoryRequirement(Configuration conf, long maxAvailableTaskMemory) {
+    final float maxInMemCopyUse =
+        conf.getFloat(
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, 
+            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT);
+      if (maxInMemCopyUse > 1.0 || maxInMemCopyUse < 0.0) {
+        throw new IllegalArgumentException("Invalid value for " +
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT + ": " +
+            maxInMemCopyUse);
+      }
+
+      // Allow unit tests to fix Runtime memory
+      long memLimit = (long) (conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,
+          Math.min(maxAvailableTaskMemory, Integer.MAX_VALUE)) * maxInMemCopyUse);
+      
+      LOG.info("Initial Shuffle Memory Required: " + memLimit + ", based on INPUT_BUFFER_factor: " + maxInMemCopyUse);
+
+      float maxRedPer = conf.getFloat(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT,
+          TezJobConfig.DEFAULT_TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
+      if (maxRedPer > 1.0 || maxRedPer < 0.0) {
+        throw new TezUncheckedException(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT + maxRedPer);
+      }
+      // TODO maxRedBuffer should be a long.
+      int maxRedBuffer = (int) Math.min(maxAvailableTaskMemory * maxRedPer,
+          Integer.MAX_VALUE);
+      LOG.info("Initial Memory required for final merged output: " + maxRedBuffer + ", using factor: " + maxRedPer);
+
+      long reqMem = Math.max(maxRedBuffer, memLimit);
+      return reqMem;
   }
 
   public void waitForInMemoryMerge() throws InterruptedException {
