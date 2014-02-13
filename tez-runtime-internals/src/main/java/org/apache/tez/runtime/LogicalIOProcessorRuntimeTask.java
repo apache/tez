@@ -140,6 +140,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.state = State.NEW;
     this.appAttemptNumber = appAttemptNumber;
     int numInitializers = numInputs + numOutputs; // Processor is initialized in the main thread.
+    numInitializers = (numInitializers == 0 ? 1 : numInitializers); 
     this.initializerExecutor = Executors.newFixedThreadPool(
         numInitializers,
         new ThreadFactoryBuilder().setDaemon(true)
@@ -684,5 +685,5 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   public LogicalIOProcessor getProcessor() {
     return this.processor;
   }
-  
+
 }

@@ -31,7 +31,6 @@ import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -353,6 +352,13 @@ public class YarnTezDagChild {
       public void signalFatalError(TezTaskAttemptID taskAttemptID,
           String diagnostics,
           EventMetaData sourceInfo) {
+        currentTask.setFrameworkCounters();
+        TezEvent statusUpdateEvent =
+            new TezEvent(new TaskStatusUpdateEvent(
+                currentTask.getCounters(), currentTask.getProgress()),
+                new EventMetaData(EventProducerConsumerType.SYSTEM,
+                    currentTask.getVertexName(), "",
+                    currentTask.getTaskAttemptID()));
         TezEvent taskAttemptFailedEvent =
             new TezEvent(new TaskAttemptFailedEvent(diagnostics),
                 sourceInfo);
@@ -360,7 +366,7 @@ public class YarnTezDagChild {
           // Not setting taskComplete - since the main loop responsible for cleanup doesn't have
           // control yet. Getting control depends on whether the I/P/O returns correctly after
           // reporting an error.
-          heartbeat(Collections.singletonList(taskAttemptFailedEvent));
+          heartbeat(Lists.newArrayList(statusUpdateEvent, taskAttemptFailedEvent));
         } catch (Throwable t) {
           LOG.fatal("Failed to communicate task attempt failure to AM via"
               + " umbilical", t);
@@ -435,6 +441,9 @@ public class YarnTezDagChild {
         }
         taskCount++;
 
+        // Reset file system statistics for the new task.
+        FileSystem.clearStatistics();
+        
         // Re-use the UGI only if the Credentials have not changed.
         if (containerTask.haveCredentialsChanged()) {
           LOG.info("Refreshing UGI since Credentials have changed");
@@ -516,6 +525,8 @@ public class YarnTezDagChild {
               currentTaskComplete.set(true);
               // TODONEWTEZ Should the container continue to run if the running task reported a fatal error ?
               if (!currentTask.hadFatalError()) {
+                // Set counters in case of a successful task.
+                currentTask.setFrameworkCounters();
                 TezEvent statusUpdateEvent =
                     new TezEvent(new TaskStatusUpdateEvent(
                         currentTask.getCounters(), currentTask.getProgress()),
@@ -525,7 +536,7 @@ public class YarnTezDagChild {
                 TezEvent taskCompletedEvent =
                     new TezEvent(new TaskAttemptCompletedEvent(), sourceInfo);
                 heartbeat(Arrays.asList(statusUpdateEvent, taskCompletedEvent));
-              }
+              } // Should the fatalError be reported ?
             } finally {
               currentTask.cleanup();
             }
@@ -556,14 +567,22 @@ public class YarnTezDagChild {
       try {
         taskLock.readLock().lock();
         if (currentTask != null && !currentTask.hadFatalError()) {
+          // TODO Is this of any use if the heartbeat thread is being interrupted first ?
           // Prevent dup failure events
+          currentTask.setFrameworkCounters();
+          TezEvent statusUpdateEvent =
+              new TezEvent(new TaskStatusUpdateEvent(
+                  currentTask.getCounters(), currentTask.getProgress()),
+                  new EventMetaData(EventProducerConsumerType.SYSTEM,
+                      currentTask.getVertexName(), "",
+                      currentTask.getTaskAttemptID()));
           currentTask.setFatalError(e, "FS Error in Child JVM");
           TezEvent taskAttemptFailedEvent =
               new TezEvent(new TaskAttemptFailedEvent(
                   StringUtils.stringifyException(e)),
                   currentSourceInfo);
           currentTaskComplete.set(true);
-          heartbeat(Collections.singletonList(taskAttemptFailedEvent));
+          heartbeat(Lists.newArrayList(statusUpdateEvent, taskAttemptFailedEvent));
         }
       } finally {
         taskLock.readLock().unlock();
@@ -581,13 +600,21 @@ public class YarnTezDagChild {
       taskLock.readLock().lock();
       try {
         if (currentTask != null && !currentTask.hadFatalError()) {
+          // TODO Is this of any use if the heartbeat thread is being interrupted first ?
           // Prevent dup failure events
           currentTask.setFatalError(throwable, "Error in Child JVM");
+          currentTask.setFrameworkCounters();
+          TezEvent statusUpdateEvent =
+              new TezEvent(new TaskStatusUpdateEvent(
+                  currentTask.getCounters(), currentTask.getProgress()),
+                  new EventMetaData(EventProducerConsumerType.SYSTEM,
+                      currentTask.getVertexName(), "",
+                      currentTask.getTaskAttemptID()));
           TezEvent taskAttemptFailedEvent =
             new TezEvent(new TaskAttemptFailedEvent(cause),
               currentSourceInfo);
           currentTaskComplete.set(true);
-          heartbeat(Collections.singletonList(taskAttemptFailedEvent));
+          heartbeat(Lists.newArrayList(statusUpdateEvent, taskAttemptFailedEvent));
         }
       } finally {
         taskLock.readLock().unlock();

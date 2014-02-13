@@ -321,4 +321,7 @@ public class TezJobConfig {
   
   public static final String TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_MAX_SIZE = "tez.runtime.broadcast.data-via-events.max-size";
   public static final int TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_MAX_SIZE_DEFAULT = 200 << 10;// 200KB
+  
+  /** Defines the ProcessTree implementation which will be used to collect resource utilization. */
+  public static final String TEZ_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS = "tez.resource.calculator.process-tree.class";
 }

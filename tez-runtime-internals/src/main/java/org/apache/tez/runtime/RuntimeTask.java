@@ -28,6 +28,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
+import org.apache.tez.runtime.metrics.TaskCounterUpdater;
 
 public abstract class RuntimeTask {
 
@@ -41,6 +42,7 @@ public abstract class RuntimeTask {
   protected final TezUmbilical tezUmbilical;
   protected final AtomicInteger eventCounter;
   private final AtomicBoolean taskDone;
+  private final TaskCounterUpdater counterUpdater;
 
   protected RuntimeTask(TaskSpec taskSpec, Configuration tezConf,
       TezUmbilical tezUmbilical) {
@@ -51,6 +53,7 @@ public abstract class RuntimeTask {
     this.eventCounter = new AtomicInteger(0);
     this.progress = 0.0f;
     this.taskDone = new AtomicBoolean(false);
+    this.counterUpdater = new TaskCounterUpdater(tezCounters, tezConf);
   }
 
   protected enum State {
@@ -97,6 +100,10 @@ public abstract class RuntimeTask {
 
   public boolean isTaskDone() {
     return taskDone.get();
+  }
+  
+  public void setFrameworkCounters() {
+    this.counterUpdater.updateCounters();
   }
 
   protected void setTaskDone() {

@@ -22,10 +22,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -63,11 +61,9 @@ import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
-import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezTaskStatus.State;
 import org.apache.tez.common.TezUtils;
-import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -98,9 +94,6 @@ public abstract class MRTask {
 
   // Current counters
   transient TezCounters counters;
-  protected GcTimeUpdater gcUpdater;
-  private ResourceCalculatorProcessTree pTree;
-  private long initCpuCumulativeTime = 0;
   protected TezProcessorContext processorContext;
   protected TaskAttemptID taskAttemptId;
   protected Progress progress = new Progress();
@@ -125,12 +118,6 @@ public abstract class MRTask {
   protected MRTaskReporter mrReporter;
   protected boolean useNewApi;
 
-  /**
-   * A Map where Key-> URIScheme and value->FileSystemStatisticUpdater
-   */
-  private Map<String, FileSystemStatisticUpdater> statisticUpdaters =
-     new HashMap<String, FileSystemStatisticUpdater>();
-
   public MRTask(boolean isMap) {
     this.isMap = isMap;
   }
@@ -150,9 +137,6 @@ public abstract class MRTask {
             (isMap ? TaskType.MAP : TaskType.REDUCE),
             context.getTaskIndex()),
           context.getTaskAttemptNumber());
-    // TODO TEZAM4 Figure out initialization / run sequence of Input, Process,
-    // Output. Phase is MR specific.
-    gcUpdater = new GcTimeUpdater(counters);
 
     byte[] userPayload = context.getUserPayload();
     Configuration conf = TezUtils.createConfFromUserPayload(userPayload);
@@ -167,8 +151,6 @@ public abstract class MRTask {
       taskAttemptId.toString());
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         context.getDAGAttemptNumber());
-
-    initResourceCalculatorPlugin();
 
     LOG.info("MRTask.inited: taskAttemptId = " + taskAttemptId.toString());
 
@@ -322,20 +304,6 @@ public abstract class MRTask {
     }
   }
 
-
-  private void initResourceCalculatorPlugin() {
-    Class<? extends ResourceCalculatorProcessTree> clazz =
-        this.jobConf.getClass(MRConfig.RESOURCE_CALCULATOR_PROCESS_TREE,
-            null, ResourceCalculatorProcessTree.class);
-    pTree = ResourceCalculatorProcessTree
-        .getResourceCalculatorProcessTree(System.getenv().get("JVM_PID"), clazz, this.jobConf);
-    LOG.info(" Using ResourceCalculatorProcessTree : " + pTree);
-    if (pTree != null) {
-      pTree.updateProcessTree();
-      initCpuCumulativeTime = pTree.getCumulativeCpuTime();
-    }
-  }
-
   public TezProcessorContext getUmbilical() {
     return this.processorContext;
   }
@@ -419,7 +387,6 @@ public abstract class MRTask {
   }
 
   public void done() throws IOException, InterruptedException {
-    updateCounters();
 
     LOG.info("Task:" + taskAttemptId + " is done."
         + " And is in the process of committing");
@@ -435,12 +402,7 @@ public abstract class MRTask {
       }
     }
     taskDone.set(true);
-    // Make sure we send at least one set of counter increments. It's
-    // ok to call updateCounters() in this thread after comm thread stopped.
-    updateCounters();
     sendLastUpdate();
-    //signal the tasktracker that we are done
-    //sendDone(umbilical);
   }
 
   /**
@@ -504,71 +466,6 @@ public abstract class MRTask {
                StringUtils.stringifyException(ioe));
     }
   }
-
-
-  public void updateCounters() {
-    // TODO Auto-generated method stub
-    // TODO TEZAM Implement.
-    Map<String, List<FileSystem.Statistics>> map = new
-        HashMap<String, List<FileSystem.Statistics>>();
-    for(Statistics stat: FileSystem.getAllStatistics()) {
-      String uriScheme = stat.getScheme();
-      if (map.containsKey(uriScheme)) {
-        List<FileSystem.Statistics> list = map.get(uriScheme);
-        list.add(stat);
-      } else {
-        List<FileSystem.Statistics> list = new ArrayList<FileSystem.Statistics>();
-        list.add(stat);
-        map.put(uriScheme, list);
-      }
-    }
-    for (Map.Entry<String, List<FileSystem.Statistics>> entry: map.entrySet()) {
-      FileSystemStatisticUpdater updater = statisticUpdaters.get(entry.getKey());
-      if(updater==null) {//new FileSystem has been found in the cache
-        updater =
-            new FileSystemStatisticUpdater(counters, entry.getValue(),
-                entry.getKey());
-        statisticUpdaters.put(entry.getKey(), updater);
-      }
-      updater.updateCounters();
-    }
-
-    gcUpdater.incrementGcCounter();
-    updateResourceCounters();
-  }
-
-  /**
-   * Updates the {@link TaskCounter#COMMITTED_HEAP_BYTES} counter to reflect the
-   * current total committed heap space usage of this JVM.
-   */
-  private void updateHeapUsageCounter() {
-    long currentHeapUsage = Runtime.getRuntime().totalMemory();
-    counters.findCounter(TaskCounter.COMMITTED_HEAP_BYTES)
-            .setValue(currentHeapUsage);
-  }
-
-  /**
-   * Update resource information counters
-   */
-  void updateResourceCounters() {
-    // Update generic resource counters
-    updateHeapUsageCounter();
-
-    // Updating resources specified in ResourceCalculatorPlugin
-    if (pTree == null) {
-      return;
-    }
-    pTree.updateProcessTree();
-    long cpuTime = pTree.getCumulativeCpuTime();
-    long pMem = pTree.getCumulativeRssmem();
-    long vMem = pTree.getCumulativeVmem();
-    // Remove the CPU time consumed previously by JVM reuse
-    cpuTime -= initCpuCumulativeTime;
-    counters.findCounter(TaskCounter.CPU_MILLISECONDS).setValue(cpuTime);
-    counters.findCounter(TaskCounter.PHYSICAL_MEMORY_BYTES).setValue(pMem);
-    counters.findCounter(TaskCounter.VIRTUAL_MEMORY_BYTES).setValue(vMem);
-  }
-
 
   public static String normalizeStatus(String status, Configuration conf) {
     // Check to see if the status string is too long
