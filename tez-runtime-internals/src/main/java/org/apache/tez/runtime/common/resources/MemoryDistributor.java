@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -54,11 +55,11 @@ public class MemoryDistributor {
   private final int numTotalInputs;
   private final int numTotalOutputs;
   
-  private int numInputsSeen = 0;
-  private int numOutputsSeen = 0;
+  private AtomicInteger numInputsSeen = new AtomicInteger(0);
+  private AtomicInteger numOutputsSeen = new AtomicInteger(0);
 
   private long totalJvmMemory;
-  private long totalAssignableMemory;
+  private volatile long totalAssignableMemory;
   private final boolean isEnabled;
   private final boolean reserveFractionConfigured;
   private float reserveFraction;
@@ -119,8 +120,8 @@ public class MemoryDistributor {
    * have made their initial requests.
    */
   public void makeInitialAllocations() {
-    Preconditions.checkState(numInputsSeen == numTotalInputs, "All inputs are expected to ask for memory");
-    Preconditions.checkState(numOutputsSeen == numTotalOutputs, "All outputs are expected to ask for memory");
+    Preconditions.checkState(numInputsSeen.get() == numTotalInputs, "All inputs are expected to ask for memory");
+    Preconditions.checkState(numOutputsSeen.get() == numTotalOutputs, "All outputs are expected to ask for memory");
     Iterable<RequestContext> requestContexts = Iterables.transform(requestList,
         new Function<RequestorInfo, RequestContext>() {
           public RequestContext apply(RequestorInfo requestInfo) {
@@ -185,14 +186,14 @@ public class MemoryDistributor {
     RequestorInfo requestInfo = new RequestorInfo(entityContext,requestSize, callback, descriptor);
     switch (requestInfo.getRequestContext().getComponentType()) {
     case INPUT:
-      numInputsSeen++;
-      Preconditions.checkState(numInputsSeen <= numTotalInputs,
+      numInputsSeen.incrementAndGet();
+      Preconditions.checkState(numInputsSeen.get() <= numTotalInputs,
           "Num Requesting Inputs higher than total # of inputs: " + numInputsSeen + ", "
               + numTotalInputs);
       break;
     case OUTPUT:
-      numOutputsSeen++;
-      Preconditions.checkState(numOutputsSeen <= numTotalOutputs,
+      numOutputsSeen.incrementAndGet();
+      Preconditions.checkState(numOutputsSeen.get() <= numTotalOutputs,
           "Num Requesting Inputs higher than total # of outputs: " + numOutputsSeen + ", "
               + numTotalOutputs);
     case PROCESSOR:
