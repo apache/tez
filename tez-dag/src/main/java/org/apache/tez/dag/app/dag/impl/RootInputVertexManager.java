@@ -62,7 +62,7 @@ public class RootInputVertexManager implements VertexManagerPlugin {
   }
 
   @Override
-  public void initialize(byte[] payload, VertexManagerPluginContext context) {
+  public void initialize(VertexManagerPluginContext context) {
     this.context = context;
     Set<String> inputs = this.context.getVertexInputNames();
     this.destInfoMap = Maps.newHashMapWithExpectedSize(inputs.size());

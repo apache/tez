@@ -430,7 +430,8 @@ public class TestShuffleVertexManager {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    manager.initialize(payload, context);
+    when(context.getUserPayload()).thenReturn(payload);
+    manager.initialize(context);
     return manager;
   }
 }

@@ -34,10 +34,9 @@ public interface VertexManagerPlugin {
   /**
    * Initialize the plugin. Called when the vertex is initializing. This happens 
    * after all source vertices and inputs have initialized
-   * @param payload
    * @param context
    */
-  public void initialize(byte[] payload, VertexManagerPluginContext context);
+  public void initialize(VertexManagerPluginContext context);
 
   /**
    * Notification that the vertex is ready to start running tasks

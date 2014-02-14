@@ -48,6 +48,7 @@ public class VertexManager {
   VertexManagerPlugin plugin;
   Vertex managedVertex;
   VertexManagerPluginContextImpl pluginContext;
+  byte[] payload = null;
   AppContext appContext;
   
   class VertexManagerPluginContextImpl implements VertexManagerPluginContext {
@@ -100,6 +101,11 @@ public class VertexManager {
       managedVertex.setVertexLocationHint(locationHint);
     }
 
+    @Override
+    public byte[] getUserPayload() {
+      return payload;
+    }
+
   }
   
   public VertexManager(VertexManagerPlugin plugin, 
@@ -122,7 +128,6 @@ public class VertexManager {
   
   public void initialize() {
     pluginContext = new VertexManagerPluginContextImpl();
-    byte[] payload = null;
     if (pluginDesc != null) {
       plugin = RuntimeUtils.createClazzInstance(pluginDesc.getClassName());
       payload = pluginDesc.getUserPayload();
@@ -136,7 +141,7 @@ public class VertexManager {
         throw new TezUncheckedException(e);
       }
     }
-    plugin.initialize(payload, pluginContext);
+    plugin.initialize(pluginContext);
   }
 
   public void onVertexStarted(List<TezTaskAttemptID> completions) {

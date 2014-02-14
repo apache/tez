@@ -53,7 +53,7 @@ public class ImmediateStartVertexManager implements VertexManagerPlugin {
   }
 
   @Override
-  public void initialize(byte[] payload, VertexManagerPluginContext context) {
+  public void initialize(VertexManagerPluginContext context) {
     this.context = context;
   }
 

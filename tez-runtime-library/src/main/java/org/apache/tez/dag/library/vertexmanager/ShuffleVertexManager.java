@@ -445,10 +445,10 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
   }
 
   @Override
-  public void initialize(byte[] payload, VertexManagerPluginContext context) {
+  public void initialize(VertexManagerPluginContext context) {
     Configuration conf;
     try {
-      conf = TezUtils.createConfFromUserPayload(payload);
+      conf = TezUtils.createConfFromUserPayload(context.getUserPayload());
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }

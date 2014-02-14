@@ -41,6 +41,12 @@ public interface VertexManagerPluginContext {
   public String getVertexName();
   
   /**
+   * Get the payload set for the plugin
+   * @return user payload
+   */
+  public byte[] getUserPayload();
+  
+  /**
    * Get the number of tasks in the given vertex
    * @param vertexName
    * @return Total number of tasks in this vertex
