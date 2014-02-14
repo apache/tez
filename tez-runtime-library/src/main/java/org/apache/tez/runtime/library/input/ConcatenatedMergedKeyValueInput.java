@@ -23,13 +23,13 @@ import java.io.IOException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.library.api.KeyValuesReader;
+import org.apache.tez.runtime.library.api.KeyValueReader;
 
-public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
+public class ConcatenatedMergedKeyValueInput extends MergedLogicalInput {
 
-  public class ConcatenatedMergedKeyValuesReader implements KeyValuesReader {
+  public class ConcatenatedMergedKeyValueReader implements KeyValueReader {
     private int currentReaderIndex = 0;
-    private KeyValuesReader currentReader;
+    private KeyValueReader currentReader;
     
     @Override
     public boolean next() throws IOException {
@@ -39,11 +39,11 @@ public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
         }
         try {
           Reader reader = getInputs().get(currentReaderIndex).getReader();
-          if (!(reader instanceof KeyValuesReader)) {
-            throw new TezUncheckedException("Expected KeyValuesReader. "
+          if (!(reader instanceof KeyValueReader)) {
+            throw new TezUncheckedException("Expected KeyValueReader. "
                 + "Got: " + reader.getClass().getName());
           }
-          currentReader = (KeyValuesReader) reader;
+          currentReader = (KeyValueReader) reader;
           currentReaderIndex++;
         } catch (Exception e) {
           throw new IOException(e);
@@ -58,15 +58,15 @@ public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
     }
 
     @Override
-    public Iterable<Object> getCurrentValues() throws IOException {
-      return currentReader.getCurrentValues();
+    public Object getCurrentValue() throws IOException {
+      return currentReader.getCurrentValue();
     }
     
   }
     
   @Override
   public Reader getReader() throws Exception {
-    return new ConcatenatedMergedKeyValuesReader();
+    return new ConcatenatedMergedKeyValueReader();
   }
 
 }
