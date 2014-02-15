@@ -71,7 +71,8 @@ public class ProtoConverters {
       convertRootInputDataInformationEventToProto(RootInputDataInformationEvent event) {
     EventProtos.RootInputDataInformationEventProto.Builder builder =
         EventProtos.RootInputDataInformationEventProto.newBuilder();
-    builder.setIndex(event.getIndex());
+    builder.setSourceIndex(event.getSourceIndex());
+    builder.setTargetIndex(event.getTargetIndex());
     if (event.getUserPayload() != null) {
       builder.setUserPayload(ByteString.copyFrom(event.getUserPayload()));
     }
@@ -81,9 +82,11 @@ public class ProtoConverters {
   public static RootInputDataInformationEvent
       convertRootInputDataInformationEventFromProto(
       EventProtos.RootInputDataInformationEventProto proto) {
-    return new RootInputDataInformationEvent(proto.getIndex(),
-        proto.getUserPayload() != null ?
-            proto.getUserPayload().toByteArray() : null);
+    RootInputDataInformationEvent diEvent = new RootInputDataInformationEvent(
+        proto.getSourceIndex(), proto.getUserPayload() != null ? proto.getUserPayload()
+            .toByteArray() : null);
+    diEvent.setTargetIndex(proto.getTargetIndex());
+    return diEvent;
   }
 
 }

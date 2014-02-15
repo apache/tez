@@ -18,9 +18,12 @@
 
 package org.apache.tez.dag.api;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 
 /**
  * Object with API's to interact with the Tez execution engine
@@ -60,11 +63,27 @@ public interface VertexManagerPluginContext {
    * This API can change the parallelism only once. Subsequent attempts will be 
    * disallowed
    * @param parallelism New number of tasks in the vertex
+   * @param locationHint the placement policy for tasks.
    * @param sourceEdgeManagers
    * @return true if the operation was allowed.
    */
-  public boolean setVertexParallelism(int parallelism, 
+  public boolean setVertexParallelism(int parallelism, VertexLocationHint locationHint,
       Map<String, EdgeManager> sourceEdgeManagers);
+  
+  /**
+   * Allows a VertexManagerPlugin to assign Events for Root Inputs
+   * 
+   * For regular Event Routing changes - the EdgeManager should be configured
+   * via the setVertexParallelism method
+   * 
+   * @param inputName
+   *          The input name associated with the event
+   * @param events
+   *          The list of Events to be assigned to various tasks belonging to
+   *          the Vertex. The target index on individual events represents the
+   *          task to which events need to be sent.
+   */
+  public void addRootInputEvents(String inputName, Collection<RootInputDataInformationEvent> event);
   
   /**
    * Notify the vertex to start the given tasks
@@ -78,9 +97,10 @@ public interface VertexManagerPluginContext {
    * @return Names of inputs to this vertex. Maybe null if there are no inputs
    */
   public Set<String> getVertexInputNames();
-  
+
   /**
    * Set the placement hint for tasks in this vertex
+   * 
    * @param locationHint
    */
   public void setVertexLocationHint(VertexLocationHint locationHint);

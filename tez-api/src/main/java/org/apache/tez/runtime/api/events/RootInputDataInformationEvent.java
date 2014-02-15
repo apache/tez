@@ -26,18 +26,27 @@ import org.apache.tez.runtime.api.TezRootInputInitializer;
  * byte payload for individual tasks running as part of the Vertex for which an
  * Initial Input has been configured.
  */
-public class RootInputDataInformationEvent extends Event {
+public final class RootInputDataInformationEvent extends Event {
 
-  private final int index;
+  private final int sourceIndex;
+  private int targetIndex; // TODO Likely to be multiple at a later point.
   private final byte[] userPayload;
   
-  public RootInputDataInformationEvent(int index, byte[] userPayload) {
-    this.index = index;
+  public RootInputDataInformationEvent(int srcIndex, byte[] userPayload) {
+    this.sourceIndex = srcIndex;
     this.userPayload = userPayload;
   }
 
-  public int getIndex() {
-    return this.index;
+  public int getSourceIndex() {
+    return this.sourceIndex;
+  }
+
+  public int getTargetIndex() {
+    return this.targetIndex;
+  }
+
+  public void setTargetIndex(int target) {
+    this.targetIndex = target;
   }
   
   public byte[] getUserPayload() {
@@ -46,7 +55,7 @@ public class RootInputDataInformationEvent extends Event {
 
   @Override
   public String toString() {
-    return "RootInputDataInformationEvent [index=" + index + "]";
-  }
-
+    return "RootInputDataInformationEvent [sourceIndex=" + sourceIndex + ", targetIndex="
+        + targetIndex + "]";
+  }  
 }

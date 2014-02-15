@@ -19,61 +19,29 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
-import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
-import org.apache.tez.dag.history.DAGHistoryEvent;
-import org.apache.tez.dag.history.events.VertexDataMovementEventsGeneratedEvent;
-import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.runtime.api.events.RootInputUpdatePayloadEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
-import org.apache.tez.runtime.api.impl.EventMetaData;
-import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
-import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
 
-@SuppressWarnings("rawtypes")
 public class RootInputVertexManager implements VertexManagerPlugin {
 
   VertexManagerPluginContext context;
-  private EventMetaData sourceInfo;
-  private Map<String, EventMetaData> destInfoMap;
-  
-  Vertex deleteVertex;
-  EventHandler deleteHandler;
-  
-  public RootInputVertexManager(Vertex v, EventHandler h) {
-    deleteVertex = v;
-    deleteHandler = h;
-  }
 
   @Override
   public void initialize(VertexManagerPluginContext context) {
     this.context = context;
-    Set<String> inputs = this.context.getVertexInputNames();
-    this.destInfoMap = Maps.newHashMapWithExpectedSize(inputs.size());
-    for (String inputName : inputs) {
-      EventMetaData destInfo = new EventMetaData(
-          EventProducerConsumerType.INPUT, context.getVertexName(),
-          inputName, null);
-      destInfoMap.put(inputName, destInfo);
-    }
-    this.sourceInfo = new EventMetaData(EventProducerConsumerType.INPUT,
-        context.getVertexName(), "NULL", null);
   }
 
   @Override
@@ -95,21 +63,20 @@ public class RootInputVertexManager implements VertexManagerPlugin {
   }
 
   @Override
-  public void onRootVertexInitialized(String inputName,
-      InputDescriptor inputDescriptor, List<Event> events) {
+  public void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor,
+      List<Event> events) {
+    List<RootInputDataInformationEvent> riEvents = Lists.newLinkedList();
     boolean dataInformationEventSeen = false;
     for (Event event : events) {
       if (event instanceof RootInputConfigureVertexTasksEvent) {
         // No tasks should have been started yet. Checked by initial state check.
         Preconditions.checkState(dataInformationEventSeen == false);
         Preconditions
-            .checkState(
-                context.getVertexNumTasks(context.getVertexName()) == -1,
+            .checkState(context.getVertexNumTasks(context.getVertexName()) == -1,
                 "Parallelism for the vertex should be set to -1 if the InputInitializer is setting parallelism");
         RootInputConfigureVertexTasksEvent cEvent = (RootInputConfigureVertexTasksEvent) event;
-        context.setVertexLocationHint(new VertexLocationHint(cEvent
-            .getNumTasks(), cEvent.getTaskLocationHints()));
-        context.setVertexParallelism(cEvent.getNumTasks(), null);
+        context.setVertexParallelism(cEvent.getNumTasks(),
+            new VertexLocationHint(cEvent.getTaskLocationHints()), null);
       }
       if (event instanceof RootInputUpdatePayloadEvent) {
         // No tasks should have been started yet. Checked by initial state check.
@@ -120,30 +87,12 @@ public class RootInputVertexManager implements VertexManagerPlugin {
         dataInformationEventSeen = true;
         // # Tasks should have been set by this point.
         Preconditions.checkState(context.getVertexNumTasks(context.getVertexName()) != 0);
-        TezEvent tezEvent = new TezEvent(event, sourceInfo);
-        tezEvent.setDestinationInfo(destInfoMap.get(inputName));
-        // FIXME the event should be sent via the context and not directly to a
-        // task
-        // FIXME event handler should not exposed to plugins
-
-        if (deleteVertex.getAppContext().isRecoveryEnabled()) {
-          VertexDataMovementEventsGeneratedEvent historyEvent =
-              new VertexDataMovementEventsGeneratedEvent(deleteVertex.getVertexId(),
-                  Arrays.asList(tezEvent));
-          // FIXME should not have access to app context
-          deleteVertex.getAppContext().getHistoryHandler().handle(
-              new DAGHistoryEvent(deleteVertex.getDAG().getID(), historyEvent));
-        }
-
-        sendEventToTask(TezTaskID.getInstance(deleteVertex.getVertexId(),
-            ((RootInputDataInformationEvent) event).getIndex()), tezEvent);
+        
+        RootInputDataInformationEvent rEvent = (RootInputDataInformationEvent)event;
+        rEvent.setTargetIndex(rEvent.getSourceIndex()); // 1:1 routing
+        riEvents.add(rEvent);
       }
     }
+    context.addRootInputEvents(inputName, riEvents);
   }
-
-  @SuppressWarnings("unchecked")
-  private void sendEventToTask(TezTaskID taskId, TezEvent tezEvent) {
-    deleteHandler.handle(new TaskEventAddTezEvent(taskId, tezEvent));
-  }
-
 }

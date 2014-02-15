@@ -27,9 +27,19 @@ public class VertexLocationHint  {
   private final int numTasks;
   private final List<TaskLocationHint> taskLocationHints;
 
+  @Deprecated // TODO TEZ-837 Remove in follow up jira
   public VertexLocationHint(int numTasks,
       List<TaskLocationHint> taskLocationHints) {
     this.numTasks = numTasks;
+    if (taskLocationHints != null) {
+      this.taskLocationHints = Collections.unmodifiableList(taskLocationHints);
+    } else {
+      this.taskLocationHints = null;
+    }
+  }
+  
+  public VertexLocationHint(List<TaskLocationHint> taskLocationHints) {
+    this.numTasks = 0;
     if (taskLocationHints != null) {
       this.taskLocationHints = Collections.unmodifiableList(taskLocationHints);
     } else {

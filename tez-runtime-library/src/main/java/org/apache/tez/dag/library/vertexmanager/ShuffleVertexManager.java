@@ -35,6 +35,7 @@ import org.apache.tez.dag.api.EdgeManagerContext;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -355,7 +356,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
                 remainderRangeForLastShuffler : basePartitionRange)));
       }
       
-      context.setVertexParallelism(finalTaskParallelism, edgeManagers);
+      context.setVertexParallelism(finalTaskParallelism, null, edgeManagers);
       updatePendingTasks();      
     }
   }

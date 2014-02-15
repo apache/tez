@@ -91,6 +91,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
+import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
@@ -122,6 +123,7 @@ import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
+import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
@@ -814,9 +816,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   @Override
-  public boolean setParallelism(int parallelism,
+  public boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManager> sourceEdgeManagers) {
     writeLock.lock();
+    setVertexLocationHint(vertexLocationHint);
     try {
       if (parallelismSet == true) {
         LOG.info("Parallelism can only be set dynamically once per vertex");
@@ -827,16 +830,21 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
       // Input initializer expected to set parallelism.
       if (numTasks == -1) {
-        Preconditions
-            .checkArgument(sourceEdgeManagers == null,
-                "Source edge managers cannot be set when determining initial parallelism");
         this.numTasks = parallelism;
         this.createTasks();
         LOG.info("Vertex " + getVertexId() + 
             " parallelism set to " + parallelism);
-        // Pending task event management, which follows, is not required.
-        // Vertex event buffering is happening elsewhere - while in the Vertex
-        // INITIALIZING state.
+
+        if(sourceEdgeManagers != null) {
+          for(Map.Entry<String, EdgeManager> entry : sourceEdgeManagers.entrySet()) {
+            LOG.info("Replacing edge manager for source:"
+                + entry.getKey() + " destination: " + getVertexId());
+            Vertex sourceVertex = appContext.getCurrentDAG().getVertex(entry.getKey());
+            EdgeManager edgeManager = entry.getValue();
+            Edge edge = sourceVertices.get(sourceVertex);
+            edge.setEdgeManager(edgeManager);
+          }
+        }
       } else {
         if (parallelism >= numTasks) {
           // not that hard to support perhaps. but checking right now since there
@@ -1410,8 +1418,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         } else if (vertex.inputsWithInitializers != null) {
           LOG.info("Setting vertexManager to RootInputVertexManager for "
               + vertex.logIdentifier);
-          vertex.vertexManager = new VertexManager(new RootInputVertexManager(
-              vertex, vertex.eventHandler), vertex, vertex.appContext);
+          vertex.vertexManager = new VertexManager(new RootInputVertexManager(),
+              vertex, vertex.appContext);
         } else {
           // schedule all tasks upon vertex start. Default behavior.
           LOG.info("Setting vertexManager to ImmediateStartVertexManager for "
@@ -1614,7 +1622,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           " sent by vertex " + splitEvent.getSenderVertex() +
           " numTasks " + splitEvent.getNumTasks());
       vertex.originalOneToOneSplitSource = originalSplitSource;
-      vertex.setParallelism(splitEvent.getNumTasks(), null);
+      // ZZZ Can this be handled ?
+      vertex.setParallelism(splitEvent.getNumTasks(), null, null);
       return vertex.initializeVertexInInitializingState();
     }
   }
@@ -2092,6 +2101,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               srcEdge.sendTezEventToDestinationTasks(tezEvent);
             }
           }
+          break;
+        case ROOT_INPUT_DATA_INFORMATION_EVENT:
+          checkEventSourceMetadata(vertex, sourceMeta);
+          RootInputDataInformationEvent riEvent = (RootInputDataInformationEvent) tezEvent
+              .getEvent();
+          TezTaskID targetTaskID = TezTaskID.getInstance(vertex.getVertexId(),
+              riEvent.getTargetIndex());
+          vertex.eventHandler.handle(new TaskEventAddTezEvent(targetTaskID, tezEvent));          
           break;
         case VERTEX_MANAGER_EVENT:
         {

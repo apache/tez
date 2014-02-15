@@ -31,6 +31,7 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
@@ -115,7 +116,7 @@ public class TestShuffleVertexManager {
           newEdgeManagers.clear();
           newEdgeManagers.putAll((Map<String, EdgeManager>)invocation.getArguments()[1]);
           return null;
-      }}).when(mockContext).setVertexParallelism(eq(2), anyMap());
+      }}).when(mockContext).setVertexParallelism(eq(2), any(VertexLocationHint.class), anyMap());
     
     // source vertices have 0 tasks. immediate start of all managed tasks
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(0);
@@ -141,7 +142,7 @@ public class TestShuffleVertexManager {
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(0));
     // managedVertex tasks reduced
-    verify(mockContext, times(0)).setVertexParallelism(anyInt(), anyMap());
+    verify(mockContext, times(0)).setVertexParallelism(anyInt(), any(VertexLocationHint.class), anyMap());
     Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
     Assert.assertEquals(4, scheduledTasks.size());
     Assert.assertEquals(1, manager.numSourceTasksCompleted);
@@ -180,7 +181,7 @@ public class TestShuffleVertexManager {
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(1));
     // managedVertex tasks reduced
-    verify(mockContext).setVertexParallelism(eq(2), anyMap());
+    verify(mockContext).setVertexParallelism(eq(2), any(VertexLocationHint.class), anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     // TODO improve tests for parallelism
     Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
@@ -193,7 +194,7 @@ public class TestShuffleVertexManager {
     
     // more completions dont cause recalculation of parallelism
     manager.onSourceTaskCompleted(mockSrcVertexId2, new Integer(0));
-    verify(mockContext).setVertexParallelism(eq(2), anyMap());
+    verify(mockContext).setVertexParallelism(eq(2), any(VertexLocationHint.class), anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     
     EdgeManager edgeManager = newEdgeManagers.values().iterator().next();

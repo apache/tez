@@ -1401,7 +1401,7 @@ public class TestVertexImpl {
     EdgeManager mockEdgeManager = mock(EdgeManager.class);
     Map<String, EdgeManager> edgeManager = Collections.singletonMap(
        v1.getName(), mockEdgeManager);
-    v3.setParallelism(1, edgeManager);
+    v3.setParallelism(1, null, edgeManager);
     Assert.assertEquals(1, v3.getTotalTasks());
     Assert.assertEquals(1, tasks.size());
     // the last one is removed
@@ -1425,7 +1425,7 @@ public class TestVertexImpl {
     Vertex v3 = vertices.get("vertex3"); // Vertex3 linked to v1 (v1 src, v3
                                          // dest)
     Map<String, EdgeManager> edgeManagers = Collections.singletonMap(v1.getName(), em);
-    v3.setParallelism(v3.getTotalTasks() - 1, edgeManagers); // Must decrease.
+    v3.setParallelism(v3.getTotalTasks() - 1, null, edgeManagers); // Must decrease.
 
     EdgeManagerForTest edgeManagerPostSet = (EdgeManagerForTest) edge.getEdgeManager();
     Assert.assertEquals(false, edgeManagerPostSet.isCreatedByFramework());

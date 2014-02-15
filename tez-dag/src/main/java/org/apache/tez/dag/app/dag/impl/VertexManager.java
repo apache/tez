@@ -19,10 +19,13 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -34,12 +37,20 @@ import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.RuntimeUtils;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.TezEvent;
+import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -51,10 +62,18 @@ public class VertexManager {
   byte[] payload = null;
   AppContext appContext;
   
+  private static final Log LOG = LogFactory.getLog(VertexManager.class);
+  
   class VertexManagerPluginContextImpl implements VertexManagerPluginContext {
+    // TODO Add functionality to allow VertexManagers to send VertexManagerEvents
+    
+    private EventMetaData rootEventSourceMetadata = new EventMetaData(EventProducerConsumerType.INPUT,
+        managedVertex.getName(), "NULL_VERTEX", null);
+    private Map<String, EventMetaData> destinationEventMetadataMap = Maps.newHashMap();
     
     @Override
     public Map<String, EdgeProperty> getInputVertexEdgeProperties() {
+      // TODO Something similar for Initial Inputs - payload etc visible
       Map<Vertex, Edge> inputs = managedVertex.getInputVertices();
       Map<String, EdgeProperty> vertexEdgeMap = 
                           Maps.newHashMapWithExpectedSize(inputs.size());
@@ -75,9 +94,9 @@ public class VertexManager {
     }
 
     @Override
-    public boolean setVertexParallelism(int parallelism,
+    public boolean setVertexParallelism(int parallelism, VertexLocationHint vertexLocationHint,
         Map<String, EdgeManager> sourceEdgeManagers) {
-      return managedVertex.setParallelism(parallelism, sourceEdgeManagers);
+      return managedVertex.setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers);
     }
 
     @Override
@@ -97,15 +116,49 @@ public class VertexManager {
     }
 
     @Override
-    public void setVertexLocationHint(VertexLocationHint locationHint) {
-      managedVertex.setVertexLocationHint(locationHint);
-    }
-
-    @Override
     public byte[] getUserPayload() {
       return payload;
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public void addRootInputEvents(final String inputName,
+        Collection<RootInputDataInformationEvent> events) {
+      verifyIsRootInput(inputName);
+      Iterable<TezEvent> tezEvents = Iterables.transform(events,
+          new Function<RootInputDataInformationEvent, TezEvent>() {
+            @Override
+            public TezEvent apply(RootInputDataInformationEvent riEvent) {
+              TezEvent tezEvent = new TezEvent(riEvent, rootEventSourceMetadata);
+              tezEvent.setDestinationInfo(getDestinationMetaData(inputName));
+              return tezEvent;
+            }
+          });
+      appContext.getEventHandler().handle(
+          new VertexEventRouteEvent(managedVertex.getVertexId(), Lists.newArrayList(tezEvents)));
+      // Recovery handling is taken care of by the Vertex.
+    }
+
+
+    @Override
+    public void setVertexLocationHint(VertexLocationHint locationHint) {
+      managedVertex.setVertexLocationHint(locationHint);
+    }
+
+    private void verifyIsRootInput(String inputName) {
+      Preconditions.checkState(managedVertex.getAdditionalInputs().get(inputName) != null,
+          "Cannot add events for non-root inputs");
+    }
+
+    private EventMetaData getDestinationMetaData(String inputName) {
+      EventMetaData destMeta = destinationEventMetadataMap.get(inputName);
+      if (destMeta == null) {
+        destMeta = new EventMetaData(EventProducerConsumerType.INPUT, managedVertex.getName(),
+            inputName, null);
+        destinationEventMetadataMap.put(inputName, destMeta);
+      }
+      return destMeta;
+    }
   }
   
   public VertexManager(VertexManagerPlugin plugin, 

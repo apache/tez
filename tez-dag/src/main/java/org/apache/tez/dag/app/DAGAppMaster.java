@@ -261,11 +261,11 @@ public class DAGAppMaster extends AbstractService {
     this.amConf = conf;
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
 
+    dispatcher = createDispatcher();
     context = new RunningAppContext(conf);
 
     clientHandler = new DAGClientHandler();
 
-    dispatcher = createDispatcher();
     addIfService(dispatcher, false);
 
     clientRpcServer = new DAGClientServer(clientHandler, appAttemptID);
@@ -998,8 +998,10 @@ public class DAGAppMaster extends AbstractService {
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock rLock = rwLock.readLock();
     private final Lock wLock = rwLock.writeLock();
+    private final EventHandler eventHandler;
     public RunningAppContext(Configuration config) {
       this.conf = config;
+      this.eventHandler = dispatcher.getEventHandler();
     }
 
     @Override
@@ -1044,7 +1046,7 @@ public class DAGAppMaster extends AbstractService {
 
     @Override
     public EventHandler getEventHandler() {
-      return dispatcher.getEventHandler();
+      return eventHandler;
     }
 
     @Override
@@ -1308,7 +1310,6 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public synchronized void serviceStart() throws Exception {
 

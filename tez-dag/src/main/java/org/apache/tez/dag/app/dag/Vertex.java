@@ -76,7 +76,8 @@ public interface Vertex extends Comparable<Vertex> {
   VertexStatusBuilder getVertexStatus(Set<StatusGetOpts> statusOptions);
 
 
-  boolean setParallelism(int parallelism, Map<String, EdgeManager> sourceEdgeManagers);
+  boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
+      Map<String, EdgeManager> sourceEdgeManagers);
   void setVertexLocationHint(VertexLocationHint vertexLocationHint);
 
   // CHANGE THESE TO LISTS AND MAINTAIN ORDER?
