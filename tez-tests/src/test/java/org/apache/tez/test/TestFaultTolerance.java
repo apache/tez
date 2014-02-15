@@ -91,6 +91,7 @@ public class TestFaultTolerance {
       TezConfiguration tezConf = new TezConfiguration(miniTezCluster.getConfig());
       tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
           remoteStagingDir.toString());
+      tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
 
       AMConfiguration amConfig = new AMConfiguration(
           new HashMap<String, String>(), new HashMap<String, LocalResource>(),

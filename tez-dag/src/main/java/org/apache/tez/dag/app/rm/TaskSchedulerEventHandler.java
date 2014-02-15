@@ -49,6 +49,7 @@ import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
+import org.apache.tez.dag.app.rm.container.AMContainer;
 import org.apache.tez.dag.app.rm.container.AMContainerEventAssignTA;
 import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
 import org.apache.tez.dag.app.rm.container.AMContainerEventLaunchRequest;
@@ -135,7 +136,9 @@ public class TaskSchedulerEventHandler extends AbstractService
     case S_CONTAINERS_ALLOCATED:
       break;
     case S_CONTAINER_COMPLETED:
+      break;
     case S_NODE_BLACKLISTED:
+      handleNodeBlacklist((AMSchedulerEventNodeBlacklisted)sEvent);
       break;
     case S_NODE_UNHEALTHY:
       break;
@@ -168,6 +171,9 @@ public class TaskSchedulerEventHandler extends AbstractService
     eventHandler.handle(event);
   }
 
+  private void handleNodeBlacklist(AMSchedulerEventNodeBlacklisted event) {
+    taskScheduler.blacklistNode(event.getNodeId());
+  }
 
   private void handleContainerDeallocate(
                                   AMSchedulerEventDeallocateContainer event) {
@@ -325,8 +331,6 @@ public class TaskSchedulerEventHandler extends AbstractService
   
   @Override
   public synchronized void serviceStart() {
-    // FIXME hack alert how is this supposed to support multiple DAGs?
-    // Answer: this is shared across dags. need job==app-dag-master
     InetSocketAddress serviceAddr = clientService.getBindAddress();
     dagAppMaster = appContext.getAppMaster();
     taskScheduler = createTaskScheduler(serviceAddr.getHostName(),
@@ -395,7 +399,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     // because the deallocateTask downcall may have raced with the
     // taskAllocated() upcall
     assert task.equals(taskAttempt);
-    
+ 
     if (appContext.getAllContainers().get(containerId).getState() == AMContainerState.ALLOCATED) {
       sendEvent(new AMContainerEventLaunchRequest(containerId, taskAttempt.getVertexID(),
           event.getContainerContext()));
@@ -409,12 +413,18 @@ public class TaskSchedulerEventHandler extends AbstractService
   @Override
   public synchronized void containerCompleted(Object task, ContainerStatus containerStatus) {
     // Inform the Containers about completion.
-    sendEvent(new AMContainerEventCompleted(containerStatus));
+    AMContainer amContainer = appContext.getAllContainers().get(containerStatus.getContainerId());
+    if (amContainer != null) {
+      sendEvent(new AMContainerEventCompleted(containerStatus));
+    }
   }
 
   @Override
   public synchronized void containerBeingReleased(ContainerId containerId) {
-    sendEvent(new AMContainerEventStopRequest(containerId));
+    AMContainer amContainer = appContext.getAllContainers().get(containerId);
+    if (amContainer != null) {
+      sendEvent(new AMContainerEventStopRequest(containerId));
+    }
   }
 
   @SuppressWarnings("unchecked")

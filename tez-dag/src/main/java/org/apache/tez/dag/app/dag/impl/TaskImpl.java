@@ -32,6 +32,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
@@ -70,6 +71,8 @@ import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
+import org.apache.tez.dag.app.rm.container.AMContainer;
+import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptEnded;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
@@ -1099,8 +1102,22 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       }
 
       TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
+      TezTaskAttemptID failedAttemptId = castEvent.getTaskAttemptID();
+      TaskAttempt failedAttempt = task.getAttempt(failedAttemptId);
+      ContainerId containerId = failedAttempt.getAssignedContainerID();
+      if (containerId != null) {
+        AMContainer amContainer = task.appContext.getAllContainers().
+            get(containerId);
+        if (amContainer != null) {
+          // inform the node about failure
+          task.eventHandler.handle(
+              new AMNodeEventTaskAttemptEnded(amContainer.getContainer().getNodeId(), 
+                  containerId, failedAttemptId, true));
+        }
+      }
+      
       if (task.getInternalState() == TaskStateInternal.SUCCEEDED &&
-          !castEvent.getTaskAttemptID().equals(task.successfulAttempt)) {
+          !failedAttemptId.equals(task.successfulAttempt)) {
         // don't allow a different task attempt to override a previous
         // succeeded state
         return TaskStateInternal.SUCCEEDED;

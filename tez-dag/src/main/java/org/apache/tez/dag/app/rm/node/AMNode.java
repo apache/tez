@@ -32,4 +32,5 @@ public interface AMNode extends EventHandler<AMNodeEvent> {
 
   public boolean isUnhealthy();
   public boolean isBlacklisted();
+  public boolean isUsable();
 }

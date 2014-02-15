@@ -22,7 +22,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,7 +37,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -57,6 +62,10 @@ import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.app.rm.container.AMContainer;
+import org.apache.tez.dag.app.rm.node.AMNodeEvent;
+import org.apache.tez.dag.app.rm.node.AMNodeEventType;
+import org.apache.tez.dag.app.rm.node.AMNodeMap;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -92,6 +101,10 @@ public class TestTaskImpl {
   private String javaOpts;
   private boolean leafVertex;
   private ContainerContext containerContext;
+  private ContainerId mockContainerId;
+  private Container mockContainer;
+  private AMContainer mockAMContainer;
+  private NodeId mockNodeId;
 
   private MockTaskImpl mockTask;
   
@@ -117,7 +130,15 @@ public class TestTaskImpl {
     appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     dagId = TezDAGID.getInstance(appId, 1);
     vertexId = TezVertexID.getInstance(dagId, 1);
-    appContext = mock(AppContext.class);
+    appContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
+    mockContainerId = mock(ContainerId.class);
+    mockContainer = mock(Container.class);
+    mockAMContainer = mock(AMContainer.class);
+    mockNodeId = mock(NodeId.class);
+    when(mockContainer.getId()).thenReturn(mockContainerId);
+    when(mockContainer.getNodeId()).thenReturn(mockNodeId);
+    when(mockAMContainer.getContainer()).thenReturn(mockContainer);
+    when(appContext.getAllContainers().get(mockContainerId)).thenReturn(mockAMContainer);
     taskResource = Resource.newInstance(1024, 1);
     localResources = new HashMap<String, LocalResource>();
     environment = new HashMap<String, String>();
@@ -127,6 +148,7 @@ public class TestTaskImpl {
         environment, javaOpts);
     Vertex vertex = mock(Vertex.class);
     eventHandler = new TestEventHandler();
+    
     mockTask = new MockTaskImpl(vertexId, partition,
         eventHandler, conf, taskAttemptListener, clock,
         taskHeartbeatHandler, appContext, leafVertex, locationHint,
@@ -477,13 +499,16 @@ public class TestTaskImpl {
     // The task should now have succeeded
     assertTaskSucceededState();
 
+    eventHandler.events.clear();
     // Now fail the attempt after it has succeeded
     mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt()
         .getID(), TaskEventType.T_ATTEMPT_FAILED));
 
     // The task should still be in the scheduled state
     assertTaskScheduledState();
-    Event event = eventHandler.events.get(eventHandler.events.size()-1);
+    Event event = eventHandler.events.get(0);
+    Assert.assertEquals(AMNodeEventType.N_TA_ENDED, event.getType());
+    event = eventHandler.events.get(eventHandler.events.size()-1);
     Assert.assertEquals(VertexEventType.V_TASK_RESCHEDULED, event.getType());
   }
 
@@ -494,7 +519,7 @@ public class TestTaskImpl {
 
     private List<MockTaskAttemptImpl> taskAttempts = new LinkedList<MockTaskAttemptImpl>();
     private Vertex vertex;
-
+    
     public MockTaskImpl(TezVertexID vertexId, int partition,
         EventHandler eventHandler, Configuration conf,
         TaskAttemptListener taskAttemptListener, Clock clock,
@@ -582,6 +607,11 @@ public class TestTaskImpl {
     @Override
     public TaskAttemptState getStateNoLock() {
       return state;
+    }
+    
+    @Override
+    public ContainerId getAssignedContainerID() {
+      return mockContainerId;
     }
   }
 

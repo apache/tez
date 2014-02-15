@@ -26,7 +26,7 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 
 public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
 
-  // TODO Get rid of remoteTask from here. Can be forgottent after it has been assigned.
+  // TODO Get rid of remoteTask from here. Can be forgotten after it has been assigned.
   //.... Maybe have the Container talk to the TaskAttempt to pull in the remote task.
 
   private final TezTaskAttemptID attemptId;

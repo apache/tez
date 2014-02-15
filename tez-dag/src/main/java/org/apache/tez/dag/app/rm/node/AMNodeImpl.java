@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.rm.node;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
@@ -41,6 +42,10 @@ import org.apache.tez.dag.app.rm.AMSchedulerEventNodeBlacklisted;
 import org.apache.tez.dag.app.rm.container.AMContainerEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerEventNodeFailed;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Sets;
 
 public class AMNodeImpl implements AMNode {
 
@@ -51,16 +56,18 @@ public class AMNodeImpl implements AMNode {
   private final NodeId nodeId;
   private final AppContext appContext;
   private final int maxTaskFailuresPerNode;
-  private int numFailedTAs = 0;
-  private int numSuccessfulTAs = 0;
   private boolean blacklistingEnabled;
   private boolean ignoreBlacklisting = false;
+  private Set<TezTaskAttemptID> failedAttemptIds = Sets.newHashSet();
 
   @SuppressWarnings("rawtypes")
   protected EventHandler eventHandler;
 
-  private final List<ContainerId> containers = new LinkedList<ContainerId>();
-
+  @VisibleForTesting
+  final List<ContainerId> containers = new LinkedList<ContainerId>();
+  int numFailedTAs = 0;
+  int numSuccessfulTAs = 0;
+  
   //Book-keeping only. In case of Health status change.
   private final List<ContainerId> pastContainers = new LinkedList<ContainerId>();
 
@@ -174,6 +181,7 @@ public class AMNodeImpl implements AMNode {
     this.nodeId = nodeId;
     this.appContext = appContext;
     this.eventHandler = eventHandler;
+    this.blacklistingEnabled = blacklistingEnabled;
     this.maxTaskFailuresPerNode = maxTaskFailuresPerNode;
     this.stateMachine = stateMachineFactory.make(this);
     // TODO Handle the case where a node is created due to the RM reporting it's
@@ -237,6 +245,9 @@ public class AMNodeImpl implements AMNode {
   }
 
   protected void blacklistSelf() {
+    for (ContainerId c : containers) {
+      sendEvent(new AMContainerEventNodeFailed(c, "Node failed"));
+    }
     sendEvent(new AMNodeEvent(getNodeId(),
         AMNodeEventType.N_NODE_WAS_BLACKLISTED));
     sendEvent(new AMSchedulerEventNodeBlacklisted(getNodeId()));
@@ -274,11 +285,17 @@ public class AMNodeImpl implements AMNode {
     public AMNodeState transition(AMNodeImpl node, AMNodeEvent nEvent) {
       AMNodeEventTaskAttemptEnded event = (AMNodeEventTaskAttemptEnded) nEvent;
       if (event.failed()) {
-        node.numFailedTAs++;
-        boolean shouldBlacklist = node.shouldBlacklistNode();
-        if (shouldBlacklist) {
-          node.blacklistSelf();
-          return AMNodeState.BLACKLISTED;
+        // ignore duplicate attempt ids
+        if (node.failedAttemptIds.add(event.getTaskAttemptId())) {
+          // new failed container on node
+          node.numFailedTAs++;
+          boolean shouldBlacklist = node.shouldBlacklistNode();
+          if (shouldBlacklist) {
+            LOG.info("Too many task attempt failures. " + 
+                     "Blacklisting node: " + node.getNodeId());
+            node.blacklistSelf();
+            return AMNodeState.BLACKLISTED;
+          }
         }
       }
       return AMNodeState.ACTIVE;
@@ -409,6 +426,7 @@ public class AMNodeImpl implements AMNode {
     }
   }
 
+  @Override
   public boolean isBlacklisted() {
     this.readLock.lock();
     try {
@@ -416,5 +434,10 @@ public class AMNodeImpl implements AMNode {
     } finally {
       this.readLock.unlock();
     }
+  }
+  
+  @Override
+  public boolean isUsable() {
+    return !(isUnhealthy() || isBlacklisted());
   }
 }

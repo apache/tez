@@ -80,7 +80,7 @@ public class TestMRRJobs {
     }
 
     if (mrrTezCluster == null) {
-      mrrTezCluster = new MiniTezCluster(TestMRRJobs.class.getName(), 1,
+      mrrTezCluster = new MiniTezCluster(TestMRRJobs.class.getName(), 3,
           1, 1);
       Configuration conf = new Configuration();
       conf.set("fs.defaultFS", remoteFs.getUri().toString());   // use HDFS

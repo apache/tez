@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -45,6 +46,7 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -64,6 +66,7 @@ import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /* TODO not yet updating cluster nodes on every allocate response
@@ -143,6 +146,8 @@ public class TaskScheduler extends AbstractService
    */
   Map<ContainerId, HeldContainer> heldContainers =
       new HashMap<ContainerId, HeldContainer>();
+  
+  Set<NodeId> blacklistedNodes = Sets.newConcurrentHashSet();
   
   Resource totalResources = Resource.newInstance(0, 0);
   Resource allocatedResources = Resource.newInstance(0, 0);
@@ -777,6 +782,11 @@ public class TaskScheduler extends AbstractService
     return totalResources;
   }
 
+  public synchronized void blacklistNode(NodeId nodeId) {
+    amRmClient.addNodeToBlacklist(nodeId);
+    blacklistedNodes.add(nodeId);
+  }
+  
   public synchronized void allocateTask(
       Object task,
       Resource capability,
@@ -1238,7 +1248,31 @@ public class TaskScheduler extends AbstractService
     }
     for (Entry<CookieContainerRequest, Container> entry : assignedContainers
         .entrySet()) {
-      informAppAboutAssignment(entry.getKey(), entry.getValue());
+      Container container = entry.getValue();
+      // check for blacklisted nodes. There may be race conditions between
+      // setting blacklist and receiving allocations
+      if (blacklistedNodes.contains(container.getNodeId())) {
+        CookieContainerRequest request = entry.getKey();
+        Object task = getTask(request);
+        Object clientCookie = request.getCookie().getAppCookie();
+        LOG.info("Container: " + container.getId() + 
+            " allocated on blacklisted node: " + container.getNodeId() + 
+            " for task: " + task);
+        Object deAllocTask = deallocateContainer(container.getId());
+        assert deAllocTask.equals(task);
+        // its ok to submit the same request again because the RM will not give us
+        // the bad/unhealthy nodes again. The nodes may become healthy/unblacklisted
+        // and so its better to give the RM the full information.
+        allocateTask(task, request.getCapability(), 
+            (request.getNodes() == null ? null : 
+            request.getNodes().toArray(new String[request.getNodes().size()])), 
+            (request.getRacks() == null ? null : 
+              request.getRacks().toArray(new String[request.getRacks().size()])), 
+            request.getPriority(), 
+            request.getCookie().getContainerSignature(), clientCookie);
+      } else {
+        informAppAboutAssignment(entry.getKey(), container);
+      }
     }
   }
 

@@ -717,6 +717,10 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
 
+      if (container.nodeFailed) {
+        // ignore duplicates
+        return;
+      }
       container.nodeFailed = true;
       String errorMessage = null;
       if (cEvent instanceof DiagnosableEvent) {
