@@ -114,7 +114,7 @@ public class TestShuffleVertexManager {
       public Object answer(InvocationOnMock invocation) {
           when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(2);
           newEdgeManagers.clear();
-          newEdgeManagers.putAll((Map<String, EdgeManager>)invocation.getArguments()[1]);
+          newEdgeManagers.putAll((Map<String, EdgeManager>)invocation.getArguments()[2]);
           return null;
       }}).when(mockContext).setVertexParallelism(eq(2), any(VertexLocationHint.class), anyMap());
     
