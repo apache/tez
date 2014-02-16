@@ -18,6 +18,7 @@
 
 package org.apache.tez.test.dag;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -58,7 +59,17 @@ public class ThreeLevelsFailingDAG extends TwoLevelsFailingDAG {
         addEdge(l2v3, l3v2, DataMovementType.SCATTER_GATHER);
         addEdge(l2v4, l3v2, DataMovementType.SCATTER_GATHER);
     }
-        
+    
+    public static DAG createDAG(String name, 
+            Configuration conf) throws Exception {
+        if (conf != null) {
+          payload = TezUtils.createUserPayloadFromConf(conf);
+        } 
+        dag = new DAG(name);
+        addDAGVerticesAndEdges();
+        return dag;
+    }
+    
     public static DAG createDAG(Configuration conf) throws Exception {
       return createDAG("ThreeLevelsFailingDAG", conf);
     }
