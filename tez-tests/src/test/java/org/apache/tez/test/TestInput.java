@@ -170,7 +170,28 @@ public class TestInput implements LogicalInput {
           } else {
             done = false;
           }
+        } else if ((failingTaskIndices.contains(failAll) ||
+            failingTaskIndices.contains(inputContext.getTaskIndex()))){
+          boolean previousAttemptReadFailed = false;
+          if (failingTaskAttempts.contains(failAll)) {
+            previousAttemptReadFailed = true;
+          } else {
+            for (int i=0 ; i<inputContext.getTaskAttemptNumber(); ++i) {
+              if (failingTaskAttempts.contains(new Integer(i))) {
+                previousAttemptReadFailed = true;
+                break;
+              }
+            }
+          }
+          if (previousAttemptReadFailed && 
+              (lastInputReadyValue <= failingInputUpto)) {
+            // if any previous attempt has failed then dont be done when we see
+            // a previously failed input
+            LOG.info("Previous task attempt failed and input version less than failing upto version");
+            done = false;
+          }
         }
+        
       }
     } while (!done);
     return numInputs;

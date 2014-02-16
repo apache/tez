@@ -368,5 +368,84 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
+  /**
+   * Sets configuration for cascading input failure tests that
+   * use SimpleTestDAG3Vertices.
+   * @param testConf configuration
+   * @param failAndExit whether input failure should trigger attempt exit 
+   */
+  private void setCascadingInputFailureConfig(Configuration testConf, 
+                                              boolean failAndExit) {
+    // v2 attempt0 succeeds.
+    // v2 task0 attempt1 input0 fails up to version 0.
+    testConf.setBoolean(TestInput.getVertexConfName(
+            TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
+    testConf.setBoolean(TestInput.getVertexConfName(
+            TestInput.TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, "v2"), failAndExit);
+    testConf.set(TestInput.getVertexConfName(
+            TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "0");
+    testConf.set(TestInput.getVertexConfName(
+            TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "1");
+    testConf.set(TestInput.getVertexConfName(
+            TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "0");
+    testConf.setInt(TestInput.getVertexConfName(
+            TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v2"),
+            0);
+
+    //v3 all-tasks attempt0 input0 fails up to version 0.
+    testConf.setBoolean(TestInput.getVertexConfName(
+            TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v3"), true);
+    testConf.setBoolean(TestInput.getVertexConfName(
+            TestInput.TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, "v3"), failAndExit);
+    testConf.set(TestInput.getVertexConfName(
+            TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v3"), "-1");
+    testConf.set(TestInput.getVertexConfName(
+            TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v3"), "0");
+    testConf.set(TestInput.getVertexConfName(
+            TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v3"), "0");
+    testConf.setInt(TestInput.getVertexConfName(
+            TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v3"),
+            0);
+  }
+  
+  /**
+   * Test cascading input failure without exit. Expecting success.
+   * v1 -- v2 -- v3
+   * v3 all-tasks attempt0 input0 fails. Wait. Triggering v2 rerun.
+   * v2 task0 attempt1 input0 fails. Wait. Triggering v1 rerun.
+   * v1 attempt1 rerun and succeeds. v2 accepts v1 attempt1 output. v2 attempt1 succeeds.
+   * v3 attempt0 accepts v2 attempt1 output.
+   * 
+   * AM vertex succeeded order is v1, v2, v1, v2, v3.
+   * @throws Exception
+   */
+  @Test (timeout=60000)
+  public void testCascadingInputFailureWithoutExitSuccess() throws Exception {
+    Configuration testConf = new Configuration(false);
+    setCascadingInputFailureConfig(testConf, false);
+    DAG dag = SimpleTestDAG3Vertices.createDAG(
+              "testCascadingInputFailureWithoutExitSuccess", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+  
+  /**
+   * Test cascading input failure with exit. Expecting success.
+   * v1 -- v2 -- v3
+   * v3 all-tasks attempt0 input0 fails. v3 attempt0 exits. Triggering v2 rerun.
+   * v2 task0 attempt1 input0 fails. v2 attempt1 exits. Triggering v1 rerun.
+   * v1 attempt1 rerun and succeeds. v2 accepts v1 attempt1 output. v2 attempt2 succeeds.
+   * v3 attempt1 accepts v2 attempt2 output.
+   * 
+   * AM vertex succeeded order is v1, v2, v3, v1, v2, v3.
+   * @throws Exception
+   */
+  @Test (timeout=60000)
+  public void testCascadingInputFailureWithExitSuccess() throws Exception {
+    Configuration testConf = new Configuration(false);
+    setCascadingInputFailureConfig(testConf, true);
+    DAG dag = SimpleTestDAG3Vertices.createDAG(
+              "testCascadingInputFailureWithExitSuccess", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
 
 }

@@ -30,17 +30,19 @@ import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 
 /**
- * Simple Test DAG with 2 vertices using TestProcessor/TestInput/TestOutput.
+ * Simple Test DAG with 3 vertices using TestProcessor/TestInput/TestOutput.
  * 
  * v1
  * |
  * v2
+ * |
+ * v3
  *
  */
-public class SimpleTestDAG {
+public class SimpleTestDAG3Vertices {
   static Resource defaultResource = Resource.newInstance(100, 0);
   public static String TEZ_SIMPLE_DAG_NUM_TASKS =
-      "tez.simple-test-dag.num-tasks";
+      "tez.simple-test-dag-3-vertices.num-tasks";
   public static int TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT = 2;
   
   public static DAG createDAG(String name, 
@@ -54,16 +56,23 @@ public class SimpleTestDAG {
     DAG dag = new DAG(name);
     Vertex v1 = new Vertex("v1", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
     Vertex v2 = new Vertex("v2", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
+    Vertex v3 = new Vertex("v3", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
     dag.addVertex(v1).addVertex(v2).addEdge(new Edge(v1, v2, 
         new EdgeProperty(DataMovementType.SCATTER_GATHER, 
             DataSourceType.PERSISTED, 
             SchedulingType.SEQUENTIAL, 
             TestOutput.getOutputDesc(payload), 
             TestInput.getInputDesc(payload))));
+    dag.addVertex(v3).addEdge(new Edge(v2, v3, 
+            new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+                DataSourceType.PERSISTED, 
+                SchedulingType.SEQUENTIAL, 
+                TestOutput.getOutputDesc(payload), 
+                TestInput.getInputDesc(payload))));
     return dag;
   }
   
   public static DAG createDAG(Configuration conf) throws Exception {
-    return createDAG("SimpleTestDAG", conf);
+    return createDAG("SimpleTestDAG3Vertices", conf);
   }
 }
