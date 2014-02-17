@@ -1203,6 +1203,7 @@ public class TestVertexImpl {
     doReturn(taskScheduler).when(appContext).getTaskScheduler();
     doReturn(Resource.newInstance(102400, 60)).when(taskScheduler).getTotalResources();
     doReturn(historyEventHandler).when(appContext).getHistoryHandler();
+    doReturn(dispatcher.getEventHandler()).when(appContext).getEventHandler();
 
     vertexGroups = Maps.newHashMap();
     for (PlanVertexGroupInfo groupInfo : dagPlan.getVertexGroupsList()) {
