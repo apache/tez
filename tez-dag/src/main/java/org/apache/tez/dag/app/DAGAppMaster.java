@@ -1338,7 +1338,7 @@ public class DAGAppMaster extends AbstractService {
       if (recoveryEnabled) {
         if (this.appAttemptID.getAttemptId() > 0) {
           // Recovery data and copy over into new recovery dir
-          this.state = DAGAppMasterState.RECOVERING;
+          this.state = DAGAppMasterState.IDLE;
           // TODO
         }
       }
