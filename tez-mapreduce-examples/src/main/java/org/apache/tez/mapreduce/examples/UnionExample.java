@@ -116,6 +116,12 @@ public class UnionExample {
     public void run(Map<String, LogicalInput> inputs,
         Map<String, LogicalOutput> outputs) throws Exception {
       Preconditions.checkArgument(inputs.size() == 1);
+      for (LogicalInput input : inputs.values()) {
+        input.start();
+      }
+      for (LogicalOutput output : outputs.values()) {
+        output.start();
+      }
       boolean inUnion = true;
       if (context.getTaskVertexName().equals("map3")) {
         inUnion = false;
@@ -177,6 +183,12 @@ public class UnionExample {
         Map<String, LogicalOutput> outputs) throws Exception {
       Preconditions.checkArgument(inputs.size() == 2);
       Preconditions.checkArgument(outputs.size() == 2);
+      for (LogicalInput input : inputs.values()) {
+        input.start();
+      }
+      for (LogicalOutput output : outputs.values()) {
+        output.start();
+      }
       MROutput out = (MROutput) outputs.get("union");
       MROutput allParts = (MROutput) outputs.get("all-parts");
       KeyValueWriter kvWriter = out.getWriter();

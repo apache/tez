@@ -108,6 +108,12 @@ public class WordCount {
     @Override
     public void run(Map<String, LogicalInput> inputs,
         Map<String, LogicalOutput> outputs) throws Exception {
+      for (LogicalInput input : inputs.values()) {
+        input.start();
+      }
+      for (LogicalOutput output : outputs.values()) {
+        output.start();
+      }
       Preconditions.checkArgument(inputs.size() == 1);
       Preconditions.checkArgument(outputs.size() == 1);
       MRInput input = (MRInput) inputs.values().iterator().next();
@@ -146,6 +152,14 @@ public class WordCount {
     public void run(Map<String, LogicalInput> inputs,
         Map<String, LogicalOutput> outputs) throws Exception {
       Preconditions.checkArgument(inputs.size() == 1);
+
+      for (LogicalInput input : inputs.values()) {
+        input.start();
+      }
+      for (LogicalOutput output : outputs.values()) {
+        output.start();
+      }
+
       MROutput out = (MROutput) outputs.values().iterator().next();
       KeyValueWriter kvWriter = out.getWriter();
       KeyValuesReader kvReader = (KeyValuesReader) inputs.values().iterator().next().getReader();

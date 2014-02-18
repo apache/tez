@@ -134,6 +134,14 @@ public class TestProcessor implements LogicalIOProcessor {
   public void run(Map<String, LogicalInput> inputs,
       Map<String, LogicalOutput> outputs) throws Exception {
     LOG.info("Sleeping ms: " + sleepMs);
+
+    for (LogicalInput input : inputs.values()) {
+      input.start();
+    }
+    for (LogicalOutput output : outputs.values()) {
+      output.start();
+    }
+
     Thread.sleep(sleepMs);
     
     if (doFail) {

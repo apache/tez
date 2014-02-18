@@ -20,6 +20,7 @@ package org.apache.tez.runtime.library.input;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -64,6 +65,8 @@ public class ShuffledMergedInput implements LogicalInput {
 
   private TezCounter inputKeyCounter;
   private TezCounter inputValueCounter;
+  
+  private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
   @Override
   public List<Event> initialize(TezInputContext inputContext) throws IOException {
@@ -84,10 +87,11 @@ public class ShuffledMergedInput implements LogicalInput {
   }
 
   @Override
-  public List<Event> start() throws IOException {
-    // Start the shuffle - copy and merge
-    shuffle.run();
-    return Collections.emptyList();
+  public void start() throws IOException {
+    if (!isStarted.getAndSet(true)) {
+      // Start the shuffle - copy and merge
+      shuffle.run();
+    }
   }
 
   /**

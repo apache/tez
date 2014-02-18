@@ -62,6 +62,9 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 
+import com.google.common.collect.HashMultimap;
+
+
 public class MapUtils {
 
   private static final Log LOG = LogFactory.getLog(MapUtils.class);
@@ -216,7 +219,8 @@ public class MapUtils {
         0,
         jobConf,
         umbilical,
-        serviceConsumerMetadata);
+        serviceConsumerMetadata,
+        HashMultimap.<String, String>create());
     return task;
   }
 }

@@ -52,8 +52,7 @@ public class TestOutput implements LogicalOutput {
   }
 
   @Override
-  public List<Event> start() {
-    return Collections.emptyList();
+  public void start() {
   }
 
   @Override

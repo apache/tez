@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -55,6 +56,7 @@ public class OnFileSortedOutput implements LogicalOutput {
   private long startTime;
   private long endTime;
   
+  private final AtomicBoolean isStarted = new AtomicBoolean(false);
   
     
   @Override
@@ -80,9 +82,10 @@ public class OnFileSortedOutput implements LogicalOutput {
   }
 
   @Override
-  public List<Event> start() throws Exception {
-    sorter.start();
-    return Collections.emptyList();
+  public void start() throws Exception {
+    if (!isStarted.getAndSet(true)) {
+      sorter.start();
+    }
   }
 
   @Override

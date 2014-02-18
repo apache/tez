@@ -62,6 +62,12 @@ public class SleepProcessor implements LogicalIOProcessor {
                   Map<String, LogicalOutput> outputs) throws Exception {
     LOG.info("Running the Sleep Processor, sleeping for "
       + timeToSleepMS + " ms");
+    for (LogicalInput input : inputs.values()) {
+      input.start();
+    }
+    for (LogicalOutput output : outputs.values()) {
+      output.start();
+    }
     try {
       Thread.sleep(timeToSleepMS);
     } catch (InterruptedException ie) {

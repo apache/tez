@@ -94,6 +94,13 @@ implements LogicalIOProcessor {
       Map<String, LogicalOutput> outputs) throws Exception {
 
     LOG.info("Running reduce: " + processorContext.getUniqueIdentifier());
+    
+    for (LogicalInput input : inputs.values()) {
+      input.start();
+    }
+    for (LogicalOutput output : outputs.values()) {
+      output.start();
+    }
 
     if (outputs.size() <= 0 || outputs.size() > 1) {
       throw new IOException("Invalid number of outputs"

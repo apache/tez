@@ -191,8 +191,7 @@ public class MROutput implements LogicalOutput {
   }
   
   @Override
-  public List<Event> start() {
-    return null;
+  public void start() {
   }
 
   public void initCommitter(JobConf job, boolean useNewApi)

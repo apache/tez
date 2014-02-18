@@ -73,13 +73,20 @@ public class FilterByWordInputProcessor implements LogicalIOProcessor {
   @Override
   public void run(Map<String, LogicalInput> inputs,
       Map<String, LogicalOutput> outputs) throws Exception {
-
+    
     if (inputs.size() != 1) {
       throw new IllegalStateException("FilterByWordInputProcessor processor can only work with a single input");
     }
 
     if (outputs.size() != 1) {
       throw new IllegalStateException("FilterByWordInputProcessor processor can only work with a single output");
+    }
+    
+    for (LogicalInput input : inputs.values()) {
+      input.start();
+    }
+    for (LogicalOutput output : outputs.values()) {
+      output.start();
     }
 
     LogicalInput li = inputs.values().iterator().next();

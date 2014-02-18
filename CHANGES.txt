@@ -14,6 +14,8 @@ INCOMPATIBLE CHANGES
 
   TEZ-827. Separate initialize and start operations on Inputs/Outputs.
 
+  TEZ-668. Allow Processors to control Input/Output start
+
 Release 0.2.0 - 2013-11-30
 
   First version.

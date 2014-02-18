@@ -57,8 +57,9 @@ import org.apache.tez.runtime.api.Processor;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.TezProcessorContext;
-import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
+import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -67,12 +68,12 @@ import org.apache.tez.runtime.api.impl.TezInputContextImpl;
 import org.apache.tez.runtime.api.impl.TezOutputContextImpl;
 import org.apache.tez.runtime.api.impl.TezProcessorContextImpl;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
-import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -108,6 +109,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   
   private final ExecutorService initializerExecutor;
   private final CompletionService<Void> initializerCompletionService;
+  
+  private final Multimap<String, String> startedInputsMap;
 
   private LinkedBlockingQueue<TezEvent> eventsToBeProcessed;
   private Thread eventRouterThread = null;
@@ -116,7 +119,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, TezUmbilical tezUmbilical,
-      Map<String, ByteBuffer> serviceConsumerMetadata) throws IOException {
+      Map<String, ByteBuffer> serviceConsumerMetadata,
+      Multimap<String, String> startedInputsMap) throws IOException {
     // TODO Remove jobToken from here post TEZ-421
     super(taskSpec, tezConf, tezUmbilical);
     LOG.info("Initializing LogicalIOProcessorRuntimeTask with TaskSpec: "
@@ -149,6 +153,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         this.initializerExecutor);
     this.groupInputSpecs = taskSpec.getGroupInputs();
     initialMemoryDistributor = new MemoryDistributor(numInputs, numOutputs, tezConf);
+    this.startedInputsMap = startedInputsMap;
   }
 
   /**
@@ -220,24 +225,26 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
             + " for start, since it will be controlled via it's Group");
         continue;
       }
-      numAutoStarts++;
-      this.initializerCompletionService.submit(new StartInputCallable(inputsMap.get(inputSpec
-          .getSourceVertexName()), inputSpec.getSourceVertexName(), taskSpec.getVertexName()));
-    }
-
-    if (groupInputSpecs != null) {
-      for (GroupInputSpec group : groupInputSpecs) {
+      if (!inputAlreadyStarted(taskSpec.getVertexName(), inputSpec.getSourceVertexName())) {
+        startedInputsMap.put(taskSpec.getVertexName(), inputSpec.getSourceVertexName());
         numAutoStarts++;
-        this.initializerCompletionService.submit(new StartInputCallable(groupInputsMap.get(group
-            .getGroupName()), group.getGroupName(), taskSpec.getVertexName()));
+        this.initializerCompletionService.submit(new StartInputCallable(inputsMap.get(inputSpec
+            .getSourceVertexName()), inputSpec.getSourceVertexName()));
+        LOG.info("Input: " + inputSpec.getSourceVertexName()
+            + " being auto started by the framework. Subsequent instances will not be auto-started");
       }
     }
 
-    for (OutputSpec outputSpec : outputSpecs) {
-      numAutoStarts++;
-      this.initializerCompletionService
-          .submit(new StartOutputCallable(outputsMap.get(outputSpec.getDestinationVertexName()),
-              outputContextMap.get(outputSpec.getDestinationVertexName())));
+    if (groupInputSpecs != null) {      
+      for (GroupInputSpec group : groupInputSpecs) {
+        if (!inputAlreadyStarted(taskSpec.getVertexName(), group.getGroupName())) {
+          numAutoStarts++;
+          this.initializerCompletionService.submit(new StartInputCallable(groupInputsMap.get(group
+              .getGroupName()), group.getGroupName()));
+          LOG.info("InputGroup: " + group.getGroupName()
+              + " being auto started by the framework. Subsequent instance will not be auto-started");
+        }
+      }
     }
 
     // Shutdown after all tasks complete.
@@ -362,42 +369,17 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private class StartInputCallable implements Callable<Void> {
     private final LogicalInput input;
     private final String srcVertexName;
-    private final String taskVertexName;
     
-    public StartInputCallable(LogicalInput input, String srcVertexName, String taskVertexName) {
+    public StartInputCallable(LogicalInput input, String srcVertexName) {
       this.input = input;
       this.srcVertexName = srcVertexName;
-      this.taskVertexName = taskVertexName;
     }
     
     @Override
     public Void call() throws Exception {
       LOG.info("Starting Input with src edge: " + srcVertexName);
-      List<Event> events = input.start();
-      sendTaskGeneratedEvents(events, EventProducerConsumerType.INPUT, taskVertexName,
-          srcVertexName, taskSpec.getTaskAttemptID());
+      input.start();
       LOG.info("Started Input with src edge: " + srcVertexName);
-      return null;
-    }
-  }
-
-  private class StartOutputCallable implements Callable<Void> {
-    private final LogicalOutput output;
-    private final TezOutputContext outputContext;
-    
-    public StartOutputCallable(LogicalOutput output, TezOutputContext outputContext) {
-      this.output = output;
-      this.outputContext = outputContext;
-    }
-    
-    @Override
-    public Void call() throws Exception {
-      LOG.info("Starting Output with dest edge: " + outputContext.getDestinationVertexName());
-      List<Event> events = output.start();
-      sendTaskGeneratedEvents(events, EventProducerConsumerType.OUTPUT,
-          outputContext.getTaskVertexName(), outputContext.getDestinationVertexName(),
-          taskSpec.getTaskAttemptID());
-      LOG.info("Started Output with dest edge: " + outputContext.getDestinationVertexName());
       return null;
     }
   }
@@ -433,6 +415,14 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       LOG.info("Initialized Output with dest edge: " + edgeName);
       return null;
     }
+  }
+
+  private boolean inputAlreadyStarted(String vertexName, String edgeVertexName) {
+    if (startedInputsMap.containsKey(vertexName)
+        && startedInputsMap.get(vertexName).contains(edgeVertexName)) {
+      return true;
+    }
+    return false;
   }
 
   private void initializeGroupInputs() {

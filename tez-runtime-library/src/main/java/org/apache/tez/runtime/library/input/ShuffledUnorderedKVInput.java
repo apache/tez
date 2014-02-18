@@ -21,6 +21,7 @@ package org.apache.tez.runtime.library.input;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -45,6 +46,8 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   @SuppressWarnings("rawtypes")
   private BroadcastKVReader kvReader;
   
+  private final AtomicBoolean isStarted = new AtomicBoolean(false);
+  
   public ShuffledUnorderedKVInput() {
   }
 
@@ -64,10 +67,11 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   }
 
   @Override
-  public List<Event> start() throws IOException {
-    this.shuffleManager.run();
-    this.kvReader = this.shuffleManager.createReader();
-    return Collections.emptyList();
+  public void start() throws IOException {
+    if (!isStarted.getAndSet(true)) {
+      this.shuffleManager.run();
+      this.kvReader = this.shuffleManager.createReader();
+    }
   }
 
   @Override

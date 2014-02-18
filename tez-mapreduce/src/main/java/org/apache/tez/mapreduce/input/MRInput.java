@@ -18,7 +18,6 @@
 package org.apache.tez.mapreduce.input;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -159,8 +158,7 @@ public class MRInput implements LogicalInput {
   }
   
   @Override
-  public List<Event> start() {
-    return Collections.emptyList();
+  public void start() {
   }
 
   @Private

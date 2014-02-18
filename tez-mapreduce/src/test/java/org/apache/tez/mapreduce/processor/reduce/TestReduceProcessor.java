@@ -70,6 +70,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.HashMultimap;
+
 
 @SuppressWarnings("deprecation")
 public class TestReduceProcessor {
@@ -184,7 +186,8 @@ public class TestReduceProcessor {
         0,
         reduceConf,
         new TestUmbilical(),
-        serviceConsumerMetadata);
+        serviceConsumerMetadata,
+        HashMultimap.<String, String>create());
     
     task.initialize();
     task.run();

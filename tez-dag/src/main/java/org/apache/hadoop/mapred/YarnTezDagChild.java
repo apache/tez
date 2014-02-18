@@ -90,7 +90,9 @@ import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryModule;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
@@ -118,6 +120,13 @@ public class YarnTezDagChild {
   private static Throwable heartbeatErrorException = null;
   // Implies that the task is done - and the AM is being informed.
   private static AtomicBoolean currentTaskComplete = new AtomicBoolean(true);
+  /**
+   * Used to maintain information about which Inputs have been started by the
+   * framework for the specific DAG. Makes an assumption that multiple DAGs do
+   * not execute concurrently, and must be reset each time the running DAG
+   * changes.
+   */
+  private static Multimap<String, String> startedInputsMap = HashMultimap.create();
 
   private static Thread startHeartbeatThread() {
     Thread heartbeatThread = new Thread(new Runnable() {
@@ -483,6 +492,7 @@ public class YarnTezDagChild {
             }
             if (!lastVertexId.getDAGId().equals(newVertexId.getDAGId())) {
               objectRegistry.clearCache(ObjectLifeCycle.DAG);
+              startedInputsMap = HashMultimap.create();
             }
           }
           lastVertexId = newVertexId;
@@ -643,7 +653,7 @@ public class YarnTezDagChild {
     LOG.info("LocalDirs for child: " + Arrays.toString(localDirs));
 
     return new LogicalIOProcessorRuntimeTask(taskSpec, attemptNum, conf,
-        tezUmbilical, serviceConsumerMetadata);
+        tezUmbilical, serviceConsumerMetadata, startedInputsMap);
   }
   
   // TODONEWTEZ Is this really required ?

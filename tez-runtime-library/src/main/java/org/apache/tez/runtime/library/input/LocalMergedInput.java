@@ -50,8 +50,7 @@ public class LocalMergedInput extends ShuffledMergedInputLegacy {
   }
   
   @Override
-  public List<Event> start() throws IOException {
-    return Collections.emptyList();
+  public void start() throws IOException {
   }
 
   @Override

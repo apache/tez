@@ -19,7 +19,7 @@
 package org.apache.tez.runtime.api;
 
 import java.util.List;
-import com.google.common.collect.Lists;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A LogicalInput that is used to merge the data from multiple inputs and provide a 
@@ -30,6 +30,7 @@ import com.google.common.collect.Lists;
 public abstract class MergedLogicalInput implements LogicalInput {
 
   private List<Input> inputs;
+  private final AtomicBoolean isStarted = new AtomicBoolean(false);
   
   public final void initialize(List<Input> inputs) {
     this.inputs = inputs;
@@ -45,15 +46,12 @@ public abstract class MergedLogicalInput implements LogicalInput {
   }
 
   @Override
-  public List<Event> start() throws Exception {
-    List<Event> events = Lists.newLinkedList();
-    for (Input input : inputs) {
-      List<Event> inputEvents = input.start();
-      if (inputEvents != null) {
-        events.addAll(inputEvents);
+  public final void start() throws Exception {
+    if (!isStarted.getAndSet(true)) {
+      for (Input input : inputs) {
+        input.start();
       }
     }
-    return events;
   }
 
   @Override

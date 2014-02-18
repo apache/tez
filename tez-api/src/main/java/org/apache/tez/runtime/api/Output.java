@@ -43,20 +43,21 @@ public interface Output {
       throws Exception;
 
   /**
-   * Start any processing that the Output may need to perform. This, for now, is
-   * always invoked by the framework.
+   * Start any processing that the Output may need to perform. It is the
+   * responsibility of the Processor to start Outputs.
    * 
-   * The implementation of Output is expected to be non blocking. Outputs should
-   * see this as a signal to start any processing that may be required, but must
-   * return control to the framework before the Processor actually starts.
+   * This typically acts as a signal to Outputs to start any Processing that they
+   * may required.
    * 
-   * Outputs should be written to handle multiple start invocations - typically
+   * This method may be invoked by the framework under certain circumstances,
+   * and as such requires the implementation to be non-blocking.   
+   * 
+   * Outputs must be written to handle multiple start invocations - typically
    * honoring only the first one.
    * 
-   * @return list of events that were generated during initialization
    * @throws Exception
    */
-  public List<Event> start() throws Exception;
+  public void start() throws Exception;
 
   /**
    * Gets an instance of the {@link Writer} in an <code>Output</code>
