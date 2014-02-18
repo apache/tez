@@ -236,8 +236,7 @@ enum StatusGetOptsProto {
 }
 
 message VertexLocationHintProto {
-  optional int32 num_tasks = 1;
-  repeated PlanTaskLocationHint task_location_hints = 2;
+  repeated PlanTaskLocationHint task_location_hints = 1;
 }
 
 message PreWarmContextProto {
@@ -248,4 +247,5 @@ message PreWarmContextProto {
   optional PlanLocalResourcesProto localResources = 5;
   repeated PlanKeyValuePair environmentSetting = 6;
   optional string java_opts = 7;
+  optional int32 num_tasks = 8;
 }

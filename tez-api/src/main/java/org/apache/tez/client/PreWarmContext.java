@@ -37,6 +37,7 @@ public class PreWarmContext {
 
   private final ProcessorDescriptor processorDescriptor;
   private final Resource resource;
+  private final int numTasks;
   private final VertexLocationHint locationHints;
   private Map<String, LocalResource> localResources;
   private Map<String, String> environment;
@@ -44,21 +45,27 @@ public class PreWarmContext {
 
   /**
    * Context to define how to pre-warm a TezSession.
-   * @param processorDescriptor The processor to run within a Tez Task
-   *                            after launching a container
-   * @param resource The resource requirements for each container
-   * @param locationHints The num of tasks to run as well as the location hints
-   *                      for the containers to be launched.
-   *                      The num of tasks can drive how many containers are launched.
-   *                      However, as containers are re-used, the total number
-   *                      of launched containers will likely be less than the
-   *                      specified number of tasks.
+   * 
+   * @param processorDescriptor
+   *          The processor to run within a Tez Task after launching a container
+   * @param resource
+   *          The resource requirements for each container
+   * @param numTasks
+   *          The number of tasks to run. The num of tasks can drive how many
+   *          containers are launched. However, as containers are re-used, the
+   *          total number of launched containers will likely be less than the
+   *          specified number of tasks.
+   * @param locationHints
+   *          The location hints for the containers to be launched.
+   * 
    */
   public PreWarmContext(ProcessorDescriptor processorDescriptor,
       Resource resource,
+      int numTasks,
       VertexLocationHint locationHints) {
     this.processorDescriptor =  processorDescriptor;
     this.resource = resource;
+    this.numTasks = numTasks;
     this.locationHints = locationHints;
   }
 
@@ -101,6 +108,10 @@ public class PreWarmContext {
 
   public Resource getResource() {
     return resource;
+  }
+
+  public int getNumTasks() {
+    return numTasks;
   }
 
   public VertexLocationHint getLocationHints() {

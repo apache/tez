@@ -98,7 +98,7 @@ public class Vertex {
       return this;
     }
     assert locations.size() == parallelism;
-    taskLocationsHint = new VertexLocationHint(parallelism, locations);
+    taskLocationsHint = new VertexLocationHint(locations);
     return this;
   }
 

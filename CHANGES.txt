@@ -14,7 +14,9 @@ INCOMPATIBLE CHANGES
 
   TEZ-827. Separate initialize and start operations on Inputs/Outputs.
 
-  TEZ-668. Allow Processors to control Input/Output start
+  TEZ-668. Allow Processors to control Input/Output start.
+
+  TEZ-837. Remove numTasks from VertexLocationHints.
 
 Release 0.2.0 - 2013-11-30
 

@@ -870,15 +870,15 @@ public class DAGAppMaster extends AbstractService {
       new org.apache.tez.dag.api.DAG(
           TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX +
               Integer.toString(dagCounter.get() + 1));
-    if (preWarmContext.getLocationHints().getNumTasks() <= 0) {
+    if (preWarmContext.getNumTasks() <= 0) {
       LOG.warn("Ignoring pre-warm context as invalid numContainers specified: "
-          + preWarmContext.getLocationHints().getNumTasks());
+          + preWarmContext.getNumTasks());
       return;
     }
     org.apache.tez.dag.api.Vertex preWarmVertex = new
         org.apache.tez.dag.api.Vertex("PreWarmVertex",
       preWarmContext.getProcessorDescriptor(),
-      preWarmContext.getLocationHints().getNumTasks(), preWarmContext.getResource());
+      preWarmContext.getNumTasks(), preWarmContext.getResource());
     if (preWarmContext.getEnvironment() != null) {
       preWarmVertex.setTaskEnvironment(preWarmContext.getEnvironment());
     }
@@ -895,7 +895,7 @@ public class DAGAppMaster extends AbstractService {
     dag.addVertex(preWarmVertex);
     LOG.info("Pre-warming containers"
         + ", processor=" + preWarmContext.getProcessorDescriptor().getClassName()
-        + ", numContainers=" + preWarmContext.getLocationHints().getNumTasks()
+        + ", numContainers=" + preWarmContext.getNumTasks()
         + ", containerResource=" + preWarmContext.getResource());
     startDAG(dag.createDag(amConf));
   }

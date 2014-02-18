@@ -426,7 +426,7 @@ public class OrderedWordCount {
         if (doPreWarm) {
           LOG.info("Pre-warming Session");
           VertexLocationHint vertexLocationHint =
-              new VertexLocationHint(preWarmNumContainers, null);
+              new VertexLocationHint(null);
           ProcessorDescriptor sleepProcDescriptor =
             new ProcessorDescriptor(SleepProcessor.class.getName());
           SleepProcessor.SleepProcessorConfig sleepProcessorConfig =
@@ -434,7 +434,7 @@ public class OrderedWordCount {
           sleepProcDescriptor.setUserPayload(
             sleepProcessorConfig.toUserPayload());
           PreWarmContext context = new PreWarmContext(sleepProcDescriptor,
-            dag.getVertex("initialmap").getTaskResource(),
+            dag.getVertex("initialmap").getTaskResource(), preWarmNumContainers,
               vertexLocationHint);
 
           Map<String, LocalResource> contextLocalRsrcs =

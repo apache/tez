@@ -175,7 +175,7 @@ public class DagTypeConverters {
           new HashSet<String>(inputHint.getRackList()));
       outputList.add(outputHint);
     }
-    return new VertexLocationHint(outputList.size(), outputList);
+    return new VertexLocationHint(outputList);
   }
   
   // notes re HDFS URL handling:
@@ -553,14 +553,13 @@ public class DagTypeConverters {
       outputList.add(outputHint);
     }
 
-    return new VertexLocationHint(proto.getNumTasks(), outputList);
+    return new VertexLocationHint(outputList);
   }
 
   public static VertexLocationHintProto convertVertexLocationHintToProto(
       VertexLocationHint vertexLocationHint) {
     VertexLocationHintProto.Builder builder =
       VertexLocationHintProto.newBuilder();
-    builder.setNumTasks(vertexLocationHint.getNumTasks());
     if (vertexLocationHint.getTaskLocationHints() != null) {
       for (TaskLocationHint taskLocationHint :
         vertexLocationHint.getTaskLocationHints()) {
@@ -624,6 +623,7 @@ public class DagTypeConverters {
       DagTypeConverters.convertProcessorDescriptorFromDAGPlan(
         proto.getProcessorDescriptor()),
         Resource.newInstance(proto.getMemoryMb(), proto.getVirtualCores()),
+        proto.getNumTasks(),
         vertexLocationHint);
     if (proto.hasLocalResources()) {
       context.setLocalResources(
