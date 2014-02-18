@@ -20,6 +20,7 @@ package org.apache.tez.dag.library.vertexmanager;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,11 +42,11 @@ import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
-import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -144,7 +145,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
     }
 
     @Override
-    public int getNumDestinationTaskInputs(int numSourceTasks, 
+    public int getNumDestinationTaskPhysicalInputs(int numSourceTasks, 
         int destinationTaskIndex) {
       int partitionRange = 1;
       if(destinationTaskIndex < numDestinationTasks-1) {
@@ -156,14 +157,14 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
     }
 
     @Override
-    public int getNumSourceTaskOutputs(int numDestinationTasks, 
+    public int getNumSourceTaskPhysicalOutputs(int numDestinationTasks, 
         int sourceTaskIndex) {
       return numSourceTaskOutputs;
     }
     
     @Override
-    public void routeEventToDestinationTasks(DataMovementEvent event,
-        int sourceTaskIndex, int numDestinationTasks, List<Integer> taskIndices) {
+    public void routeDataMovementEventToDestination(DataMovementEvent event,
+        int sourceTaskIndex, int numDestinationTasks, Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
       int sourceIndex = event.getSourceIndex();
       int destinationTaskIndex = sourceIndex/basePartitionRange;
       int partitionRange = 1;
@@ -178,32 +179,46 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
           sourceTaskIndex * partitionRange 
           + sourceIndex % partitionRange;
       
-      event.setTargetIndex(targetIndex);
-      taskIndices.add(new Integer(destinationTaskIndex));
+      inputIndicesToTaskIndices.put(new Integer(targetIndex), 
+          Collections.singletonList(new Integer(destinationTaskIndex)));
     }
-
+    
     @Override
-    public void routeEventToDestinationTasks(InputFailedEvent event,
-        int sourceTaskIndex, int numDestinationTasks, List<Integer> taskIndices) {
-      int sourceIndex = event.getSourceIndex();
-      int destinationTaskIndex = sourceIndex/basePartitionRange;
-      int partitionRange = 1;
-      if(destinationTaskIndex < numDestinationTasks-1) {
-        partitionRange = basePartitionRange;
+    public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex, 
+        int numDestinationTasks, 
+        Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
+      if (remainderRangeForLastShuffler < basePartitionRange) {
+        List<Integer> lastTask = Collections.singletonList(
+            new Integer(numDestinationTasks-1));
+        List<Integer> otherTasks = Lists.newArrayListWithCapacity(numDestinationTasks-1);
+        for (int i=0; i<numDestinationTasks-1; ++i) {
+          otherTasks.add(new Integer(i));
+        }
+        
+        int startOffset = sourceTaskIndex * basePartitionRange;
+        for (int i=0; i<basePartitionRange; ++i) {
+          inputIndicesToTaskIndices.put(new Integer(startOffset+i), otherTasks);
+        }
+        startOffset = sourceTaskIndex * remainderRangeForLastShuffler;
+        for (int i=0; i<remainderRangeForLastShuffler; ++i) {
+          inputIndicesToTaskIndices.put(new Integer(startOffset+i), lastTask);
+        }
       } else {
-        partitionRange = remainderRangeForLastShuffler;
+        // all tasks have same pattern
+        List<Integer> allTasks = Lists.newArrayListWithCapacity(numDestinationTasks);
+        for (int i=0; i<numDestinationTasks; ++i) {
+          allTasks.add(new Integer(i));
+        }
+        int startOffset = sourceTaskIndex * basePartitionRange;
+        for (int i=0; i<basePartitionRange; ++i) {
+          inputIndicesToTaskIndices.put(new Integer(startOffset+i), allTasks);
+        }
       }
-      int targetIndex = 
-          sourceTaskIndex * partitionRange 
-          + sourceIndex % partitionRange;
-      
-      event.setTargetIndex(targetIndex);
-      taskIndices.add(new Integer(destinationTaskIndex));
     }
 
     @Override
-    public int routeEventToSourceTasks(int destinationTaskIndex,
-        InputReadErrorEvent event) {
+    public int routeInputErrorEventToSource(InputReadErrorEvent event,
+        int destinationTaskIndex) {
       int partitionRange = 1;
       if(destinationTaskIndex < numDestinationTasks-1) {
         partitionRange = basePartitionRange;
@@ -214,7 +229,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
     }
 
     @Override
-    public int getDestinationConsumerTaskNumber(int sourceTaskIndex,
+    public int getNumDestinationConsumerTasks(int sourceTaskIndex,
         int numDestTasks) {
       return numDestTasks;
     }

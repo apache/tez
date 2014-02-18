@@ -18,13 +18,14 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.dag.api.EdgeManagerContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
-import org.apache.tez.runtime.api.events.InputFailedEvent;
 
 public class OneToOneEdgeManager implements EdgeManager {
 
@@ -34,43 +35,42 @@ public class OneToOneEdgeManager implements EdgeManager {
   }
 
   @Override
-  public int getNumDestinationTaskInputs(int numDestinationTasks, 
+  public int getNumDestinationTaskPhysicalInputs(int numDestinationTasks, 
       int destinationTaskIndex) {
     return 1;
   }
   
   @Override
-  public int getNumSourceTaskOutputs(int numDestinationTasks, 
+  public int getNumSourceTaskPhysicalOutputs(int numDestinationTasks, 
       int sourceTaskIndex) {
     return 1;
   }
   
   @Override
-  public void routeEventToDestinationTasks(DataMovementEvent event,
-      int sourceTaskIndex, int numDestinationTasks, List<Integer> taskIndices) {
-    event.setTargetIndex(0);
-    addDestinationTaskIndex(sourceTaskIndex, taskIndices);
+  public void routeDataMovementEventToDestination(DataMovementEvent event,
+      int sourceTaskIndex, int numDestinationTasks, 
+      Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
+    inputIndicesToTaskIndices.put(new Integer(0), 
+        Collections.singletonList(new Integer(sourceTaskIndex)));
   }
   
   @Override
-  public void routeEventToDestinationTasks(InputFailedEvent event,
-      int sourceTaskIndex, int numDestinationTasks, List<Integer> taskIndices) {
-    event.setTargetIndex(0);
-    addDestinationTaskIndex(sourceTaskIndex, taskIndices);
-  }
-  
-  @Override
-  public int routeEventToSourceTasks(int destinationTaskIndex,
-      InputReadErrorEvent event) {
-    return destinationTaskIndex;
-  }
-  
-  void addDestinationTaskIndex(int sourceTaskIndex, List<Integer> taskIndeces) {
-    taskIndeces.add(new Integer(sourceTaskIndex));
+  public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
+      int numDestinationTasks,
+      Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
+    inputIndicesToTaskIndices.put(new Integer(0), 
+        Collections.singletonList(new Integer(sourceTaskIndex)));
   }
 
   @Override
-  public int getDestinationConsumerTaskNumber(int sourceTaskIndex, int numDestTasks) {
+  public int routeInputErrorEventToSource(InputReadErrorEvent event,
+      int destinationTaskIndex) {
+    return destinationTaskIndex;
+  }
+  
+  @Override
+  public int getNumDestinationConsumerTasks(int sourceTaskIndex, int numDestTasks) {
     return 1;
   }
+
 }

@@ -19,11 +19,11 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.dag.api.EdgeManagerContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
-import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
 public class NullEdgeManager implements EdgeManager {
@@ -36,39 +36,40 @@ public class NullEdgeManager implements EdgeManager {
   }
 
   @Override
-  public int getNumDestinationTaskInputs(int numSourceTasks, int destinationTaskIndex) {
+  public int getNumDestinationTaskPhysicalInputs(int numSourceTasks, int destinationTaskIndex) {
     throw new UnsupportedOperationException(
         "Cannot route events. EdgeManager should have been replaced at runtime");
   }
 
   @Override
-  public int getNumSourceTaskOutputs(int numDestinationTasks, int sourceTaskIndex) {
+  public int getNumSourceTaskPhysicalOutputs(int numDestinationTasks, int sourceTaskIndex) {
     throw new UnsupportedOperationException(
         "Cannot route events. EdgeManager should have been replaced at runtime");
   }
 
   @Override
-  public void routeEventToDestinationTasks(DataMovementEvent event, int sourceTaskIndex,
-      int numDestinationTasks, List<Integer> taskIndices) {
+  public void routeDataMovementEventToDestination(DataMovementEvent event, int sourceTaskIndex,
+      int numDestinationTasks, Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
     throw new UnsupportedOperationException(
         "Cannot route events. EdgeManager should have been replaced at runtime");
   }
 
   @Override
-  public void routeEventToDestinationTasks(InputFailedEvent event, int sourceTaskIndex,
-      int numDestinationTasks, List<Integer> taskIndices) {
+  public int getNumDestinationConsumerTasks(int sourceTaskIndex, int numDestinationTasks) {
     throw new UnsupportedOperationException(
         "Cannot route events. EdgeManager should have been replaced at runtime");
   }
 
   @Override
-  public int getDestinationConsumerTaskNumber(int sourceTaskIndex, int numDestinationTasks) {
+  public int routeInputErrorEventToSource(InputReadErrorEvent event, int destinationTaskIndex) {
     throw new UnsupportedOperationException(
         "Cannot route events. EdgeManager should have been replaced at runtime");
   }
 
   @Override
-  public int routeEventToSourceTasks(int destinationTaskIndex, InputReadErrorEvent event) {
+  public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
+      int numDestinationTasks,
+      Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
     throw new UnsupportedOperationException(
         "Cannot route events. EdgeManager should have been replaced at runtime");
   }

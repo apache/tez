@@ -42,7 +42,7 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import static org.mockito.Mockito.*;
 
@@ -198,16 +198,31 @@ public class TestShuffleVertexManager {
     Assert.assertEquals(2, newEdgeManagers.size());
     
     EdgeManager edgeManager = newEdgeManagers.values().iterator().next();
-    List<Integer> targets = Lists.newArrayList();
+    Map<Integer, List<Integer>> targets = Maps.newHashMap();
     DataMovementEvent dmEvent = new DataMovementEvent(1, new byte[0]);
-    edgeManager.routeEventToDestinationTasks(dmEvent, 1, 2, targets);
-    Assert.assertEquals(3, dmEvent.getTargetIndex());
-    Assert.assertEquals(0, targets.get(0).intValue());
+    edgeManager.routeDataMovementEventToDestination(dmEvent, 1, 2, targets);
+    Assert.assertEquals(1, targets.size());
+    Map.Entry<Integer, List<Integer>> e = targets.entrySet().iterator().next();
+    Assert.assertEquals(3, e.getKey().intValue());
+    Assert.assertEquals(1, e.getValue().size());
+    Assert.assertEquals(0, e.getValue().get(0).intValue());
     targets.clear();
     dmEvent = new DataMovementEvent(2, new byte[0]);
-    edgeManager.routeEventToDestinationTasks(dmEvent, 0, 2, targets);
-    Assert.assertEquals(0, dmEvent.getTargetIndex());
-    Assert.assertEquals(1, targets.get(0).intValue());    
+    edgeManager.routeDataMovementEventToDestination(dmEvent, 0, 2, targets);
+    Assert.assertEquals(1, targets.size());
+    e = targets.entrySet().iterator().next();
+    Assert.assertEquals(0, e.getKey().intValue());
+    Assert.assertEquals(1, e.getValue().size());
+    Assert.assertEquals(1, e.getValue().get(0).intValue());
+    targets.clear();
+    edgeManager.routeInputSourceTaskFailedEventToDestination(2, 2, targets);
+    Assert.assertEquals(2, targets.size());
+    for (Map.Entry<Integer, List<Integer>> entry : targets.entrySet()) {
+      Assert.assertTrue(entry.getKey().intValue() == 4 || entry.getKey().intValue() == 5);
+      Assert.assertEquals(2, entry.getValue().size());
+      Assert.assertEquals(0, entry.getValue().get(0).intValue());
+      Assert.assertEquals(1, entry.getValue().get(1).intValue());
+    }
   }
   
   @SuppressWarnings({ "unchecked", "rawtypes" })

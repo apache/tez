@@ -46,15 +46,21 @@ public class InputFailedEvent extends Event{
    */
   private int version;
   
-  @Private
+  @Private // for Writable
   public InputFailedEvent() {
   }
   
-  @Private // for Writable
+  @Private
   public InputFailedEvent(int sourceIndex,
       int targetIndex,
       int version) {
     this.sourceIndex = sourceIndex;
+    this.targetIndex = targetIndex;
+    this.version = version;
+  }
+  
+  @Private
+  public InputFailedEvent(int targetIndex, int version) {
     this.targetIndex = targetIndex;
     this.version = version;
   }
