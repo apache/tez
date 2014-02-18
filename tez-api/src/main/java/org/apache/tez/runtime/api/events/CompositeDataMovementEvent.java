@@ -18,13 +18,9 @@
 
 package org.apache.tez.runtime.api.events;
 
-import org.apache.tez.runtime.api.Event;
+import java.util.Iterator;
 
-import com.google.common.collect.ContiguousSet;
-import com.google.common.collect.DiscreteDomain;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Range;
-import com.google.common.base.Function;
+import org.apache.tez.runtime.api.Event;
 
 /**
  * A convenience class to specify multiple DataMovementEvents which share the
@@ -83,16 +79,35 @@ public class CompositeDataMovementEvent extends Event {
   }
 
   public Iterable<DataMovementEvent> getEvents() {
-    // Overkill. For now is enough to just run a loop over the ints.
-    Range<Integer> range = Range.closedOpen(sourceIndexStart, sourceIndexEnd);
-    ContiguousSet<Integer> intRange = ContiguousSet.create(range, DiscreteDomain.integers());
-    return Iterables.transform(intRange, new Function<Integer, DataMovementEvent>() {
-      public DataMovementEvent apply(Integer integer) {
-        DataMovementEvent dmEvent = new DataMovementEvent(integer, userPayload);
-        dmEvent.setVersion(version);
-        return dmEvent;
+
+    return new Iterable<DataMovementEvent>() {
+      
+      @Override
+      public Iterator<DataMovementEvent> iterator() {
+        return new Iterator<DataMovementEvent>() {
+          
+          int currentPos = sourceIndexStart;
+
+          @Override
+          public boolean hasNext() {
+            return currentPos < sourceIndexEnd;
+          }
+
+          @Override
+          public DataMovementEvent next() {
+            DataMovementEvent dmEvent = new DataMovementEvent(currentPos, userPayload);
+            currentPos++;
+            dmEvent.setVersion(version);
+            return dmEvent;
+          }
+
+          @Override
+          public void remove() {
+            throw new UnsupportedOperationException("Remove not supported");
+          }
+        };
       }
-    });
+    };
   }
 
 }

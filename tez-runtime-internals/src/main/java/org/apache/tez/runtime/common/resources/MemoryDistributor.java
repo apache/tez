@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
@@ -44,7 +45,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 // Not calling this a MemoryManager explicitly. Not yet anyway.
 @Private
@@ -63,7 +63,8 @@ public class MemoryDistributor {
   private final boolean isEnabled;
   private final boolean reserveFractionConfigured;
   private float reserveFraction;
-  private final Set<TezTaskContext> dupSet = Sets.newConcurrentHashSet();
+  private final Set<TezTaskContext> dupSet = Collections
+      .newSetFromMap(new ConcurrentHashMap<TezTaskContext, Boolean>());
   private final List<RequestorInfo> requestList;
   
   // Maybe make the reserve fraction configurable. Or scale it based on JVM heap.

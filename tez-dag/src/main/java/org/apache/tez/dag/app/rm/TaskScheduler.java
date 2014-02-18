@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.rm;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -147,7 +149,8 @@ public class TaskScheduler extends AbstractService
   Map<ContainerId, HeldContainer> heldContainers =
       new HashMap<ContainerId, HeldContainer>();
   
-  Set<NodeId> blacklistedNodes = Sets.newConcurrentHashSet();
+  Set<NodeId> blacklistedNodes = Collections
+      .newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
   
   Resource totalResources = Resource.newInstance(0, 0);
   Resource allocatedResources = Resource.newInstance(0, 0);
