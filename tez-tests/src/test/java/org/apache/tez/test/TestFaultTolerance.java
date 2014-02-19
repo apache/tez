@@ -45,6 +45,8 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.test.dag.SimpleReverseVTestDAG;
+import org.apache.tez.test.dag.SimpleVTestDAG;
 import org.apache.tez.test.dag.SixLevelsFailingDAG;
 import org.apache.tez.test.dag.ThreeLevelsFailingDAG;
 import org.apache.tez.test.dag.TwoLevelsFailingDAG;
@@ -445,6 +447,104 @@ public class TestFaultTolerance {
     setCascadingInputFailureConfig(testConf, true);
     DAG dag = SimpleTestDAG3Vertices.createDAG(
               "testCascadingInputFailureWithExitSuccess", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+  
+  /**
+   * Input failure of v3 causes rerun of both both v1 and v2 vertices. 
+   *   v1  v2
+   *    \ /
+   *    v3
+   * 
+   * @throws Exception
+   */
+  @Test (timeout=60000)
+  public void testInputFailureCausesRerunOfTwoVerticesWithoutExit() throws Exception {
+    Configuration testConf = new Configuration(false);
+    testConf.setBoolean(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v3"), true);
+    testConf.setBoolean(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, "v3"), false);
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v3"), "0,1");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v3"), "0");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v3"), "-1");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v3"), "1");
+    
+    DAG dag = SimpleVTestDAG.createDAG(
+            "testInputFailureCausesRerunOfTwoVerticesWithoutExit", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+  
+  /**
+   * Downstream(v3) attempt failure of a vertex connected with 
+   * 2 upstream vertices.. 
+   *   v1  v2
+   *    \ /
+   *    v3
+   * 
+   * @throws Exception
+   */
+  @Test (timeout=60000)
+  public void testAttemptOfDownstreamVertexConnectedWithTwoUpstreamVerticesFailure() throws Exception {
+    Configuration testConf = new Configuration(false);
+    
+    testConf.setBoolean(TestProcessor.getVertexConfName(
+        TestProcessor.TEZ_FAILING_PROCESSOR_DO_FAIL, "v3"), true);
+    testConf.set(TestProcessor.getVertexConfName(
+        TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_TASK_INDEX, "v3"), "0,1");
+    testConf.setInt(TestProcessor.getVertexConfName(
+        TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "v3"), 1);
+    
+    DAG dag = SimpleVTestDAG.createDAG(
+            "testAttemptOfDownstreamVertexConnectedWithTwoUpstreamVerticesFailure", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+    
+  /**
+   * Input failure of v2,v3 trigger v1 rerun. 
+   * Reruns can send output to 2 downstream vertices. 
+   *     v1
+   *    /  \
+   *   v2   v3 
+   * 
+   * Also covers multiple consumer vertices report failure against same producer task.
+   * @throws Exception
+   */
+  @Test (timeout=60000)
+  public void testInputFailureRerunCanSendOutputToTwoDownstreamVertices() throws Exception {
+    Configuration testConf = new Configuration(false);
+    testConf.setBoolean(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
+    testConf.setBoolean(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, "v2"), false);
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "-1");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "-1");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v2"), "0");
+    
+    testConf.setBoolean(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v3"), true);
+    testConf.setBoolean(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, "v3"), false);
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v3"), "-1");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v3"), "0");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v3"), "-1");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v3"), "0");
+        
+    DAG dag = SimpleReverseVTestDAG.createDAG(
+            "testInputFailureRerunCanSendOutputToTwoDownstreamVertices", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
 
