@@ -262,6 +262,7 @@ public class TaskScheduler extends AbstractService
   }
 
   public int getClusterNodeCount() {
+    // this can potentially be cheaper after YARN-1722
     return amRmClient.getClusterNodeCount();
   }
 
@@ -788,6 +789,12 @@ public class TaskScheduler extends AbstractService
   public synchronized void blacklistNode(NodeId nodeId) {
     amRmClient.addNodeToBlacklist(nodeId);
     blacklistedNodes.add(nodeId);
+  }
+  
+  public synchronized void unblacklistNode(NodeId nodeId) {
+    if (blacklistedNodes.remove(nodeId)) {
+      amRmClient.removeNodeFromBlacklist(nodeId);
+    }
   }
   
   public synchronized void allocateTask(

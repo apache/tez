@@ -132,13 +132,15 @@ public class AMNodeMap extends AbstractService implements
     NodeId nodeId = rEvent.getNodeId();
     switch (rEvent.getType()) {
     case N_NODE_WAS_BLACKLISTED:
-   // When moving away from IGNORE_BLACKLISTING state, nodes will send out blacklisted events. These need to be ignored.
+      // When moving away from IGNORE_BLACKLISTING state, nodes will send out
+      // blacklisted events. These need to be ignored.
       addToBlackList(nodeId);
       computeIgnoreBlacklisting();
       break;
     case N_NODE_COUNT_UPDATED:
       AMNodeEventNodeCountUpdated event = (AMNodeEventNodeCountUpdated) rEvent;
       numClusterNodes = event.getNodeCount();
+      LOG.info("Num cluster nodes = " + numClusterNodes);
       computeIgnoreBlacklisting();
       break;
     case N_TURNED_UNHEALTHY:

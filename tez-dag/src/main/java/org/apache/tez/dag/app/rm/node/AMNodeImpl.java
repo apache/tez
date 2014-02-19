@@ -38,7 +38,7 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.rm.AMSchedulerEventNodeBlacklisted;
+import org.apache.tez.dag.app.rm.AMSchedulerEventNodeBlacklistUpdate;
 import org.apache.tez.dag.app.rm.container.AMContainerEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerEventNodeFailed;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
@@ -248,9 +248,12 @@ public class AMNodeImpl implements AMNode {
     for (ContainerId c : containers) {
       sendEvent(new AMContainerEventNodeFailed(c, "Node failed"));
     }
+    // these containers are not useful anymore
+    pastContainers.addAll(containers);
+    containers.clear();
     sendEvent(new AMNodeEvent(getNodeId(),
         AMNodeEventType.N_NODE_WAS_BLACKLISTED));
-    sendEvent(new AMSchedulerEventNodeBlacklisted(getNodeId()));
+    sendEvent(new AMSchedulerEventNodeBlacklistUpdate(getNodeId(), true));
   }
 
   @SuppressWarnings("unchecked")
@@ -343,6 +346,9 @@ public class AMNodeImpl implements AMNode {
     @Override
     public void transition(AMNodeImpl node, AMNodeEvent nEvent) {
       node.ignoreBlacklisting = ignore;
+      if (node.getState() == AMNodeState.BLACKLISTED) {
+        node.sendEvent(new AMSchedulerEventNodeBlacklistUpdate(node.getNodeId(), false));
+      }
     }
   }
 

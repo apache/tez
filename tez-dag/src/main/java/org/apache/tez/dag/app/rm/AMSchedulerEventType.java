@@ -31,6 +31,7 @@ public enum AMSchedulerEventType {
 
   //Producer: Node
   S_NODE_BLACKLISTED,
+  S_NODE_UNBLACKLISTED,
   S_NODE_UNHEALTHY,
   S_NODE_HEALTHY,
   // The scheduler should have a way of knowing about unusable nodes. Acting on

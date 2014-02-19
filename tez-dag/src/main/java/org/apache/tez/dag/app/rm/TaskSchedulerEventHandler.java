@@ -58,6 +58,7 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventTASucceeded;
 import org.apache.tez.dag.app.rm.container.AMContainerState;
 import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.node.AMNodeEventContainerAllocated;
+import org.apache.tez.dag.app.rm.node.AMNodeEventNodeCountUpdated;
 import org.apache.tez.dag.app.rm.node.AMNodeEventStateChanged;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptEnded;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptSucceeded;
@@ -79,6 +80,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   protected volatile boolean isSignalled = false;
   final DAGClientServer clientService;
   private final ContainerSignatureMatcher containerSignatureMatcher;
+  private int cachedNodeCount = -1;
 
   BlockingQueue<AMSchedulerEvent> eventQueue
                               = new LinkedBlockingQueue<AMSchedulerEvent>();
@@ -137,13 +139,17 @@ public class TaskSchedulerEventHandler extends AbstractService
       break;
     case S_CONTAINER_COMPLETED:
       break;
+    case S_NODE_UNBLACKLISTED:
+      // fall through
     case S_NODE_BLACKLISTED:
-      handleNodeBlacklist((AMSchedulerEventNodeBlacklisted)sEvent);
+      handleNodeBlacklistUpdate((AMSchedulerEventNodeBlacklistUpdate)sEvent);
       break;
     case S_NODE_UNHEALTHY:
       break;
     case S_NODE_HEALTHY:
       // Consider changing this to work like BLACKLISTING.
+      break;
+    default:
       break;
     }
   }
@@ -171,8 +177,14 @@ public class TaskSchedulerEventHandler extends AbstractService
     eventHandler.handle(event);
   }
 
-  private void handleNodeBlacklist(AMSchedulerEventNodeBlacklisted event) {
-    taskScheduler.blacklistNode(event.getNodeId());
+  private void handleNodeBlacklistUpdate(AMSchedulerEventNodeBlacklistUpdate event) {
+    if (event.getType() == AMSchedulerEventType.S_NODE_BLACKLISTED) {
+      taskScheduler.blacklistNode(event.getNodeId());
+    } else if (event.getType() == AMSchedulerEventType.S_NODE_UNBLACKLISTED) {
+      taskScheduler.unblacklistNode(event.getNodeId());
+    } else {
+      throw new TezUncheckedException("Invalid event type: " + event.getType());
+    }
   }
 
   private void handleContainerDeallocate(
@@ -507,6 +519,13 @@ public class TaskSchedulerEventHandler extends AbstractService
   // complete and can hence lead to a deadlock if called from within a TSEH lock.
   @Override
   public float getProgress() {
+    // at this point allocate has been called and so node count must be available
+    // may change after YARN-1722
+    int nodeCount = taskScheduler.getClusterNodeCount();
+    if (nodeCount != cachedNodeCount) {
+      cachedNodeCount = nodeCount;
+      sendEvent(new AMNodeEventNodeCountUpdated(cachedNodeCount));
+    }
     return dagAppMaster.getProgress();
   }
 

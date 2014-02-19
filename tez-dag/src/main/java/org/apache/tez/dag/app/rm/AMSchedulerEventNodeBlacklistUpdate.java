@@ -20,12 +20,13 @@ package org.apache.tez.dag.app.rm;
 
 import org.apache.hadoop.yarn.api.records.NodeId;
 
-public class AMSchedulerEventNodeBlacklisted extends AMSchedulerEvent {
+public class AMSchedulerEventNodeBlacklistUpdate extends AMSchedulerEvent {
 
   private final NodeId nodeId;
 
-  public AMSchedulerEventNodeBlacklisted(NodeId nodeId) {
-    super(AMSchedulerEventType.S_NODE_BLACKLISTED);
+  public AMSchedulerEventNodeBlacklistUpdate(NodeId nodeId, boolean add) {
+    super((add ? AMSchedulerEventType.S_NODE_BLACKLISTED
+        : AMSchedulerEventType.S_NODE_UNBLACKLISTED));
     this.nodeId = nodeId;
   }
 

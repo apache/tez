@@ -437,7 +437,11 @@ public class TestTaskScheduler {
     verify(mockApp).containerBeingReleased(mockCId6);
     verify(mockRMClient).releaseAssignedContainer(mockCId6);
     verify(mockRMClient, times(5)).releaseAssignedContainer((ContainerId) any());
-    
+    // test unblacklist
+    scheduler.unblacklistNode(badNodeId);
+    verify(mockRMClient, times(1)).removeNodeFromBlacklist(badNodeId);
+    assertEquals(0, scheduler.blacklistedNodes.size());
+
     float progress = 0.5f;
     when(mockApp.getProgress()).thenReturn(progress);
     Assert.assertEquals(progress, scheduler.getProgress(), 0);
@@ -831,6 +835,10 @@ public class TestTaskScheduler {
     verify(mockApp).containerBeingReleased(mockCId6);
     verify(mockRMClient).releaseAssignedContainer(mockCId6);
     verify(mockRMClient, times(5)).releaseAssignedContainer((ContainerId) any());
+    // test unblacklist
+    scheduler.unblacklistNode(badNodeId);
+    verify(mockRMClient, times(1)).removeNodeFromBlacklist(badNodeId);
+    assertEquals(0, scheduler.blacklistedNodes.size());
 
     float progress = 0.5f;
     when(mockApp.getProgress()).thenReturn(progress);
