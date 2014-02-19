@@ -23,6 +23,12 @@
   </parent>
   <properties>
     <tez.component>tez-dag</tez.component>
+    <tez.dag.state.classes>org.apache.tez.dag.app.dag.impl.DAGImpl,
+    org.apache.tez.dag.app.dag.impl.VertexImpl,
+    org.apache.tez.dag.app.dag.impl.TaskImpl,
+    org.apache.tez.dag.app.dag.impl.TaskAttemptImpl</tez.dag.state.classes>
+    <tez.graphviz.title>Tez</tez.graphviz.title>
+    <tez.graphviz.output.file>Tez.gv</tez.graphviz.output.file>
   </properties>
   <artifactId>tez-dag</artifactId>
 
@@ -142,5 +148,39 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>visualize</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>compile</phase>
+                <goals>
+                  <goal>java</goal>
+                </goals>
+                <configuration>
+                  <classpathScope>test</classpathScope>
+                  <mainClass>org.apache.hadoop.yarn.state.VisualizeStateMachine</mainClass>
+                  <arguments>
+                    <argument>${tez.graphviz.title}</argument>
+                    <argument>${tez.dag.state.classes}</argument>
+                    <argument>${tez.graphviz.output.file}</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

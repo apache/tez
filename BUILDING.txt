@@ -38,6 +38,7 @@ Maven build goals:
  * Run Rat                   : mvn apache-rat:check
  * Build javadocs            : mvn javadoc:javadoc
  * Build distribution        : mvn package[-Dtar][-Dhadoop.version=2.2.0]
+ * Visualize state machines  : mvn compile -Pvisualize -DskipTests=true
  
 Build options:
  
@@ -99,3 +100,26 @@ An alternative is to run 'mvn install -DskipTests' from Tez source top
 level once; and then work from the submodule. Keep in mind that SNAPSHOTs
 time out after a while, using the Maven '-nsu' will stop Maven from trying
 to update SNAPSHOTs from external repos.
+
+----------------------------------------------------------------------------------
+Visualize the State Machines used in Tez internals:
+
+Use -Pvisualize to generate a graphviz file named Tez.gv which can then be
+converted into a state machine diagram that represents the state transitions of
+the state machine for the classses provided.
+
+Optional parameters:
+  * -Dtez.dag.state.classes=<comma-separated list of classes>
+    - By default, all 4 state machines - DAG, Vertex, Task and TaskAttempt are generated.
+  * -Dtez.graphviz.title
+    - Title for the Graph ( Default is Tez )
+  * -Dtez.graphviz.output.file
+    - Output file to be generated with the state machines ( Default is Tez.gv )
+
+For example, to generate the state machine graphviz file for DAGImpl, run:
+
+  $ mvn compile -Pvisualize -Dtez.dag.state.classes=org.apache.tez.dag.app.dag.impl.DAGImpl -DskipTests=true
+
+To generate the diagram, you can use a Graphviz application or something like:
+
+  $ dot -Tpng -o Tez.png Tez.gv'
