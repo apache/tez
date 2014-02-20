@@ -18,48 +18,41 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
   <id>tez-dist</id>
-  <!--includeBaseDirectory paramter replacement does not seem to work -->
-  <!--includeBaseDirectory>${package.includeBaseDirectory}</includeBaseDirectory-->
   <moduleSets>
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
-      <includes>
-        <include>org.apache.tez:tez-api</include>
-      </includes>
       <binaries>
         <outputDirectory>/</outputDirectory>
-        <includeDependencies>false</includeDependencies>
         <unpack>false</unpack>
+        <dependencySets>
+          <dependencySet>
+            <unpack>false</unpack>
+            <scope>runtime</scope>
+            <outputDirectory>/lib</outputDirectory>
+            <excludes>
+              <exclude>*:*:test-jar</exclude>
+              <exclude>org.apache.hadoop:hadoop-common</exclude>
+              <exclude>org.apache.hadoop:hadoop-auth</exclude>
+              <exclude>org.apache.hadoop:hadoop-annotations</exclude>
+              <exclude>org.apache.hadoop:hadoop-yarn-api</exclude>
+              <exclude>org.apache.hadoop:hadoop-yarn-client</exclude>
+              <exclude>org.apache.hadoop:hadoop-yarn-common</exclude>
+              <exclude>org.apache.hadoop:hadoop-yarn-server-common</exclude>
+              <exclude>org.apache.hadoop:hadoop-yarn-server-nodemanager</exclude>
+              <exclude>org.apache.tez:*</exclude>
+              <exclude>org.slf4j:*</exclude>
+            </excludes>
+          </dependencySet>
+          <dependencySet>
+            <unpack>false</unpack>
+            <scope>runtime</scope>
+            <outputDirectory>/tests</outputDirectory>
+            <includes>
+            <include>*:*:test-jar</include>
+            </includes>
+          </dependencySet>
+        </dependencySets>
       </binaries>
     </moduleSet>
   </moduleSets>
-  <dependencySets>
-    <dependencySet>
-      <useProjectArtifact>false</useProjectArtifact>
-      <outputDirectory>/lib</outputDirectory>
-      <!-- Exclude hadoop artifacts. They will be found via HADOOP* env -->
-      <excludes>
-        <exclude>org.apache.tez:tez-api</exclude>
-        <exclude>*:*:test-jar</exclude>
-        <exclude>org.apache.hadoop:hadoop-common</exclude>
-        <exclude>org.apache.hadoop:hadoop-auth</exclude>
-        <exclude>org.apache.hadoop:hadoop-annotations</exclude>
-        <exclude>org.apache.hadoop:hadoop-yarn-api</exclude>
-        <exclude>org.apache.hadoop:hadoop-yarn-client</exclude>
-        <exclude>org.apache.hadoop:hadoop-yarn-common</exclude>
-        <exclude>org.apache.hadoop:hadoop-yarn-server-common</exclude>
-        <exclude>org.apache.hadoop:hadoop-yarn-server-nodemanager</exclude>
-        <!-- use slf4j from common to avoid multiple binding warnings -->
-        <exclude>org.slf4j:slf4j-api</exclude>
-        <exclude>org.slf4j:slf4j-log4j12</exclude>
-      </excludes>
-    </dependencySet>
-    <dependencySet>
-      <useProjectArtifact>false</useProjectArtifact>
-      <outputDirectory>/tests</outputDirectory>
-      <includes>
-        <include>*:*:test-jar</include>
-      </includes>
-    </dependencySet>
-  </dependencySets>
 </assembly>
