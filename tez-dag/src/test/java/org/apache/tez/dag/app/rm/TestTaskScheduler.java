@@ -527,7 +527,7 @@ public class TestTaskScheduler {
     final Priority mockPriority1 = Priority.newInstance(1);
     final Priority mockPriority2 = Priority.newInstance(2);
     final Priority mockPriority3 = Priority.newInstance(3);
-    final Priority mockPriority4 = Priority.newInstance(3);
+    final Priority mockPriority4 = Priority.newInstance(4);
     Object mockTask2 = mock(Object.class);
     Object mockCookie2 = mock(Object.class);
     Object mockTask3 = mock(Object.class);
@@ -558,7 +558,7 @@ public class TestTaskScheduler {
     // sending lower priority container first to make sure its not matched
     Container mockContainer4 = mock(Container.class, RETURNS_DEEP_STUBS);
     when(mockContainer4.getNodeId().getHost()).thenReturn("host4");
-    when(mockContainer4.getPriority()).thenReturn(mockPriority3);
+    when(mockContainer4.getPriority()).thenReturn(mockPriority4);
     ContainerId mockCId4 = mock(ContainerId.class);
     when(mockContainer4.getId()).thenReturn(mockCId4);
     containers.add(mockContainer4);
@@ -762,6 +762,7 @@ public class TestTaskScheduler {
     when(mockContainer5.getNodeId()).thenReturn(badNodeId);
     ContainerId mockCId5 = mock(ContainerId.class);
     when(mockContainer5.getId()).thenReturn(mockCId5);
+    when(mockContainer5.getPriority()).thenReturn(mockPriority4);
     containers.clear();
     containers.add(mockContainer5);
     when(
