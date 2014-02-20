@@ -20,7 +20,10 @@ package org.apache.tez.runtime.library.input;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
@@ -43,6 +46,8 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   private Configuration conf;
   private int numInputs = -1;
   private BroadcastShuffleManager shuffleManager;
+  private final BlockingQueue<Event> pendingEvents = new LinkedBlockingQueue<Event>();
+  private volatile long firstEventReceivedTime = -1;
   @SuppressWarnings("rawtypes")
   private BroadcastKVReader kvReader;
   
@@ -68,9 +73,18 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
 
   @Override
   public void start() throws IOException {
-    if (!isStarted.getAndSet(true)) {
-      this.shuffleManager.run();
-      this.kvReader = this.shuffleManager.createReader();
+    synchronized (this) {
+      if (!isStarted.getAndSet(true)) {
+        this.shuffleManager.run();
+        this.kvReader = this.shuffleManager.createReader();
+        List<Event> pending = new LinkedList<Event>();
+        pendingEvents.drainTo(pending);
+        if (pending.size() > 0) {
+          LOG.info("NoAutoStart delay in processing first event: "
+              + (System.currentTimeMillis() - firstEventReceivedTime));
+          shuffleManager.handleEvents(pending);
+        }
+      }
     }
   }
 
@@ -101,6 +115,17 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   public void handleEvents(List<Event> inputEvents) throws IOException {
     if (numInputs == 0) {
       throw new RuntimeException("No input events expected as numInputs is 0");
+    }
+    if (!isStarted.get()) {
+      synchronized(this) {
+        if (!isStarted.get()) {
+          if (firstEventReceivedTime == -1) {
+            firstEventReceivedTime = System.currentTimeMillis();
+          }
+          pendingEvents.addAll(inputEvents);
+          return;
+        }
+      }
     }
     shuffleManager.handleEvents(inputEvents);
   }

@@ -19,7 +19,10 @@ package org.apache.tez.runtime.library.input;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
@@ -60,6 +63,9 @@ public class ShuffledMergedInput implements LogicalInput {
   protected Configuration conf;
   protected int numInputs = 0;
   protected Shuffle shuffle;
+  private final BlockingQueue<Event> pendingEvents = new LinkedBlockingQueue<Event>();
+  private volatile long firstEventReceivedTime = -1;
+  // ZZZ LOG THIS TIME
   @SuppressWarnings("rawtypes")
   protected ValuesIterator vIter;
 
@@ -88,9 +94,18 @@ public class ShuffledMergedInput implements LogicalInput {
 
   @Override
   public void start() throws IOException {
-    if (!isStarted.getAndSet(true)) {
-      // Start the shuffle - copy and merge
-      shuffle.run();
+    synchronized (this) {
+      if (!isStarted.getAndSet(true)) {
+        // Start the shuffle - copy and merge
+        shuffle.run();
+        List<Event> pending = new LinkedList<Event>();
+        pendingEvents.drainTo(pending);
+        if (pending.size() > 0) {
+          LOG.info("NoAutoStart delay in processing first event: "
+              + (System.currentTimeMillis() - firstEventReceivedTime));
+          shuffle.handleEvents(pending);
+        }
+      }
     }
   }
 
@@ -123,7 +138,7 @@ public class ShuffledMergedInput implements LogicalInput {
 
   @Override
   public List<Event> close() throws IOException {
-    if (this.numInputs != 0) {
+    if (this.numInputs != 0 && rawIter != null) {
       rawIter.close();
     }
     return Collections.emptyList();
@@ -191,6 +206,17 @@ public class ShuffledMergedInput implements LogicalInput {
   public void handleEvents(List<Event> inputEvents) {
     if (numInputs == 0) {
       throw new RuntimeException("No input events expected as numInputs is 0");
+    }
+    if (!isStarted.get()) {
+      synchronized (this) {
+        if (!isStarted.get()) {
+          if (firstEventReceivedTime == -1) {
+            firstEventReceivedTime = System.currentTimeMillis();
+          }
+          pendingEvents.addAll(inputEvents);
+          return;
+        }
+      }
     }
     shuffle.handleEvents(inputEvents);
   }
