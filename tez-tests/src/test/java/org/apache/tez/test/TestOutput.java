@@ -18,6 +18,7 @@
 
 package org.apache.tez.test;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,6 +41,7 @@ public class TestOutput implements LogicalOutput {
         setUserPayload(payload);
   }
   
+  int output;
   int numOutputs;
   TezOutputContext outputContext;
   
@@ -49,6 +51,10 @@ public class TestOutput implements LogicalOutput {
     this.outputContext = outputContext;
     this.outputContext.requestInitialMemory(0l, null); //Mandatory call
     return Collections.emptyList();
+  }
+  
+  void write(int value) {
+    this.output = value;
   }
 
   @Override
@@ -66,10 +72,11 @@ public class TestOutput implements LogicalOutput {
 
   @Override
   public List<Event> close() throws Exception {
-    LOG.info("Sending data movement event");
+    LOG.info("Sending data movement event with value: " + output);
+    byte[] result = ByteBuffer.allocate(4).putInt(output).array();
     List<Event> events = Lists.newArrayListWithCapacity(numOutputs);
     for (int i = 0; i < numOutputs; i++) {
-      DataMovementEvent event = new DataMovementEvent(i, null);
+      DataMovementEvent event = new DataMovementEvent(i, result);
       events.add(event);
     }
     return events;

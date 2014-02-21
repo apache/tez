@@ -175,6 +175,17 @@ public class TestFaultTolerance {
     testConf.setInt(TestProcessor.getVertexConfName(
         TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "v1"), 0);
     
+    //verify value at v2 task1
+    testConf.set(TestProcessor.getVertexConfName(
+        TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "1");
+    //value of v2 task1 is 4.
+    //v1 attempt0 has value of 1 (attempt index + 1). 
+    //v1 attempt1 has value of 2 (attempt index + 1).
+    //v3 attempt0 verifies value of 1 + 2 (values from input vertices) 
+    // + 1 (attempt index + 1) = 4
+    testConf.setInt(TestProcessor.getVertexConfName(
+        TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 1), 4);
+
     DAG dag = SimpleTestDAG.createDAG("testBasicTaskFailure", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
@@ -188,6 +199,13 @@ public class TestFaultTolerance {
         TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_TASK_INDEX, "v1"), "0,1");
     testConf.setInt(TestProcessor.getVertexConfName(
         TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "v1"), 1);
+    
+    //v1 task0,1 attempt 2 succeed. Input sum = 6. Plus one (v2 attempt0).
+    //ending sum is 7.
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 0), 7);
     
     DAG dag = SimpleTestDAG.createDAG("testTaskMultipleFailures", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
@@ -221,6 +239,21 @@ public class TestFaultTolerance {
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "0");
     
+    //v2 task1 attempt0 index0 fails and exits.
+    //v1 task0 attempt1 reruns. 
+    //v2 task1 attempt1 has:
+    // v1 task0 attempt1 (value = 2) + v1 task1 attempt0 (value = 1)
+    // + its own value, attempt + 1 (value = 2). Total is 5.
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "1");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 1), 5);
+    //v2 task0 attempt 0 succeeds instantly.
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 0), 3);
+    
     DAG dag = SimpleTestDAG.createDAG("testBasicInputFailureWithExit", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
@@ -237,6 +270,14 @@ public class TestFaultTolerance {
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "0");
     
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "1");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 1), 4);
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 0), 3);
     DAG dag = SimpleTestDAG.createDAG("testBasicInputFailureWithoutExit", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
@@ -252,6 +293,19 @@ public class TestFaultTolerance {
         TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "-1");
+    
+    //v2 task0 attempt0 input0,1 fails. wait.
+    //v1 task0 attempt1 reruns. v1 task1 attempt1 reruns.
+    //2 + 2 + 1 = 5
+    //same number for v2 task1
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 0), 5);
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "1");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 1), 5);
     
     DAG dag = SimpleTestDAG.createDAG("testMultipleInputFailureWithoutExit", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
@@ -270,6 +324,19 @@ public class TestFaultTolerance {
         TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "0");
     testConf.setInt(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v2"), 1);
+    
+    //v2 task1 attempt0 input0 input-attempt0 fails. Wait. v1 task0 attempt1 reruns.
+    //v2 task1 attempt0 input0 input-attempt1 fails. Wait. v1 task0 attempt2 reruns.
+    //v2 task1 attempt0 input0 input-attempt2 succeeds.
+    //input values (3 + 1) + 1 = 5 
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "1");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 1), 5);
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 0), 3);
     
     DAG dag = SimpleTestDAG.createDAG("testMultiVersionInputFailureWithoutExit", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
@@ -318,6 +385,18 @@ public class TestFaultTolerance {
     //3 attempts fail
     testConf.setInt(TestProcessor.getVertexConfName(
             TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "l3v1"), 2);
+    
+    //l2v1: task0 attempt0 succeeds. task1 attempt3 succeeds. 
+    //l3v1 finally task0 attempt3 will succeed.
+    //l1v1 outputs 1. l1v2 outputs 2.
+    //l2v1 task0 attempt0 output = 2. 
+    //l2v2 output: attempt0 (l1v2+self = 2+1) * 3 tasks = 9
+    //l3v1 task0 attempt3 = l2v1 (2) + l2v2 (9) + self (4) = 15
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "l3v1"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "l3v1", 0), 15);
+    
     DAG dag = ThreeLevelsFailingDAG.createDAG("testThreeLevelsFailingDAG2VerticesHaveFailedAttemptsDAGSucceeds", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
@@ -334,7 +413,7 @@ public class TestFaultTolerance {
    * This will trigger rerun of v1-task1.
    * v1-task1-attempt2 is re-run and succeeds.
    * v2-task0-attempt0 (no attempt bump) runs. Check its input1. 
-   * The input version is now 1. The attempt will now succeed.
+   * The input version is now 2. The attempt will now succeed.
    * @throws Exception
    */
   @Test (timeout=60000)
@@ -363,6 +442,19 @@ public class TestFaultTolerance {
     //at v2-task0-attempt0/1-input1 has input failure at input version 0 only.
     testConf.setInt(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v2"), 1);
+    
+    //v2-task1-attempt0 takes v1-task0-attempt0 input and v1-task1-attempt1 input.
+    //v2-task1 does not take v1-task1-attempt2 (re-run caused by input failure 
+    //triggered by v2-task0) output.
+    //1 + 2 + 1 = 4
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 0), 5);
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "1");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 1), 4);
   
     DAG dag = SimpleTestDAG.createDAG(
             "testInputFailureCausesRerunAttemptWithinMaxAttemptSuccess", testConf);
@@ -425,6 +517,18 @@ public class TestFaultTolerance {
   public void testCascadingInputFailureWithoutExitSuccess() throws Exception {
     Configuration testConf = new Configuration(false);
     setCascadingInputFailureConfig(testConf, false);
+    
+    //v2 task0 attempt1 value = v1 task0 attempt1 (2) + v1 task1 attempt0 (1) + 2 = 5
+    //v3 all-tasks attempt0 takes v2 task0 attempt1 value (5) + v2 task1 attempt0 (3) + 1 = 9
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v3"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v3", 0), 9);
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v3"), "1");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v3", 1), 9);
+    
     DAG dag = SimpleTestDAG3Vertices.createDAG(
               "testCascadingInputFailureWithoutExitSuccess", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
@@ -445,6 +549,18 @@ public class TestFaultTolerance {
   public void testCascadingInputFailureWithExitSuccess() throws Exception {
     Configuration testConf = new Configuration(false);
     setCascadingInputFailureConfig(testConf, true);
+    
+    //v2 task0 attempt2 value = v1 task0 attempt1 (2) + v1 task1 attempt0 (1) + 3 = 6
+    //v3 all-tasks attempt1 takes v2 task0 attempt2 value (6) + v2 task1 attempt0 (3) + 2 = 11
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v3"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v3", 0), 11);
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v3"), "1");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v3", 1), 11);
+    
     DAG dag = SimpleTestDAG3Vertices.createDAG(
               "testCascadingInputFailureWithExitSuccess", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
@@ -474,6 +590,14 @@ public class TestFaultTolerance {
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v3"), "1");
     
+    //v3 attempt0:
+    //v1 task0,1 attempt2 = 6. v2 task0,1 attempt2 = 6.
+    //total = 6 + 6 + 1 = 13
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v3"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v3", 0), 13);
+    
     DAG dag = SimpleVTestDAG.createDAG(
             "testInputFailureCausesRerunOfTwoVerticesWithoutExit", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
@@ -498,6 +622,17 @@ public class TestFaultTolerance {
         TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_TASK_INDEX, "v3"), "0,1");
     testConf.setInt(TestProcessor.getVertexConfName(
         TestProcessor.TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, "v3"), 1);
+    
+    //v1 input = 2. v2 input = 2
+    //v3 attempt2 value = 2 + 2 + 3 = 7
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v3"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v3", 0), 7);
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v3"), "1");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v3", 1), 7);
     
     DAG dag = SimpleVTestDAG.createDAG(
             "testAttemptOfDownstreamVertexConnectedWithTwoUpstreamVerticesFailure", testConf);
@@ -542,6 +677,18 @@ public class TestFaultTolerance {
         TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v3"), "-1");
     testConf.set(TestInput.getVertexConfName(
         TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v3"), "0");
+    
+    //both vertices trigger v1 rerun. v1 attempt1 output is 2 * 2 tasks = 4.
+    //v2 attempt0 = 4 + 1 = 5
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 0), 5);
+    //v3 attempt0 = 4 + 1 = 5
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v3"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v3", 0), 5);
         
     DAG dag = SimpleReverseVTestDAG.createDAG(
             "testInputFailureRerunCanSendOutputToTwoDownstreamVertices", testConf);

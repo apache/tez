@@ -18,6 +18,7 @@
 
 package org.apache.tez.test;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -26,8 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.Reader;
@@ -70,6 +71,7 @@ public class TestInput implements LogicalInput {
   Set<Integer> failingTaskAttempts = Sets.newHashSet();
   Set<Integer> failingInputIndices = Sets.newHashSet();
   Integer failAll = new Integer(-1);
+  int[] inputValues;
   
   /**
    * Enable failure for this logical input
@@ -194,7 +196,17 @@ public class TestInput implements LogicalInput {
         
       }
     } while (!done);
-    return numInputs;
+    
+    // sum input value given by upstream tasks
+    int sum = 0;
+    for (int i=0; i<numInputs; ++i) {
+      if (inputValues[i] == -1) {
+        throwException("Invalid input value : " + i);
+      }
+      sum += inputValues[i];
+    }
+    // return sum value
+    return sum;
   }
   
   void throwException(String msg) {
@@ -213,7 +225,7 @@ public class TestInput implements LogicalInput {
     this.inputContext.requestInitialMemory(0l, null); //Mandatory call.
     if (inputContext.getUserPayload() != null) {
       String vName = inputContext.getTaskVertexName();
-      conf = MRHelpers.createConfFromUserPayload(inputContext.getUserPayload());
+      conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
       doFail = conf.getBoolean(getVertexConfName(TEZ_FAILING_INPUT_DO_FAIL, vName), false);
       doFailAndExit = conf.getBoolean(
           getVertexConfName(TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, vName), false);
@@ -266,6 +278,8 @@ public class TestInput implements LogicalInput {
             " numInputs: " + numInputs +
             " numCompletedInputs: " + numCompletedInputs);
         this.completedInputVersion[dmEvent.getTargetIndex()] = dmEvent.getVersion();
+        this.inputValues[dmEvent.getTargetIndex()] = 
+            ByteBuffer.wrap(dmEvent.getUserPayload()).getInt();
       } else if (event instanceof InputFailedEvent) {
         InputFailedEvent ifEvent = (InputFailedEvent) event;
         numCompletedInputs--;
@@ -304,8 +318,10 @@ public class TestInput implements LogicalInput {
   public void setNumPhysicalInputs(int numInputs) {
     this.numInputs = numInputs;
     this.completedInputVersion = new int[numInputs];
+    this.inputValues = new int[numInputs];
     for (int i=0; i<numInputs; ++i) {
       this.completedInputVersion[i] = -1;
+      this.inputValues[i] = -1;
     }
   }
 
