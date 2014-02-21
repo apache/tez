@@ -1544,11 +1544,13 @@ public class DAGAppMaster extends AbstractService {
       }
 
       if (EnumSet.of(DAGAppMasterState.NEW, DAGAppMasterState.INITED,
-          DAGAppMasterState.IDLE, DAGAppMasterState.RUNNING)
-          .contains(appMaster.state)) {
+          DAGAppMasterState.IDLE).contains(appMaster.state)) {
             // DAG not in a final state. Must have receive a KILL signal
         appMaster.state = DAGAppMasterState.KILLED;
+      } else if (appMaster.state == DAGAppMasterState.RUNNING) {
+        appMaster.state = DAGAppMasterState.ERROR;
       }
+
       appMaster.stop();
     }
   }
