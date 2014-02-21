@@ -74,7 +74,7 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   @Override
   public void start() throws IOException {
     synchronized (this) {
-      if (!isStarted.getAndSet(true)) {
+      if (!isStarted.get()) {
         this.shuffleManager.run();
         this.kvReader = this.shuffleManager.createReader();
         List<Event> pending = new LinkedList<Event>();
@@ -84,6 +84,7 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
               + (System.currentTimeMillis() - firstEventReceivedTime));
           shuffleManager.handleEvents(pending);
         }
+        isStarted.set(true);
       }
     }
   }

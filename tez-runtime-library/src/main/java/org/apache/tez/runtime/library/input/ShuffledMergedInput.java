@@ -95,9 +95,12 @@ public class ShuffledMergedInput implements LogicalInput {
   @Override
   public void start() throws IOException {
     synchronized (this) {
-      if (!isStarted.getAndSet(true)) {
+      if (!isStarted.get()) {
         // Start the shuffle - copy and merge
         shuffle.run();
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Initialized the handlers in shuffle..Safe to start processing..");
+        }
         List<Event> pending = new LinkedList<Event>();
         pendingEvents.drainTo(pending);
         if (pending.size() > 0) {
@@ -105,6 +108,7 @@ public class ShuffledMergedInput implements LogicalInput {
               + (System.currentTimeMillis() - firstEventReceivedTime));
           shuffle.handleEvents(pending);
         }
+        isStarted.set(true);
       }
     }
   }
