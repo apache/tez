@@ -53,6 +53,8 @@ import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.apache.tez.runtime.library.hadoop.compat.NullProgressable;
 
+import com.google.common.base.Preconditions;
+
 @SuppressWarnings({"unchecked", "rawtypes"})
 public abstract class ExternalSorter implements MemoryUpdateCallback {
 
@@ -64,6 +66,7 @@ public abstract class ExternalSorter implements MemoryUpdateCallback {
 
   public abstract void write(Object key, Object value) throws IOException;
   
+  private int initialMemRequestMb;
   protected Progressable nullProgressable = new NullProgressable();
   protected TezOutputContext outputContext;
   protected Combiner combiner;
@@ -105,13 +108,14 @@ public abstract class ExternalSorter implements MemoryUpdateCallback {
 
     rfs = ((LocalFileSystem)FileSystem.getLocal(this.conf)).getRaw();
 
-    int reqMemory = 
+    initialMemRequestMb = 
         this.conf.getInt(
             TezJobConfig.TEZ_RUNTIME_IO_SORT_MB, 
             TezJobConfig.DEFAULT_TEZ_RUNTIME_IO_SORT_MB);
-    long reqBytes = reqMemory << 20;
+    Preconditions.checkArgument(initialMemRequestMb != 0, "io.sort.mb should be larger than 0");
+    long reqBytes = initialMemRequestMb << 20;
     outputContext.requestInitialMemory(reqBytes, this);
-    LOG.info("Requested SortBufferSize (io.sort.mb): " + reqMemory);
+    LOG.info("Requested SortBufferSize (io.sort.mb): " + initialMemRequestMb);
 
     // sorter
     sorter = ReflectionUtils.newInstance(this.conf.getClass(
@@ -232,5 +236,10 @@ public abstract class ExternalSorter implements MemoryUpdateCallback {
   @Override
   public void memoryAssigned(long assignedSize) {
     this.availableMemoryMb = (int) (assignedSize >> 20);
+    if (this.availableMemoryMb == 0) {
+      LOG.warn("AssignedMemoryMB: " + this.availableMemoryMb
+          + " is too low. Falling back to initial ask: " + initialMemRequestMb);
+      this.availableMemoryMb = initialMemRequestMb;
+    }
   }
 }
