@@ -1551,6 +1551,17 @@ public class TaskScheduler extends AbstractService
           LOG.debug("Trying to assign all delayed containers to newly received"
             + " tasks");
         }
+        Iterator<HeldContainer> iter = delayedContainers.iterator();
+        while(iter.hasNext()) {
+          HeldContainer delayedContainer = iter.next();
+          if (!heldContainers.containsKey(delayedContainer.getContainer().getId())) {
+            // this container is no longer held by us
+            LOG.info("AssignAll - Skipping delayed container as container is no longer"
+                + " running, containerId="
+                + delayedContainer.getContainer().getId());
+            iter.remove();
+          }
+        }
         assignedContainers = tryAssignReUsedContainers(
           new ContainerIterable(delayedContainers));
       }
