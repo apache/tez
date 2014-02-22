@@ -694,5 +694,49 @@ public class TestFaultTolerance {
             "testInputFailureRerunCanSendOutputToTwoDownstreamVertices", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
+  
+  
+  /**
+   * SimpleTestDAG (v1,v2) has v2 task0/1 input failures triggering v1 rerun
+   * upto version 1.
+   * 
+   * v1 attempt0 succeeds.
+   * v2-task0-attempt0 rejects v1 version0/1. Trigger v1 attempt1.
+   * v2-task1-attempt0 rejects v1 version0/1. Trigger v1 attempt2.
+   * DAG succeeds with v1 attempt2.
+   * @throws Exception
+   */
+  @Test (timeout=60000)
+  public void testTwoTasksHaveInputFailuresSuccess() throws Exception {
+    Configuration testConf = new Configuration(false);
+    testConf.setBoolean(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
+    testConf.setBoolean(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, "v2"), false);
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "0,1");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "0");
+    testConf.setInt(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v2"), 1);
+    
+    //v2 task0 accepts v1 task0 attempt2(3) and v1 task1 attempt0(1) = 4
+    //v2 task0 attempt0 = 1
+    //total = 5
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "0");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 0), 5);
+    //similarly for v2 task1
+    testConf.set(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "1");
+    testConf.setInt(TestProcessor.getVertexConfName(
+            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 1), 5);
+    
+    DAG dag = SimpleTestDAG.createDAG("testTwoTasksHaveInputFailuresSuccess", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
 
 }
