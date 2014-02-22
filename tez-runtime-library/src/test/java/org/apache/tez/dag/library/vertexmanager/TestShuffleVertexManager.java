@@ -23,10 +23,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeManager;
+import org.apache.tez.dag.api.EdgeManagerContext;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -34,6 +37,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
+import org.apache.tez.runtime.RuntimeUtils;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
@@ -108,13 +112,36 @@ public class TestShuffleVertexManager {
           return null;
       }}).when(mockContext).scheduleVertexTasks(anyList());
     
-    final Map<String, EdgeManager> newEdgeManagers = new HashMap<String, EdgeManager>();
+    final Map<String, EdgeManager> newEdgeManagers =
+        new HashMap<String, EdgeManager>();
     
     doAnswer(new Answer() {
       public Object answer(InvocationOnMock invocation) {
           when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(2);
           newEdgeManagers.clear();
-          newEdgeManagers.putAll((Map<String, EdgeManager>)invocation.getArguments()[2]);
+          for (Entry<String, EdgeManagerDescriptor> entry :
+              ((Map<String, EdgeManagerDescriptor>)invocation.getArguments()[2]).entrySet()) {
+            EdgeManager edgeManager = RuntimeUtils.createClazzInstance(
+                entry.getValue().getClassName());
+            final byte[] userPayload = entry.getValue().getUserPayload();
+            edgeManager.initialize(new EdgeManagerContext() {
+              @Override
+              public byte[] getUserPayload() {
+                return userPayload;
+              }
+
+              @Override
+              public String getSrcVertexName() {
+                return null;
+              }
+
+              @Override
+              public String getDestVertexName() {
+                return null;
+              }
+            });
+            newEdgeManagers.put(entry.getKey(), edgeManager);
+          }
           return null;
       }}).when(mockContext).setVertexParallelism(eq(2), any(VertexLocationHint.class), anyMap());
     

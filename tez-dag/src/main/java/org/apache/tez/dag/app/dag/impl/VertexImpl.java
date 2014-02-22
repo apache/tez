@@ -52,6 +52,9 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.EdgeManagerContext;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
+import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -817,7 +820,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
-      Map<String, EdgeManager> sourceEdgeManagers) {
+      Map<String, EdgeManagerDescriptor> sourceEdgeManagers) {
     writeLock.lock();
     setVertexLocationHint(vertexLocationHint);
     try {
@@ -836,21 +839,29 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             " parallelism set to " + parallelism);
 
         if(sourceEdgeManagers != null) {
-          for(Map.Entry<String, EdgeManager> entry : sourceEdgeManagers.entrySet()) {
+          for(Map.Entry<String, EdgeManagerDescriptor> entry : sourceEdgeManagers.entrySet()) {
             LOG.info("Replacing edge manager for source:"
                 + entry.getKey() + " destination: " + getVertexId());
             Vertex sourceVertex = appContext.getCurrentDAG().getVertex(entry.getKey());
-            EdgeManager edgeManager = entry.getValue();
             Edge edge = sourceVertices.get(sourceVertex);
-            edge.setEdgeManager(edgeManager);
+            try {
+              edge.setCustomEdgeManager(entry.getValue());
+            } catch (Exception e) {
+              LOG.warn("Failed to initialize edge manager for edge"
+                  + ", sourceVertexName=" + sourceVertex.getName()
+                  + ", destinationVertexName=" + edge.getDestinationVertexName(),
+                  e);
+              return false;
+            }
           }
         }
       } else {
         if (parallelism >= numTasks) {
           // not that hard to support perhaps. but checking right now since there
           // is no use case for it and checking may catch other bugs.
-          throw new TezUncheckedException(
-              "Increasing parallelism is not supported");
+          LOG.warn("Increasing parallelism is not supported, vertexId="
+              + logIdentifier);
+          return false;
         }
         if (parallelism == numTasks) {
           LOG.info("setParallelism same as current value: " + parallelism);
@@ -881,9 +892,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           Map.Entry<TezTaskID, Task> entry = iter.next();
           Task task = entry.getValue();
           if (task.getState() != TaskState.NEW) {
-            throw new TezUncheckedException(
+            LOG.warn(
                 "All tasks must be in initial state when changing parallelism"
                     + " for vertex: " + getVertexId() + " name: " + getName());
+            return false;
           }
           pendingEvents.addAll(task.getAndClearTaskTezEvents());
           if (i <= parallelism) {
@@ -897,13 +909,21 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   
         // set new edge managers
         if(sourceEdgeManagers != null) {
-          for(Map.Entry<String, EdgeManager> entry : sourceEdgeManagers.entrySet()) {
+          for(Map.Entry<String, EdgeManagerDescriptor> entry : sourceEdgeManagers.entrySet()) {
             LOG.info("Replacing edge manager for source:"
                 + entry.getKey() + " destination: " + getVertexId());
             Vertex sourceVertex = appContext.getCurrentDAG().getVertex(entry.getKey());
-            EdgeManager edgeManager = entry.getValue();
             Edge edge = sourceVertices.get(sourceVertex);
-            edge.setEdgeManager(edgeManager);
+            EdgeProperty edgeProperty = edge.getEdgeProperty();
+            try {
+              edge.setCustomEdgeManager(entry.getValue());
+            } catch (Exception e) {
+              LOG.warn("Failed to initialize edge manager for edge"
+                  + ", sourceVertexName=" + sourceVertex.getName()
+                  + ", destinationVertexName=" + edge.getDestinationVertexName(),
+                  e);
+              return false;
+            }
           }
         }
   

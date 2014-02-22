@@ -29,32 +29,30 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 public class EdgeManagerForTest implements EdgeManager {
 
   private EdgeManagerContext edgeManagerContext = null;
-  private boolean createdByFramework = true;
+  private byte[] userPayload;
 
   public static EdgeManagerForTest createInstance() {
     EdgeManagerForTest e = new EdgeManagerForTest();
-    e.createdByFramework = false;
     return e;
   }
-  
-  public boolean isCreatedByFramework() {
-    return createdByFramework;
-  }
-  
+
   public EdgeManagerContext getEdgeManagerContext() {
     return edgeManagerContext;
   }
 
   
-  
-  // Overridden methods
-  
   public EdgeManagerForTest() {
   }
 
+  public byte[] getUserPayload() {
+    return userPayload;
+  }
+
+  // Overridden methods
   @Override
   public void initialize(EdgeManagerContext edgeManagerContext) {
     this.edgeManagerContext = edgeManagerContext;
+    this.userPayload = edgeManagerContext.getUserPayload();
   }
 
   @Override

@@ -24,7 +24,7 @@ import java.util.Set;
 
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.EdgeManager;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -77,7 +77,7 @@ public interface Vertex extends Comparable<Vertex> {
 
 
   boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
-      Map<String, EdgeManager> sourceEdgeManagers);
+      Map<String, EdgeManagerDescriptor> sourceEdgeManagers);
   void setVertexLocationHint(VertexLocationHint vertexLocationHint);
 
   // CHANGE THESE TO LISTS AND MAINTAIN ORDER?

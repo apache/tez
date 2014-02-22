@@ -33,10 +33,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.dag.api.EdgeManagerContext;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -44,6 +44,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.ShuffleEdgeManagerConfigPayloadProto;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 
 import com.google.common.collect.Lists;
@@ -125,23 +126,35 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
   }
   
   
-  public class CustomShuffleEdgeManager implements EdgeManager {
+  public static class CustomShuffleEdgeManager implements EdgeManager {
     int numSourceTaskOutputs;
     int numDestinationTasks;
     int basePartitionRange;
     int remainderRangeForLastShuffler;
-    
-    CustomShuffleEdgeManager(int numSourceTaskOutputs, int numDestinationTasks,
-        int basePartitionRange, int remainderPartitionForLastShuffler) {
-      this.numSourceTaskOutputs = numSourceTaskOutputs;
-      this.numDestinationTasks = numDestinationTasks;
-      this.basePartitionRange = basePartitionRange;
-      this.remainderRangeForLastShuffler = remainderPartitionForLastShuffler;
+
+    public CustomShuffleEdgeManager() {
     }
 
     @Override
     public void initialize(EdgeManagerContext edgeManagerContext) {
       // Nothing to do. This class isn't currently designed to be used at the DAG API level.
+      byte[] userPayload = edgeManagerContext.getUserPayload();
+      if (userPayload == null
+        || userPayload.length == 0) {
+        throw new RuntimeException("Could not initialize CustomShuffleEdgeManager"
+            + " from provided user payload");
+      }
+      CustomShuffleEdgeManagerConfig config;
+      try {
+        config = CustomShuffleEdgeManagerConfig.fromUserPayload(userPayload);
+      } catch (InvalidProtocolBufferException e) {
+        throw new RuntimeException("Could not initialize CustomShuffleEdgeManager"
+            + " from provided user payload", e);
+      }
+      this.numSourceTaskOutputs = config.numSourceTaskOutputs;
+      this.numDestinationTasks = config.numDestinationTasks;
+      this.basePartitionRange = config.basePartitionRange;
+      this.remainderRangeForLastShuffler = config.remainderRangeForLastShuffler;
     }
 
     @Override
@@ -179,7 +192,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
           sourceTaskIndex * partitionRange 
           + sourceIndex % partitionRange;
       
-      inputIndicesToTaskIndices.put(new Integer(targetIndex), 
+      inputIndicesToTaskIndices.put(new Integer(targetIndex),
           Collections.singletonList(new Integer(destinationTaskIndex)));
     }
     
@@ -232,6 +245,44 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
     public int getNumDestinationConsumerTasks(int sourceTaskIndex,
         int numDestTasks) {
       return numDestTasks;
+    }
+   }
+
+  private static class CustomShuffleEdgeManagerConfig {
+    int numSourceTaskOutputs;
+    int numDestinationTasks;
+    int basePartitionRange;
+    int remainderRangeForLastShuffler;
+
+    private CustomShuffleEdgeManagerConfig(int numSourceTaskOutputs,
+        int numDestinationTasks,
+        int basePartitionRange,
+        int remainderRangeForLastShuffler) {
+      this.numSourceTaskOutputs = numSourceTaskOutputs;
+      this.numDestinationTasks = numDestinationTasks;
+      this.basePartitionRange = basePartitionRange;
+      this.remainderRangeForLastShuffler = remainderRangeForLastShuffler;
+    }
+
+    public byte[] toUserPayload() {
+      return ShuffleEdgeManagerConfigPayloadProto.newBuilder()
+          .setNumSourceTaskOutputs(numSourceTaskOutputs)
+          .setNumDestinationTasks(numDestinationTasks)
+          .setBasePartitionRange(basePartitionRange)
+          .setRemainderRangeForLastShuffler(remainderRangeForLastShuffler)
+          .build().toByteArray();
+    }
+
+    public static CustomShuffleEdgeManagerConfig fromUserPayload(
+        byte[] userPayload) throws InvalidProtocolBufferException {
+      ShuffleEdgeManagerConfigPayloadProto proto =
+          ShuffleEdgeManagerConfigPayloadProto.parseFrom(userPayload);
+      return new CustomShuffleEdgeManagerConfig(
+          proto.getNumSourceTaskOutputs(),
+          proto.getNumDestinationTasks(),
+          proto.getBasePartitionRange(),
+          proto.getRemainderRangeForLastShuffler());
+
     }
   }
 
@@ -360,15 +411,20 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
           
     if(finalTaskParallelism < currentParallelism) {
       // final parallelism is less than actual parallelism
-      Map<String, EdgeManager> edgeManagers = new HashMap<String, EdgeManager>(
-          bipartiteSources.size());
+      Map<String, EdgeManagerDescriptor> edgeManagers =
+          new HashMap<String, EdgeManagerDescriptor>(bipartiteSources.size());
       for(String vertex : bipartiteSources.keySet()) {
         // use currentParallelism for numSourceTasks to maintain original state
         // for the source tasks
-        edgeManagers.put(vertex, new CustomShuffleEdgeManager(
-            currentParallelism, finalTaskParallelism, basePartitionRange,
-            ((remainderRangeForLastShuffler > 0) ?
-                remainderRangeForLastShuffler : basePartitionRange)));
+        CustomShuffleEdgeManagerConfig edgeManagerConfig =
+            new CustomShuffleEdgeManagerConfig(
+                currentParallelism, finalTaskParallelism, basePartitionRange,
+                ((remainderRangeForLastShuffler > 0) ?
+                    remainderRangeForLastShuffler : basePartitionRange));
+        EdgeManagerDescriptor edgeManagerDescriptor =
+            new EdgeManagerDescriptor(CustomShuffleEdgeManager.class.getName());
+        edgeManagerDescriptor.setUserPayload(edgeManagerConfig.toUserPayload());
+        edgeManagers.put(vertex, edgeManagerDescriptor);
       }
       
       context.setVertexParallelism(finalTaskParallelism, null, edgeManagers);

@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.dag.api.EdgeManagerContext;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -95,24 +96,28 @@ public class Edge {
   public Edge(EdgeProperty edgeProperty, EventHandler eventHandler) {
     this.edgeProperty = edgeProperty;
     this.eventHandler = eventHandler;
+    createEdgeManager();
+  }
+
+  private void createEdgeManager() {
     switch (edgeProperty.getDataMovementType()) {
-    case ONE_TO_ONE:
-      edgeManager = new OneToOneEdgeManager();
-      break;
-    case BROADCAST:
-      edgeManager = new BroadcastEdgeManager();
-      break;
-    case SCATTER_GATHER:
-      edgeManager = new ScatterGatherEdgeManager();
-      break;
-    case CUSTOM:
-      String edgeManagerClassName = edgeProperty.getEdgeManagerDescriptor().getClassName();
-      edgeManager = RuntimeUtils.createClazzInstance(edgeManagerClassName);
-      break;
-    default:
-      String message = "Unknown edge data movement type: "
-          + edgeProperty.getDataMovementType();
-      throw new TezUncheckedException(message);
+      case ONE_TO_ONE:
+        edgeManager = new OneToOneEdgeManager();
+        break;
+      case BROADCAST:
+        edgeManager = new BroadcastEdgeManager();
+        break;
+      case SCATTER_GATHER:
+        edgeManager = new ScatterGatherEdgeManager();
+        break;
+      case CUSTOM:
+        String edgeManagerClassName = edgeProperty.getEdgeManagerDescriptor().getClassName();
+        edgeManager = RuntimeUtils.createClazzInstance(edgeManagerClassName);
+        break;
+      default:
+        String message = "Unknown edge data movement type: "
+            + edgeProperty.getDataMovementType();
+        throw new TezUncheckedException(message);
     }
   }
 
@@ -130,6 +135,18 @@ public class Edge {
         null);
   }
 
+  public synchronized void setCustomEdgeManager(EdgeManagerDescriptor descriptor) {
+    EdgeProperty modifiedEdgeProperty =
+        new EdgeProperty(descriptor,
+            edgeProperty.getDataSourceType(),
+            edgeProperty.getSchedulingType(),
+            edgeProperty.getEdgeSource(),
+            edgeProperty.getEdgeDestination());
+    this.edgeProperty = modifiedEdgeProperty;
+    createEdgeManager();
+    initialize();
+  }
+
   public EdgeProperty getEdgeProperty() {
     return this.edgeProperty;
   }
@@ -137,15 +154,7 @@ public class Edge {
   public EdgeManager getEdgeManager() {
     return this.edgeManager;
   }
-  
-  public void setEdgeManager(EdgeManager edgeManager) {
-    if(edgeManager == null) {
-      throw new TezUncheckedException("Edge manager cannot be null");
-    }
-    this.edgeManager = edgeManager;
-    this.edgeManager.initialize(edgeManagerContext);
-  }
-  
+
   public void setSourceVertex(Vertex sourceVertex) {
     if (this.sourceVertex != null && this.sourceVertex != sourceVertex) {
       throw new TezUncheckedException("Source vertex exists: "
@@ -173,7 +182,7 @@ public class Edge {
   public OutputSpec getSourceSpec(int sourceTaskIndex) {
     return new OutputSpec(destinationVertex.getName(),
         edgeProperty.getEdgeSource(), edgeManager.getNumSourceTaskPhysicalOutputs(
-            destinationVertex.getTotalTasks(), sourceTaskIndex));
+        destinationVertex.getTotalTasks(), sourceTaskIndex));
   }
   
   public void startEventBuffering() {
@@ -335,4 +344,13 @@ public class Edge {
   private void sendEventToTask(TezTaskID taskId, TezEvent tezEvent) {
     eventHandler.handle(new TaskEventAddTezEvent(taskId, tezEvent));
   }
+
+  public String getSourceVertexName() {
+    return this.sourceVertex.getName();
+  }
+
+  public String getDestinationVertexName() {
+    return this.destinationVertex.getName();
+  }
+
 }

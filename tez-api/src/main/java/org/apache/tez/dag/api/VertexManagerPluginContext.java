@@ -64,11 +64,11 @@ public interface VertexManagerPluginContext {
    * disallowed
    * @param parallelism New number of tasks in the vertex
    * @param locationHint the placement policy for tasks.
-   * @param sourceEdgeManagers
+   * @param sourceEdgeManagers Edge Managers to be updated
    * @return true if the operation was allowed.
    */
   public boolean setVertexParallelism(int parallelism, VertexLocationHint locationHint,
-      Map<String, EdgeManager> sourceEdgeManagers);
+      Map<String, EdgeManagerDescriptor> sourceEdgeManagers);
   
   /**
    * Allows a VertexManagerPlugin to assign Events for Root Inputs
@@ -83,7 +83,7 @@ public interface VertexManagerPluginContext {
    *          the Vertex. The target index on individual events represents the
    *          task to which events need to be sent.
    */
-  public void addRootInputEvents(String inputName, Collection<RootInputDataInformationEvent> event);
+  public void addRootInputEvents(String inputName, Collection<RootInputDataInformationEvent> events);
   
   /**
    * Notify the vertex to start the given tasks

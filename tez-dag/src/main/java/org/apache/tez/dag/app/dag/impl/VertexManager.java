@@ -27,7 +27,7 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.common.TezUtils;
-import org.apache.tez.dag.api.EdgeManager;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -95,7 +95,7 @@ public class VertexManager {
 
     @Override
     public boolean setVertexParallelism(int parallelism, VertexLocationHint vertexLocationHint,
-        Map<String, EdgeManager> sourceEdgeManagers) {
+        Map<String, EdgeManagerDescriptor> sourceEdgeManagers) {
       return managedVertex.setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers);
     }
 

@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
@@ -55,6 +56,8 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManager;
+import org.apache.tez.dag.api.EdgeManagerContext;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -111,6 +114,8 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.test.EdgeManagerForTest;
@@ -1399,16 +1404,20 @@ public class TestVertexImpl {
     startVertex(v3);
 
     Vertex v1 = vertices.get("vertex1");
-    EdgeManager mockEdgeManager = mock(EdgeManager.class);
-    Map<String, EdgeManager> edgeManager = Collections.singletonMap(
-       v1.getName(), mockEdgeManager);
-    v3.setParallelism(1, null, edgeManager);
+    EdgeManagerDescriptor mockEdgeManagerDescriptor =
+        new EdgeManagerDescriptor(EdgeManagerForTest.class.getName());
+
+    Map<String, EdgeManagerDescriptor> edgeManagerDescriptors =
+        Collections.singletonMap(
+       v1.getName(), mockEdgeManagerDescriptor);
+    Assert.assertTrue(v3.setParallelism(1, null, edgeManagerDescriptors));
+    Assert.assertTrue(v3.sourceVertices.get(v1).getEdgeManager() instanceof
+        EdgeManagerForTest);
     Assert.assertEquals(1, v3.getTotalTasks());
     Assert.assertEquals(1, tasks.size());
     // the last one is removed
     Assert.assertTrue(tasks.keySet().iterator().next().equals(firstTask));
 
-    Assert.assertTrue(v3.sourceVertices.get(v1).getEdgeManager() == mockEdgeManager);
   }
 
   @Test(timeout = 5000)
@@ -1417,23 +1426,33 @@ public class TestVertexImpl {
     Edge edge = edges.get("e1");
     EdgeManager em = edge.getEdgeManager();
     EdgeManagerForTest originalEm = (EdgeManagerForTest) em;
-    Assert.assertEquals(true, originalEm.isCreatedByFramework());
     Assert.assertTrue(Arrays.equals(edgePayload, originalEm.getEdgeManagerContext()
         .getUserPayload()));
 
-    em = EdgeManagerForTest.createInstance();
+    byte[] userPayload = new String("foo").getBytes();
+    EdgeManagerDescriptor edgeManagerDescriptor =
+        new EdgeManagerDescriptor(EdgeManagerForTest.class.getName());
+    edgeManagerDescriptor.setUserPayload(userPayload);
+
     Vertex v1 = vertices.get("vertex1");
     Vertex v3 = vertices.get("vertex3"); // Vertex3 linked to v1 (v1 src, v3
                                          // dest)
-    Map<String, EdgeManager> edgeManagers = Collections.singletonMap(v1.getName(), em);
-    v3.setParallelism(v3.getTotalTasks() - 1, null, edgeManagers); // Must decrease.
 
-    EdgeManagerForTest edgeManagerPostSet = (EdgeManagerForTest) edge.getEdgeManager();
-    Assert.assertEquals(false, edgeManagerPostSet.isCreatedByFramework());
+    Map<String, EdgeManagerDescriptor> edgeManagerDescriptors =
+        Collections.singletonMap(v1.getName(), edgeManagerDescriptor);
+    Assert.assertTrue(v3.setParallelism(v3.getTotalTasks() - 1, null,
+        edgeManagerDescriptors)); // Must decrease.
+
+    VertexImpl v3Impl = (VertexImpl) v3;
+
+    EdgeManager modifiedEdgeManager = v3Impl.sourceVertices.get(v1)
+        .getEdgeManager();
+    Assert.assertNotNull(modifiedEdgeManager);
+    Assert.assertTrue(modifiedEdgeManager instanceof EdgeManagerForTest);
 
     // Ensure initialize() is called with the correct payload
-    Assert.assertTrue(Arrays.equals(originalEm.getEdgeManagerContext().getUserPayload(),
-        edgeManagerPostSet.getEdgeManagerContext().getUserPayload()));
+    Assert.assertTrue(Arrays.equals(userPayload,
+        ((EdgeManagerForTest) modifiedEdgeManager).getUserPayload()));
   }
 
   @SuppressWarnings("unchecked")
