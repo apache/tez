@@ -17,6 +17,7 @@
  */
 package org.apache.tez.runtime.library.common.shuffle.impl;
 
+import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -78,6 +79,7 @@ class Fetcher extends Thread {
   
   private final int connectionTimeout;
   private final int readTimeout;
+  private final int bufferSize;
   
   // Decompression of map-outputs
   private final CompressionCodec codec;
@@ -137,6 +139,9 @@ class Fetcher extends Thread {
     this.readTimeout = 
         job.getInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 
             TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT);
+    
+    this.bufferSize = job.getInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE, 
+            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE);
 
     setName("fetcher#" + id);
     setDaemon(true);
@@ -262,7 +267,7 @@ class Fetcher extends Thread {
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
       connect(connection, connectionTimeout);
       connectSucceeded = true;
-      input = new DataInputStream(connection.getInputStream());
+      input = new DataInputStream(new BufferedInputStream(connection.getInputStream(), bufferSize));
 
       // Validate response code
       int rc = connection.getResponseCode();

@@ -217,6 +217,13 @@ public class TezJobConfig {
   public static final String TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT = "tez.runtime.shuffle.read.timeout";
   public final static int DEFAULT_TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT = 
       3 * 60 * 1000;
+  
+  /**
+   * 
+   */
+  public static final String TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE = "tez.runtime.shuffle.buffersize";
+  public final static int DEFAULT_TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE = 
+      8 * 1024;
 
   /**
    * 
