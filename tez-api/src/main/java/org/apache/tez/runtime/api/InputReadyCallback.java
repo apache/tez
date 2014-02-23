@@ -18,30 +18,15 @@
 
 package org.apache.tez.runtime.api;
 
-/**
- * Context handle for the Input to initialize itself.
- */
-public interface TezInputContext extends TezTaskContext {
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 
-  /**
-   * Get the Vertex Name of the Source that generated data for this Input
-   * @return Name of the Source Vertex
-   */
-  public String getSourceVertexName();
-  
-  /**
-   * Get the index of the input in the set of all inputs for the task. The 
-   * index will be consistent and valid only among the tasks of this vertex.
-   * @return index
-   */
-  public int getInputIndex();
-  
-  /**
-   * Inform the framework that the specific Input is ready for consumption. This
-   * method will typically be invoked as a result of an
-   * Input.inputReadyNotificationRequired invocation.
-   * 
-   * This method can be invoked multiple times.
-   */
-  public void inputIsReady();
+/**
+ * Used temporarily until MergedInputs have access to a context. Remove after
+ * TEZ-866
+ */
+@Private
+public interface InputReadyCallback {
+
+  public void setInputReady(Input input);
+
 }

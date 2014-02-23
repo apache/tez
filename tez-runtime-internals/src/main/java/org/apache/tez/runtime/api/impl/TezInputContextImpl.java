@@ -28,8 +28,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
@@ -41,6 +43,8 @@ public class TezInputContextImpl extends TezTaskContextImpl
   private final String sourceVertexName;
   private final EventMetaData sourceInfo;
   private final int inputIndex;
+  private final Input input;
+  private final InputReadyTracker inputReadyTracker;
 
   @Private
   public TezInputContextImpl(Configuration conf, int appAttemptNumber,
@@ -49,7 +53,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
       TezCounters counters, int inputIndex, byte[] userPayload,
       RuntimeTask runtimeTask, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
-      InputDescriptor inputDescriptor) {
+      InputDescriptor inputDescriptor,  Input input, InputReadyTracker inputReadyTracker) {
     super(conf, appAttemptNumber, taskVertexName, taskAttemptID,
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, inputDescriptor);
@@ -59,6 +63,8 @@ public class TezInputContextImpl extends TezTaskContextImpl
     this.sourceInfo = new EventMetaData(
         EventProducerConsumerType.INPUT, taskVertexName, sourceVertexName,
         taskAttemptID);
+    this.input = input;
+    this.inputReadyTracker = inputReadyTracker;
   }
 
   @Override
@@ -89,5 +95,10 @@ public class TezInputContextImpl extends TezTaskContextImpl
   @Override
   public void fatalError(Throwable exception, String message) {
     super.signalFatalError(exception, message, sourceInfo);
+  }
+
+  @Override
+  public void inputIsReady() {
+    inputReadyTracker.setInputIsReady(input);
   }
 }

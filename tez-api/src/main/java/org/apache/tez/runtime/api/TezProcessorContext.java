@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.api;
 
 import java.io.IOException;
+import java.util.Collection;
 
 /**
  * Context handle for the Processor to initialize itself.
@@ -38,4 +39,35 @@ public interface TezProcessorContext extends TezTaskContext {
    */
   public boolean canCommit() throws IOException;
 
+  /**
+   * Blocking call which returns when any of the specified Inputs is ready for
+   * consumption.
+   * 
+   * There can be multiple parallel invocations of this function - where each
+   * invocation blocks on the Inputs that it specifies.
+   * 
+   * If multiple Inputs are ready, any one of them may be returned by this
+   * method - including an Input which may have been returned in a previous
+   * call. If invoking this method multiple times, it's recommended to remove
+   * previously completed Inputs from the invocation list.
+   * 
+   * @param inputs
+   *          the list of Inputs to monitor
+   * @return the Input which is ready for consumption
+   * @throws InterruptedException
+   */
+  public Input waitForAnyInputReady(Collection<Input> inputs) throws InterruptedException;
+  
+  /**
+   * Blocking call which returns only after all of the specified Inputs are
+   * ready for consumption.
+   * 
+   * There can be multiple parallel invocations of this function - where each
+   * invocation blocks on the Inputs that it specifies.
+   * 
+   * @param inputs
+   *          the list of Inputs to monitor
+   * @throws InterruptedException
+   */
+  public void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException;
 }

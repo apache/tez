@@ -66,8 +66,7 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
       return null;
     }
 
-    this.shuffleManager = new BroadcastShuffleManager(inputContext, conf,
-        numInputs);
+    this.shuffleManager = new BroadcastShuffleManager(inputContext, conf, numInputs);
     return Collections.emptyList();
   }
 
@@ -143,4 +142,5 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   public void setNumPhysicalInputs(int numInputs) {
     this.numInputs = numInputs;
   }
+
 }

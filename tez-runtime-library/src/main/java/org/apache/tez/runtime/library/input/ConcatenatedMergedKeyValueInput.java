@@ -21,6 +21,7 @@ package org.apache.tez.runtime.library.input;
 import java.io.IOException;
 
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.library.api.KeyValueReader;
@@ -69,4 +70,8 @@ public class ConcatenatedMergedKeyValueInput extends MergedLogicalInput {
     return new ConcatenatedMergedKeyValueReader();
   }
 
+  @Override
+  public void setConstituentInputIsReady(Input input) {
+    informInputReady();
+  }
 }

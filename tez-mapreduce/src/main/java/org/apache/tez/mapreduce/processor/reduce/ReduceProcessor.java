@@ -19,6 +19,7 @@ package org.apache.tez.mapreduce.processor.reduce;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -41,12 +42,13 @@ import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
-import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
+import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
@@ -54,9 +56,7 @@ import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class ReduceProcessor
-extends MRTask
-implements LogicalIOProcessor {
+public class ReduceProcessor extends MRTask implements LogicalIOProcessor {
 
   private static final Log LOG = LogFactory.getLog(ReduceProcessor.class);
 
@@ -94,13 +94,6 @@ implements LogicalIOProcessor {
       Map<String, LogicalOutput> outputs) throws Exception {
 
     LOG.info("Running reduce: " + processorContext.getUniqueIdentifier());
-    
-    for (LogicalInput input : inputs.values()) {
-      input.start();
-    }
-    for (LogicalOutput output : outputs.values()) {
-      output.start();
-    }
 
     if (outputs.size() <= 0 || outputs.size() > 1) {
       throw new IOException("Invalid number of outputs"
@@ -113,7 +106,15 @@ implements LogicalIOProcessor {
     }
 
     LogicalInput in = inputs.values().iterator().next();
+    in.start();
+
+    List<Input> pendingInputs = new LinkedList<Input>();
+    pendingInputs.add(in);
+    processorContext.waitForAllInputsReady(pendingInputs);
+    LOG.info("Input is ready for consumption. Starting Output");
+
     LogicalOutput out = outputs.values().iterator().next();
+    out.start();
 
     initTask(out);
 

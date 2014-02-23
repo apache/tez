@@ -223,6 +223,7 @@ public class TestInput implements LogicalInput {
   public List<Event> initialize(TezInputContext inputContext) throws Exception {
     this.inputContext = inputContext;
     this.inputContext.requestInitialMemory(0l, null); //Mandatory call.
+    this.inputContext.inputIsReady();
     if (inputContext.getUserPayload() != null) {
       String vName = inputContext.getTaskVertexName();
       conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
@@ -324,5 +325,4 @@ public class TestInput implements LogicalInput {
       this.inputValues[i] = -1;
     }
   }
-
 }

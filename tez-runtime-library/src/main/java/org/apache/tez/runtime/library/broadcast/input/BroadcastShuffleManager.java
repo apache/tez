@@ -93,6 +93,7 @@ public class BroadcastShuffleManager implements FetcherCallback, MemoryUpdateCal
   private RunBroadcastShuffleCallable schedulerCallable = new RunBroadcastShuffleCallable();
   
   private BlockingQueue<FetchedInput> completedInputs;
+  private AtomicBoolean inputReadyNotificationSent = new AtomicBoolean(false);
   private Set<InputIdentifier> completedInputSet;
   private ConcurrentMap<String, InputHost> knownSrcHosts;
   private BlockingQueue<InputHost> pendingHosts;
@@ -127,7 +128,7 @@ public class BroadcastShuffleManager implements FetcherCallback, MemoryUpdateCal
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
   
   private volatile long initialMemoryAvailable = -1l;
-  
+
   // TODO NEWTEZ Add counters.
   
   public BroadcastShuffleManager(TezInputContext inputContext, Configuration conf, int numInputs) throws IOException {
@@ -541,6 +542,9 @@ public class BroadcastShuffleManager implements FetcherCallback, MemoryUpdateCal
     try {
       completedInputSet.add(fetchedInput.getInputAttemptIdentifier().getInputIdentifier());
       completedInputs.add(fetchedInput);
+      if (!inputReadyNotificationSent.getAndSet(true)) {
+        inputContext.inputIsReady();
+      }
       numCompletedInputs.incrementAndGet();
     } finally {
       lock.unlock();

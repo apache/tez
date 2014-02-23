@@ -18,27 +18,34 @@
 
 package org.apache.tez.runtime.api.impl;
 
-import java.nio.ByteBuffer;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
-public class TezProcessorContextImpl extends TezTaskContextImpl
-  implements TezProcessorContext {
+public class TezProcessorContextImpl extends TezTaskContextImpl implements TezProcessorContext {
 
+  private static final Log LOG = LogFactory.getLog(TezProcessorContextImpl.class);
+  
   private final byte[] userPayload;
   private final EventMetaData sourceInfo;
+  private final InputReadyTracker inputReadyTracker;
 
   public TezProcessorContextImpl(Configuration conf, int appAttemptNumber,
       TezUmbilical tezUmbilical, String vertexName,
@@ -46,13 +53,14 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
       byte[] userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
-      ProcessorDescriptor processorDescriptor) {
+      ProcessorDescriptor processorDescriptor, InputReadyTracker inputReadyTracker) {
     super(conf, appAttemptNumber, vertexName, taskAttemptID,
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, processorDescriptor);
     this.userPayload = userPayload;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.PROCESSOR,
         taskVertexName, "", taskAttemptID);
+    this.inputReadyTracker = inputReadyTracker;
   }
 
   @Override
@@ -83,5 +91,15 @@ public class TezProcessorContextImpl extends TezTaskContextImpl
   @Override
   public boolean canCommit() throws IOException {
     return tezUmbilical.canCommit(this.taskAttemptID);
+  }
+
+  @Override
+  public Input waitForAnyInputReady(Collection<Input> inputs) throws InterruptedException {
+    return inputReadyTracker.waitForAnyInputReady(inputs);
+  }
+
+  @Override
+  public void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException {
+    inputReadyTracker.waitForAllInputsReady(inputs);
   }
 }

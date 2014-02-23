@@ -271,6 +271,8 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
                                  throwable);
         }
       }
+
+      inputContext.inputIsReady();
       return kvIter;
     }
   }

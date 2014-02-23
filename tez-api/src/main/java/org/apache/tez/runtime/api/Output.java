@@ -27,6 +27,10 @@ import java.util.List;
  * <code>Output</code> implementations must have a 0 argument public constructor
  * for Tez to construct the <code>Output</code>. Tez will take care of
  * initializing and closing the Input after a {@link Processor} completes. </p>
+ *
+ * During initialization, Outputs must specify an initial memory requirement via
+ * {@link TezOutputContext}.requestInitialMemory
+ * 
  */
 public interface Output {
 

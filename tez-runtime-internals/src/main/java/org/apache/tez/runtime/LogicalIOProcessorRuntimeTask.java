@@ -93,7 +93,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final ConcurrentHashMap<String, TezOutputContext> outputContextMap;
   
   private final List<GroupInputSpec> groupInputSpecs;
-  private ConcurrentHashMap<String, LogicalInput> groupInputsMap;
+  private ConcurrentHashMap<String, MergedLogicalInput> groupInputsMap;
   
   private final ProcessorDescriptor processorDescriptor;
   private final LogicalIOProcessor processor;
@@ -116,6 +116,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private Thread eventRouterThread = null;
 
   private final int appAttemptNumber;
+  
+  private final InputReadyTracker inputReadyTracker;
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, TezUmbilical tezUmbilical,
@@ -154,6 +156,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.groupInputSpecs = taskSpec.getGroupInputs();
     initialMemoryDistributor = new MemoryDistributor(numInputs, numOutputs, tezConf);
     this.startedInputsMap = startedInputsMap;
+    this.inputReadyTracker = new InputReadyTracker();
   }
 
   /**
@@ -201,6 +204,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     LOG.info("All initializers finished");
     // group inputs depend on inputs beings initialized. So must be done after.
     initializeGroupInputs();
+    // Register the groups so that appropriate calls can be made.
+    this.inputReadyTracker
+        .setGroupedInputs(groupInputsMap == null ? null : groupInputsMap.values());
     // Grouped input start will be controlled by the start of the GroupedInput
     
     // Construct the set of groupedInputs up front so that start is not invoked on them.
@@ -266,6 +272,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         }
       }
     }
+    LOG.info("AutoStartComplete");
 
     
 
@@ -348,7 +355,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       LOG.info("Initializing Input using InputSpec: " + inputSpec);
       String edgeName = inputSpec.getSourceVertexName();
       LogicalInput input = createInput(inputSpec);
-      TezInputContext inputContext = createInputContext(inputSpec, inputIndex);
+      TezInputContext inputContext = createInputContext(input, inputSpec, inputIndex);
       inputsMap.put(edgeName, input);
       inputContextMap.put(edgeName, inputContext);
 
@@ -407,7 +414,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         ((LogicalOutput) output).setNumPhysicalOutputs(outputSpec
             .getPhysicalEdgeCount());
       }
-      LOG.info("Initializing Input with dest edge: " + edgeName);
+      LOG.info("Initializing Output with dest edge: " + edgeName);
       List<Event> events = output.initialize(outputContext);
       sendTaskGeneratedEvents(events, EventProducerConsumerType.OUTPUT,
           outputContext.getTaskVertexName(),
@@ -426,8 +433,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private void initializeGroupInputs() {
-    if (groupInputSpecs != null && !groupInputSpecs.isEmpty()) {
-     groupInputsMap = new ConcurrentHashMap<String, LogicalInput>(groupInputSpecs.size());
+    if (groupInputSpecs != null && !groupInputSpecs.isEmpty()) {      
+     groupInputsMap = new ConcurrentHashMap<String, MergedLogicalInput>(groupInputSpecs.size());
      for (GroupInputSpec groupInputSpec : groupInputSpecs) {
         LOG.info("Initializing GroupInput using GroupInputSpec: " + groupInputSpec);
         MergedLogicalInput groupInput = (MergedLogicalInput) createInputFromDescriptor(
@@ -452,7 +459,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         + processorDescriptor.getClassName());
   }
 
-  private TezInputContext createInputContext(InputSpec inputSpec, int inputIndex) {
+  private TezInputContext createInputContext(Input input, InputSpec inputSpec, int inputIndex) {
     TezInputContext inputContext = new TezInputContextImpl(tezConf,
         appAttemptNumber, tezUmbilical, taskSpec.getVertexName(),
         inputSpec.getSourceVertexName(), taskSpec.getTaskAttemptID(),
@@ -461,7 +468,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
             .getProcessorDescriptor().getUserPayload() : inputSpec
             .getInputDescriptor().getUserPayload(), this,
         serviceConsumerMetadata, System.getenv(), initialMemoryDistributor,
-        inputSpec.getInputDescriptor());
+        inputSpec.getInputDescriptor(), input, inputReadyTracker);
     return inputContext;
   }
 
@@ -483,7 +490,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         appAttemptNumber, tezUmbilical, taskSpec.getVertexName(), taskSpec.getTaskAttemptID(),
         tezCounters, processorDescriptor.getUserPayload(), this,
         serviceConsumerMetadata, System.getenv(), initialMemoryDistributor,
-        processorDescriptor);
+        processorDescriptor, inputReadyTracker);
     return processorContext;
   }
 

@@ -175,6 +175,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     @Override
     public List<Event> initialize(TezInputContext inputContext) throws Exception {
       inputContext.requestInitialMemory(0, null);
+      inputContext.inputIsReady();
       return null;
     }
 

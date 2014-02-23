@@ -121,6 +121,7 @@ public class MRInput implements LogicalInput {
   public List<Event> initialize(TezInputContext inputContext) throws IOException {
     this.inputContext = inputContext;
     this.inputContext.requestInitialMemory(0l, null); //mandatory call
+    this.inputContext.inputIsReady();
     MRInputUserPayloadProto mrUserPayload =
       MRHelpers.parseMRInputPayload(inputContext.getUserPayload());
     Preconditions.checkArgument(mrUserPayload.hasSplits() == false,
@@ -576,5 +577,6 @@ public class MRInput implements LogicalInput {
         return value;
       }
     }
-  };
+  }
+
 }

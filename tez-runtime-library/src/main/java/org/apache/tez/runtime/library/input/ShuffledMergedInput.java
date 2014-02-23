@@ -84,9 +84,9 @@ public class ShuffledMergedInput implements LogicalInput {
     }
 
     this.inputKeyCounter = inputContext.getCounters().findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
-    this.inputValueCounter = inputContext.getCounters().findCounter(TaskCounter.REDUCE_INPUT_RECORDS);
-    this.conf.setStrings(TezJobConfig.LOCAL_DIRS,
-        inputContext.getWorkDirs());
+    this.inputValueCounter = inputContext.getCounters().findCounter(
+        TaskCounter.REDUCE_INPUT_RECORDS);
+    this.conf.setStrings(TezJobConfig.LOCAL_DIRS, inputContext.getWorkDirs());
 
     shuffle = new Shuffle(inputContext, this.conf, numInputs);
     return Collections.emptyList();
@@ -239,5 +239,4 @@ public class ShuffledMergedInput implements LogicalInput {
         ConfigUtils.getIntermediateInputValueClass(conf), conf, inputKeyCounter, inputValueCounter);
 
   }
-
 }

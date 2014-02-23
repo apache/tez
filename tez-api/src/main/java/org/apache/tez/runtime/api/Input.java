@@ -23,10 +23,18 @@ import java.util.List;
 /**
  * Represents an input through which a TezProcessor receives data on an edge.
  * </p>
- *
+ * 
  * <code>Input</code> classes must have a 0 argument public constructor for Tez
  * to construct the <code>Input</code>. Tez will take care of initializing and
  * closing the Input after a {@link Processor} completes. </p>
+ * 
+ * During initialization, Inputs must specify an initial memory requirement via
+ * {@link TezInputContext}.requestInitialMemory
+ * 
+ * Inputs must also inform the framework once they are ready to be consumed.
+ * This typically means that the Processor will not block when reading from the
+ * corresponding Input. This is done via {@link TezInputContext}.inputIsReady.
+ * Inputs choose the policy on when they are ready.
  */
 public interface Input {
 
@@ -59,7 +67,7 @@ public interface Input {
    * @throws Exception
    */
   public void start() throws Exception;
-  
+
   /**
    * Gets an instance of the {@link Reader} for this <code>Output</code>
    *

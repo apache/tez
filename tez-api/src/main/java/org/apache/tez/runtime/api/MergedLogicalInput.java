@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.api;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -29,14 +30,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public abstract class MergedLogicalInput implements LogicalInput {
 
+  // TODO Remove with TEZ-866
+  private volatile InputReadyCallback inputReadyCallback;
+  private AtomicBoolean notifiedInputReady = new AtomicBoolean(false);
   private List<Input> inputs;
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
-  
+
   public final void initialize(List<Input> inputs) {
-    this.inputs = inputs;
+    this.inputs = Collections.unmodifiableList(inputs);
   }
   
-  protected List<Input> getInputs() {
+  public final List<Input> getInputs() {
     return inputs;
   }
   
@@ -69,4 +73,24 @@ public abstract class MergedLogicalInput implements LogicalInput {
     throw new UnsupportedOperationException();
   }
 
+  // TODO Remove with TEZ-866
+  public void setInputReadyCallback(InputReadyCallback callback) {
+    this.inputReadyCallback =  callback;
+  }
+  
+  /**
+   * Used by the actual MergedInput to notify that it's ready for consumption.
+   * TBD eventually via the context.
+   */
+  protected final void informInputReady() {
+    // TODO Fix with TEZ-866
+    if (!notifiedInputReady.getAndSet(true)) {
+      inputReadyCallback.setInputReady(this);
+    }
+  }
+
+  /**
+   * Used by the framework to inform the MergedInput that one of it's constituent Inputs is ready.
+   */
+  public abstract void setConstituentInputIsReady(Input input);
 }
