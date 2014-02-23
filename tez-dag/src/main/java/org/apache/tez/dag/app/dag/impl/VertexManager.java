@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -158,6 +159,21 @@ public class VertexManager {
         destinationEventMetadataMap.put(inputName, destMeta);
       }
       return destMeta;
+    }
+
+    @Override
+    public Resource getVertexTaskResource() {
+      return managedVertex.getTaskResource();
+    }
+
+    @Override
+    public Resource getTotalAVailableResource() {
+      return appContext.getTaskScheduler().getTotalResources();
+    }
+
+    @Override
+    public int getNumClusterNodes() {
+      return appContext.getTaskScheduler().getNumClusterNodes();
     }
   }
   

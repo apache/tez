@@ -29,6 +29,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfoMem;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
@@ -80,6 +81,19 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
       sw.reset().start();
     }
 
+    int totalResource = rootInputContext.getTotalAvailableResource().getMemory();
+    int taskResource = rootInputContext.getVertexTaskResource().getMemory();
+    float waves = conf.getFloat(
+        TezConfiguration.TEZ_AM_GROUPING_SPLIT_WAVES,
+        TezConfiguration.TEZ_AM_GROUPING_SPLIT_WAVES_DEFAULT);
+
+    int numTasks = (int)((totalResource*waves)/taskResource);
+
+    LOG.info("Input " + rootInputContext.getInputName() + " asking for " + numTasks
+        + " tasks. Headroom: " + totalResource + " Task Resource: "
+        + taskResource + " waves: " + waves);
+
+
     InputSplitInfoMem inputSplitInfo = null;
     String realInputFormatName = userPayloadProto.getInputFormatName(); 
     if ( realInputFormatName != null && !realInputFormatName.isEmpty()) {
@@ -89,8 +103,7 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
         LOG.info("Grouping mapreduce api input splits");
         Job job = Job.getInstance(conf);
         org.apache.hadoop.mapreduce.InputSplit[] splits = MRHelpers
-            .generateNewSplits(job, realInputFormatName,
-                rootInputContext.getNumTasks());
+            .generateNewSplits(job, realInputFormatName, numTasks);
         SerializationFactory serializationFactory = new SerializationFactory(
             job.getConfiguration());
 
@@ -120,8 +133,7 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
       } else {
         LOG.info("Grouping mapred api input splits");
         org.apache.hadoop.mapred.InputSplit[] splits = MRHelpers
-            .generateOldSplits(jobConf, realInputFormatName,
-                rootInputContext.getNumTasks());
+            .generateOldSplits(jobConf, realInputFormatName, numTasks);
         List<TaskLocationHint> locationHints = Lists
             .newArrayListWithCapacity(splits.length);
         MRSplitsProto.Builder splitsBuilder = MRSplitsProto.newBuilder();

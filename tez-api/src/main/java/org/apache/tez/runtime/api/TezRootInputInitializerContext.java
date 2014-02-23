@@ -19,16 +19,58 @@
 package org.apache.tez.runtime.api;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.Resource;
 
 public interface TezRootInputInitializerContext {
 
+  /**
+   * Get the YARN application id given to the Tez Application Master
+   * @return Application id
+   */
   ApplicationId getApplicationId();
   
+  /**
+   * Get the name of the DAG
+   * @return DAG name
+   */
   String getDAGName();
   
+  /**
+   * Get the name of the input
+   * @return Input name
+   */
   String getInputName();
 
+  /**
+   * Get the user payload
+   * @return User payload
+   */
   byte[] getUserPayload();
   
+  /**
+   * Get the number of tasks in this vertex. Maybe -1 if the vertex has not been
+   * initialized with a pre-determined number of tasks.
+   * @return number of tasks
+   */
   int getNumTasks();
+  
+  /**
+   * Get the resource allocated to a task of this vertex
+   * @return Resource
+   */
+  Resource getVertexTaskResource();
+  
+  /**
+   * Get the total resource allocated to this vertex. If the DAG is running in 
+   * a busy cluster then it may have no resources available dedicated to it. The
+   * DAG may divide its resources among member vertices.
+   * @return Resource
+   */
+  Resource getTotalAvailableResource();
+  
+  /**
+   * Get the number of nodes in the cluster
+   * @return Number of nodes
+   */
+  int getNumClusterNodes();
 }

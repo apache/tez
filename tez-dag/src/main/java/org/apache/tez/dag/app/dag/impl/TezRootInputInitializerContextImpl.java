@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.TezRootInputInitializerContext;
@@ -31,17 +32,24 @@ public class TezRootInputInitializerContextImpl implements
   private final String inputName;
   private final InputDescriptor inputDescriptor;
   private final int numTasks;
+  private final Resource vertexTaskResource;
+  private final Resource totalResource;
+  private final int numClusterNodes;
 
   // TODO Add support for counters - merged with the Vertex counters.
   
   public TezRootInputInitializerContextImpl(TezVertexID vertexID,
       String dagName, String vertexName, String inputName,
-      InputDescriptor inputDescriptor, int numTasks) {
+      InputDescriptor inputDescriptor, int numTasks, int numClusterNodes,
+      Resource vertexTaskResource, Resource totalResource) {
     this.vertexID = vertexID;
     this.dagName = dagName;
     this.inputName = inputName;
     this.inputDescriptor = inputDescriptor;
     this.numTasks = numTasks;
+    this.vertexTaskResource = vertexTaskResource;
+    this.totalResource = totalResource;
+    this.numClusterNodes = numClusterNodes;
   }
 
   @Override
@@ -67,6 +75,21 @@ public class TezRootInputInitializerContextImpl implements
   @Override 
   public int getNumTasks() {
     return numTasks;
+  }
+
+  @Override
+  public Resource getVertexTaskResource() {
+    return vertexTaskResource;
+  }
+
+  @Override
+  public Resource getTotalAvailableResource() {
+    return totalResource;
+  }
+
+  @Override
+  public int getNumClusterNodes() {
+    return numClusterNodes;
   }
 
 }

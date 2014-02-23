@@ -104,6 +104,10 @@ public class TaskSchedulerEventHandler extends AbstractService
     LOG.info("TaskScheduler notified that iSignalled was : " + isSignalled);
   }
 
+  public int getNumClusterNodes() {
+    return cachedNodeCount;
+  }
+  
   public Resource getAvailableResources() {
     return taskScheduler.getAvailableResources();
   }

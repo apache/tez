@@ -2203,10 +2203,11 @@ public class TestVertexImpl {
     @Override
     protected RootInputInitializerRunner createRootInputInitializerRunner(
         String dagName, String vertexName, TezVertexID vertexID,
-        EventHandler eventHandler, int numTasks) {
+        EventHandler eventHandler, int numTasks, int numNodes, 
+        Resource taskResource, Resource totalResource) {
       try {
         rootInputInitializerRunner = new RootInputInitializerRunnerControlled(dagName, vertexName, vertexID,
-            eventHandler, numTasks, dispatcher);
+            eventHandler, numTasks, dispatcher, taskResource, totalResource);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -2230,8 +2231,11 @@ public class TestVertexImpl {
 
     public RootInputInitializerRunnerControlled(String dagName,
         String vertexName, TezVertexID vertexID, EventHandler eventHandler,
-        int numTasks, DrainDispatcher dispatcher) throws IOException {
-      super(dagName, vertexName, vertexID, eventHandler, UserGroupInformation.getCurrentUser(), numTasks);
+        int numTasks, DrainDispatcher dispatcher,
+        Resource taskResource, Resource totalResource) throws IOException {
+      super(dagName, vertexName, vertexID, eventHandler, 
+          UserGroupInformation.getCurrentUser(), 
+          taskResource, totalResource, numTasks, 1);
       this.eventHandler = eventHandler;
       this.dispatcher = dispatcher;
       this.vertexID = vertexID;

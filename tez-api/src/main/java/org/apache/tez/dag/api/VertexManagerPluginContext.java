@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 
 /**
@@ -55,6 +56,26 @@ public interface VertexManagerPluginContext {
    * @return Total number of tasks in this vertex
    */
   public int getVertexNumTasks(String vertexName);
+  
+  /**
+   * Get the resource allocated to a task of this vertex
+   * @return Resource
+   */
+  Resource getVertexTaskResource();
+  
+  /**
+   * Get the total resource allocated to this vertex. If the DAG is running in 
+   * a busy cluster then it may have no resources available dedicated to it. The
+   * DAG may divide its available resource among member vertices.
+   * @return Resource
+   */
+  Resource getTotalAVailableResource();
+  
+  /**
+   * Get the number of nodes in the cluster
+   * @return Number of nodes
+   */
+  int getNumClusterNodes();
   
   /**
    * Set the new parallelism (number of tasks) of this vertex.
