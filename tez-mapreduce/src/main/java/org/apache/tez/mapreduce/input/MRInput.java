@@ -373,12 +373,12 @@ public class MRInput implements LogicalInput {
     MRSplitProto splitProto = MRSplitProto
         .parseFrom(initEvent.getUserPayload());
     if (useNewApi) {
-      newInputSplit = getNewSplitDetailsFromEvent(splitProto);
+      newInputSplit = getNewSplitDetailsFromEvent(splitProto, jobConf);
       LOG.info("Split Details -> SplitClass: "
           + newInputSplit.getClass().getName() + ", NewSplit: " + newInputSplit);
       setupNewRecordReader();
     } else {
-      oldInputSplit = getOldSplitDetailsFromEvent(splitProto);
+      oldInputSplit = getOldSplitDetailsFromEvent(splitProto, jobConf);
       LOG.info("Split Details -> SplitClass: "
           + oldInputSplit.getClass().getName() + ", OldSplit: " + oldInputSplit);
       setupOldRecordReader();
@@ -386,12 +386,11 @@ public class MRInput implements LogicalInput {
     LOG.info("Initialized RecordReader from event");
   }
 
-  private InputSplit getOldSplitDetailsFromEvent(MRSplitProto splitProto)
+  @Private
+  public static InputSplit getOldSplitDetailsFromEvent(MRSplitProto splitProto, Configuration conf)
       throws IOException {
-    SerializationFactory serializationFactory = new SerializationFactory(
-        jobConf);
-    return MRHelpers.createOldFormatSplitFromUserPayload(splitProto,
-        serializationFactory);
+    SerializationFactory serializationFactory = new SerializationFactory(conf);
+    return MRHelpers.createOldFormatSplitFromUserPayload(splitProto, serializationFactory);
   }
   
   @SuppressWarnings("unchecked")
@@ -430,10 +429,10 @@ public class MRInput implements LogicalInput {
     return split;
   }
 
-  private org.apache.hadoop.mapreduce.InputSplit getNewSplitDetailsFromEvent(
-      MRSplitProto splitProto) throws IOException {
-    SerializationFactory serializationFactory = new SerializationFactory(
-        jobConf);
+  @Private
+  public static org.apache.hadoop.mapreduce.InputSplit getNewSplitDetailsFromEvent(
+      MRSplitProto splitProto, Configuration conf) throws IOException {
+    SerializationFactory serializationFactory = new SerializationFactory(conf);
     return MRHelpers.createNewFormatSplitFromUserPayload(
         splitProto, serializationFactory);
   }

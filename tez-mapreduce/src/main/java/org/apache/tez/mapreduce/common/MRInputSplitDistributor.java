@@ -23,7 +23,11 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
@@ -38,8 +42,9 @@ import com.google.common.collect.Lists;
 
 public class MRInputSplitDistributor implements TezRootInputInitializer {
 
-  private static final Log LOG = LogFactory
-      .getLog(MRInputSplitDistributor.class);
+  private static final Log LOG = LogFactory.getLog(MRInputSplitDistributor.class);
+  
+  private boolean sendSerializedEvents;
 
   public MRInputSplitDistributor() {
   }
@@ -59,7 +64,14 @@ public class MRInputSplitDistributor implements TezRootInputInitializer {
       LOG.debug("Time to parse MRInput payload into prot: "
           + sw.elapsedMillis());  
     }
-    
+    Configuration conf = MRHelpers.createConfFromByteString(userPayloadProto
+        .getConfigurationBytes());
+    JobConf jobConf = new JobConf(conf);
+    boolean useNewApi = jobConf.getUseNewMapper();
+    sendSerializedEvents = conf.getBoolean(
+        MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLAOD,
+        MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLAOD_DEFAULT);
+    LOG.info("Emitting serialized splits: " + sendSerializedEvents);
 
     this.splitsProto = userPayloadProto.getSplits();
     
@@ -72,12 +84,27 @@ public class MRInputSplitDistributor implements TezRootInputInitializer {
 
     events.add(updatePayloadEvent);
     int count = 0;
+
     for (MRSplitProto mrSplit : this.splitsProto.getSplitsList()) {
-      // Unnecessary array copy, can be avoided by using ByteBuffer instead of a
-      // raw array.
-      RootInputDataInformationEvent diEvent = new RootInputDataInformationEvent(
-          count++, mrSplit.toByteArray());
-      events.add(diEvent);
+
+      RootInputDataInformationEvent diEvent;
+
+      if (sendSerializedEvents) {
+        // Unnecessary array copy, can be avoided by using ByteBuffer instead of
+        // a raw array.
+        diEvent = new RootInputDataInformationEvent(count++, mrSplit.toByteArray());
+      } else {
+        if (useNewApi) {
+          org.apache.hadoop.mapreduce.InputSplit newInputSplit = MRInput
+              .getNewSplitDetailsFromEvent(mrSplit, conf);
+          diEvent = new RootInputDataInformationEvent(count++, newInputSplit);
+        } else {
+          org.apache.hadoop.mapred.InputSplit oldInputSplit = MRInput.getOldSplitDetailsFromEvent(
+              mrSplit, conf);
+          diEvent = new RootInputDataInformationEvent(count++, oldInputSplit);
+        }
+        events.add(diEvent);
+      }
     }
 
     return events;

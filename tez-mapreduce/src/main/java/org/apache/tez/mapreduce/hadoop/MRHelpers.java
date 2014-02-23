@@ -50,7 +50,6 @@ import org.apache.hadoop.mapreduce.JobSubmissionFiles;
 import org.apache.hadoop.mapreduce.split.JobSplitWriter;
 import org.apache.hadoop.mapreduce.v2.proto.MRProtos;
 import org.apache.hadoop.mapreduce.v2.util.MRApps;
-import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.yarn.ContainerLogAppender;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -81,7 +80,9 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
@@ -369,34 +370,21 @@ public class MRHelpers {
       Job job = Job.getInstance(conf);
       org.apache.hadoop.mapreduce.InputSplit[] splits = 
           generateNewSplits(job, null, 0);
-      splitInfoMem = createSplitsProto(splits, new SerializationFactory(job.getConfiguration()), job.getCredentials());
+      splitInfoMem = new InputSplitInfoMem(splits, createTaskLocationHintsFromSplits(splits),
+          splits.length, job.getCredentials(), job.getConfiguration());
     } else {
       LOG.info("Generating mapred api input splits");
       org.apache.hadoop.mapred.InputSplit[] splits = 
           generateOldSplits(jobConf, null, 0);
-      splitInfoMem = createSplitsProto(splits, jobConf.getCredentials());
+      splitInfoMem = new InputSplitInfoMem(splits, createTaskLocationHintsFromSplits(splits),
+          splits.length, jobConf.getCredentials(), jobConf);
     }
     LOG.info("NumSplits: " + splitInfoMem.getNumTasks() + ", SerializedSize: "
         + splitInfoMem.getSplitsProto().getSerializedSize());
     return splitInfoMem;
   }
 
-  private static InputSplitInfoMem createSplitsProto(
-      org.apache.hadoop.mapreduce.InputSplit[] newSplits,
-      SerializationFactory serializationFactory, Credentials credentials) throws IOException,
-      InterruptedException {
-    MRSplitsProto.Builder splitsBuilder = MRSplitsProto.newBuilder();
-
-    List<TaskLocationHint> locationHints = Lists
-        .newArrayListWithCapacity(newSplits.length);
-    for (org.apache.hadoop.mapreduce.InputSplit newSplit : newSplits) {
-      splitsBuilder.addSplits(createSplitProto(newSplit, serializationFactory));
-      locationHints.add(new TaskLocationHint(new HashSet<String>(Arrays
-          .asList(newSplit.getLocations())), null));
-    }
-    return new InputSplitInfoMem(splitsBuilder.build(), locationHints,
-        newSplits.length, credentials);
-  }
+  
 
   @Private
   public static <T extends org.apache.hadoop.mapreduce.InputSplit> MRSplitProto createSplitProto(
@@ -419,21 +407,6 @@ public class MRHelpers {
     builder.setSplitBytes(splitBs);
 
     return builder.build();
-  }
-
-  private static InputSplitInfoMem createSplitsProto(
-      org.apache.hadoop.mapred.InputSplit[] oldSplits, Credentials credentials) throws IOException {
-    MRSplitsProto.Builder splitsBuilder = MRSplitsProto.newBuilder();
-
-    List<TaskLocationHint> locationHints = Lists
-        .newArrayListWithCapacity(oldSplits.length);
-    for (org.apache.hadoop.mapred.InputSplit oldSplit : oldSplits) {
-      splitsBuilder.addSplits(createSplitProto(oldSplit));
-      locationHints.add(new TaskLocationHint(new HashSet<String>(Arrays
-          .asList(oldSplit.getLocations())), null));
-    }
-    return new InputSplitInfoMem(splitsBuilder.build(), locationHints,
-        oldSplits.length, credentials);
   }
 
   @Private
@@ -1007,5 +980,42 @@ public class MRHelpers {
         .deserialize(null);
     deserializer.close();
     return inputSplit;
+  }
+
+  private static List<TaskLocationHint> createTaskLocationHintsFromSplits(
+      org.apache.hadoop.mapreduce.InputSplit[] newFormatSplits) {
+    Iterable<TaskLocationHint> iterable = Iterables.transform(Arrays.asList(newFormatSplits),
+        new Function<org.apache.hadoop.mapreduce.InputSplit, TaskLocationHint>() {
+          @Override
+          public TaskLocationHint apply(org.apache.hadoop.mapreduce.InputSplit input) {
+            try {
+              return new TaskLocationHint(new HashSet<String>(Arrays.asList(input.getLocations())),
+                  null);
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        });
+    return Lists.newArrayList(iterable);
+  }
+
+  private static List<TaskLocationHint> createTaskLocationHintsFromSplits(
+      org.apache.hadoop.mapred.InputSplit[] oldFormatSplits) {
+    Iterable<TaskLocationHint> iterable = Iterables.transform(Arrays.asList(oldFormatSplits),
+        new Function<org.apache.hadoop.mapred.InputSplit, TaskLocationHint>() {
+          @Override
+          public TaskLocationHint apply(org.apache.hadoop.mapred.InputSplit input) {
+            try {
+              return new TaskLocationHint(new HashSet<String>(Arrays.asList(input.getLocations())),
+                  null);
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        });
+
+    return Lists.newArrayList(iterable);
   }
 }
