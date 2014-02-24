@@ -9,22 +9,22 @@ existing MR jobs on TEZ, please file jiras.
 Install/Deploy Instructions
 ===========================
 
-1) Deploy Apache Hadoop either using the 2.2.0 release or use 3.0.0-SNAPSHOT from trunk.
+1) Deploy Apache Hadoop either using the 2.2.0 release or a compatible 2.x version.
 2) Build tez using "mvn clean install -DskipTests=true -Dmaven.javadoc.skip=true"
    - If you prefer to run the unit tests, remove skipTests from the command above.
    - If you would like to create a tarball of the release, use
      "mvn clean package -Dtar -DskipTests=true -Dmaven.javadoc.skip=true"
 3) Copy the tez jars and their dependencies into HDFS.
-   - The tez jars and dependencies will be found in tez-dist/target/tez-0.2.0-SNAPSHOT/tez-0.2.0-SNAPSHOT
+   - The tez jars and dependencies will be found in tez-dist/target/tez-0.4.0-incubating-SNAPSHOT/tez-0.4.0-incubating-SNAPSHOT
      if you run the intial command mentioned in step 2.
    - Assuming that the tez jars are put in /apps/ on HDFS, the command would be
-     "hadoop dfs -put tez-dist/target/tez-0.2.0-SNAPSHOT/tez-0.2.0-SNAPSHOT /apps/"
+     "hadoop dfs -put tez-dist/target/tez-0.4.0-incubating-SNAPSHOT/tez-0.4.0-incubating-SNAPSHOT /apps/"
    - Please do not upload the tarball to HDFS, upload only the jars.
 4) Configure tez-site.xml to set tez.lib.uris to point to the paths in HDFS containing
    the jars. Please note that the paths are not searched recursively so for <basedir>
    and <basedir>/lib/, you will need to configure the 2 paths as a comma-separated list.
    - Assuming you followed step 3, the value would be:
-      "${fs.default.name}/apps/tez-0.2.0-SNAPSHOT,${fs.default.name}/apps/tez-0.2.0-SNAPSHOT/lib/"
+      "${fs.default.name}/apps/tez-0.4.0-incubating-SNAPSHOT,${fs.default.name}/apps/tez-0.4.0-incubating-SNAPSHOT/lib/"
 5) Modify mapred-site.xml to change "mapreduce.framework.name" property from its
    default value of "yarn" to "yarn-tez"
 6) set HADOOP_CLASSPATH to have the following paths in it:
@@ -32,7 +32,7 @@ Install/Deploy Instructions
    - TEZ_JARS and TEZ_JARS/libs - location of the tez jars and dependencies.
 7) Submit a MR job as you normally would using something like:
 
-$HADOOP_PREFIX/bin/hadoop jar hadoop-mapreduce-client-jobclient-3.0.0-SNAPSHOT-tests.jar sleep -mt 1 -rt 1 -m 1 -r 1
+$HADOOP_PREFIX/bin/hadoop jar hadoop-mapreduce-client-jobclient-2.2.0-tests.jar sleep -mt 1 -rt 1 -m 1 -r 1
 
 This will use the TEZ DAG ApplicationMaster to run the MR job. This can be
 verified by looking at the AM's logs from the YARN ResourceManager UI.
