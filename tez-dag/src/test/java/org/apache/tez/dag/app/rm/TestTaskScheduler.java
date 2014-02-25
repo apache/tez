@@ -709,10 +709,12 @@ public class TestTaskScheduler {
 
     // deallocate allocated task
     assertTrue(scheduler.deallocateTask(mockTask1, true));
+    drainableAppCallback.drain();
     verify(mockApp).containerBeingReleased(mockCId1);
     verify(mockRMClient).releaseAssignedContainer(mockCId1);
     // deallocate allocated container
     Assert.assertEquals(mockTask2, scheduler.deallocateContainer(mockCId2));
+    drainableAppCallback.drain();
     verify(mockRMClient).releaseAssignedContainer(mockCId2);
     verify(mockRMClient, times(3)).releaseAssignedContainer((ContainerId) any());
 
