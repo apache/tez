@@ -103,8 +103,8 @@ public class MRInputSplitDistributor implements TezRootInputInitializer {
               mrSplit, conf);
           diEvent = new RootInputDataInformationEvent(count++, oldInputSplit);
         }
-        events.add(diEvent);
       }
+      events.add(diEvent);
     }
 
     return events;
