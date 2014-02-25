@@ -33,6 +33,7 @@ import com.google.common.collect.Lists;
 public class TaskSpec implements Writable {
 
   private TezTaskAttemptID taskAttemptId;
+  private String dagName;
   private String vertexName;
   private ProcessorDescriptor processorDescriptor;
   private List<InputSpec> inputSpecList;
@@ -43,15 +44,22 @@ public class TaskSpec implements Writable {
   }
 
   public TaskSpec(TezTaskAttemptID taskAttemptID,
-      String vertexName, ProcessorDescriptor processorDescriptor,
+      String dagName, String vertexName,
+      ProcessorDescriptor processorDescriptor,
       List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList, 
       List<GroupInputSpec> groupInputSpecList) {
+    // TODO: TEZ-884 null check
     this.taskAttemptId = taskAttemptID;
+    this.dagName = StringInterner.weakIntern(dagName);
     this.vertexName = StringInterner.weakIntern(vertexName);
     this.processorDescriptor = processorDescriptor;
     this.inputSpecList = inputSpecList;
     this.outputSpecList = outputSpecList;
     this.groupInputSpecList = groupInputSpecList;
+  }
+
+  public String getDAGName() {
+    return dagName;
   }
 
   public String getVertexName() {
@@ -81,6 +89,7 @@ public class TaskSpec implements Writable {
   @Override
   public void write(DataOutput out) throws IOException {
     taskAttemptId.write(out);
+    out.writeUTF(dagName);
     out.writeUTF(vertexName);
     processorDescriptor.write(out);
     out.writeInt(inputSpecList.size());
@@ -105,6 +114,7 @@ public class TaskSpec implements Writable {
   @Override
   public void readFields(DataInput in) throws IOException {
     taskAttemptId = TezTaskAttemptID.readTezTaskAttemptID(in);
+    dagName = StringInterner.weakIntern(in.readUTF());
     vertexName = StringInterner.weakIntern(in.readUTF());
     // TODO TEZ-305 convert this to PB
     processorDescriptor = new ProcessorDescriptor();
@@ -138,7 +148,8 @@ public class TaskSpec implements Writable {
   @Override
   public String toString() {
     StringBuffer sb = new StringBuffer();
-    sb.append("VertexName: " + vertexName);
+    sb.append("DAGName : " + dagName);
+    sb.append(", VertexName: " + vertexName);
     sb.append(", TaskAttemptID:" + taskAttemptId);
     sb.append(", processorName=" + processorDescriptor.getClassName()
         + ", inputSpecListSize=" + inputSpecList.size()

@@ -114,7 +114,7 @@ public class TestReduceProcessor {
 
   @Test
   public void testReduceProcessor() throws Exception {
-
+    final String dagName = "mrdag0";
     String mapVertexName = MultiStageMRConfigUtil.getInitialMapVertexName();
     String reduceVertexName = MultiStageMRConfigUtil.getFinalReduceVertexName();
     JobConf jobConf = new JobConf(defaultConf);
@@ -142,7 +142,7 @@ public class TestReduceProcessor {
     OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", new OutputDescriptor(LocalOnFileSorterOutput.class.getName()), 1);
     // Run a map
     LogicalIOProcessorRuntimeTask mapTask = MapUtils.createLogicalTask(localFs, workDir, mapConf, 0,
-        mapInput, new TestUmbilical(), mapVertexName,
+        mapInput, new TestUmbilical(), dagName, mapVertexName,
         Collections.singletonList(mapInputSpec),
         Collections.singletonList(mapOutputSpec));
 
@@ -172,6 +172,7 @@ public class TestReduceProcessor {
     // Now run a reduce
     TaskSpec taskSpec = new TaskSpec(
         TezTestUtils.getMockTaskAttemptId(0, 1, 0, 0),
+        dagName,
         reduceVertexName,
         reduceProcessorDesc,
         Collections.singletonList(reduceInputSpec),

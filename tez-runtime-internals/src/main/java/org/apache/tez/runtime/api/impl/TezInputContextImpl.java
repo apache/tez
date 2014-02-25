@@ -48,13 +48,13 @@ public class TezInputContextImpl extends TezTaskContextImpl
 
   @Private
   public TezInputContextImpl(Configuration conf, int appAttemptNumber,
-      TezUmbilical tezUmbilical, String taskVertexName,
+      TezUmbilical tezUmbilical, String dagName, String taskVertexName,
       String sourceVertexName, TezTaskAttemptID taskAttemptID,
       TezCounters counters, int inputIndex, byte[] userPayload,
       RuntimeTask runtimeTask, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       InputDescriptor inputDescriptor,  Input input, InputReadyTracker inputReadyTracker) {
-    super(conf, appAttemptNumber, taskVertexName, taskAttemptID,
+    super(conf, appAttemptNumber, dagName, taskVertexName, taskAttemptID,
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, inputDescriptor);
     this.userPayload = userPayload;

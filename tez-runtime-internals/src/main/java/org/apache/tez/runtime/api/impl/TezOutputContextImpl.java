@@ -44,14 +44,15 @@ public class TezOutputContextImpl extends TezTaskContextImpl
 
   @Private
   public TezOutputContextImpl(Configuration conf, int appAttemptNumber,
-      TezUmbilical tezUmbilical, String taskVertexName,
+      TezUmbilical tezUmbilical, String dagName,
+      String taskVertexName,
       String destinationVertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters, int outputIndex,
       byte[] userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       OutputDescriptor outputDescriptor) {
-    super(conf, appAttemptNumber, taskVertexName, taskAttemptID,
+    super(conf, appAttemptNumber, dagName, taskVertexName, taskAttemptID,
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, outputDescriptor);
     this.userPayload = userPayload;

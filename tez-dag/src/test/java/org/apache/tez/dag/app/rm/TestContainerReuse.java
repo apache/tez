@@ -895,7 +895,7 @@ public class TestContainerReuse {
     String[] hosts, String[] racks, Priority priority,
     ContainerContext containerContext) {
     AMSchedulerEventTALaunchRequest lr = new AMSchedulerEventTALaunchRequest(
-      taID, capability, new TaskSpec(taID, "vertexName",
+      taID, capability, new TaskSpec(taID, "dagName", "vertexName",
       new ProcessorDescriptor("processorClassName"),
       Collections.singletonList(new InputSpec("vertexName",
         new InputDescriptor("inputClassName"), 1)),

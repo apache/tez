@@ -48,13 +48,13 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements TezPr
   private final InputReadyTracker inputReadyTracker;
 
   public TezProcessorContextImpl(Configuration conf, int appAttemptNumber,
-      TezUmbilical tezUmbilical, String vertexName,
+      TezUmbilical tezUmbilical, String dagName, String vertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters,
       byte[] userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       ProcessorDescriptor processorDescriptor, InputReadyTracker inputReadyTracker) {
-    super(conf, appAttemptNumber, vertexName, taskAttemptID,
+    super(conf, appAttemptNumber, dagName, vertexName, taskAttemptID,
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, processorDescriptor);
     this.userPayload = userPayload;

@@ -65,10 +65,10 @@ public class TestLogicalIOProcessorRuntimeTask {
     TezConfiguration tezConf = new TezConfiguration();
 
     TezTaskAttemptID taId1 = createTaskAttemptID(vertexId, 1);
-    TaskSpec task1 = createTaskSpec(taId1, "vertex1");
+    TaskSpec task1 = createTaskSpec(taId1, "dag1", "vertex1");
 
     TezTaskAttemptID taId2 = createTaskAttemptID(vertexId, 2);
-    TaskSpec task2 = createTaskSpec(taId2, "vertex1");
+    TaskSpec task2 = createTaskSpec(taId2, "dag2", "vertex1");
 
     LogicalIOProcessorRuntimeTask lio1 = new LogicalIOProcessorRuntimeTask(task1, 0, tezConf,
         umbilical, serviceConsumerMetadata, startedInputsMap);
@@ -96,9 +96,11 @@ public class TestLogicalIOProcessorRuntimeTask {
 
   }
 
-  private TaskSpec createTaskSpec(TezTaskAttemptID taskAttemptID, String vertexName) {
+  private TaskSpec createTaskSpec(TezTaskAttemptID taskAttemptID,
+      String dagName, String vertexName) {
     ProcessorDescriptor processorDesc = createProcessorDescriptor();
-    TaskSpec taskSpec = new TaskSpec(taskAttemptID, vertexName, processorDesc,
+    TaskSpec taskSpec = new TaskSpec(taskAttemptID,
+        dagName, vertexName, processorDesc,
         createInputSpecList(), createOutputSpecList(), null);
     return taskSpec;
   }

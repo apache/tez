@@ -100,6 +100,7 @@ public class TestOnFileUnorderedKVOutput {
 
     int appAttemptNumber = 1;
     TezUmbilical tezUmbilical = null;
+    String dagName = "currentDAG";
     String taskVertexName = "currentVertex";
     String destinationVertexName = "destinationVertex";
     TezDAGID dagID = TezDAGID.getInstance("2000", 1, 1);
@@ -119,7 +120,7 @@ public class TestOnFileUnorderedKVOutput {
 
 
     TezOutputContext outputContext = new TezOutputContextImpl(conf,
-        appAttemptNumber, tezUmbilical, taskVertexName, destinationVertexName,
+        appAttemptNumber, tezUmbilical, dagName, taskVertexName, destinationVertexName,
         taskAttemptID, counters, 0, userPayload, runtimeTask,
         null, auxEnv, new MemoryDistributor(1, 1, conf) , mock(OutputDescriptor.class));
 

@@ -193,7 +193,7 @@ public class MapUtils {
   
   public static LogicalIOProcessorRuntimeTask createLogicalTask(FileSystem fs, Path workDir,
       JobConf jobConf, int mapId, Path mapInput,
-      TezUmbilical umbilical,
+      TezUmbilical umbilical, String dagName,
       String vertexName, List<InputSpec> inputSpecs,
       List<OutputSpec> outputSpecs) throws Exception {
     jobConf.setInputFormat(SequenceFileInputFormat.class);
@@ -205,7 +205,7 @@ public class MapUtils {
 
     TaskSpec taskSpec = new TaskSpec(
         TezTestUtils.getMockTaskAttemptId(0, 0, mapId, 0),
-        vertexName,
+        dagName, vertexName,
         mapProcessorDesc,
         inputSpecs,
         outputSpecs, null);

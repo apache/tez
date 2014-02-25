@@ -56,15 +56,17 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   private final Map<String, String> auxServiceEnv;
   protected final MemoryDistributor initialMemoryDistributor;
   protected final TezEntityDescriptor descriptor;
+  private final String dagName;
 
   @Private
   public TezTaskContextImpl(Configuration conf, int appAttemptNumber,
-      String taskVertexName, TezTaskAttemptID taskAttemptID,
+      String dagName, String taskVertexName, TezTaskAttemptID taskAttemptID,
       TezCounters counters, RuntimeTask runtimeTask,
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       TezEntityDescriptor descriptor) {
     this.conf = conf;
+    this.dagName = dagName;
     this.taskVertexName = taskVertexName;
     this.taskAttemptID = taskAttemptID;
     this.counters = counters;
@@ -106,9 +108,7 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
 
   @Override
   public String getDAGName() {
-    // TODO NEWTEZ Change to some form of the DAG name, for now using dagId as
-    // the unique identifier.
-    return taskAttemptID.getTaskID().getVertexID().getDAGId().toString();
+    return dagName;
   }
 
   @Override
