@@ -251,9 +251,9 @@ public class AMNodeImpl implements AMNode {
     // these containers are not useful anymore
     pastContainers.addAll(containers);
     containers.clear();
+    sendEvent(new AMSchedulerEventNodeBlacklistUpdate(getNodeId(), true));
     sendEvent(new AMNodeEvent(getNodeId(),
         AMNodeEventType.N_NODE_WAS_BLACKLISTED));
-    sendEvent(new AMSchedulerEventNodeBlacklistUpdate(getNodeId(), true));
   }
 
   @SuppressWarnings("unchecked")

@@ -172,10 +172,10 @@ public class TestAMNodeMap {
     assertEquals(cId2, ((AMContainerEventNodeFailed)handler.events.get(1)).getContainerId());
     assertEquals(AMContainerEventType.C_NODE_FAILED, handler.events.get(2).getType());
     assertEquals(cId3, ((AMContainerEventNodeFailed)handler.events.get(2)).getContainerId());
-    assertEquals(AMNodeEventType.N_NODE_WAS_BLACKLISTED, handler.events.get(3).getType());
-    assertEquals(node.getNodeId(), ((AMNodeEvent)handler.events.get(3)).getNodeId());
-    assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(4).getType());
-    assertEquals(node.getNodeId(), ((AMSchedulerEventNodeBlacklistUpdate)handler.events.get(4)).getNodeId());
+    assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(3).getType());
+    assertEquals(node.getNodeId(), ((AMSchedulerEventNodeBlacklistUpdate)handler.events.get(3)).getNodeId());
+    assertEquals(AMNodeEventType.N_NODE_WAS_BLACKLISTED, handler.events.get(4).getType());
+    assertEquals(node.getNodeId(), ((AMNodeEvent)handler.events.get(4)).getNodeId());
     
     ContainerId cId4 = mock(ContainerId.class);
     ContainerId cId5 = mock(ContainerId.class);
@@ -197,10 +197,11 @@ public class TestAMNodeMap {
     AMNodeImpl node3 = (AMNodeImpl)amNodeMap.get(nodeId3);
     assertEquals(AMNodeState.FORCED_ACTIVE, node3.getState());
     assertEquals(10, handler.events.size());
+    
     assertEquals(AMContainerEventType.C_NODE_FAILED, handler.events.get(0).getType());
     assertEquals(AMContainerEventType.C_NODE_FAILED, handler.events.get(1).getType());
-    assertEquals(AMNodeEventType.N_NODE_WAS_BLACKLISTED, handler.events.get(2).getType());
-    assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(3).getType());
+    assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(2).getType());
+    assertEquals(AMNodeEventType.N_NODE_WAS_BLACKLISTED, handler.events.get(3).getType());
     assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED, handler.events.get(4).getType());
     assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED, handler.events.get(5).getType());
     assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED, handler.events.get(6).getType());
@@ -219,10 +220,10 @@ public class TestAMNodeMap {
     assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED, handler.events.get(1).getType());
     assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED, handler.events.get(2).getType());
     assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED, handler.events.get(3).getType());
-    assertEquals(AMNodeEventType.N_NODE_WAS_BLACKLISTED, handler.events.get(4).getType());
-    assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(5).getType());
-    assertEquals(AMNodeEventType.N_NODE_WAS_BLACKLISTED, handler.events.get(6).getType());
-    assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(7).getType());
+    assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(4).getType());
+    assertEquals(AMNodeEventType.N_NODE_WAS_BLACKLISTED, handler.events.get(5).getType());
+    assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(6).getType());
+    assertEquals(AMNodeEventType.N_NODE_WAS_BLACKLISTED, handler.events.get(7).getType());
     
     amNodeMap.stop();
   }
