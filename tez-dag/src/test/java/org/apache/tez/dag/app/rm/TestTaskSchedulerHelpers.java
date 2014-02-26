@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
@@ -226,7 +227,8 @@ class TestTaskSchedulerHelpers {
     int invocations;
     private TaskSchedulerAppCallback real;
     private CompletionService completionService;
-
+    final AtomicInteger count = new AtomicInteger(0);
+    
     public TaskSchedulerAppCallbackDrainable(TaskSchedulerAppCallbackWrapper real) {
       completionService = real.completionService;
       this.real = real;
@@ -234,6 +236,7 @@ class TestTaskSchedulerHelpers {
 
     @Override
     public void taskAllocated(Object task, Object appCookie, Container container) {
+      count.incrementAndGet();
       invocations++;
       real.taskAllocated(task, appCookie, container);
     }

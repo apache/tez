@@ -68,7 +68,6 @@ import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /* TODO not yet updating cluster nodes on every allocate response
@@ -787,12 +786,14 @@ public class TaskScheduler extends AbstractService
   }
 
   public synchronized void blacklistNode(NodeId nodeId) {
+    LOG.info("Blacklisting node: " + nodeId);
     amRmClient.addNodeToBlacklist(nodeId);
     blacklistedNodes.add(nodeId);
   }
   
   public synchronized void unblacklistNode(NodeId nodeId) {
     if (blacklistedNodes.remove(nodeId)) {
+      LOG.info("UnBlacklisting node: " + nodeId);
       amRmClient.removeNodeFromBlacklist(nodeId);
     }
   }
