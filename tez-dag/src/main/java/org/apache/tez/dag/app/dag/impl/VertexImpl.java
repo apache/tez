@@ -462,7 +462,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private Set<String> inputsWithInitializers;
   private int numInitializedInputs;
   private boolean startSignalPending = false;
-  List<TezEvent> pendingRouteEvents = null;
+  private boolean tasksNotYetScheduled = true;
+  // We may always store task events in the vertex for scalability
+  List<TezEvent> pendingTaskEvents = Lists.newLinkedList();
+  List<TezEvent> pendingRouteEventsWhileIniting = null;
   List<TezTaskAttemptID> pendingReportedSrcCompletions = Lists.newLinkedList();
 
   private RootInputInitializerRunner rootInputInitializer;
@@ -803,6 +806,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public void scheduleTasks(List<Integer> taskIDs) {
     readLock.lock();
     try {
+      tasksNotYetScheduled = false;
+      if (!pendingTaskEvents.isEmpty()) {
+        VertexImpl.ROUTE_EVENT_TRANSITION.transition(this,
+            new VertexEventRouteEvent(getVertexId(), pendingTaskEvents));
+        pendingTaskEvents.clear();
+      }
       for (Integer taskID : taskIDs) {
         if (tasks.size() <= taskID.intValue()) {
           throw new TezUncheckedException(
@@ -874,10 +883,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           edge.startEventBuffering();
         }
   
-        // Use a set since the same event may have been sent to multiple tasks
-        // and we want to avoid duplicates
-        Set<TezEvent> pendingEvents = new HashSet<TezEvent>();
-  
         LOG.info("Vertex " + getVertexId() + 
             " parallelism set to " + parallelism + " from " + numTasks);
         // assign to local variable of LinkedHashMap to make sure that changing
@@ -896,7 +901,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                     + " for vertex: " + getVertexId() + " name: " + getName());
             return false;
           }
-          pendingEvents.addAll(task.getAndClearTaskTezEvents());
           if (i <= parallelism) {
             continue;
           }
@@ -913,7 +917,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                 + entry.getKey() + " destination: " + getVertexId());
             Vertex sourceVertex = appContext.getCurrentDAG().getVertex(entry.getKey());
             Edge edge = sourceVertices.get(sourceVertex);
-            EdgeProperty edgeProperty = edge.getEdgeProperty();
             try {
               edge.setCustomEdgeManager(entry.getValue());
             } catch (Exception e) {
@@ -924,21 +927,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               return false;
             }
           }
-        }
-  
-        // Re-route all existing TezEvents according to new routing table
-        // At this point only events attributed to source task attempts can be
-        // re-routed. e.g. DataMovement or InputFailed events.
-        // This assumption is fine for now since these tasks haven't been started.
-        // So they can only get events generated from source task attempts that
-        // have already been started.
-        DAG dag = getDAG();
-        for(TezEvent event : pendingEvents) {
-          TezVertexID sourceVertexId = event.getSourceInfo().getTaskAttemptID()
-              .getTaskID().getVertexID();
-          Vertex sourceVertex = dag.getVertex(sourceVertexId);
-          Edge sourceEdge = sourceVertices.get(sourceVertex);
-          sourceEdge.sendTezEventToDestinationTasks(event);
         }
   
         // stop buffering events
@@ -1550,10 +1538,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
 
     // Vertex will be moving to INITED state, safe to process pending route events.
-    if (pendingRouteEvents != null) {
+    if (pendingRouteEventsWhileIniting != null) {
       VertexImpl.ROUTE_EVENT_TRANSITION.transition(this,
-          new VertexEventRouteEvent(getVertexId(), pendingRouteEvents));
-      pendingRouteEvents = null;
+          new VertexEventRouteEvent(getVertexId(), pendingRouteEventsWhileIniting));
+      pendingRouteEventsWhileIniting = null;
     }
     return vertexState;
   }
@@ -2032,12 +2020,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
       VertexEventRouteEvent re = (VertexEventRouteEvent) event;
-      if (vertex.pendingRouteEvents == null) {
-        vertex.pendingRouteEvents = Lists.newLinkedList();
+      if (vertex.pendingRouteEventsWhileIniting == null) {
+        vertex.pendingRouteEventsWhileIniting = Lists.newLinkedList();
       }
       // Store the events for post-init routing, since INIT state is when
       // initial task parallelism will be set
-      vertex.pendingRouteEvents.addAll(re.getEvents());
+      vertex.pendingRouteEventsWhileIniting.addAll(re.getEvents());
     }
   }
 
@@ -2103,14 +2091,18 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             } else {
               // event not from this vertex. must have come from source vertex.
               // send to tasks
-              Edge srcEdge = vertex.sourceVertices.get(vertex.getDAG().getVertex(
-                  sourceMeta.getTaskVertexName()));
-              if (srcEdge == null) {
-                throw new TezUncheckedException("Bad source vertex: " +
-                    sourceMeta.getTaskVertexName() + " for destination vertex: " +
-                    vertex.getVertexId());
+              if (vertex.tasksNotYetScheduled) {
+                vertex.pendingTaskEvents.add(tezEvent);
+              } else {
+                Edge srcEdge = vertex.sourceVertices.get(vertex.getDAG().getVertex(
+                    sourceMeta.getTaskVertexName()));
+                if (srcEdge == null) {
+                  throw new TezUncheckedException("Bad source vertex: " +
+                      sourceMeta.getTaskVertexName() + " for destination vertex: " +
+                      vertex.getVertexId());
+                }
+                srcEdge.sendTezEventToDestinationTasks(tezEvent);
               }
-              srcEdge.sendTezEventToDestinationTasks(tezEvent);
             }
           }
           break;

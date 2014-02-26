@@ -98,6 +98,7 @@ import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputFailed;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputInitialized;
+import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
@@ -114,12 +115,16 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
+import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.test.EdgeManagerForTest;
+import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.GroupInputSpec;
+import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -1418,6 +1423,43 @@ public class TestVertexImpl {
     // the last one is removed
     Assert.assertTrue(tasks.keySet().iterator().next().equals(firstTask));
 
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testVertexPendingTaskEvents() {
+    initAllVertices(VertexState.INITED);
+    VertexImpl v3 = vertices.get("vertex3");
+    VertexImpl v2 = vertices.get("vertex2");
+    
+    startVertex(v2);
+    startVertex(v3);
+    
+    TezTaskID t0_v2 = TezTaskID.getInstance(v2.getVertexId(), 0);
+    TezTaskAttemptID ta0_t0_v2 = TezTaskAttemptID.getInstance(t0_v2, 0);
+
+    List<TezEvent> taskEvents = Lists.newLinkedList();
+    TezEvent tezEvent1 = new TezEvent(
+        new CompositeDataMovementEvent(0, 1, new byte[0]), 
+        new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex2", "vertex3", ta0_t0_v2));
+    TezEvent tezEvent2 = new TezEvent(
+        new DataMovementEvent(0, new byte[0]), 
+        new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex2", "vertex3", ta0_t0_v2));
+    taskEvents.add(tezEvent1);
+    taskEvents.add(tezEvent2);
+    // send events and test that they are buffered until some task is scheduled
+    dispatcher.getEventHandler().handle(
+        new VertexEventRouteEvent(v3.getVertexId(), taskEvents));
+    dispatcher.await();
+    Assert.assertEquals(2, v3.pendingTaskEvents.size());
+    v3.scheduleTasks(Collections.singletonList(new Integer(0)));
+    dispatcher.await();
+    Assert.assertEquals(0, v3.pendingTaskEvents.size());
+    // send events and test that they are not buffered anymore
+    dispatcher.getEventHandler().handle(
+        new VertexEventRouteEvent(v3.getVertexId(), taskEvents));
+    dispatcher.await();
+    Assert.assertEquals(0, v3.pendingTaskEvents.size());
   }
 
   @Test(timeout = 5000)

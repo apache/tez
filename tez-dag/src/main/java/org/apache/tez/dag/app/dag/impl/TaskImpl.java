@@ -492,18 +492,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   @Override
-  public List<TezEvent> getAndClearTaskTezEvents() {
-    readLock.lock();
-    try {
-      List<TezEvent> events = tezEventsForTaskAttempts;
-      tezEventsForTaskAttempts = new ArrayList<TezEvent>();
-      return events;
-    } finally {
-      readLock.unlock();
-    }
-  }
-
-  @Override
   public List<String> getDiagnostics() {
     List<String> diagnostics = new ArrayList<String>(attempts.size());
     readLock.lock();
