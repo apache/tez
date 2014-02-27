@@ -48,6 +48,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormatCounter;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -129,6 +130,8 @@ public class MRInput implements LogicalInput {
     Configuration conf =
       MRHelpers.createConfFromByteString(mrUserPayload.getConfigurationBytes());
     this.jobConf = new JobConf(conf);
+    // Add tokens to the jobConf - in case they are accessed within the RR / IF
+    jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
 
     TaskAttemptID taskAttemptId = new TaskAttemptID(
       new TaskID(

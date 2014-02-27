@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfoMem;
@@ -74,6 +75,7 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
     }
     Configuration conf = MRHelpers.createConfFromByteString(userPayloadProto
         .getConfigurationBytes());
+    
     sendSerializedEvents = conf.getBoolean(
         MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLAOD,
         MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLAOD_DEFAULT);
@@ -99,15 +101,17 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
         + " tasks. Headroom: " + totalResource + " Task Resource: "
         + taskResource + " waves: " + waves);
 
+    // Read all credentials into the credentials instance stored in JobConf.
+    JobConf jobConf = new JobConf(conf);
+    jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
 
     InputSplitInfoMem inputSplitInfo = null;
     String realInputFormatName = userPayloadProto.getInputFormatName(); 
     if ( realInputFormatName != null && !realInputFormatName.isEmpty()) {
       // split grouping on the AM
-      JobConf jobConf = new JobConf(conf);
       if (jobConf.getUseNewMapper()) {
         LOG.info("Grouping mapreduce api input splits");
-        Job job = Job.getInstance(conf);
+        Job job = Job.getInstance(jobConf);
         org.apache.hadoop.mapreduce.InputSplit[] splits = MRHelpers
             .generateNewSplits(job, realInputFormatName, numTasks);
 
@@ -129,7 +133,7 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
                 Collections.singleton(rack)));
           }
         }
-        inputSplitInfo = new InputSplitInfoMem(splits, locationHints, splits.length, null, conf);
+        inputSplitInfo = new InputSplitInfoMem(splits, locationHints, splits.length, null, jobConf);
       } else {
         LOG.info("Grouping mapred api input splits");
         org.apache.hadoop.mapred.InputSplit[] splits = MRHelpers
@@ -151,10 +155,10 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
                 Collections.singleton(rack)));
           }
         }
-        inputSplitInfo = new InputSplitInfoMem(splits, locationHints, splits.length, null, conf);
+        inputSplitInfo = new InputSplitInfoMem(splits, locationHints, splits.length, null, jobConf);
       }
     } else {
-      inputSplitInfo = MRHelpers.generateInputSplitsToMem(conf);
+      inputSplitInfo = MRHelpers.generateInputSplitsToMem(jobConf);
     }
     if (LOG.isDebugEnabled()) {
       sw.stop();

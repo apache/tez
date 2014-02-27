@@ -38,6 +38,7 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormatCounter;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
@@ -99,6 +100,8 @@ public class MROutput implements LogicalOutput {
     Configuration conf = TezUtils.createConfFromUserPayload(
         outputContext.getUserPayload());
     this.jobConf = new JobConf(conf);
+    // Add tokens to the jobConf - in case they are accessed within the RW / OF
+    jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
     this.useNewApi = this.jobConf.getUseNewMapper();
     this.isMapperOutput = jobConf.getBoolean(MRConfig.IS_MAP_PROCESSOR,
         false);

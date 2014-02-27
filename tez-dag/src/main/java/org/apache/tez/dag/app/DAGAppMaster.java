@@ -79,6 +79,7 @@ import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.impl.LogUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -132,8 +133,9 @@ import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.utils.Graph;
 import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
-import com.google.common.annotations.VisibleForTesting;
 import org.codehaus.jettison.json.JSONException;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * The Map-Reduce Application Master.
@@ -541,7 +543,9 @@ public class DAGAppMaster extends AbstractService {
 
     Credentials dagCredentials = null;
     if (dagPB.hasCredentialsBinary()) {
-      dagCredentials = DagTypeConverters.convertByteStringToCredentials(dagPB.getCredentialsBinary());
+      dagCredentials = DagTypeConverters.convertByteStringToCredentials(dagPB
+          .getCredentialsBinary());
+      LogUtils.logCredentials(LOG, dagCredentials, "dag");
     } else {
       dagCredentials = new Credentials();
     }

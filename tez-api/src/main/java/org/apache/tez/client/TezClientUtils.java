@@ -74,6 +74,7 @@ import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Level;
+import org.apache.tez.common.impl.LogUtils;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -247,6 +248,8 @@ public class TezClientUtils {
       Configuration conf) throws IOException {
 
     Preconditions.checkNotNull(sessionCredentials);
+    LogUtils.logCredentials(LOG, sessionCredentials, "session");
+
     Credentials dagCredentials = dag.getCredentials();
     if (dagCredentials == null) {
       dagCredentials = new Credentials();
