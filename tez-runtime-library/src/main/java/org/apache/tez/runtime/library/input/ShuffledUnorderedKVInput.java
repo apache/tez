@@ -63,7 +63,10 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS, inputContext.getWorkDirs());
 
     if (numInputs == 0) {
-      return null;
+      inputContext.requestInitialMemory(0l, null);
+      isStarted.set(true);
+      inputContext.inputIsReady();
+      return Collections.emptyList();
     }
 
     this.shuffleManager = new BroadcastShuffleManager(inputContext, conf, numInputs);

@@ -80,6 +80,9 @@ public class ShuffledMergedInput implements LogicalInput {
     this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
 
     if (this.numInputs == 0) {
+      inputContext.requestInitialMemory(0l, null);
+      isStarted.set(true);
+      inputContext.inputIsReady();
       return Collections.emptyList();
     }
 
