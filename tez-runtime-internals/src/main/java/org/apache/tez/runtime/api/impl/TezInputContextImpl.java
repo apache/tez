@@ -27,6 +27,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.RuntimeTask;
@@ -55,7 +56,8 @@ public class TezInputContextImpl extends TezTaskContextImpl
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       InputDescriptor inputDescriptor,  Input input, InputReadyTracker inputReadyTracker) {
     super(conf, appAttemptNumber, dagName, taskVertexName, taskAttemptID,
-        counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
+        wrapCounters(counters, taskVertexName, sourceVertexName, conf),
+        runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, inputDescriptor);
     this.userPayload = userPayload;
     this.inputIndex = inputIndex;
@@ -65,6 +67,16 @@ public class TezInputContextImpl extends TezTaskContextImpl
         taskAttemptID);
     this.input = input;
     this.inputReadyTracker = inputReadyTracker;
+  }
+
+  private static TezCounters wrapCounters(TezCounters tezCounters, String taskVertexName,
+      String edgeVertexName, Configuration conf) {
+    if (conf.getBoolean(TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO,
+        TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO_DEFAULT)) {
+      return new TezCountersDelegate(tezCounters, taskVertexName, edgeVertexName, "INPUT");
+    } else {
+      return tezCounters;
+    }
   }
 
   @Override

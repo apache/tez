@@ -185,6 +185,17 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION = TEZ_TASK_PREFIX
       + "scale.memory.reserve-fraction";
 
+  /**
+   * Whether to generate counters per IO or not. Enabling this will rename
+   * CounterGroups / CounterNames to making thme unique per Vertex +
+   * Src|Destination
+   */
+  @Unstable
+  @Private
+  public static final String TEZ_TASK_GENERATE_COUNTERS_PER_IO = TEZ_TASK_PREFIX
+      + "generate.counters.per.io";
+  public static final boolean TEZ_TASK_GENERATE_COUNTERS_PER_IO_DEFAULT = false;
+  
   public static final String TASK_TIMEOUT = TEZ_TASK_PREFIX + "timeout";
 
   public static final String TASK_HEARTBEAT_TIMEOUT_MS = TEZ_TASK_PREFIX + "heartbeat.timeout-ms";

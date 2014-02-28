@@ -27,6 +27,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.Event;
@@ -53,13 +54,24 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       OutputDescriptor outputDescriptor) {
     super(conf, appAttemptNumber, dagName, taskVertexName, taskAttemptID,
-        counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
+        wrapCounters(counters, taskVertexName, destinationVertexName, conf),
+        runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, outputDescriptor);
     this.userPayload = userPayload;
     this.outputIndex = outputIndex;
     this.destinationVertexName = destinationVertexName;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.OUTPUT,
         taskVertexName, destinationVertexName, taskAttemptID);
+  }
+
+  private static TezCounters wrapCounters(TezCounters tezCounters, String taskVertexName,
+      String edgeVertexName, Configuration conf) {
+    if (conf.getBoolean(TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO,
+        TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO_DEFAULT)) {
+      return new TezCountersDelegate(tezCounters, taskVertexName, edgeVertexName, "OUTPUT");
+    } else {
+      return tezCounters;
+    }
   }
 
   @Override
