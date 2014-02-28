@@ -18,9 +18,12 @@
 package org.apache.tez.common;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -33,6 +36,8 @@ import java.util.zip.InflaterInputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.log4j.Appender;
+import org.apache.log4j.Logger;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
@@ -216,4 +221,44 @@ public class TezUtils {
     byte[] output = bos.toByteArray();
     return output;
   }
+
+  public static void updateLoggers(String addend) throws FileNotFoundException {
+    String containerLogDir = null;
+
+    LOG.info("Redirecting log files based on addend: " + addend);
+
+    Appender appender = Logger.getRootLogger().getAppender(
+        TezConfiguration.TEZ_CONTAINER_LOGGER_NAME);
+    if (appender != null) {
+      if (appender instanceof TezContainerLogAppender) {
+        TezContainerLogAppender claAppender = (TezContainerLogAppender) appender;
+        containerLogDir = claAppender.getContainerLogDir();
+        claAppender.setLogFileName(constructLogFileName(
+            TezConfiguration.TEZ_CONTAINER_LOG_FILE_NAME, addend));
+        claAppender.activateOptions();
+      } else {
+        LOG.warn("Appender is a " + appender.getClass() + "; require an instance of "
+            + TezContainerLogAppender.class.getName() + " to reconfigure the logger output");
+      }
+    } else {
+      LOG.warn("Not configured with appender named: " + TezConfiguration.TEZ_CONTAINER_LOGGER_NAME
+          + ". Cannot reconfigure logger output");
+    }
+
+    if (containerLogDir != null) {
+      System.setOut(new PrintStream(new File(containerLogDir, constructLogFileName(
+          TezConfiguration.TEZ_CONTAINER_OUT_FILE_NAME, addend))));
+      System.setErr(new PrintStream(new File(containerLogDir, constructLogFileName(
+          TezConfiguration.TEZ_CONTAINER_ERR_FILE_NAME, addend))));
+    }
+  }
+
+  private static String constructLogFileName(String base, String addend) {
+    if (addend == null || addend.isEmpty()) {
+      return base;
+    } else {
+      return base + "_" + addend;
+    }
+  }
+
 }

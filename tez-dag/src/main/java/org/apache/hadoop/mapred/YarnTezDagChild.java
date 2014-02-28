@@ -679,50 +679,13 @@ public class YarnTezDagChild {
 
   private static void updateLoggers(TezTaskAttemptID tezTaskAttemptID)
       throws FileNotFoundException {
-    String containerLogDir = null;
-
-    LOG.info("Redirecting log files based on TaskAttemptId: " + tezTaskAttemptID);
-
-    Appender appender = Logger.getRootLogger().getAppender(
-        TezConfiguration.TEZ_CONTAINER_LOGGER_NAME);
-    if (appender != null) {
-      if (appender instanceof TezContainerLogAppender) {
-        TezContainerLogAppender claAppender = (TezContainerLogAppender) appender;
-        containerLogDir = claAppender.getContainerLogDir();
-        claAppender.setLogFileName(constructLogFileName(
-            TezConfiguration.TEZ_CONTAINER_LOG_FILE_NAME, tezTaskAttemptID));
-        claAppender.activateOptions();
-      } else {
-        LOG.warn("Appender is a " + appender.getClass()
-            + "; require an instance of "
-            + TezContainerLogAppender.class.getName()
-            + " to reconfigure the logger output");
-      }
-    } else {
-      LOG.warn("Not configured with appender named: "
-          + TezConfiguration.TEZ_CONTAINER_LOGGER_NAME
-          + ". Cannot reconfigure logger output");
+    String addend = "";
+    if (tezTaskAttemptID != null) {
+      addend = tezTaskAttemptID.toString();
     }
-
-    if (containerLogDir != null) {
-      System.setOut(new PrintStream(new File(containerLogDir,
-          constructLogFileName(TezConfiguration.TEZ_CONTAINER_OUT_FILE_NAME,
-              tezTaskAttemptID))));
-      System.setErr(new PrintStream(new File(containerLogDir,
-          constructLogFileName(TezConfiguration.TEZ_CONTAINER_ERR_FILE_NAME,
-              tezTaskAttemptID))));
-    }
+    TezUtils.updateLoggers(addend);
   }
 
-  private static String constructLogFileName(String base,
-      TezTaskAttemptID tezTaskAttemptID) {
-    if (tezTaskAttemptID == null) {
-      return base;
-    } else {
-      return base + "_" + tezTaskAttemptID.toString();
-    }
-  }
-  
   private static void processAdditionalResources(Map<String, TezLocalResource> additionalResources,
       Configuration conf) throws IOException, TezException {
     if (additionalResources == null || additionalResources.isEmpty()) {

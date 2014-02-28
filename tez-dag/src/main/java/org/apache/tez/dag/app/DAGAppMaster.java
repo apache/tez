@@ -20,6 +20,7 @@ package org.apache.tez.dag.app;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.PrivilegedExceptionAction;
@@ -400,6 +401,7 @@ public class DAGAppMaster extends AbstractService {
     case INTERNAL_ERROR:
       state = DAGAppMasterState.ERROR;
       if(currentDAG != null) {
+        _updateLoggers(currentDAG, "_post");
         // notify dag to finish which will send the DAG_FINISHED event
         LOG.info("Internal Error. Notifying dags to finish.");
         sendEvent(new DAGEvent(currentDAG.getID(), DAGEventType.INTERNAL_ERROR));
@@ -412,6 +414,7 @@ public class DAGAppMaster extends AbstractService {
       DAGAppMasterEventDAGFinished finishEvt =
           (DAGAppMasterEventDAGFinished) event;
       if (!isSession) {
+        _updateLoggers(currentDAG, "_post");
         setStateOnDAGCompletion();
         LOG.info("Shutting down on completion of dag:" +
               finishEvt.getDAGId().toString());
@@ -421,6 +424,7 @@ public class DAGAppMaster extends AbstractService {
             + finishEvt.getDAGId().toString()
             + ", dagState=" + finishEvt.getDAGState());
         lastDAGCompletionTime = clock.getTime();
+        _updateLoggers(currentDAG, "_post");
         switch(finishEvt.getDAGState()) {
         case SUCCEEDED:
           if (!currentDAG.getName().startsWith(
@@ -465,6 +469,14 @@ public class DAGAppMaster extends AbstractService {
     default:
       throw new TezUncheckedException(
           "AppMaster: No handler for event type: " + event.getType());
+    }
+  }
+
+  private void _updateLoggers(DAG dag, String appender) {
+    try {
+      TezUtils.updateLoggers(dag.getID().toString() + appender);
+    } catch (FileNotFoundException e) {
+      LOG.warn("Unable to update the logger. Continue with the old logger", e );
     }
   }
 
@@ -1581,6 +1593,10 @@ public class DAGAppMaster extends AbstractService {
   private void startDAG(DAGPlan dagPlan) {
     long submitTime = this.clock.getTime();
     this.state = DAGAppMasterState.RUNNING;
+    this.appName = dagPlan.getName();
+    // /////////////////// Create the job itself.
+    DAG newDAG = createDAG(dagPlan);
+    _updateLoggers(newDAG, "");
     if (LOG.isDebugEnabled()) {
       LOG.debug("Running a DAG with " + dagPlan.getVertexCount()
           + " vertices ");
@@ -1592,10 +1608,6 @@ public class DAGAppMaster extends AbstractService {
     LOG.info("Running DAG: " + dagPlan.getName());
     // Job name is the same as the app name until we support multiple dags
     // for an app later
-    appName = dagPlan.getName();
-
-    // /////////////////// Create the job itself.
-    DAG newDAG = createDAG(dagPlan);
     DAGSubmittedEvent submittedEvent = new DAGSubmittedEvent(newDAG.getID(),
         submitTime, dagPlan, this.appAttemptID);
     historyEventHandler.handle(new DAGHistoryEvent(newDAG.getID(), submittedEvent));

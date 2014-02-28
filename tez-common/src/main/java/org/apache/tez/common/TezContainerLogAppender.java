@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.mapred;
+package org.apache.tez.common;
 
 import java.io.File;
 
