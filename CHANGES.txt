@@ -19,6 +19,8 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES
 
+  TEZ-889. Fixes a bug in MRInputSplitDistributor (caused by TEZ-880). (sseth)
+  TEZ-881. Update Notice and any other copyright tags for year 2014. (hitesh)
   TEZ-874. Fetcher inputstream is not buffered. (Rajesh Balamohan via hitesh)
   TEZ-880. Support sending deserialized data in RootInputDataInformationEvents. (sseth)
   TEZ-779. Make Tez grouping splits logic possible outside InputFormat (bikas)
