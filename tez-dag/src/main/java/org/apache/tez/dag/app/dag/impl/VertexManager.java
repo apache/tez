@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -179,6 +180,9 @@ public class VertexManager {
   
   public VertexManager(VertexManagerPlugin plugin, 
       Vertex managedVertex, AppContext appContext) {
+    checkNotNull(plugin, "plugin is null");
+    checkNotNull(managedVertex, "managedVertex is null");
+    checkNotNull(appContext, "appContext is null");
     this.plugin = plugin;
     this.managedVertex = managedVertex;
     this.appContext = appContext;
@@ -186,6 +190,9 @@ public class VertexManager {
   
   public VertexManager(VertexManagerPluginDescriptor pluginDesc, 
       Vertex managedVertex, AppContext appContext) {
+    checkNotNull(pluginDesc, "pluginDesc is null");
+    checkNotNull(managedVertex, "managedVertex is null");
+    checkNotNull(appContext, "appContext is null");
     this.pluginDesc = pluginDesc;
     this.managedVertex = managedVertex;
     this.appContext = appContext;

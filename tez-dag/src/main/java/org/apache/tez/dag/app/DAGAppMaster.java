@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -1016,6 +1017,7 @@ public class DAGAppMaster extends AbstractService {
     private final Lock wLock = rwLock.writeLock();
     private final EventHandler eventHandler;
     public RunningAppContext(Configuration config) {
+      checkNotNull(config, "config is null");
       this.conf = config;
       this.eventHandler = dispatcher.getEventHandler();
     }

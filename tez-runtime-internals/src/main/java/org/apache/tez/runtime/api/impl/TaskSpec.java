@@ -17,12 +17,16 @@
 
 package org.apache.tez.runtime.api.impl;
 
+import com.google.common.base.Optional;
+import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -47,8 +51,13 @@ public class TaskSpec implements Writable {
       String dagName, String vertexName,
       ProcessorDescriptor processorDescriptor,
       List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList, 
-      List<GroupInputSpec> groupInputSpecList) {
-    // TODO: TEZ-884 null check
+      @Nullable List<GroupInputSpec> groupInputSpecList) {
+    checkNotNull(taskAttemptID, "taskAttemptID is null");
+    checkNotNull(dagName, "dagName is null");
+    checkNotNull(vertexName, "vertexName is null");
+    checkNotNull(processorDescriptor, "processorDescriptor is null");
+    checkNotNull(inputSpecList, "inputSpecList is null");
+    checkNotNull(outputSpecList, "outputSpecList is null");
     this.taskAttemptId = taskAttemptID;
     this.dagName = StringInterner.weakIntern(dagName);
     this.vertexName = StringInterner.weakIntern(vertexName);

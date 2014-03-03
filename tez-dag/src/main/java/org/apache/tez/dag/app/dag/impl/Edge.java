@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.Nullable;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.dag.api.EdgeManagerContext;
@@ -49,6 +50,7 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
 import com.google.common.collect.Maps;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Edge {
 
@@ -58,7 +60,10 @@ public class Edge {
     private final String destVertexName;
     private final byte[] userPayload;
 
-    EdgeManagerContextImpl(String srcVertexName, String destVertexName, byte[] userPayload) {
+    EdgeManagerContextImpl(String srcVertexName, String destVertexName,
+        @Nullable byte[] userPayload) {
+      checkNotNull(srcVertexName, "srcVertexName is null");
+      checkNotNull(destVertexName, "destVertexName is null");
       this.srcVertexName = srcVertexName;
       this.destVertexName = destVertexName;
       this.userPayload = userPayload;

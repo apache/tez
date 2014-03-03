@@ -18,11 +18,13 @@
 
 package org.apache.tez.runtime.api.impl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
@@ -49,7 +51,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       String taskVertexName,
       String destinationVertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters, int outputIndex,
-      byte[] userPayload, RuntimeTask runtimeTask,
+      @Nullable byte[] userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       OutputDescriptor outputDescriptor) {
@@ -57,6 +59,8 @@ public class TezOutputContextImpl extends TezTaskContextImpl
         wrapCounters(counters, taskVertexName, destinationVertexName, conf),
         runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, outputDescriptor);
+    checkNotNull(outputIndex, "outputIndex is null");
+    checkNotNull(destinationVertexName, "destinationVertexName is null");
     this.userPayload = userPayload;
     this.outputIndex = outputIndex;
     this.destinationVertexName = destinationVertexName;

@@ -592,6 +592,7 @@ public class TestDAGImpl {
     historyEventHandler = mock(HistoryEventHandler.class);
     doReturn(conf).when(appContext).getAMConf();
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
+    doReturn(appAttemptId.getApplicationId()).when(appContext).getApplicationID();
     doReturn(dagId).when(appContext).getCurrentDAGID();
     doReturn(historyEventHandler).when(appContext).getHistoryHandler();
     dag = new DAGImpl(dagId, conf, dagPlan,
@@ -608,6 +609,7 @@ public class TestDAGImpl {
     doReturn(conf).when(mrrAppContext).getAMConf();
     doReturn(mrrDag).when(mrrAppContext).getCurrentDAG();
     doReturn(appAttemptId).when(mrrAppContext).getApplicationAttemptId();
+    doReturn(appAttemptId.getApplicationId()).when(mrrAppContext).getApplicationID();
     doReturn(historyEventHandler).when(mrrAppContext).getHistoryHandler();
     groupAppContext = mock(AppContext.class);
     groupDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 3);
@@ -619,6 +621,8 @@ public class TestDAGImpl {
     doReturn(conf).when(groupAppContext).getAMConf();
     doReturn(groupDag).when(groupAppContext).getCurrentDAG();
     doReturn(appAttemptId).when(groupAppContext).getApplicationAttemptId();
+    doReturn(appAttemptId.getApplicationId())
+        .when(groupAppContext).getApplicationID();
     doReturn(historyEventHandler).when(groupAppContext).getHistoryHandler();
     taskEventDispatcher = new TaskEventDispatcher();
     dispatcher.register(TaskEventType.class, taskEventDispatcher);

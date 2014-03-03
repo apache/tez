@@ -18,11 +18,13 @@
 
 package org.apache.tez.runtime.api.impl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
@@ -51,7 +53,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
   public TezInputContextImpl(Configuration conf, int appAttemptNumber,
       TezUmbilical tezUmbilical, String dagName, String taskVertexName,
       String sourceVertexName, TezTaskAttemptID taskAttemptID,
-      TezCounters counters, int inputIndex, byte[] userPayload,
+      TezCounters counters, int inputIndex, @Nullable byte[] userPayload,
       RuntimeTask runtimeTask, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       InputDescriptor inputDescriptor,  Input input, InputReadyTracker inputReadyTracker) {
@@ -59,6 +61,10 @@ public class TezInputContextImpl extends TezTaskContextImpl
         wrapCounters(counters, taskVertexName, sourceVertexName, conf),
         runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, inputDescriptor);
+    checkNotNull(inputIndex, "inputIndex is null");
+    checkNotNull(sourceVertexName, "sourceVertexName is null");
+    checkNotNull(input, "input is null");
+    checkNotNull(inputReadyTracker, "inputReadyTracker is null");
     this.userPayload = userPayload;
     this.inputIndex = inputIndex;
     this.sourceVertexName = sourceVertexName;

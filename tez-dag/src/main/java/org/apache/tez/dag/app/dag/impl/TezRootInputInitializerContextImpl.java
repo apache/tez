@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -42,6 +43,12 @@ public class TezRootInputInitializerContextImpl implements
       String dagName, String vertexName, String inputName,
       InputDescriptor inputDescriptor, int numTasks, int numClusterNodes,
       Resource vertexTaskResource, Resource totalResource) {
+    checkNotNull(vertexID, "vertexID is null");
+    checkNotNull(dagName, "dagName is null");
+    checkNotNull(inputName, "inputName is null");
+    checkNotNull(inputDescriptor, "inputDescriptor is null");
+    checkNotNull(vertexTaskResource, "numTasks is null");
+    checkNotNull(totalResource, "totalResource is null");
     this.vertexID = vertexID;
     this.dagName = dagName;
     this.inputName = inputName;

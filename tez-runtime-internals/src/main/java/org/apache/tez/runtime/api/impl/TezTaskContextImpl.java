@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.api.impl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map;
@@ -65,6 +66,15 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       TezEntityDescriptor descriptor) {
+    checkNotNull(conf, "conf is null");
+    checkNotNull(dagName, "dagName is null");
+    checkNotNull(taskVertexName, "taskVertexName is null");
+    checkNotNull(taskAttemptID, "taskAttemptId is null");
+    checkNotNull(counters, "counters is null");
+    checkNotNull(runtimeTask, "runtimeTask is null");
+    checkNotNull(auxServiceEnv, "auxServiceEnv is null");
+    checkNotNull(memDist, "memDist is null");
+    checkNotNull(descriptor, "descriptor is null");
     this.conf = conf;
     this.dagName = dagName;
     this.taskVertexName = taskVertexName;

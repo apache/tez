@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.api.impl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -50,13 +52,14 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements TezPr
   public TezProcessorContextImpl(Configuration conf, int appAttemptNumber,
       TezUmbilical tezUmbilical, String dagName, String vertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters,
-      byte[] userPayload, RuntimeTask runtimeTask,
+      @Nullable byte[] userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       ProcessorDescriptor processorDescriptor, InputReadyTracker inputReadyTracker) {
     super(conf, appAttemptNumber, dagName, vertexName, taskAttemptID,
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, processorDescriptor);
+    checkNotNull(inputReadyTracker, "inputReadyTracker is null");
     this.userPayload = userPayload;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.PROCESSOR,
         taskVertexName, "", taskAttemptID);

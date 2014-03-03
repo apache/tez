@@ -109,7 +109,7 @@ public class TestOnFileUnorderedKVOutput {
     TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 1);
     TezCounters counters = new TezCounters();
     byte[] userPayload = TezUtils.createUserPayloadFromConf(conf);
-    RuntimeTask runtimeTask = null;
+    RuntimeTask runtimeTask = mock(RuntimeTask.class);
     
     int shufflePort = 2112;
     Map<String, String> auxEnv = new HashMap<String, String>();

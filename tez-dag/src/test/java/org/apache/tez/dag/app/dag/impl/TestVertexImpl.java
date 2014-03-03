@@ -1191,6 +1191,7 @@ public class TestVertexImpl {
   }
 
   public void setupPostDagCreation() {
+    String dagName = "dag0";
     dispatcher = new DrainDispatcher();
     appContext = mock(AppContext.class);
     historyEventHandler = mock(HistoryEventHandler.class);
@@ -1203,7 +1204,9 @@ public class TestVertexImpl {
     }
     DAG dag = mock(DAG.class);
     doReturn(ugi).when(dag).getDagUGI();
+    doReturn(dagName).when(dag).getName();
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
+    doReturn(appAttemptId.getApplicationId()).when(appContext).getApplicationID();
     doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(conf).when(appContext).getAMConf();
     doReturn(new Credentials()).when(dag).getCredentials();
