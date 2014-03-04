@@ -278,6 +278,12 @@ public class TeraSort extends Configured implements Tool {
   }
 
   public int run(String[] args) throws Exception {
+    if (args.length != 2) {
+      System.err.println("Invalid no. of arguments provided");
+      System.err.println("Usage: terasort <input-dir> <output-dir>");
+      return -1;
+    }
+
     LOG.info("starting");
     Job job = Job.getInstance(getConf());
     Path inputDir = new Path(args[0]);
