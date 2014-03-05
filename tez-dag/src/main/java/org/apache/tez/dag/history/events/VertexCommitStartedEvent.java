@@ -20,8 +20,8 @@ package org.apache.tez.dag.history.events;
 
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
-import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.dag.recovery.records.RecoveryProtos;
+import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexCommitStartedProto;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -29,29 +29,26 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-// TODO fix class
-public class DAGInitializedEvent implements HistoryEvent {
+public class VertexCommitStartedEvent implements HistoryEvent {
 
-  private TezDAGID dagID;
-  private long initTime;
+  private TezVertexID vertexID;
 
-  public DAGInitializedEvent() {
+  public VertexCommitStartedEvent() {
   }
 
-  public DAGInitializedEvent(TezDAGID dagID, long initTime) {
-    this.dagID = dagID;
-    this.initTime = initTime;
+  public VertexCommitStartedEvent(TezVertexID vertexId) {
+    this.vertexID = vertexId;
   }
 
   @Override
   public HistoryEventType getEventType() {
-    return HistoryEventType.DAG_INITIALIZED;
+    return HistoryEventType.VERTEX_COMMIT_STARTED;
   }
 
   @Override
   public JSONObject convertToATSJSON() throws JSONException {
     // TODO
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   @Override
@@ -61,25 +58,17 @@ public class DAGInitializedEvent implements HistoryEvent {
 
   @Override
   public boolean isHistoryEvent() {
-    return true;
+    return false;
   }
 
-  @Override
-  public String toString() {
-    return "dagID=" + dagID
-        + ", initTime=" + initTime;
-  }
-
-  public RecoveryProtos.DAGInitializedProto toProto() {
-    return RecoveryProtos.DAGInitializedProto.newBuilder()
-        .setDagId(dagID.toString())
-        .setInitTime(initTime)
+  public VertexCommitStartedProto toProto() {
+    return VertexCommitStartedProto.newBuilder()
+        .setVertexId(vertexID.toString())
         .build();
   }
 
-  public void fromProto(RecoveryProtos.DAGInitializedProto proto) {
-    this.dagID = TezDAGID.fromString(proto.getDagId());
-    this.initTime = proto.getInitTime();
+  public void fromProto(VertexCommitStartedProto proto) {
+    this.vertexID = TezVertexID.fromString(proto.getVertexId());
   }
 
   @Override
@@ -89,16 +78,17 @@ public class DAGInitializedEvent implements HistoryEvent {
 
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
-    RecoveryProtos.DAGInitializedProto proto =
-        RecoveryProtos.DAGInitializedProto.parseDelimitedFrom(inputStream);
+    VertexCommitStartedProto proto = VertexCommitStartedProto.parseDelimitedFrom(inputStream);
     fromProto(proto);
   }
 
-  public long getInitTime() {
-    return this.initTime;
+  @Override
+  public String toString() {
+    return "vertexId=" + vertexID;
   }
 
-  public TezDAGID getDagID() {
-    return dagID;
+  public TezVertexID getVertexID() {
+    return this.vertexID;
   }
+
 }

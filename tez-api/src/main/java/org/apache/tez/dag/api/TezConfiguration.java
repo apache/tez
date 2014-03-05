@@ -369,11 +369,19 @@ public class TezConfiguration extends Configuration {
 
   public static final String DAG_RECOVERY_ENABLED =
       TEZ_PREFIX + "dag.recovery.enabled";
-  public static final boolean DAG_RECOVERY_ENABLED_DEFAULT = false;
+  public static final boolean DAG_RECOVERY_ENABLED_DEFAULT = true;
 
   public static final String DAG_RECOVERY_FILE_IO_BUFFER_SIZE =
       TEZ_PREFIX + "dag.recovery.io.buffer.size";
   public static final int DAG_RECOVERY_FILE_IO_BUFFER_SIZE_DEFAULT = 8192;
+
+  public static final String DAG_RECOVERY_MAX_UNFLUSHED_EVENTS =
+      TEZ_PREFIX + "dag.recovery.max.unflushed.events";
+  public static final int DAG_RECOVERY_MAX_UNFLUSHED_EVENTS_DEFAULT = 100;
+
+  public static final String DAG_RECOVERY_FLUSH_INTERVAL_SECS =
+      TEZ_PREFIX + "dag.recovery.flush.interval.secs";
+  public static final int DAG_RECOVERY_FLUSH_INTERVAL_SECS_DEFAULT = 30;
 
   public static final String DAG_RECOVERY_DATA_DIR_NAME = "recovery";
   public static final String DAG_RECOVERY_SUMMARY_FILE_SUFFIX = ".summary";

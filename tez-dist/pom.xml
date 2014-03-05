@@ -87,11 +87,11 @@
         </configuration>
         <executions>
           <execution>
-            <id>package-tez-full</id>
+            <id>package-tez</id>
             <configuration>
-              <finalName>tez-${project.version}-full</finalName>
+              <finalName>tez-${project.version}</finalName>
               <descriptors>
-                <descriptor>src/main/assembly/tez-dist-full.xml</descriptor>
+                <descriptor>src/main/assembly/tez-dist.xml</descriptor>
               </descriptors>
               <formats>
                 <format>${package.format}</format>
@@ -103,11 +103,11 @@
             </goals>
           </execution>
           <execution>
-            <id>package-tez</id>
+            <id>package-tez-full</id>
             <configuration>
-              <finalName>tez-${project.version}</finalName>
+              <finalName>tez-${project.version}-full</finalName>
               <descriptors>
-                <descriptor>src/main/assembly/tez-dist.xml</descriptor>
+                <descriptor>src/main/assembly/tez-dist-full.xml</descriptor>
               </descriptors>
               <formats>
                 <format>${package.format}</format>

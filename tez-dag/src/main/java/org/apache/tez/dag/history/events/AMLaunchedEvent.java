@@ -98,7 +98,7 @@ public class AMLaunchedEvent implements HistoryEvent {
 
   @Override
   public boolean isRecoveryEvent() {
-    return true;
+    return false;
   }
 
   @Override
@@ -137,6 +137,18 @@ public class AMLaunchedEvent implements HistoryEvent {
   public void fromProtoStream(InputStream inputStream) throws IOException {
     AMLaunchedProto proto = AMLaunchedProto.parseDelimitedFrom(inputStream);
     fromProto(proto);
+  }
+
+  public ApplicationAttemptId getApplicationAttemptId() {
+    return applicationAttemptId;
+  }
+
+  public long getLaunchTime() {
+    return launchTime;
+  }
+
+  public long getAppSubmitTime() {
+    return appSubmitTime;
   }
 
 }

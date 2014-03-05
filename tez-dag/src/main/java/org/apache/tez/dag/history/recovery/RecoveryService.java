@@ -34,9 +34,11 @@ import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,6 +51,7 @@ public class RecoveryService extends AbstractService {
   private LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
       new LinkedBlockingQueue<DAGHistoryEvent>();
   private Set<TezDAGID> completedDAGs = new HashSet<TezDAGID>();
+  private Set<TezDAGID> skippedDAGs = new HashSet<TezDAGID>();
 
   private Thread eventHandlingThread;
   private AtomicBoolean stopped = new AtomicBoolean(false);
@@ -60,9 +63,12 @@ public class RecoveryService extends AbstractService {
   Path recoveryPath;
   Map<TezDAGID, FSDataOutputStream> outputStreamMap = new
       HashMap<TezDAGID, FSDataOutputStream>();
-  // FSDataOutputStream metaInfoStream;
   private int bufferSize;
   private FSDataOutputStream summaryStream;
+  private int unflushedEventsCount = 0;
+  private long lastFlushTime = -1;
+  private int maxUnflushedEvents;
+  private int flushInterval;
 
   public RecoveryService(AppContext appContext) {
     super(RecoveryService.class.getName());
@@ -76,11 +82,17 @@ public class RecoveryService extends AbstractService {
     recoveryDirFS = FileSystem.get(recoveryPath.toUri(), conf);
     bufferSize = conf.getInt(TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE,
         TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE_DEFAULT);
+
+    flushInterval = conf.getInt(TezConfiguration.DAG_RECOVERY_FLUSH_INTERVAL_SECS,
+        TezConfiguration.DAG_RECOVERY_FLUSH_INTERVAL_SECS_DEFAULT);
+    maxUnflushedEvents = conf.getInt(TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS,
+        TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS_DEFAULT);
   }
 
   @Override
   public void serviceStart() {
     LOG.info("Starting RecoveryService");
+    lastFlushTime = appContext.getClock().getTime();
     eventHandlingThread = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -128,18 +140,21 @@ public class RecoveryService extends AbstractService {
     if (eventHandlingThread != null) {
       eventHandlingThread.interrupt();
     }
+
     if (summaryStream != null) {
       try {
-        summaryStream.flush();
+        LOG.info("Closing Summary Stream");
+        summaryStream.hsync();
         summaryStream.close();
       } catch (IOException ioe) {
         LOG.warn("Error when closing summary stream", ioe);
       }
     }
-    for (FSDataOutputStream outputStream : outputStreamMap.values()) {
+    for (Entry<TezDAGID, FSDataOutputStream> entry : outputStreamMap.entrySet()) {
       try {
-        outputStream.flush();
-        outputStream.close();
+        LOG.info("Closing Output Stream for DAG " + entry.getKey());
+        entry.getValue().hsync();
+        entry.getValue().close();
       } catch (IOException ioe) {
         LOG.warn("Error when closing output stream", ioe);
       }
@@ -152,38 +167,44 @@ public class RecoveryService extends AbstractService {
           + event.getHistoryEvent().getEventType());
       return;
     }
+    HistoryEventType eventType = event.getHistoryEvent().getEventType();
     if (!started.get()) {
+      LOG.warn("Adding event of type " + eventType
+          + " to queue as service not started");
       eventQueue.add(event);
       return;
     }
-    HistoryEventType eventType = event.getHistoryEvent().getEventType();
+
     if (eventType.equals(HistoryEventType.DAG_SUBMITTED)
       || eventType.equals(HistoryEventType.DAG_FINISHED)) {
       // handle submissions and completion immediately
       synchronized (lock) {
         try {
           handleEvent(event);
-          summaryStream.flush();
+          summaryStream.hsync();
           if (eventType.equals(HistoryEventType.DAG_SUBMITTED)) {
-            outputStreamMap.get(event.getDagID()).flush();
+            if (outputStreamMap.containsKey(event.getDagID())) {
+              doFlush(outputStreamMap.get(event.getDagID()),
+                  appContext.getClock().getTime(), true);
+            }
           } else if (eventType.equals(HistoryEventType.DAG_FINISHED)) {
             completedDAGs.add(event.getDagID());
             if (outputStreamMap.containsKey(event.getDagID())) {
               try {
-                outputStreamMap.get(event.getDagID()).flush();
+                doFlush(outputStreamMap.get(event.getDagID()),
+                    appContext.getClock().getTime(), true);
                 outputStreamMap.get(event.getDagID()).close();
                 outputStreamMap.remove(event.getDagID());
               } catch (IOException ioe) {
                 LOG.warn("Error when trying to flush/close recovery file for"
                     + " dag, dagId=" + event.getDagID());
+                // FIXME handle error ?
               }
-            } else {
-              // TODO this is an error
             }
           }
         } catch (Exception e) {
-            // TODO handle failures - treat as fatal or ignore?
-            LOG.warn("Error handling recovery event", e);
+          // FIXME handle failures
+          LOG.warn("Error handling recovery event", e);
         }
       }
       LOG.info("DAG completed"
@@ -191,6 +212,9 @@ public class RecoveryService extends AbstractService {
           + ", queueSize=" + eventQueue.size());
     } else {
       // All other events just get queued
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Queueing Recovery event of type " + eventType.name());
+      }
       eventQueue.add(event);
     }
   }
@@ -206,27 +230,42 @@ public class RecoveryService extends AbstractService {
       // AM event
       // anything to be done?
       // TODO
+      LOG.info("Skipping Recovery Event as DAG is null"
+          + ", eventType=" + event.getHistoryEvent().getEventType());
       return;
     }
 
     TezDAGID dagID = event.getDagID();
-    if (completedDAGs.contains(dagID)) {
-      // Skip events for completed DAGs
+    if (completedDAGs.contains(dagID)
+        || skippedDAGs.contains(dagID)) {
+      // Skip events for completed and skipped DAGs
       // no need to recover completed DAGs
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Skipping Recovery Event as either completed or skipped"
+            + ", dagId=" + dagID
+            + ", completed=" + completedDAGs.contains(dagID)
+            + ", skipped=" + skippedDAGs.contains(dagID)
+            + ", eventType=" + event.getHistoryEvent().getEventType());
+      }
       return;
     }
 
     try {
 
-      if (eventType.equals(HistoryEventType.DAG_SUBMITTED)
-          || eventType.equals(HistoryEventType.DAG_FINISHED)) {
-        if (summaryStream == null) {
-          Path summaryPath = new Path(recoveryPath,
-              appContext.getApplicationID()
-              + TezConfiguration.DAG_RECOVERY_SUMMARY_FILE_SUFFIX);
+      if (summaryStream == null) {
+        Path summaryPath = new Path(recoveryPath,
+            appContext.getApplicationID()
+                + TezConfiguration.DAG_RECOVERY_SUMMARY_FILE_SUFFIX);
+        if (!recoveryDirFS.exists(summaryPath)) {
           summaryStream = recoveryDirFS.create(summaryPath, false,
               bufferSize);
+        } else {
+          summaryStream = recoveryDirFS.append(summaryPath, bufferSize);
         }
+      }
+
+      if (eventType.equals(HistoryEventType.DAG_SUBMITTED)
+          || eventType.equals(HistoryEventType.DAG_FINISHED)) {
         if (eventType.equals(HistoryEventType.DAG_SUBMITTED)) {
           DAGSubmittedEvent dagSubmittedEvent =
               (DAGSubmittedEvent) event.getHistoryEvent();
@@ -235,33 +274,97 @@ public class RecoveryService extends AbstractService {
               && dagName.startsWith(
               TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
             // Skip recording pre-warm DAG events
+            skippedDAGs.add(dagID);
             return;
           }
-          Path dagFilePath = new Path(recoveryPath,
-              dagID.toString() + TezConfiguration.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
-          FSDataOutputStream outputStream =
-              recoveryDirFS.create(dagFilePath, false, bufferSize);
-          outputStreamMap.put(dagID, outputStream);
         }
+        SummaryEvent summaryEvent = (SummaryEvent) event.getHistoryEvent();
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Writing recovery event to summary stream"
+              + ", dagId=" + dagID
+              + ", type="
+              + event.getHistoryEvent().getEventType());
+        }
+        summaryEvent.toSummaryProtoStream(summaryStream);
+      }
 
-        if (outputStreamMap.containsKey(dagID)) {
-          SummaryEvent summaryEvent = (SummaryEvent) event.getHistoryEvent();
-          summaryEvent.toSummaryProtoStream(summaryStream);
+      if (!outputStreamMap.containsKey(dagID)) {
+        Path dagFilePath = new Path(recoveryPath,
+            dagID.toString() + TezConfiguration.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
+        FSDataOutputStream outputStream;
+        if (recoveryDirFS.exists(dagFilePath)) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Opening DAG recovery file in append mode"
+                + ", filePath=" + dagFilePath);
+          }
+          outputStream = recoveryDirFS.append(dagFilePath, bufferSize);
+        } else {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Opening DAG recovery file in create mode"
+                + ", filePath=" + dagFilePath);
+          }
+          outputStream = recoveryDirFS.create(dagFilePath, false, bufferSize);
         }
+        outputStreamMap.put(dagID, outputStream);
       }
 
       FSDataOutputStream outputStream = outputStreamMap.get(dagID);
-      if (outputStream == null) {
-        return;
-      }
 
-      outputStream.write(event.getHistoryEvent().getEventType().ordinal());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Writing recovery event to output stream"
+            + ", dagId=" + dagID
+            + ", type="
+            + event.getHistoryEvent().getEventType());
+      }
+      ++unflushedEventsCount;
+      outputStream.writeInt(event.getHistoryEvent().getEventType().ordinal());
       event.getHistoryEvent().toProtoStream(outputStream);
+      if (!EnumSet.of(HistoryEventType.DAG_SUBMITTED,
+          HistoryEventType.DAG_FINISHED).contains(eventType)) {
+        maybeFlush(outputStream);
+      }
     } catch (IOException ioe) {
-      // TODO handle failures - treat as fatal or ignore?
+      // FIXME handle failures
       LOG.warn("Failed to write to stream", ioe);
     }
 
+  }
+
+  private void maybeFlush(FSDataOutputStream outputStream) throws IOException {
+    long currentTime = appContext.getClock().getTime();
+    boolean doFlush = false;
+    if (unflushedEventsCount >= maxUnflushedEvents) {
+      doFlush = true;
+    } else if (flushInterval >= 0
+        && ((currentTime - lastFlushTime) >= (flushInterval*1000))) {
+      doFlush = true;
+    }
+
+    if (!doFlush) {
+      return;
+    }
+
+    doFlush(outputStream, currentTime, false);
+  }
+
+  private void doFlush(FSDataOutputStream outputStream,
+      long currentTime, boolean sync) throws IOException {
+    if (sync) {
+      outputStream.hsync();
+    } else {
+      outputStream.hflush();
+    }
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Flushing output stream"
+          + ", lastTimeSinceFLush=" + lastFlushTime
+          + ", unflushedEventsCount=" + unflushedEventsCount
+          + ", maxUnflushedEvents=" + maxUnflushedEvents
+          + ", currentTime=" + currentTime);
+    }
+
+    unflushedEventsCount = 0;
+    lastFlushTime = currentTime;
   }
 
 }

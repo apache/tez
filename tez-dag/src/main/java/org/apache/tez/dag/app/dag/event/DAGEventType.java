@@ -26,7 +26,7 @@ public enum DAGEventType {
   //Producer:Client
   DAG_KILL,
 
-  //Producer:MRAppMaster
+  //Producer:AM
   DAG_INIT,
   DAG_START,
 
@@ -44,4 +44,8 @@ public enum DAGEventType {
   DAG_DIAGNOSTIC_UPDATE,
   INTERNAL_ERROR,
   DAG_COUNTER_UPDATE,
+
+  // Event to trigger recovery
+  // Producer:AM
+  DAG_RECOVER
 }

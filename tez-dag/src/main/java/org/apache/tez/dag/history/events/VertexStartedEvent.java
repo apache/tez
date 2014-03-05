@@ -88,7 +88,7 @@ public class VertexStartedEvent implements HistoryEvent {
 
   @Override
   public boolean isRecoveryEvent() {
-    return false;
+    return true;
   }
 
   @Override
@@ -126,6 +126,18 @@ public class VertexStartedEvent implements HistoryEvent {
     return "vertexId=" + vertexID
         + ", startRequestedTime=" + startRequestedTime
         + ", startedTime=" + startTime;
+  }
+
+  public TezVertexID getVertexID() {
+    return this.vertexID;
+  }
+
+  public long getStartRequestedTime() {
+    return startRequestedTime;
+  }
+
+  public long getStartTime() {
+    return startTime;
   }
 
 }

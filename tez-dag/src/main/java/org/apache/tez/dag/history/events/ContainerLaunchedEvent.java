@@ -138,4 +138,16 @@ public class ContainerLaunchedEvent implements HistoryEvent {
         + ", launchTime=" + launchTime;
   }
 
+  public ContainerId getContainerId() {
+    return containerId;
+  }
+
+  public long getLaunchTime() {
+    return launchTime;
+  }
+
+  public ApplicationAttemptId getApplicationAttemptId() {
+    return applicationAttemptId;
+  }
+
 }

@@ -50,6 +50,10 @@ public class InputSpec implements Writable {
     return inputDescriptor;
   }
 
+  public void setInputDescriptor(InputDescriptor inputDescriptor) {
+    this.inputDescriptor = inputDescriptor;
+  }
+
   public int getPhysicalEdgeCount() {
     return physicalEdgeCount;
   }

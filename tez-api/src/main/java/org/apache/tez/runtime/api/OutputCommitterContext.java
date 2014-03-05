@@ -18,6 +18,8 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
 /**
@@ -62,5 +64,13 @@ public interface OutputCommitterContext {
    * @return User Payload
    */
   public byte[] getUserPayload();
+
+  /**
+   * Get Vertex Index in the DAG
+   * @return Vertex index
+   */
+  @Unstable
+  @Evolving
+  public int getVertexIndex();
 
 }

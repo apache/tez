@@ -147,6 +147,11 @@ public class VertexManager {
       managedVertex.setVertexLocationHint(locationHint);
     }
 
+    @Override
+    public int getDAGAttemptNumber() {
+      return appContext.getApplicationAttemptId().getAttemptId();
+    }
+
     private void verifyIsRootInput(String inputName) {
       Preconditions.checkState(managedVertex.getAdditionalInputs().get(inputName) != null,
           "Cannot add events for non-root inputs");
@@ -222,23 +227,24 @@ public class VertexManager {
 
   public void onVertexStarted(List<TezTaskAttemptID> completions) {
     Map<String, List<Integer>> pluginCompletionsMap = Maps.newHashMap();
-    for (TezTaskAttemptID attemptId : completions) {
-      TezTaskID tezTaskId = attemptId.getTaskID();
-      Integer taskId = new Integer(tezTaskId.getId());
-      String vertexName = 
-          appContext.getCurrentDAG().getVertex(tezTaskId.getVertexID()).getName();
-      List<Integer> taskIdList = pluginCompletionsMap.get(vertexName);
-      if (taskIdList == null) {
-        taskIdList = Lists.newArrayList();
-        pluginCompletionsMap.put(vertexName, taskIdList);
+    if (completions != null && !completions.isEmpty()) {
+      for (TezTaskAttemptID tezTaskAttemptID : completions) {
+        Integer taskId = new Integer(tezTaskAttemptID.getTaskID().getId());
+        String vertexName =
+            appContext.getCurrentDAG().getVertex(
+                tezTaskAttemptID.getTaskID().getVertexID()).getName();
+        List<Integer> taskIdList = pluginCompletionsMap.get(vertexName);
+        if (taskIdList == null) {
+          taskIdList = Lists.newArrayList();
+          pluginCompletionsMap.put(vertexName, taskIdList);
+        }
+        taskIdList.add(taskId);
       }
-      taskIdList.add(taskId);
     }
     plugin.onVertexStarted(pluginCompletionsMap);
   }
 
-  public void onSourceTaskCompleted(TezTaskAttemptID attemptId) {
-    TezTaskID tezTaskId = attemptId.getTaskID();
+  public void onSourceTaskCompleted(TezTaskID tezTaskId) {
     Integer taskId = new Integer(tezTaskId.getId());
     String vertexName = 
         appContext.getCurrentDAG().getVertex(tezTaskId.getVertexID()).getName();

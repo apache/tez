@@ -16,30 +16,26 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.api.client;
+package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.dag.api.client.VertexStatus.State;
-import org.apache.tez.dag.api.records.DAGProtos;
-import org.apache.tez.dag.app.dag.VertexState;
-import org.junit.Assert;
-import org.junit.Test;
+import org.apache.tez.dag.api.oldrecords.TaskState;
+import org.apache.tez.dag.records.TezTaskID;
 
-public class TestVertexStatusBuilder {
+public class TaskEventRecoverTask extends TaskEvent {
 
-  @Test
-  public void testVertexStateConversion() {
-    for (VertexState state : VertexState.values()) {
-      DAGProtos.VertexStatusStateProto stateProto =
-          VertexStatusBuilder.getProtoState(state);
-      VertexStatus.State clientState =
-          VertexStatus.getState(stateProto);
-      if (state.equals(VertexState.RECOVERING)) {
-        Assert.assertEquals(clientState.name(),
-            State.NEW.name());
-      } else {
-        Assert.assertEquals(state.name(), clientState.name());
-      }
-    }
+  TaskState desiredState;
+
+  public TaskEventRecoverTask(TezTaskID taskID, TaskState desiredState) {
+    super(taskID, TaskEventType.T_RECOVER);
+    this.desiredState = desiredState;
+  }
+
+  public TaskEventRecoverTask(TezTaskID taskID) {
+    this(taskID, null);
+  }
+
+  public TaskState getDesiredState() {
+    return desiredState;
   }
 
 }

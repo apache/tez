@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.history.events;
 
+import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.oldrecords.TaskState;
@@ -26,6 +27,7 @@ import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.ats.EntityTypes;
 import org.apache.tez.dag.history.utils.ATSConstants;
 import org.apache.tez.dag.history.utils.DAGUtils;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskFinishedProto;
 import org.codehaus.jettison.json.JSONArray;
@@ -44,9 +46,11 @@ public class TaskFinishedEvent implements HistoryEvent {
   private long finishTime;
   private TaskState state;
   private TezCounters tezCounters;
+  private TezTaskAttemptID successfulAttemptID;
 
   public TaskFinishedEvent(TezTaskID taskID,
       String vertexName, long startTime, long finishTime,
+      TezTaskAttemptID successfulAttemptID,
       TaskState state, TezCounters counters) {
     this.vertexName = vertexName;
     this.taskID = taskID;
@@ -103,20 +107,31 @@ public class TaskFinishedEvent implements HistoryEvent {
   }
 
   public TaskFinishedProto toProto() {
-    return TaskFinishedProto.newBuilder()
-        .setTaskId(taskID.toString())
+    TaskFinishedProto.Builder builder = TaskFinishedProto.newBuilder();
+    builder.setTaskId(taskID.toString())
         .setState(state.ordinal())
-        .setFinishTime(finishTime)
-        .setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters))
-        .build();
+        .setFinishTime(finishTime);
+    if (tezCounters != null) {
+      builder.setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters));
+    }
+    if (successfulAttemptID != null) {
+      builder.setSuccessfulTaskAttemptId(successfulAttemptID.toString());
+    }
+    return builder.build();
   }
 
   public void fromProto(TaskFinishedProto proto) {
     this.taskID = TezTaskID.fromString(proto.getTaskId());
     this.finishTime = proto.getFinishTime();
     this.state = TaskState.values()[proto.getState()];
-    this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
-        proto.getCounters());
+    if (proto.hasCounters()) {
+      this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
+          proto.getCounters());
+    }
+    if (proto.hasSuccessfulTaskAttemptId()) {
+      this.successfulAttemptID =
+          TezTaskAttemptID.fromString(proto.getSuccessfulTaskAttemptId());
+    }
   }
 
   @Override
@@ -138,9 +153,30 @@ public class TaskFinishedEvent implements HistoryEvent {
         + ", finishTime=" + finishTime
         + ", timeTaken=" + (finishTime - startTime)
         + ", status=" + state.name()
-        + ", counters="
-        + tezCounters.toString()
-            .replaceAll("\\n", ", ").replaceAll("\\s+", " ");
+        + ", successfulAttemptID=" + (successfulAttemptID == null ? "null" :
+            successfulAttemptID.toString())
+        + ", counters=" + ( tezCounters == null ? "null" :
+          tezCounters.toString()
+            .replaceAll("\\n", ", ").replaceAll("\\s+", " "));
   }
 
+  public TezTaskID getTaskID() {
+    return taskID;
+  }
+
+  public TaskState getState() {
+    return state;
+  }
+
+  public long getFinishTime() {
+    return finishTime;
+  }
+
+  public TezCounters getTezCounters() {
+    return tezCounters;
+  }
+
+  public TezTaskAttemptID getSuccessfulAttemptID() {
+    return successfulAttemptID;
+  }
 }

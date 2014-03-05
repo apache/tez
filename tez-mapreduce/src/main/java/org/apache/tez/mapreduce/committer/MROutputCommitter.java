@@ -47,10 +47,12 @@ public class MROutputCommitter extends OutputCommitter {
 
   private static final Log LOG = LogFactory.getLog(MROutputCommitter.class);
 
+  private OutputCommitterContext context;
   private org.apache.hadoop.mapreduce.OutputCommitter committer = null;
   private JobContext jobContext = null;
   private volatile boolean initialized = false;
   private JobConf jobConf = null;
+  private boolean newApiCommitter;
 
   @Override
   public void initialize(OutputCommitterContext context) throws IOException {
@@ -66,7 +68,8 @@ public class MROutputCommitter extends OutputCommitter {
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         context.getDAGAttemptNumber());
-    committer = getOutputCommitter(context);
+    this.context = context;
+    committer = getOutputCommitter(this.context);
     jobContext = getJobContextFromVertexContext(context);
     initialized = true;
   }
@@ -101,7 +104,7 @@ public class MROutputCommitter extends OutputCommitter {
       getOutputCommitter(OutputCommitterContext context) {
 
     org.apache.hadoop.mapreduce.OutputCommitter committer = null;
-    boolean newApiCommitter = false;
+    newApiCommitter = false;
     if (jobConf.getBoolean("mapred.reducer.new-api", false)
         || jobConf.getBoolean("mapred.mapper.new-api", false))  {
       newApiCommitter = true;
@@ -118,8 +121,8 @@ public class MROutputCommitter extends OutputCommitter {
       TaskAttemptID taskAttemptID = new TaskAttemptID(
           Long.toString(context.getApplicationId().getClusterTimestamp()),
           context.getApplicationId().getId(),
-          (jobConf.getBoolean(MRConfig.IS_MAP_PROCESSOR,
-              false) ? TaskType.MAP : TaskType.REDUCE),
+          ((jobConf.getBoolean(MRConfig.IS_MAP_PROCESSOR, false) ?
+              TaskType.MAP : TaskType.REDUCE)),
           0, context.getDAGAttemptNumber());
 
       TaskAttemptContext taskContext = new TaskAttemptContextImpl(jobConf,
@@ -179,6 +182,29 @@ public class MROutputCommitter extends OutputCommitter {
 
   }
 
+  @Override
+  public boolean isTaskRecoverySupported() {
+    if (!initialized) {
+      throw new RuntimeException("Committer not initialized");
+    }
+    return committer.isRecoverySupported();
+  }
 
+  @Override
+  public void recoverTask(int taskIndex, int attemptId) throws IOException {
+    if (!initialized) {
+      throw new RuntimeException("Committer not initialized");
+    }
+    TaskAttemptID taskAttemptID = new TaskAttemptID(
+        Long.toString(context.getApplicationId().getClusterTimestamp())
+        + String.valueOf(context.getVertexIndex()),
+        context.getApplicationId().getId(),
+        ((jobConf.getBoolean(MRConfig.IS_MAP_PROCESSOR, false) ?
+            TaskType.MAP : TaskType.REDUCE)),
+        taskIndex, attemptId);
+    TaskAttemptContext taskContext = new TaskAttemptContextImpl(jobConf,
+        taskAttemptID);
+    committer.recoverTask(taskContext);
+  }
 
 }

@@ -110,22 +110,31 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
   }
 
   public TaskAttemptFinishedProto toProto() {
-    return TaskAttemptFinishedProto.newBuilder()
-        .setTaskAttemptId(taskAttemptId.toString())
+    TaskAttemptFinishedProto.Builder builder =
+        TaskAttemptFinishedProto.newBuilder();
+    builder.setTaskAttemptId(taskAttemptId.toString())
         .setState(state.ordinal())
-        .setDiagnostics(diagnostics)
-        .setFinishTime(finishTime)
-        .setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters))
-        .build();
+        .setFinishTime(finishTime);
+    if (diagnostics != null) {
+      builder.setDiagnostics(diagnostics);
+    }
+    if (tezCounters != null) {
+      builder.setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters));
+    }
+    return builder.build();
   }
 
   public void fromProto(TaskAttemptFinishedProto proto) {
     this.taskAttemptId = TezTaskAttemptID.fromString(proto.getTaskAttemptId());
     this.finishTime = proto.getFinishTime();
     this.state = TaskAttemptState.values()[proto.getState()];
-    this.diagnostics = proto.getDiagnostics();
-    this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
+    if (proto.hasDiagnostics()) {
+      this.diagnostics = proto.getDiagnostics();
+    }
+    if (proto.hasCounters()) {
+      this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
         proto.getCounters());
+    }
   }
 
   @Override
@@ -149,9 +158,29 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
         + ", timeTaken=" + (finishTime - startTime)
         + ", status=" + state.name()
         + ", diagnostics=" + diagnostics
-        + ", counters="
-        + tezCounters.toString()
-            .replaceAll("\\n", ", ").replaceAll("\\s+", " ");
+        + ", counters=" + (tezCounters == null ? "null" :
+          tezCounters.toString()
+            .replaceAll("\\n", ", ").replaceAll("\\s+", " "));
+  }
+
+  public TezTaskAttemptID getTaskAttemptID() {
+    return taskAttemptId;
+  }
+
+  public TezCounters getCounters() {
+    return tezCounters;
+  }
+
+  public String getDiagnostics() {
+    return diagnostics;
+  }
+
+  public long getFinishTime() {
+    return finishTime;
+  }
+
+  public TaskAttemptState getState() {
+    return state;
   }
 
 }

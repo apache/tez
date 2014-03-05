@@ -179,4 +179,15 @@ import java.io.OutputStream;
     return this.dagPlan;
   }
 
+  public TezDAGID getDagID() {
+    return dagID;
+  }
+
+  public ApplicationAttemptId getApplicationAttemptId() {
+    return applicationAttemptId;
+  }
+
+  public long getSubmitTime() {
+    return submitTime;
+  }
 }

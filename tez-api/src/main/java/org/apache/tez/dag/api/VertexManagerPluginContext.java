@@ -125,4 +125,9 @@ public interface VertexManagerPluginContext {
    * @param locationHint
    */
   public void setVertexLocationHint(VertexLocationHint locationHint);
+
+  /**
+   * @return DAG Attempt number
+   */
+  public int getDAGAttemptNumber();
 }

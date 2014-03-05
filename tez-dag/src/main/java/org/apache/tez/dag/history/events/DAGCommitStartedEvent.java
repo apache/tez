@@ -21,7 +21,7 @@ package org.apache.tez.dag.history.events;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.dag.recovery.records.RecoveryProtos;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGCommitStartedProto;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -29,29 +29,26 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-// TODO fix class
-public class DAGInitializedEvent implements HistoryEvent {
+public class DAGCommitStartedEvent implements HistoryEvent {
 
   private TezDAGID dagID;
-  private long initTime;
 
-  public DAGInitializedEvent() {
+  public DAGCommitStartedEvent() {
   }
 
-  public DAGInitializedEvent(TezDAGID dagID, long initTime) {
+  public DAGCommitStartedEvent(TezDAGID dagID) {
     this.dagID = dagID;
-    this.initTime = initTime;
   }
 
   @Override
   public HistoryEventType getEventType() {
-    return HistoryEventType.DAG_INITIALIZED;
+    return HistoryEventType.DAG_COMMIT_STARTED;
   }
 
   @Override
   public JSONObject convertToATSJSON() throws JSONException {
     // TODO
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   @Override
@@ -61,25 +58,17 @@ public class DAGInitializedEvent implements HistoryEvent {
 
   @Override
   public boolean isHistoryEvent() {
-    return true;
+    return false;
   }
 
-  @Override
-  public String toString() {
-    return "dagID=" + dagID
-        + ", initTime=" + initTime;
-  }
-
-  public RecoveryProtos.DAGInitializedProto toProto() {
-    return RecoveryProtos.DAGInitializedProto.newBuilder()
+  public DAGCommitStartedProto toProto() {
+    return DAGCommitStartedProto.newBuilder()
         .setDagId(dagID.toString())
-        .setInitTime(initTime)
         .build();
   }
 
-  public void fromProto(RecoveryProtos.DAGInitializedProto proto) {
+  public void fromProto(DAGCommitStartedProto proto) {
     this.dagID = TezDAGID.fromString(proto.getDagId());
-    this.initTime = proto.getInitTime();
   }
 
   @Override
@@ -89,16 +78,17 @@ public class DAGInitializedEvent implements HistoryEvent {
 
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
-    RecoveryProtos.DAGInitializedProto proto =
-        RecoveryProtos.DAGInitializedProto.parseDelimitedFrom(inputStream);
+    DAGCommitStartedProto proto = DAGCommitStartedProto.parseDelimitedFrom(inputStream);
     fromProto(proto);
   }
 
-  public long getInitTime() {
-    return this.initTime;
+  @Override
+  public String toString() {
+    return "dagID=" + dagID;
   }
 
   public TezDAGID getDagID() {
     return dagID;
   }
+
 }

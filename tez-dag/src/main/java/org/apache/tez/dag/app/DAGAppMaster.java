@@ -48,6 +48,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -220,6 +222,8 @@ public class DAGAppMaster extends AbstractService {
   private FileSystem recoveryFS;
   private int recoveryBufferSize;
 
+  protected boolean isLastAMRetry = false;
+
   // DAG Counter
   private final AtomicInteger dagCounter = new AtomicInteger();
 
@@ -261,6 +265,14 @@ public class DAGAppMaster extends AbstractService {
 
   @Override
   public synchronized void serviceInit(final Configuration conf) throws Exception {
+
+    int maxAppAttempts = 1;
+    String maxAppAttemptsEnv = System.getenv(
+        ApplicationConstants.MAX_APP_ATTEMPTS_ENV);
+    if (maxAppAttemptsEnv != null) {
+      maxAppAttempts = Integer.valueOf(maxAppAttemptsEnv);
+    }
+    isLastAMRetry = appAttemptID.getAttemptId() >= maxAppAttempts;
 
     this.amConf = conf;
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
@@ -481,6 +493,11 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
+  public void setCurrentDAG(DAG currentDAG) {
+    this.currentDAG = currentDAG;
+    context.setDAG(currentDAG);
+  }
+
   private class DAGAppMasterEventHandler implements
       EventHandler<DAGAppMasterEvent> {
     @Override
@@ -539,7 +556,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   /** Create and initialize (but don't start) a single dag. */
-  protected DAG createDAG(DAGPlan dagPB, TezDAGID dagId) {
+  DAGImpl createDAG(DAGPlan dagPB, TezDAGID dagId) {
     if (dagId == null) {
       dagId = TezDAGID.getInstance(appAttemptID.getApplicationId(),
           dagCounter.incrementAndGet());
@@ -566,7 +583,7 @@ public class DAGAppMaster extends AbstractService {
     TokenCache.setSessionToken(sessionToken, dagCredentials);
 
     // create single dag
-    DAG newDag =
+    DAGImpl newDag =
         new DAGImpl(dagId, dagConf, dagPB, dispatcher.getEventHandler(),
             taskAttemptListener, dagCredentials, clock,
             appMasterUgi.getShortUserName(),
@@ -989,6 +1006,7 @@ public class DAGAppMaster extends AbstractService {
         return TezSessionStatus.INITIALIZING;
       case IDLE:
         return TezSessionStatus.READY;
+      case RECOVERING:
       case RUNNING:
         return TezSessionStatus.RUNNING;
       case ERROR:
@@ -1328,6 +1346,31 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
+  private DAG recoverDAG() throws IOException {
+    DAG recoveredDAG = null;
+    if (recoveryEnabled) {
+      if (this.appAttemptID.getAttemptId() > 1) {
+        this.state = DAGAppMasterState.RECOVERING;
+        RecoveryParser recoveryParser = new RecoveryParser(
+            this, recoveryFS, recoveryDataDir, appAttemptID.getAttemptId());
+        recoveredDAG = recoveryParser.parseRecoveryData();
+        if (recoveredDAG != null) {
+          LOG.info("Found DAG to recover, dagId=" + recoveredDAG.getID());
+          _updateLoggers(recoveredDAG, "");
+          DAGEvent recoverDAGEvent = new DAGEvent(recoveredDAG.getID(),
+              DAGEventType.DAG_RECOVER);
+          dagEventDispatcher.handle(recoverDAGEvent);
+          this.state = DAGAppMasterState.RUNNING;
+        } else {
+          LOG.info("No DAG to recover");
+          this.state = DAGAppMasterState.IDLE;
+        }
+      }
+    }
+    return recoveredDAG;
+  }
+
+  @SuppressWarnings("unchecked")
   @Override
   public synchronized void serviceStart() throws Exception {
 
@@ -1348,18 +1391,18 @@ public class DAGAppMaster extends AbstractService {
     this.lastDAGCompletionTime = clock.getTime();
 
     if (!isSession) {
-      startDAG();
+      DAG recoveredDAG = null;
+      if (appAttemptID.getAttemptId() != 1) {
+        recoveredDAG = recoverDAG();
+      }
+      if (recoveredDAG == null) {
+        dagCounter.set(0);
+        startDAG();
+      }
     } else {
       LOG.info("In Session mode. Waiting for DAG over RPC");
       this.state = DAGAppMasterState.IDLE;
-
-      if (recoveryEnabled) {
-        if (this.appAttemptID.getAttemptId() > 0) {
-          // Recovery data and copy over into new recovery dir
-          this.state = DAGAppMasterState.IDLE;
-          // TODO
-        }
-      }
+      recoverDAG();
 
       this.dagSubmissionTimer = new Timer(true);
       this.dagSubmissionTimer.scheduleAtFixedRate(new TimerTask() {
@@ -1570,6 +1613,9 @@ public class DAGAppMaster extends AbstractService {
       }
 
       appMaster.stop();
+
+
+
     }
   }
 
@@ -1671,5 +1717,9 @@ public class DAGAppMaster extends AbstractService {
   @SuppressWarnings("unchecked")
   private void sendEvent(Event<?> event) {
     dispatcher.getEventHandler().handle(event);
+  }
+
+  synchronized void setDAGCounter(int dagCounter) {
+    this.dagCounter.set(dagCounter);
   }
 }

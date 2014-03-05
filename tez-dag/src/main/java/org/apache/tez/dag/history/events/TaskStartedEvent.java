@@ -91,7 +91,7 @@ public class TaskStartedEvent implements HistoryEvent {
 
   @Override
   public boolean isRecoveryEvent() {
-    return false;
+    return true;
   }
 
   @Override
@@ -130,6 +130,18 @@ public class TaskStartedEvent implements HistoryEvent {
         + ", taskId=" + taskID.toString()
         + ", scheduledTime=" + scheduledTime
         + ", launchTime=" + startTime;
+  }
+
+  public TezTaskID getTaskID() {
+    return taskID;
+  }
+
+  public long getScheduledTime() {
+    return scheduledTime;
+  }
+
+  public long getStartTime() {
+    return startTime;
   }
 
 }

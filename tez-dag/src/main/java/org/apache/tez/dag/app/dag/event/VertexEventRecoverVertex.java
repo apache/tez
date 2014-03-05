@@ -1,5 +1,4 @@
-/**
-* Licensed to the Apache Software Foundation (ASF) under one
+/* Licensed to the Apache Software Foundation (ASF) under one
 * or more contributor license agreements.  See the NOTICE file
 * distributed with this work for additional information
 * regarding copyright ownership.  The ASF licenses this file
@@ -18,31 +17,20 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-/**
- * Event types handled by Task.
- */
-public enum TaskEventType {
+import org.apache.tez.dag.app.dag.VertexState;
+import org.apache.tez.dag.records.TezVertexID;
 
-  //Producer:Client, Job
-  T_TERMINATE,
-  
-  //Producer:Job
-  T_SCHEDULE,
+public class VertexEventRecoverVertex extends VertexEvent {
 
-  //Producer:Speculator
-  T_ADD_SPEC_ATTEMPT,
-  
-  //Producer:Edge
-  T_ADD_TEZ_EVENT,
+  VertexState desiredState;
 
-  //Producer:TaskAttempt
-  T_ATTEMPT_LAUNCHED,
-  T_ATTEMPT_OUTPUT_CONSUMABLE,
-  T_ATTEMPT_FAILED,
-  T_ATTEMPT_SUCCEEDED,
-  T_ATTEMPT_KILLED,
+  public VertexEventRecoverVertex(TezVertexID vertexId, VertexState desiredState) {
+    super(vertexId, VertexEventType.V_RECOVER);
+    this.desiredState = desiredState;
+  }
 
-  // Recovery event
-  T_RECOVER
+  public VertexState getDesiredState() {
+    return desiredState;
+  }
 
 }

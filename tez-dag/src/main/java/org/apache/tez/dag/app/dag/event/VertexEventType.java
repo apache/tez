@@ -56,5 +56,11 @@ public enum VertexEventType {
   //Producer: VertexInputInitializer
   V_ROOT_INPUT_INITIALIZED,
   V_ROOT_INPUT_FAILED,
-  
+
+  // Recover Event, Producer:DAG
+  V_RECOVER,
+
+  // Recover Event, Producer:Vertex
+  V_SOURCE_VERTEX_RECOVERED
+
 }

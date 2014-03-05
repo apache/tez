@@ -27,13 +27,25 @@ public class VertexEventRouteEvent extends VertexEvent {
   
   final List<TezEvent> events;
 
+  final boolean recovered;
+
   public VertexEventRouteEvent(TezVertexID vertexId, List<TezEvent> events) {
+    this(vertexId, events, false);
+  }
+
+  public VertexEventRouteEvent(TezVertexID vertexId, List<TezEvent> events,
+      boolean recovered) {
     super(vertexId, VertexEventType.V_ROUTE_EVENT);
     this.events = events;
+    this.recovered = recovered;
   }
-  
+
   public List<TezEvent> getEvents() {
     return events;
+  }
+
+  public boolean isRecovered() {
+    return recovered;
   }
 
 }

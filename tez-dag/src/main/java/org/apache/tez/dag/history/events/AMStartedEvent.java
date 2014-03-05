@@ -129,4 +129,13 @@ public class AMStartedEvent implements HistoryEvent {
     fromProto(proto);
   }
 
+  public ApplicationAttemptId getApplicationAttemptId() {
+    return applicationAttemptId;
+  }
+
+  public long getStartTime() {
+    return startTime;
+  }
+
+
 }

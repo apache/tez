@@ -69,4 +69,22 @@ public abstract class OutputCommitter {
   public abstract void abortOutput(VertexStatus.State finalState)
     throws Exception;
 
+  /**
+   * Whether the OutputCommitter supports recovery of output from a Task
+   * that completed in a previous DAG attempt
+   * @return True if recovery supported
+   */
+  public boolean isTaskRecoverySupported() {
+    return true;
+  }
+
+  /**
+   * Recover task output from a previous DAG attempt
+   * @param taskIndex Index of task to be recovered
+   * @param previousDAGAttempt Previous DAG Attempt Number
+   * @throws java.lang.Exception
+   */
+  public void recoverTask(int taskIndex, int previousDAGAttempt)  throws Exception {
+  }
+
 }

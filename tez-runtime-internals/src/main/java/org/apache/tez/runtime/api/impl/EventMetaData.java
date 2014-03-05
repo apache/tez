@@ -135,7 +135,7 @@ public class EventMetaData implements Writable {
     return "{ producerConsumerType=" + producerConsumerType
         + ", taskVertexName=" + taskVertexName
         + ", edgeVertexName=" + edgeVertexName
-        + ", taskAttemptId=" + taskAttemptID
+        + ", taskAttemptId=" + (taskAttemptID == null? "null" : taskAttemptID)
         + " }";
   }
 }

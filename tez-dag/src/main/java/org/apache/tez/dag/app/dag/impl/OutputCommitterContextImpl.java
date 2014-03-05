@@ -31,13 +31,15 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
   private final String vertexName;
   private final String outputName;
   private final byte[] userPayload;
+  private final int vertexIdx;
 
   public OutputCommitterContextImpl(ApplicationId applicationId,
       int dagAttemptNumber,
       String dagName,
       String vertexName,
       String outputName,
-      @Nullable byte[] userPayload) {
+      @Nullable byte[] userPayload,
+      int vertexIdx) {
     checkNotNull(applicationId, "applicationId is null");
     checkNotNull(dagName, "dagName is null");
     checkNotNull(vertexName, "vertexName is null");
@@ -48,6 +50,7 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
     this.vertexName = vertexName;
     this.outputName = outputName;
     this.userPayload = userPayload;
+    this.vertexIdx = vertexIdx;
   }
 
   @Override
@@ -78,6 +81,11 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
   @Override
   public byte[] getUserPayload() {
     return userPayload;
+  }
+
+  @Override
+  public int getVertexIndex() {
+    return vertexIdx;
   }
 
 }

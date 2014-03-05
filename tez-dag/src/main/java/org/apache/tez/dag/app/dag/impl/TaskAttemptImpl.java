@@ -25,6 +25,7 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -84,6 +85,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
@@ -91,6 +93,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
+import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
@@ -192,6 +195,14 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptStateInternal.KILLED,
           TaskAttemptEventType.TA_KILL_REQUEST,
           new TerminateTransition(KILLED_HELPER))
+
+      .addTransition(TaskAttemptStateInternal.NEW,
+          EnumSet.of(TaskAttemptStateInternal.NEW,
+              TaskAttemptStateInternal.RUNNING,
+              TaskAttemptStateInternal.KILLED,
+              TaskAttemptStateInternal.FAILED,
+              TaskAttemptStateInternal.SUCCEEDED),
+          TaskAttemptEventType.TA_RECOVER, new RecoverTransition())
 
       .addTransition(TaskAttemptStateInternal.START_WAIT,
           TaskAttemptStateInternal.RUNNING,
@@ -462,6 +473,8 @@ public class TaskAttemptImpl implements TaskAttempt,
 
         .installTopology();
 
+  private TaskAttemptState recoveredState = TaskAttemptState.NEW;
+  private boolean recoveryStartEventSeen = false;
 
   @SuppressWarnings("rawtypes")
   public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
@@ -780,6 +793,39 @@ public class TaskAttemptImpl implements TaskAttempt,
   @Override
   public boolean getIsRescheduled() {
     return isRescheduled;
+  }
+
+  @Override
+  public TaskAttemptState restoreFromEvent(HistoryEvent historyEvent) {
+    switch (historyEvent.getEventType()) {
+      case TASK_ATTEMPT_STARTED:
+      {
+        TaskAttemptStartedEvent tEvent = (TaskAttemptStartedEvent) historyEvent;
+        this.launchTime = tEvent.getStartTime();
+        recoveryStartEventSeen = true;
+        recoveredState = TaskAttemptState.RUNNING;
+        return recoveredState;
+      }
+      case TASK_ATTEMPT_FINISHED:
+      {
+        if (!recoveryStartEventSeen) {
+          throw new RuntimeException("Finished Event seen but"
+              + " no Started Event was encountered earlier");
+        }
+        TaskAttemptFinishedEvent tEvent = (TaskAttemptFinishedEvent) historyEvent;
+        this.finishTime = tEvent.getFinishTime();
+        this.reportedStatus.counters = tEvent.getCounters();
+        this.reportedStatus.progress = 1f;
+        this.reportedStatus.state = tEvent.getState();
+        this.diagnostics.add(tEvent.getDiagnostics());
+        this.recoveredState = tEvent.getState();
+        return recoveredState;
+      }
+      default:
+        throw new RuntimeException("Unexpected event received for restoring"
+            + " state, eventType=" + historyEvent.getEventType());
+
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -1366,7 +1412,46 @@ public class TaskAttemptImpl implements TaskAttempt,
     }
 
   }
-  
+
+  protected static class RecoverTransition implements
+      MultipleArcTransition<TaskAttemptImpl, TaskAttemptEvent, TaskAttemptStateInternal> {
+
+    @Override
+    public TaskAttemptStateInternal transition(TaskAttemptImpl taskAttempt, TaskAttemptEvent taskAttemptEvent) {
+      TaskAttemptStateInternal endState = TaskAttemptStateInternal.FAILED;
+      switch(taskAttempt.recoveredState) {
+        case NEW:
+        case RUNNING:
+          // FIXME once running containers can be recovered, this
+          // should be handled differently
+          // TODO abort taskattempt
+          taskAttempt.sendEvent(new TaskEventTAUpdate(taskAttempt.attemptId,
+              TaskEventType.T_ATTEMPT_FAILED));
+          endState = TaskAttemptStateInternal.FAILED;
+          break;
+        case SUCCEEDED:
+          // Do not inform Task as it already knows about completed attempts
+          endState = TaskAttemptStateInternal.SUCCEEDED;
+          break;
+        case FAILED:
+          // Do not inform Task as it already knows about completed attempts
+          endState = TaskAttemptStateInternal.FAILED;
+          break;
+        case KILLED:
+          // Do not inform Task as it already knows about completed attempts
+          endState = TaskAttemptStateInternal.KILLED;
+          break;
+        default:
+          throw new RuntimeException("Failed to recover from non-handled state"
+              + ", taskAttemptId=" + taskAttempt.getID()
+              + ", state=" + taskAttempt.recoveredState);
+      }
+
+      return endState;
+    }
+
+  }
+
   protected static class TerminatedAfterSuccessTransition implements
       MultipleArcTransition<TaskAttemptImpl, TaskAttemptEvent, TaskAttemptStateInternal> {
     @Override

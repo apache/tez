@@ -60,5 +60,8 @@ public enum TaskAttemptEventType {
   
   // Producer: consumer destination vertex
   TA_OUTPUT_FAILED,
+
+  // Recovery
+  TA_RECOVER,
   
 }

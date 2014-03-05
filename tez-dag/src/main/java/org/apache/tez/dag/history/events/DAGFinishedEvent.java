@@ -20,7 +20,7 @@ package org.apache.tez.dag.history.events;
 
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.SummaryEvent;
@@ -43,7 +43,7 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
   private TezDAGID dagID;
   private long startTime;
   private long finishTime;
-  private DAGStatus.State state;
+  private DAGState state;
   private String diagnostics;
   private TezCounters tezCounters;
 
@@ -51,7 +51,7 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
   }
 
   public DAGFinishedEvent(TezDAGID dagId, long startTime,
-      long finishTime, DAGStatus.State state,
+      long finishTime, DAGState state,
       String diagnostics, TezCounters counters) {
     this.dagID = dagId;
     this.startTime = startTime;
@@ -111,22 +111,33 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
   }
 
   public DAGFinishedProto toProto() {
-    return DAGFinishedProto.newBuilder()
-        .setDagId(dagID.toString())
+    DAGFinishedProto.Builder builder = DAGFinishedProto.newBuilder();
+
+    builder.setDagId(dagID.toString())
         .setState(state.ordinal())
-        .setDiagnostics(diagnostics)
-        .setFinishTime(finishTime)
-        .setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters))
-        .build();
+        .setFinishTime(finishTime);
+
+    if (diagnostics != null) {
+      builder.setDiagnostics(diagnostics);
+    }
+    if (tezCounters != null) {
+      builder.setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters));
+    }
+
+    return builder.build();
   }
 
   public void fromProto(DAGFinishedProto proto) {
     this.dagID = TezDAGID.fromString(proto.getDagId());
     this.finishTime = proto.getFinishTime();
-    this.state = DAGStatus.State.values()[proto.getState()];
-    this.diagnostics = proto.getDiagnostics();
-    this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
-        proto.getCounters());
+    this.state = DAGState.values()[proto.getState()];
+    if (proto.hasDiagnostics()) {
+      this.diagnostics = proto.getDiagnostics();
+    }
+    if (proto.hasCounters()) {
+      this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
+          proto.getCounters());
+    }
   }
 
   @Override
@@ -148,15 +159,39 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
         + ", timeTaken=" + (finishTime - startTime)
         + ", status=" + state.name()
         + ", diagnostics=" + diagnostics
-        + ", counters="
-        + tezCounters.toString()
-            .replaceAll("\\n", ", ").replaceAll("\\s+", " ");
+        + ", counters=" + ((tezCounters == null) ? "null" :
+          (tezCounters.toString()
+            .replaceAll("\\n", ", ").replaceAll("\\s+", " ")));
   }
 
   @Override
   public void toSummaryProtoStream(OutputStream outputStream) throws IOException {
     ProtoUtils.toSummaryEventProto(dagID, finishTime,
         HistoryEventType.DAG_FINISHED).writeDelimitedTo(outputStream);
+  }
+
+  public long getFinishTime() {
+    return this.finishTime;
+  }
+
+  public DAGState getState() {
+    return state;
+  }
+
+  public TezDAGID getDagID() {
+    return dagID;
+  }
+
+  public long getStartTime() {
+    return startTime;
+  }
+
+  public String getDiagnostics() {
+    return diagnostics;
+  }
+
+  public TezCounters getTezCounters() {
+    return tezCounters;
   }
 
 }

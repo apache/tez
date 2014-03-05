@@ -27,6 +27,7 @@ import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
+import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -36,7 +37,7 @@ import org.apache.tez.dag.records.TezVertexID;
  * Read only view of TaskAttempt.
  */
 public interface TaskAttempt {
-  
+
   public static class TaskAttemptStatus {
     public TaskAttemptState state;
     public DAGCounter localityCounter;
@@ -118,4 +119,7 @@ public interface TaskAttempt {
   public Task getTask();
   
   public boolean getIsRescheduled();
+
+  TaskAttemptState restoreFromEvent(HistoryEvent event);
+
 }

@@ -113,4 +113,11 @@ public class DAGStartedEvent implements HistoryEvent {
         + ", startTime=" + startTime;
   }
 
+  public long getStartTime() {
+    return this.startTime;
+  }
+
+  public TezDAGID getDagID() {
+    return dagID;
+  }
 }

@@ -56,6 +56,9 @@ message DAGStartedProto {
   optional int64 start_time = 3;
 }
 
+message DAGCommitStartedProto {
+  optional string dag_id = 1;
+}
 message DAGFinishedProto {
   optional string dag_id = 1;
   optional int64 finish_time = 2;
@@ -69,7 +72,8 @@ message VertexInitializedProto {
   optional string vertex_id = 2;
   optional int64 init_requested_time = 3;
   optional int64 init_time = 4;
-  optional int64 num_tasks = 5;
+  optional int32 num_tasks = 5;
+  repeated RootInputLeafOutputProto inputs = 6;
 }
 
 message VertexStartedProto {
@@ -77,6 +81,22 @@ message VertexStartedProto {
   optional string vertex_id = 2;
   optional int64 start_requested_time = 3;
   optional int64 start_time = 4;
+}
+
+message EdgeManagerDescriptorProto {
+  optional string edge_name = 1;
+  optional TezEntityDescriptorProto entity_descriptor = 2;
+}
+
+message VertexParallelismUpdatedProto {
+  optional string vertex_id = 1;
+  optional int32 num_tasks = 2;
+  optional VertexLocationHintProto vertex_location_hint = 3;
+  repeated EdgeManagerDescriptorProto edge_manager_descriptors = 4;
+}
+
+message VertexCommitStartedProto {
+  optional string vertex_id = 1;
 }
 
 message VertexFinishedProto {
@@ -100,6 +120,7 @@ message TaskFinishedProto {
   optional int32 state = 3;
   optional string diagnostics = 4;
   optional TezCountersProto counters = 5;
+  optional string successful_task_attempt_id = 6;
 }
 
 message TaskAttemptStartedProto {

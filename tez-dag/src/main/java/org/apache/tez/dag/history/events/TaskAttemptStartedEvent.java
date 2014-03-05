@@ -112,7 +112,7 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
 
   @Override
   public boolean isRecoveryEvent() {
-    return false;
+    return true;
   }
 
   @Override
@@ -158,4 +158,19 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
         + ", completedLogs=" + completedLogsUrl;
   }
 
+  public TezTaskAttemptID getTaskAttemptID() {
+    return this.taskAttemptId;
+  }
+
+  public long getStartTime() {
+    return startTime;
+  }
+
+  public ContainerId getContainerId() {
+    return containerId;
+  }
+
+  public NodeId getNodeId() {
+    return nodeId;
+  }
 }

@@ -20,7 +20,7 @@ package org.apache.tez.dag.history.events;
 
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.ats.EntityTypes;
@@ -45,13 +45,13 @@ public class VertexFinishedEvent implements HistoryEvent {
   private long startRequestedTime;
   private long startTime;
   private long finishTime;
-  private VertexStatus.State state;
+  private VertexState state;
   private String diagnostics;
   private TezCounters tezCounters;
 
   public VertexFinishedEvent(TezVertexID vertexId,
       String vertexName, long initRequestedTime, long initedTime, long startRequestedTime, long startedTime, long finishTime,
-      VertexStatus.State state, String diagnostics,
+      VertexState state, String diagnostics,
       TezCounters counters) {
     this.vertexName = vertexName;
     this.vertexID = vertexId;
@@ -111,24 +111,32 @@ public class VertexFinishedEvent implements HistoryEvent {
   }
 
   public VertexFinishedProto toProto() {
-    return VertexFinishedProto.newBuilder()
-        .setVertexName(vertexName)
+    VertexFinishedProto.Builder builder = VertexFinishedProto.newBuilder();
+    builder.setVertexName(vertexName)
         .setVertexId(vertexID.toString())
         .setState(state.ordinal())
-        .setDiagnostics(diagnostics)
-        .setFinishTime(finishTime)
-        .setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters))
-        .build();
+        .setFinishTime(finishTime);
+    if (diagnostics != null) {
+      builder.setDiagnostics(diagnostics);
+    }
+    if (tezCounters != null) {
+      builder.setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters));
+    }
+    return builder.build();
   }
 
   public void fromProto(VertexFinishedProto proto) {
     this.vertexName = proto.getVertexName();
     this.vertexID = TezVertexID.fromString(proto.getVertexId());
     this.finishTime = proto.getFinishTime();
-    this.state = VertexStatus.State.values()[proto.getState()];
-    this.diagnostics = proto.getDiagnostics();
-    this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
-        proto.getCounters());
+    this.state = VertexState.values()[proto.getState()];
+    if (proto.hasDiagnostics())  {
+      this.diagnostics = proto.getDiagnostics();
+    }
+    if (proto.hasCounters()) {
+      this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
+          proto.getCounters());
+    }
   }
 
   @Override
@@ -154,9 +162,28 @@ public class VertexFinishedEvent implements HistoryEvent {
         + ", timeTaken=" + (finishTime - startTime)
         + ", status=" + state.name()
         + ", diagnostics=" + diagnostics
-        + ", counters="
-        + tezCounters.toString()
-            .replaceAll("\\n", ", ").replaceAll("\\s+", " ");
+        + ", counters=" + ( tezCounters == null ? "null" :
+          tezCounters.toString()
+            .replaceAll("\\n", ", ").replaceAll("\\s+", " "));
   }
 
+  public TezVertexID getVertexID() {
+    return this.vertexID;
+  }
+
+  public VertexState getState() {
+    return this.state;
+  }
+
+  public long getFinishTime() {
+    return this.finishTime;
+  }
+
+  public String getDiagnostics() {
+    return diagnostics;
+  }
+
+  public TezCounters getTezCounters() {
+    return tezCounters;
+  }
 }

@@ -206,4 +206,12 @@ public class VertexDataMovementEventsGeneratedEvent implements HistoryEvent {
 
   }
 
+  public TezVertexID getVertexID() {
+    return this.vertexID;
+  }
+
+  public List<TezEvent> getTezEvents() {
+    return this.events;
+  }
+
 }

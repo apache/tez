@@ -454,7 +454,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
     context.scheduleVertexTasks(scheduledTasks);
   }
   
-  void schedulePendingTasks() {    
+  void schedulePendingTasks() {
     int numPendingTasks = pendingTasks.size();
     if (numPendingTasks == 0) {
       return;
@@ -526,7 +526,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
     }
     
     this.context = context;
-    
+
     this.slowStartMinSrcCompletionFraction = conf
         .getFloat(
             ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION,
