@@ -66,6 +66,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.rm.TaskScheduler.CookieContainerRequest;
+import org.apache.tez.dag.app.rm.TaskScheduler.HeldContainer;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback.AppFinalStatus;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerAppCallbackDrainable;
@@ -1046,6 +1047,7 @@ public class TestTaskScheduler {
     
     scheduler.onContainersAllocated(containers);
     drainableAppCallback.drain();
+    Assert.assertEquals(3, scheduler.taskAllocations.size());
     Assert.assertEquals(3072, scheduler.allocatedResources.getMemory());
     Assert.assertEquals(mockCId1,
         scheduler.taskAllocations.get(mockTask1).getId());
@@ -1059,19 +1061,59 @@ public class TestTaskScheduler {
     drainableAppCallback.drain();
     verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
 
+    Object mockTask3WaitCookie = new Object();
     scheduler.allocateTask(mockTask3Wait, taskAsk, null,
-                           null, pri6, obj3, null);
+                           null, pri6, obj3, mockTask3WaitCookie);
     // no preemption - same pri
     scheduler.getProgress();
     drainableAppCallback.drain();
     verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
-
+    
+    Priority pri8 = Priority.newInstance(8);
+    Container mockContainer4 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(mockContainer4.getNodeId().getHost()).thenReturn("host1");
+    when(mockContainer4.getResource()).thenReturn(taskAsk);
+    when(mockContainer4.getPriority()).thenReturn(pri8);
+    ContainerId mockCId4 = mock(ContainerId.class);
+    when(mockContainer4.getId()).thenReturn(mockCId4);
+    containers.clear();
+    containers.add(mockContainer4);
+    
+    // Fudge new container being present in delayed allocation list due to race
+    HeldContainer heldContainer = new HeldContainer(mockContainer4, -1, -1, null);
+    scheduler.delayedContainerManager.delayedContainers.add(heldContainer);
+    // no preemption - container assignment attempts < 3
+    scheduler.getProgress();
+    drainableAppCallback.drain();
+    verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
+    heldContainer.incrementAssignmentAttempts();
+    // no preemption - container assignment attempts < 3
+    scheduler.getProgress();
+    drainableAppCallback.drain();
+    verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
+    heldContainer.incrementAssignmentAttempts();
+    heldContainer.incrementAssignmentAttempts();
+    // preemption - container released and resource asked again
+    scheduler.getProgress();
+    drainableAppCallback.drain();
+    verify(mockRMClient, times(1)).releaseAssignedContainer((ContainerId)any());
+    verify(mockRMClient, times(1)).releaseAssignedContainer(mockCId4);
+    verify(mockRMClient, times(4)).
+    addContainerRequest(requestCaptor.capture());
+    CookieContainerRequest reAdded = requestCaptor.getValue();
+    Assert.assertEquals(pri6, reAdded.getPriority());
+    Assert.assertEquals(taskAsk, reAdded.getCapability());
+    Assert.assertEquals(mockTask3WaitCookie, reAdded.getCookie().getAppCookie());
+    
+    // remove fudging.
+    scheduler.delayedContainerManager.delayedContainers.clear();
+    
     scheduler.allocateTask(mockTask3Retry, taskAsk, null,
                            null, pri5, obj3, null);
     // no preemption - higher pri. exact match
     scheduler.getProgress();
     drainableAppCallback.drain();
-    verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
+    verify(mockRMClient, times(1)).releaseAssignedContainer((ContainerId)any());
 
     scheduler.allocateTask(mockTask2, taskAsk, null,
                            null, pri4, null, null);
@@ -1080,7 +1122,7 @@ public class TestTaskScheduler {
     // mockTaskPri3Kill gets preempted
     scheduler.getProgress();
     drainableAppCallback.drain();
-    verify(mockRMClient, times(1)).releaseAssignedContainer((ContainerId)any());
+    verify(mockRMClient, times(2)).releaseAssignedContainer((ContainerId)any());
     verify(mockRMClient, times(1)).releaseAssignedContainer(mockCId3);
 
     AppFinalStatus finalStatus =
