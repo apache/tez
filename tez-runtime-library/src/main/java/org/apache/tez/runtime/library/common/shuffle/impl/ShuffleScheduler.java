@@ -45,6 +45,7 @@ import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
+import org.apache.tez.runtime.library.common.shuffle.impl.MapOutput.Type;
 
 import com.google.common.collect.Lists;
 
@@ -82,7 +83,10 @@ class ShuffleScheduler {
   private final int abortFailureLimit;
   private final TezCounter shuffledMapsCounter;
   private final TezCounter reduceShuffleBytes;
+  private final TezCounter reduceBytesDecompressed;
   private final TezCounter failedShuffleCounter;
+  private final TezCounter bytesShuffledToDisk;
+  private final TezCounter bytesShuffledToMem;
   
   private final long startTime;
   private long lastProgressTime;
@@ -102,7 +106,10 @@ class ShuffleScheduler {
                           Shuffle shuffle,
                           TezCounter shuffledMapsCounter,
                           TezCounter reduceShuffleBytes,
-                          TezCounter failedShuffleCounter) {
+                          TezCounter reduceBytesDecompressed,
+                          TezCounter failedShuffleCounter,
+                          TezCounter bytesShuffledToDisk,
+                          TezCounter bytesShuffledToMem) {
     this.inputContext = inputContext;
     this.numInputs = numberOfInputs;
     abortFailureLimit = Math.max(30, numberOfInputs / 10);
@@ -111,7 +118,10 @@ class ShuffleScheduler {
     this.shuffle = shuffle;
     this.shuffledMapsCounter = shuffledMapsCounter;
     this.reduceShuffleBytes = reduceShuffleBytes;
+    this.reduceBytesDecompressed = reduceBytesDecompressed;
     this.failedShuffleCounter = failedShuffleCounter;
+    this.bytesShuffledToDisk = bytesShuffledToDisk;
+    this.bytesShuffledToMem = bytesShuffledToMem;
     this.startTime = System.currentTimeMillis();
     this.lastProgressTime = startTime;
     this.maxFailedUniqueFetches = Math.min(numberOfInputs,
@@ -129,7 +139,8 @@ class ShuffleScheduler {
 
   public synchronized void copySucceeded(InputAttemptIdentifier srcAttemptIdentifier, 
                                          MapHost host,
-                                         long bytes,
+                                         long bytesCompressed,
+                                         long bytesDecompressed,
                                          long milis,
                                          MapOutput output
                                          ) throws IOException {
@@ -147,9 +158,15 @@ class ShuffleScheduler {
 
       // update the status
       lastProgressTime = System.currentTimeMillis();
-      totalBytesShuffledTillNow += bytes;
+      totalBytesShuffledTillNow += bytesCompressed;
       logProgress();
-      reduceShuffleBytes.increment(bytes);
+      reduceShuffleBytes.increment(bytesCompressed);
+      reduceBytesDecompressed.increment(bytesDecompressed);
+      if (output.getType() == Type.DISK) {
+        bytesShuffledToDisk.increment(bytesCompressed);
+      } else {
+        bytesShuffledToMem.increment(bytesCompressed);
+      }
       if (LOG.isDebugEnabled()) {
         LOG.debug("src task: "
             + TezRuntimeUtils.getTaskAttemptIdentifier(

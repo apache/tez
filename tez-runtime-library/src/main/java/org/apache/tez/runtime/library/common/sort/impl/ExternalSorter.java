@@ -94,11 +94,31 @@ public abstract class ExternalSorter implements MemoryUpdateCallback {
   protected CompressionCodec codec;
 
   // Counters
-  // TODO TEZ Rename all counter variables [Mapping of counter to MR for compatibility in the MR layer]
+  // MR compatilbity layer needs to rename counters back to what MR requries.
+
+  // Represents final deserialized size of output (spills are not counted)
   protected TezCounter mapOutputByteCounter;
+  // Represents final number of records written (spills are not counted)
   protected TezCounter mapOutputRecordCounter;
+  // Represents the size of the final output - with any overheads introduced by
+  // the storage/serialization mechanism. This is an uncompressed data size.
+  protected TezCounter outputBytesWithOverheadCounter;
+  // Represents the size of the final output - which will be transmitted over
+  // the wire (spills are not counted). Factors in compression if it is enabled.
   protected TezCounter fileOutputByteCounter;
+  // Represents total number of records written to disk (includes spills. Min
+  // value for this is equal to number of output records)
   protected TezCounter spilledRecordsCounter;
+  // Bytes written as a result of additional spills. The single spill for the
+  // final output data is not considered. (This will be 0 if there's no
+  // additional spills. Compressed size - so may not represent the size in the
+  // sort buffer)
+  protected TezCounter additionalSpillBytesWritten;
+  
+  protected TezCounter additionalSpillBytesRead;
+  // Number of additional spills. (This will be 0 if there's no additional
+  // spills)
+  protected TezCounter numAdditionalSpills;
 
   @Private
   public void initialize(TezOutputContext outputContext, Configuration conf, int numOutputs) throws IOException {
@@ -131,15 +151,16 @@ public abstract class ExternalSorter implements MemoryUpdateCallback {
     keySerializer = serializationFactory.getSerializer(keyClass);
     valSerializer = serializationFactory.getSerializer(valClass);
 
-    //    counters
-    mapOutputByteCounter =
-        outputContext.getCounters().findCounter(TaskCounter.MAP_OUTPUT_BYTES);
-    mapOutputRecordCounter =
-        outputContext.getCounters().findCounter(TaskCounter.MAP_OUTPUT_RECORDS);
-    fileOutputByteCounter =
-        outputContext.getCounters().findCounter(TaskCounter.MAP_OUTPUT_MATERIALIZED_BYTES);
-    spilledRecordsCounter =
-        outputContext.getCounters().findCounter(TaskCounter.SPILLED_RECORDS);
+    //    counters    
+    mapOutputByteCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES);
+    mapOutputRecordCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_RECORDS);
+    outputBytesWithOverheadCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_WITH_OVERHEAD);
+    fileOutputByteCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL);
+    spilledRecordsCounter = outputContext.getCounters().findCounter(TaskCounter.SPILLED_RECORDS);
+    additionalSpillBytesWritten = outputContext.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_WRITTEN);
+    additionalSpillBytesRead = outputContext.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_READ);
+    numAdditionalSpills = outputContext.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILL_COUNT);
+
     // compression
     if (ConfigUtils.shouldCompressIntermediateOutput(this.conf)) {
       Class<? extends CompressionCodec> codecClass =

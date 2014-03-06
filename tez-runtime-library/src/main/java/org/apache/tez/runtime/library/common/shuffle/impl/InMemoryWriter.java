@@ -38,8 +38,10 @@ public class InMemoryWriter extends Writer {
 
   private DataOutputStream out;
 
+  // TODO Verify and fix counters if required.
+  
   public InMemoryWriter(BoundedByteArrayOutputStream arrayStream) {
-    super(null);
+    super(null, null);
     this.out =
       new DataOutputStream(new IFileOutputStream(arrayStream));
   }

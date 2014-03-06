@@ -31,6 +31,8 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.common.ConfigUtils;
@@ -65,6 +67,16 @@ public class FileBasedKVWriter implements KeyValueWriter {
   private TezTaskOutput ouputFileManager;
   private boolean closed = false;
 
+  // Number of output key-value pairs
+  private final TezCounter outputRecordsCounter;
+  // Number of bytes of actual output - uncompressed.
+  private final TezCounter outputBytesCounter;
+  // Size of the data with additional meta-data
+  private final TezCounter outputBytesCounterWithOverhead;
+  // Actual physical size of the data on disk.
+  private final TezCounter outputMaterializedBytesCounter;
+  
+  
   // TODO NEWTEZ Define Counters
   // Number of records
   // Time waiting for a write to complete, if that's possible.
@@ -72,6 +84,11 @@ public class FileBasedKVWriter implements KeyValueWriter {
 
   public FileBasedKVWriter(TezOutputContext outputContext, Configuration conf) throws IOException {
     this.conf = conf;
+
+    this.outputRecordsCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_RECORDS);
+    this.outputBytesCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES);
+    this.outputBytesCounterWithOverhead = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_WITH_OVERHEAD);
+    this.outputMaterializedBytesCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL);
 
     this.rfs = ((LocalFileSystem) FileSystem.getLocal(this.conf)).getRaw();
 
@@ -103,8 +120,11 @@ public class FileBasedKVWriter implements KeyValueWriter {
   public boolean close() throws IOException {
     this.closed = true;
     this.writer.close();
-    TezIndexRecord rec = new TezIndexRecord(0, writer.getRawLength(),
-        writer.getCompressedLength());
+    long rawLen = writer.getRawLength();
+    long compLen = writer.getCompressedLength();
+    outputBytesCounterWithOverhead.increment(rawLen);
+    outputMaterializedBytesCounter.increment(compLen);
+    TezIndexRecord rec = new TezIndexRecord(0, rawLen, compLen);
     TezSpillRecord sr = new TezSpillRecord(1);
     sr.putIndex(rec, 0);
 
@@ -118,6 +138,7 @@ public class FileBasedKVWriter implements KeyValueWriter {
   @Override
   public void write(Object key, Object value) throws IOException {
     this.writer.append(key, value);
+    this.outputRecordsCounter.increment(1);
     numRecords++;
   }
 
@@ -131,7 +152,7 @@ public class FileBasedKVWriter implements KeyValueWriter {
 
     // TODO NEWTEZ maybe use appropriate counter
     this.writer = new IFile.Writer(conf, rfs, outputPath, keyClass, valClass,
-        codec, null);
+        codec, null, outputBytesCounter);
   }
   
   public long getRawLength() {

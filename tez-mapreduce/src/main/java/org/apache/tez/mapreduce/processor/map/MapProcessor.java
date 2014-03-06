@@ -36,8 +36,6 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.map.WrappedMapper;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.counters.TaskCounter;
-import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.mapreduce.hadoop.mapreduce.MapContextImpl;
 import org.apache.tez.mapreduce.input.MRInput;
@@ -386,15 +384,4 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     super.localizeConfiguration(jobConf);
     jobConf.setBoolean(JobContext.TASK_ISMAP, true);
   }
-
-  @Override
-  public TezCounter getOutputRecordsCounter() {
-    return processorContext.getCounters().findCounter(TaskCounter.MAP_OUTPUT_RECORDS);
-  }
-
-  @Override
-  public TezCounter getInputRecordsCounter() {
-    return processorContext.getCounters().findCounter(TaskCounter.MAP_INPUT_RECORDS);
-  }
-
 }

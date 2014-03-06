@@ -37,7 +37,6 @@ import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.counters.TaskCounter;
-import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
@@ -353,16 +352,6 @@ public class ReduceProcessor extends MRTask implements LogicalIOProcessor {
       throws IOException, InterruptedException {
     super.localizeConfiguration(jobConf);
     jobConf.setBoolean(JobContext.TASK_ISMAP, false);
-  }
-
-  @Override
-  public TezCounter getOutputRecordsCounter() {
-    return processorContext.getCounters().findCounter(TaskCounter.REDUCE_OUTPUT_RECORDS);
-  }
-
-  @Override
-  public TezCounter getInputRecordsCounter() {
-    return processorContext.getCounters().findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
   }
 
 }

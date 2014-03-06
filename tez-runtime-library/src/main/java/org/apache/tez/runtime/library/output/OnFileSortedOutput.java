@@ -134,7 +134,7 @@ public class OnFileSortedOutput implements LogicalOutput {
     byte[] payloadBytes = payloadProto.toByteArray();
 
     long outputSize = outputContext.getCounters()
-        .findCounter(TaskCounter.MAP_OUTPUT_BYTES).getValue();
+        .findCounter(TaskCounter.OUTPUT_BYTES).getValue();
     VertexManagerEventPayloadProto.Builder vmBuilder = VertexManagerEventPayloadProto
         .newBuilder();
     vmBuilder.setOutputSize(outputSize);

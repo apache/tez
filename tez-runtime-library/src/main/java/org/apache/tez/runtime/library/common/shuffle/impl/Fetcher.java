@@ -372,6 +372,7 @@ class Fetcher extends Thread {
       //Read the shuffle header
       try {
         ShuffleHeader header = new ShuffleHeader();
+        // TODO Review: Multiple header reads in case of status WAIT ? 
         header.readFields(input);
         if (!header.mapId.startsWith(InputAttemptIdentifier.PATH_PREFIX)) {
           throw new IllegalArgumentException(
@@ -412,6 +413,7 @@ class Fetcher extends Thread {
       
       // Check if we can shuffle *now* ...
       if (mapOutput.getType() == Type.WAIT) {
+        // TODO Review: Does this cause a tight loop ?
         LOG.info("fetcher#" + id + " - MergerManager returned Status.WAIT ...");
         //Not an error but wait to process data.
         return EMPTY_ATTEMPT_ID_ARRAY;
@@ -431,7 +433,7 @@ class Fetcher extends Thread {
       
       // Inform the shuffle scheduler
       long endTime = System.currentTimeMillis();
-      scheduler.copySucceeded(srcAttemptId, host, compressedLength, 
+      scheduler.copySucceeded(srcAttemptId, host, compressedLength, decompressedLength, 
                               endTime - startTime, mapOutput);
       // Note successful shuffle
       remaining.remove(srcAttemptId);

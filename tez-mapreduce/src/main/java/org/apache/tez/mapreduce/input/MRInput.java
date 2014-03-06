@@ -29,7 +29,6 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.serializer.Deserializer;
@@ -44,7 +43,6 @@ import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskType;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormatCounter;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
@@ -52,7 +50,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.mapreduce.common.Utils;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
@@ -111,8 +108,7 @@ public class MRInput implements LogicalInput {
   protected TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
   
   private TezCounter inputRecordCounter;
-  private TezCounter fileInputByteCounter; 
-  private List<Statistics> fsStats;
+  // Potential counters - #splits, #totalSize, #actualyBytesRead
   
   @Private
   volatile boolean splitInfoViaEvents;
@@ -148,9 +144,9 @@ public class MRInput implements LogicalInput {
     // TODO NEWTEZ Rename this to be specific to MRInput. This Input, in
     // theory, can be used by the MapProcessor, ReduceProcessor or a custom
     // processor. (The processor could provide the counter though)
-    this.inputRecordCounter = inputContext.getCounters().findCounter(TaskCounter.MAP_INPUT_RECORDS);
-    this.fileInputByteCounter = inputContext.getCounters().findCounter(FileInputFormatCounter.BYTES_READ);
-    
+
+    this.inputRecordCounter = inputContext.getCounters().findCounter(TaskCounter.INPUT_RECORDS_PROCESSED);
+
     useNewApi = this.jobConf.getUseNewMapper();
     this.splitInfoViaEvents = jobConf.getBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS,
         MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS_DEFAULT);
@@ -206,17 +202,8 @@ public class MRInput implements LogicalInput {
   
   private void setupOldRecordReader() throws IOException {
     Preconditions.checkNotNull(oldInputSplit, "Input split hasn't yet been setup");
-    List<Statistics> matchedStats = null;
-    if (oldInputSplit instanceof FileSplit) {
-      matchedStats = Utils.getFsStatistics(((FileSplit) oldInputSplit).getPath(), this.jobConf);
-    }
-    fsStats = matchedStats;
-    
-    long bytesInPrev = getInputBytes();
     oldRecordReader = oldInputFormat.getRecordReader(oldInputSplit,
         this.jobConf, new MRReporter(inputContext, oldInputSplit));
-    long bytesInCurr = getInputBytes();
-    fileInputByteCounter.increment(bytesInCurr - bytesInPrev);
     setIncrementalConfigParams(oldInputSplit);
   }
   
@@ -233,15 +220,7 @@ public class MRInput implements LogicalInput {
   }
   
   private void setupNewRecordReader() throws IOException {
-    Preconditions.checkNotNull(newInputSplit, "Input split hasn't yet been setup");
-    List<Statistics> matchedStats = null;
-    if (newInputSplit instanceof org.apache.hadoop.mapreduce.lib.input.FileSplit) {
-      matchedStats = Utils.getFsStatistics(
-          ((org.apache.hadoop.mapreduce.lib.input.FileSplit)
-              newInputSplit).getPath(), this.jobConf);
-    }
-    fsStats = matchedStats;
-    
+    Preconditions.checkNotNull(newInputSplit, "Input split hasn't yet been setup");    
     try {
       newRecordReader = newInputFormat.createRecordReader(newInputSplit, taskAttemptContext);
       newRecordReader.initialize(newInputSplit, taskAttemptContext);
@@ -295,15 +274,11 @@ public class MRInput implements LogicalInput {
 
   @Override
   public List<Event> close() throws IOException {
-    long bytesInPrev = getInputBytes();
     if (useNewApi) {
       newRecordReader.close();
     } else {
       oldRecordReader.close();
     }
-    long bytesInCurr = getInputBytes();
-    fileInputByteCounter.increment(bytesInCurr - bytesInPrev);
-    
     return null;
   }
 
@@ -493,15 +468,6 @@ public class MRInput implements LogicalInput {
     LOG.info("Processing split: " + inputSplit);
   }
 
-  private long getInputBytes() {
-    if (fsStats == null) return 0;
-    long bytesRead = 0;
-    for (Statistics stat: fsStats) {
-      bytesRead = bytesRead + stat.getBytesRead();
-    }
-    return bytesRead;
-  }
-
   protected TaskSplitMetaInfo[] readSplits(Configuration conf)
       throws IOException {
     TaskSplitMetaInfo[] allTaskSplitMetaInfo;
@@ -533,7 +499,6 @@ public class MRInput implements LogicalInput {
     @Override
     public boolean next() throws IOException {
       boolean hasNext = false;
-      long bytesInPrev = getInputBytes();
       if (localNewApi) {
         try {
           hasNext = newRecordReader.nextKeyValue();
@@ -544,9 +509,6 @@ public class MRInput implements LogicalInput {
       } else {
         hasNext = oldRecordReader.next(key, value);
       }
-      long bytesInCurr = getInputBytes();
-      fileInputByteCounter.increment(bytesInCurr - bytesInPrev);
-      
       if (hasNext) {
         inputRecordCounter.increment(1);
       }

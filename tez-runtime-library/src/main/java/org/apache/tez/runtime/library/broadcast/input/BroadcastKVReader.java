@@ -27,6 +27,7 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.shuffle.impl.InMemoryReader;
@@ -53,16 +54,21 @@ public class BroadcastKVReader<K, V> implements KeyValueReader {
   private final int ifileReadAheadLength;
   private final int ifileBufferSize;
   
+  private final TezCounter inputRecordCounter;
+  
   private K key;
   private V value;
   
   private FetchedInput currentFetchedInput;
   private IFile.Reader currentReader;
   
+  // TODO Remove this once per I/O counters are separated properly. Relying on
+  // the counter at the moment will generate aggregate numbers. 
   private int numRecordsRead = 0;
   
   public BroadcastKVReader(BroadcastShuffleManager shuffleManager, Configuration conf,
-      CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength, int ifileBufferSize)
+      CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength, int ifileBufferSize,
+      TezCounter inputRecordCounter)
       throws IOException {
     this.shuffleManager = shuffleManager;
 
@@ -70,6 +76,7 @@ public class BroadcastKVReader<K, V> implements KeyValueReader {
     this.ifileReadAhead = ifileReadAhead;
     this.ifileReadAheadLength = ifileReadAheadLength;
     this.ifileBufferSize = ifileBufferSize;
+    this.inputRecordCounter = inputRecordCounter;
 
     this.keyClass = ConfigUtils.getIntermediateInputKeyClass(conf);
     this.valClass = ConfigUtils.getIntermediateInputValueClass(conf);
@@ -98,12 +105,14 @@ public class BroadcastKVReader<K, V> implements KeyValueReader {
   @Override  
   public boolean next() throws IOException {
     if (readNextFromCurrentReader()) {
+      inputRecordCounter.increment(1);
       numRecordsRead++;
       return true;
     } else {
       boolean nextInputExists = moveToNextInput();
       while (nextInputExists) {
         if(readNextFromCurrentReader()) {
+          inputRecordCounter.increment(1);
           numRecordsRead++;
           return true;
         }
@@ -181,7 +190,7 @@ public class BroadcastKVReader<K, V> implements KeyValueReader {
           mfi.getBytes(), 0, (int) mfi.getActualSize());
     } else {
       return new IFile.Reader(fetchedInput.getInputStream(),
-          fetchedInput.getCompressedSize(), codec, null, ifileReadAhead,
+          fetchedInput.getCompressedSize(), codec, null, null, ifileReadAhead,
           ifileReadAheadLength, ifileBufferSize);
     }
   }

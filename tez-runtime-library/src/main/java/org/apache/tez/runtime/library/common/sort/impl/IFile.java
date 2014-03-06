@@ -85,6 +85,7 @@ public class IFile {
     // Count records written to disk
     private long numRecordsWritten = 0;
     private final TezCounter writtenRecordsCounter;
+    private final TezCounter serializedUncompressedBytes;
 
     IFileOutputStream checksumOut;
 
@@ -102,21 +103,24 @@ public class IFile {
     public Writer(Configuration conf, FileSystem fs, Path file, 
                   Class keyClass, Class valueClass,
                   CompressionCodec codec,
-                  TezCounter writesCounter) throws IOException {
+                  TezCounter writesCounter,
+                  TezCounter serializedBytesCounter) throws IOException {
       this(conf, fs.create(file), keyClass, valueClass, codec,
-           writesCounter);
+           writesCounter, serializedBytesCounter);
       ownOutputStream = true;
     }
     
-    protected Writer(TezCounter writesCounter) {
+    protected Writer(TezCounter writesCounter, TezCounter serializedBytesCounter) {
       writtenRecordsCounter = writesCounter;
+      serializedUncompressedBytes = serializedBytesCounter;
     }
 
     public Writer(Configuration conf, FSDataOutputStream out, 
         Class keyClass, Class valueClass,
-        CompressionCodec codec, TezCounter writesCounter)
+        CompressionCodec codec, TezCounter writesCounter, TezCounter serializedBytesCounter)
         throws IOException {
       this.writtenRecordsCounter = writesCounter;
+      this.serializedUncompressedBytes = serializedBytesCounter;
       this.checksumOut = new IFileOutputStream(out);
       this.rawOut = out;
       this.start = this.rawOut.getPos();
@@ -150,7 +154,7 @@ public class IFile {
 
     public Writer(Configuration conf, FileSystem fs, Path file) 
     throws IOException {
-      this(conf, fs, file, null, null, null, null);
+      this(conf, fs, file, null, null, null, null, null);
     }
 
     public void close() throws IOException {
@@ -237,7 +241,7 @@ public class IFile {
                               valueLength + " for " + value);
       }
       
-      if(rle && sameKey) {        
+      if(rle && sameKey) {
         WritableUtils.writeVInt(out, RLE_MARKER);                   // Same key as previous
         WritableUtils.writeVInt(out, valueLength);                  // value length
         out.write(buffer.getData(), keyLength, buffer.getLength()); // only the value
@@ -245,6 +249,9 @@ public class IFile {
         decompressedBytesWritten += 0 + valueLength + 
                                     WritableUtils.getVIntSize(RLE_MARKER) + 
                                     WritableUtils.getVIntSize(valueLength);
+        if (serializedUncompressedBytes != null) {
+          serializedUncompressedBytes.increment(0 + valueLength);
+        }
       } else {        
         // Write the record out        
         WritableUtils.writeVInt(out, keyLength);                  // key length
@@ -254,6 +261,9 @@ public class IFile {
         decompressedBytesWritten += keyLength + valueLength + 
                                     WritableUtils.getVIntSize(keyLength) + 
                                     WritableUtils.getVIntSize(valueLength);
+        if (serializedUncompressedBytes != null) {
+          serializedUncompressedBytes.increment(keyLength + valueLength);
+        }
       }
 
       // Reset
@@ -292,6 +302,9 @@ public class IFile {
         decompressedBytesWritten += 0 + valueLength
             + WritableUtils.getVIntSize(RLE_MARKER)
             + WritableUtils.getVIntSize(valueLength);
+        if (serializedUncompressedBytes != null) {
+          serializedUncompressedBytes.increment(0 + valueLength);
+        }
       } else {
         WritableUtils.writeVInt(out, keyLength);
         WritableUtils.writeVInt(out, valueLength);
@@ -302,6 +315,9 @@ public class IFile {
         decompressedBytesWritten += keyLength + valueLength
             + WritableUtils.getVIntSize(keyLength)
             + WritableUtils.getVIntSize(valueLength);
+        if (serializedUncompressedBytes != null) {
+          serializedUncompressedBytes.increment(keyLength + valueLength);
+        }
                 
         BufferUtils.copy(key, previous);        
       }
@@ -348,6 +364,7 @@ public class IFile {
     // Count records read from disk
     private long numRecordsRead = 0;
     private final TezCounter readRecordsCounter;
+    private final TezCounter bytesReadCounter;
 
     final InputStream in;        // Possibly decompressed stream that we read
     Decompressor decompressor;
@@ -366,6 +383,8 @@ public class IFile {
     protected int currentValueLength;
     byte keyBytes[] = new byte[0];
     
+    long startPos;
+    
     
     /**
      * Construct an IFile Reader.
@@ -379,11 +398,11 @@ public class IFile {
      */
     public Reader(FileSystem fs, Path file,
                   CompressionCodec codec,
-                  TezCounter readsCounter, boolean ifileReadAhead,
+                  TezCounter readsCounter, TezCounter bytesReadCounter, boolean ifileReadAhead,
                   int ifileReadAheadLength, int bufferSize) throws IOException {
       this(fs.open(file), 
            fs.getFileStatus(file).getLen(),
-           codec, readsCounter, ifileReadAhead, ifileReadAheadLength, bufferSize);
+           codec, readsCounter, bytesReadCounter, ifileReadAhead, ifileReadAheadLength, bufferSize);
     }
 
     /**
@@ -398,10 +417,11 @@ public class IFile {
      */
     public Reader(InputStream in, long length, 
                   CompressionCodec codec,
-                  TezCounter readsCounter,
+                  TezCounter readsCounter, TezCounter bytesReadCounter,
                   boolean readAhead, int readAheadLength,
                   int bufferSize) throws IOException {
       readRecordsCounter = readsCounter;
+      this.bytesReadCounter = bytesReadCounter;
       checksumIn = new IFileInputStream(in,length, readAhead, readAheadLength);
       if (codec != null) {
         decompressor = CodecPool.getDecompressor(codec);
@@ -416,6 +436,8 @@ public class IFile {
       }
       this.dataIn = new DataInputStream(this.in);
       this.fileLength = length;
+      
+      startPos = checksumIn.getPosition();
       
       if (bufferSize != -1) {
         this.bufferSize = bufferSize;
@@ -537,7 +559,7 @@ public class IFile {
     public void close() throws IOException {
       // Close the underlying stream
       in.close();
-      
+
       // Release the buffer
       dataIn = null;
       buffer = null;
@@ -545,6 +567,10 @@ public class IFile {
         readRecordsCounter.increment(numRecordsRead);
       }
 
+      if (bytesReadCounter != null) {
+        bytesReadCounter.increment(checksumIn.getPosition() - startPos + checksumIn.getSize());
+      }
+      
       // Return the decompressor
       if (decompressor != null) {
         decompressor.reset();

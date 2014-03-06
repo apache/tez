@@ -129,18 +129,24 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
         new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
 
     // TODO TEZ Get rid of Map / Reduce references.
-    TezCounter shuffledMapsCounter = 
-        inputContext.getCounters().findCounter(TaskCounter.SHUFFLED_MAPS);
+    TezCounter shuffledInputsCounter = 
+        inputContext.getCounters().findCounter(TaskCounter.NUM_SHUFFLED_INPUTS);
     TezCounter reduceShuffleBytes =
-        inputContext.getCounters().findCounter(TaskCounter.REDUCE_SHUFFLE_BYTES);
+        inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES);
+    TezCounter reduceDataSizeDecompressed = inputContext.getCounters().findCounter(
+        TaskCounter.SHUFFLE_BYTES_DECOMPRESSED);
     TezCounter failedShuffleCounter =
-        inputContext.getCounters().findCounter(TaskCounter.FAILED_SHUFFLE);
+        inputContext.getCounters().findCounter(TaskCounter.NUM_FAILED_SHUFFLE_INPUTS);
     TezCounter spilledRecordsCounter = 
         inputContext.getCounters().findCounter(TaskCounter.SPILLED_RECORDS);
     TezCounter reduceCombineInputCounter =
         inputContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS);
     TezCounter mergedMapOutputsCounter =
         inputContext.getCounters().findCounter(TaskCounter.MERGED_MAP_OUTPUTS);
+    TezCounter bytesShuffedToDisk = inputContext.getCounters().findCounter(
+        TaskCounter.SHUFFLE_BYTES_TO_DISK);
+    TezCounter bytesShuffedToMem = inputContext.getCounters().findCounter(
+        TaskCounter.SHUFFLE_BYTES_TO_MEM);
     
     LOG.info("Shuffle assigned with " + numInputs + " inputs" + ", codec: "
         + (codec == null ? "None" : codec.getClass().getName()) + 
@@ -151,9 +157,12 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
           this.conf,
           this.numInputs,
           this,
-          shuffledMapsCounter,
+          shuffledInputsCounter,
           reduceShuffleBytes,
-          failedShuffleCounter);
+          reduceDataSizeDecompressed,
+          failedShuffleCounter,
+          bytesShuffedToDisk,
+          bytesShuffedToMem);
     eventHandler= new ShuffleInputEventHandler(
           inputContext,
           scheduler);

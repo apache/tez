@@ -151,7 +151,7 @@ public class TestMapProcessor {
     Path mapOutputFile = mapOutputs.getInputFile(new InputAttemptIdentifier(0, 0));
     LOG.info("mapOutputFile = " + mapOutputFile);
     IFile.Reader reader =
-        new IFile.Reader(localFs, mapOutputFile, null, null, false, 0, -1);
+        new IFile.Reader(localFs, mapOutputFile, null, null, null, false, 0, -1);
     LongWritable key = new LongWritable();
     Text value = new Text();
     DataInputBuffer keyBuf = new DataInputBuffer();

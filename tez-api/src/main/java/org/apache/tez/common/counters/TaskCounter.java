@@ -19,48 +19,143 @@
 package org.apache.tez.common.counters;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
-
-// TODO TEZAM5 For MR compatibility, a conversion from tez.TaskCounters to
-// mapreduce.TaskCounters will likely be required somewhere.
-// Similarly for FileSystemCounters and others.
 
 // Counters used by Task classes
-@InterfaceAudience.Public
-@InterfaceStability.Evolving
+@InterfaceAudience.Private
+
 public enum TaskCounter {
   // TODO Eventually, rename counters to be non-MR specific and map them to MR equivalent.
-  MAP_INPUT_RECORDS, 
-  MAP_OUTPUT_RECORDS,
-  MAP_SKIPPED_RECORDS,
-  MAP_OUTPUT_BYTES,
-  MAP_OUTPUT_MATERIALIZED_BYTES,
-  SPLIT_RAW_BYTES,
-  COMBINE_INPUT_RECORDS,
-  COMBINE_OUTPUT_RECORDS,
+
+  /**
+   * Number of Input Groups seen by ShuffledMergedInput.
+   * Alternately the number of Input Groups seen by a Reduce task.
+   */
   REDUCE_INPUT_GROUPS,
-  REDUCE_SHUFFLE_BYTES,
+
+  /**
+   * Number of records (across all Groups) seen by ShuffledMergedInput
+   * Alternately number of records seen by a ReduceProcessor
+   */
   REDUCE_INPUT_RECORDS,
-  REDUCE_OUTPUT_RECORDS,
-  REDUCE_SKIPPED_GROUPS,
-  REDUCE_SKIPPED_RECORDS,
+  
+  REDUCE_OUTPUT_RECORDS, // Not used at the moment.
+  REDUCE_SKIPPED_GROUPS, // Not used at the moment.
+  REDUCE_SKIPPED_RECORDS, // Not used at the moment.
+  SPLIT_RAW_BYTES,
+  
+  COMBINE_INPUT_RECORDS,
+  COMBINE_OUTPUT_RECORDS, // Not used at the moment.
+
+  /**
+   * Number of records written to disk in case of OnFileSortedOutput.
+   * 
+   * Number of additional records writtent out to disk in case of
+   * ShuffledMergedInput; this represents the number of unnecessary spills to
+   * disk caused by lac of memory.
+   */
   SPILLED_RECORDS,
-  SHUFFLED_MAPS, 
-  FAILED_SHUFFLE,
+
+  /**
+   * Number of Inputs from which data is copied. Represents physical Inputs. 
+   */
+  NUM_SHUFFLED_INPUTS,
+
+  /**
+   * Number of failed copy attempts (physical inputs)
+   */
+  NUM_FAILED_SHUFFLE_INPUTS,
+  
   MERGED_MAP_OUTPUTS,
   GC_TIME_MILLIS,
   CPU_MILLISECONDS,
   PHYSICAL_MEMORY_BYTES,
   VIRTUAL_MEMORY_BYTES,
   COMMITTED_HEAP_BYTES,
+
+  /**
+   * Represents the number of Input Records that were actually processed.
+   * Used by MRInput and ShuffledUnorderedKVInput
+   * 
+   */
+  INPUT_RECORDS_PROCESSED,
   
-  INPUT_RECORDS, 
+  // 
+  /**
+   * Represents the number of actual output records.
+   * Used by MROutput, OnFileSortedOutput, and OnFileUnorderedKVOutput
+   */
   OUTPUT_RECORDS,
-  SKIPPED_RECORDS,
+  
+  SKIPPED_RECORDS, // Not used at the moment.
+
+  /**
+   * Represents the serialized output size (uncompressed) of data being written.
+   */
   OUTPUT_BYTES,
-  OUTPUT_MATERIALIZED_BYTES,
-  INPUT_GROUPS,
+
+  /**
+   * Represents serialized output size (uncompressed) along with any overhead
+   * added by the format being used.
+   */
+  OUTPUT_BYTES_WITH_OVERHEAD,
+
+  /**
+   * Represents the actual physical size of the Output generated. This factors
+   * in Compression if it is enabled. (Will include actual serialized output
+   * size + overhead)
+   */
+  OUTPUT_BYTES_PHYSICAL,
+  
+  /**
+   * Bytes written to disk due to unnecessary spills (lac of adequate memory).
+   * Used by OnFileSortedOutput and ShuffledMergedInput
+   */
+  ADDITIONAL_SPILLS_BYTES_WRITTEN,
+  
+  /**
+   * Bytes read from disk due to previous spills (lac of adequate memory).
+   * Used by OnFileSortedOutput and ShuffledMergedInput
+   */
+  ADDITIONAL_SPILLS_BYTES_READ,
+  
+  /**
+   * Actual number of unnecessary spills. (lac of adequate memory)
+   * Used by OnFileSortedOutput
+   */
+  ADDITIONAL_SPILL_COUNT,
+  
+  INPUT_GROUPS, // Not used at the moment. Will eventually replace REDUCE_INPUT_GROUPS
+
+  /**
+   * Amount of physical data moved over the wire. Used by Shuffled*Input. Should
+   * be a combination of SHUFFLE_BYTES_TO_MEM and SHUFFLE_BYTES_TO_DISK
+   */
   SHUFFLE_BYTES,
-  SHUFFLED_TASKS, 
-  MERGED_TASK_OUTPUTS,
+
+  /**
+   * Uncompressed size of the data being processed by the relevant Shuffle.
+   * Includes serialization, file format etc overheads.
+   */
+  SHUFFLE_BYTES_DECOMPRESSED, 
+
+  /**
+   * Number of bytes which were shuffled directly to memory. 
+   */
+  SHUFFLE_BYTES_TO_MEM,
+
+  /**
+   * Number of bytes which were shuffled directly to disk 
+   */
+  SHUFFLE_BYTES_TO_DISK,
+
+  /**
+   * Number of Memory to Disk merges performed during sort-merge.
+   * Used by ShuffledMergedInput
+   */
+  NUM_MEM_TO_DISK_MERGES,
+
+  /**
+   * Number of disk to disk merges performed during the sort-merge
+   */
+  NUM_DISK_TO_DISK_MERGES,
 }

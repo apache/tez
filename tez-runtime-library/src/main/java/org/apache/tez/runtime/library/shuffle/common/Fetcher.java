@@ -276,7 +276,7 @@ public class Fetcher implements Callable<FetchResult> {
       // Inform the shuffle scheduler
       long endTime = System.currentTimeMillis();
       fetcherCallback.fetchSucceeded(host, srcAttemptId, fetchedInput,
-          compressedLength, (endTime - startTime));
+          compressedLength, decompressedLength, (endTime - startTime));
 
       // Note successful shuffle
       remaining.remove(srcAttemptId);

@@ -28,7 +28,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.mapred.FileOutputCommitter;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
@@ -37,13 +36,11 @@ import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormatCounter;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.mapreduce.common.Utils;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
@@ -77,8 +74,6 @@ public class MROutput implements LogicalOutput {
   org.apache.hadoop.mapred.RecordWriter oldRecordWriter;
 
   private TezCounter outputRecordCounter;
-  private TezCounter fileOutputByteCounter;
-  private List<Statistics> fsStats;
 
   private TaskAttemptContext newApiTaskAttemptContext;
   private org.apache.hadoop.mapred.TaskAttemptContext oldApiTaskAttemptContext;
@@ -123,10 +118,7 @@ public class MROutput implements LogicalOutput {
       }
     }
 
-    outputRecordCounter = outputContext.getCounters().findCounter(
-        TaskCounter.MAP_OUTPUT_RECORDS);
-    fileOutputByteCounter = outputContext.getCounters().findCounter(
-        FileOutputFormatCounter.BYTES_WRITTEN);
+    outputRecordCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_RECORDS);    
 
     if (useNewApi) {
       newApiTaskAttemptContext = createTaskAttemptContext(taskAttemptId);
@@ -138,26 +130,12 @@ public class MROutput implements LogicalOutput {
         throw new IOException(cnfe);
       }
 
-      List<Statistics> matchedStats = null;
-      if (newOutputFormat instanceof
-          org.apache.hadoop.mapreduce.lib.output.FileOutputFormat) {
-        matchedStats =
-            Utils.getFsStatistics(
-                org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
-                    .getOutputPath(newApiTaskAttemptContext),
-                jobConf);
-      }
-      fsStats = matchedStats;
-
-      long bytesOutPrev = getOutputBytes();
       try {
         newRecordWriter =
             newOutputFormat.getRecordWriter(newApiTaskAttemptContext);
       } catch (InterruptedException e) {
         throw new IOException("Interrupted while creating record writer", e);
       }
-      long bytesOutCurr = getOutputBytes();
-      fileOutputByteCounter.increment(bytesOutCurr - bytesOutPrev);
     } else {
       oldApiTaskAttemptContext =
           new org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl(
@@ -165,26 +143,12 @@ public class MROutput implements LogicalOutput {
               new MRTaskReporter(outputContext));
       oldOutputFormat = jobConf.getOutputFormat();
 
-      List<Statistics> matchedStats = null;
-      if (oldOutputFormat
-          instanceof org.apache.hadoop.mapred.FileOutputFormat) {
-        matchedStats =
-            Utils.getFsStatistics(
-                org.apache.hadoop.mapred.FileOutputFormat.getOutputPath(
-                    jobConf),
-                jobConf);
-      }
-      fsStats = matchedStats;
-
       FileSystem fs = FileSystem.get(jobConf);
       String finalName = getOutputName();
 
-      long bytesOutPrev = getOutputBytes();
       oldRecordWriter =
           oldOutputFormat.getRecordWriter(
               fs, jobConf, finalName, new MRReporter(outputContext));
-      long bytesOutCurr = getOutputBytes();
-      fileOutputByteCounter.increment(bytesOutCurr - bytesOutPrev);
     }
     initCommitter(jobConf, useNewApi);
 
@@ -248,15 +212,6 @@ public class MROutput implements LogicalOutput {
         isMapperOutput, null);
   }
 
-  private long getOutputBytes() {
-    if (fsStats == null) return 0;
-    long bytesWritten = 0;
-    for (Statistics stat: fsStats) {
-      bytesWritten = bytesWritten + stat.getBytesWritten();
-    }
-    return bytesWritten;
-  }
-  
   private String getOutputFileNamePrefix() {
     String prefix = jobConf.get(MRJobConfig.MROUTPUT_FILE_NAME_PREFIX);
     if (prefix == null) {
@@ -281,7 +236,6 @@ public class MROutput implements LogicalOutput {
       @SuppressWarnings("unchecked")
       @Override
       public void write(Object key, Object value) throws IOException {
-        long bytesOutPrev = getOutputBytes();
         if (useNewWriter) {
           try {
             newRecordWriter.write(key, value);
@@ -292,9 +246,6 @@ public class MROutput implements LogicalOutput {
         } else {
           oldRecordWriter.write(key, value);
         }
-
-        long bytesOutCurr = getOutputBytes();
-        fileOutputByteCounter.increment(bytesOutCurr - bytesOutPrev);
         outputRecordCounter.increment(1);
       }
     };
@@ -312,7 +263,6 @@ public class MROutput implements LogicalOutput {
     }
 
     LOG.info("Closing Simple Output");
-    long bytesOutPrev = getOutputBytes();
     if (useNewApi) {
       try {
         newRecordWriter.close(newApiTaskAttemptContext);
@@ -322,8 +272,6 @@ public class MROutput implements LogicalOutput {
     } else {
       oldRecordWriter.close(null);
     }
-    long bytesOutCurr = getOutputBytes();
-    fileOutputByteCounter.increment(bytesOutCurr - bytesOutPrev);
     LOG.info("Closed Simple Output");
     return null;
   }

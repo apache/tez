@@ -45,7 +45,7 @@ public class InMemoryReader extends Reader {
   public InMemoryReader(MergeManager merger, InputAttemptIdentifier taskAttemptId,
                         byte[] data, int start, int length)
   throws IOException {
-    super(null, length - start, null, null, false, 0, -1);
+    super(null, length - start, null,null, null, false, 0, -1);
     this.merger = merger;
     this.taskAttemptId = taskAttemptId;
 

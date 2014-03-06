@@ -46,6 +46,8 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
@@ -58,6 +60,7 @@ import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.shuffle.common.FetchResult;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput;
+import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInputAllocator;
 import org.apache.tez.runtime.library.shuffle.common.Fetcher;
 import org.apache.tez.runtime.library.shuffle.common.Fetcher.FetcherBuilder;
@@ -129,7 +132,14 @@ public class BroadcastShuffleManager implements FetcherCallback, MemoryUpdateCal
   
   private volatile long initialMemoryAvailable = -1l;
 
-  // TODO NEWTEZ Add counters.
+  private final TezCounter shuffledInputsCounter;
+  private final TezCounter failedShufflesCounter;
+  private final TezCounter bytesShuffledCounter;
+  private final TezCounter decompressedDataSizeCounter;
+  private final TezCounter bytesShuffledToDiskCounter;
+  private final TezCounter bytesShuffledToMemCounter;
+  
+  // TODO More counters - FetchErrors, speed?
   
   public BroadcastShuffleManager(TezInputContext inputContext, Configuration conf, int numInputs) throws IOException {
     this.inputContext = inputContext;
@@ -137,6 +147,13 @@ public class BroadcastShuffleManager implements FetcherCallback, MemoryUpdateCal
     this.numInputs = numInputs;
     long initalMemReq = getInitialMemoryReq();
     this.inputContext.requestInitialMemory(initalMemReq, this);
+    
+    this.shuffledInputsCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_SHUFFLED_INPUTS);
+    this.failedShufflesCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_FAILED_SHUFFLE_INPUTS);
+    this.bytesShuffledCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES);
+    this.decompressedDataSizeCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_DECOMPRESSED);
+    this.bytesShuffledToDiskCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_TO_DISK);
+    this.bytesShuffledToMemCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_TO_MEM);
   }
 
   private void configureAndStart() throws IOException {
@@ -459,9 +476,9 @@ public class BroadcastShuffleManager implements FetcherCallback, MemoryUpdateCal
   /////////////////// Methods from FetcherCallbackHandler
   
   @Override
-  public void fetchSucceeded(String host,
-      InputAttemptIdentifier srcAttemptIdentifier, FetchedInput fetchedInput, long fetchedBytes,
-      long copyDuration) throws IOException {
+  public void fetchSucceeded(String host, InputAttemptIdentifier srcAttemptIdentifier,
+      FetchedInput fetchedInput, long fetchedBytes, long decompressedLength, long copyDuration)
+      throws IOException {
     InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();    
 
     LOG.info("Completed fetch for attempt: " + srcAttemptIdentifier + " to " + fetchedInput.getType());
@@ -480,6 +497,19 @@ public class BroadcastShuffleManager implements FetcherCallback, MemoryUpdateCal
         if (!completedInputSet.contains(inputIdentifier)) {
           fetchedInput.commit();
           committed = true;
+          
+          // Processing counters for completed and commit fetches only. Need
+          // additional counters for excessive fetches - which primarily comes
+          // in after speculation or retries.
+          shuffledInputsCounter.increment(1);
+          bytesShuffledCounter.increment(fetchedBytes);
+          if (fetchedInput.getType() == Type.MEMORY) {
+            bytesShuffledToMemCounter.increment(fetchedBytes);
+          } else {
+            bytesShuffledToDiskCounter.increment(fetchedBytes);
+          }
+          decompressedDataSizeCounter.increment(decompressedLength);
+
           registerCompletedInput(fetchedInput);
         }
       }
@@ -506,6 +536,7 @@ public class BroadcastShuffleManager implements FetcherCallback, MemoryUpdateCal
     LOG.info("Fetch failed for src: " + srcAttemptIdentifier
         + "InputIdentifier: " + srcAttemptIdentifier + ", connectFailed: "
         + connectFailed);
+    failedShufflesCounter.increment(1);
     if (srcAttemptIdentifier == null) {
       String message = "Received fetchFailure for an unknown src (null)";
       LOG.fatal(message);
@@ -602,8 +633,9 @@ public class BroadcastShuffleManager implements FetcherCallback, MemoryUpdateCal
   /////////////////// End of methods for walking the available inputs
 
   @SuppressWarnings("rawtypes")
-  public BroadcastKVReader createReader() throws IOException {
-    return new BroadcastKVReader(this, conf, codec, ifileReadAhead, ifileReadAheadLength, ifileBufferSize);
+  public BroadcastKVReader createReader(TezCounter inputRecordCounter) throws IOException {
+    return new BroadcastKVReader(this, conf, codec, ifileReadAhead, ifileReadAheadLength,
+        ifileBufferSize, inputRecordCounter);
   }
   
   /**

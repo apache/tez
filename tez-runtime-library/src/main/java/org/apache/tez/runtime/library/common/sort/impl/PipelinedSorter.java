@@ -90,6 +90,8 @@ public class PipelinedSorter extends ExternalSorter {
   private int totalIndexCacheMemory;
   private int indexCacheMemoryLimit;
 
+  // TODO Set additional countesr - total bytes written, spills etc.
+  
   @Override
   public void start() throws IOException {
     
@@ -266,7 +268,7 @@ public class PipelinedSorter extends ExternalSorter {
         long segmentStart = out.getPos();
         Writer writer =
           new Writer(conf, out, keyClass, valClass, codec,
-              spilledRecordsCounter);
+              spilledRecordsCounter, null);
         writer.setRLE(merger.needsRLE());
         if (combiner == null) {
           while(kvIter.next()) {
@@ -370,14 +372,14 @@ public class PipelinedSorter extends ExternalSorter {
                      new Path(uniqueIdentifier),
                      (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(conf), 
                      nullProgressable, sortSegments,
-                     null, spilledRecordsCounter,
+                     null, spilledRecordsCounter, null,
                      null); // Not using any Progress in TezMerger. Should just work.
 
       //write merged output to disk
       long segmentStart = finalOut.getPos();
       Writer writer =
           new Writer(conf, finalOut, keyClass, valClass, codec,
-                           spilledRecordsCounter);
+                           spilledRecordsCounter, null);
       writer.setRLE(merger.needsRLE());
       if (combiner == null || numSpills < minSpillsForCombine) {
         TezMerger.writeFile(kvIter, writer, nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);

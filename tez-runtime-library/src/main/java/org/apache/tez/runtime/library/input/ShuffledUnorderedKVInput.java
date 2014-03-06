@@ -31,6 +31,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.TezInputContext;
@@ -52,6 +54,7 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   private BroadcastKVReader kvReader;
   
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
+  private TezCounter inputRecordCounter;
   
   public ShuffledUnorderedKVInput() {
   }
@@ -61,6 +64,7 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
     Preconditions.checkArgument(numInputs != -1, "Number of Inputs has not been set");
     this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS, inputContext.getWorkDirs());
+    this.inputRecordCounter = inputContext.getCounters().findCounter(TaskCounter.INPUT_RECORDS_PROCESSED);
 
     if (numInputs == 0) {
       inputContext.requestInitialMemory(0l, null);
@@ -78,7 +82,7 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
     synchronized (this) {
       if (!isStarted.get()) {
         this.shuffleManager.run();
-        this.kvReader = this.shuffleManager.createReader();
+        this.kvReader = this.shuffleManager.createReader(inputRecordCounter);
         List<Event> pending = new LinkedList<Event>();
         pendingEvents.drainTo(pending);
         if (pending.size() > 0) {

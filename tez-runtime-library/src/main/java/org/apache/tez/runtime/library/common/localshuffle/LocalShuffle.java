@@ -121,7 +121,7 @@ public class LocalShuffle {
         sortFactor,
         new Path(inputContext.getUniqueIdentifier()), // TODO NEWTEZ This is likely broken 
         comparator,
-        null, spilledRecordsCounter, null, null);
+        null, spilledRecordsCounter, null, null, null);
   }
   
   private Path[] getMapFiles() 

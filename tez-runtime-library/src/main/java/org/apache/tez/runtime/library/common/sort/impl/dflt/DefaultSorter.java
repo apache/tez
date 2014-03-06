@@ -746,7 +746,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         try {
           long segmentStart = out.getPos();
           writer = new Writer(conf, out, keyClass, valClass, codec,
-                                    spilledRecordsCounter);
+                                    spilledRecordsCounter, null);
           if (combiner == null) {
             // spill directly
             DataInputBuffer key = new DataInputBuffer();
@@ -783,7 +783,15 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
 
           // close the writer
           writer.close();
-
+          if (numSpills > 0) {
+            additionalSpillBytesWritten.increment(writer.getCompressedLength());
+            numAdditionalSpills.increment(1);
+            // Reset the value will be set during the final merge.
+            outputBytesWithOverheadCounter.setValue(0);
+          } else {
+            // Set this up for the first write only. Subsequent ones will be handled in the final merge.
+            outputBytesWithOverheadCounter.increment(writer.getRawLength());
+          }
           // record offsets
           final TezIndexRecord rec =
               new TezIndexRecord(
@@ -839,7 +847,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
           long segmentStart = out.getPos();
           // Create a new codec, don't care!
           writer = new IFile.Writer(conf, out, keyClass, valClass, codec,
-                                          spilledRecordsCounter);
+                                          spilledRecordsCounter, null);
 
           if (i == partition) {
             final long recordStart = out.getPos();
@@ -849,6 +857,15 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
             mapOutputByteCounter.increment(out.getPos() - recordStart);
           }
           writer.close();
+
+          if (numSpills > 0) {
+            additionalSpillBytesWritten.increment(writer.getCompressedLength());
+            numAdditionalSpills.increment(1);
+            outputBytesWithOverheadCounter.setValue(0);
+          } else {
+            // Set this up for the first write only. Subsequent ones will be handled in the final merge.
+            outputBytesWithOverheadCounter.increment(writer.getRawLength());
+          }
 
           // record offsets
           TezIndexRecord rec =
@@ -1010,6 +1027,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
 
     if (numSpills == 0) {
+      // TODO Change event generation to say there is no data rather than generating a dummy file
       //create dummy files
 
       TezSpillRecord sr = new TezSpillRecord(partitions);
@@ -1017,7 +1035,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         for (int i = 0; i < partitions; i++) {
           long segmentStart = finalOut.getPos();
           Writer writer =
-            new Writer(conf, finalOut, keyClass, valClass, codec, null);
+            new Writer(conf, finalOut, keyClass, valClass, codec, null, null);
           writer.close();
 
           TezIndexRecord rec =
@@ -1025,6 +1043,8 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
                   segmentStart,
                   writer.getRawLength(),
                   writer.getCompressedLength());
+          // Covers the case of multiple spills.
+          outputBytesWithOverheadCounter.increment(writer.getRawLength());
           sr.putIndex(rec, i);
         }
         sr.writeToFile(finalIndexFile, conf);
@@ -1070,14 +1090,14 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
                        new Path(taskIdentifier),
                        (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(conf),
                        nullProgressable, sortSegments,
-                       null, spilledRecordsCounter,
+                       null, spilledRecordsCounter, additionalSpillBytesRead,
                        null); // Not using any Progress in TezMerger. Should just work.
 
         //write merged output to disk
         long segmentStart = finalOut.getPos();
         Writer writer =
             new Writer(conf, finalOut, keyClass, valClass, codec,
-                spilledRecordsCounter);
+                spilledRecordsCounter, null);
         if (combiner == null || numSpills < minSpillsForCombine) {
           TezMerger.writeFile(kvIter, writer,
               nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);

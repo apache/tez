@@ -65,7 +65,6 @@ public class ShuffledMergedInput implements LogicalInput {
   protected Shuffle shuffle;
   private final BlockingQueue<Event> pendingEvents = new LinkedBlockingQueue<Event>();
   private volatile long firstEventReceivedTime = -1;
-  // ZZZ LOG THIS TIME
   @SuppressWarnings("rawtypes")
   protected ValuesIterator vIter;
 
@@ -236,6 +235,7 @@ public class ShuffledMergedInput implements LogicalInput {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   protected void createValuesIterator()
       throws IOException {
+    // Not used by ReduceProcessor
     vIter = new ValuesIterator(rawIter,
         (RawComparator) ConfigUtils.getIntermediateInputKeyComparator(conf),
         ConfigUtils.getIntermediateInputKeyClass(conf),

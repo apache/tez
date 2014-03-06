@@ -39,6 +39,7 @@ import com.google.common.base.Preconditions;
  * lead to corrupt data.
  * 
  */
+
 public class ValuesIterator<KEY,VALUE> {
   protected TezRawKeyValueIterator in; //input iterator
   private KEY key;               // current key
@@ -176,6 +177,7 @@ public class ValuesIterator<KEY,VALUE> {
       DataInputBuffer nextKeyBytes = in.getKey();
       keyIn.reset(nextKeyBytes.getData(), nextKeyBytes.getPosition(), nextKeyBytes.getLength());
       nextKey = keyDeserializer.deserialize(nextKey);
+      // TODO Is a counter increment required here ?
       hasMoreValues = key != null && (comparator.compare(key, nextKey) == 0);
     } else {
       hasMoreValues = false;
