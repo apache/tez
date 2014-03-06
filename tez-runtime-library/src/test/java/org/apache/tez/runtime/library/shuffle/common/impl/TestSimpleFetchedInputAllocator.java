@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.library.broadcast.input;
+package org.apache.tez.runtime.library.shuffle.common.impl;
 
 import static org.junit.Assert.assertEquals;
 
@@ -29,11 +29,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput;
+import org.apache.tez.runtime.library.shuffle.common.impl.SimpleFetchedInputAllocator;
 import org.junit.Test;
 
-public class TestBroadcastInputManager {
+public class TestSimpleFetchedInputAllocator {
 
-  private static final Log LOG = LogFactory.getLog(TestBroadcastInputManager.class);
+  private static final Log LOG = LogFactory.getLog(TestSimpleFetchedInputAllocator.class);
   
   @Test
   public void testInMemAllocation() throws IOException {
@@ -51,7 +52,7 @@ public class TestBroadcastInputManager {
     long inMemThreshold = (long) (bufferPercent * jvmMax);
     LOG.info("InMemThreshold: " + inMemThreshold);
 
-    BroadcastInputManager inputManager = new BroadcastInputManager(UUID.randomUUID().toString(),
+    SimpleFetchedInputAllocator inputManager = new SimpleFetchedInputAllocator(UUID.randomUUID().toString(),
         conf, Runtime.getRuntime().maxMemory());
     inputManager.setInitialMemoryAvailable(inMemThreshold);
     inputManager.configureAndStart();

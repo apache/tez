@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.library.broadcast.input;
+package org.apache.tez.runtime.library.shuffle.common.impl;
 
 import java.io.IOException;
 
@@ -43,10 +43,10 @@ import com.google.common.base.Preconditions;
  *
  */
 @Private
-public class BroadcastInputManager implements FetchedInputAllocator,
+public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
     FetchedInputCallback {
 
-  private static final Log LOG = LogFactory.getLog(BroadcastInputManager.class);
+  private static final Log LOG = LogFactory.getLog(SimpleFetchedInputAllocator.class);
   
   private final Configuration conf;
   private final String uniqueIdentifier;
@@ -63,14 +63,14 @@ public class BroadcastInputManager implements FetchedInputAllocator,
   private long maxAvailableTaskMemory;
   private long initialMemoryAvailable =-1l;
 
-  public BroadcastInputManager(String uniqueIdentifier, Configuration conf, long maxTaskAvailableMemory) {
+  public SimpleFetchedInputAllocator(String uniqueIdentifier, Configuration conf, long maxTaskAvailableMemory) {
     this.conf = conf;    
     this.uniqueIdentifier = uniqueIdentifier;
     this.maxAvailableTaskMemory = maxTaskAvailableMemory;
   }
 
   @Private
-  void configureAndStart() {
+  public void configureAndStart() {
     Preconditions.checkState(initialMemoryAvailable != -1,
         "Initial memory must be configured before starting");
     this.fileNameAllocator = new TezTaskOutputFiles(conf,
@@ -116,7 +116,7 @@ public class BroadcastInputManager implements FetchedInputAllocator,
   }
   
   @Private
-  static long getInitialMemoryReq(Configuration conf, long maxAvailableTaskMemory) {
+  public static long getInitialMemoryReq(Configuration conf, long maxAvailableTaskMemory) {
     final float maxInMemCopyUse = conf.getFloat(
         TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT,
         TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT);
@@ -131,7 +131,7 @@ public class BroadcastInputManager implements FetchedInputAllocator,
   }
 
   @Private
-  void setInitialMemoryAvailable(long available) {
+  public void setInitialMemoryAvailable(long available) {
     this.initialMemoryAvailable = available;
   }
 

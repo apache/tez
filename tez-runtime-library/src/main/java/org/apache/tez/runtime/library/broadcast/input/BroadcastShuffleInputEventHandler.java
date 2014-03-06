@@ -35,18 +35,20 @@ import org.apache.tez.runtime.library.shuffle.common.DiskFetchedInput;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInputAllocator;
 import org.apache.tez.runtime.library.shuffle.common.MemoryFetchedInput;
+import org.apache.tez.runtime.library.shuffle.common.ShuffleEventHandler;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
+import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleManager;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataProto;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-public class BroadcastShuffleInputEventHandler {
+public class BroadcastShuffleInputEventHandler implements ShuffleEventHandler {
 
   private static final Log LOG = LogFactory.getLog(BroadcastShuffleInputEventHandler.class);
   
-  private final BroadcastShuffleManager shuffleManager;
+  private final ShuffleManager shuffleManager;
   private final FetchedInputAllocator inputAllocator;
   private final CompressionCodec codec;
   private final boolean ifileReadAhead;
@@ -54,7 +56,7 @@ public class BroadcastShuffleInputEventHandler {
   
   
   public BroadcastShuffleInputEventHandler(TezInputContext inputContext,
-      BroadcastShuffleManager shuffleManager,
+      ShuffleManager shuffleManager,
       FetchedInputAllocator inputAllocator, CompressionCodec codec,
       boolean ifileReadAhead, int ifileReadAheadLength) {
     this.shuffleManager = shuffleManager;
@@ -64,6 +66,7 @@ public class BroadcastShuffleInputEventHandler {
     this.ifileReadAheadLength = ifileReadAheadLength;
   }
 
+  @Override
   public void handleEvents(List<Event> events) throws IOException {
     for (Event event : events) {
       handleEvent(event);

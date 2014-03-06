@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.library.broadcast.input;
+package org.apache.tez.runtime.library.common.readers;
 
 import java.io.IOException;
 
@@ -34,13 +34,14 @@ import org.apache.tez.runtime.library.common.shuffle.impl.InMemoryReader;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
+import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleManager;
 import org.apache.tez.runtime.library.shuffle.common.MemoryFetchedInput;
 
-public class BroadcastKVReader<K, V> implements KeyValueReader {
+public class ShuffledUnorderedKVReader<K, V> implements KeyValueReader {
 
-  private static final Log LOG = LogFactory.getLog(BroadcastKVReader.class);
+  private static final Log LOG = LogFactory.getLog(ShuffledUnorderedKVReader.class);
   
-  private final BroadcastShuffleManager shuffleManager;
+  private final ShuffleManager shuffleManager;
   private final CompressionCodec codec;
   
   private final Class<K> keyClass;
@@ -66,7 +67,7 @@ public class BroadcastKVReader<K, V> implements KeyValueReader {
   // the counter at the moment will generate aggregate numbers. 
   private int numRecordsRead = 0;
   
-  public BroadcastKVReader(BroadcastShuffleManager shuffleManager, Configuration conf,
+  public ShuffledUnorderedKVReader(ShuffleManager shuffleManager, Configuration conf,
       CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength, int ifileBufferSize,
       TezCounter inputRecordCounter)
       throws IOException {
