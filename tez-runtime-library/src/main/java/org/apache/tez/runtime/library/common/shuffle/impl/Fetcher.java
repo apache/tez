@@ -303,12 +303,14 @@ class Fetcher extends Thread {
         for(InputAttemptIdentifier left: remaining) {
           scheduler.copyFailed(left, host, connectSucceeded);
         }
+        remaining.clear();
       } else {
         // If we got a read error at this stage, it implies there was a problem
         // with the first map, typically lost map. So, penalize only that map
         // and add the rest
         InputAttemptIdentifier firstMap = srcAttempts.get(0);
         scheduler.copyFailed(firstMap, host, connectSucceeded);
+        remaining.remove(firstMap);
       }
       
       // Add back all the remaining maps, WITHOUT marking them as failed
@@ -327,6 +329,9 @@ class Fetcher extends Thread {
       // yet_to_be_fetched list and marking the failed tasks.
       InputAttemptIdentifier[] failedTasks = null;
       while (!remaining.isEmpty() && failedTasks == null) {
+        // fail immediately after first failure because we dont know how much to 
+        // skip for this error in the input stream. So we cannot move on to the 
+        // remaining outputs. YARN-1773. Will get to them in the next retry.
         failedTasks = copyMapOutput(host, input);
       }
       
@@ -334,6 +339,7 @@ class Fetcher extends Thread {
         LOG.warn("copyMapOutput failed for tasks "+Arrays.toString(failedTasks));
         for(InputAttemptIdentifier left: failedTasks) {
           scheduler.copyFailed(left, host, true);
+          remaining.remove(left);
         }
       }
       
@@ -367,6 +373,10 @@ class Fetcher extends Thread {
       try {
         ShuffleHeader header = new ShuffleHeader();
         header.readFields(input);
+        if (!header.mapId.startsWith(InputAttemptIdentifier.PATH_PREFIX)) {
+          throw new IllegalArgumentException(
+              "Invalid header received: " + header.mapId + " partition: " + header.forReduce);
+        }
         srcAttemptId = 
             scheduler.getIdentifierForFetchedOutput(header.mapId, header.forReduce);
         compressedLength = header.compressedLength;
@@ -375,8 +385,9 @@ class Fetcher extends Thread {
       } catch (IllegalArgumentException e) {
         badIdErrs.increment(1);
         LOG.warn("Invalid map id ", e);
-        //Don't know which one was bad, so consider all of them as bad
-        return remaining.toArray(new InputAttemptIdentifier[remaining.size()]);
+        // Don't know which one was bad, so consider this one bad and dont read
+        // the remaining because we dont know where to start reading from. YARN-1773
+        return new InputAttemptIdentifier[] {srcAttemptId = getNextRemainingAttempt()};
       }
 
  

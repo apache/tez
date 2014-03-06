@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -67,7 +68,7 @@ class ShuffleScheduler {
   //TODO NEWTEZ Clean this and other maps at some point
   private ConcurrentMap<String, InputAttemptIdentifier> pathToIdentifierMap = new ConcurrentHashMap<String, InputAttemptIdentifier>(); 
   private Set<MapHost> pendingHosts = new HashSet<MapHost>();
-  private Set<InputAttemptIdentifier> obsoleteMaps = new HashSet<InputAttemptIdentifier>();
+  private Set<InputAttemptIdentifier> obsoleteInputs = new HashSet<InputAttemptIdentifier>();
   
   private final Random random = new Random(System.currentTimeMillis());
   private final DelayQueue<Penalty> penalties = new DelayQueue<Penalty>();
@@ -132,13 +133,13 @@ class ShuffleScheduler {
                                          long milis,
                                          MapOutput output
                                          ) throws IOException {
-    String taskIdentifier = TezRuntimeUtils.getTaskAttemptIdentifier(srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex(), srcAttemptIdentifier.getAttemptNumber());
+    String taskIdentifier = TezRuntimeUtils.getTaskAttemptIdentifier(srcAttemptIdentifier.getInputIdentifier().getInputIndex(), srcAttemptIdentifier.getAttemptNumber());
     failureCounts.remove(taskIdentifier);
     hostFailures.remove(host.getHostName());
     
-    if (!isInputFinished(srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex())) {
+    if (!isInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex())) {
       output.commit();
-      setInputFinished(srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex());
+      setInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex());
       shuffledMapsCounter.increment(1);
       if (--remainingMaps == 0) {
         notifyAll();
@@ -152,7 +153,7 @@ class ShuffleScheduler {
       if (LOG.isDebugEnabled()) {
         LOG.debug("src task: "
             + TezRuntimeUtils.getTaskAttemptIdentifier(
-                inputContext.getSourceVertexName(), srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex(),
+                inputContext.getSourceVertexName(), srcAttemptIdentifier.getInputIdentifier().getInputIndex(),
                 srcAttemptIdentifier.getAttemptNumber()) + " done");
       }
     }
@@ -192,13 +193,13 @@ class ShuffleScheduler {
       IOException ioe = new IOException(failures
             + " failures downloading "
             + TezRuntimeUtils.getTaskAttemptIdentifier(
-                inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getSrcTaskIndex(),
+                inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getInputIndex(),
                 srcAttempt.getAttemptNumber()));
       ioe.fillInStackTrace();
       shuffle.reportException(ioe);
     }
     
-    checkAndInformJobTracker(failures, srcAttempt, readError);
+    checkAndInformAM(failures, srcAttempt, readError);
 
     checkReducerHealth();
     
@@ -213,21 +214,21 @@ class ShuffleScheduler {
   // Notify the JobTracker  
   // after every read error, if 'reportReadErrorImmediately' is true or
   // after every 'maxFetchFailuresBeforeReporting' failures
-  private void checkAndInformJobTracker(
+  private void checkAndInformAM(
       int failures, InputAttemptIdentifier srcAttempt, boolean readError) {
     if ((reportReadErrorImmediately && readError)
         || ((failures % maxFetchFailuresBeforeReporting) == 0)) {
-      LOG.info("Reporting fetch failure for "
+      LOG.info("Reporting fetch failure for InputIdentifier: " 
+          + srcAttempt + " taskAttemptIdentifier: "
           + TezRuntimeUtils.getTaskAttemptIdentifier(
-              inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getSrcTaskIndex(),
-              srcAttempt.getAttemptNumber()) + " to jobtracker.");
-
+              inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getInputIndex(),
+              srcAttempt.getAttemptNumber()) + " to AM.");
       List<Event> failedEvents = Lists.newArrayListWithCapacity(1);
       failedEvents.add(new InputReadErrorEvent("Fetch failure for "
           + TezRuntimeUtils.getTaskAttemptIdentifier(
-              inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getSrcTaskIndex(),
+              inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getInputIndex(),
               srcAttempt.getAttemptNumber()) + " to jobtracker.", srcAttempt.getInputIdentifier()
-          .getSrcTaskIndex(), srcAttempt.getAttemptNumber()));
+          .getInputIndex(), srcAttempt.getAttemptNumber()));
 
       inputContext.sendEvents(failedEvents);      
       //status.addFailedDependency(mapId);
@@ -305,9 +306,10 @@ class ShuffleScheduler {
     }
   }
   
-  public synchronized void obsoleteMapOutput(InputAttemptIdentifier srcAttempt) {
+  public synchronized void obsoleteInput(InputAttemptIdentifier srcAttempt) {
     // The incoming srcAttempt does not contain a path component.
-    obsoleteMaps.add(srcAttempt);
+    LOG.info("Adding obsolete input: " + srcAttempt);
+    obsoleteInputs.add(srcAttempt);
   }
   
   public synchronized void putBackKnownMapOutput(MapHost host,
@@ -342,27 +344,53 @@ class ShuffleScheduler {
     return pathToIdentifierMap.get(getIdentifierFromPathAndReduceId(path, reduceId));
   }
   
+  private boolean inputShouldBeConsumed(InputAttemptIdentifier id) {
+    return (!obsoleteInputs.contains(id) && 
+             !isInputFinished(id.getInputIdentifier().getInputIndex()));
+  }
+  
   public synchronized List<InputAttemptIdentifier> getMapsForHost(MapHost host) {
-    List<InputAttemptIdentifier> list = host.getAndClearKnownMaps();
-    Iterator<InputAttemptIdentifier> itr = list.iterator();
+    List<InputAttemptIdentifier> origList = host.getAndClearKnownMaps();
+    Map<Integer, InputAttemptIdentifier> dedupedList = new LinkedHashMap<Integer, InputAttemptIdentifier>();
+    Iterator<InputAttemptIdentifier> listItr = origList.iterator();
+    while (listItr.hasNext()) {
+      // we may want to try all versions of the input but with current retry 
+      // behavior older ones are likely to be lost and should be ignored.
+      // This may be removed after TEZ-914
+      InputAttemptIdentifier id = listItr.next();
+      Integer inputNumber = new Integer(id.getInputIdentifier().getInputIndex());
+      InputAttemptIdentifier oldId = dedupedList.get(inputNumber);
+      if (oldId == null || oldId.getAttemptNumber() < id.getAttemptNumber()) {
+        dedupedList.put(inputNumber, id);
+        if (oldId != null) {
+          LOG.warn("Ignoring older source: " + oldId + 
+              " in favor of newer source: " + id);
+        }
+      }
+    }
     List<InputAttemptIdentifier> result = new ArrayList<InputAttemptIdentifier>();
     int includedMaps = 0;
-    int totalSize = list.size();
+    int totalSize = dedupedList.size();
+    Iterator<Map.Entry<Integer, InputAttemptIdentifier>> dedupedItr = dedupedList.entrySet().iterator();
     // find the maps that we still need, up to the limit
-    while (itr.hasNext()) {
-      InputAttemptIdentifier id = itr.next();
-      if (!obsoleteMaps.contains(id) && !isInputFinished(id.getInputIdentifier().getSrcTaskIndex())) {
+    while (dedupedItr.hasNext()) {
+      InputAttemptIdentifier id = dedupedItr.next().getValue();
+      if (inputShouldBeConsumed(id)) {
         result.add(id);
         if (++includedMaps >= MAX_MAPS_AT_ONCE) {
           break;
         }
+      } else {
+        LOG.info("Ignoring finished or obsolete source: " + id);
       }
     }
     // put back the maps left after the limit
-    while (itr.hasNext()) {
-      InputAttemptIdentifier id = itr.next();
-      if (!obsoleteMaps.contains(id) && !isInputFinished(id.getInputIdentifier().getSrcTaskIndex())) {
+    while (dedupedItr.hasNext()) {
+      InputAttemptIdentifier id = dedupedItr.next().getValue();
+      if (inputShouldBeConsumed(id)) {
         host.addKnownMap(id);
+      } else {
+        LOG.info("Ignoring finished or obsolete source: " + id);
       }
     }
     LOG.info("assigned " + includedMaps + " of " + totalSize + " to " +
@@ -383,7 +411,7 @@ class ShuffleScheduler {
     
   public synchronized void resetKnownMaps() {
     mapLocations.clear();
-    obsoleteMaps.clear();
+    obsoleteInputs.clear();
     pendingHosts.clear();
     pathToIdentifierMap.clear();
   }

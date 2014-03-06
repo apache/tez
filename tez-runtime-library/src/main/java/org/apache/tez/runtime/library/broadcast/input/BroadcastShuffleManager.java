@@ -515,9 +515,9 @@ public class BroadcastShuffleManager implements FetcherCallback, MemoryUpdateCal
         "Fetch failure while fetching from "
             + TezRuntimeUtils.getTaskAttemptIdentifier(
                 inputContext.getSourceVertexName(),
-                srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex(),
+                srcAttemptIdentifier.getInputIdentifier().getInputIndex(),
                 srcAttemptIdentifier.getAttemptNumber()),
-        srcAttemptIdentifier.getInputIdentifier().getSrcTaskIndex(),
+        srcAttemptIdentifier.getInputIdentifier().getInputIndex(),
         srcAttemptIdentifier.getAttemptNumber());
     
     List<Event> failedEvents = Lists.newArrayListWithCapacity(1);

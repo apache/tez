@@ -18,39 +18,27 @@
 
 package org.apache.tez.runtime.library.common;
 
-public class InputIdentifier {
+import java.util.HashSet;
+import java.util.Set;
 
-  private final int inputIndex;
+import org.junit.Assert;
+import org.junit.Test;
+
+public class TestInputIdentifiers {
   
-  public InputIdentifier(int srcInputIndex) {
-    this.inputIndex = srcInputIndex;
+  @Test
+  public void testInputAttemptIdentifier() {
+    Set<InputAttemptIdentifier> set = new HashSet<InputAttemptIdentifier>();
+    InputAttemptIdentifier i1 = new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX);
+    InputAttemptIdentifier i2 = new InputAttemptIdentifier(1, 1, null);
+    InputAttemptIdentifier i3 = new InputAttemptIdentifier(1, 0, null);
+    InputAttemptIdentifier i4 = new InputAttemptIdentifier(0, 1, null);
+    
+    Assert.assertTrue(set.add(i1));
+    Assert.assertFalse(set.add(i1));
+    Assert.assertFalse(set.add(i2));
+    Assert.assertTrue(set.add(i3));
+    Assert.assertTrue(set.add(i4));
   }
 
-  public int getInputIndex() {
-    return this.inputIndex;
-  }
-
-  @Override
-  public int hashCode() {
-    return inputIndex;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (obj == null)
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    InputIdentifier other = (InputIdentifier) obj;
-    if (inputIndex != other.inputIndex)
-      return false;
-    return true;
-  }
-
-  @Override
-  public String toString() {
-    return "InputIdentifier [inputIndex=" + inputIndex + "]";
-  }
 }

@@ -246,7 +246,7 @@ public class AMNodeImpl implements AMNode {
 
   protected void blacklistSelf() {
     for (ContainerId c : containers) {
-      sendEvent(new AMContainerEventNodeFailed(c, "Node failed"));
+      sendEvent(new AMContainerEventNodeFailed(c, "Node blacklisted"));
     }
     // these containers are not useful anymore
     pastContainers.addAll(containers);

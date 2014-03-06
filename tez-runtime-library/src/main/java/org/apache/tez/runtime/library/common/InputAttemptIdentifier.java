@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.library.common;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.tez.dag.api.TezUncheckedException;
 
 /**
  * Container for a task number and an attempt number for the task.
@@ -30,14 +31,20 @@ public class InputAttemptIdentifier {
   private final int attemptNumber;
   private String pathComponent;
   
-  public InputAttemptIdentifier(int taskIndex, int attemptNumber) {
-    this(new InputIdentifier(taskIndex), attemptNumber, null);
+  public static String PATH_PREFIX = "attempt";
+  
+  public InputAttemptIdentifier(int inputIndex, int attemptNumber) {
+    this(new InputIdentifier(inputIndex), attemptNumber, null);
   }
   
   public InputAttemptIdentifier(InputIdentifier inputIdentifier, int attemptNumber, String pathComponent) {
     this.inputIdentifier = inputIdentifier;
     this.attemptNumber = attemptNumber;
     this.pathComponent = pathComponent;
+    if (pathComponent != null && !pathComponent.startsWith(PATH_PREFIX)) {
+      throw new TezUncheckedException(
+          "Path component must start with: " + PATH_PREFIX + this);
+    }
   }
   
   public InputAttemptIdentifier(int taskIndex, int attemptNumber, String pathComponent) {
@@ -83,6 +90,7 @@ public class InputAttemptIdentifier {
         return false;
     } else if (!inputIdentifier.equals(other.inputIdentifier))
       return false;
+    // do not compare pathComponent as they may not always be present
     return true;
   }
 
