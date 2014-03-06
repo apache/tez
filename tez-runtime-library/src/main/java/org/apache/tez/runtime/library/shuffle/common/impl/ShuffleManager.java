@@ -74,6 +74,9 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+// This only knows how to deal with a single srcIndex for a given targetIndex.
+// In case the src task generates multiple outputs for the same target Index
+// (multiple src-indices), modifications will be required.
 public class ShuffleManager implements FetcherCallback {
 
   private static final Log LOG = LogFactory.getLog(ShuffleManager.class);
@@ -339,8 +342,8 @@ public class ShuffleManager implements FetcherCallback {
     }
     // TODO NEWTEZ Maybe limit the number of inputs being given to a single
     // fetcher, especially in the case where #hosts < #fetchers
-    fetcherBuilder.assignWork(inputHost.getHost(), inputHost.getPort(), 0,
-        pendingInputsForHost);
+    fetcherBuilder.assignWork(inputHost.getHost(), inputHost.getPort(),
+        inputHost.getSrcPhysicalIndex(), pendingInputsForHost);
     LOG.info("Created Fetcher for host: " + inputHost.getHost()
         + ", with inputs: " + pendingInputsForHost);
     return fetcherBuilder.build();
@@ -349,10 +352,10 @@ public class ShuffleManager implements FetcherCallback {
   /////////////////// Methods for InputEventHandler
   
   public void addKnownInput(String hostName, int port,
-      InputAttemptIdentifier srcAttemptIdentifier, int partition) {
+      InputAttemptIdentifier srcAttemptIdentifier, int srcPhysicalIndex) {
     InputHost host = knownSrcHosts.get(hostName);
     if (host == null) {
-      host = new InputHost(hostName, port, inputContext.getApplicationId());
+      host = new InputHost(hostName, port, inputContext.getApplicationId(), srcPhysicalIndex);
       InputHost old = knownSrcHosts.putIfAbsent(hostName, host);
       if (old != null) {
         host = old;

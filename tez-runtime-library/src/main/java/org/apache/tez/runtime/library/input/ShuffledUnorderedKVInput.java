@@ -41,9 +41,10 @@ import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
-import org.apache.tez.runtime.library.broadcast.input.BroadcastShuffleInputEventHandler;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.readers.ShuffledUnorderedKVReader;
+import org.apache.tez.runtime.library.shuffle.common.ShuffleEventHandler;
+import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleInputEventHandlerImpl;
 import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleManager;
 import org.apache.tez.runtime.library.shuffle.common.impl.SimpleFetchedInputAllocator;
 
@@ -65,7 +66,7 @@ public class ShuffledUnorderedKVInput implements LogicalInput, MemoryUpdateCallb
   private TezCounter inputRecordCounter;
   
   private SimpleFetchedInputAllocator inputManager;
-  private BroadcastShuffleInputEventHandler inputEventHandler;
+  private ShuffleEventHandler inputEventHandler;
   
   private volatile long initialMemoryAvailable = -1;
   
@@ -129,7 +130,7 @@ public class ShuffledUnorderedKVInput implements LogicalInput, MemoryUpdateCallb
         inputManager.setInitialMemoryAvailable(initialMemoryAvailable);
         inputManager.configureAndStart();
         
-        this.inputEventHandler = new BroadcastShuffleInputEventHandler(
+        this.inputEventHandler = new ShuffleInputEventHandlerImpl(
             inputContext, shuffleManager, inputManager, codec, ifileReadAhead,
             ifileReadAheadLength);
 

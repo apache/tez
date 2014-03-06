@@ -17,7 +17,7 @@
  */
 
 
-package org.apache.tez.runtime.library.broadcast.input;
+package org.apache.tez.runtime.library.shuffle.common.impl;
 
 import java.io.IOException;
 import java.util.List;
@@ -41,12 +41,14 @@ import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleManager;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataProto;
 
-import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-public class BroadcastShuffleInputEventHandler implements ShuffleEventHandler {
+/**
+ * A base class for generic Event handling for Inputs which need to Shuffle data.
+ */
+public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
 
-  private static final Log LOG = LogFactory.getLog(BroadcastShuffleInputEventHandler.class);
+  private static final Log LOG = LogFactory.getLog(ShuffleInputEventHandlerImpl.class);
   
   private final ShuffleManager shuffleManager;
   private final FetchedInputAllocator inputAllocator;
@@ -55,7 +57,7 @@ public class BroadcastShuffleInputEventHandler implements ShuffleEventHandler {
   private final int ifileReadAheadLength;
   
   
-  public BroadcastShuffleInputEventHandler(TezInputContext inputContext,
+  public ShuffleInputEventHandlerImpl(TezInputContext inputContext,
       ShuffleManager shuffleManager,
       FetchedInputAllocator inputAllocator, CompressionCodec codec,
       boolean ifileReadAhead, int ifileReadAheadLength) {
@@ -82,12 +84,8 @@ public class BroadcastShuffleInputEventHandler implements ShuffleEventHandler {
       throw new TezUncheckedException("Unexpected event type: " + event.getClass().getName());
     }
   }
-  
-  
+
   private void processDataMovementEvent(DataMovementEvent dme) throws IOException {
-    Preconditions.checkArgument(dme.getSourceIndex() == 0,
-        "Unexpected srcIndex: " + dme.getSourceIndex()
-            + " on DataMovementEvent. Can only be 0");
     DataMovementEventPayloadProto shufflePayload;
     try {
       shufflePayload = DataMovementEventPayloadProto.parseFrom(dme.getUserPayload());
@@ -108,7 +106,7 @@ public class BroadcastShuffleInputEventHandler implements ShuffleEventHandler {
         moveDataToFetchedInput(dataProto, fetchedInput);
         shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);
       } else {
-        shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(), srcAttemptIdentifier, 0);
+        shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(), srcAttemptIdentifier, dme.getSourceIndex());
       }
     } else {
       shuffleManager.addCompletedInputWithNoData(new InputAttemptIdentifier(dme.getTargetIndex(), dme.getVersion()));
@@ -147,8 +145,7 @@ public class BroadcastShuffleInputEventHandler implements ShuffleEventHandler {
     sb.append("port: " + dmProto.getPort()).append(", ");
     sb.append("pathComponent: " + dmProto.getPathComponent()).append(", ");
     sb.append("runDuration: " + dmProto.getRunDuration()).append(", ");
-    sb.append("hasData: " + dmProto.hasData());
+    sb.append("hasDataInEvent: " + dmProto.hasData());
     return sb.toString();
   }
 }
-

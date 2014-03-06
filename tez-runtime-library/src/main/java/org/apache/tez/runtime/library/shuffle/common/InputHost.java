@@ -26,16 +26,24 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
+/**
+ * Represents a Host with respect to the MapReduce ShuffleHandler.
+ * 
+ * srcPhysicalIndex / partition is part of this since that only knows how to
+ * serve ine partition at a time.
+ */
 public class InputHost {
 
   private final String host;
   private final int port;
+  private final int srcPhysicalIndex;
 
   private final BlockingQueue<InputAttemptIdentifier> inputs = new LinkedBlockingQueue<InputAttemptIdentifier>();
 
-  public InputHost(String hostName, int port, ApplicationId appId) {
+  public InputHost(String hostName, int port, ApplicationId appId, int srcPhysicalIndex) {
     this.host = hostName;
     this.port = port;
+    this.srcPhysicalIndex = srcPhysicalIndex;
   }
 
   public String getHost() {
@@ -44,6 +52,10 @@ public class InputHost {
 
   public int getPort() {
     return this.port;
+  }
+
+  public int getSrcPhysicalIndex() {
+    return this.srcPhysicalIndex;
   }
 
   public int getNumPendingInputs() {
@@ -67,35 +79,45 @@ public class InputHost {
     int result = 1;
     result = prime * result + ((host == null) ? 0 : host.hashCode());
     result = prime * result + port;
+    result = prime * result + srcPhysicalIndex;
     return result;
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     InputHost other = (InputHost) obj;
     if (host == null) {
-      if (other.host != null)
+      if (other.host != null) {
         return false;
+      }
     } else if (!host.equals(other.host))
       return false;
-    if (port != other.port)
+    if (port != other.port) {
       return false;
+    }
+    if (srcPhysicalIndex != other.srcPhysicalIndex) {
+      return false;
+    }
     return true;
   }
 
   public String toDetailedString() {
-    return "InputHost [host=" + host + ", port=" + port + ", inputs=" + inputs
-        + "]";
+    return "InputHost [host=" + host + ", port=" + port + ",srcPhysicalIndex=" + srcPhysicalIndex
+        + ", inputs=" + inputs + "]";
   }
   
   @Override
   public String toString() {
-    return "InputHost [host=" + host + ", port=" + port + "]";
+    return "InputHost [host=" + host + ", port=" + port + ", srcPhysicalIndex=" + srcPhysicalIndex
+        + "]";
   }
 }
