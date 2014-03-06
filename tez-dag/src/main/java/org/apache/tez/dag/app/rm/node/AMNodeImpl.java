@@ -287,6 +287,10 @@ public class AMNodeImpl implements AMNode {
     @Override
     public AMNodeState transition(AMNodeImpl node, AMNodeEvent nEvent) {
       AMNodeEventTaskAttemptEnded event = (AMNodeEventTaskAttemptEnded) nEvent;
+      LOG.info("Attempt failed on node: " + node.getNodeId() + " TA: "
+          + event.getTaskAttemptId() + " failed: " + event.failed()
+          + " container: " + event.getContainerId() + " numFailedTAs: "
+          + node.numFailedTAs);
       if (event.failed()) {
         // ignore duplicate attempt ids
         if (node.failedAttemptIds.add(event.getTaskAttemptId())) {
