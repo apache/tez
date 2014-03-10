@@ -192,6 +192,8 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
     if (runShuffleFuture == null) {
       return false;
     }
+    // TODO This may return true, followed by the reader throwing the actual Exception.
+    // Fix as part of TEZ-919.
     return runShuffleFuture.isDone();
     //return scheduler.isDone() && merger.isMergeComplete();
   }
@@ -249,6 +251,8 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
       while (!scheduler.waitUntilDone(PROGRESS_FREQUENCY)) {
         synchronized (this) {
           if (throwable != null) {
+            // This exception will show up when someone tries iterating through the fetched Input.
+            // As part of TEZ-919, report this early.
             throw new ShuffleError("error in shuffle in " + throwingThreadName,
                                    throwable);
           }

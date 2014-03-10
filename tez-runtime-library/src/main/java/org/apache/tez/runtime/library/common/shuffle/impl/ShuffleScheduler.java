@@ -58,7 +58,7 @@ class ShuffleScheduler {
 
   private static final Log LOG = LogFactory.getLog(ShuffleScheduler.class);
   private static final int MAX_MAPS_AT_ONCE = 20;
-  private static final long INITIAL_PENALTY = 10000;
+  private static final long INITIAL_PENALTY = 2000l; // 2 seconds
   private static final float PENALTY_GROWTH_RATE = 1.3f;
   
   // TODO NEWTEZ May need to be a string if attempting to fetch from multiple inputs.
@@ -80,7 +80,6 @@ class ShuffleScheduler {
     new HashMap<String,IntWritable>();
   private final TezInputContext inputContext;
   private final Shuffle shuffle;
-  private final int abortFailureLimit;
   private final TezCounter shuffledMapsCounter;
   private final TezCounter reduceShuffleBytes;
   private final TezCounter reduceBytesDecompressed;
@@ -90,15 +89,15 @@ class ShuffleScheduler {
   
   private final long startTime;
   private long lastProgressTime;
-  
-  private int maxMapRuntime = 0;
-  private int maxFailedUniqueFetches = 5;
+
   private int maxFetchFailuresBeforeReporting;
-  
+  private boolean reportReadErrorImmediately = true; 
+  private int maxFailedUniqueFetches = 5;
+  private final int abortFailureLimit;
+  private int maxMapRuntime = 0;
+
   private long totalBytesShuffledTillNow = 0;
   private DecimalFormat  mbpsFormat = new DecimalFormat("0.00");
-
-  private boolean reportReadErrorImmediately = true;
   
   public ShuffleScheduler(TezInputContext inputContext,
                           Configuration conf,
@@ -124,6 +123,7 @@ class ShuffleScheduler {
     this.bytesShuffledToMem = bytesShuffledToMem;
     this.startTime = System.currentTimeMillis();
     this.lastProgressTime = startTime;
+
     this.maxFailedUniqueFetches = Math.min(numberOfInputs,
         this.maxFailedUniqueFetches);
     referee.start();
@@ -135,6 +135,14 @@ class ShuffleScheduler {
         conf.getBoolean(
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR, 
             TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR);
+    
+    LOG.info("ShuffleScheduler running for sourceVertex: "
+        + inputContext.getSourceVertexName() + " with configuration: "
+        + "maxFetchFailuresBeforeReporting=" + maxFetchFailuresBeforeReporting
+        + ", reportReadErrorImmediately=" + reportReadErrorImmediately
+        + ", maxFailedUniqueFetches=" + maxFailedUniqueFetches
+        + ", abortFailureLimit=" + abortFailureLimit
+        + ", maxMapRuntime=" + maxMapRuntime);
   }
 
   public synchronized void copySucceeded(InputAttemptIdentifier srcAttemptIdentifier, 
@@ -200,6 +208,8 @@ class ShuffleScheduler {
       failureCounts.put(srcAttempt, new IntWritable(1));      
     }
     String hostname = host.getHostName();
+    // TODO TEZ-922 hostFailures isn't really used for anything. Factor it into error
+    // reporting / potential blacklisting of hosts.
     if (hostFailures.containsKey(hostname)) {
       IntWritable x = hostFailures.get(hostname);
       x.set(x.get() + 1);
@@ -207,6 +217,13 @@ class ShuffleScheduler {
       hostFailures.put(hostname, new IntWritable(1));
     }
     if (failures >= abortFailureLimit) {
+      // This task has seen too many fetch failures - report it as failed. The
+      // AM may retry it if max failures has not been reached.
+      
+      // Between the task and the AM - someone needs to determine who is at
+      // fault. If there's enough errors seen on the task, before the AM informs
+      // it about source failure, the task considers itself to have failed and
+      // allows the AM to re-schedule it.
       IOException ioe = new IOException(failures
             + " failures downloading "
             + TezRuntimeUtils.getTaskAttemptIdentifier(
@@ -215,7 +232,8 @@ class ShuffleScheduler {
       ioe.fillInStackTrace();
       shuffle.reportException(ioe);
     }
-    
+
+    failedShuffleCounter.increment(1);
     checkAndInformAM(failures, srcAttempt, readError);
 
     checkReducerHealth();
@@ -223,12 +241,10 @@ class ShuffleScheduler {
     long delay = (long) (INITIAL_PENALTY *
         Math.pow(PENALTY_GROWTH_RATE, failures));
     
-    penalties.add(new Penalty(host, delay));
-    
-    failedShuffleCounter.increment(1);
+    penalties.add(new Penalty(host, delay));    
   }
   
-  // Notify the JobTracker  
+  // Notify the AM  
   // after every read error, if 'reportReadErrorImmediately' is true or
   // after every 'maxFetchFailuresBeforeReporting' failures
   private void checkAndInformAM(
@@ -248,10 +264,9 @@ class ShuffleScheduler {
           .getInputIndex(), srcAttempt.getAttemptNumber()));
 
       inputContext.sendEvents(failedEvents);      
-      //status.addFailedDependency(mapId);
     }
   }
-    
+
   private void checkReducerHealth() {
     final float MAX_ALLOWED_FAILED_FETCH_ATTEMPT_PERCENT = 0.5f;
     final float MIN_REQUIRED_PROGRESS_PERCENT = 0.5f;
@@ -293,8 +308,10 @@ class ShuffleScheduler {
         failureCounts.size() == (numInputs - doneMaps))
         && !reducerHealthy
         && (!reducerProgressedEnough || reducerStalled)) {
-      LOG.fatal("Shuffle failed with too many fetch failures " +
-      "and insufficient progress!");
+      LOG.fatal("Shuffle failed with too many fetch failures " + "and insufficient progress!"
+          + "failureCounts=" + failureCounts.size() + ", pendingInputs=" + (numInputs - doneMaps)
+          + ", reducerHealthy=" + reducerHealthy + ", reducerProgressedEnough="
+          + reducerProgressedEnough + ", reducerStalled=" + reducerStalled);
       String errorMsg = "Exceeded MAX_FAILED_UNIQUE_FETCHES; bailing-out.";
       shuffle.reportException(new IOException(errorMsg));
     }
@@ -368,23 +385,32 @@ class ShuffleScheduler {
   
   public synchronized List<InputAttemptIdentifier> getMapsForHost(MapHost host) {
     List<InputAttemptIdentifier> origList = host.getAndClearKnownMaps();
+
     Map<Integer, InputAttemptIdentifier> dedupedList = new LinkedHashMap<Integer, InputAttemptIdentifier>();
     Iterator<InputAttemptIdentifier> listItr = origList.iterator();
     while (listItr.hasNext()) {
-      // we may want to try all versions of the input but with current retry 
+      // we may want to try all versions of the input but with current retry
       // behavior older ones are likely to be lost and should be ignored.
       // This may be removed after TEZ-914
       InputAttemptIdentifier id = listItr.next();
-      Integer inputNumber = new Integer(id.getInputIdentifier().getInputIndex());
-      InputAttemptIdentifier oldId = dedupedList.get(inputNumber);
-      if (oldId == null || oldId.getAttemptNumber() < id.getAttemptNumber()) {
-        dedupedList.put(inputNumber, id);
-        if (oldId != null) {
-          LOG.warn("Ignoring older source: " + oldId + 
-              " in favor of newer source: " + id);
+      if (inputShouldBeConsumed(id)) {
+        Integer inputNumber = new Integer(id.getInputIdentifier().getInputIndex());
+        InputAttemptIdentifier oldId = dedupedList.get(inputNumber);
+        if (oldId == null || oldId.getAttemptNumber() < id.getAttemptNumber()) {
+          dedupedList.put(inputNumber, id);
+          if (oldId != null) {
+            LOG.warn("Old Src for InputIndex: " + inputNumber + " with attemptNumber: "
+                + oldId.getAttemptNumber()
+                + " was not determined to be invalid. Ignoring it for now in favour of "
+                + id.getAttemptNumber());
+          }
         }
+      } else {
+        LOG.info("Ignoring finished or obsolete source: " + id);
       }
     }
+    
+    // Compute the final list, limited by NUM_FETCHERS_AT_ONCE
     List<InputAttemptIdentifier> result = new ArrayList<InputAttemptIdentifier>();
     int includedMaps = 0;
     int totalSize = dedupedList.size();
@@ -392,23 +418,16 @@ class ShuffleScheduler {
     // find the maps that we still need, up to the limit
     while (dedupedItr.hasNext()) {
       InputAttemptIdentifier id = dedupedItr.next().getValue();
-      if (inputShouldBeConsumed(id)) {
         result.add(id);
         if (++includedMaps >= MAX_MAPS_AT_ONCE) {
           break;
         }
-      } else {
-        LOG.info("Ignoring finished or obsolete source: " + id);
-      }
     }
+
     // put back the maps left after the limit
     while (dedupedItr.hasNext()) {
       InputAttemptIdentifier id = dedupedItr.next().getValue();
-      if (inputShouldBeConsumed(id)) {
-        host.addKnownMap(id);
-      } else {
-        LOG.info("Ignoring finished or obsolete source: " + id);
-      }
+      host.addKnownMap(id);
     }
     LOG.info("assigned " + includedMaps + " of " + totalSize + " to " +
              host + " to " + Thread.currentThread().getName());
@@ -425,7 +444,7 @@ class ShuffleScheduler {
     LOG.info(host + " freed by " + Thread.currentThread().getName() + " in " + 
              (System.currentTimeMillis()-shuffleStart.get()) + "s");
   }
-    
+
   public synchronized void resetKnownMaps() {
     mapLocations.clear();
     obsoleteInputs.clear();

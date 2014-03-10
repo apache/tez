@@ -194,7 +194,7 @@ public class TezJobConfig {
    */
   public static final String TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES = 
       "tez.runtime.shuffle.fetch.failures.limit";
-  public final static int DEFAULT_TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT = 10;
+  public final static int DEFAULT_TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT = 5;
 
   /**
    * 
