@@ -195,6 +195,7 @@ class TestTaskSchedulerHelpers {
         AppContext appContext) {
       super(appClient, containerSignatureMatcher, appHostName, appHostPort,
           appTrackingUrl, appContext);
+      shouldUnregister.set(true);
     }
 
     public TaskSchedulerWithDrainableAppCallback(
@@ -205,6 +206,7 @@ class TestTaskSchedulerHelpers {
         AppContext appContext) {
       super(appClient, containerSignatureMatcher, appHostName, appHostPort,
           appTrackingUrl, client, appContext);
+      shouldUnregister.set(true);
     }
 
     @Override

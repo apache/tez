@@ -20,5 +20,6 @@ package org.apache.tez.dag.app.dag.event;
 
 public enum DAGAppMasterEventType {
   INTERNAL_ERROR,
+  AM_REBOOT,
   DAG_FINISHED
 }

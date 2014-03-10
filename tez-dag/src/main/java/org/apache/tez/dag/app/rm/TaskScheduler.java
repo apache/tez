@@ -159,7 +159,7 @@ public class TaskScheduler extends AbstractService
   final String appTrackingUrl;
   final AppContext appContext;
 
-  boolean isStopped = false;
+  AtomicBoolean isStopped = new AtomicBoolean(false);
 
   private ContainerAssigner NODE_LOCAL_ASSIGNER = new NodeLocalContainerAssigner();
   private ContainerAssigner RACK_LOCAL_ASSIGNER = new RackLocalContainerAssigner();
@@ -168,7 +168,10 @@ public class TaskScheduler extends AbstractService
   DelayedContainerManager delayedContainerManager;
   long localitySchedulingDelay;
   long sessionDelay;
-  
+
+  @VisibleForTesting
+  protected AtomicBoolean shouldUnregister = new AtomicBoolean(false);
+
   class CRCookie {
     // Do not use these variables directly. Can caused mocked unit tests to fail.
     private Object task;
@@ -270,7 +273,11 @@ public class TaskScheduler extends AbstractService
     return new TaskSchedulerAppCallbackWrapper(realAppClient,
         appCallbackExecutor);
   }
-  
+
+  public void setShouldUnregister() {
+    this.shouldUnregister.set(true);
+  }
+
   // AbstractService methods
   @Override
   public synchronized void serviceInit(Configuration conf) {
@@ -347,17 +354,22 @@ public class TaskScheduler extends AbstractService
   @Override
   public void serviceStop() throws InterruptedException {
     // upcall to app outside of locks
-    AppFinalStatus status = appClientDelegate.getFinalAppStatus();
     try {
       delayedContainerManager.shutdown();
       // Wait for contianers to be released.
       delayedContainerManager.join(2000l);
-      // TODO TEZ-36 dont unregister automatically after reboot sent by RM
       synchronized (this) {
-        isStopped = true;
-        amRmClient.unregisterApplicationMaster(status.exitStatus,
-                                               status.exitMessage,
-                                               status.postCompletionTrackingUrl);
+        isStopped.set(true);
+        if (shouldUnregister.get()) {
+          AppFinalStatus status = appClientDelegate.getFinalAppStatus();
+          LOG.info("Unregistering application from RM"
+              + ", exitStatus=" + status.exitStatus
+              + ", exitMessage=" + status.exitMessage
+              + ", trackingURL=" + status.postCompletionTrackingUrl);
+          amRmClient.unregisterApplicationMaster(status.exitStatus,
+              status.exitMessage,
+              status.postCompletionTrackingUrl);
+        }
       }
 
       // call client.stop() without lock client will attempt to stop the callback
@@ -378,7 +390,7 @@ public class TaskScheduler extends AbstractService
   // AMRMClientAsync interface methods
   @Override
   public void onContainersCompleted(List<ContainerStatus> statuses) {
-    if(isStopped) {
+    if (isStopped.get()) {
       return;
     }
     Map<Object, ContainerStatus> appContainerStatus =
@@ -435,7 +447,7 @@ public class TaskScheduler extends AbstractService
 
   @Override
   public void onContainersAllocated(List<Container> containers) {
-    if (isStopped) {
+    if (isStopped.get()) {
       return;
     }
     Map<CookieContainerRequest, Container> assignedContainers;
@@ -736,7 +748,7 @@ public class TaskScheduler extends AbstractService
 
   @Override
   public void onShutdownRequest() {
-    if(isStopped) {
+    if (isStopped.get()) {
       return;
     }
     // upcall to app must be outside locks
@@ -745,7 +757,7 @@ public class TaskScheduler extends AbstractService
 
   @Override
   public void onNodesUpdated(List<NodeReport> updatedNodes) {
-    if(isStopped) {
+    if (isStopped.get()) {
       return;
     }
     // ignore bad nodes for now
@@ -755,7 +767,7 @@ public class TaskScheduler extends AbstractService
 
   @Override
   public float getProgress() {
-    if(isStopped) {
+    if (isStopped.get()) {
       return 1;
     }
 
@@ -776,7 +788,7 @@ public class TaskScheduler extends AbstractService
 
   @Override
   public void onError(Throwable t) {
-    if(isStopped) {
+    if (isStopped.get()) {
       return;
     }
     appClientDelegate.onError(t);

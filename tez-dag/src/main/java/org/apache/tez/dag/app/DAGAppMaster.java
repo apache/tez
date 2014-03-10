@@ -331,9 +331,13 @@ public class DAGAppMaster extends AbstractService {
     dispatcher.register(TaskAttemptEventType.class,
         new TaskAttemptEventDispatcher());
 
-    taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
+    this.taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
         clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher);
     addIfService(taskSchedulerEventHandler, true);
+    if (isLastAMRetry) {
+      this.taskSchedulerEventHandler.setShouldUnregisterFlag();
+    }
+
     dispatcher.register(AMSchedulerEventType.class,
         taskSchedulerEventHandler);
     addIfServiceDependency(taskSchedulerEventHandler, clientRpcServer);
@@ -420,6 +424,7 @@ public class DAGAppMaster extends AbstractService {
         sendEvent(new DAGEvent(currentDAG.getID(), DAGEventType.INTERNAL_ERROR));
       } else {
         LOG.info("Internal Error. Finishing directly as no dag is active.");
+        this.taskSchedulerEventHandler.setShouldUnregisterFlag();
         shutdownHandler.shutdown();
       }
       break;
@@ -427,6 +432,7 @@ public class DAGAppMaster extends AbstractService {
       DAGAppMasterEventDAGFinished finishEvt =
           (DAGAppMasterEventDAGFinished) event;
       if (!isSession) {
+        this.taskSchedulerEventHandler.setShouldUnregisterFlag();
         _updateLoggers(currentDAG, "_post");
         setStateOnDAGCompletion();
         LOG.info("Shutting down on completion of dag:" +
@@ -463,21 +469,28 @@ public class DAGAppMaster extends AbstractService {
               + finishEvt.getDAGState()
               + ". Error. Shutting down.");
           state = DAGAppMasterState.ERROR;
+          this.taskSchedulerEventHandler.setShouldUnregisterFlag();
           shutdownHandler.shutdown();
           break;
         }
         if (!state.equals(DAGAppMasterState.ERROR)) {
           if (!sessionStopped.get()) {
             LOG.info("Waiting for next DAG to be submitted.");
-            taskSchedulerEventHandler.dagCompleted();
+            this.taskSchedulerEventHandler.dagCompleted();
             state = DAGAppMasterState.IDLE;
           } else {
             LOG.info("Session shutting down now.");
+            this.taskSchedulerEventHandler.setShouldUnregisterFlag();
             state = DAGAppMasterState.SUCCEEDED;
             shutdownHandler.shutdown();
           }
         }
       }
+      break;
+    case AM_REBOOT:
+      LOG.info("Received an AM_REBOOT signal");
+      this.state = DAGAppMasterState.KILLED;
+      shutdownHandler.shutdown(true);
       break;
     default:
       throw new TezUncheckedException(
@@ -510,6 +523,10 @@ public class DAGAppMaster extends AbstractService {
     private AtomicBoolean shutdownHandled = new AtomicBoolean(false);
 
     public void shutdown() {
+      shutdown(false);
+    }
+
+    public void shutdown(boolean now) {
       if(!shutdownHandled.compareAndSet(false, true)) {
         LOG.info("Ignoring multiple shutdown events");
         return;
@@ -517,20 +534,28 @@ public class DAGAppMaster extends AbstractService {
 
       LOG.info("Handling DAGAppMaster shutdown");
 
-      AMShutdownRunnable r = new AMShutdownRunnable();
+      AMShutdownRunnable r = new AMShutdownRunnable(now);
       Thread t = new Thread(r, "AMShutdownThread");
       t.start();
     }
 
     private class AMShutdownRunnable implements Runnable {
+      private final boolean immediateShutdown;
+
+      public AMShutdownRunnable(boolean immediateShutdown) {
+        this.immediateShutdown = immediateShutdown;
+      }
+
       @Override
       public void run() {
         // TODO:currently just wait for some time so clients can know the
         // final states. Will be removed once RM come on. TEZ-160.
-        try {
-          Thread.sleep(5000);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
+        if (!immediateShutdown) {
+          try {
+            Thread.sleep(5000);
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
         }
 
         try {
@@ -837,6 +862,7 @@ public class DAGAppMaster extends AbstractService {
 
   synchronized void shutdownTezAM() {
     sessionStopped.set(true);
+    this.taskSchedulerEventHandler.setShouldUnregisterFlag();
     if (currentDAG != null
         && !currentDAG.isComplete()) {
       //send a DAG_KILL message

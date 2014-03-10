@@ -458,7 +458,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     // This can happen if the RM has been restarted. If it is in that state,
     // this application must clean itself up.
     LOG.info("App shutdown requested by scheduler");
-    sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.INTERNAL_ERROR));
+    sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.AM_REBOOT));
   }
 
   @Override
@@ -550,4 +550,10 @@ public class TaskSchedulerEventHandler extends AbstractService
     sendEvent(new AMContainerEventCompleted(ContainerStatus.newInstance(
         containerId, ContainerState.COMPLETE, "Container Preempted Internally", -1), true));
   }
+
+  public void setShouldUnregisterFlag() {
+    this.taskScheduler.setShouldUnregister();
+    LOG.info("TaskScheduler notified that it should unregister from RM");
+  }
+
 }
