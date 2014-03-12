@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -81,6 +82,8 @@ public class TaskSchedulerEventHandler extends AbstractService
   final DAGClientServer clientService;
   private final ContainerSignatureMatcher containerSignatureMatcher;
   private int cachedNodeCount = -1;
+  private AtomicBoolean shouldUnregisterFlag =
+      new AtomicBoolean(false);
 
   BlockingQueue<AMSchedulerEvent> eventQueue
                               = new LinkedBlockingQueue<AMSchedulerEvent>();
@@ -353,6 +356,11 @@ public class TaskSchedulerEventHandler extends AbstractService
         serviceAddr.getPort(), "", appContext);
     taskScheduler.init(getConfig());
     taskScheduler.start();
+    if (shouldUnregisterFlag.get()) {
+      // Flag may have been set earlier when task scheduler was not initialized
+      taskScheduler.setShouldUnregister();
+    }
+
     this.eventHandlingThread = new Thread("TaskSchedulerEventHandlerThread") {
       @Override
       public void run() {
@@ -552,8 +560,11 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
   public void setShouldUnregisterFlag() {
-    this.taskScheduler.setShouldUnregister();
     LOG.info("TaskScheduler notified that it should unregister from RM");
+    this.shouldUnregisterFlag.set(true);
+    if (this.taskScheduler != null) {
+      this.taskScheduler.setShouldUnregister();
+    }
   }
 
 }
