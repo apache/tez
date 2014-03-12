@@ -18,12 +18,16 @@
 
 package org.apache.tez.common.counters;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
 
 @InterfaceAudience.Private
 public class Limits {
+  
+  private static final Log LOG = LogFactory.getLog(Limits.class);
 
   private static Configuration conf = null;
   private static int GROUP_NAME_MAX;
@@ -52,6 +56,9 @@ public class Limits {
         conf.getInt(TezJobConfig.COUNTERS_MAX_KEY, TezJobConfig.
             COUNTERS_MAX_DEFAULT);
     initialized = true;
+    LOG.info("Counter limits initialized with parameters: " + " GROUP_NAME_MAX=" + GROUP_NAME_MAX
+        + ", MAX_GROUPS=" + GROUPS_MAX + ", COUNTER_NAME_MAX=" + COUNTER_NAME_MAX
+        + ", MAX_COUNTERS=" + COUNTERS_MAX);
   }
 
   private int totalCounters;

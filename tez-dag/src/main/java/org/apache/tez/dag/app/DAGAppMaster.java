@@ -83,6 +83,7 @@ import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.impl.LogUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
@@ -1599,6 +1600,7 @@ public class DAGAppMaster extends AbstractService {
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 
+      Limits.setConfiguration(conf);
       initAndStartAppMaster(appMaster, conf,
           jobUserName);
 

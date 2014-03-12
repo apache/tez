@@ -145,7 +145,7 @@ public class TezJobConfig {
    * 
    */
   public static final String COUNTERS_MAX_KEY = "tez.runtime.job.counters.max";
-  public static final int COUNTERS_MAX_DEFAULT = 120;
+  public static final int COUNTERS_MAX_DEFAULT = 1200;
 
   /**
    * 
@@ -163,7 +163,7 @@ public class TezJobConfig {
    * 
    */
   public static final String COUNTER_GROUPS_MAX_KEY = "tez.runtime.job.counters.groups.max";
-  public static final int COUNTER_GROUPS_MAX_DEFAULT = 50;
+  public static final int COUNTER_GROUPS_MAX_DEFAULT = 500;
 
   
   /**
