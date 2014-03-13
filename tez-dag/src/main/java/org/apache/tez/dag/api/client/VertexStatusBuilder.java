@@ -26,7 +26,6 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProto.Builder;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusStateProto;
-import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.dag.VertexState;
 

@@ -20,9 +20,15 @@ package org.apache.tez.mapreduce.client;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
-import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.mapreduce.v2.LogParams;
+import org.apache.hadoop.mapreduce.Counters;
+import org.apache.hadoop.mapreduce.JobID;
+import org.apache.hadoop.mapreduce.JobStatus;
+import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.TaskCompletionEvent;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.hadoop.mapreduce.TaskReport;
+import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.TezConfiguration;
 
@@ -45,12 +51,11 @@ public class ClientServiceDelegate {
             MRJobConfig.DEFAULT_MR_CLIENT_TO_AM_IPC_MAX_RETRIES));
   }
 
-  public org.apache.hadoop.mapreduce.Counters getJobCounters(JobID jobId)
+  public Counters getJobCounters(JobID jobId)
       throws IOException, InterruptedException {
     // FIXME needs counters support from DAG
     // with a translation layer on client side
-    org.apache.hadoop.mapreduce.Counters empty =
-        new org.apache.hadoop.mapreduce.Counters();
+    Counters empty = new Counters();
     return empty;
   }
 
@@ -75,11 +80,11 @@ public class ClientServiceDelegate {
     throw new UnsupportedOperationException();
   }
 
-  public org.apache.hadoop.mapreduce.TaskReport[] getTaskReports(
+  public TaskReport[] getTaskReports(
       JobID oldJobID, TaskType taskType)
        throws IOException{
     // TEZ-146: need to return real task reports
-    return new org.apache.hadoop.mapreduce.TaskReport[0];
+    return new TaskReport[0];
   }
 
   public boolean killTask(TaskAttemptID taskAttemptID, boolean fail)

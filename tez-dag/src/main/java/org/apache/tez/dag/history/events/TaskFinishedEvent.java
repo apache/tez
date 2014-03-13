@@ -18,7 +18,6 @@
 
 package org.apache.tez.dag.history.events;
 
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.oldrecords.TaskState;

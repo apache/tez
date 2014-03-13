@@ -20,7 +20,6 @@ package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 
 import java.util.List;

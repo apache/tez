@@ -18,9 +18,6 @@
 
 package org.apache.tez.runtime.common.objectregistry;
 
-import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
-import org.apache.tez.runtime.common.objectregistry.ObjectRegistryFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.AbstractModule;
 

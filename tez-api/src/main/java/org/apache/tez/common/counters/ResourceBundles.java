@@ -20,7 +20,6 @@ package org.apache.tez.common.counters;
 
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.MissingResourceException;
 
 /**
  * Helper class to handle resource bundles in a saner way

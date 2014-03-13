@@ -17,13 +17,11 @@
 
 package org.apache.tez.runtime.api.impl;
 
-import com.google.common.base.Optional;
 import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nullable;

@@ -18,7 +18,6 @@
 
 package org.apache.tez.mapreduce.examples;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 

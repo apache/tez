@@ -27,7 +27,6 @@ import org.apache.tez.dag.api.records.DAGProtos.StringProgressPairProto;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto.Builder;
-import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.app.dag.DAGState;
 
 public class DAGStatusBuilder extends DAGStatus {
