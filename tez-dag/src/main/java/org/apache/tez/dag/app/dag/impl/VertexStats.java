@@ -44,7 +44,7 @@ public class VertexStats {
     return firstTaskStartTime;
   }
 
-  public Set<TezTaskID> getFirstTaskToStart() {
+  public Set<TezTaskID> getFirstTasksToStart() {
     return Collections.unmodifiableSet(firstTasksToStart);
   }
 
@@ -52,7 +52,7 @@ public class VertexStats {
     return lastTaskFinishTime;
   }
 
-  public Set<TezTaskID> getLastTaskToFinish() {
+  public Set<TezTaskID> getLastTasksToFinish() {
     return Collections.unmodifiableSet(lastTasksToFinish);
   }
 
@@ -68,11 +68,11 @@ public class VertexStats {
     return avgTaskDuration;
   }
 
-  public Set<TezTaskID> getShortestDurationTask() {
+  public Set<TezTaskID> getShortestDurationTasks() {
     return Collections.unmodifiableSet(shortestDurationTasks);
   }
 
-  public Set<TezTaskID> getLongestDurationTask() {
+  public Set<TezTaskID> getLongestDurationTasks() {
     return Collections.unmodifiableSet(longestDurationTasks);
   }
 

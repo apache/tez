@@ -35,10 +35,10 @@ public class TestVertexStats {
     Assert.assertEquals(-1, stats.minTaskDuration);
     Assert.assertEquals(-1, stats.maxTaskDuration);
     Assert.assertTrue(-1 == stats.avgTaskDuration);
-    Assert.assertEquals(0, stats.firstTasksToStart.size());
-    Assert.assertEquals(0, stats.lastTasksToFinish.size());
-    Assert.assertEquals(0, stats.shortestDurationTasks.size());
-    Assert.assertEquals(0, stats.longestDurationTasks.size());
+    Assert.assertEquals(0, stats.getFirstTasksToStart().size());
+    Assert.assertEquals(0, stats.getLastTasksToFinish().size());
+    Assert.assertEquals(0, stats.getShortestDurationTasks().size());
+    Assert.assertEquals(0, stats.getLongestDurationTasks().size());
 
     TezVertexID tezVertexID = TezVertexID.getInstance(
         TezDAGID.getInstance(
