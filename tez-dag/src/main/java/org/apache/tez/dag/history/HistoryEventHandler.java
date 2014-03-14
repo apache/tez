@@ -98,7 +98,7 @@ public class HistoryEventHandler extends CompositeService {
     // there is a UI in place
     LOG.info("[HISTORY]"
         + "[DAG:" + dagIdStr + "]"
-        + "[Event:" + event.getType().name() + "]"
+        + "[Event:" + event.getHistoryEvent().getEventType().name() + "]"
         + ": " + event.getHistoryEvent().toString());
   }
 
