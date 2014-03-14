@@ -408,9 +408,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   @Override
   public TaskReport getReport() {
-    // TODO TEZPB This is broken. Records will not work without the PBImpl, which
-    // is in a different package.
-    TaskReport report = Records.newRecord(TaskReport.class);
+    TaskReport report = new TaskReportImpl();
     readLock.lock();
     try {
       report.setTaskId(taskId);
@@ -418,27 +416,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       report.setFinishTime(getFinishTime());
       report.setTaskState(getState());
       report.setProgress(getProgress());
-
-      for (TaskAttempt attempt : attempts.values()) {
-        if (TaskAttemptState.RUNNING.equals(attempt.getState())) {
-          report.addRunningAttempt(attempt.getID());
-        }
-      }
-
-      report.setSuccessfulAttempt(successfulAttempt);
-
-      for (TaskAttempt att : attempts.values()) {
-        String prefix = "AttemptID:" + att.getID() + " Info:";
-        for (CharSequence cs : att.getDiagnostics()) {
-          report.addDiagnostics(prefix + cs);
-
-        }
-      }
-
-      // Add a copy of counters as the last step so that their lifetime on heap
-      // is as small as possible.
-      report.setCounters(getCounters());
-
       return report;
     } finally {
       readLock.unlock();

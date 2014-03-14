@@ -18,10 +18,14 @@
 
 package org.apache.tez.dag.history.utils;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.app.dag.impl.VertexStats;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -148,5 +152,53 @@ public class DAGUtils {
     }
     return jsonObject;
   }
+
+  public static Map<String,Object> convertVertexStatsToATSMap(
+      VertexStats vertexStats) {
+    Map<String,Object> vertexStatsMap = new LinkedHashMap<String, Object>();
+    if (vertexStats == null) {
+      return vertexStatsMap;
+    }
+
+    final String FIRST_TASK_START_TIME_KEY = "firstTaskStartTime";
+    final String FIRST_TASK_TO_START_KEY = "firstTaskToStart";
+    final String LAST_TASK_FINISH_TIME_KEY = "lastTaskFinishTime";
+    final String LAST_TASK_TO_FINISH_KEY = "lastTaskToFinish";
+
+    final String MIN_TASK_DURATION = "minTaskDuration";
+    final String MAX_TASK_DURATION = "maxTaskDuration";
+    final String AVG_TASK_DURATION = "avgTaskDuration";
+
+    final String SHORTEST_DURATION_TASK = "shortestDurationTask";
+    final String LONGEST_DURATION_TASK = "longestDurationTask";
+
+    vertexStatsMap.put(FIRST_TASK_START_TIME_KEY, vertexStats.getFirstTaskStartTime());
+    if (vertexStats.getFirstTaskToStart() != null) {
+      vertexStatsMap.put(FIRST_TASK_TO_START_KEY,
+          vertexStats.getFirstTaskToStart().toString());
+    }
+    vertexStatsMap.put(LAST_TASK_FINISH_TIME_KEY, vertexStats.getLastTaskFinishTime());
+    if (vertexStats.getLastTaskToFinish() != null) {
+      vertexStatsMap.put(LAST_TASK_TO_FINISH_KEY,
+          vertexStats.getLastTaskToFinish().toString());
+    }
+
+    vertexStatsMap.put(MIN_TASK_DURATION, vertexStats.getMinTaskDuration());
+    vertexStatsMap.put(MAX_TASK_DURATION, vertexStats.getMaxTaskDuration());
+    vertexStatsMap.put(AVG_TASK_DURATION, vertexStats.getAvgTaskDuration());
+
+    if (vertexStats.getShortestDurationTask() != null) {
+      vertexStatsMap.put(SHORTEST_DURATION_TASK,
+          vertexStats.getShortestDurationTask().toString());
+    }
+    if (vertexStats.getLongestDurationTask() != null) {
+      vertexStatsMap.put(LONGEST_DURATION_TASK,
+          vertexStats.getLongestDurationTask().toString());
+    }
+
+    return vertexStatsMap;
+  }
+
+
 
 }

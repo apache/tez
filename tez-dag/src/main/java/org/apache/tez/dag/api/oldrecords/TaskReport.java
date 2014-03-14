@@ -30,34 +30,11 @@ public interface TaskReport {
   public abstract float getProgress();
   public abstract long getStartTime();
   public abstract long getFinishTime();
-  public abstract TezCounters getCounters();
-  
-  public abstract List<TezTaskAttemptID> getRunningAttemptsList();
-  public abstract TezTaskAttemptID getRunningAttempt(int index);
-  public abstract int getRunningAttemptsCount();
-  
-  public abstract TezTaskAttemptID getSuccessfulAttempt();
-  
-  public abstract List<String> getDiagnosticsList();
-  public abstract String getDiagnostics(int index);
-  public abstract int getDiagnosticsCount();
-  
-  
+
   public abstract void setTaskId(TezTaskID taskId);
   public abstract void setTaskState(TaskState taskState);
   public abstract void setProgress(float progress);
   public abstract void setStartTime(long startTime);
   public abstract void setFinishTime(long finishTime);
-  public abstract void setCounters(TezCounters counters);
-  
-  public abstract void addAllRunningAttempts(List<TezTaskAttemptID> taskAttempts);
-  public abstract void addRunningAttempt(TezTaskAttemptID taskAttempt);
-  public abstract void removeRunningAttempt(int index);
-  public abstract void clearRunningAttempts();
-  
-  public abstract void setSuccessfulAttempt(TezTaskAttemptID taskAttempt);
-  public abstract void addAllDiagnostics(List<String> diagnostics);
-  public abstract void addDiagnostics(String diagnostics);
-  public abstract void removeDiagnostics(int index);
-  public abstract void clearDiagnostics();
+
 }

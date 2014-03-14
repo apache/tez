@@ -57,6 +57,7 @@ public class ATSConstants {
   public static final String STATUS = "status";
   public static final String DIAGNOSTICS = "diagnostics";
   public static final String COUNTERS = "counters";
+  public static final String STATS = "stats";
   public static final String NUM_TASKS = "numTasks";
   public static final String PROCESSOR_CLASS_NAME = "processorClassName";
   public static final String IN_PROGRESS_LOGS_URL = "inProgressLogsURL";
