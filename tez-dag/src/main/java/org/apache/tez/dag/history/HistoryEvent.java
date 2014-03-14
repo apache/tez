@@ -18,16 +18,16 @@
 
 package org.apache.tez.dag.history;
 
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+
 public interface HistoryEvent {
 
-  HistoryEventType getEventType();
+  public HistoryEventType getEventType();
 
   public JSONObject convertToATSJSON() throws JSONException;
 

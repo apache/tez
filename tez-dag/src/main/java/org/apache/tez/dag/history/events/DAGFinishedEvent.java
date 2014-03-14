@@ -18,6 +18,10 @@
 
 package org.apache.tez.dag.history.events;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.app.dag.DAGState;
@@ -28,15 +32,15 @@ import org.apache.tez.dag.history.ats.EntityTypes;
 import org.apache.tez.dag.history.utils.ATSConstants;
 import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGFinishedProto;
-import org.apache.tez.dag.utils.ProtoUtils;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import com.google.common.primitives.Ints;
+import com.google.protobuf.ByteString;
 
 public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
 
@@ -166,8 +170,25 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
 
   @Override
   public void toSummaryProtoStream(OutputStream outputStream) throws IOException {
-    ProtoUtils.toSummaryEventProto(dagID, finishTime,
-        HistoryEventType.DAG_FINISHED).writeDelimitedTo(outputStream);
+    SummaryEventProto.Builder builder = RecoveryProtos.SummaryEventProto.newBuilder()
+        .setDagId(dagID.toString())
+        .setTimestamp(finishTime)
+        .setEventType(getEventType().ordinal())
+        .setEventPayload(ByteString.copyFrom(Ints.toByteArray(state.ordinal())));
+    builder.build().writeDelimitedTo(outputStream);
+  }
+
+  @Override
+  public void fromSummaryProtoStream(SummaryEventProto proto) throws IOException {
+    this.dagID = TezDAGID.fromString(proto.getDagId());
+    this.finishTime = proto.getTimestamp();
+    this.state = DAGState.values()[
+        Ints.fromByteArray(proto.getEventPayload().toByteArray())];
+  }
+
+  @Override
+  public boolean writeToRecoveryImmediately() {
+    return true;
   }
 
   public long getFinishTime() {

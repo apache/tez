@@ -25,31 +25,32 @@ import java.io.OutputStream;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.SummaryEvent;
-import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
-import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexCommitStartedProto;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexGroupCommitStartedProto;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
-import com.google.protobuf.ByteString;
+public class VertexGroupCommitStartedEvent implements HistoryEvent, SummaryEvent {
 
-public class VertexCommitStartedEvent implements HistoryEvent, SummaryEvent {
-
-  private TezVertexID vertexID;
+  private TezDAGID dagID;
+  private String vertexGroupName;
   private long commitStartTime;
 
-  public VertexCommitStartedEvent() {
+  public VertexGroupCommitStartedEvent() {
   }
 
-  public VertexCommitStartedEvent(TezVertexID vertexId, long commitStartTime) {
-    this.vertexID = vertexId;
+  public VertexGroupCommitStartedEvent(TezDAGID dagID,
+      String vertexGroupName, long commitStartTime) {
+    this.dagID = dagID;
+    this.vertexGroupName = vertexGroupName;
     this.commitStartTime = commitStartTime;
   }
 
   @Override
   public HistoryEventType getEventType() {
-    return HistoryEventType.VERTEX_COMMIT_STARTED;
+    return HistoryEventType.VERTEX_GROUP_COMMIT_STARTED;
   }
 
   @Override
@@ -68,14 +69,16 @@ public class VertexCommitStartedEvent implements HistoryEvent, SummaryEvent {
     return false;
   }
 
-  public VertexCommitStartedProto toProto() {
-    return VertexCommitStartedProto.newBuilder()
-        .setVertexId(vertexID.toString())
+  public VertexGroupCommitStartedProto toProto() {
+    return VertexGroupCommitStartedProto.newBuilder()
+        .setDagId(dagID.toString())
+        .setVertexGroupName(vertexGroupName)
         .build();
   }
 
-  public void fromProto(VertexCommitStartedProto proto) {
-    this.vertexID = TezVertexID.fromString(proto.getVertexId());
+  public void fromProto(VertexGroupCommitStartedProto proto) {
+    this.dagID = TezDAGID.fromString(proto.getDagId());
+    this.vertexGroupName = proto.getVertexGroupName();
   }
 
   @Override
@@ -85,34 +88,35 @@ public class VertexCommitStartedEvent implements HistoryEvent, SummaryEvent {
 
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
-    VertexCommitStartedProto proto = VertexCommitStartedProto.parseDelimitedFrom(inputStream);
+    VertexGroupCommitStartedProto proto = VertexGroupCommitStartedProto.parseDelimitedFrom(inputStream);
     fromProto(proto);
   }
 
   @Override
   public String toString() {
-    return "vertexId=" + vertexID;
+    return "dagId=" + dagID
+        + ", vertexGroup=" + vertexGroupName;
   }
 
-  public TezVertexID getVertexID() {
-    return this.vertexID;
+  public String getVertexGroupName() {
+    return this.vertexGroupName;
   }
 
   @Override
   public void toSummaryProtoStream(OutputStream outputStream) throws IOException {
     SummaryEventProto.Builder builder = RecoveryProtos.SummaryEventProto.newBuilder()
-        .setDagId(vertexID.getDAGId().toString())
+        .setDagId(dagID.toString())
         .setTimestamp(commitStartTime)
         .setEventType(getEventType().ordinal())
-        .setEventPayload(
-            ByteString.copyFrom(vertexID.toString().getBytes()));
+        .setEventPayload(toProto().toByteString());
     builder.build().writeDelimitedTo(outputStream);
   }
 
   @Override
   public void fromSummaryProtoStream(SummaryEventProto proto) throws IOException {
-    this.vertexID = TezVertexID.fromString(
-        new String(proto.getEventPayload().toByteArray()));
+    VertexGroupCommitStartedProto vertexGroupCommitStartedProto =
+        VertexGroupCommitStartedProto.parseFrom(proto.getEventPayload());
+    fromProto(vertexGroupCommitStartedProto);
     this.commitStartTime = proto.getTimestamp();
   }
 
@@ -121,5 +125,8 @@ public class VertexCommitStartedEvent implements HistoryEvent, SummaryEvent {
     return false;
   }
 
+  public TezDAGID getDagID() {
+    return dagID;
+  }
 
 }

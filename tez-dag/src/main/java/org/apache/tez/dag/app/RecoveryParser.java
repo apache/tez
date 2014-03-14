@@ -18,6 +18,13 @@
 
 package org.apache.tez.dag.app;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -27,7 +34,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
@@ -37,9 +44,9 @@ import org.apache.tez.dag.history.events.AMLaunchedEvent;
 import org.apache.tez.dag.history.events.AMStartedEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 import org.apache.tez.dag.history.events.DAGCommitStartedEvent;
-import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGInitializedEvent;
+import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
@@ -48,17 +55,15 @@ import org.apache.tez.dag.history.events.TaskStartedEvent;
 import org.apache.tez.dag.history.events.VertexCommitStartedEvent;
 import org.apache.tez.dag.history.events.VertexDataMovementEventsGeneratedEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
+import org.apache.tez.dag.history.events.VertexGroupCommitFinishedEvent;
+import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
 import org.apache.tez.dag.history.events.VertexParallelismUpdatedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 
 public class RecoveryParser {
 
@@ -86,6 +91,15 @@ public class RecoveryParser {
     recoveryBufferSize = dagAppMaster.getConfig().getInt(
         TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE,
         TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE_DEFAULT);
+  }
+
+  public static class RecoveredDAGData {
+    public TezDAGID recoveredDagID = null;
+    public DAGImpl recoveredDAG = null;
+    public DAGState dagState = null;
+    public boolean isCompleted = false;
+    public boolean nonRecoverable = false;
+    public String reason = null;
   }
 
   private static void parseSummaryFile(FSDataInputStream inputStream)
@@ -148,6 +162,12 @@ public class RecoveryParser {
         break;
       case VERTEX_COMMIT_STARTED:
         event = new VertexCommitStartedEvent();
+        break;
+      case VERTEX_GROUP_COMMIT_STARTED:
+        event = new VertexGroupCommitStartedEvent();
+        break;
+      case VERTEX_GROUP_COMMIT_FINISHED:
+        event = new VertexGroupCommitFinishedEvent();
         break;
       case VERTEX_FINISHED:
         event = new VertexFinishedEvent();
@@ -266,17 +286,24 @@ public class RecoveryParser {
     return recoveryFS.create(dagRecoveryPath, true, recoveryBufferSize);
   }
 
-  private TezDAGID getLastInProgressDAG(Map<TezDAGID, Boolean> seenDAGs) {
-    TezDAGID inProgressDAG = null;
-    for (Map.Entry<TezDAGID, Boolean> entry : seenDAGs.entrySet()) {
-      if (!entry.getValue().booleanValue()) {
+  private DAGSummaryData getLastCompletedOrInProgressDAG(
+      Map<TezDAGID, DAGSummaryData> dagSummaryDataMap) {
+    DAGSummaryData inProgressDAG = null;
+    DAGSummaryData lastCompletedDAG = null;
+    for (Map.Entry<TezDAGID, DAGSummaryData> entry : dagSummaryDataMap.entrySet()) {
+      if (!entry.getValue().completed) {
         if (inProgressDAG != null) {
           throw new RuntimeException("Multiple in progress DAGs seen"
-              + ", dagId=" + inProgressDAG
+              + ", dagId=" + inProgressDAG.dagId
               + ", dagId=" + entry.getKey());
         }
-        inProgressDAG = entry.getKey();
+        inProgressDAG = entry.getValue();
+      } else {
+        lastCompletedDAG = entry.getValue();
       }
+    }
+    if (inProgressDAG == null) {
+      return lastCompletedDAG;
     }
     return inProgressDAG;
   }
@@ -305,8 +332,134 @@ public class RecoveryParser {
     return getAttemptRecoveryDataDir(recoveryDataDir, foundPreviousAttempt);
   }
 
+  private static class DAGSummaryData {
 
-  public DAG parseRecoveryData() throws IOException {
+    final TezDAGID dagId;
+    boolean completed = false;
+    boolean dagCommitCompleted = true;
+    DAGState dagState;
+    Map<TezVertexID, Boolean> vertexCommitStatus =
+        new HashMap<TezVertexID, Boolean>();
+    Map<String, Boolean> vertexGroupCommitStatus =
+        new HashMap<String, Boolean>();
+    List<HistoryEvent> bufferedSummaryEvents =
+        new ArrayList<HistoryEvent>();
+
+    DAGSummaryData(TezDAGID dagId) {
+      this.dagId = dagId;
+    }
+
+    void handleSummaryEvent(SummaryEventProto proto) throws IOException {
+      HistoryEventType eventType =
+          HistoryEventType.values()[proto.getEventType()];
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("[RECOVERY SUMMARY]"
+            + " dagId=" + proto.getDagId()
+            + ", timestamp=" + proto.getTimestamp()
+            + ", event=" + eventType);
+      }
+      switch (eventType) {
+        case DAG_SUBMITTED:
+          completed = false;
+          break;
+        case DAG_FINISHED:
+          completed = true;
+          dagCommitCompleted = true;
+          DAGFinishedEvent dagFinishedEvent = new DAGFinishedEvent();
+          dagFinishedEvent.fromSummaryProtoStream(proto);
+          dagState = dagFinishedEvent.getState();
+          break;
+        case DAG_COMMIT_STARTED:
+          dagCommitCompleted = false;
+          break;
+        case VERTEX_COMMIT_STARTED:
+          VertexCommitStartedEvent vertexCommitStartedEvent =
+              new VertexCommitStartedEvent();
+          vertexCommitStartedEvent.fromSummaryProtoStream(proto);
+          vertexCommitStatus.put(
+              vertexCommitStartedEvent.getVertexID(), false);
+          break;
+        case VERTEX_FINISHED:
+          VertexFinishedEvent vertexFinishedEvent =
+              new VertexFinishedEvent();
+          vertexFinishedEvent.fromSummaryProtoStream(proto);
+          if (vertexCommitStatus.containsKey(vertexFinishedEvent.getVertexID())) {
+            vertexCommitStatus.put(
+                vertexFinishedEvent.getVertexID(), true);
+            bufferedSummaryEvents.add(vertexFinishedEvent);
+          }
+          break;
+        case VERTEX_GROUP_COMMIT_STARTED:
+          VertexGroupCommitStartedEvent vertexGroupCommitStartedEvent =
+              new VertexGroupCommitStartedEvent();
+          vertexGroupCommitStartedEvent.fromSummaryProtoStream(proto);
+          bufferedSummaryEvents.add(vertexGroupCommitStartedEvent);
+          vertexGroupCommitStatus.put(
+              vertexGroupCommitStartedEvent.getVertexGroupName(), false);
+          break;
+        case VERTEX_GROUP_COMMIT_FINISHED:
+          VertexGroupCommitFinishedEvent vertexGroupCommitFinishedEvent =
+              new VertexGroupCommitFinishedEvent();
+          vertexGroupCommitFinishedEvent.fromSummaryProtoStream(proto);
+          bufferedSummaryEvents.add(vertexGroupCommitFinishedEvent);
+          vertexGroupCommitStatus.put(
+              vertexGroupCommitFinishedEvent.getVertexGroupName(), true);
+          break;
+      }
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      sb.append("dagId=").append(dagId);
+      sb.append(", dagCompleted=").append(completed);
+      if (!vertexCommitStatus.isEmpty()) {
+        sb.append(", vertexCommitStatuses=[");
+        for (Entry<TezVertexID, Boolean> entry : vertexCommitStatus.entrySet()) {
+          sb.append("{ vertexId=").append(entry.getKey())
+              .append(", committed=").append(entry.getValue()).append("}, ");
+        }
+        sb.append("]");
+      }
+      if (!vertexGroupCommitStatus.isEmpty()) {
+        sb.append(", vertexGroupCommitStatuses=[");
+        for (Entry<String, Boolean> entry : vertexGroupCommitStatus.entrySet()) {
+          sb.append("{ vertexGroup=").append(entry.getKey())
+              .append(", committed=").append(entry.getValue()).append("}, ");
+        }
+        sb.append("]");
+      }
+      return sb.toString();
+    }
+  }
+
+  private String isDAGRecoverable(DAGSummaryData data) {
+    if (!data.dagCommitCompleted) {
+      return "DAG Commit was in progress, not recoverable"
+          + ", dagId=" + data.dagId;
+    }
+    if (!data.vertexCommitStatus.isEmpty()) {
+      for (Entry<TezVertexID, Boolean> entry : data.vertexCommitStatus.entrySet()) {
+        if (!(entry.getValue().booleanValue())) {
+          return "Vertex Commit was in progress, not recoverable"
+              + ", dagId=" + data.dagId
+              + ", vertexId=" + entry.getKey();
+        }
+      }
+    }
+    if (!data.vertexGroupCommitStatus.isEmpty()) {
+      for (Entry<String, Boolean> entry : data.vertexGroupCommitStatus.entrySet()) {
+        if (!(entry.getValue().booleanValue())) {
+          return "Vertex Group Commit was in progress, not recoverable"
+              + ", dagId=" + data.dagId
+              + ", vertexGroup=" + entry.getKey();
+        }
+      }
+    }
+    return null;
+  }
+
+  public RecoveredDAGData parseRecoveryData() throws IOException {
     Path previousAttemptRecoveryDataDir = getPreviousAttemptRecoveryDataDir();
     LOG.info("Using " + previousAttemptRecoveryDataDir.toString()
         + " for recovering data from previous attempt");
@@ -330,8 +483,6 @@ public class RecoveryParser {
     FSDataOutputStream newSummaryStream =
         getSummaryOutputStream(newSummaryPath);
 
-    Map<TezDAGID, Boolean> seenDAGs = new TreeMap<TezDAGID, Boolean>();
-
     FileStatus summaryFileStatus = recoveryFS.getFileStatus(summaryPath);
     LOG.info("Parsing summary file"
         + ", path=" + summaryPath.toString()
@@ -339,6 +490,8 @@ public class RecoveryParser {
         + ", lastModTime=" + summaryFileStatus.getModificationTime());
 
     int dagCounter = 0;
+    Map<TezDAGID, DAGSummaryData> dagSummaryDataMap =
+        new HashMap<TezDAGID, DAGSummaryData>();
     while (summaryStream.available() > 0) {
       RecoveryProtos.SummaryEventProto proto =
           RecoveryProtos.SummaryEventProto.parseDelimitedFrom(summaryStream);
@@ -354,11 +507,10 @@ public class RecoveryParser {
       if (dagCounter < dagId.getId()) {
         dagCounter = dagId.getId();
       }
-      if (eventType.equals(HistoryEventType.DAG_SUBMITTED)) {
-        seenDAGs.put(dagId, false);
-      } else if (eventType.equals(HistoryEventType.DAG_FINISHED)) {
-        seenDAGs.put(dagId, true);
+      if (!dagSummaryDataMap.containsKey(dagId)) {
+        dagSummaryDataMap.put(dagId, new DAGSummaryData(dagId));
       }
+      dagSummaryDataMap.get(dagId).handleSummaryEvent(proto);
       proto.writeDelimitedTo(newSummaryStream);
     }
     newSummaryStream.hsync();
@@ -367,10 +519,33 @@ public class RecoveryParser {
     // Set counter for next set of DAGs
     dagAppMaster.setDAGCounter(dagCounter);
 
-    TezDAGID lastInProgressDAG = getLastInProgressDAG(seenDAGs);
-    if (lastInProgressDAG == null) {
-      LOG.info("Nothing to recover as no uncompleted DAGs found");
+    DAGSummaryData lastInProgressDAGData =
+        getLastCompletedOrInProgressDAG(dagSummaryDataMap);
+    if (lastInProgressDAGData == null) {
+      LOG.info("Nothing to recover as no uncompleted/completed DAGs found");
       return null;
+    }
+    TezDAGID lastInProgressDAG = lastInProgressDAGData.dagId;
+    if (lastInProgressDAG == null) {
+      LOG.info("Nothing to recover as no uncompleted/completed DAGs found");
+      return null;
+    }
+
+    LOG.info("Checking if DAG is in recoverable state"
+        + ", dagId=" + lastInProgressDAGData.dagId);
+
+    final RecoveredDAGData recoveredDAGData = new RecoveredDAGData();
+    if (lastInProgressDAGData.completed) {
+      recoveredDAGData.isCompleted = true;
+      recoveredDAGData.dagState = lastInProgressDAGData.dagState;
+    }
+
+    String nonRecoverableReason = isDAGRecoverable(lastInProgressDAGData);
+    if (nonRecoverableReason != null) {
+      LOG.warn("Found last inProgress DAG but not recoverable: "
+          + lastInProgressDAGData);
+      recoveredDAGData.nonRecoverable = true;
+      recoveredDAGData.reason = nonRecoverableReason;
     }
 
     LOG.info("Trying to recover dag from recovery file"
@@ -387,14 +562,13 @@ public class RecoveryParser {
           + ", dagId=" + lastInProgressDAG);
     }
 
-    DAGImpl recoveredDAG = null;
-
     LOG.info("Copying DAG data into Current Attempt directory"
         + ", filePath=" + getDAGRecoveryFilePath(currentAttemptRecoveryDataDir,
         lastInProgressDAG));
     FSDataOutputStream newDAGRecoveryStream =
         getDAGRecoveryOutputStream(currentAttemptRecoveryDataDir, lastInProgressDAG);
 
+    boolean skipAllOtherEvents = false;
     while (dagRecoveryStream.available() > 0) {
       HistoryEvent event;
       try {
@@ -403,8 +577,9 @@ public class RecoveryParser {
         LOG.warn("Corrupt data found when trying to read next event", ioe);
         break;
       }
-      if (event == null) {
+      if (event == null || skipAllOtherEvents) {
         // reached end of data
+        event = null;
         break;
       }
       HistoryEventType eventType = event.getEventType();
@@ -414,9 +589,13 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          recoveredDAG = dagAppMaster.createDAG(((DAGSubmittedEvent) event).getDAGPlan(),
+          recoveredDAGData.recoveredDAG = dagAppMaster.createDAG(((DAGSubmittedEvent) event).getDAGPlan(),
               lastInProgressDAG);
-          dagAppMaster.setCurrentDAG(recoveredDAG);
+          recoveredDAGData.recoveredDagID = recoveredDAGData.recoveredDAG.getID();
+          dagAppMaster.setCurrentDAG(recoveredDAGData.recoveredDAG);
+          if (recoveredDAGData.nonRecoverable) {
+            skipAllOtherEvents = true;
+          }
           break;
         }
         case DAG_INITIALIZED:
@@ -424,8 +603,8 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
-          recoveredDAG.restoreFromEvent(event);
+          assert recoveredDAGData.recoveredDAG != null;
+          recoveredDAGData.recoveredDAG.restoreFromEvent(event);
           break;
         }
         case DAG_STARTED:
@@ -433,8 +612,8 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
-          recoveredDAG.restoreFromEvent(event);
+          assert recoveredDAGData.recoveredDAG != null;
+          recoveredDAGData.recoveredDAG.restoreFromEvent(event);
           break;
         }
         case DAG_COMMIT_STARTED:
@@ -442,8 +621,26 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
-          recoveredDAG.restoreFromEvent(event);
+          assert recoveredDAGData.recoveredDAG != null;
+          recoveredDAGData.recoveredDAG.restoreFromEvent(event);
+          break;
+        }
+        case VERTEX_GROUP_COMMIT_STARTED:
+        {
+          LOG.info("Recovering from event"
+              + ", eventType=" + eventType
+              + ", event=" + event.toString());
+          assert recoveredDAGData.recoveredDAG != null;
+          recoveredDAGData.recoveredDAG.restoreFromEvent(event);
+          break;
+        }
+        case VERTEX_GROUP_COMMIT_FINISHED:
+        {
+          LOG.info("Recovering from event"
+              + ", eventType=" + eventType
+              + ", event=" + event.toString());
+          assert recoveredDAGData.recoveredDAG != null;
+          recoveredDAGData.recoveredDAG.restoreFromEvent(event);
           break;
         }
         case DAG_FINISHED:
@@ -452,13 +649,16 @@ public class RecoveryParser {
               + ", eventType=" + eventType
               + ", event=" + event.toString());
           // If this is seen, nothing to recover
-          assert recoveredDAG != null;
-          recoveredDAG.restoreFromEvent(event);
-          return recoveredDAG;
+          assert recoveredDAGData.recoveredDAG != null;
+          recoveredDAGData.recoveredDAG.restoreFromEvent(event);
+          recoveredDAGData.isCompleted = true;
+          recoveredDAGData.dagState =
+              ((DAGFinishedEvent) event).getState();
+          skipAllOtherEvents = true;
         }
         case CONTAINER_LAUNCHED:
         {
-          // Nothing to do?
+          // Nothing to do for now
           break;
         }
         case VERTEX_INITIALIZED:
@@ -466,9 +666,9 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
+          assert recoveredDAGData.recoveredDAG != null;
           VertexInitializedEvent vEvent = (VertexInitializedEvent) event;
-          Vertex v = recoveredDAG.getVertex(vEvent.getVertexID());
+          Vertex v = recoveredDAGData.recoveredDAG.getVertex(vEvent.getVertexID());
           v.restoreFromEvent(vEvent);
           break;
         }
@@ -477,9 +677,9 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
+          assert recoveredDAGData.recoveredDAG != null;
           VertexStartedEvent vEvent = (VertexStartedEvent) event;
-          Vertex v = recoveredDAG.getVertex(vEvent.getVertexID());
+          Vertex v = recoveredDAGData.recoveredDAG.getVertex(vEvent.getVertexID());
           v.restoreFromEvent(vEvent);
           break;
         }
@@ -488,9 +688,9 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
+          assert recoveredDAGData.recoveredDAG != null;
           VertexParallelismUpdatedEvent vEvent = (VertexParallelismUpdatedEvent) event;
-          Vertex v = recoveredDAG.getVertex(vEvent.getVertexID());
+          Vertex v = recoveredDAGData.recoveredDAG.getVertex(vEvent.getVertexID());
           v.restoreFromEvent(vEvent);
           break;
         }
@@ -499,9 +699,9 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
+          assert recoveredDAGData.recoveredDAG != null;
           VertexCommitStartedEvent vEvent = (VertexCommitStartedEvent) event;
-          Vertex v = recoveredDAG.getVertex(vEvent.getVertexID());
+          Vertex v = recoveredDAGData.recoveredDAG.getVertex(vEvent.getVertexID());
           v.restoreFromEvent(vEvent);
           break;
         }
@@ -510,9 +710,9 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
+          assert recoveredDAGData.recoveredDAG != null;
           VertexFinishedEvent vEvent = (VertexFinishedEvent) event;
-          Vertex v = recoveredDAG.getVertex(vEvent.getVertexID());
+          Vertex v = recoveredDAGData.recoveredDAG.getVertex(vEvent.getVertexID());
           v.restoreFromEvent(vEvent);
           break;
         }
@@ -521,9 +721,9 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
+          assert recoveredDAGData.recoveredDAG != null;
           TaskStartedEvent tEvent = (TaskStartedEvent) event;
-          Task task = recoveredDAG.getVertex(
+          Task task = recoveredDAGData.recoveredDAG.getVertex(
               tEvent.getTaskID().getVertexID()).getTask(tEvent.getTaskID());
           task.restoreFromEvent(tEvent);
           break;
@@ -533,9 +733,9 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
+          assert recoveredDAGData.recoveredDAG != null;
           TaskFinishedEvent tEvent = (TaskFinishedEvent) event;
-          Task task = recoveredDAG.getVertex(
+          Task task = recoveredDAGData.recoveredDAG.getVertex(
               tEvent.getTaskID().getVertexID()).getTask(tEvent.getTaskID());
           task.restoreFromEvent(tEvent);
           break;
@@ -545,10 +745,10 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
+          assert recoveredDAGData.recoveredDAG != null;
           TaskAttemptStartedEvent tEvent = (TaskAttemptStartedEvent) event;
           Task task =
-              recoveredDAG.getVertex(
+              recoveredDAGData.recoveredDAG.getVertex(
                   tEvent.getTaskAttemptID().getTaskID().getVertexID())
                       .getTask(tEvent.getTaskAttemptID().getTaskID());
           task.restoreFromEvent(tEvent);
@@ -559,10 +759,10 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
+          assert recoveredDAGData.recoveredDAG != null;
           TaskAttemptFinishedEvent tEvent = (TaskAttemptFinishedEvent) event;
           Task task =
-              recoveredDAG.getVertex(
+              recoveredDAGData.recoveredDAG.getVertex(
                   tEvent.getTaskAttemptID().getTaskID().getVertexID())
                   .getTask(tEvent.getTaskAttemptID().getTaskID());
           task.restoreFromEvent(tEvent);
@@ -573,10 +773,10 @@ public class RecoveryParser {
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          assert recoveredDAG != null;
+          assert recoveredDAGData.recoveredDAG != null;
           VertexDataMovementEventsGeneratedEvent vEvent =
               (VertexDataMovementEventsGeneratedEvent) event;
-          Vertex v = recoveredDAG.getVertex(vEvent.getVertexID());
+          Vertex v = recoveredDAGData.recoveredDAG.getVertex(vEvent.getVertexID());
           v.restoreFromEvent(vEvent);
           break;
         }
@@ -596,6 +796,42 @@ public class RecoveryParser {
     newDAGRecoveryStream.hsync();
     newDAGRecoveryStream.close();
 
+    if (!recoveredDAGData.isCompleted
+        && !recoveredDAGData.nonRecoverable) {
+      if (lastInProgressDAGData.bufferedSummaryEvents != null
+        && !lastInProgressDAGData.bufferedSummaryEvents.isEmpty()) {
+        for (HistoryEvent bufferedEvent : lastInProgressDAGData.bufferedSummaryEvents) {
+          assert recoveredDAGData.recoveredDAG != null;
+          switch (bufferedEvent.getEventType()) {
+            case VERTEX_GROUP_COMMIT_STARTED:
+              recoveredDAGData.recoveredDAG.restoreFromEvent(bufferedEvent);
+              break;
+            case VERTEX_GROUP_COMMIT_FINISHED:
+              recoveredDAGData.recoveredDAG.restoreFromEvent(bufferedEvent);
+              break;
+            case VERTEX_FINISHED:
+              VertexFinishedEvent vertexFinishedEvent =
+                  (VertexFinishedEvent) bufferedEvent;
+              Vertex vertex = recoveredDAGData.recoveredDAG.getVertex(
+                  vertexFinishedEvent.getVertexID());
+              if (vertex == null) {
+                recoveredDAGData.nonRecoverable = true;
+                recoveredDAGData.reason = "All state could not be recovered"
+                    + ", vertex completed but events not flushed"
+                    + ", vertexId=" + vertexFinishedEvent.getVertexID();
+              } else {
+                vertex.restoreFromEvent(vertexFinishedEvent);
+              }
+              break;
+            default:
+              throw new RuntimeException("Invalid data found in buffered summary events"
+                  + ", unknown event type "
+                  + bufferedEvent.getEventType());
+          }
+        }
+      }
+    }
+
     Path dataCopiedFlagPath = new Path(currentAttemptRecoveryDataDir,
         dataRecoveredFileFlag);
     LOG.info("Finished copying data from previous attempt into current attempt"
@@ -607,7 +843,7 @@ public class RecoveryParser {
     flagFile.hsync();
     flagFile.close();
 
-    return recoveredDAG;
+    return recoveredDAGData;
   }
 
 }

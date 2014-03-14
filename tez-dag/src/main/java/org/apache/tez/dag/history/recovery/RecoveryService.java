@@ -18,6 +18,16 @@
 
 package org.apache.tez.dag.history.recovery;
 
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -32,16 +42,6 @@ import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.SummaryEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.records.TezDAGID;
-
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RecoveryService extends AbstractService {
 
@@ -120,7 +120,7 @@ public class RecoveryService extends AbstractService {
           synchronized (lock) {
             try {
               ++eventsProcessed;
-              handleEvent(event);
+              handleRecoveryEvent(event);
             } catch (Exception e) {
               // TODO handle failures - treat as fatal or ignore?
               LOG.warn("Error handling recovery event", e);
@@ -175,26 +175,56 @@ public class RecoveryService extends AbstractService {
       return;
     }
 
-    if (eventType.equals(HistoryEventType.DAG_SUBMITTED)
-      || eventType.equals(HistoryEventType.DAG_FINISHED)) {
-      // handle submissions and completion immediately
+    TezDAGID dagId = event.getDagID();
+    if (eventType.equals(HistoryEventType.DAG_SUBMITTED)) {
+      DAGSubmittedEvent dagSubmittedEvent =
+          (DAGSubmittedEvent) event.getHistoryEvent();
+      String dagName = dagSubmittedEvent.getDAGName();
+      if (dagName != null
+          && dagName.startsWith(
+          TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
+        // Skip recording pre-warm DAG events
+        skippedDAGs.add(dagId);
+        return;
+      }
+    }
+    if (dagId == null || skippedDAGs.contains(dagId)) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Skipping event for DAG"
+            + ", eventType=" + eventType
+            + ", dagId=" + (dagId == null ? "null" : dagId.toString())
+            + ", isSkippedDAG=" + (dagId == null ? "null"
+            : skippedDAGs.contains(dagId)));
+      }
+      return;
+    }
+
+    if (event.getHistoryEvent() instanceof SummaryEvent) {
       synchronized (lock) {
         try {
-          handleEvent(event);
+          SummaryEvent summaryEvent = (SummaryEvent) event.getHistoryEvent();
+          handleSummaryEvent(dagId, eventType, summaryEvent);
           summaryStream.hsync();
-          if (eventType.equals(HistoryEventType.DAG_SUBMITTED)) {
-            if (outputStreamMap.containsKey(event.getDagID())) {
-              doFlush(outputStreamMap.get(event.getDagID()),
-                  appContext.getClock().getTime(), true);
+          if (summaryEvent.writeToRecoveryImmediately()) {
+            handleRecoveryEvent(event);
+            doFlush(outputStreamMap.get(event.getDagID()),
+                appContext.getClock().getTime(), true);
+          } else {
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Queueing Non-immediate Summary/Recovery event of type"
+                  + eventType.name());
             }
-          } else if (eventType.equals(HistoryEventType.DAG_FINISHED)) {
-            completedDAGs.add(event.getDagID());
-            if (outputStreamMap.containsKey(event.getDagID())) {
+            eventQueue.add(event);
+          }
+          if (eventType.equals(HistoryEventType.DAG_FINISHED)) {
+            LOG.info("DAG completed"
+                + ", dagId=" + event.getDagID()
+                + ", queueSize=" + eventQueue.size());
+            completedDAGs.add(dagId);
+            if (outputStreamMap.containsKey(dagId)) {
               try {
-                doFlush(outputStreamMap.get(event.getDagID()),
-                    appContext.getClock().getTime(), true);
-                outputStreamMap.get(event.getDagID()).close();
-                outputStreamMap.remove(event.getDagID());
+                outputStreamMap.get(dagId).close();
+                outputStreamMap.remove(dagId);
               } catch (IOException ioe) {
                 LOG.warn("Error when trying to flush/close recovery file for"
                     + " dag, dagId=" + event.getDagID());
@@ -207,51 +237,24 @@ public class RecoveryService extends AbstractService {
           LOG.warn("Error handling recovery event", e);
         }
       }
-      LOG.info("DAG completed"
-          + ", dagId=" + event.getDagID()
-          + ", queueSize=" + eventQueue.size());
     } else {
       // All other events just get queued
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Queueing Recovery event of type " + eventType.name());
+        LOG.debug("Queueing Non-Summary Recovery event of type " + eventType.name());
       }
       eventQueue.add(event);
     }
   }
 
-
-  private void handleEvent(DAGHistoryEvent event) {
-    HistoryEventType eventType = event.getHistoryEvent().getEventType();
+  private void handleSummaryEvent(TezDAGID dagID,
+      HistoryEventType eventType,
+      SummaryEvent summaryEvent) {
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Handling recovery event of type "
-          + event.getHistoryEvent().getEventType());
+      LOG.debug("Handling summary event"
+          + ", dagID=" + dagID
+          + ", eventType=" + eventType);
     }
-    if (event.getDagID() == null) {
-      // AM event
-      // anything to be done?
-      // TODO
-      LOG.info("Skipping Recovery Event as DAG is null"
-          + ", eventType=" + event.getHistoryEvent().getEventType());
-      return;
-    }
-
-    TezDAGID dagID = event.getDagID();
-    if (completedDAGs.contains(dagID)
-        || skippedDAGs.contains(dagID)) {
-      // Skip events for completed and skipped DAGs
-      // no need to recover completed DAGs
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Skipping Recovery Event as either completed or skipped"
-            + ", dagId=" + dagID
-            + ", completed=" + completedDAGs.contains(dagID)
-            + ", skipped=" + skippedDAGs.contains(dagID)
-            + ", eventType=" + event.getHistoryEvent().getEventType());
-      }
-      return;
-    }
-
     try {
-
       if (summaryStream == null) {
         Path summaryPath = new Path(recoveryPath,
             appContext.getApplicationID()
@@ -263,30 +266,41 @@ public class RecoveryService extends AbstractService {
           summaryStream = recoveryDirFS.append(summaryPath, bufferSize);
         }
       }
-
-      if (eventType.equals(HistoryEventType.DAG_SUBMITTED)
-          || eventType.equals(HistoryEventType.DAG_FINISHED)) {
-        if (eventType.equals(HistoryEventType.DAG_SUBMITTED)) {
-          DAGSubmittedEvent dagSubmittedEvent =
-              (DAGSubmittedEvent) event.getHistoryEvent();
-          String dagName = dagSubmittedEvent.getDAGName();
-          if (dagName != null
-              && dagName.startsWith(
-              TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
-            // Skip recording pre-warm DAG events
-            skippedDAGs.add(dagID);
-            return;
-          }
-        }
-        SummaryEvent summaryEvent = (SummaryEvent) event.getHistoryEvent();
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Writing recovery event to summary stream"
-              + ", dagId=" + dagID
-              + ", type="
-              + event.getHistoryEvent().getEventType());
-        }
-        summaryEvent.toSummaryProtoStream(summaryStream);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Writing recovery event to summary stream"
+            + ", dagId=" + dagID
+            + ", eventType=" + eventType);
       }
+      summaryEvent.toSummaryProtoStream(summaryStream);
+    } catch (IOException ioe) {
+      // FIXME handle failures
+      LOG.warn("Failed to write to stream", ioe);
+    }
+
+
+  }
+
+  private void handleRecoveryEvent(DAGHistoryEvent event) {
+    HistoryEventType eventType = event.getHistoryEvent().getEventType();
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Handling recovery event of type "
+          + event.getHistoryEvent().getEventType());
+    }
+    TezDAGID dagID = event.getDagID();
+
+    if (completedDAGs.contains(dagID)) {
+      // no need to recover completed DAGs
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Skipping Recovery Event as DAG completed"
+            + ", dagId=" + dagID
+            + ", completed=" + completedDAGs.contains(dagID)
+            + ", skipped=" + skippedDAGs.contains(dagID)
+            + ", eventType=" + eventType);
+      }
+      return;
+    }
+
+    try {
 
       if (!outputStreamMap.containsKey(dagID)) {
         Path dagFilePath = new Path(recoveryPath,
@@ -313,8 +327,7 @@ public class RecoveryService extends AbstractService {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Writing recovery event to output stream"
             + ", dagId=" + dagID
-            + ", type="
-            + event.getHistoryEvent().getEventType());
+            + ", eventType=" + eventType);
       }
       ++unflushedEventsCount;
       outputStream.writeInt(event.getHistoryEvent().getEventType().ordinal());
@@ -339,11 +352,9 @@ public class RecoveryService extends AbstractService {
         && ((currentTime - lastFlushTime) >= (flushInterval*1000))) {
       doFlush = true;
     }
-
     if (!doFlush) {
       return;
     }
-
     doFlush(outputStream, currentTime, false);
   }
 

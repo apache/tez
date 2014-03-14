@@ -18,26 +18,31 @@
 
 package org.apache.tez.dag.history.events;
 
-import org.apache.tez.dag.history.HistoryEvent;
-import org.apache.tez.dag.history.HistoryEventType;
-import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGCommitStartedProto;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class DAGCommitStartedEvent implements HistoryEvent {
+import org.apache.tez.dag.history.HistoryEvent;
+import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.history.SummaryEvent;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGCommitStartedProto;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
+import org.apache.tez.dag.utils.ProtoUtils;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+
+public class DAGCommitStartedEvent implements HistoryEvent, SummaryEvent {
 
   private TezDAGID dagID;
+  private long commitStartTime;
 
   public DAGCommitStartedEvent() {
   }
 
-  public DAGCommitStartedEvent(TezDAGID dagID) {
+  public DAGCommitStartedEvent(TezDAGID dagID, long commitStartTime) {
     this.dagID = dagID;
+    this.commitStartTime = commitStartTime;
   }
 
   @Override
@@ -89,6 +94,23 @@ public class DAGCommitStartedEvent implements HistoryEvent {
 
   public TezDAGID getDagID() {
     return dagID;
+  }
+
+  @Override
+  public void toSummaryProtoStream(OutputStream outputStream) throws IOException {
+    ProtoUtils.toSummaryEventProto(dagID, commitStartTime,
+        getEventType()).writeDelimitedTo(outputStream);
+  }
+
+  @Override
+  public void fromSummaryProtoStream(SummaryEventProto proto) throws IOException {
+    this.dagID = TezDAGID.fromString(proto.getDagId());
+    this.commitStartTime = proto.getTimestamp();
+  }
+
+  @Override
+  public boolean writeToRecoveryImmediately() {
+    return false;
   }
 
 }

@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -99,6 +100,7 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
+import org.apache.tez.dag.app.RecoveryParser.RecoveredDAGData;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Task;
@@ -108,6 +110,7 @@ import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDAGFinished;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
+import org.apache.tez.dag.app.dag.event.DAGEventRecoverEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
@@ -1371,28 +1374,19 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  private DAG recoverDAG() throws IOException {
-    DAG recoveredDAG = null;
+  private RecoveredDAGData recoverDAG() throws IOException {
     if (recoveryEnabled) {
       if (this.appAttemptID.getAttemptId() > 1) {
+        LOG.info("Recovering data from previous attempts"
+            + ", currentAttemptId=" + this.appAttemptID.getAttemptId());
         this.state = DAGAppMasterState.RECOVERING;
         RecoveryParser recoveryParser = new RecoveryParser(
             this, recoveryFS, recoveryDataDir, appAttemptID.getAttemptId());
-        recoveredDAG = recoveryParser.parseRecoveryData();
-        if (recoveredDAG != null) {
-          LOG.info("Found DAG to recover, dagId=" + recoveredDAG.getID());
-          _updateLoggers(recoveredDAG, "");
-          DAGEvent recoverDAGEvent = new DAGEvent(recoveredDAG.getID(),
-              DAGEventType.DAG_RECOVER);
-          dagEventDispatcher.handle(recoverDAGEvent);
-          this.state = DAGAppMasterState.RUNNING;
-        } else {
-          LOG.info("No DAG to recover");
-          this.state = DAGAppMasterState.IDLE;
-        }
+        RecoveredDAGData recoveredDAGData = recoveryParser.parseRecoveryData();
+        return recoveredDAGData;
       }
     }
-    return recoveredDAG;
+    return null;
   }
 
   @SuppressWarnings("unchecked")
@@ -1415,20 +1409,56 @@ public class DAGAppMaster extends AbstractService {
 
     this.lastDAGCompletionTime = clock.getTime();
 
+    RecoveredDAGData recoveredDAGData = recoverDAG();
+
     if (!isSession) {
-      DAG recoveredDAG = null;
-      if (appAttemptID.getAttemptId() != 1) {
-        recoveredDAG = recoverDAG();
-      }
-      if (recoveredDAG == null) {
-        dagCounter.set(0);
-        startDAG();
-      }
+      LOG.info("In Non-Session mode.");
     } else {
       LOG.info("In Session mode. Waiting for DAG over RPC");
       this.state = DAGAppMasterState.IDLE;
-      recoverDAG();
+    }
 
+    if (recoveredDAGData != null) {
+      if (recoveredDAGData.isCompleted
+          || recoveredDAGData.nonRecoverable) {
+        LOG.info("Found previous DAG in completed or non-recoverable state"
+            + ", dagId=" + recoveredDAGData.recoveredDagID
+            + ", isCompleted=" + recoveredDAGData.isCompleted
+            + ", isNonRecoverable=" + recoveredDAGData.nonRecoverable
+            + ", state=" + (recoveredDAGData.dagState == null ? "null" :
+                recoveredDAGData.dagState)
+            + ", failureReason=" + recoveredDAGData.reason);
+        _updateLoggers(recoveredDAGData.recoveredDAG, "");
+        if (recoveredDAGData.nonRecoverable) {
+          DAGEventRecoverEvent recoverDAGEvent =
+              new DAGEventRecoverEvent(recoveredDAGData.recoveredDAG.getID(),
+                  DAGState.FAILED);
+          dagEventDispatcher.handle(recoverDAGEvent);
+          this.state = DAGAppMasterState.RUNNING;
+        } else {
+          DAGEventRecoverEvent recoverDAGEvent =
+              new DAGEventRecoverEvent(recoveredDAGData.recoveredDAG.getID(),
+                  recoveredDAGData.dagState);
+          dagEventDispatcher.handle(recoverDAGEvent);
+          this.state = DAGAppMasterState.RUNNING;
+        }
+      } else {
+        LOG.info("Found DAG to recover, dagId=" + recoveredDAGData.recoveredDAG.getID());
+        _updateLoggers(recoveredDAGData.recoveredDAG, "");
+        DAGEvent recoverDAGEvent = new DAGEvent(recoveredDAGData.recoveredDAG.getID(),
+            DAGEventType.DAG_RECOVER);
+        dagEventDispatcher.handle(recoverDAGEvent);
+        this.state = DAGAppMasterState.RUNNING;
+      }
+    } else {
+      if (!isSession) {
+        // No dag recovered - in non-session, just restart the original DAG
+        dagCounter.set(0);
+        startDAG();
+      }
+    }
+
+    if (isSession) {
       this.dagSubmissionTimer = new Timer(true);
       this.dagSubmissionTimer.scheduleAtFixedRate(new TimerTask() {
         @Override
@@ -1436,7 +1466,6 @@ public class DAGAppMaster extends AbstractService {
           checkAndHandleSessionTimeout();
         }
       }, sessionTimeoutInterval, sessionTimeoutInterval / 10);
-
     }
   }
 

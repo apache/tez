@@ -59,6 +59,7 @@ message DAGStartedProto {
 message DAGCommitStartedProto {
   optional string dag_id = 1;
 }
+
 message DAGFinishedProto {
   optional string dag_id = 1;
   optional int64 finish_time = 2;
@@ -97,6 +98,20 @@ message VertexParallelismUpdatedProto {
 
 message VertexCommitStartedProto {
   optional string vertex_id = 1;
+}
+
+message VertexCommitFinishedProto {
+  optional string vertex_id = 1;
+}
+
+message VertexGroupCommitStartedProto {
+  optional string dag_id = 1;
+  optional string vertex_group_name = 2;
+}
+
+message VertexGroupCommitFinishedProto {
+  optional string dag_id = 1;
+  optional string vertex_group_name = 2;
 }
 
 message VertexFinishedProto {
@@ -162,4 +177,10 @@ message SummaryEventProto {
   optional string dag_id = 1;
   optional int64 timestamp = 2;
   optional int32 event_type = 3;
+  optional bytes event_payload = 4;
+}
+
+message VertexFinishStateProto {
+  optional string vertex_id = 1;
+  optional int32 state = 2;
 }

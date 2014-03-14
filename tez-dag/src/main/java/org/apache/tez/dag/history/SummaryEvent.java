@@ -21,8 +21,19 @@ package org.apache.tez.dag.history;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
+
 public interface SummaryEvent {
 
   public void toSummaryProtoStream(OutputStream outputStream) throws IOException;
+
+  public void fromSummaryProtoStream(SummaryEventProto proto) throws IOException;
+
+  /**
+   * Whether to write this event immediately to the DAG recovery file
+   * Summary events are always written immediately to summary file.
+   * @return
+   */
+  public boolean writeToRecoveryImmediately();
 
 }

@@ -18,6 +18,8 @@
 
 package org.apache.tez.test.dag;
 
+import com.google.common.primitives.Booleans;
+import com.google.common.primitives.Ints;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -30,15 +32,24 @@ import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
+import org.apache.tez.dag.api.client.VertexStatus.State;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.MemoryUpdateCallback;
+import org.apache.tez.runtime.api.OutputCommitter;
+import org.apache.tez.runtime.api.OutputCommitterContext;
+import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.test.TestInput;
 import org.apache.tez.test.TestOutput;
 import org.apache.tez.test.TestProcessor;
+import org.apache.tez.test.dag.MultiAttemptDAG.FailingOutputCommitter.FailingOutputCommitterConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +66,10 @@ public class MultiAttemptDAG {
   public static String MULTI_ATTEMPT_DAG_VERTEX_NUM_TASKS =
       "tez.multi-attempt-dag.vertex.num-tasks";
   public static int MULTI_ATTEMPT_DAG_VERTEX_NUM_TASKS_DEFAULT = 2;
+
+  public static String MULTI_ATTEMPT_DAG_USE_FAILING_COMMITTER =
+      "tez.multi-attempt-dag.use-failing-committer";
+  public static boolean MULTI_ATTEMPT_DAG_USE_FAILING_COMMITTER_DEFAULT = false;
 
   public static class FailOnAttemptVertexManagerPlugin
       implements VertexManagerPlugin {
@@ -127,6 +142,100 @@ public class MultiAttemptDAG {
     @Override
     public void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor, List<Event> events) {
       // Do nothing
+    }
+  }
+
+  public static class FailingOutputCommitter extends OutputCommitter {
+
+    boolean failOnCommit = false;
+
+    @Override
+    public void initialize(OutputCommitterContext context) throws Exception {
+      FailingOutputCommitterConfig config = new
+          FailingOutputCommitterConfig();
+      config.fromUserPayload(context.getUserPayload());
+      failOnCommit = config.failOnCommit;
+    }
+
+    @Override
+    public void setupOutput() throws Exception {
+
+    }
+
+    @Override
+    public void commitOutput() throws Exception {
+      if (failOnCommit) {
+        LOG.info("Committer causing AM to shutdown");
+        Runtime.getRuntime().halt(-1);
+      }
+    }
+
+    @Override
+    public void abortOutput(State finalState) throws Exception {
+
+    }
+
+    public static class FailingOutputCommitterConfig {
+      boolean failOnCommit;
+
+      public FailingOutputCommitterConfig() {
+        this(false);
+      }
+
+      public FailingOutputCommitterConfig(boolean failOnCommit) {
+        this.failOnCommit = failOnCommit;
+      }
+
+      public byte[] toUserPayload() {
+        return Ints.toByteArray((failOnCommit ? 1 : 0));
+      }
+
+      public void fromUserPayload(byte[] userPayload) {
+        int failInt = Ints.fromByteArray(userPayload);
+        if (failInt == 0) {
+          failOnCommit = false;
+        } else {
+          failOnCommit = true;
+        }
+      }
+    }
+  }
+
+  public static class NoOpOutput implements LogicalOutput, MemoryUpdateCallback {
+
+    @Override
+    public void setNumPhysicalOutputs(int numOutputs) {
+
+    }
+
+    @Override
+    public List<Event> initialize(TezOutputContext outputContext) throws Exception {
+      outputContext.requestInitialMemory(1l, this);
+      return null;
+    }
+
+    @Override
+    public void start() throws Exception {
+
+    }
+
+    @Override
+    public Writer getWriter() throws Exception {
+      return null;
+    }
+
+    @Override
+    public void handleEvents(List<Event> outputEvents) {
+
+    }
+
+    @Override
+    public List<Event> close() throws Exception {
+      return null;
+    }
+
+    @Override
+    public void memoryAssigned(long assignedSize) {
     }
   }
 

@@ -94,6 +94,7 @@ import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
+import org.apache.tez.dag.app.dag.event.VertexEventOneToOneSourceSplit;
 import org.apache.tez.dag.app.dag.event.VertexEventRecoverVertex;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputFailed;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputInitialized;
@@ -106,7 +107,6 @@ import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
-import org.apache.tez.dag.app.dag.event.VertexEventOneToOneSourceSplit;
 import org.apache.tez.dag.app.dag.impl.DAGImpl.VertexGroupInfo;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEvent;
@@ -131,9 +131,9 @@ import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
-import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventType;
+import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
@@ -145,7 +145,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
-
 
 /** Implementation of Vertex interface. Maintains the state machines of Vertex.
  * The read and write calls use ReadWriteLock for concurrency.
@@ -529,6 +528,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   
   private String logIdentifier;
   private boolean recoveryCommitInProgress = false;
+  private boolean summaryCompleteSeen = false;
+  private boolean hasCommitter = false;
+  private boolean vertexCompleteSeen = false;
   private Map<String,EdgeManagerDescriptor> recoveredSourceEdgeManagers = null;
 
   // Recovery related flags
@@ -905,20 +907,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         }
         return recoveredState;
       case VERTEX_COMMIT_STARTED:
-        if (recoveredState != VertexState.RUNNING) {
-          throw new RuntimeException("Commit Started Event seen but"
-              + " recovered state is not RUNNING"
-              + ", recoveredState=" + recoveredState);
-        }
         recoveryCommitInProgress = true;
+        hasCommitter = true;
         return recoveredState;
       case VERTEX_FINISHED:
-        if (!recoveryStartEventSeen) {
-          throw new RuntimeException("Finished Event seen but"
-              + " no Started Event was encountered earlier");
+        VertexFinishedEvent finishedEvent = (VertexFinishedEvent) historyEvent;
+        if (finishedEvent.isFromSummary()) {
+          summaryCompleteSeen  = true;
+        } else {
+          vertexCompleteSeen = true;
         }
         recoveryCommitInProgress = false;
-        VertexFinishedEvent finishedEvent = (VertexFinishedEvent) historyEvent;
         recoveredState = finishedEvent.getState();
         diagnostics.add(finishedEvent.getDiagnostics());
         finishTime = finishedEvent.getFinishTime();
@@ -1280,22 +1279,28 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       if(vertex.succeededTaskCount == vertex.tasks.size() && vertex.terminationCause == null) {
         LOG.info("Vertex succeeded: " + vertex.logIdentifier);
         try {
-          if (vertex.outputCommitters != null) {
-            vertex.appContext.getHistoryHandler().handle(
-                new DAGHistoryEvent(vertex.getDAGId(),
-                    new VertexCommitStartedEvent(vertex.vertexId)));
-          }
           if (vertex.commitVertexOutputs && !vertex.committed.getAndSet(true)) {
             // commit only once. Dont commit shared outputs
             LOG.info("Invoking committer commit for vertex, vertexId="
                 + vertex.logIdentifier);
-            if (vertex.outputCommitters != null) {
+            if (vertex.outputCommitters != null
+                && !vertex.outputCommitters.isEmpty()) {
+              boolean firstCommit = true;
               for (Entry<String, OutputCommitter> entry : vertex.outputCommitters.entrySet()) {
                 final OutputCommitter committer = entry.getValue();
                 final String outputName = entry.getKey();
                 if (vertex.sharedOutputs.contains(outputName)) {
                   // dont commit shared committers. Will be committed by the DAG
                   continue;
+                }
+                if (firstCommit) {
+                  // Log commit start event on first actual commit
+                  vertex.appContext.getHistoryHandler().handle(
+                      new DAGHistoryEvent(vertex.getDAGId(),
+                          new VertexCommitStartedEvent(vertex.vertexId,
+                              vertex.clock.getTime())));
+                } else {
+                  firstCommit = false;
                 }
                 vertex.dagUgi.doAs(new PrivilegedExceptionAction<Void>() {
                   @Override
@@ -1806,31 +1811,44 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         case SUCCEEDED:
         case FAILED:
         case KILLED:
-          vertex.tasksNotYetScheduled = false;
-          // recover tasks
-          if (vertex.tasks != null) {
-            TaskState taskState = TaskState.KILLED;
-            switch (vertex.recoveredState) {
-              case SUCCEEDED:
-                taskState = TaskState.SUCCEEDED;
-                break;
-              case KILLED:
-                taskState = TaskState.KILLED;
-                break;
-              case FAILED:
-                taskState = TaskState.FAILED;
-                break;
-            }
-            for (Task task : vertex.tasks.values()) {
-              vertex.eventHandler.handle(
-                  new TaskEventRecoverTask(task.getTaskId(),
-                      taskState));
-            }
-            vertex.vertexManager.onVertexStarted(vertex.pendingReportedSrcCompletions);
-            endState = VertexState.RUNNING;
+          if (vertex.recoveredState == VertexState.SUCCEEDED
+              && vertex.hasCommitter
+              && vertex.summaryCompleteSeen && !vertex.vertexCompleteSeen) {
+            LOG.warn("Cannot recover vertex as all recovery events not"
+                + " found, vertex=" + vertex.logIdentifier
+                + ", hasCommitters=" + vertex.hasCommitter
+                + ", summaryCompletionSeen=" + vertex.summaryCompleteSeen
+                + ", finalCompletionSeen=" + vertex.vertexCompleteSeen);
+            vertex.finished(VertexState.FAILED,
+                VertexTerminationCause.COMMIT_FAILURE);
+            endState = VertexState.FAILED;
           } else {
-            endState = vertex.recoveredState;
-            vertex.finished(endState);
+            vertex.tasksNotYetScheduled = false;
+            // recover tasks
+            if (vertex.tasks != null) {
+              TaskState taskState = TaskState.KILLED;
+              switch (vertex.recoveredState) {
+                case SUCCEEDED:
+                  taskState = TaskState.SUCCEEDED;
+                  break;
+                case KILLED:
+                  taskState = TaskState.KILLED;
+                  break;
+                case FAILED:
+                  taskState = TaskState.FAILED;
+                  break;
+              }
+              for (Task task : vertex.tasks.values()) {
+                vertex.eventHandler.handle(
+                    new TaskEventRecoverTask(task.getTaskId(),
+                        taskState));
+              }
+              vertex.vertexManager.onVertexStarted(vertex.pendingReportedSrcCompletions);
+              endState = VertexState.RUNNING;
+            } else {
+              endState = vertex.recoveredState;
+              vertex.finished(endState);
+            }
           }
           break;
         default:
@@ -2318,12 +2336,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             " asked to split by: " + originalSplitSource + 
             " but was already split by:" + vertex.originalOneToOneSplitSource);
       }
-      Preconditions.checkState(vertex.getState() == VertexState.INITIALIZING, 
-          " Unexpected 1-1 split for vertex " + vertex.getVertexId() + 
-          " in state " + vertex.getState() + 
-          " . Split in vertex " + originalSplitSource + 
-          " sent by vertex " + splitEvent.getSenderVertex() +
-          " numTasks " + splitEvent.getNumTasks());
+      Preconditions.checkState(vertex.getState() == VertexState.INITIALIZING,
+          " Unexpected 1-1 split for vertex " + vertex.getVertexId() +
+              " in state " + vertex.getState() +
+              " . Split in vertex " + originalSplitSource +
+              " sent by vertex " + splitEvent.getSenderVertex() +
+              " numTasks " + splitEvent.getNumTasks());
       LOG.info("Splitting vertex " + vertex.getVertexId() + 
           " because of split in vertex " + originalSplitSource + 
           " sent by vertex " + splitEvent.getSenderVertex() +

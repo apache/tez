@@ -216,6 +216,11 @@ public class TestProcessor implements LogicalIOProcessor {
         LOG.info(msg);
     }
     for (Map.Entry<String, LogicalOutput> entry : outputs.entrySet()) {
+      if (!(entry.getValue() instanceof TestOutput)) {
+        LOG.info("Ignoring non TestOutput: " + entry.getKey()
+            + " outputClass= " + entry.getValue().getClass().getSimpleName());
+        continue;
+      }
       LOG.info("Writing output: " + entry.getKey() + " sum= " + sum);
       TestOutput output = (TestOutput) entry.getValue();
       output.write(sum);

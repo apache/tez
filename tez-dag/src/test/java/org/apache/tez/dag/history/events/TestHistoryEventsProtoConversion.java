@@ -35,10 +35,12 @@ import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.history.SummaryEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.runtime.RuntimeUtils;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
@@ -75,6 +77,26 @@ public class TestHistoryEventsProtoConversion {
         + ", bufLen=" + os.toByteArray().length);
     deserializedEvent.fromProtoStream(
         new ByteArrayInputStream(os.toByteArray()));
+    return deserializedEvent;
+  }
+
+  private HistoryEvent testSummaryProtoConversion(HistoryEvent historyEvent)
+      throws IOException {
+    SummaryEvent event = (SummaryEvent) historyEvent;
+    ByteArrayOutputStream os = new ByteArrayOutputStream();
+    HistoryEvent deserializedEvent = null;
+    event.toSummaryProtoStream(os);
+    os.flush();
+    os.close();
+    LOG.info("Serialized event to byte array"
+        + ", eventType=" + historyEvent.getEventType()
+        + ", bufLen=" + os.toByteArray().length);
+    SummaryEventProto summaryEventProto =
+        SummaryEventProto.parseDelimitedFrom(
+            new ByteArrayInputStream(os.toByteArray()));
+    deserializedEvent = RuntimeUtils.createClazzInstance(
+        event.getClass().getName());
+    ((SummaryEvent)deserializedEvent).fromSummaryProtoStream(summaryEventProto);
     return deserializedEvent;
   }
 
@@ -485,7 +507,7 @@ public class TestHistoryEventsProtoConversion {
 
   private void testDAGCommitStartedEvent() throws Exception {
     DAGCommitStartedEvent event = new DAGCommitStartedEvent(
-        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1));
+        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 100l);
     DAGCommitStartedEvent deserializedEvent =
         (DAGCommitStartedEvent) testProtoConversion(event);
     Assert.assertEquals(event.getDagID(), deserializedEvent.getDagID());
@@ -495,12 +517,55 @@ public class TestHistoryEventsProtoConversion {
   private void testVertexCommitStartedEvent() throws Exception {
     VertexCommitStartedEvent event = new VertexCommitStartedEvent(
         TezVertexID.getInstance(
-            TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1));
+            TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1), 100l);
     VertexCommitStartedEvent deserializedEvent =
         (VertexCommitStartedEvent) testProtoConversion(event);
     Assert.assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
     logEvents(event, deserializedEvent);
   }
+
+  private void testVertexGroupCommitStartedEvent() throws Exception {
+    VertexGroupCommitStartedEvent event = new VertexGroupCommitStartedEvent(
+        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1),
+        "fooGroup", 1000344l);
+    {
+      VertexGroupCommitStartedEvent deserializedEvent =
+          (VertexGroupCommitStartedEvent) testProtoConversion(event);
+      Assert.assertEquals(event.getDagID(), deserializedEvent.getDagID());
+      Assert.assertEquals(event.getVertexGroupName(),
+          deserializedEvent.getVertexGroupName());
+      logEvents(event, deserializedEvent);
+    }
+    {
+      VertexGroupCommitStartedEvent deserializedEvent =
+          (VertexGroupCommitStartedEvent) testSummaryProtoConversion(event);
+      Assert.assertEquals(event.getVertexGroupName(),
+          deserializedEvent.getVertexGroupName());
+      logEvents(event, deserializedEvent);
+    }
+  }
+
+  private void testVertexGroupCommitFinishedEvent() throws Exception {
+    VertexGroupCommitFinishedEvent event = new VertexGroupCommitFinishedEvent(
+        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1),
+        "fooGroup", 1000344l);
+    {
+      VertexGroupCommitFinishedEvent deserializedEvent =
+          (VertexGroupCommitFinishedEvent) testProtoConversion(event);
+      Assert.assertEquals(event.getDagID(), deserializedEvent.getDagID());
+      Assert.assertEquals(event.getVertexGroupName(),
+          deserializedEvent.getVertexGroupName());
+      logEvents(event, deserializedEvent);
+    }
+    {
+      VertexGroupCommitFinishedEvent deserializedEvent =
+          (VertexGroupCommitFinishedEvent) testSummaryProtoConversion(event);
+      Assert.assertEquals(event.getVertexGroupName(),
+          deserializedEvent.getVertexGroupName());
+      logEvents(event, deserializedEvent);
+    }
+  }
+
 
   @Test
   public void testDefaultProtoConversion() throws Exception {
@@ -559,6 +624,12 @@ public class TestHistoryEventsProtoConversion {
           break;
         case VERTEX_COMMIT_STARTED:
           testVertexCommitStartedEvent();
+          break;
+        case VERTEX_GROUP_COMMIT_STARTED:
+          testVertexGroupCommitStartedEvent();
+          break;
+        case VERTEX_GROUP_COMMIT_FINISHED:
+          testVertexGroupCommitFinishedEvent();
           break;
         default:
           throw new Exception("Unhandled Event type in Unit tests: " + eventType);

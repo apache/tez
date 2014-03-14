@@ -16,27 +16,22 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.history;
+package org.apache.tez.dag.app.dag.event;
 
-public enum HistoryEventType {
-  AM_LAUNCHED,
-  AM_STARTED,
-  DAG_SUBMITTED,
-  DAG_INITIALIZED,
-  DAG_STARTED,
-  DAG_FINISHED,
-  VERTEX_INITIALIZED,
-  VERTEX_STARTED,
-  VERTEX_PARALLELISM_UPDATED,
-  VERTEX_FINISHED,
-  TASK_STARTED,
-  TASK_FINISHED,
-  TASK_ATTEMPT_STARTED,
-  TASK_ATTEMPT_FINISHED,
-  CONTAINER_LAUNCHED,
-  VERTEX_DATA_MOVEMENT_EVENTS_GENERATED,
-  DAG_COMMIT_STARTED,
-  VERTEX_COMMIT_STARTED,
-  VERTEX_GROUP_COMMIT_STARTED,
-  VERTEX_GROUP_COMMIT_FINISHED
+import org.apache.tez.dag.app.dag.DAGState;
+import org.apache.tez.dag.records.TezDAGID;
+
+public class DAGEventRecoverEvent extends DAGEvent {
+
+  private final DAGState desiredState;
+
+  public DAGEventRecoverEvent(TezDAGID dagId, DAGState desiredState) {
+    super(dagId, DAGEventType.DAG_RECOVER);
+    this.desiredState = desiredState;
+  }
+
+  public DAGState getDesiredState() {
+    return desiredState;
+  }
+
 }
