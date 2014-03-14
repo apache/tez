@@ -591,6 +591,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       setAdditionalOutputs(vertexPlan.getOutputsList());
     }
     
+    // Setup the initial parallelism early. This may be changed after
+    // initialization or on a setParallelism call.
+    this.numTasks = vertexPlan.getTaskConfig().getNumTasks();
+    
     this.dagVertexGroups = dagVertexGroups;
 
     logIdentifier =  this.getVertexId() + " [" + this.getName() + "]";
