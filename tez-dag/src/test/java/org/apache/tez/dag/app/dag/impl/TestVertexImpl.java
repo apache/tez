@@ -2215,6 +2215,7 @@ public class TestVertexImpl {
           dispatcher.getEventHandler(), taskAttemptListener,
           clock, thh, true, appContext, vertexLocationHint, null);
       vertexIdMap.put(vId, v);
+      vertices.put(v.getName(), v);
       v.handle(new VertexEvent(vId, VertexEventType.V_INIT));
       dispatcher.await();
       Assert.assertEquals(VertexState.INITED, v.getState());
