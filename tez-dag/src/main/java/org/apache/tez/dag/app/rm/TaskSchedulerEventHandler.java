@@ -142,10 +142,6 @@ public class TaskSchedulerEventHandler extends AbstractService
     case S_CONTAINER_DEALLOCATE:
       handleContainerDeallocate((AMSchedulerEventDeallocateContainer)sEvent);
       break;
-    case S_CONTAINERS_ALLOCATED:
-      break;
-    case S_CONTAINER_COMPLETED:
-      break;
     case S_NODE_UNBLACKLISTED:
       // fall through
     case S_NODE_BLACKLISTED:

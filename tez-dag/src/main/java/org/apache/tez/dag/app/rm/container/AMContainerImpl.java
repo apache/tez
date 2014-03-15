@@ -51,7 +51,6 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerPreempted;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminating;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventNodeFailed;
-import org.apache.tez.dag.app.rm.AMSchedulerEventContainerCompleted;
 import org.apache.tez.dag.app.rm.AMSchedulerEventDeallocateContainer;
 import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
 import org.apache.tez.dag.app.rm.NMCommunicatorStopRequestEvent;
@@ -530,7 +529,6 @@ public class AMContainerImpl implements AMContainer {
       container.sendTerminatedToTaskAttempt(event.getTaskAttemptId(),
           "AMScheduler Error: TaskAttempt allocated to unlaunched container: " +
               container.getContainerId());
-      container.sendCompletedToScheduler();
       container.deAllocate();
       LOG.warn("Unexpected TA Assignment: TAId: " + event.getTaskAttemptId() +
           "  for ContainerId: " + container.getContainerId() +
@@ -543,7 +541,6 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventCompleted event = (AMContainerEventCompleted)cEvent;
-      container.sendCompletedToScheduler();
       String diag = event.getContainerStatus().getDiagnostics();
       if (!(diag == null || diag.equals(""))) {
         LOG.info("Container " + container.getContainerId()
@@ -556,8 +553,6 @@ public class AMContainerImpl implements AMContainer {
       SingleArcTransition<AMContainerImpl, AMContainerEvent> {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
-      // TODO why are these sent. no need to send these now.
-      container.sendCompletedToScheduler();
       container.deAllocate();
     }
   }
@@ -567,7 +562,6 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
-      container.sendCompletedToScheduler();
       container.deAllocate();
     }
   }
@@ -576,7 +570,6 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
-      container.sendCompletedToScheduler();
       container.deAllocate();
       LOG.info(
           "Unexpected event type: " + cEvent.getType() + " while in state: " +
@@ -675,7 +668,6 @@ public class AMContainerImpl implements AMContainer {
       container.containerLocalResources = null;
       container.additionalLocalResources = null;
       container.unregisterFromTAListener();
-      container.sendCompletedToScheduler();
       String diag = event.getContainerStatus().getDiagnostics();
       if (!(diag == null || diag.equals(""))) {
         LOG.info("Container " + container.getContainerId()
@@ -1018,7 +1010,6 @@ public class AMContainerImpl implements AMContainer {
       }
       container.containerLocalResources = null;
       container.additionalLocalResources = null;
-      container.sendCompletedToScheduler();
     }
   }
 
@@ -1049,7 +1040,6 @@ public class AMContainerImpl implements AMContainer {
       extends ErrorBaseTransition {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
-      container.sendCompletedToScheduler();
     }
   }
 
@@ -1108,10 +1098,6 @@ public class AMContainerImpl implements AMContainer {
 
   protected void deAllocate() {
     sendEvent(new AMSchedulerEventDeallocateContainer(containerId));
-  }
-
-  protected void sendCompletedToScheduler() {
-    sendEvent(new AMSchedulerEventContainerCompleted(containerId));
   }
 
   protected void sendTerminatedToTaskAttempt(

@@ -23,12 +23,6 @@ public enum AMSchedulerEventType {
   S_TA_LAUNCH_REQUEST,
   S_TA_ENDED, // Annotated with FAILED/KILLED/SUCCEEDED.
 
-  //Producer: RMCommunicator
-  S_CONTAINERS_ALLOCATED,
-
-  //Producer: Container. (Maybe RMCommunicator)
-  S_CONTAINER_COMPLETED,
-
   //Producer: Node
   S_NODE_BLACKLISTED,
   S_NODE_UNBLACKLISTED,
