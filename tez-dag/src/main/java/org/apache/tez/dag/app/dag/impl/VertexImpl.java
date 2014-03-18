@@ -17,6 +17,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1264,13 +1265,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         new DAGHistoryEvent(getDAGId(), startEvt));
   }
 
-  void logJobHistoryVertexFinishedEvent() {
+  void logJobHistoryVertexFinishedEvent() throws IOException {
     this.setFinishTime();
     VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
         vertexName, initTimeRequested, initedTime, startTimeRequested,
         startedTime, finishTime, VertexState.SUCCEEDED, "",
         getAllCounters(), getVertexStats());
-    this.appContext.getHistoryHandler().handle(
+    this.appContext.getHistoryHandler().handleCriticalEvent(
         new DAGHistoryEvent(getDAGId(), finishEvt));
   }
 
@@ -1439,7 +1440,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       case SUCCEEDED:
         eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
             finalState));
-        logJobHistoryVertexFinishedEvent();
+        try {
+          logJobHistoryVertexFinishedEvent();
+        } catch (IOException e) {
+          LOG.error("Failed to send vertex finished event to recovery", e);
+          finalState = VertexState.ERROR;
+          eventHandler.handle(new DAGEvent(getDAGId(),
+              DAGEventType.INTERNAL_ERROR));
+        }
         break;
       default:
         throw new TezUncheckedException("Unexpected VertexState: " + finalState);
@@ -1830,7 +1838,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             break;
           }
           assert vertex.tasks.size() == vertex.numTasks;
-          if (vertex.tasks != null) {
+          if (vertex.tasks != null && vertex.numTasks != 0) {
             for (Task task : vertex.tasks.values()) {
               vertex.eventHandler.handle(
                   new TaskEventRecoverTask(task.getTaskId()));
@@ -2100,7 +2108,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             break;
           }
           assert vertex.tasks.size() == vertex.numTasks;
-          if (vertex.tasks != null) {
+          if (vertex.tasks != null && vertex.numTasks != 0) {
             for (Task task : vertex.tasks.values()) {
               vertex.eventHandler.handle(
                   new TaskEventRecoverTask(task.getTaskId()));

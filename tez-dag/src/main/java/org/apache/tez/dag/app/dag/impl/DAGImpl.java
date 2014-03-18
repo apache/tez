@@ -729,8 +729,13 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     boolean failedWhileCommitting = false;
     if (dagSucceeded && !successfulOutputsAlreadyCommitted) {
       // commit all shared outputs
-      appContext.getHistoryHandler().handle(new DAGHistoryEvent(getID(),
-          new DAGCommitStartedEvent(getID(), clock.getTime())));
+      try {
+        appContext.getHistoryHandler().handleCriticalEvent(new DAGHistoryEvent(getID(),
+            new DAGCommitStartedEvent(getID(), clock.getTime())));
+      } catch (IOException e) {
+        LOG.error("Failed to send commit event to history/recovery handler", e);
+        return false;
+      }
       for (VertexGroupInfo groupInfo : vertexGroups.values()) {
         if (failedWhileCommitting) {
           break;
@@ -1629,24 +1634,36 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           }
           groupInfo.committed = true;
           Vertex v = getVertex(groupInfo.groupMembers.iterator().next());
-          appContext.getHistoryHandler().handle(new DAGHistoryEvent(getID(),
-              new VertexGroupCommitStartedEvent(dagId, groupInfo.groupName,
-                  clock.getTime())));
-          for (String outputName : groupInfo.outputs) {
-            OutputCommitter committer = v.getOutputCommitters().get(outputName);
-            LOG.info("Committing output: " + outputName);
-            if (!commitOutput(outputName, committer)) {
-              // using same logic as vertex level commit. stop after first failure.
-              failedCommit = true;
-              break;
+          try {
+            appContext.getHistoryHandler().handleCriticalEvent(new DAGHistoryEvent(getID(),
+                new VertexGroupCommitStartedEvent(dagId, groupInfo.groupName,
+                    clock.getTime())));
+          } catch (IOException e) {
+            LOG.error("Failed to send commit recovery event to handler", e);
+            failedCommit = true;
+          }
+          if (!failedCommit) {
+            for (String outputName : groupInfo.outputs) {
+              OutputCommitter committer = v.getOutputCommitters().get(outputName);
+              LOG.info("Committing output: " + outputName);
+              if (!commitOutput(outputName, committer)) {
+                // using same logic as vertex level commit. stop after first failure.
+                failedCommit = true;
+                break;
+              }
             }
           }
           if (failedCommit) {
             break;
           }
-          appContext.getHistoryHandler().handle(new DAGHistoryEvent(getID(),
-              new VertexGroupCommitFinishedEvent(dagId, groupInfo.groupName,
-                  clock.getTime())));
+          try {
+            appContext.getHistoryHandler().handleCriticalEvent(new DAGHistoryEvent(getID(),
+                new VertexGroupCommitFinishedEvent(dagId, groupInfo.groupName,
+                    clock.getTime())));
+          } catch (IOException e) {
+            LOG.error("Failed to send commit recovery event to handler", e);
+            failedCommit = true;
+          }
         }
       }
     }

@@ -102,7 +102,7 @@
       <item name="Design Doc" href="https://issues.apache.org/jira/secure/attachment/12588887/Tez%20Design%20v1.1.pdf"/>
       <item name="Talks and Meetup Recordings" href="talks.html"/>
       <item name="Apache Incubator Proposal for Tez" href="http://wiki.apache.org/incubator/TezProposal"/>
-      <item name="Project License" href="http://www.apache.org/licenses/"/>
+      <item name="Project License" href="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
     </menu>
 
     <menu name="Community">

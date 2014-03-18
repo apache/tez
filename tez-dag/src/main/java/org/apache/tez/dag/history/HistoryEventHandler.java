@@ -28,6 +28,7 @@ import org.apache.tez.dag.history.ats.ATSService;
 import org.apache.tez.dag.history.recovery.RecoveryService;
 import org.apache.tez.dag.records.TezDAGID;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HistoryEventHandler extends CompositeService {
@@ -76,7 +77,14 @@ public class HistoryEventHandler extends CompositeService {
     super.serviceStop();
   }
 
-  public void handle(DAGHistoryEvent event) {
+  /**
+   * Used by events that are critical for recovery
+   * DAG Submission/finished and any commit related activites are critical events
+   * In short, any events that are instances of SummaryEvent
+   * @param event History event
+   * @throws IOException
+   */
+  public void handleCriticalEvent(DAGHistoryEvent event) throws IOException {
     TezDAGID dagId = event.getDagID();
     String dagIdStr = "N/A";
     if(dagId != null) {
@@ -100,6 +108,14 @@ public class HistoryEventHandler extends CompositeService {
         + "[DAG:" + dagIdStr + "]"
         + "[Event:" + event.getHistoryEvent().getEventType().name() + "]"
         + ": " + event.getHistoryEvent().toString());
+  }
+
+  public void handle(DAGHistoryEvent event) {
+    try {
+      handleCriticalEvent(event);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 
