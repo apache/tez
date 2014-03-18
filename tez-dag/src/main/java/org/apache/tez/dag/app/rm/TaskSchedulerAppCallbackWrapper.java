@@ -22,8 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -36,20 +34,15 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
 
-import com.google.common.annotations.VisibleForTesting;
-
 /**
  * Makes use of an ExecutionService to invoke application callbacks. Methods
  * which return values wait for execution to complete - effectively waiting for
  * all previous events in the queue to complete.
  */
-@SuppressWarnings({"rawtypes", "unchecked"})
 class TaskSchedulerAppCallbackWrapper implements TaskSchedulerAppCallback {
 
   private TaskSchedulerAppCallback real;
-  
-  @VisibleForTesting
-  CompletionService completionService;
+
   ExecutorService executorService;
   
   /**
@@ -60,58 +53,52 @@ class TaskSchedulerAppCallbackWrapper implements TaskSchedulerAppCallback {
       ExecutorService executorService) {
     this.real = real;
     this.executorService = executorService;
-    this.completionService = createAppCallbackCompletionService();
-  }
-
-  @VisibleForTesting
-  CompletionService createAppCallbackCompletionService() {
-    return new ExecutorCompletionService(this.executorService);
   }
 
   @Override
   public void taskAllocated(Object task, Object appCookie, Container container) {
-    completionService.submit(new TaskAllocatedCallable(real, task, appCookie,
+    executorService.submit(new TaskAllocatedCallable(real, task, appCookie,
         container));
   }
 
   @Override
   public void containerCompleted(Object taskLastAllocated,
       ContainerStatus containerStatus) {
-    completionService.submit(new ContainerCompletedCallable(real,
+    executorService.submit(new ContainerCompletedCallable(real,
         taskLastAllocated, containerStatus));
   }
 
   @Override
   public void containerBeingReleased(ContainerId containerId) {
-    completionService
+    executorService
         .submit(new ContainerBeingReleasedCallable(real, containerId));
   }
 
   @Override
   public void nodesUpdated(List<NodeReport> updatedNodes) {
-    completionService.submit(new NodesUpdatedCallable(real, updatedNodes));
+    executorService.submit(new NodesUpdatedCallable(real, updatedNodes));
   }
 
   @Override
   public void appShutdownRequested() {
-    completionService.submit(new AppShudownRequestedCallable(real));
+    executorService.submit(new AppShudownRequestedCallable(real));
   }
 
   @Override
   public void setApplicationRegistrationData(Resource maxContainerCapability,
       Map<ApplicationAccessType, String> appAcls, ByteBuffer key) {
-    completionService.submit(new SetApplicationRegistrationDataCallable(real,
+    executorService.submit(new SetApplicationRegistrationDataCallable(real,
         maxContainerCapability, appAcls, key));
   }
 
   @Override
   public void onError(Throwable t) {
-    completionService.submit(new OnErrorCallable(real, t));
+    executorService.submit(new OnErrorCallable(real, t));
   }
 
   @Override
   public float getProgress() {
-    Future<Float> progressFuture = completionService
+    Future<Float> progressFuture = executorService
         .submit(new GetProgressCallable(real));
     try {
       return progressFuture.get();
@@ -122,12 +109,12 @@ class TaskSchedulerAppCallbackWrapper implements TaskSchedulerAppCallback {
   
   @Override
   public void preemptContainer(ContainerId containerId) {
-    completionService.submit(new PreemptContainerCallable(real, containerId));
+    executorService.submit(new PreemptContainerCallable(real, containerId));
   }
 
   @Override
   public AppFinalStatus getFinalAppStatus() {
-    Future<AppFinalStatus> appFinalStatusFuture = completionService
+    Future<AppFinalStatus> appFinalStatusFuture = executorService
         .submit(new GetFinalAppStatusCallable(real));
     try {
       return appFinalStatusFuture.get();

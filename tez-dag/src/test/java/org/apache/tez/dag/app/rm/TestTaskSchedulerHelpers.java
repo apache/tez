@@ -25,13 +25,18 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -108,7 +113,7 @@ class TestTaskSchedulerHelpers {
     protected void serviceStop() {
     }
   }
-
+  
   // Overrides start / stop. Will be controlled without the extra event handling thread.
   static class TaskSchedulerEventHandlerForTest extends
       TaskSchedulerEventHandler {
@@ -217,6 +222,12 @@ class TestTaskSchedulerHelpers {
               appCallbackExecutor));
       return drainableAppCallback;
     }
+    
+    @Override
+    ExecutorService createAppCallbackExecutorService() {
+      ExecutorService real = super.createAppCallbackExecutorService();
+      return new CountingExecutorService(real);
+    }
 
     public TaskSchedulerAppCallbackDrainable getDrainableAppCallback() {
       return drainableAppCallback;
@@ -228,11 +239,11 @@ class TestTaskSchedulerHelpers {
     int completedEvents;
     int invocations;
     private TaskSchedulerAppCallback real;
-    private CompletionService completionService;
+    private CountingExecutorService countingExecutorService;
     final AtomicInteger count = new AtomicInteger(0);
     
     public TaskSchedulerAppCallbackDrainable(TaskSchedulerAppCallbackWrapper real) {
-      completionService = real.completionService;
+      countingExecutorService = (CountingExecutorService) real.executorService;
       this.real = real;
     }
 
@@ -301,7 +312,7 @@ class TestTaskSchedulerHelpers {
 
     public void drain() throws InterruptedException, ExecutionException {
       while (completedEvents < invocations) {
-        Future f = completionService.poll(5000l, TimeUnit.MILLISECONDS);
+        Future f = countingExecutorService.completionService.poll(5000l, TimeUnit.MILLISECONDS);
         if (f != null) {
           completedEvents++;
         } else {
@@ -364,6 +375,88 @@ class TestTaskSchedulerHelpers {
         drainNotifier.wait();
       }
     }
+  }
+  
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  private static class CountingExecutorService implements ExecutorService {
+
+    final ExecutorService real;
+    final CompletionService completionService;
+
+    CountingExecutorService(ExecutorService real) {
+      this.real = real;
+      completionService = new ExecutorCompletionService(real);
+    }
+
+    @Override
+    public void execute(Runnable command) {
+      throw new UnsupportedOperationException("Not expected to be used");
+    }
+
+    @Override
+    public void shutdown() {
+      real.shutdown();
+    }
+
+    @Override
+    public List<Runnable> shutdownNow() {
+      return real.shutdownNow();
+    }
+
+    @Override
+    public boolean isShutdown() {
+      return real.isShutdown();
+    }
+
+    @Override
+    public boolean isTerminated() {
+      return real.isTerminated();
+    }
+
+    @Override
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+      return real.awaitTermination(timeout, unit);
+    }
+
+    @Override
+    public <T> Future<T> submit(Callable<T> task) {
+      return completionService.submit(task);
+    }
+
+    @Override
+    public <T> Future<T> submit(Runnable task, T result) {
+      return completionService.submit(task, result);
+    }
+
+    @Override
+    public Future<?> submit(Runnable task) {
+      throw new UnsupportedOperationException("Not expected to be used");
+    }
+
+    @Override
+    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
+        throws InterruptedException {
+      throw new UnsupportedOperationException("Not expected to be used");
+    }
+
+    @Override
+    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout,
+        TimeUnit unit) throws InterruptedException {
+      throw new UnsupportedOperationException("Not expected to be used");
+    }
+
+    @Override
+    public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException,
+        ExecutionException {
+      throw new UnsupportedOperationException("Not expected to be used");
+    }
+
+    @Override
+    public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)
+        throws InterruptedException, ExecutionException, TimeoutException {
+      throw new UnsupportedOperationException("Not expected to be used");
+    }
+    
   }
 
 }

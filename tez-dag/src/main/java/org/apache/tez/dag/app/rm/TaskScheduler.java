@@ -254,7 +254,8 @@ public class TaskScheduler extends AbstractService
     this.appContext = appContext;
   }
 
-  private ExecutorService createAppCallbackExecutorService() {
+  @VisibleForTesting
+  ExecutorService createAppCallbackExecutorService() {
     return Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
         .setNameFormat("TaskSchedulerAppCaller #%d").setDaemon(true).build());
   }
