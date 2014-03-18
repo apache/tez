@@ -126,7 +126,8 @@ public class MapProcessor extends MRTask implements LogicalIOProcessor {
     } else if ((out instanceof OnFileSortedOutput)){
       kvWriter = ((OnFileSortedOutput)out).getWriter();
     } else {
-      throw new IOException("Illegal output to map: " + in.getClass());
+      throw new IOException("Illegal output to map, outputClass="
+          + out.getClass());
     }
 
     if (useNewApi) {

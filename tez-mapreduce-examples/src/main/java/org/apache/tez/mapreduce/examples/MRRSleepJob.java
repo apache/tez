@@ -654,7 +654,7 @@ public class MRRSleepJob extends Configured implements Tool {
       vertices.add(finalReduceVertex);
     } else {
       // Map only job
-      MRHelpers.addMROutput(mapVertex, mapUserPayload);
+      MRHelpers.addMROutputLegacy(mapVertex, mapUserPayload);
     }
 
     for (int i = 0; i < vertices.size(); ++i) {
