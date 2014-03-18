@@ -57,7 +57,6 @@ class ShuffleScheduler {
   };
 
   private static final Log LOG = LogFactory.getLog(ShuffleScheduler.class);
-  private static final int MAX_MAPS_AT_ONCE = 20;
   private static final long INITIAL_PENALTY = 2000l; // 2 seconds
   private static final float PENALTY_GROWTH_RATE = 1.3f;
   
@@ -90,6 +89,7 @@ class ShuffleScheduler {
   private final long startTime;
   private long lastProgressTime;
 
+  private int maxTaskOutputAtOnce;
   private int maxFetchFailuresBeforeReporting;
   private boolean reportReadErrorImmediately = true; 
   private int maxFailedUniqueFetches = 5;
@@ -135,6 +135,9 @@ class ShuffleScheduler {
         conf.getBoolean(
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR, 
             TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR);
+    this.maxTaskOutputAtOnce = Math.max(1, conf.getInt(
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE,
+            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE));
     
     LOG.info("ShuffleScheduler running for sourceVertex: "
         + inputContext.getSourceVertexName() + " with configuration: "
@@ -418,10 +421,10 @@ class ShuffleScheduler {
     // find the maps that we still need, up to the limit
     while (dedupedItr.hasNext()) {
       InputAttemptIdentifier id = dedupedItr.next().getValue();
-        result.add(id);
-        if (++includedMaps >= MAX_MAPS_AT_ONCE) {
-          break;
-        }
+      result.add(id);
+      if (++includedMaps >= maxTaskOutputAtOnce) {
+        break;
+      }
     }
 
     // put back the maps left after the limit

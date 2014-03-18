@@ -196,6 +196,15 @@ public class TezJobConfig {
       "tez.runtime.shuffle.fetch.failures.limit";
   public final static int DEFAULT_TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT = 5;
 
+
+  /**
+   *
+   */
+  public static final String TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE =
+    "tez.runtime.shuffle.fetch.max.task.output.at.once";
+  public final static int DEFAULT_TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE
+          = 20;
+
   /**
    * 
    */
