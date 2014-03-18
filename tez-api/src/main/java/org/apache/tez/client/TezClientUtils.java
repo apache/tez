@@ -70,10 +70,10 @@ import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
-import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Level;
+import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.common.impl.LogUtils;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.DAG;
@@ -401,7 +401,8 @@ public class TezClientUtils {
 
     if (amConfig.getEnv() != null) {
       for (Map.Entry<String, String> entry : amConfig.getEnv().entrySet()) {
-        Apps.addToEnvironment(environment, entry.getKey(), entry.getValue());
+        TezYARNUtils.addToEnvironment(environment, entry.getKey(), entry.getValue(),
+            File.pathSeparator);
       }
     }
 
@@ -567,20 +568,22 @@ public class TezClientUtils {
   static String getFrameworkClasspath(Configuration conf) {
     Map<String, String> environment = new HashMap<String, String>();
 
-    Apps.addToEnvironment(environment,
+    TezYARNUtils.addToEnvironment(environment,
         Environment.CLASSPATH.name(),
-        Environment.PWD.$());
+        Environment.PWD.$(),
+        File.pathSeparator);
 
-    Apps.addToEnvironment(environment,
+    TezYARNUtils.addToEnvironment(environment,
         Environment.CLASSPATH.name(),
-        Environment.PWD.$() + File.separator + "*");
+        Environment.PWD.$() + File.separator + "*",
+        File.pathSeparator);
 
     // Add YARN/COMMON/HDFS jars and conf locations to path
     for (String c : conf.getStrings(
         YarnConfiguration.YARN_APPLICATION_CLASSPATH,
         YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
-      Apps.addToEnvironment(environment, Environment.CLASSPATH.name(),
-          c.trim());
+      TezYARNUtils.addToEnvironment(environment, Environment.CLASSPATH.name(),
+          c.trim(), File.pathSeparator);
     }
     return environment.get(Environment.CLASSPATH.name());
   }
@@ -749,5 +752,4 @@ public class TezClientUtils {
     }
     return proxy;
   }
-
 }

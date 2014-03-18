@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce.hadoop;
 
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -49,7 +50,6 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobSubmissionFiles;
 import org.apache.hadoop.mapreduce.split.JobSplitWriter;
 import org.apache.hadoop.mapreduce.v2.proto.MRProtos;
-import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.yarn.ContainerLogAppender;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -59,10 +59,10 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -819,19 +819,20 @@ public class MRHelpers {
         MRJobConfig.MAPRED_ADMIN_USER_SHELL, MRJobConfig.DEFAULT_SHELL));
 
     // Add pwd to LD_LIBRARY_PATH, add this before adding anything else
-    Apps.addToEnvironment(environment, Environment.LD_LIBRARY_PATH.name(),
-        Environment.PWD.$());
+    TezYARNUtils.addToEnvironment(environment, Environment.LD_LIBRARY_PATH.name(),
+        Environment.PWD.$(), File.pathSeparator);
 
     // Add the env variables passed by the admin
-    Apps.setEnvFromInputString(environment, conf.get(
+    TezYARNUtils.setEnvFromInputString(environment, conf.get(
         MRJobConfig.MAPRED_ADMIN_USER_ENV,
-        MRJobConfig.DEFAULT_MAPRED_ADMIN_USER_ENV));
+        MRJobConfig.DEFAULT_MAPRED_ADMIN_USER_ENV),
+        File.pathSeparator);
 
     // Add the env variables passed by the user
     String mapredChildEnv = (isMap ?
         conf.get(MRJobConfig.MAP_ENV, "")
         : conf.get(MRJobConfig.REDUCE_ENV, ""));
-    Apps.setEnvFromInputString(environment, mapredChildEnv);
+    TezYARNUtils.setEnvFromInputString(environment, mapredChildEnv, File.pathSeparator);
 
     // Set logging level in the environment.
     environment.put(
@@ -869,12 +870,11 @@ public class MRHelpers {
    * @param conf Configuration from which to extract information
    * @param environment Environment map to update
    */
-  public static void updateEnvironmentForMRAM(Configuration conf,
-      Map<String, String> environment) {
-    MRApps.setEnvFromInputString(environment,
-        conf.get(MRJobConfig.MR_AM_ADMIN_USER_ENV));
-    MRApps.setEnvFromInputString(environment,
-        conf.get(MRJobConfig.MR_AM_ENV));
+  public static void updateEnvironmentForMRAM(Configuration conf, Map<String, String> environment) {
+    TezYARNUtils.setEnvFromInputString(environment, conf.get(MRJobConfig.MR_AM_ADMIN_USER_ENV),
+        File.pathSeparator);
+    TezYARNUtils.setEnvFromInputString(environment, conf.get(MRJobConfig.MR_AM_ENV),
+        File.pathSeparator);
   }
 
   /**

@@ -18,6 +18,7 @@
 
 package org.apache.tez.client;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -33,7 +34,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.util.Apps;
+import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DAGSubmissionTimedOut;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -150,9 +151,9 @@ public class TezSession {
         .getFrameworkClasspath(sessionConfig.getYarnConfiguration());
     for (Vertex v : dag.getVertices()) {
       Map<String, String> taskEnv = v.getTaskEnvironment();
-      Apps.addToEnvironment(taskEnv,
+      TezYARNUtils.addToEnvironment(taskEnv,
           ApplicationConstants.Environment.CLASSPATH.name(),
-          classpath);
+          classpath, File.pathSeparator);
     }
     
     DAGPlan dagPlan = dag.createDag(sessionConfig.getTezConfiguration());
@@ -295,9 +296,9 @@ public class TezSession {
       String classpath = TezClientUtils
         .getFrameworkClasspath(sessionConfig.getYarnConfiguration());
       Map<String, String> contextEnv = context.getEnvironment();
-      Apps.addToEnvironment(contextEnv,
+      TezYARNUtils.addToEnvironment(contextEnv,
         ApplicationConstants.Environment.CLASSPATH.name(),
-        classpath);
+        classpath, File.pathSeparator);
 
       DAGClientAMProtocolRPC.PreWarmRequestProto.Builder
         preWarmReqProtoBuilder =
