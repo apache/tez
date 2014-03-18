@@ -62,6 +62,13 @@ public class TezConfiguration extends Configuration {
       + "java.opts";
   public static final String TEZ_AM_JAVA_OPTS_DEFAULT = " -Xmx1024m ";
 
+  /** User-provided env for the Tez AM. Any env provided in AMConfiguration
+   * overrides env defined by this config property
+   * Should be specified as a comma-separated of key-value pairs where each pair
+   * is defined as KEY=VAL
+   */
+  public static final String TEZ_AM_ENV = TEZ_AM_PREFIX + "env";
+
   public static final String TEZ_AM_CANCEL_DELEGATION_TOKEN = TEZ_AM_PREFIX +
       "am.complete.cancel.delegation.tokens";
   public static final boolean TEZ_AM_CANCEL_DELEGATION_TOKEN_DEFAULT = true;
