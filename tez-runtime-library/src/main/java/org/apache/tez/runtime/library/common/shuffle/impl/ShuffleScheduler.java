@@ -250,7 +250,12 @@ class ShuffleScheduler {
     
     penalties.add(new Penalty(host, delay));    
   }
-  
+
+  public void reportLocalError(IOException ioe) {
+    LOG.error("Shuffle failed : caused by local error", ioe);
+    shuffle.reportException(ioe);
+  }
+
   // Notify the AM  
   // after every read error, if 'reportReadErrorImmediately' is true or
   // after every 'maxFetchFailuresBeforeReporting' failures
@@ -449,7 +454,7 @@ class ShuffleScheduler {
       }
     }
     LOG.info(host + " freed by " + Thread.currentThread().getName() + " in " + 
-             (System.currentTimeMillis()-shuffleStart.get()) + "s");
+             (System.currentTimeMillis()-shuffleStart.get()) + "ms");
   }
 
   public synchronized void resetKnownMaps() {

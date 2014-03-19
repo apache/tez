@@ -419,7 +419,14 @@ class Fetcher extends Thread {
       }
       
       // Get the location for the map output - either in-memory or on-disk
-      mapOutput = merger.reserve(srcAttemptId, decompressedLength, id);
+      try {
+        mapOutput = merger.reserve(srcAttemptId, decompressedLength, id);
+      } catch (IOException e) {
+        // Kill the reduce attempt
+        ioErrs.increment(1);
+        scheduler.reportLocalError(e);
+        return EMPTY_ATTEMPT_ID_ARRAY;
+      }
       
       // Check if we can shuffle *now* ...
       if (mapOutput.getType() == Type.WAIT) {

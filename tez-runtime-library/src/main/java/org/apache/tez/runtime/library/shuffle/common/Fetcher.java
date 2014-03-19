@@ -247,6 +247,8 @@ public class Fetcher implements Callable<FetchResult> {
       }
 
       // Get the location for the map output - either in-memory or on-disk
+      
+      // TODO TEZ-957. handle IOException here when Broadcast has better error checking
       fetchedInput = inputManager.allocate(decompressedLength, compressedLength, srcAttemptId);
 
       // TODO NEWTEZ No concept of WAIT at the moment.
