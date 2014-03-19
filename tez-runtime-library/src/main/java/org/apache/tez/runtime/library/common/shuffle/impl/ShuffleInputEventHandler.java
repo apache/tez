@@ -18,9 +18,12 @@
 
 package org.apache.tez.runtime.library.common.shuffle.impl;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
+import java.util.zip.InflaterInputStream;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -75,7 +78,6 @@ public class ShuffleInputEventHandler {
     InputAttemptIdentifier srcAttemptIdentifier = 
         new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion(), shufflePayload.getPathComponent());
     LOG.info("DataMovementEvent baseUri:" + baseUri + ", src: " + srcAttemptIdentifier);
-    scheduler.addKnownMapOutput(shufflePayload.getHost(), partitionId, baseUri.toString(), srcAttemptIdentifier);
     
     // TODO NEWTEZ See if this duration hack can be removed.
     int duration = shufflePayload.getRunDuration();
@@ -83,6 +85,23 @@ public class ShuffleInputEventHandler {
       maxMapRuntime = duration;
       scheduler.informMaxMapRunTime(maxMapRuntime);
     }
+    if (shufflePayload.getData().hasEmptyPartitions()) {
+      try {
+        InflaterInputStream in = new
+            InflaterInputStream(shufflePayload.getData().getEmptyPartitions().newInput());
+        byte[] emptyPartition = IOUtils.toByteArray(in);
+        if (emptyPartition[partitionId] == 1) {
+            LOG.info("Got empty payload : PartitionId : " +
+                      partitionId + " : " + emptyPartition[partitionId]);
+            scheduler.copySucceeded(srcAttemptIdentifier, null, 0, 0, 0, null);
+            return;
+        }
+      } catch (IOException e) {
+        throw new TezUncheckedException("Unable to set " +
+                "the empty partition to succeeded", e);
+      }
+    }
+    scheduler.addKnownMapOutput(shufflePayload.getHost(), partitionId, baseUri.toString(), srcAttemptIdentifier);
   }
   
   private void processTaskFailedEvent(InputFailedEvent ifEvent) {

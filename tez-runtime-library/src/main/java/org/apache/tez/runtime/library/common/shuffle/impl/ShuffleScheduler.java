@@ -157,10 +157,19 @@ class ShuffleScheduler {
                                          ) throws IOException {
     String taskIdentifier = TezRuntimeUtils.getTaskAttemptIdentifier(srcAttemptIdentifier.getInputIdentifier().getInputIndex(), srcAttemptIdentifier.getAttemptNumber());
     failureCounts.remove(taskIdentifier);
-    hostFailures.remove(host.getHostName());
+    if (host != null) {
+      hostFailures.remove(host.getHostName());
+    }
     
     if (!isInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex())) {
-      output.commit();
+      if (output != null) {
+        output.commit();
+        if (output.getType() == Type.DISK) {
+          bytesShuffledToDisk.increment(bytesCompressed);
+        } else {
+          bytesShuffledToMem.increment(bytesCompressed);
+        }
+      }
       setInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex());
       shuffledMapsCounter.increment(1);
       if (--remainingMaps == 0) {
@@ -173,11 +182,6 @@ class ShuffleScheduler {
       logProgress();
       reduceShuffleBytes.increment(bytesCompressed);
       reduceBytesDecompressed.increment(bytesDecompressed);
-      if (output.getType() == Type.DISK) {
-        bytesShuffledToDisk.increment(bytesCompressed);
-      } else {
-        bytesShuffledToMem.increment(bytesCompressed);
-      }
       if (LOG.isDebugEnabled()) {
         LOG.debug("src task: "
             + TezRuntimeUtils.getTaskAttemptIdentifier(

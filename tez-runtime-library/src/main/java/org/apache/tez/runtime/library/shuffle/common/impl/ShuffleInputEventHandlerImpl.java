@@ -21,7 +21,9 @@ package org.apache.tez.runtime.library.shuffle.common.impl;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.zip.InflaterInputStream;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -101,6 +103,18 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
           shufflePayload.getPathComponent());
       if (shufflePayload.hasData()) {
         DataProto dataProto = shufflePayload.getData();
+        if (dataProto.hasEmptyPartitions()) {
+          int partitionId = dme.getSourceIndex();
+          InflaterInputStream in = new
+              InflaterInputStream(shufflePayload.getData().getEmptyPartitions().newInput());
+          byte[] emptyPartition = IOUtils.toByteArray(in);
+          if (emptyPartition[partitionId] == 1) {
+              LOG.info("Got empty payload : PartitionId : " +
+                        partitionId + " : " + emptyPartition[partitionId]);
+              shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier);
+              return;
+          }
+        }
         FetchedInput fetchedInput = inputAllocator.allocate(dataProto.getRawLength(), dataProto.getCompressedLength(), srcAttemptIdentifier);
         moveDataToFetchedInput(dataProto, fetchedInput);
         shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);

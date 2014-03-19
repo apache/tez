@@ -22,8 +22,13 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
@@ -36,12 +41,16 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
 import org.apache.tez.runtime.library.common.sort.impl.PipelinedSorter;
+import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
+import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 
 import com.google.common.collect.Lists;
+import com.google.protobuf.ByteString;
 
 /**
  * <code>OnFileSortedOutput</code> is an {@link LogicalOutput} which sorts key/value pairs 
@@ -49,16 +58,17 @@ import com.google.common.collect.Lists;
  */
 public class OnFileSortedOutput implements LogicalOutput {
 
+  private static final Log LOG = LogFactory.getLog(OnFileSortedOutput.class);
+
   protected ExternalSorter sorter;
   protected Configuration conf;
   protected int numOutputs;
   protected TezOutputContext outputContext;
   private long startTime;
   private long endTime;
-  
+  private boolean sendEmptyPartitionDetails;
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
-  
-    
+
   @Override
   public List<Event> initialize(TezOutputContext outputContext)
       throws IOException {
@@ -76,7 +86,10 @@ public class OnFileSortedOutput implements LogicalOutput {
     } else {
       sorter = new DefaultSorter();
     }
-    
+
+    sendEmptyPartitionDetails = this.conf.getBoolean(
+        TezJobConfig.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED,
+        TezJobConfig.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED_DEFAULT);
     sorter.initialize(outputContext, conf, numOutputs);
     return Collections.emptyList();
   }
@@ -126,6 +139,37 @@ public class OnFileSortedOutput implements LogicalOutput {
 
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
         .newBuilder();
+
+    if (sendEmptyPartitionDetails) {
+      Path indexFile = sorter.getMapOutput().getOutputIndexFile();
+      TezSpillRecord spillRecord = new TezSpillRecord(indexFile, conf);
+      //TODO: replace with BitSet in JDK 1.7 (no support for valueOf, toByteArray in 1.6)
+      byte[] partitionDetails = new byte[numOutputs];
+      int emptyPartitions = 0;
+      for(int i=0;i<spillRecord.size();i++) {
+        TezIndexRecord indexRecord = spillRecord.getIndex(i);
+        if (!indexRecord.hasData()) {
+          partitionDetails[i] = 1;
+          emptyPartitions++;
+        }
+      }
+      if (emptyPartitions > 0) {
+        //compress the data
+        ByteString.Output os = ByteString.newOutput();
+        DeflaterOutputStream compressOs = new DeflaterOutputStream(os,
+            new Deflater(Deflater.BEST_COMPRESSION));
+        compressOs.write(partitionDetails);
+        compressOs.finish();
+
+        ShuffleUserPayloads.DataProto.Builder dataProtoBuilder = ShuffleUserPayloads.DataProto.newBuilder();
+        dataProtoBuilder.setEmptyPartitions(os.toByteString());
+        payloadBuilder.setData(dataProtoBuilder.build());
+
+        LOG.info("EmptyPartition bitsetSize=" + partitionDetails.length + ", numOutputs="
+                + numOutputs + ", emptyPartitions=" + emptyPartitions
+              + ", compressedSize=" + os.toByteString().size());
+      }
+    }
     payloadBuilder.setHost(host);
     payloadBuilder.setPort(shufflePort);
     payloadBuilder.setPathComponent(outputContext.getUniqueIdentifier());

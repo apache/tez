@@ -42,4 +42,9 @@ public class TezIndexRecord {
   public long getPartLength() {
     return partLength;
   }
+
+  public boolean hasData() {
+    //TEZ-941 - Avoid writing out empty partitions
+    return !(rawLength == 2);
+  }
 }
