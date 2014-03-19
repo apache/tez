@@ -312,6 +312,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
           "Can only run while in RUNNING state. Current: " + this.state);
       this.state = State.CLOSED;
 
+      // Close the Processor.
+      processor.close();
+
       // Close the Inputs.
       for (InputSpec inputSpec : inputSpecs) {
         String srcVertexName = inputSpec.getSourceVertexName();
@@ -320,9 +323,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
             EventProducerConsumerType.INPUT, taskSpec.getVertexName(),
             srcVertexName, taskSpec.getTaskAttemptID());
       }
-
-      // Close the Processor.
-      processor.close();
 
       // Close the Outputs.
       for (OutputSpec outputSpec : outputSpecs) {
