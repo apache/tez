@@ -468,8 +468,11 @@ public class MergeManager {
     
     List<MapOutput> memory = 
       new ArrayList<MapOutput>(inMemoryMergedMapOutputs);
+    inMemoryMergedMapOutputs.clear();
     memory.addAll(inMemoryMapOutputs);
+    inMemoryMapOutputs.clear();
     List<Path> disk = new ArrayList<Path>(onDiskMapOutputs);
+    onDiskMapOutputs.clear();
     TezRawKeyValueIterator kvIter = finalMerge(conf, rfs, memory, disk);
     this.finalMergeComplete = true;
     return kvIter;
