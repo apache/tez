@@ -38,6 +38,7 @@ import org.apache.tez.dag.app.rm.AMSchedulerEventNodeBlacklistUpdate;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerEventNodeFailed;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
+import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.junit.After;
 import org.junit.Before;
@@ -118,7 +119,9 @@ public class TestAMNodeMap {
     conf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 2);
     TestEventHandler handler = new TestEventHandler();
     AMNodeMap amNodeMap = new AMNodeMap(handler, appContext);
+    AMContainerMap amContainerMap = mock(AMContainerMap.class);
     dispatcher.register(AMNodeEventType.class, amNodeMap);
+    dispatcher.register(AMContainerEventType.class, amContainerMap);
     amNodeMap.init(conf);
     amNodeMap.start();
 

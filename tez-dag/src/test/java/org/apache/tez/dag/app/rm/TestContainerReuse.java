@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -92,7 +94,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class TestContainerReuse {
-  
+  private static final Log LOG = LogFactory.getLog(TestContainerReuse.class);
+
   @Test(timeout = 15000l)
   public void testDelayedReuseContainerBecomesAvailable()
       throws IOException, InterruptedException, ExecutionException {
@@ -478,7 +481,7 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.close();
   }
 
-  @Test(timeout = 15000l)
+  @Test(timeout = 30000l)
   public void testReuseNonLocalRequest()
       throws IOException, InterruptedException, ExecutionException {
     Configuration tezConf = new Configuration(new YarnConfiguration());
@@ -585,7 +588,8 @@ public class TestContainerReuse {
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
     eventHandler.reset();
 
-    Thread.sleep(1000l);
+    LOG.info("Sleeping to ensure that the scheduling loop runs");
+    Thread.sleep(6000l);
     verify(taskSchedulerEventHandler).taskAllocated(
       eq(ta12), any(Object.class), eq(container1));
 
@@ -601,7 +605,7 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.close();
   }
 
-  @Test(timeout = 15000l)
+  @Test(timeout = 30000l)
   public void testReuseAcrossVertices()
       throws IOException, InterruptedException, ExecutionException {
     Configuration tezConf = new Configuration(new YarnConfiguration());
@@ -609,7 +613,7 @@ public class TestContainerReuse {
     tezConf.setLong(
       TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 1l);
     tezConf.setLong(
-      TezConfiguration.TEZ_AM_CONTAINER_SESSION_DELAY_ALLOCATION_MILLIS, 3000l);
+      TezConfiguration.TEZ_AM_CONTAINER_SESSION_DELAY_ALLOCATION_MILLIS, 2000l);
     RackResolver.init(tezConf);
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
@@ -715,8 +719,8 @@ public class TestContainerReuse {
         TaskAttemptState.SUCCEEDED));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
 
-    Thread.sleep(5000l);
-
+    LOG.info("Sleeping to ensure that the scheduling loop runs");
+    Thread.sleep(6000l);
     verify(rmClient).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
 
@@ -724,11 +728,12 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.close();
   }
   
-  @Test(timeout = 10000l)
+  @Test(timeout = 30000l)
   public void testReuseLocalResourcesChanged() throws IOException, InterruptedException, ExecutionException {
     Configuration tezConf = new Configuration(new YarnConfiguration());
     tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, true);
     tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED, true);
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED, true);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 0);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_SESSION_DELAY_ALLOCATION_MILLIS, -1);
     RackResolver.init(tezConf);
@@ -858,7 +863,8 @@ public class TestContainerReuse {
     drainableAppCallback.drain();
 
     // TODO This is terrible, need a better way to ensure the scheduling loop has run
-    Thread.sleep(3000l);
+    LOG.info("Sleeping to ensure that the scheduling loop runs");
+    Thread.sleep(6000l);
     verify(taskSchedulerEventHandler).taskAllocated(eq(ta211), any(Object.class), eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
