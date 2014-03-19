@@ -466,7 +466,7 @@ public class OrderedWordCount {
 
         while (true) {
           dagStatus = dagClient.getDAGStatus(statusGetOpts);
-          if(dagStatus.getState() == DAGStatus.State.RUNNING ||
+          if (dagStatus.getState() == DAGStatus.State.RUNNING ||
               dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
               dagStatus.getState() == DAGStatus.State.FAILED ||
               dagStatus.getState() == DAGStatus.State.KILLED ||
@@ -481,9 +481,14 @@ public class OrderedWordCount {
         }
 
 
-        while (dagStatus.getState() == DAGStatus.State.RUNNING) {
-          try {
+        while (dagStatus.getState() != DAGStatus.State.SUCCEEDED &&
+            dagStatus.getState() != DAGStatus.State.FAILED &&
+            dagStatus.getState() != DAGStatus.State.KILLED &&
+            dagStatus.getState() != DAGStatus.State.ERROR) {
+          if (dagStatus.getState() == DAGStatus.State.RUNNING) {
             ExampleDriver.printDAGStatus(dagClient, vNames);
+          }
+          try {
             try {
               Thread.sleep(1000);
             } catch (InterruptedException e) {
