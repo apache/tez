@@ -1867,7 +1867,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           } else {
             vertex.tasksNotYetScheduled = false;
             // recover tasks
-            if (vertex.tasks != null) {
+            if (vertex.tasks != null && vertex.numTasks != 0) {
               TaskState taskState = TaskState.KILLED;
               switch (vertex.recoveredState) {
                 case SUCCEEDED:
@@ -2126,7 +2126,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           vertex.tasksNotYetScheduled = false;
           // recover tasks
           assert vertex.tasks.size() == vertex.numTasks;
-          if (vertex.tasks != null) {
+          if (vertex.tasks != null  && vertex.numTasks != 0) {
             TaskState taskState = TaskState.KILLED;
             switch (vertex.recoveredState) {
               case SUCCEEDED:
