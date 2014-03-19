@@ -393,5 +393,37 @@ public class TezConfiguration extends Configuration {
   public static final String DAG_RECOVERY_DATA_DIR_NAME = "recovery";
   public static final String DAG_RECOVERY_SUMMARY_FILE_SUFFIX = ".summary";
   public static final String DAG_RECOVERY_RECOVER_FILE_SUFFIX = ".recovery";
+  
+  /**
+   *  Tez Local Mode flag. Not valid till Tez-684 get checked-in
+   */
+  public static final String TEZ_LOCAL_MODE =
+    TEZ_PREFIX + "local.mode";
 
+  /**
+   *  Tez Local Mode flag. Not valid till Tez-684 get checked-in
+   */
+  public static final boolean TEZ_LOCAL_MODE_DEFAULT = false;
+
+  /**
+   *  Tez AM Inline Mode flag. Not valid till Tez-684 get checked-in
+   */
+  public static final String TEZ_AM_INLINE_TASK_EXECUTION_ENABLED =
+    TEZ_AM_PREFIX + "inline.task.execution.enabled";
+
+  /**
+   *  Tez AM Inline Mode flag. Not valid till Tez-684 get checked-in
+   */
+  public static final boolean TEZ_AM_INLINE_TASK_EXECUTION_ENABLED_DEFAULT = false;
+
+  /**
+   * The maximium number of tasks running in parallel in inline mode. Not valid till Tez-684 get checked-in
+   */
+  public static final String TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS =
+    TEZ_AM_PREFIX + "inline.task.execution.max-tasks";
+
+  /**
+   * The maximium number of tasks running in parallel in inline mode. Not valid till Tez-684 get checked-in
+   */
+  public static final int TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT = 1;
 }
