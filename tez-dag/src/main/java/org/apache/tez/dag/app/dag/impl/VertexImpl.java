@@ -334,7 +334,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition
               (VertexState.RUNNING,
               EnumSet.of(VertexState.RUNNING,
-                  VertexState.SUCCEEDED, VertexState.TERMINATING, VertexState.FAILED),
+                  VertexState.SUCCEEDED, VertexState.TERMINATING, VertexState.FAILED,
+                  VertexState.ERROR),
               VertexEventType.V_TASK_COMPLETED,
               new TaskCompletedTransition())
           .addTransition(VertexState.RUNNING, VertexState.TERMINATING,
