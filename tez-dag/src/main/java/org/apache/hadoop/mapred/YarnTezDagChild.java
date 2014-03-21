@@ -124,6 +124,11 @@ public class YarnTezDagChild {
    * changes.
    */
   private static Multimap<String, String> startedInputsMap = HashMultimap.create();
+  
+  private static final int LOG_COUNTER_START_INTERVAL = 5000; // 5 seconds.
+  private static final float LOG_COUNTER_BACKOFF = 1.3f;
+  private static int taskNonOobHeartbeatCounter = 0;
+  private static int nextHeartbeatNumToLog = 0;
 
   private static Thread startHeartbeatThread() {
     Thread heartbeatThread = new Thread(new Runnable() {
@@ -226,6 +231,22 @@ public class YarnTezDagChild {
       taskLock.readLock().unlock();
     }
 
+    if (LOG.isDebugEnabled()) {
+      taskNonOobHeartbeatCounter++;
+      if (taskNonOobHeartbeatCounter == nextHeartbeatNumToLog) {
+        taskLock.readLock().lock();
+        try {
+          if (currentTask != null) {
+            LOG.debug("Counters: " + currentTask.getCounters().toShortString());
+            taskNonOobHeartbeatCounter = 0;
+            nextHeartbeatNumToLog = (int) (nextHeartbeatNumToLog * (LOG_COUNTER_BACKOFF));
+          }
+        } finally {
+          taskLock.readLock().unlock();
+        }
+      }
+    }
+
     long reqId = requestCounter.incrementAndGet();
     TezHeartbeatRequest request = new TezHeartbeatRequest(reqId, events,
         containerIdStr, taskAttemptID, eventCounter, eventsRange);
@@ -272,7 +293,7 @@ public class YarnTezDagChild {
     }
     return true;
   }
-
+  
   public static void main(String[] args) throws Throwable {
     Thread.setDefaultUncaughtExceptionHandler(
         new YarnUncaughtExceptionHandler());
@@ -447,9 +468,9 @@ public class YarnTezDagChild {
         }
         taskCount++;
 
-        // Reset file system statistics for the new task.
+        // Reset FileSystem statistics
         FileSystem.clearStatistics();
-        
+
         // Re-use the UGI only if the Credentials have not changed.
         if (containerTask.haveCredentialsChanged()) {
           LOG.info("Refreshing UGI since Credentials have changed");
@@ -497,6 +518,11 @@ public class YarnTezDagChild {
 
           currentTask = createLogicalTask(attemptNumber, taskSpec,
               defaultConf, tezUmbilical, serviceConsumerMetadata);
+          
+          taskNonOobHeartbeatCounter = 0;
+          nextHeartbeatNumToLog = (Math.max(1,
+              (int) (LOG_COUNTER_START_INTERVAL / (amPollInterval == 0 ? 0.000001f
+                  : (float) amPollInterval))));
         } finally {
           taskLock.writeLock().unlock();
         }
@@ -710,4 +736,6 @@ public class YarnTezDagChild {
     fs.copyToLocalFile(srcPath, dFile);
     return dFile.makeQualified(FileSystem.getLocal(conf).getUri(), cwd);
   }
+  
+  
 }

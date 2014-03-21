@@ -82,6 +82,8 @@ public class ShuffledMergedInput implements LogicalInput {
       inputContext.requestInitialMemory(0l, null);
       isStarted.set(true);
       inputContext.inputIsReady();
+      LOG.info("input fetch not required since there are 0 physical inputs for input vertex: "
+          + inputContext.getSourceVertexName());
       return Collections.emptyList();
     }
 

@@ -59,6 +59,11 @@ public enum TaskCounter {
    * Number of Inputs from which data is copied. Represents physical Inputs. 
    */
   NUM_SHUFFLED_INPUTS,
+  
+  /**
+   * Number of Inputs from which data was not copied - typically due to an empty Input
+   */
+  NUM_SKIPPED_INPUTS,
 
   /**
    * Number of failed copy attempts (physical inputs)

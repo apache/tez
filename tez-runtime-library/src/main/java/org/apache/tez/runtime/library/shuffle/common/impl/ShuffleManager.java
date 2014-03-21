@@ -555,7 +555,10 @@ public class ShuffleManager implements FetcherCallback {
         // TODO Should eventually be controlled by Inputs which are processing the data.
         inputContext.inputIsReady();
       }
-      numCompletedInputs.incrementAndGet();
+      int numComplete = numCompletedInputs.incrementAndGet();
+      if (numComplete == numInputs) {
+        LOG.info("All inputs fetched for input vertex : " + inputContext.getSourceVertexName());
+      }
     } finally {
       lock.unlock();
     }

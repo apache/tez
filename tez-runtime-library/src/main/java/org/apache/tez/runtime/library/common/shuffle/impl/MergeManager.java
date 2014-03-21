@@ -492,8 +492,7 @@ public class MergeManager {
     public IntermediateMemoryToMemoryMerger(MergeManager manager, 
                                             int mergeFactor) {
       super(manager, mergeFactor, exceptionReporter);
-      setName("InMemoryMerger - Thread to do in-memory merge of in-memory " +
-      		    "shuffled map-outputs");
+      setName("MemToMemMerger [" + inputContext.getSourceVertexName() + "]");
       setDaemon(true);
     }
 
@@ -548,8 +547,7 @@ public class MergeManager {
     
     public InMemoryMerger(MergeManager manager) {
       super(manager, Integer.MAX_VALUE, exceptionReporter);
-      setName
-      ("InMemoryMerger - Thread to merge in-memory shuffled map-outputs");
+      setName("MemtoDiskMerger [" + inputContext.getSourceVertexName() + "]");
       setDaemon(true);
     }
     
@@ -648,7 +646,7 @@ public class MergeManager {
     
     public OnDiskMerger(MergeManager manager) {
       super(manager, Integer.MAX_VALUE, exceptionReporter);
-      setName("OnDiskMerger - Thread to merge on-disk map-outputs");
+      setName("DiskToDiskMerger [" + inputContext.getSourceVertexName() + "]");
       setDaemon(true);
     }
     

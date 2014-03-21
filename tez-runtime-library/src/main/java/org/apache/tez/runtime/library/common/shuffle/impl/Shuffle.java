@@ -286,6 +286,7 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
       }
 
       inputContext.inputIsReady();
+      LOG.info("merge complete for input vertex : " + inputContext.getSourceVertexName());
       return kvIter;
     }
   }

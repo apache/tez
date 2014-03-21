@@ -39,6 +39,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezInputContext;
@@ -79,7 +80,8 @@ class ShuffleScheduler {
     new HashMap<String,IntWritable>();
   private final TezInputContext inputContext;
   private final Shuffle shuffle;
-  private final TezCounter shuffledMapsCounter;
+  private final TezCounter shuffledInputsCounter;
+  private final TezCounter skippedInputCounter;
   private final TezCounter reduceShuffleBytes;
   private final TezCounter reduceBytesDecompressed;
   private final TezCounter failedShuffleCounter;
@@ -103,7 +105,7 @@ class ShuffleScheduler {
                           Configuration conf,
                           int numberOfInputs,
                           Shuffle shuffle,
-                          TezCounter shuffledMapsCounter,
+                          TezCounter shuffledInputsCounter,
                           TezCounter reduceShuffleBytes,
                           TezCounter reduceBytesDecompressed,
                           TezCounter failedShuffleCounter,
@@ -115,7 +117,7 @@ class ShuffleScheduler {
     remainingMaps = numberOfInputs;
     finishedMaps = new boolean[remainingMaps]; // default init to false
     this.shuffle = shuffle;
-    this.shuffledMapsCounter = shuffledMapsCounter;
+    this.shuffledInputsCounter = shuffledInputsCounter;
     this.reduceShuffleBytes = reduceShuffleBytes;
     this.reduceBytesDecompressed = reduceBytesDecompressed;
     this.failedShuffleCounter = failedShuffleCounter;
@@ -138,6 +140,8 @@ class ShuffleScheduler {
     this.maxTaskOutputAtOnce = Math.max(1, conf.getInt(
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE,
             TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE));
+    
+    this.skippedInputCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_SKIPPED_INPUTS);
     
     LOG.info("ShuffleScheduler running for sourceVertex: "
         + inputContext.getSourceVertexName() + " with configuration: "
@@ -169,10 +173,16 @@ class ShuffleScheduler {
         } else {
           bytesShuffledToMem.increment(bytesCompressed);
         }
+        shuffledInputsCounter.increment(1);
+      } else {
+        // Output null implies that a physical input completion is being
+        // registered without needing to fetch data
+        skippedInputCounter.increment(1);
       }
       setInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex());
-      shuffledMapsCounter.increment(1);
+      
       if (--remainingMaps == 0) {
+        LOG.info("All inputs fetched for input vertex : " + inputContext.getSourceVertexName());
         notifyAll();
       }
 

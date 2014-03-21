@@ -310,6 +310,26 @@ public abstract class AbstractCounters<C extends TezCounter,
     }
   }
 
+  public synchronized String toShortString() {
+    StringBuilder sb = new StringBuilder("Counters: " + countCounters()).append(" [");
+    for (G group : this) {
+      sb.append("[").append(group.getDisplayName());
+      boolean isFirst = true;
+      for (TezCounter counter : group) {
+        if (isFirst) {
+          sb.append(" ");
+          isFirst = false;
+        } else {
+          sb.append(", ");
+        }
+        sb.append(counter.getDisplayName()).append("=").append(counter.getValue());
+      }
+      sb.append("]");
+    }
+    sb.append("]");
+    return sb.toString();
+  }
+
   /**
    * Return textual representation of the counter values.
    * @return the string

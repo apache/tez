@@ -83,6 +83,8 @@ public class ShuffledUnorderedKVInput implements LogicalInput, MemoryUpdateCallb
       inputContext.requestInitialMemory(0l, null);
       isStarted.set(true);
       inputContext.inputIsReady();
+      LOG.info("input fetch not required since there are 0 physical inputs for input vertex: "
+          + inputContext.getSourceVertexName());
       return Collections.emptyList();
     } else {
       long initalMemReq = getInitialMemoryReq();
