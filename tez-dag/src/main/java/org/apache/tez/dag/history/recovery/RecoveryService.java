@@ -333,7 +333,8 @@ public class RecoveryService extends AbstractService {
   private void maybeFlush(FSDataOutputStream outputStream) throws IOException {
     long currentTime = appContext.getClock().getTime();
     boolean doFlush = false;
-    if (unflushedEventsCount >= maxUnflushedEvents) {
+    if (maxUnflushedEvents >=0
+        && unflushedEventsCount >= maxUnflushedEvents) {
       if  (LOG.isDebugEnabled()) {
         LOG.debug("Max unflushed events count reached. Flushing recovery data"
             + ", unflushedEventsCount=" + unflushedEventsCount
