@@ -36,6 +36,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.rm.AMSchedulerEventNodeBlacklistUpdate;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
+import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
 import org.apache.tez.dag.app.rm.container.AMContainerEventNodeFailed;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
@@ -113,15 +114,18 @@ public class TestAMNodeMap {
   }
   
   @Test(timeout=5000)
-  public void testNodeSelfBlacklist() {
+  public void testNodeSelfBlacklist() throws InterruptedException {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
     conf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 2);
     TestEventHandler handler = new TestEventHandler();
     AMNodeMap amNodeMap = new AMNodeMap(handler, appContext);
     AMContainerMap amContainerMap = mock(AMContainerMap.class);
+    TaskSchedulerEventHandler taskSchedulerEventHandler =
+        mock(TaskSchedulerEventHandler.class);
     dispatcher.register(AMNodeEventType.class, amNodeMap);
     dispatcher.register(AMContainerEventType.class, amContainerMap);
+    dispatcher.register(AMSchedulerEventType.class, taskSchedulerEventHandler);
     amNodeMap.init(conf);
     amNodeMap.start();
 
@@ -200,7 +204,7 @@ public class TestAMNodeMap {
     AMNodeImpl node3 = (AMNodeImpl)amNodeMap.get(nodeId3);
     assertEquals(AMNodeState.FORCED_ACTIVE, node3.getState());
     assertEquals(10, handler.events.size());
-    
+
     assertEquals(AMContainerEventType.C_NODE_FAILED, handler.events.get(0).getType());
     assertEquals(AMContainerEventType.C_NODE_FAILED, handler.events.get(1).getType());
     assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(2).getType());
@@ -211,7 +215,10 @@ public class TestAMNodeMap {
     assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED, handler.events.get(7).getType());
     assertEquals(AMSchedulerEventType.S_NODE_UNBLACKLISTED, handler.events.get(8).getType());
     assertEquals(AMSchedulerEventType.S_NODE_UNBLACKLISTED, handler.events.get(9).getType());
-    
+    // drain all previous events
+    Thread.sleep(500l);
+    dispatcher.await();
+
     handler.events.clear();
     amNodeMap.handle(new AMNodeEventNodeCountUpdated(8));
     dispatcher.await();
