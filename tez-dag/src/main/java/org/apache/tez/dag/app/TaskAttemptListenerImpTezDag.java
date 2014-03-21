@@ -59,7 +59,7 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
-import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
+import org.apache.tez.common.security.JobTokenSecretManager;
 
 import com.google.common.collect.Maps;
 

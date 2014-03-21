@@ -35,6 +35,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.TezYARNUtils;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DAGSubmissionTimedOut;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -68,6 +69,8 @@ public class TezSession {
   /** Tokens which will be required for all DAGs submitted to this session. */
   private Credentials sessionCredentials = new Credentials();
   private long clientTimeout;
+  private JobTokenSecretManager jobTokenSecretManager =
+      new JobTokenSecretManager();
 
   public TezSession(String sessionName,
       ApplicationId applicationId,
@@ -110,6 +113,10 @@ public class TezSession {
         applicationId = yarnClient.createApplication().
             getNewApplicationResponse().getApplicationId();
       }
+
+      // Add session token for shuffle
+      TezClientUtils.createSessionToken(applicationId.toString(),
+          jobTokenSecretManager, sessionCredentials);
 
       ApplicationSubmissionContext appContext =
           TezClientUtils.createApplicationSubmissionContext(

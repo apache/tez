@@ -21,11 +21,14 @@ package org.apache.tez.client;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -33,6 +36,9 @@ import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.tez.common.security.JobTokenIdentifier;
+import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -46,6 +52,8 @@ public class TezClient {
   private final YarnConfiguration yarnConf;
   private YarnClient yarnClient;
   Map<String, LocalResource> tezJarResources = null;
+  private JobTokenSecretManager jobTokenSecretManager =
+      new JobTokenSecretManager();
 
   /**
    * <p>
@@ -88,6 +96,11 @@ public class TezClient {
       if (credentials == null) {
         credentials = new Credentials();
       }
+
+      // Add session token for shuffle
+      TezClientUtils.createSessionToken(appId.toString(),
+          jobTokenSecretManager, credentials);
+
       // Add credentials for tez-local resources.
       Map<String, LocalResource> tezJarResources = getTezJarResources(credentials);
       ApplicationSubmissionContext appContext = TezClientUtils.createApplicationSubmissionContext(

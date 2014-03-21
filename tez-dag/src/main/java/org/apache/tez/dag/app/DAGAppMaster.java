@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -51,7 +50,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -138,7 +136,7 @@ import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.utils.Graph;
-import org.apache.tez.runtime.library.common.security.JobTokenSecretManager;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.codehaus.jettison.json.JSONException;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -222,7 +220,6 @@ public class DAGAppMaster extends AbstractService {
   private Path recoveryDataDir;
   private Path currentRecoveryDataDir;
   private FileSystem recoveryFS;
-  private int recoveryBufferSize;
 
   protected boolean isLastAMRetry = false;
 
@@ -295,17 +292,17 @@ public class DAGAppMaster extends AbstractService {
     containerHeartbeatHandler = createContainerHeartbeatHandler(context, conf);
     addIfService(containerHeartbeatHandler, true);
 
-    String sessionTokenUUID = UUID.randomUUID().toString();
-    JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
-        sessionTokenUUID));
-    sessionToken = new Token<JobTokenIdentifier>(identifier,
-        jobTokenSecretManager);
-    sessionToken.setService(identifier.getJobId());
-    TokenCache.setSessionToken(sessionToken, amTokens);
+    sessionToken =
+        TokenCache.getSessionToken(amTokens);
+    if (sessionToken == null) {
+      throw new RuntimeException("Could not find session token in AM Credentials");
+    }
+
     // Prepare the TaskAttemptListener server for authentication of Containers
     // TaskAttemptListener gets the information via jobTokenSecretManager.
-    jobTokenSecretManager.addTokenForJob(sessionTokenUUID, sessionToken);
-    LOG.info("Adding session token to jobTokenSecretManager for sessionTokenUUID: " + sessionTokenUUID);
+    LOG.info("Adding session token to jobTokenSecretManager for application");
+    jobTokenSecretManager.addTokenForJob(
+        appAttemptID.getApplicationId().toString(), sessionToken);
 
     //service to handle requests to TaskUmbilicalProtocol
     taskAttemptListener = createTaskAttemptListener(context,
@@ -363,9 +360,6 @@ public class DAGAppMaster extends AbstractService {
     currentRecoveryDataDir = new Path(recoveryDataDir,
         Integer.toString(this.appAttemptID.getAttemptId()));
     recoveryFS = FileSystem.get(recoveryDataDir.toUri(), conf);
-    recoveryBufferSize = conf.getInt(
-        TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE,
-        TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE_DEFAULT);
 
     if (isSession) {
       FileInputStream sessionResourcesStream = null;

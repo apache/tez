@@ -131,6 +131,10 @@ public class TokenCache {
   @SuppressWarnings("unchecked")
   @InterfaceAudience.Private
   public static Token<JobTokenIdentifier> getSessionToken(Credentials credentials) {
-    return (Token<JobTokenIdentifier>) credentials.getToken(SESSION_TOKEN);
+    Token<?> token = credentials.getToken(SESSION_TOKEN);
+    if (token == null) {
+      return null;
+    }
+    return (Token<JobTokenIdentifier>) token;
   }
 }
