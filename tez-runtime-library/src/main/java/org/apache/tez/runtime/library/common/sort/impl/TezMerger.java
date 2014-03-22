@@ -76,7 +76,7 @@ public class TezMerger {
   throws IOException {
     return 
       new MergeQueue(conf, fs, inputs, deleteInputs, codec, ifileReadAhead,
-                           ifileReadAheadLength, ifileBufferSize, comparator, 
+                           ifileReadAheadLength, ifileBufferSize, false, comparator, 
                            reporter, null).merge(keyClass, valueClass,
                                            mergeFactor, tmpDir,
                                            readsCounter, writesCounter,
@@ -101,7 +101,7 @@ public class TezMerger {
   throws IOException {
     return 
       new MergeQueue(conf, fs, inputs, deleteInputs, codec, ifileReadAhead,
-                           ifileReadAheadLength, ifileBufferSize, comparator, 
+                           ifileReadAheadLength, ifileBufferSize, false, comparator, 
                            reporter, mergedMapOutputsCounter).merge(
                                            keyClass, valueClass,
                                            mergeFactor, tmpDir,
@@ -141,7 +141,7 @@ public class TezMerger {
                             Progress mergePhase)
       throws IOException {
     return new MergeQueue(conf, fs, segments, comparator, reporter,
-                           sortSegments).merge(keyClass, valueClass,
+                           sortSegments, false).merge(keyClass, valueClass,
                                                mergeFactor, tmpDir,
                                                readsCounter, writesCounter,
                                                bytesReadCounter, mergePhase);
@@ -155,13 +155,15 @@ public class TezMerger {
                             int mergeFactor, Path tmpDir,
                             RawComparator comparator, Progressable reporter,
                             boolean sortSegments,
+                            boolean considerFinalMergeForProgress,
                             TezCounter readsCounter,
                             TezCounter writesCounter,
                             TezCounter bytesReadCounter,
                             Progress mergePhase)
       throws IOException {
     return new MergeQueue(conf, fs, segments, comparator, reporter,
-                           sortSegments, codec).merge(keyClass, valueClass,
+                           sortSegments, codec, considerFinalMergeForProgress).
+                                         merge(keyClass, valueClass,
                                                mergeFactor, tmpDir,
                                                readsCounter, writesCounter,
                                                bytesReadCounter,
@@ -181,7 +183,7 @@ public class TezMerger {
                             Progress mergePhase)
       throws IOException {
     return new MergeQueue(conf, fs, segments, comparator, reporter,
-                           sortSegments).merge(keyClass, valueClass,
+                           sortSegments, false).merge(keyClass, valueClass,
                                                mergeFactor, inMemSegments,
                                                tmpDir,
                                                readsCounter, writesCounter,
@@ -204,7 +206,7 @@ public class TezMerger {
                           Progress mergePhase)
     throws IOException {
   return new MergeQueue(conf, fs, segments, comparator, reporter,
-                         sortSegments, codec).merge(keyClass, valueClass,
+                         sortSegments, codec, false).merge(keyClass, valueClass,
                                              mergeFactor, inMemSegments,
                                              tmpDir,
                                              readsCounter, writesCounter,
@@ -380,21 +382,7 @@ public class TezMerger {
       }
     }
   }
-  
-  // Boolean variable for including/considering final merge as part of sort
-  // phase or not. This is true in map task, false in reduce task. It is
-  // used in calculating mergeProgress.
-  static boolean includeFinalMerge = false;
-  
-  /**
-   * Sets the boolean variable includeFinalMerge to true. Called from
-   * map task before calling merge() so that final merge of map task
-   * is also considered as part of sort phase.
-   */
-  public static void considerFinalMergeForProgress() {
-    includeFinalMerge = true;
-  }
-  
+
   private static class MergeQueue<K extends Object, V extends Object> 
   extends PriorityQueue<Segment> implements TezRawKeyValueIterator {
     Configuration conf;
@@ -412,7 +400,11 @@ public class TezMerger {
     private long totalBytesProcessed;
     private float progPerByte;
     private Progress mergeProgress = new Progress();
-    
+    // Boolean variable for including/considering final merge as part of sort
+    // phase or not. This is true in map task, false in reduce task. It is
+    // used in calculating mergeProgress.
+    private final boolean considerFinalMergeForProgress;
+
     Progressable reporter;
     
     DataInputBuffer key;
@@ -435,6 +427,7 @@ public class TezMerger {
                       Path[] inputs, boolean deleteInputs, 
                       CompressionCodec codec, boolean ifileReadAhead,
                       int ifileReadAheadLength, int ifileBufferSize,
+                      boolean considerFinalMergeForProgress,
                       RawComparator comparator, Progressable reporter, 
                       TezCounter mergedMapOutputsCounter) 
     throws IOException {
@@ -446,6 +439,7 @@ public class TezMerger {
       this.codec = codec;
       this.comparator = comparator;
       this.reporter = reporter;
+      this.considerFinalMergeForProgress = considerFinalMergeForProgress;
       
       for (Path file : inputs) {
         LOG.debug("MergeQ: adding: " + file);
@@ -463,12 +457,13 @@ public class TezMerger {
     
     public MergeQueue(Configuration conf, FileSystem fs, 
         List<Segment> segments, RawComparator comparator,
-        Progressable reporter, boolean sortSegments) {
+        Progressable reporter, boolean sortSegments, boolean considerFinalMergeForProgress) {
       this.conf = conf;
       this.fs = fs;
       this.comparator = comparator;
       this.segments = segments;
       this.reporter = reporter;
+      this.considerFinalMergeForProgress = considerFinalMergeForProgress;
       if (sortSegments) {
         Collections.sort(segments, segmentComparator);
       }
@@ -476,8 +471,9 @@ public class TezMerger {
 
     public MergeQueue(Configuration conf, FileSystem fs,
         List<Segment> segments, RawComparator comparator,
-        Progressable reporter, boolean sortSegments, CompressionCodec codec) {
-      this(conf, fs, segments, comparator, reporter, sortSegments);
+        Progressable reporter, boolean sortSegments, CompressionCodec codec,
+        boolean considerFinalMergeForProgress) {
+      this(conf, fs, segments, comparator, reporter, sortSegments, considerFinalMergeForProgress);
       this.codec = codec;
     }
 
@@ -576,6 +572,10 @@ public class TezMerger {
                                      Progress mergePhase)
         throws IOException {
       LOG.info("Merging " + segments.size() + " sorted segments");
+      if (segments.size() == 0) {
+        LOG.info("Nothing to merge. Returning an empty iterator");
+        return new EmptyIterator();
+      }
 
       /*
        * If there are inMemory segments, then they come first in the segments
@@ -655,7 +655,7 @@ public class TezMerger {
         //if we have lesser number of segments remaining, then just return the
         //iterator, else do another single level merge
         if (numSegments <= factor) { // Will always kick in if only in-mem segments are provided.
-          if (!includeFinalMerge) { // for reduce task
+          if (!considerFinalMergeForProgress) { // for reduce task
 
             // Reset totalBytesProcessed and recalculate totalBytes from the
             // remaining segments to track the progress of the final merge.
@@ -815,7 +815,7 @@ public class TezMerger {
       // If includeFinalMerge is true, allow the following while loop iterate
       // for 1 more iteration. This is to include final merge as part of the
       // computation of expected input bytes of merges
-      boolean considerFinalMerge = includeFinalMerge;
+      boolean considerFinalMerge = considerFinalMergeForProgress;
       
       while (n > f || considerFinalMerge) {
         if (n <=f ) {
@@ -834,9 +834,7 @@ public class TezMerger {
           pos = -pos-1;
         }
         segmentSizes.add(pos, mergedSize);
-        
-        n -= (f-1);
-        f = factor;
+
       }
 
       return totalBytes;
@@ -846,5 +844,38 @@ public class TezMerger {
       return mergeProgress;
     }
 
+  }
+  
+  private static class EmptyIterator implements TezRawKeyValueIterator {
+    final Progress progress;
+
+    EmptyIterator() {
+      progress = new Progress();
+      progress.set(1.0f);
+    }
+
+    @Override
+    public DataInputBuffer getKey() throws IOException {
+      throw new RuntimeException("No keys on an empty iterator");
+    }
+
+    @Override
+    public DataInputBuffer getValue() throws IOException {
+      throw new RuntimeException("No values on an empty iterator");
+    }
+
+    @Override
+    public boolean next() throws IOException {
+      return false;
+    }
+
+    @Override
+    public void close() throws IOException {
+    }
+
+    @Override
+    public Progress getProgress() {
+      return progress;
+    }
   }
 }

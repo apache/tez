@@ -1054,8 +1054,6 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
       return;
     }
     else {
-      TezMerger.considerFinalMergeForProgress();
-
       final TezSpillRecord spillRec = new TezSpillRecord(partitions);
       for (int parts = 0; parts < partitions; parts++) {
         //create the segments to be merged
@@ -1089,7 +1087,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
                        segmentList, mergeFactor,
                        new Path(taskIdentifier),
                        (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(conf),
-                       nullProgressable, sortSegments,
+                       nullProgressable, sortSegments, true,
                        null, spilledRecordsCounter, additionalSpillBytesRead,
                        null); // Not using any Progress in TezMerger. Should just work.
 

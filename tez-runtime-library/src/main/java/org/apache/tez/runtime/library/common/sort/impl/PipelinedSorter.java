@@ -333,8 +333,6 @@ public class PipelinedSorter extends ExternalSorter {
     //The output stream for the final single output file
     FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
 
-    TezMerger.considerFinalMergeForProgress();
-
     final TezSpillRecord spillRec = new TezSpillRecord(partitions);
     final ArrayList<TezSpillRecord> indexCacheList = new ArrayList<TezSpillRecord>();
 
@@ -371,7 +369,7 @@ public class PipelinedSorter extends ExternalSorter {
                      segmentList, mergeFactor,
                      new Path(uniqueIdentifier),
                      (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(conf), 
-                     nullProgressable, sortSegments,
+                     nullProgressable, sortSegments, true,
                      null, spilledRecordsCounter, null,
                      null); // Not using any Progress in TezMerger. Should just work.
 
