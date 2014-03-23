@@ -21,6 +21,7 @@ package org.apache.tez.runtime.library.output;
 import static org.mockito.Mockito.mock;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -144,7 +145,7 @@ public class TestOnFileUnorderedKVOutput {
     DataMovementEventPayloadProto shufflePayload = DataMovementEventPayloadProto
         .parseFrom(dmEvent.getUserPayload());
 
-    assertTrue(shufflePayload.getOutputGenerated());
+    assertFalse(shufflePayload.hasEmptyPartitions());
     assertEquals(outputContext.getUniqueIdentifier(), shufflePayload.getPathComponent());
     assertEquals(shufflePort, shufflePayload.getPort());
     assertEquals("host", shufflePayload.getHost());

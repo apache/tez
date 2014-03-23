@@ -22,8 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.zip.Deflater;
-import java.util.zip.DeflaterOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -45,7 +43,6 @@ import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
-import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 
@@ -154,20 +151,11 @@ public class OnFileSortedOutput implements LogicalOutput {
         }
       }
       if (emptyPartitions > 0) {
-        //compress the data
-        ByteString.Output os = ByteString.newOutput();
-        DeflaterOutputStream compressOs = new DeflaterOutputStream(os,
-            new Deflater(Deflater.BEST_COMPRESSION));
-        compressOs.write(partitionDetails);
-        compressOs.finish();
-
-        ShuffleUserPayloads.DataProto.Builder dataProtoBuilder = ShuffleUserPayloads.DataProto.newBuilder();
-        dataProtoBuilder.setEmptyPartitions(os.toByteString());
-        payloadBuilder.setData(dataProtoBuilder.build());
-
+        ByteString emptyPartitionsBytesString = TezUtils.compressByteArrayToByteString(partitionDetails);
+        payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
         LOG.info("EmptyPartition bitsetSize=" + partitionDetails.length + ", numOutputs="
                 + numOutputs + ", emptyPartitions=" + emptyPartitions
-              + ", compressedSize=" + os.toByteString().size());
+              + ", compressedSize=" + emptyPartitionsBytesString.size());
       }
     }
     payloadBuilder.setHost(host);

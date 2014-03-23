@@ -125,7 +125,14 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
         .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
     int shufflePort = ShuffleUtils
         .deserializeShuffleProviderMetaData(shuffleMetadata);
-    payloadBuilder.setOutputGenerated(outputGenerated);
+    // Set the list of empty partitions - single partition on this case.
+    if (!outputGenerated) {
+      LOG.info("No output was generated");
+      byte[] emptyPartitions = new byte[1];
+      emptyPartitions[0] = 1;
+      ByteString emptyPartitionsBytesString = TezUtils.compressByteArrayToByteString(emptyPartitions);
+      payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
+    }
     if (outputGenerated) {
       payloadBuilder.setHost(host);
       payloadBuilder.setPort(shufflePort);

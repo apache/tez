@@ -21,12 +21,11 @@ package org.apache.tez.runtime.library.shuffle.common.impl;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.zip.InflaterInputStream;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezInputContext;
@@ -93,36 +92,35 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     } catch (InvalidProtocolBufferException e) {
       throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
     }
+    int srcIndex = dme.getSourceIndex();
     LOG.info("Processing DataMovementEvent with srcIndex: "
-        + dme.getSourceIndex() + ", targetIndex: " + dme.getTargetIndex()
+        + srcIndex + ", targetIndex: " + dme.getTargetIndex()
         + ", attemptNum: " + dme.getVersion() + ", payload: "
         + stringify(shufflePayload));
-    if (shufflePayload.getOutputGenerated()) {
-      InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(
-          dme.getTargetIndex(), dme.getVersion(),
-          shufflePayload.getPathComponent());
+
+    if (shufflePayload.hasEmptyPartitions()) {
+      byte[] emptyPartitions = TezUtils.decompressByteStringToByteArray(shufflePayload
+          .getEmptyPartitions());
+      if (emptyPartitions[srcIndex] == 1) {
+        InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dme.getTargetIndex(),
+            dme.getVersion());
+        LOG.info("Source partition: " + srcIndex + " did not generate any data. Not fetching.");
+        shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier);
+        return;
+      }
+    } else {
+      InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dme.getTargetIndex(),
+          dme.getVersion(), shufflePayload.getPathComponent());
       if (shufflePayload.hasData()) {
         DataProto dataProto = shufflePayload.getData();
-        if (dataProto.hasEmptyPartitions()) {
-          int partitionId = dme.getSourceIndex();
-          InflaterInputStream in = new
-              InflaterInputStream(shufflePayload.getData().getEmptyPartitions().newInput());
-          byte[] emptyPartition = IOUtils.toByteArray(in);
-          if (emptyPartition[partitionId] == 1) {
-              LOG.info("Got empty payload : PartitionId : " +
-                        partitionId + " : " + emptyPartition[partitionId]);
-              shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier);
-              return;
-          }
-        }
-        FetchedInput fetchedInput = inputAllocator.allocate(dataProto.getRawLength(), dataProto.getCompressedLength(), srcAttemptIdentifier);
+        FetchedInput fetchedInput = inputAllocator.allocate(dataProto.getRawLength(),
+            dataProto.getCompressedLength(), srcAttemptIdentifier);
         moveDataToFetchedInput(dataProto, fetchedInput);
         shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);
       } else {
-        shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(), srcAttemptIdentifier, dme.getSourceIndex());
+        shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(),
+            srcAttemptIdentifier, srcIndex);
       }
-    } else {
-      shuffleManager.addCompletedInputWithNoData(new InputAttemptIdentifier(dme.getTargetIndex(), dme.getVersion()));
     }
   }
   
@@ -153,7 +151,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   private String stringify(DataMovementEventPayloadProto dmProto) {
     StringBuilder sb = new StringBuilder();
     sb.append("[");
-    sb.append("outputGenerated: " + dmProto.getOutputGenerated()).append(", ");
+    sb.append("hasEmptyPartitions: ").append(dmProto.hasEmptyPartitions()).append(", ");
     sb.append("host: " + dmProto.getHost()).append(", ");
     sb.append("port: " + dmProto.getPort()).append(", ");
     sb.append("pathComponent: " + dmProto.getPathComponent()).append(", ");

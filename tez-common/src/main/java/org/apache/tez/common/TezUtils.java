@@ -33,6 +33,7 @@ import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -222,6 +223,22 @@ public class TezUtils {
     return output;
   }
 
+  public static ByteString compressByteArrayToByteString(byte[] inBytes) throws IOException {
+    ByteString.Output os = ByteString.newOutput();
+    DeflaterOutputStream compressOs = new DeflaterOutputStream(os, new Deflater(
+        Deflater.BEST_COMPRESSION));
+    compressOs.write(inBytes);
+    compressOs.finish();
+    ByteString byteString = os.toByteString();
+    return byteString;
+  }
+  
+  public static byte[] decompressByteStringToByteArray(ByteString byteString) throws IOException {
+    InflaterInputStream in = new InflaterInputStream(byteString.newInput());
+    byte[] bytes = IOUtils.toByteArray(in);
+    return bytes;
+  }
+
   public static void updateLoggers(String addend) throws FileNotFoundException {
     String containerLogDir = null;
 
@@ -260,5 +277,4 @@ public class TezUtils {
       return base + "_" + addend;
     }
   }
-
 }

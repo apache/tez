@@ -21,11 +21,10 @@ package org.apache.tez.runtime.library.common.shuffle.impl;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
-import java.util.zip.InflaterInputStream;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezInputContext;
@@ -85,16 +84,13 @@ public class ShuffleInputEventHandler {
       maxMapRuntime = duration;
       scheduler.informMaxMapRunTime(maxMapRuntime);
     }
-    if (shufflePayload.getData().hasEmptyPartitions()) {
+    if (shufflePayload.hasEmptyPartitions()) {
       try {
-        InflaterInputStream in = new
-            InflaterInputStream(shufflePayload.getData().getEmptyPartitions().newInput());
-        byte[] emptyPartition = IOUtils.toByteArray(in);
-        if (emptyPartition[partitionId] == 1) {
-            LOG.info("Got empty payload : PartitionId : " +
-                      partitionId + " : " + emptyPartition[partitionId]);
-            scheduler.copySucceeded(srcAttemptIdentifier, null, 0, 0, 0, null);
-            return;
+        byte[] emptyPartitions = TezUtils.decompressByteStringToByteArray(shufflePayload.getEmptyPartitions());
+        if (emptyPartitions[partitionId] == 1) {
+          LOG.info("Source partition: " + partitionId + " did not generate any data. Not fetching.");
+          scheduler.copySucceeded(srcAttemptIdentifier, null, 0, 0, 0, null);
+          return;
         }
       } catch (IOException e) {
         throw new TezUncheckedException("Unable to set " +

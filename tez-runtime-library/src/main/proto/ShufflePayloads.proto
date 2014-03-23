@@ -21,7 +21,7 @@ option java_outer_classname = "ShuffleUserPayloads";
 option java_generate_equals_and_hash = true;
 
 message DataMovementEventPayloadProto {
-  optional bool output_generated = 1 [default = true];
+  optional bytes empty_partitions = 1;
   optional string host = 2;
   optional int32 port = 3;
   optional string path_component = 4;
@@ -33,7 +33,6 @@ message DataProto {
   optional int32 raw_length = 1;
   optional int32 compressed_length = 2;
   optional bytes data = 3;
-  optional bytes empty_partitions = 4;
 }
 
 message InputInformationEventPayloadProto {
