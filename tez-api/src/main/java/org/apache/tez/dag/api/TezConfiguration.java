@@ -347,7 +347,7 @@ public class TezConfiguration extends Configuration {
 
   public static final String TEZ_GENERATE_DAG_VIZ =
       TEZ_PREFIX + "generate.dag.viz";
-  public static final boolean TEZ_GENERATE_DAG_VIZ_DEFAULT = false;
+  public static final boolean TEZ_GENERATE_DAG_VIZ_DEFAULT = true;
   
   /**
    * Comma separated list of containers which should be profiled.

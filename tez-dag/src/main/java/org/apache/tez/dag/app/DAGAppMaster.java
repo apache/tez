@@ -41,6 +41,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
@@ -168,6 +170,8 @@ public class DAGAppMaster extends AbstractService {
    * Priority of the DAGAppMaster shutdown hook.
    */
   public static final int SHUTDOWN_HOOK_PRIORITY = 30;
+
+  private static Pattern sanitizeLabelPattern = Pattern.compile("[:\\-\\W]+");
 
   private Clock clock;
   private final boolean isSession;
@@ -635,26 +639,34 @@ public class DAGAppMaster extends AbstractService {
     return className;
   }
 
+
+  private String sanitizeLabelForViz(String label) {
+    Matcher m = sanitizeLabelPattern.matcher(label);
+    return m.replaceAll("_");
+  }
+
   private void generateDAGVizFile(TezDAGID dagId, DAGPlan dagPB) {
-    Graph graph = new Graph(dagPB.getName());
+    Graph graph = new Graph(sanitizeLabelForViz(dagPB.getName()));
 
     for (VertexPlan v : dagPB.getVertexList()) {
-      String nodeLabel = v.getName().replace("\\W","_")
+      String nodeLabel = sanitizeLabelForViz(v.getName())
           + "[" + getShortClassName(v.getProcessorDescriptor().getClassName() + "]");
-      Graph.Node n = graph.newNode(v.getName(), nodeLabel);
+      Graph.Node n = graph.newNode(sanitizeLabelForViz(v.getName()), nodeLabel);
       for (DAGProtos.RootInputLeafOutputProto input : v.getInputsList()) {
-        Graph.Node inputNode = graph.getNode(v.getName()
-            + "_" + input.getName());
-        inputNode.setLabel(v.getName() + "[" + input.getName() + "]");
+        Graph.Node inputNode = graph.getNode(sanitizeLabelForViz(v.getName())
+            + "_" + sanitizeLabelForViz(input.getName()));
+        inputNode.setLabel(sanitizeLabelForViz(v.getName())
+            + "[" + sanitizeLabelForViz(input.getName()) + "]");
         inputNode.setShape("box");
         inputNode.addEdge(n, "Input"
             + " [inputClass=" + getShortClassName(input.getEntityDescriptor().getClassName())
             + ", initializer=" + getShortClassName(input.getInitializerClassName()) + "]");
       }
       for (DAGProtos.RootInputLeafOutputProto output : v.getOutputsList()) {
-        Graph.Node outputNode = graph.getNode(v.getName()
-            + "_" + output.getName());
-        outputNode.setLabel(v.getName() + "[" + output.getName() + "]");
+        Graph.Node outputNode = graph.getNode(sanitizeLabelForViz(v.getName())
+            + "_" + sanitizeLabelForViz(output.getName()));
+        outputNode.setLabel(sanitizeLabelForViz(v.getName())
+            + "[" + sanitizeLabelForViz(output.getName()) + "]");
         outputNode.setShape("box");
         n.addEdge(outputNode, "Output"
             + " [outputClass=" + getShortClassName(output.getEntityDescriptor().getClassName())
@@ -664,8 +676,8 @@ public class DAGAppMaster extends AbstractService {
 
     for (DAGProtos.EdgePlan e : dagPB.getEdgeList()) {
 
-      Graph.Node n = graph.getNode(e.getInputVertexName());
-      n.addEdge(graph.getNode(e.getOutputVertexName()),
+      Graph.Node n = graph.getNode(sanitizeLabelForViz(e.getInputVertexName()));
+      n.addEdge(graph.getNode(sanitizeLabelForViz(e.getOutputVertexName())),
           "["
           + "input=" + getShortClassName(e.getEdgeSource().getClassName())
           + ", output=" + getShortClassName(e.getEdgeDestination().getClassName())
@@ -687,8 +699,11 @@ public class DAGAppMaster extends AbstractService {
     outputFile += dagId.toString() + ".dot";
 
     try {
+      LOG.info("Generating DAG graphviz file"
+          + ", dagId=" + dagId.toString()
+          + ", filePath=" + outputFile);
       graph.save(outputFile);
-    } catch (IOException e) {
+    } catch (Exception e) {
       LOG.warn("Error occurred when trying to save graph structure"
           + " for dag " + dagId.toString(), e);
     }
