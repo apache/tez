@@ -251,8 +251,8 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
       while (!scheduler.waitUntilDone(PROGRESS_FREQUENCY)) {
         synchronized (this) {
           if (throwable != null) {
-            // This exception will show up when someone tries iterating through the fetched Input.
-            // As part of TEZ-919, report this early.
+            inputContext.fatalError(throwable, "error in shuffle from thread :"
+                + throwingThreadName);
             throw new ShuffleError("error in shuffle in " + throwingThreadName,
                                    throwable);
           }
@@ -274,12 +274,15 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
       try {
         kvIter = merger.close();
       } catch (Throwable e) {
+        inputContext.fatalError(e, "Error while doing final merge ");
         throw new ShuffleError("Error while doing final merge " , e);
       }
       
       // Sanity check
       synchronized (Shuffle.this) {
         if (throwable != null) {
+          inputContext.fatalError(throwable, "error in shuffle from thread :"
+             + throwingThreadName);
           throw new ShuffleError("error in shuffle in " + throwingThreadName,
                                  throwable);
         }
