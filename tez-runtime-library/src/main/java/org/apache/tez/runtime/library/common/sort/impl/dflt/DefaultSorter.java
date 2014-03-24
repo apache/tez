@@ -298,7 +298,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
       kvmeta.put(kvindex + VALSTART, valstart);
       kvmeta.put(kvindex + VALLEN, distanceTo(valstart, valend));
       // advance kvindex
-      kvindex = (kvindex - NMETA + kvmeta.capacity()) % kvmeta.capacity();
+      kvindex = (int)(((long)kvindex - NMETA + kvmeta.capacity()) % kvmeta.capacity());
     } catch (MapBufferTooSmallException e) {
       LOG.info("Record too large for in-memory buffer: " + e.getMessage());
       spillSingleRecord(key, value, partition);
@@ -316,8 +316,8 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     equator = pos;
     // set index prior to first entry, aligned at meta boundary
     final int aligned = pos - (pos % METASIZE);
-    kvindex =
-      ((aligned - METASIZE + kvbuffer.length) % kvbuffer.length) / 4;
+    // Cast one of the operands to long to avoid integer overflow
+    kvindex = (int) (((long) aligned - METASIZE + kvbuffer.length) % kvbuffer.length) / 4;
     if (LOG.isInfoEnabled()) {
       LOG.info("(EQUATOR) " + pos + " kvi " + kvindex +
           "(" + (kvindex * 4) + ")");
@@ -334,8 +334,8 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     bufstart = bufend = e;
     final int aligned = e - (e % METASIZE);
     // set start/end to point to first meta record
-    kvstart = kvend =
-      ((aligned - METASIZE + kvbuffer.length) % kvbuffer.length) / 4;
+    // Cast one of the operands to long to avoid integer overflow
+    kvstart = kvend = (int) (((long) aligned - METASIZE + kvbuffer.length) % kvbuffer.length) / 4;
     if (LOG.isInfoEnabled()) {
       LOG.info("(RESET) equator " + e + " kv " + kvstart + "(" +
         (kvstart * 4) + ")" + " kvi " + kvindex + "(" + (kvindex * 4) + ")");
