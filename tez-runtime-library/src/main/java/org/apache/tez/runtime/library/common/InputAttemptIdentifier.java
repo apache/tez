@@ -31,7 +31,7 @@ public class InputAttemptIdentifier {
   private final int attemptNumber;
   private String pathComponent;
   
-  public static String PATH_PREFIX = "attempt";
+  public static final String PATH_PREFIX = "attempt";
   
   public InputAttemptIdentifier(int inputIndex, int attemptNumber) {
     this(new InputIdentifier(inputIndex), attemptNumber, null);

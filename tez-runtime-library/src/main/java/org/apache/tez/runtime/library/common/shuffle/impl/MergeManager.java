@@ -40,10 +40,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.Progressable;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -60,7 +59,6 @@ import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 import org.apache.tez.runtime.library.hadoop.compat.NullProgressable;
 
-import com.google.common.base.Preconditions;
 
 /**
  * Usage. Create instance. setInitialMemoryAvailable(long), configureAndStart()
@@ -82,28 +80,28 @@ public class MergeManager {
   private final Progressable nullProgressable = new NullProgressable();
   private final Combiner combiner;  
   
-  Set<MapOutput> inMemoryMergedMapOutputs = 
+  private final Set<MapOutput> inMemoryMergedMapOutputs = 
     new TreeSet<MapOutput>(new MapOutput.MapOutputComparator());
-  private IntermediateMemoryToMemoryMerger memToMemMerger;
+  private final IntermediateMemoryToMemoryMerger memToMemMerger;
 
-  Set<MapOutput> inMemoryMapOutputs = 
+  private final Set<MapOutput> inMemoryMapOutputs = 
     new TreeSet<MapOutput>(new MapOutput.MapOutputComparator());
-  private InMemoryMerger inMemoryMerger;
+  private final InMemoryMerger inMemoryMerger;
   
-  Set<Path> onDiskMapOutputs = new TreeSet<Path>();
-  private OnDiskMerger onDiskMerger;
+  private final Set<Path> onDiskMapOutputs = new TreeSet<Path>();
+  private final OnDiskMerger onDiskMerger;
   
-  private  long memoryLimit;
-  private int postMergeMemLimit;
+  private final long memoryLimit;
+  private final int postMergeMemLimit;
   private long usedMemory;
   private long commitMemory;
-  private int ioSortFactor;
-  private long maxSingleShuffleLimit;
+  private final int ioSortFactor;
+  private final long maxSingleShuffleLimit;
   
-  private int memToMemMergeOutputsThreshold; 
-  private long mergeThreshold;
+  private final int memToMemMergeOutputsThreshold; 
+  private final long mergeThreshold;
   
-  private long initialMemoryAvailable = -1;
+  private final long initialMemoryAvailable;
 
   private final ExceptionReporter exceptionReporter;
   
@@ -120,13 +118,13 @@ public class MergeManager {
   private final TezCounter additionalBytesWritten;
   private final TezCounter additionalBytesRead;
   
-  private CompressionCodec codec;
+  private final CompressionCodec codec;
   
   private volatile boolean finalMergeComplete = false;
   
-  private boolean ifileReadAhead;
-  private int ifileReadAheadLength;
-  private int ifileBufferSize;
+  private final boolean ifileReadAhead;
+  private final int ifileReadAheadLength;
+  private final int ifileBufferSize;
 
 
   /**
@@ -140,11 +138,16 @@ public class MergeManager {
                       TezCounter spilledRecordsCounter,
                       TezCounter reduceCombineInputCounter,
                       TezCounter mergedMapOutputsCounter,
-                      ExceptionReporter exceptionReporter) {
+                      ExceptionReporter exceptionReporter,
+                      long initialMemoryAvailable,
+                      CompressionCodec codec,
+                      boolean ifileReadAheadEnabled,
+                      int ifileReadAheadLength) {
     this.inputContext = inputContext;
     this.conf = conf;
     this.localDirAllocator = localDirAllocator;
     this.exceptionReporter = exceptionReporter;
+    this.initialMemoryAvailable = initialMemoryAvailable;
     
     this.combiner = combiner;
 
@@ -161,36 +164,16 @@ public class MergeManager {
     this.additionalBytesWritten = inputContext.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_WRITTEN);
     this.additionalBytesRead = inputContext.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_READ);
 
-  }
-  
-  void setInitialMemoryAvailable(long available) {
-    this.initialMemoryAvailable = available;
-  }
-  
-  @Private
-  void configureAndStart() {
-    Preconditions.checkState(initialMemoryAvailable != -1,
-        "Initial available memory must be configured before starting");
-    if (ConfigUtils.isIntermediateInputCompressed(conf)) {
-      Class<? extends CompressionCodec> codecClass =
-          ConfigUtils.getIntermediateInputCompressorClass(conf, DefaultCodec.class);
-      codec = ReflectionUtils.newInstance(codecClass, conf);
-    } else {
-      codec = null;
-    }
-    this.ifileReadAhead = conf.getBoolean(
-        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
-        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT);
+    this.codec = codec;
+    this.ifileReadAhead = ifileReadAheadEnabled;
     if (this.ifileReadAhead) {
-      this.ifileReadAheadLength = conf.getInt(
-          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
-          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT);
+      this.ifileReadAheadLength = ifileReadAheadLength;
     } else {
       this.ifileReadAheadLength = 0;
     }
     this.ifileBufferSize = conf.getInt("io.file.buffer.size",
         TezJobConfig.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
-
+    
     // Figure out initial memory req start
     final float maxInMemCopyUse =
       conf.getFloat(
@@ -221,13 +204,13 @@ public class MergeManager {
     } else {
       this.memoryLimit = memLimit;
     }
-
+    
     if (this.initialMemoryAvailable < maxRedBuffer) {
       this.postMergeMemLimit = (int) this.initialMemoryAvailable;
     } else {
       this.postMergeMemLimit = maxRedBuffer;
     }
-
+    
     LOG.info("InitialRequest: ShuffleMem=" + memLimit + ", postMergeMem=" + maxRedBuffer
         + ", RuntimeTotalAvailable=" + this.initialMemoryAvailable + "Updated to: ShuffleMem="
         + this.memoryLimit + ", postMergeMem: " + this.postMergeMemLimit);
@@ -236,7 +219,7 @@ public class MergeManager {
         conf.getInt(
             TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR, 
             TezJobConfig.DEFAULT_TEZ_RUNTIME_IO_SORT_FACTOR);
-
+    
     final float singleShuffleMemoryLimitPercent =
         conf.getFloat(
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT,
@@ -264,34 +247,40 @@ public class MergeManager {
              "mergeThreshold=" + mergeThreshold + ", " + 
              "ioSortFactor=" + ioSortFactor + ", " +
              "memToMemMergeOutputsThreshold=" + memToMemMergeOutputsThreshold);
-
+    
     if (this.maxSingleShuffleLimit >= this.mergeThreshold) {
       throw new RuntimeException("Invlaid configuration: "
           + "maxSingleShuffleLimit should be less than mergeThreshold"
           + "maxSingleShuffleLimit: " + this.maxSingleShuffleLimit
           + "mergeThreshold: " + this.mergeThreshold);
     }
-
+    
     boolean allowMemToMemMerge = 
-      conf.getBoolean(
-          TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM, 
-          TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM);
-    if (allowMemToMemMerge) {
-      this.memToMemMerger = 
-        new IntermediateMemoryToMemoryMerger(this,
-                                             memToMemMergeOutputsThreshold);
-      this.memToMemMerger.start();
-    } else {
-      this.memToMemMerger = null;
+        conf.getBoolean(
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM, 
+            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM);
+      if (allowMemToMemMerge) {
+        this.memToMemMerger = 
+          new IntermediateMemoryToMemoryMerger(this,
+                                               memToMemMergeOutputsThreshold);
+      } else {
+        this.memToMemMerger = null;
+      }
+      
+      this.inMemoryMerger = new InMemoryMerger(this);
+      
+      this.onDiskMerger = new OnDiskMerger(this);
+  }
+
+  @Private
+  void configureAndStart() {
+    if (this.memToMemMerger != null) {
+      memToMemMerger.start();
     }
-    
-    this.inMemoryMerger = new InMemoryMerger(this);
     this.inMemoryMerger.start();
-    
-    this.onDiskMerger = new OnDiskMerger(this);
     this.onDiskMerger.start();
   }
-  
+
   /**
    * Exposing this to get an initial memory ask without instantiating the object.
    */
@@ -492,7 +481,7 @@ public class MergeManager {
     public IntermediateMemoryToMemoryMerger(MergeManager manager, 
                                             int mergeFactor) {
       super(manager, mergeFactor, exceptionReporter);
-      setName("MemToMemMerger [" + inputContext.getSourceVertexName() + "]");
+      setName("MemToMemMerger [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "]");
       setDaemon(true);
     }
 
@@ -547,7 +536,7 @@ public class MergeManager {
     
     public InMemoryMerger(MergeManager manager) {
       super(manager, Integer.MAX_VALUE, exceptionReporter);
-      setName("MemtoDiskMerger [" + inputContext.getSourceVertexName() + "]");
+      setName("MemtoDiskMerger [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "]");
       setDaemon(true);
     }
     
@@ -646,7 +635,7 @@ public class MergeManager {
     
     public OnDiskMerger(MergeManager manager) {
       super(manager, Integer.MAX_VALUE, exceptionReporter);
-      setName("DiskToDiskMerger [" + inputContext.getSourceVertexName() + "]");
+      setName("DiskToDiskMerger [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "]");
       setDaemon(true);
     }
     

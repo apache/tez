@@ -38,9 +38,12 @@ import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
+import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.ValuesIterator;
 import org.apache.tez.runtime.library.common.shuffle.impl.Shuffle;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
+
+import com.google.common.base.Preconditions;
 
 
 /**
@@ -63,8 +66,9 @@ public class ShuffledMergedInput implements LogicalInput {
   protected Configuration conf;
   protected int numInputs = 0;
   protected Shuffle shuffle;
+  protected MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;
   private final BlockingQueue<Event> pendingEvents = new LinkedBlockingQueue<Event>();
-  private volatile long firstEventReceivedTime = -1;
+  private long firstEventReceivedTime = -1;
   @SuppressWarnings("rawtypes")
   protected ValuesIterator vIter;
 
@@ -74,7 +78,7 @@ public class ShuffledMergedInput implements LogicalInput {
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
   @Override
-  public List<Event> initialize(TezInputContext inputContext) throws IOException {
+  public synchronized List<Event> initialize(TezInputContext inputContext) throws IOException {
     this.inputContext = inputContext;
     this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
 
@@ -86,34 +90,38 @@ public class ShuffledMergedInput implements LogicalInput {
           + inputContext.getSourceVertexName());
       return Collections.emptyList();
     }
+    
+    long initialMemoryRequest = Shuffle.getInitialMemoryRequirement(conf,
+        inputContext.getTotalMemoryAvailableToTask());
+    this.memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
+    inputContext.requestInitialMemory(initialMemoryRequest, memoryUpdateCallbackHandler);
 
     this.inputKeyCounter = inputContext.getCounters().findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
     this.inputValueCounter = inputContext.getCounters().findCounter(
         TaskCounter.REDUCE_INPUT_RECORDS);
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS, inputContext.getWorkDirs());
 
-    shuffle = new Shuffle(inputContext, this.conf, numInputs);
     return Collections.emptyList();
   }
-
+  
   @Override
-  public void start() throws IOException {
-    synchronized (this) {
-      if (!isStarted.get()) {
-        // Start the shuffle - copy and merge
-        shuffle.run();
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Initialized the handlers in shuffle..Safe to start processing..");
-        }
-        List<Event> pending = new LinkedList<Event>();
-        pendingEvents.drainTo(pending);
-        if (pending.size() > 0) {
-          LOG.info("NoAutoStart delay in processing first event: "
-              + (System.currentTimeMillis() - firstEventReceivedTime));
-          shuffle.handleEvents(pending);
-        }
-        isStarted.set(true);
+  public synchronized void start() throws IOException {
+    if (!isStarted.get()) {
+      memoryUpdateCallbackHandler.validateUpdateReceived();
+      // Start the shuffle - copy and merge
+      shuffle = new Shuffle(inputContext, conf, numInputs, memoryUpdateCallbackHandler.getMemoryAssigned());
+      shuffle.run();
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Initialized the handlers in shuffle..Safe to start processing..");
       }
+      List<Event> pending = new LinkedList<Event>();
+      pendingEvents.drainTo(pending);
+      if (pending.size() > 0) {
+        LOG.info("NoAutoStart delay in processing first event: "
+            + (System.currentTimeMillis() - firstEventReceivedTime));
+        shuffle.handleEvents(pending);
+      }
+      isStarted.set(true);
     }
   }
 
@@ -124,7 +132,8 @@ public class ShuffledMergedInput implements LogicalInput {
    *         processing fetching the input. false if the shuffle and merge are
    *         still in progress
    */
-  public boolean isInputReady() {
+  public synchronized boolean isInputReady() {
+    Preconditions.checkState(isStarted.get(), "Must start input before invoking this method");
     if (this.numInputs == 0) {
       return true;
     }
@@ -136,7 +145,8 @@ public class ShuffledMergedInput implements LogicalInput {
    * @throws IOException
    * @throws InterruptedException
    */
-  public void waitForInputReady() throws IOException, InterruptedException {
+  public synchronized void waitForInputReady() throws IOException, InterruptedException {
+    Preconditions.checkState(isStarted.get(), "Must start input before invoking this method");
     if (this.numInputs == 0) {
       return;
     }
@@ -145,7 +155,7 @@ public class ShuffledMergedInput implements LogicalInput {
   }
 
   @Override
-  public List<Event> close() throws IOException {
+  public synchronized List<Event> close() throws IOException {
     if (this.numInputs != 0 && rawIter != null) {
       rawIter.close();
     }
@@ -165,7 +175,7 @@ public class ShuffledMergedInput implements LogicalInput {
    * @return a KVReader over the sorted input.
    */
   @Override
-  public KeyValuesReader getReader() throws IOException {
+  public synchronized KeyValuesReader getReader() throws IOException {
     if (this.numInputs == 0) {
       return new KeyValuesReader() {
         @Override
@@ -211,26 +221,22 @@ public class ShuffledMergedInput implements LogicalInput {
   }
 
   @Override
-  public void handleEvents(List<Event> inputEvents) {
+  public synchronized void handleEvents(List<Event> inputEvents) {
     if (numInputs == 0) {
       throw new RuntimeException("No input events expected as numInputs is 0");
     }
     if (!isStarted.get()) {
-      synchronized (this) {
-        if (!isStarted.get()) {
-          if (firstEventReceivedTime == -1) {
-            firstEventReceivedTime = System.currentTimeMillis();
-          }
-          pendingEvents.addAll(inputEvents);
-          return;
-        }
+      if (firstEventReceivedTime == -1) {
+        firstEventReceivedTime = System.currentTimeMillis();
       }
+      pendingEvents.addAll(inputEvents);
+      return;
     }
     shuffle.handleEvents(inputEvents);
   }
 
   @Override
-  public void setNumPhysicalInputs(int numInputs) {
+  public synchronized void setNumPhysicalInputs(int numInputs) {
     this.numInputs = numInputs;
   }
 

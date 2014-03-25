@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.api.impl;
 
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
@@ -30,8 +31,8 @@ public class TezCountersDelegate extends TezCounters {
   public TezCountersDelegate(TezCounters original, String taskVertexName, String edgeVertexName,
       String type) {
     this.original = original;
-    this.groupModifier = cleanVertexName(taskVertexName) + "_" + type + "_"
-        + cleanVertexName(edgeVertexName);
+    this.groupModifier = TezUtils.cleanVertexName(taskVertexName) + "_" + type + "_"
+        + TezUtils.cleanVertexName(edgeVertexName);
   }
 
   // Should only be called while setting up Inputs / Outputs - rather than being
@@ -43,16 +44,5 @@ public class TezCountersDelegate extends TezCounters {
     }
     String modifiedGroupName = groupName + "_" + this.groupModifier;
     return original.findCounter(modifiedGroupName, counterName);
-  }
-
-
-  private static String cleanVertexName(String vertexName) {
-    return sanitizeString(vertexName).substring(0,
-        vertexName.length() > 40 ? 40 : vertexName.length());
-  }
-
-  private static String sanitizeString(String srcString) {
-    String res = srcString.replaceAll("[^A-za-z0-9_]", "_"); 
-    return res; // Number starts allowed rightnow
   }
 }

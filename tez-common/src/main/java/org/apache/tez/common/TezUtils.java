@@ -27,6 +27,8 @@ import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
@@ -36,6 +38,7 @@ import java.util.zip.InflaterInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Appender;
 import org.apache.log4j.Logger;
@@ -223,6 +226,7 @@ public class TezUtils {
     return output;
   }
 
+  @Private
   public static ByteString compressByteArrayToByteString(byte[] inBytes) throws IOException {
     ByteString.Output os = ByteString.newOutput();
     DeflaterOutputStream compressOs = new DeflaterOutputStream(os, new Deflater(
@@ -233,10 +237,27 @@ public class TezUtils {
     return byteString;
   }
   
+  @Private
   public static byte[] decompressByteStringToByteArray(ByteString byteString) throws IOException {
     InflaterInputStream in = new InflaterInputStream(byteString.newInput());
     byte[] bytes = IOUtils.toByteArray(in);
     return bytes;
+  }
+
+  private static final Pattern pattern = Pattern.compile("\\W");
+  @Private
+  public static final int MAX_VERTEX_NAME_LENGTH = 40;
+
+  @Private
+  public static String cleanVertexName(String vertexName) {
+    return sanitizeString(vertexName).substring(0,
+        vertexName.length() > MAX_VERTEX_NAME_LENGTH ? MAX_VERTEX_NAME_LENGTH : vertexName.length());
+  }
+
+  private static String sanitizeString(String srcString) {
+    Matcher matcher = pattern.matcher(srcString);
+    String res = matcher.replaceAll("_");
+    return res; // Number starts allowed rightnow
   }
 
   public static void updateLoggers(String addend) throws FileNotFoundException {

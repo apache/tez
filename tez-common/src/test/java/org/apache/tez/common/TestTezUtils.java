@@ -49,6 +49,17 @@ public class TestTezUtils {
     Assert.assertEquals(conf.size(), 6);
     checkConf(conf);
   }
+  
+  @Test
+  public void testCleanVertexName() {
+    String testString = "special characters & spaces and longer than "
+        + TezUtils.MAX_VERTEX_NAME_LENGTH + " characters";
+    Assert.assertTrue(testString.length() > TezUtils.MAX_VERTEX_NAME_LENGTH);
+    String cleaned = TezUtils.cleanVertexName(testString);
+    Assert.assertTrue(cleaned.length() <= TezUtils.MAX_VERTEX_NAME_LENGTH);
+    Assert.assertFalse(cleaned.contains("\\s+"));
+    Assert.assertTrue(cleaned.matches("\\w+"));
+  }
 
   private Configuration getConf() {
     Configuration conf = new Configuration(false);

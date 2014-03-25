@@ -38,10 +38,10 @@ import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
+import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.readers.ShuffledUnorderedKVReader;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleEventHandler;
 import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleInputEventHandlerImpl;
@@ -49,7 +49,7 @@ import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleManager;
 import org.apache.tez.runtime.library.shuffle.common.impl.SimpleFetchedInputAllocator;
 
 import com.google.common.base.Preconditions;
-public class ShuffledUnorderedKVInput implements LogicalInput, MemoryUpdateCallback {
+public class ShuffledUnorderedKVInput implements LogicalInput {
 
   private static final Log LOG = LogFactory.getLog(ShuffledUnorderedKVInput.class);
   
@@ -58,7 +58,8 @@ public class ShuffledUnorderedKVInput implements LogicalInput, MemoryUpdateCallb
   private TezInputContext inputContext;
   private ShuffleManager shuffleManager;
   private final BlockingQueue<Event> pendingEvents = new LinkedBlockingQueue<Event>();
-  private volatile long firstEventReceivedTime = -1;
+  private long firstEventReceivedTime = -1;
+  private MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;
   @SuppressWarnings("rawtypes")
   private ShuffledUnorderedKVReader kvReader;
   
@@ -67,14 +68,12 @@ public class ShuffledUnorderedKVInput implements LogicalInput, MemoryUpdateCallb
   
   private SimpleFetchedInputAllocator inputManager;
   private ShuffleEventHandler inputEventHandler;
-  
-  private volatile long initialMemoryAvailable = -1;
-  
+
   public ShuffledUnorderedKVInput() {
   }
 
   @Override
-  public List<Event> initialize(TezInputContext inputContext) throws Exception {
+  public synchronized List<Event> initialize(TezInputContext inputContext) throws Exception {
     Preconditions.checkArgument(numInputs != -1, "Number of Inputs has not been set");
     this.inputContext = inputContext;
     this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
@@ -88,7 +87,8 @@ public class ShuffledUnorderedKVInput implements LogicalInput, MemoryUpdateCallb
       return Collections.emptyList();
     } else {
       long initalMemReq = getInitialMemoryReq();
-      this.inputContext.requestInitialMemory(initalMemReq, this);
+      memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
+      this.inputContext.requestInitialMemory(initalMemReq, memoryUpdateCallbackHandler);
     }
 
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS, inputContext.getWorkDirs());
@@ -98,67 +98,60 @@ public class ShuffledUnorderedKVInput implements LogicalInput, MemoryUpdateCallb
   }
 
   @Override
-  public void start() throws IOException {
-    synchronized (this) {
-      if (!isStarted.get()) {
-        ////// Initial configuration
-        Preconditions.checkState(initialMemoryAvailable != -1,
-            "Initial memory available must be configured before starting");
-        CompressionCodec codec;
-        if (ConfigUtils.isIntermediateInputCompressed(conf)) {
-          Class<? extends CompressionCodec> codecClass = ConfigUtils
-              .getIntermediateInputCompressorClass(conf, DefaultCodec.class);
-          codec = ReflectionUtils.newInstance(codecClass, conf);
-        } else {
-          codec = null;
-        }
-        
-        boolean ifileReadAhead = conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
-            TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT);
-        int ifileReadAheadLength = 0;
-        int ifileBufferSize = 0;
-
-        if (ifileReadAhead) {
-          ifileReadAheadLength = conf.getInt(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
-              TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT);
-        }
-        ifileBufferSize = conf.getInt("io.file.buffer.size",
-            TezJobConfig.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
-        
-        this.shuffleManager = new ShuffleManager(inputContext, conf, numInputs);
-        
-        this.inputManager = new SimpleFetchedInputAllocator(inputContext.getUniqueIdentifier(), conf,
-            inputContext.getTotalMemoryAvailableToTask());
-        inputManager.setInitialMemoryAvailable(initialMemoryAvailable);
-        inputManager.configureAndStart();
-        
-        this.inputEventHandler = new ShuffleInputEventHandlerImpl(
-            inputContext, shuffleManager, inputManager, codec, ifileReadAhead,
-            ifileReadAheadLength);
-
-        this.shuffleManager.setCompressionCodec(codec);
-        this.shuffleManager.setIfileParameters(ifileBufferSize, ifileReadAhead, ifileReadAheadLength);
-        this.shuffleManager.setFetchedInputAllocator(inputManager);
-        this.shuffleManager.setInputEventHandler(inputEventHandler);        
-        ////// End of Initial configuration
-
-        this.shuffleManager.run();
-        this.kvReader = createReader(inputRecordCounter, codec,
-            ifileBufferSize, ifileReadAhead, ifileReadAheadLength);
-        List<Event> pending = new LinkedList<Event>();
-        pendingEvents.drainTo(pending);
-        if (pending.size() > 0) {
-          LOG.info("NoAutoStart delay in processing first event: "
-              + (System.currentTimeMillis() - firstEventReceivedTime));
-          shuffleManager.handleEvents(pending);
-        }
-        isStarted.set(true);
+  public synchronized void start() throws IOException {
+    if (!isStarted.get()) {
+      ////// Initial configuration
+      memoryUpdateCallbackHandler.validateUpdateReceived();
+      CompressionCodec codec;
+      if (ConfigUtils.isIntermediateInputCompressed(conf)) {
+        Class<? extends CompressionCodec> codecClass = ConfigUtils
+            .getIntermediateInputCompressorClass(conf, DefaultCodec.class);
+        codec = ReflectionUtils.newInstance(codecClass, conf);
+      } else {
+        codec = null;
       }
+
+      boolean ifileReadAhead = conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
+          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT);
+      int ifileReadAheadLength = 0;
+      int ifileBufferSize = 0;
+
+      if (ifileReadAhead) {
+        ifileReadAheadLength = conf.getInt(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
+            TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT);
+      }
+      ifileBufferSize = conf.getInt("io.file.buffer.size",
+          TezJobConfig.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
+
+      this.inputManager = new SimpleFetchedInputAllocator(inputContext.getUniqueIdentifier(), conf,
+          inputContext.getTotalMemoryAvailableToTask(),
+          memoryUpdateCallbackHandler.getMemoryAssigned());
+
+      this.shuffleManager = new ShuffleManager(inputContext, conf, numInputs, ifileBufferSize,
+          ifileReadAhead, ifileReadAheadLength, codec, inputManager);
+
+      this.inputEventHandler = new ShuffleInputEventHandlerImpl(inputContext, shuffleManager,
+          inputManager, codec, ifileReadAhead, ifileReadAheadLength);
+
+      ////// End of Initial configuration
+
+      this.shuffleManager.run();
+      this.kvReader = createReader(inputRecordCounter, codec,
+          ifileBufferSize, ifileReadAhead, ifileReadAheadLength);
+      List<Event> pending = new LinkedList<Event>();
+      pendingEvents.drainTo(pending);
+      if (pending.size() > 0) {
+        LOG.info("NoAutoStart delay in processing first event: "
+            + (System.currentTimeMillis() - firstEventReceivedTime));
+        inputEventHandler.handleEvents(pending);
+      }
+      isStarted.set(true);
     }
   }
 
   @Override
-  public KeyValueReader getReader() throws Exception {
+  public synchronized KeyValueReader getReader() throws Exception {
+    Preconditions.checkState(isStarted.get(), "Must start input before invoking this method");
     if (numInputs == 0) {
       return new KeyValueReader() {
         @Override
@@ -181,29 +174,25 @@ public class ShuffledUnorderedKVInput implements LogicalInput, MemoryUpdateCallb
   }
 
   @Override
-  public void handleEvents(List<Event> inputEvents) throws IOException {
+  public synchronized void handleEvents(List<Event> inputEvents) throws IOException {
     if (numInputs == 0) {
       throw new RuntimeException("No input events expected as numInputs is 0");
     }
     if (!isStarted.get()) {
-      synchronized(this) {
-        if (!isStarted.get()) {
-          if (firstEventReceivedTime == -1) {
-            firstEventReceivedTime = System.currentTimeMillis();
-          }
-          // This queue will keep growing if the Processor decides never to
-          // start the event. The Input, however has no idea, on whether start
-          // will be invoked or not.
-          pendingEvents.addAll(inputEvents);
-          return;
-        }
+      if (firstEventReceivedTime == -1) {
+        firstEventReceivedTime = System.currentTimeMillis();
       }
+      // This queue will keep growing if the Processor decides never to
+      // start the event. The Input, however has no idea, on whether start
+      // will be invoked or not.
+      pendingEvents.addAll(inputEvents);
+      return;
     }
-    shuffleManager.handleEvents(inputEvents);
+    inputEventHandler.handleEvents(inputEvents);
   }
 
   @Override
-  public List<Event> close() throws Exception {
+  public synchronized List<Event> close() throws Exception {
     if (this.shuffleManager != null) {
       this.shuffleManager.shutdown();
     }
@@ -211,13 +200,8 @@ public class ShuffledUnorderedKVInput implements LogicalInput, MemoryUpdateCallb
   }
 
   @Override
-  public void setNumPhysicalInputs(int numInputs) {
+  public synchronized void setNumPhysicalInputs(int numInputs) {
     this.numInputs = numInputs;
-  }
-
-  @Override
-  public void memoryAssigned(long assignedSize) {
-    this.initialMemoryAvailable = assignedSize;
   }
 
   private long getInitialMemoryReq() {

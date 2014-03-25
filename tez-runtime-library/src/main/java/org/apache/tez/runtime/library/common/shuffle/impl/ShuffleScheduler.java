@@ -39,6 +39,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.Event;
@@ -73,7 +74,7 @@ class ShuffleScheduler {
   
   private final Random random = new Random(System.currentTimeMillis());
   private final DelayQueue<Penalty> penalties = new DelayQueue<Penalty>();
-  private final Referee referee = new Referee();
+  private final Referee referee;
   private final Map<InputAttemptIdentifier, IntWritable> failureCounts =
     new HashMap<InputAttemptIdentifier,IntWritable>(); 
   private final Map<String,IntWritable> hostFailures = 
@@ -116,6 +117,7 @@ class ShuffleScheduler {
     abortFailureLimit = Math.max(30, numberOfInputs / 10);
     remainingMaps = numberOfInputs;
     finishedMaps = new boolean[remainingMaps]; // default init to false
+    this.referee = new Referee();
     this.shuffle = shuffle;
     this.shuffledInputsCounter = shuffledInputsCounter;
     this.reduceShuffleBytes = reduceShuffleBytes;
@@ -159,8 +161,7 @@ class ShuffleScheduler {
                                          long milis,
                                          MapOutput output
                                          ) throws IOException {
-    String taskIdentifier = TezRuntimeUtils.getTaskAttemptIdentifier(srcAttemptIdentifier.getInputIdentifier().getInputIndex(), srcAttemptIdentifier.getAttemptNumber());
-    failureCounts.remove(taskIdentifier);
+    failureCounts.remove(srcAttemptIdentifier);
     if (host != null) {
       hostFailures.remove(host.getHostName());
     }
@@ -530,7 +531,8 @@ class ShuffleScheduler {
    */
   private class Referee extends Thread {
     public Referee() {
-      setName("ShufflePenaltyReferee");
+      setName("ShufflePenaltyReferee ["
+          + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "]");
       setDaemon(true);
     }
 

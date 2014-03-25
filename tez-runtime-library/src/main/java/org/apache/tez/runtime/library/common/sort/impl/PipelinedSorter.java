@@ -34,6 +34,7 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -43,9 +44,13 @@ import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.IndexedSorter;
 import org.apache.hadoop.util.Progress;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class PipelinedSorter extends ExternalSorter {
@@ -58,12 +63,8 @@ public class PipelinedSorter extends ExternalSorter {
   public static final int MAP_OUTPUT_INDEX_RECORD_LENGTH = 24;
 
   private final static int APPROX_HEADER_LENGTH = 150;
-  
-  boolean ifileReadAhead;
-  int ifileReadAheadLength;
-  int ifileBufferSize;
-  
-  int partitionBits;
+
+  private final int partitionBits;
   
   private static final int PARTITION = 0;        // partition offset in acct
   private static final int KEYSTART = 1;         // key offset in acct
@@ -76,24 +77,25 @@ public class PipelinedSorter extends ExternalSorter {
   volatile Throwable sortSpillException = null;
 
   int numSpills = 0;
-  int minSpillsForCombine;
-  private HashComparator hasher;
+  private final int minSpillsForCombine;
+  private final HashComparator hasher;
   // SortSpans  
   private SortSpan span;
   private ByteBuffer largeBuffer;
   // Merger
-  private SpanMerger merger; 
-  private ExecutorService sortmaster;
+  private final SpanMerger merger; 
+  private final ExecutorService sortmaster;
 
-  final ArrayList<TezSpillRecord> indexCacheList =
+  private final ArrayList<TezSpillRecord> indexCacheList =
     new ArrayList<TezSpillRecord>();
   private int totalIndexCacheMemory;
   private int indexCacheMemoryLimit;
 
   // TODO Set additional countesr - total bytes written, spills etc.
-  
-  @Override
-  public void start() throws IOException {
+
+  public PipelinedSorter(TezOutputContext outputContext, Configuration conf, int numOutputs,
+      long initialMemoryAvailable) throws IOException {
+    super(outputContext, conf, numOutputs, initialMemoryAvailable);
     
     partitionBits = bitcount(partitions)+1;
    
@@ -126,7 +128,10 @@ public class PipelinedSorter extends ExternalSorter {
             this.conf.getInt(
                 TezJobConfig.TEZ_RUNTIME_SORT_THREADS, 
                 TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_THREADS);
-    sortmaster = Executors.newFixedThreadPool(sortThreads);
+    sortmaster = Executors.newFixedThreadPool(sortThreads,
+        new ThreadFactoryBuilder().setDaemon(true)
+        .setNameFormat("Sorter [" + TezUtils.cleanVertexName(outputContext.getDestinationVertexName()) + "] #%d")
+        .build());
 
     // k/v serialization    
     if(comparator instanceof HashComparator) {

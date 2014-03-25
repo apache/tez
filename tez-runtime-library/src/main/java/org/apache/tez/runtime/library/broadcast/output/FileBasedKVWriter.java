@@ -54,17 +54,17 @@ public class FileBasedKVWriter implements KeyValueWriter {
   private int numRecords = 0;
 
   @SuppressWarnings("rawtypes")
-  private Class keyClass;
+  private final Class keyClass;
   @SuppressWarnings("rawtypes")
-  private Class valClass;
-  private CompressionCodec codec;
-  private FileSystem rfs;
-  private IFile.Writer writer;
+  private final Class valClass;
+  private final CompressionCodec codec;
+  private final FileSystem rfs;
+  private final IFile.Writer writer;
 
-  private Path outputPath;
+  private final Path outputPath;
   private Path indexPath;
   
-  private TezTaskOutput ouputFileManager;
+  private final TezTaskOutput ouputFileManager;
   private boolean closed = false;
 
   // Number of output key-value pairs
@@ -110,7 +110,16 @@ public class FileBasedKVWriter implements KeyValueWriter {
     LOG.info("Created KVWriter -> " + "compressionCodec: " + (codec == null ? "NoCompressionCodec"
         : codec.getClass().getName()));
 
-    initWriter();
+    this.outputPath = ouputFileManager.getOutputFileForWrite();
+    LOG.info("Writing data file: " + outputPath);
+
+    // TODO NEWTEZ Consider making the buffer size configurable. Also consider
+    // setting up an in-memory buffer which is occasionally flushed to disk so
+    // that the output does not block.
+
+    // TODO NEWTEZ maybe use appropriate counter
+    this.writer = new IFile.Writer(conf, rfs, outputPath, keyClass, valClass,
+        codec, null, outputBytesCounter);
   }
 
   /**
@@ -140,19 +149,6 @@ public class FileBasedKVWriter implements KeyValueWriter {
     this.writer.append(key, value);
     this.outputRecordsCounter.increment(1);
     numRecords++;
-  }
-
-  public void initWriter() throws IOException {
-    this.outputPath = ouputFileManager.getOutputFileForWrite();
-    LOG.info("Writing data file: " + outputPath);
-
-    // TODO NEWTEZ Consider making the buffer size configurable. Also consider
-    // setting up an in-memory buffer which is occasionally flushed to disk so
-    // that the output does not block.
-
-    // TODO NEWTEZ maybe use appropriate counter
-    this.writer = new IFile.Writer(conf, rfs, outputPath, keyClass, valClass,
-        codec, null, outputBytesCounter);
   }
   
   public long getRawLength() {

@@ -44,6 +44,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -60,7 +61,6 @@ import org.apache.tez.runtime.library.shuffle.common.FetchedInputAllocator;
 import org.apache.tez.runtime.library.shuffle.common.Fetcher;
 import org.apache.tez.runtime.library.shuffle.common.FetcherCallback;
 import org.apache.tez.runtime.library.shuffle.common.InputHost;
-import org.apache.tez.runtime.library.shuffle.common.ShuffleEventHandler;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
 import org.apache.tez.runtime.library.shuffle.common.Fetcher.FetcherBuilder;
@@ -85,49 +85,45 @@ public class ShuffleManager implements FetcherCallback {
   private final Configuration conf;
   private final int numInputs;
 
-  private ShuffleEventHandler inputEventHandler;
-  private FetchedInputAllocator inputManager;
-  
-  private ExecutorService fetcherRawExecutor;
-  private ListeningExecutorService fetcherExecutor;
+  private final FetchedInputAllocator inputManager;
 
-  private ExecutorService schedulerRawExecutor;
-  private ListeningExecutorService schedulerExecutor;
-  private RunShuffleCallable schedulerCallable = new RunShuffleCallable();
+  private final ListeningExecutorService fetcherExecutor;
+
+  private final ExecutorService schedulerRawExecutor;
+  private final ListeningExecutorService schedulerExecutor;
+  private final RunShuffleCallable schedulerCallable = new RunShuffleCallable();
   
-  private BlockingQueue<FetchedInput> completedInputs;
-  private AtomicBoolean inputReadyNotificationSent = new AtomicBoolean(false);
-  private Set<InputIdentifier> completedInputSet;
-  private ConcurrentMap<String, InputHost> knownSrcHosts;
-  private BlockingQueue<InputHost> pendingHosts;
-  private Set<InputAttemptIdentifier> obsoletedInputs;
+  private final BlockingQueue<FetchedInput> completedInputs;
+  private final AtomicBoolean inputReadyNotificationSent = new AtomicBoolean(false);
+  private final Set<InputIdentifier> completedInputSet;
+  private final ConcurrentMap<String, InputHost> knownSrcHosts;
+  private final BlockingQueue<InputHost> pendingHosts;
+  private final Set<InputAttemptIdentifier> obsoletedInputs;
   
-  private AtomicInteger numCompletedInputs = new AtomicInteger(0);
+  private final AtomicInteger numCompletedInputs = new AtomicInteger(0);
   
-  private long startTime;
+  private final long startTime;
   private long lastProgressTime;
 
   // Required to be held when manipulating pendingHosts
-  private ReentrantLock lock = new ReentrantLock();
-  private Condition wakeLoop = lock.newCondition();
+  private final ReentrantLock lock = new ReentrantLock();
+  private final Condition wakeLoop = lock.newCondition();
   
-  private int numFetchers;
-  private AtomicInteger numRunningFetchers = new AtomicInteger(0);
+  private final int numFetchers;
+  private final AtomicInteger numRunningFetchers = new AtomicInteger(0);
   
   // Parameters required by Fetchers
-  private SecretKey shuffleSecret;
-  private int connectionTimeout;
-  private int readTimeout;
-  private CompressionCodec codec;
+  private final SecretKey shuffleSecret;
+  private final int connectionTimeout;
+  private final int readTimeout;
+  private final CompressionCodec codec;
   
-  private int ifileBufferSize;
-  private boolean ifileReadAhead;
-  private int ifileReadAheadLength;
+  private final int ifileBufferSize;
+  private final boolean ifileReadAhead;
+  private final int ifileReadAheadLength;
   
   private final FetchFutureCallback fetchFutureCallback = new FetchFutureCallback();
-  
-  private volatile Throwable shuffleError;
-  
+
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
 
   private final TezCounter shuffledInputsCounter;
@@ -137,9 +133,13 @@ public class ShuffleManager implements FetcherCallback {
   private final TezCounter bytesShuffledToDiskCounter;
   private final TezCounter bytesShuffledToMemCounter;
   
+  private volatile Throwable shuffleError;
+  
   // TODO More counters - FetchErrors, speed?
   
-  public ShuffleManager(TezInputContext inputContext, Configuration conf, int numInputs) throws IOException {
+  public ShuffleManager(TezInputContext inputContext, Configuration conf, int numInputs,
+      int bufferSize, boolean ifileReadAheadEnabled, int ifileReadAheadLength,
+      CompressionCodec codec, FetchedInputAllocator inputAllocator) throws IOException {
     this.inputContext = inputContext;
     this.conf = conf;
     this.numInputs = numInputs;
@@ -150,28 +150,13 @@ public class ShuffleManager implements FetcherCallback {
     this.decompressedDataSizeCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_DECOMPRESSED);
     this.bytesShuffledToDiskCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_TO_DISK);
     this.bytesShuffledToMemCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_TO_MEM);
-  }
   
-  public void setIfileParameters(int bufferSize, boolean readAhead, int readAheadLength) {
     this.ifileBufferSize = bufferSize;
-    this.ifileReadAhead = readAhead;
-    this.ifileReadAheadLength = readAheadLength;
-  }
-  
-  public void setCompressionCodec(CompressionCodec codec) {
+    this.ifileReadAhead = ifileReadAheadEnabled;
+    this.ifileReadAheadLength = ifileReadAheadLength;
     this.codec = codec;
-  }
+    this.inputManager = inputAllocator;
   
-  public void setInputEventHandler(ShuffleEventHandler eventHandler) {
-    this.inputEventHandler = eventHandler;
-  }
-  
-  public void setFetchedInputAllocator(FetchedInputAllocator allocator) {
-    this.inputManager = allocator;
-  }
-
-
-  private void configureAndStart() throws IOException {
     completedInputSet = Collections.newSetFromMap(new ConcurrentHashMap<InputIdentifier, Boolean>(numInputs));
     completedInputs = new LinkedBlockingQueue<FetchedInput>(numInputs);
     knownSrcHosts = new ConcurrentHashMap<String, InputHost>();
@@ -185,12 +170,12 @@ public class ShuffleManager implements FetcherCallback {
     
     this.numFetchers = Math.min(maxConfiguredFetchers, numInputs);
     
-    this.fetcherRawExecutor = Executors.newFixedThreadPool(
+    ExecutorService fetcherRawExecutor = Executors.newFixedThreadPool(
         numFetchers,
         new ThreadFactoryBuilder()
             .setDaemon(true)
             .setNameFormat(
-                "Fetcher [" + inputContext.getUniqueIdentifier() + "] #%d")
+                "Fetcher [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "] #%d")
             .build());
     this.fetcherExecutor = MoreExecutors.listeningDecorator(fetcherRawExecutor);
     
@@ -199,7 +184,7 @@ public class ShuffleManager implements FetcherCallback {
         new ThreadFactoryBuilder()
             .setDaemon(true)
             .setNameFormat(
-                "ShuffleRunner [" + inputContext.getUniqueIdentifier() + "]")
+                "ShuffleRunner [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "]")
             .build());
     this.schedulerExecutor = MoreExecutors.listeningDecorator(schedulerRawExecutor);
     
@@ -225,9 +210,7 @@ public class ShuffleManager implements FetcherCallback {
 
   public void run() throws IOException {
     Preconditions.checkState(inputManager != null, "InputManager must be configured");
-    Preconditions.checkState(inputEventHandler != null, "InputEventHandler must be configured");
-    
-    configureAndStart();
+
     ListenableFuture<Void> runShuffleFuture = schedulerExecutor.submit(schedulerCallable);
     Futures.addCallback(runShuffleFuture, new SchedulerFutureCallback());
     // Shutdown this executor once this task, and the callback complete.
@@ -443,11 +426,6 @@ public class ShuffleManager implements FetcherCallback {
   public synchronized void obsoleteKnownInput(InputAttemptIdentifier srcAttemptIdentifier) {
     obsoletedInputs.add(srcAttemptIdentifier);
     // TODO NEWTEZ Maybe inform the fetcher about this. For now, this is used during the initial fetch list construction.
-  }
-  
-  
-  public void handleEvents(List<Event> events) throws IOException {
-    inputEventHandler.handleEvents(events);
   }
 
   /////////////////// End of Methods for InputEventHandler

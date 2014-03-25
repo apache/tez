@@ -37,6 +37,7 @@ import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
+import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
 import org.apache.tez.runtime.library.common.sort.impl.PipelinedSorter;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
@@ -46,6 +47,7 @@ import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
@@ -61,13 +63,14 @@ public class OnFileSortedOutput implements LogicalOutput {
   protected Configuration conf;
   protected int numOutputs;
   protected TezOutputContext outputContext;
+  protected MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;
   private long startTime;
   private long endTime;
   private boolean sendEmptyPartitionDetails;
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
   @Override
-  public List<Event> initialize(TezOutputContext outputContext)
+  public synchronized List<Event> initialize(TezOutputContext outputContext)
       throws IOException {
     this.startTime = System.nanoTime();
     this.outputContext = outputContext;
@@ -76,30 +79,36 @@ public class OnFileSortedOutput implements LogicalOutput {
     // places (wherever LocalDirAllocator is used) - TezTaskOutputFiles,
     // TezMerger, etc.
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS, outputContext.getWorkDirs());
-    
-    if (this.conf.getInt(TezJobConfig.TEZ_RUNTIME_SORT_THREADS,
-        TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_THREADS) > 1) {
-      sorter = new PipelinedSorter();
-    } else {
-      sorter = new DefaultSorter();
-    }
+    this.memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
+    outputContext.requestInitialMemory(
+        ExternalSorter.getInitialMemoryRequirement(conf,
+            outputContext.getTotalMemoryAvailableToTask()), memoryUpdateCallbackHandler);
 
     sendEmptyPartitionDetails = this.conf.getBoolean(
         TezJobConfig.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED,
         TezJobConfig.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED_DEFAULT);
-    sorter.initialize(outputContext, conf, numOutputs);
     return Collections.emptyList();
   }
 
   @Override
-  public void start() throws Exception {
-    if (!isStarted.getAndSet(true)) {
-      sorter.start();
+  public synchronized void start() throws Exception {
+    if (!isStarted.get()) {
+      memoryUpdateCallbackHandler.validateUpdateReceived();
+      if (this.conf.getInt(TezJobConfig.TEZ_RUNTIME_SORT_THREADS,
+          TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_THREADS) > 1) {
+        sorter = new PipelinedSorter(outputContext, conf, numOutputs,
+            memoryUpdateCallbackHandler.getMemoryAssigned());
+      } else {
+        sorter = new DefaultSorter(outputContext, conf, numOutputs,
+            memoryUpdateCallbackHandler.getMemoryAssigned());
+      }
+      isStarted.set(true);
     }
   }
 
   @Override
-  public KeyValueWriter getWriter() throws IOException {
+  public synchronized KeyValueWriter getWriter() throws IOException {
+    Preconditions.checkState(isStarted.get(), "Cannot get writer before starting the Output");
     return new KeyValueWriter() {
       @Override
       public void write(Object key, Object value) throws IOException {
@@ -109,22 +118,27 @@ public class OnFileSortedOutput implements LogicalOutput {
   }
 
   @Override
-  public void handleEvents(List<Event> outputEvents) {
+  public synchronized void handleEvents(List<Event> outputEvents) {
     // Not expecting any events.
   }
 
   @Override
-  public void setNumPhysicalOutputs(int numOutputs) {
+  public synchronized void setNumPhysicalOutputs(int numOutputs) {
     this.numOutputs = numOutputs;
   }
 
   @Override
-  public List<Event> close() throws IOException {
-    sorter.flush();
-    sorter.close();
-    this.endTime = System.nanoTime();
-
-   return generateEventsOnClose();
+  public synchronized List<Event> close() throws IOException {
+    if (sorter != null) {
+      sorter.flush();
+      sorter.close();
+      this.endTime = System.nanoTime();
+      return generateEventsOnClose();
+    } else {
+      LOG.warn("Attempting to close output " + outputContext.getDestinationVertexName()
+          + " before it was started");
+      return Collections.emptyList();
+    }
   }
   
   protected List<Event> generateEventsOnClose() throws IOException {

@@ -29,6 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
@@ -37,12 +38,12 @@ import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
@@ -58,7 +59,7 @@ import com.google.common.base.Preconditions;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
+public class Shuffle implements ExceptionReporter {
   
   private static final Log LOG = LogFactory.getLog(Shuffle.class);
   private static final int PROGRESS_FREQUENCY = 2000;
@@ -67,35 +68,28 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
   private final TezInputContext inputContext;
   private final int numInputs;
   
-  private ShuffleClientMetrics metrics;
+  private final ShuffleClientMetrics metrics;
 
-  private ShuffleInputEventHandler eventHandler;
-  private ShuffleScheduler scheduler;
-  private MergeManager merger;
+  private final ShuffleInputEventHandler eventHandler;
+  private final ShuffleScheduler scheduler;
+  private final MergeManager merger;
+
+  private final SecretKey jobTokenSecret;
+  private final CompressionCodec codec;
+  private final boolean ifileReadAhead;
+  private final int ifileReadAheadLength;
+  
   private Throwable throwable = null;
   private String throwingThreadName = null;
-  
-  private SecretKey jobTokenSecret;
-  private CompressionCodec codec;
-  private boolean ifileReadAhead;
-  private int ifileReadAheadLength;
-  
-  private volatile long initialMemoryAvailable = -1;
 
   private FutureTask<TezRawKeyValueIterator> runShuffleFuture;
 
-  public Shuffle(TezInputContext inputContext, Configuration conf, int numInputs) throws IOException {
+  public Shuffle(TezInputContext inputContext, Configuration conf, int numInputs,
+      long initialMemoryAvailable) throws IOException {
     this.inputContext = inputContext;
     this.conf = conf;
     this.numInputs = numInputs;
-    long initialMemRequested = MergeManager.getInitialMemoryRequirement(conf,
-        inputContext.getTotalMemoryAvailableToTask());
-    inputContext.requestInitialMemory(initialMemRequested, this);
-  }
 
-  private void configureAndStart() throws IOException {
-    Preconditions.checkState(initialMemoryAvailable != -1,
-        "Initial Available memory must be configured before starting");
     this.metrics = new ShuffleClientMetrics(inputContext.getDAGName(),
         inputContext.getTaskVertexName(), inputContext.getTaskIndex(),
         this.conf, UserGroupInformation.getCurrentUser().getShortUserName());
@@ -175,9 +169,11 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
           spilledRecordsCounter,
           reduceCombineInputCounter,
           mergedMapOutputsCounter,
-          this);
-    merger.setInitialMemoryAvailable(initialMemoryAvailable);
-    merger.configureAndStart();
+          this,
+          initialMemoryAvailable,
+          codec,
+          ifileReadAhead,
+          ifileReadAheadLength);
   }
 
   public void handleEvents(List<Event> events) {
@@ -225,10 +221,11 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
   }
 
   public void run() throws IOException {
-    configureAndStart();
+    merger.configureAndStart();
     RunShuffleCallable runShuffle = new RunShuffleCallable();
     runShuffleFuture = new FutureTask<TezRawKeyValueIterator>(runShuffle);
-    new Thread(runShuffleFuture, "ShuffleMergeRunner").start();
+    new Thread(runShuffleFuture, "ShuffleMergeRunner ["
+        + TezUtils.cleanVertexName(inputContext.getSourceVertexName() + "]")).start();
   }
   
   private class RunShuffleCallable implements Callable<TezRawKeyValueIterator> {
@@ -294,6 +291,7 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
     }
   }
   
+  @Private
   public synchronized void reportException(Throwable t) {
     if (throwable == null) {
       throwable = t;
@@ -314,9 +312,8 @@ public class Shuffle implements ExceptionReporter, MemoryUpdateCallback {
     }
   }
 
-  @Override
-  public void memoryAssigned(long assignedSize) {
-    this.initialMemoryAvailable = assignedSize;
+  @Private
+  public static long getInitialMemoryRequirement(Configuration conf, long maxAvailableTaskMemory) {
+    return MergeManager.getInitialMemoryRequirement(conf, maxAvailableTaskMemory);
   }
-
 }

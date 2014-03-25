@@ -53,9 +53,7 @@ public class TestSimpleFetchedInputAllocator {
     LOG.info("InMemThreshold: " + inMemThreshold);
 
     SimpleFetchedInputAllocator inputManager = new SimpleFetchedInputAllocator(UUID.randomUUID().toString(),
-        conf, Runtime.getRuntime().maxMemory());
-    inputManager.setInitialMemoryAvailable(inMemThreshold);
-    inputManager.configureAndStart();
+        conf, Runtime.getRuntime().maxMemory(), inMemThreshold);
 
     long requestSize = (long) (0.4f * inMemThreshold);
     long compressedSize = 1l;

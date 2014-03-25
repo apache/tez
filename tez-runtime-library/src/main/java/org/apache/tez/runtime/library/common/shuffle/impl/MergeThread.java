@@ -31,7 +31,7 @@ abstract class MergeThread<T> extends Thread {
   private static final Log LOG = LogFactory.getLog(MergeThread.class);
 
   private volatile boolean inProgress = false;
-  private List<T> inputs = new ArrayList<T>();
+  private final List<T> inputs = new ArrayList<T>();
   protected final MergeManager manager;
   private final ExceptionReporter reporter;
   private boolean closed = false;
@@ -56,8 +56,8 @@ abstract class MergeThread<T> extends Thread {
   
   public synchronized void startMerge(Set<T> inputs) {
     if (!closed) {
+      this.inputs.clear();
       inProgress = true;
-      this.inputs = new ArrayList<T>();
       Iterator<T> iter=inputs.iterator();
       for (int ctr = 0; iter.hasNext() && ctr < mergeFactor; ++ctr) {
         this.inputs.add(iter.next());
@@ -95,7 +95,7 @@ abstract class MergeThread<T> extends Thread {
       } finally {
         synchronized (this) {
           // Clear inputs
-          inputs = null;
+          inputs.clear();
           inProgress = false;        
           notifyAll();
         }

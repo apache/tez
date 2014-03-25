@@ -31,6 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -39,6 +40,8 @@ import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
@@ -64,7 +67,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   private final static int APPROX_HEADER_LENGTH = 150;
 
   // k/v accounting
-  IntBuffer kvmeta; // metadata overlay on backing store
+  private final IntBuffer kvmeta; // metadata overlay on backing store
   int kvstart;            // marks origin of spill metadata
   int kvend;              // marks end of spill metadata
   int kvindex;            // marks end of fully serialized records
@@ -77,7 +80,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   int bufvoid;            // marks the point where we should stop
                           // reading at the end of the buffer
 
-  byte[] kvbuffer;        // main output buffer
+  private final byte[] kvbuffer;        // main output buffer
   private final byte[] b0 = new byte[0];
 
   protected static final int VALSTART = 0;         // val offset in acct
@@ -88,14 +91,14 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   protected static final int METASIZE = NMETA * 4; // size in bytes
 
   // spill accounting
-  int maxRec;
-  int softLimit;
+  final int maxRec;
+  final int softLimit;
   boolean spillInProgress;
   int bufferRemaining;
   volatile Throwable sortSpillException = null;
 
   int numSpills = 0;
-  int minSpillsForCombine;
+  final int minSpillsForCombine;
   final ReentrantLock spillLock = new ReentrantLock();
   final Condition spillDone = spillLock.newCondition();
   final Condition spillReady = spillLock.newCondition();
@@ -105,11 +108,12 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
 
   final ArrayList<TezSpillRecord> indexCacheList =
     new ArrayList<TezSpillRecord>();
+  private final int indexCacheMemoryLimit;
   private int totalIndexCacheMemory;
-  private int indexCacheMemoryLimit;
 
-  @Override
-  public void start() throws IOException {
+  public DefaultSorter(TezOutputContext outputContext, Configuration conf, int numOutputs,
+      long initialMemoryAvailable) throws IOException {
+    super(outputContext, conf, numOutputs, initialMemoryAvailable);
     // sanity checks
     final float spillper = this.conf.getFloat(
         TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT,
@@ -156,7 +160,8 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     spillInProgress = false;
     minSpillsForCombine = this.conf.getInt(TezJobConfig.TEZ_RUNTIME_COMBINE_MIN_SPILLS, 3);
     spillThread.setDaemon(true);
-    spillThread.setName("SpillThread");
+    spillThread.setName("SpillThread ["
+        + TezUtils.cleanVertexName(outputContext.getDestinationVertexName() + "]"));
     spillLock.lock();
     try {
       spillThread.start();
