@@ -41,6 +41,7 @@ import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.AMConfiguration;
@@ -396,12 +397,15 @@ public class WordCount {
   }
 
   public static void main(String[] args) throws Exception {
-    if ((args.length%2) != 0) {
+    Configuration conf = new Configuration();
+    String [] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+
+    if (otherArgs.length != 2) {
       printUsage();
       System.exit(2);
     }
     WordCount job = new WordCount();
-    job.run(args[0], args[1], null);
+    job.run(otherArgs[0], otherArgs[1], conf);
   }
 
 }
