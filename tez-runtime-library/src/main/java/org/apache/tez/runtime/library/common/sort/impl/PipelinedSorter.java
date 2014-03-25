@@ -582,7 +582,7 @@ public class PipelinedSorter extends ExternalSorter {
       }
       int perItem = kvbuffer.position()/items;
       LOG.info(String.format("Span%d.length = %d, perItem = %d", index, length(), perItem));
-      if(remaining.remaining() < NMETA+perItem) {
+      if(remaining.remaining() < METASIZE+perItem) {
         return null;
       }
       return remaining;
