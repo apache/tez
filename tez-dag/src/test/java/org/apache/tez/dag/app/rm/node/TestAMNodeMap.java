@@ -23,6 +23,8 @@ import static org.mockito.Mockito.mock;
 
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -49,6 +51,8 @@ import com.google.common.collect.Lists;
 
 @SuppressWarnings({ "resource", "rawtypes" })
 public class TestAMNodeMap {
+
+  private static final Log LOG = LogFactory.getLog(TestAMNodeMap.class);
 
   DrainDispatcher dispatcher;
   EventHandler eventHandler;
@@ -113,7 +117,7 @@ public class TestAMNodeMap {
     // the log message for verification.
   }
   
-  @Test(timeout=5000)
+  @Test(timeout=10000)
   public void testNodeSelfBlacklist() throws InterruptedException {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
@@ -222,10 +226,19 @@ public class TestAMNodeMap {
     handler.events.clear();
     amNodeMap.handle(new AMNodeEventNodeCountUpdated(8));
     dispatcher.await();
+    Thread.sleep(1000l);
+    dispatcher.await();
+    LOG.info(("Completed waiting for dispatcher to process all pending events"));
     assertEquals(AMNodeState.BLACKLISTED, node.getState());
     assertEquals(AMNodeState.BLACKLISTED, node2.getState());
     assertEquals(AMNodeState.ACTIVE, node3.getState());
     assertEquals(8, handler.events.size());
+
+    int index = 0;
+    for (Event event : handler.events) {
+      LOG.info("Logging event: index:" + index++
+          + " type: " + event.getType());
+    }
     assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED, handler.events.get(0).getType());
     assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED, handler.events.get(1).getType());
     assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED, handler.events.get(2).getType());
