@@ -20,6 +20,7 @@
 package org.apache.tez.runtime.library.shuffle.common.impl;
 
 import java.io.IOException;
+import java.util.BitSet;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -101,7 +102,8 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     if (shufflePayload.hasEmptyPartitions()) {
       byte[] emptyPartitions = TezUtils.decompressByteStringToByteArray(shufflePayload
           .getEmptyPartitions());
-      if (emptyPartitions[srcIndex] == 1) {
+      BitSet emptyPartionsBitSet = TezUtils.fromByteArray(emptyPartitions);
+      if (emptyPartionsBitSet.get(srcIndex)) {
         InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dme.getTargetIndex(),
             dme.getVersion());
         LOG.info("Source partition: " + srcIndex + " did not generate any data. Not fetching.");

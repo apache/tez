@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.library.output;
 
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -128,9 +129,10 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
     // Set the list of empty partitions - single partition on this case.
     if (!outputGenerated) {
       LOG.info("No output was generated");
-      byte[] emptyPartitions = new byte[1];
-      emptyPartitions[0] = 1;
-      ByteString emptyPartitionsBytesString = TezUtils.compressByteArrayToByteString(emptyPartitions);
+      BitSet emptyPartitions = new BitSet();
+      emptyPartitions.set(0);
+      ByteString emptyPartitionsBytesString =
+          TezUtils.compressByteArrayToByteString(TezUtils.toByteArray(emptyPartitions));
       payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
     }
     if (outputGenerated) {

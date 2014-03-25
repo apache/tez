@@ -18,6 +18,8 @@
 package org.apache.tez.common;
 
 import java.io.IOException;
+import java.util.BitSet;
+import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Assert;
@@ -59,6 +61,64 @@ public class TestTezUtils {
     Assert.assertTrue(cleaned.length() <= TezUtils.MAX_VERTEX_NAME_LENGTH);
     Assert.assertFalse(cleaned.contains("\\s+"));
     Assert.assertTrue(cleaned.matches("\\w+"));
+  }
+
+  @Test
+  public void testBitSetToByteArray() {
+    BitSet bitSet = createBitSet(0);
+    byte[] bytes = TezUtils.toByteArray(bitSet);
+    Assert.assertTrue(bytes.length == ((bitSet.length() / 8) + 1));
+
+    bitSet = createBitSet(1000);
+    bytes = TezUtils.toByteArray(bitSet);
+    Assert.assertTrue(bytes.length == ((bitSet.length() / 8) + 1));
+  }
+
+  @Test
+  public void testBitSetFromByteArray() {
+    BitSet bitSet = createBitSet(0);
+    byte[] bytes = TezUtils.toByteArray(bitSet);
+    Assert.assertEquals(TezUtils.fromByteArray(bytes).cardinality(), bitSet.cardinality());
+    Assert.assertTrue(TezUtils.fromByteArray(bytes).equals(bitSet));
+
+    bitSet = createBitSet(1);
+    bytes = TezUtils.toByteArray(bitSet);
+    Assert.assertEquals(TezUtils.fromByteArray(bytes).cardinality(), bitSet.cardinality());
+    Assert.assertTrue(TezUtils.fromByteArray(bytes).equals(bitSet));
+    
+    bitSet = createBitSet(1000);
+    bytes = TezUtils.toByteArray(bitSet);
+    Assert.assertEquals(TezUtils.fromByteArray(bytes).cardinality(), bitSet.cardinality());
+    Assert.assertTrue(TezUtils.fromByteArray(bytes).equals(bitSet));
+  }
+
+  @Test
+  public void testBitSetConversion() {
+    for (int i = 0 ; i < 16 ; i++) {
+      BitSet bitSet = createBitSetWithSingleEntry(i);
+      byte[] bytes = TezUtils.toByteArray(bitSet);
+      
+      BitSet deseraialized = TezUtils.fromByteArray(bytes);
+      Assert.assertEquals(bitSet, deseraialized);
+      Assert.assertEquals(bitSet.cardinality(), deseraialized.cardinality());
+      Assert.assertEquals(1, deseraialized.cardinality());
+    }
+  }
+
+  private BitSet createBitSet(int size) {
+    BitSet bitSet = new BitSet();
+    int bitsToEnable = (int) (size * 0.1);
+    Random rnd = new Random();
+    for(int i = 0;i < bitsToEnable;i++) {
+      bitSet.set(rnd.nextInt(size));
+    }
+    return bitSet;
+  }
+
+  private BitSet createBitSetWithSingleEntry(int bitToSet) {
+    BitSet bitSet = new BitSet();
+    bitSet.set(bitToSet);
+    return bitSet;
   }
 
   private Configuration getConf() {

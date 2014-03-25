@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -297,5 +298,31 @@ public class TezUtils {
     } else {
       return base + "_" + addend;
     }
+  }
+
+  public static BitSet fromByteArray(byte[] bytes) {
+    if (bytes == null) {
+      return new BitSet();
+    }
+    BitSet bits = new BitSet();
+    for (int i = 0; i < bytes.length * 8; i++) {
+      if ((bytes[(bytes.length) - (i / 8) - 1] & (1 << (i % 8))) > 0) {
+        bits.set(i);
+      }
+    }
+    return bits;
+  }
+
+  public static byte[] toByteArray(BitSet bits) {
+    if (bits == null) {
+      return null;
+    }
+    byte[] bytes = new byte[bits.length() / 8 + 1];
+    for (int i = 0; i < bits.length(); i++) {
+      if (bits.get(i)) {
+        bytes[(bytes.length) - (i / 8) - 1] |= 1 << (i % 8);
+      }
+    }
+    return bytes;
   }
 }

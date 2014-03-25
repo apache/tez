@@ -19,6 +19,7 @@ package org.apache.tez.runtime.library.output;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -154,20 +155,20 @@ public class OnFileSortedOutput implements LogicalOutput {
     if (sendEmptyPartitionDetails) {
       Path indexFile = sorter.getMapOutput().getOutputIndexFile();
       TezSpillRecord spillRecord = new TezSpillRecord(indexFile, conf);
-      //TODO: replace with BitSet in JDK 1.7 (no support for valueOf, toByteArray in 1.6)
-      byte[] partitionDetails = new byte[numOutputs];
+      BitSet emptyPartitionDetails = new BitSet();
       int emptyPartitions = 0;
       for(int i=0;i<spillRecord.size();i++) {
         TezIndexRecord indexRecord = spillRecord.getIndex(i);
         if (!indexRecord.hasData()) {
-          partitionDetails[i] = 1;
+          emptyPartitionDetails.set(i);
           emptyPartitions++;
         }
       }
       if (emptyPartitions > 0) {
-        ByteString emptyPartitionsBytesString = TezUtils.compressByteArrayToByteString(partitionDetails);
+        ByteString emptyPartitionsBytesString =
+            TezUtils.compressByteArrayToByteString(TezUtils.toByteArray(emptyPartitionDetails));
         payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
-        LOG.info("EmptyPartition bitsetSize=" + partitionDetails.length + ", numOutputs="
+        LOG.info("EmptyPartition bitsetSize=" + emptyPartitionDetails.cardinality() + ", numOutputs="
                 + numOutputs + ", emptyPartitions=" + emptyPartitions
               + ", compressedSize=" + emptyPartitionsBytesString.size());
       }
