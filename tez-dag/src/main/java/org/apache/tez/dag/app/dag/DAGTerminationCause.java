@@ -38,6 +38,9 @@ public enum DAGTerminationCause {
   
   /** DAG failed during output commit. */
   COMMIT_FAILURE,
-  
+
+  /** DAG failed while trying to write recovery events */
+  RECOVERY_FAILURE,
+
   INTERNAL_ERROR
 }

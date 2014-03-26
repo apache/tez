@@ -37,7 +37,6 @@ public class HistoryEventHandler extends CompositeService {
 
   private final AppContext context;
   private boolean yarnATSEnabled;
-  private AtomicBoolean stopped = new AtomicBoolean(false);
   private ATSService atsService;
   private RecoveryService recoveryService;
   private boolean recoveryEnabled;
@@ -114,12 +113,17 @@ public class HistoryEventHandler extends CompositeService {
     try {
       handleCriticalEvent(event);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      LOG.warn("Failed to handle recovery event"
+          + ", eventType=" + event.getHistoryEvent().getEventType(), e);
     }
   }
 
-
-
-
+  public boolean hasRecoveryFailed() {
+    if (recoveryEnabled) {
+      return recoveryService.hasRecoveryFailed();
+    } else {
+      return false;
+    }
+  }
 
 }

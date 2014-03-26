@@ -250,7 +250,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           // Transitions from TERMINATING state.
           .addTransition
               (DAGState.TERMINATING,
-              EnumSet.of(DAGState.TERMINATING, DAGState.KILLED, DAGState.FAILED),
+              EnumSet.of(DAGState.TERMINATING, DAGState.KILLED, DAGState.FAILED,
+                  DAGState.ERROR),
               DAGEventType.DAG_VERTEX_COMPLETED,
               new VertexCompletedTransition())
           .addTransition(DAGState.TERMINATING, DAGState.TERMINATING,
@@ -734,6 +735,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
             new DAGCommitStartedEvent(getID(), clock.getTime())));
       } catch (IOException e) {
         LOG.error("Failed to send commit event to history/recovery handler", e);
+        trySetTerminationCause(DAGTerminationCause.RECOVERY_FAILURE);
         return false;
       }
       for (VertexGroupInfo groupInfo : vertexGroups.values()) {
@@ -887,11 +889,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     finishTime = clock.getTime();
   }
 
-  void logJobHistoryFinishedEvent() {
+  void logJobHistoryFinishedEvent() throws IOException {
     this.setFinishTime();
     DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
         finishTime, DAGState.SUCCEEDED, "", getAllCounters());
-    this.appContext.getHistoryHandler().handle(
+    this.appContext.getHistoryHandler().handleCriticalEvent(
         new DAGHistoryEvent(dagId, finishEvt));
   }
 
@@ -909,12 +911,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         new DAGHistoryEvent(dagId, startEvt));
   }
 
-  void logJobHistoryUnsuccesfulEvent(DAGState state) {
+  void logJobHistoryUnsuccesfulEvent(DAGState state) throws IOException {
     DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
         clock.getTime(), state,
         StringUtils.join(LINE_SEPARATOR, getDiagnostics()),
         getAllCounters());
-    this.appContext.getHistoryHandler().handle(
+    this.appContext.getHistoryHandler().handleCriticalEvent(
         new DAGHistoryEvent(dagId, finishEvt));
   }
 
@@ -967,7 +969,15 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         dag.addDiagnostic(diagnosticMsg);
         return dag.finished(DAGState.FAILED);
       }
-      
+      if(dag.terminationCause == DAGTerminationCause.RECOVERY_FAILURE ){
+        String diagnosticMsg = "DAG failed due to failure in recovery handling." +
+            " failedVertices:" + dag.numFailedVertices +
+            " killedVertices:" + dag.numKilledVertices;
+        LOG.info(diagnosticMsg);
+        dag.addDiagnostic(diagnosticMsg);
+        return dag.finished(DAGState.FAILED);
+      }
+
       // catch all
       String diagnosticMsg = "All vertices complete, but cannot determine final state of DAG"
           + ", numCompletedVertices=" + dag.numCompletedVertices
@@ -1016,14 +1026,26 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       finalState = DAGState.FAILED;
       trySetTerminationCause(DAGTerminationCause.COMMIT_FAILURE);
     }
-    
-    if (finalState == DAGState.SUCCEEDED) {
-      logJobHistoryFinishedEvent();
-    } else {
-      logJobHistoryUnsuccesfulEvent(finalState);
+
+    boolean recoveryError = false;
+    try {
+      if (finalState == DAGState.SUCCEEDED) {
+        logJobHistoryFinishedEvent();
+      } else {
+        logJobHistoryUnsuccesfulEvent(finalState);
+      }
+    } catch (IOException e) {
+      LOG.warn("Failed to persist recovery event for DAG completion"
+          + ", dagId=" + dagId
+          + ", finalState=" + finalState);
+      recoveryError = true;
     }
-    
-    eventHandler.handle(new DAGAppMasterEventDAGFinished(getID(), finalState));
+
+    if (recoveryError) {
+      eventHandler.handle(new DAGAppMasterEventDAGFinished(getID(), DAGState.ERROR));
+    } else {
+      eventHandler.handle(new DAGAppMasterEventDAGFinished(getID(), finalState));
+    }
 
     LOG.info("DAG: " + getID() + " finished with state: " + finalState);
     return finalState;
@@ -1339,10 +1361,17 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               dag.eventHandler.handle(new VertexEventRecoverVertex(v.getVertexId(),
                   desiredState));
             }
-            dag.logJobHistoryUnsuccesfulEvent(DAGState.FAILED);
+            DAGState endState = DAGState.FAILED;
+            try {
+              dag.logJobHistoryUnsuccesfulEvent(endState);
+            } catch (IOException e) {
+              LOG.warn("Failed to persist recovery event for DAG completion"
+                  + ", dagId=" + dag.dagId
+                  + ", finalState=" + endState);
+            }
             dag.eventHandler.handle(new DAGAppMasterEventDAGFinished(dag.getID(),
-                DAGState.FAILED));
-            return DAGState.FAILED;
+                endState));
+            return endState;
           }
 
           for (Vertex v : dag.vertices.values()) {
@@ -1387,9 +1416,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           // Error state
           LOG.warn("Trying to recover DAG, failed to recover"
               + " from non-handled state" + dag.recoveredState);
+          // Tell AM ERROR so that it can shutdown
           dag.eventHandler.handle(new DAGAppMasterEventDAGFinished(dag.getID(),
               DAGState.ERROR));
-          return DAGState.ERROR;
+          return DAGState.FAILED;
       }
     }
 
@@ -1494,23 +1524,27 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   // Task-start has been moved out of InitTransition, so this arc simply
   // hardcodes 0 for both map and reduce finished tasks.
   private static class KillNewJobTransition
-  implements SingleArcTransition<DAGImpl, DAGEvent> {
+      implements SingleArcTransition<DAGImpl, DAGEvent> {
+
     @Override
-    public void transition(DAGImpl job, DAGEvent event) {
-      job.setFinishTime();
-      job.trySetTerminationCause(DAGTerminationCause.DAG_KILL);
-      job.finished(DAGState.KILLED);
+    public void transition(DAGImpl dag, DAGEvent dagEvent) {
+      dag.setFinishTime();
+      dag.trySetTerminationCause(DAGTerminationCause.DAG_KILL);
+      dag.finished(DAGState.KILLED);
     }
+
   }
 
   private static class KillInitedJobTransition
-  implements SingleArcTransition<DAGImpl, DAGEvent> {
+      implements SingleArcTransition<DAGImpl, DAGEvent> {
+
     @Override
-    public void transition(DAGImpl job, DAGEvent event) {
-      job.trySetTerminationCause(DAGTerminationCause.DAG_KILL);
-      job.addDiagnostic("Job received Kill in INITED state.");
-      job.finished(DAGState.KILLED);
+    public void transition(DAGImpl dag, DAGEvent dagEvent) {
+      dag.trySetTerminationCause(DAGTerminationCause.DAG_KILL);
+      dag.addDiagnostic("Job received Kill in INITED state.");
+      dag.finished(DAGState.KILLED);
     }
+
   }
 
   private static class DAGKilledTransition
@@ -1610,6 +1644,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private boolean vertexSucceeded(Vertex vertex) {
     numSuccessfulVertices++;
     boolean failedCommit = false;
+    boolean recoveryFailed = false;
     if (!commitAllOutputsOnSuccess) {
       // committing successful outputs immediately. check for shared outputs
       List<VertexGroupInfo> groupsList = vertexGroupInfo.get(vertex.getName());
@@ -1640,6 +1675,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
                     clock.getTime())));
           } catch (IOException e) {
             LOG.error("Failed to send commit recovery event to handler", e);
+            recoveryFailed = true;
             failedCommit = true;
           }
           if (!failedCommit) {
@@ -1662,6 +1698,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
                     clock.getTime())));
           } catch (IOException e) {
             LOG.error("Failed to send commit recovery event to handler", e);
+            recoveryFailed = true;
             failedCommit = true;
           }
         }
@@ -1670,10 +1707,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     if (failedCommit) {
       LOG.info("Aborting job due to failure in commit.");
-      enactKill(DAGTerminationCause.COMMIT_FAILURE,
-          VertexTerminationCause.COMMIT_FAILURE);
+      if (!recoveryFailed) {
+        enactKill(DAGTerminationCause.COMMIT_FAILURE,
+            VertexTerminationCause.COMMIT_FAILURE);
+      } else {
+        LOG.info("Recovery failure occurred during commit");
+        enactKill(DAGTerminationCause.RECOVERY_FAILURE,
+            VertexTerminationCause.COMMIT_FAILURE);
+      }
     }
-    
+
     return !failedCommit;
   }
 

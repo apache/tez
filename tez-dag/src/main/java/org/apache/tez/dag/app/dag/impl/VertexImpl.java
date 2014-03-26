@@ -1276,12 +1276,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         new DAGHistoryEvent(getDAGId(), finishEvt));
   }
 
-  void logJobHistoryVertexFailedEvent(VertexState state) {
+  void logJobHistoryVertexFailedEvent(VertexState state) throws IOException {
     VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
         vertexName, initTimeRequested, initedTime, startTimeRequested,
         startedTime, clock.getTime(), state, StringUtils.join(LINE_SEPARATOR,
             getDiagnostics()), getAllCounters(), getVertexStats());
-    this.appContext.getHistoryHandler().handle(
+    this.appContext.getHistoryHandler().handleCriticalEvent(
         new DAGHistoryEvent(getDAGId(), finishEvt));
   }
 
@@ -1331,10 +1331,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                 }
                 if (firstCommit) {
                   // Log commit start event on first actual commit
-                  vertex.appContext.getHistoryHandler().handle(
-                      new DAGHistoryEvent(vertex.getDAGId(),
-                          new VertexCommitStartedEvent(vertex.vertexId,
-                              vertex.clock.getTime())));
+                  try {
+                    vertex.appContext.getHistoryHandler().handleCriticalEvent(
+                        new DAGHistoryEvent(vertex.getDAGId(),
+                            new VertexCommitStartedEvent(vertex.vertexId,
+                                vertex.clock.getTime())));
+                  } catch (IOException e) {
+                    LOG.error("Failed to persist commit start event to recovery, vertexId="
+                        + vertex.logIdentifier, e);
+                    vertex.trySetTerminationCause(VertexTerminationCause.INTERNAL_ERROR);
+                    return vertex.finished(VertexState.FAILED);
+                  }
                 } else {
                   firstCommit = false;
                 }
@@ -1430,24 +1437,33 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       case ERROR:
         eventHandler.handle(new DAGEvent(getDAGId(),
             DAGEventType.INTERNAL_ERROR));
-        logJobHistoryVertexFailedEvent(finalState);
+        try {
+          logJobHistoryVertexFailedEvent(finalState);
+        } catch (IOException e) {
+          LOG.error("Failed to send vertex finished event to recovery", e);
+        }
         break;
       case KILLED:
       case FAILED:
         eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
             finalState, terminationCause));
-        logJobHistoryVertexFailedEvent(finalState);
-        break;
-      case SUCCEEDED:
-        eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
-            finalState));
         try {
-          logJobHistoryVertexFinishedEvent();
+          logJobHistoryVertexFailedEvent(finalState);
         } catch (IOException e) {
           LOG.error("Failed to send vertex finished event to recovery", e);
-          finalState = VertexState.ERROR;
-          eventHandler.handle(new DAGEvent(getDAGId(),
-              DAGEventType.INTERNAL_ERROR));
+        }
+        break;
+      case SUCCEEDED:
+        try {
+          logJobHistoryVertexFinishedEvent();
+          eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
+              finalState));
+        } catch (IOException e) {
+          LOG.error("Failed to send vertex finished event to recovery", e);
+          finalState = VertexState.FAILED;
+          this.terminationCause = VertexTerminationCause.INTERNAL_ERROR;
+          eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
+              finalState));
         }
         break;
       default:

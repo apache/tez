@@ -48,6 +48,9 @@ public class RecoveryService extends AbstractService {
   private static final Log LOG = LogFactory.getLog(RecoveryService.class);
   private final AppContext appContext;
 
+  public static final String RECOVERY_FATAL_OCCURRED_DIR =
+      "RecoveryFatalErrorOccurred";
+
   private LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
       new LinkedBlockingQueue<DAGHistoryEvent>();
   private Set<TezDAGID> completedDAGs = new HashSet<TezDAGID>();
@@ -69,6 +72,7 @@ public class RecoveryService extends AbstractService {
   private long lastFlushTime = -1;
   private int maxUnflushedEvents;
   private int flushInterval;
+  private AtomicBoolean recoveryFatalErrorOccurred = new AtomicBoolean(false);
 
   public RecoveryService(AppContext appContext) {
     super(RecoveryService.class.getName());
@@ -98,6 +102,13 @@ public class RecoveryService extends AbstractService {
       public void run() {
         DAGHistoryEvent event;
         while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
+
+          if (recoveryFatalErrorOccurred.get()) {
+            LOG.error("Recovery failure occurred. Stopping recovery thread."
+                + " Current eventQueueSize=" + eventQueue.size());
+            eventQueue.clear();
+            return;
+          }
 
           // Log the size of the event-queue every so often.
           if (eventCounter != 0 && eventCounter % 1000 == 0) {
@@ -169,6 +180,11 @@ public class RecoveryService extends AbstractService {
       return;
     }
     HistoryEventType eventType = event.getHistoryEvent().getEventType();
+
+    if (recoveryFatalErrorOccurred.get()) {
+      return;
+    }
+
     if (!started.get()) {
       LOG.warn("Adding event of type " + eventType
           + " to queue as service not started");
@@ -233,9 +249,29 @@ public class RecoveryService extends AbstractService {
             }
           }
         } catch (IOException ioe) {
-          LOG.warn("Error handling summary event"
+          LOG.error("Error handling summary event"
               + ", eventType=" + event.getHistoryEvent().getEventType(), ioe);
-          throw ioe;
+          Path fatalErrorDir = new Path(recoveryPath, RECOVERY_FATAL_OCCURRED_DIR);
+          try {
+            LOG.error("Adding a flag to ensure next AM attempt does not start up"
+                + ", flagFile=" + fatalErrorDir.toString());
+            recoveryFatalErrorOccurred.set(true);
+            recoveryDirFS.mkdirs(fatalErrorDir);
+            if (recoveryDirFS.exists(fatalErrorDir)) {
+              LOG.error("Recovery failure occurred. Skipping all events");
+            } else {
+              // throw error if fatal error flag could not be set
+              throw ioe;
+            }
+          } catch (IOException e) {
+            LOG.fatal("Failed to create fatal error flag dir "
+                + fatalErrorDir.toString(), e);
+            throw ioe;
+          }
+          if (eventType.equals(HistoryEventType.DAG_SUBMITTED)) {
+            // Throw error to tell client that dag submission failed
+            throw ioe;
+          }
         }
       }
     } else {
@@ -372,6 +408,10 @@ public class RecoveryService extends AbstractService {
 
     unflushedEventsCount = 0;
     lastFlushTime = currentTime;
+  }
+
+  public boolean hasRecoveryFailed() {
+    return recoveryFatalErrorOccurred.get();
   }
 
 }

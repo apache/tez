@@ -509,11 +509,15 @@ public class OrderedWordCount {
             + dagStatus.getDiagnostics());
         }
       }
+    } catch (Exception e) {
+      LOG.error("Error occurred when submitting/running DAGs", e);
+      throw e;
     } finally {
       if (!retainStagingDir) {
         fs.delete(stagingDir, true);
       }
       if (useTezSession) {
+        LOG.info("Shutting down session");
         tezSession.stop();
       }
     }

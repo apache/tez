@@ -60,6 +60,7 @@ import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
 import org.apache.tez.dag.history.events.VertexParallelismUpdatedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
+import org.apache.tez.dag.history.recovery.RecoveryService;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
@@ -81,7 +82,7 @@ public class RecoveryParser {
   public RecoveryParser(DAGAppMaster dagAppMaster,
       FileSystem recoveryFS,
       Path recoveryDataDir,
-      int currentAttemptId) {
+      int currentAttemptId) throws IOException {
     this.dagAppMaster = dagAppMaster;
     this.recoveryFS = recoveryFS;
     this.recoveryDataDir = recoveryDataDir;
@@ -91,6 +92,8 @@ public class RecoveryParser {
     recoveryBufferSize = dagAppMaster.getConfig().getInt(
         TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE,
         TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE_DEFAULT);
+
+    this.recoveryFS.mkdirs(currentAttemptRecoveryDataDir);
   }
 
   public static class RecoveredDAGData {
@@ -308,19 +311,54 @@ public class RecoveryParser {
     return inProgressDAG;
   }
 
-  private Path getPreviousAttemptRecoveryDataDir() {
+  private Path getPreviousAttemptRecoveryDataDir() throws IOException {
+    LOG.info("Looking for the correct attempt directory to recover from");
     int foundPreviousAttempt = -1;
     for (int i = currentAttemptId - 1; i > 0; --i) {
       Path attemptPath = getAttemptRecoveryDataDir(recoveryDataDir, i);
+      LOG.info("Looking at attempt directory, path=" + attemptPath);
+      Path fatalErrorOccurred = new Path(attemptPath,
+          RecoveryService.RECOVERY_FATAL_OCCURRED_DIR);
+      if (recoveryFS.exists(fatalErrorOccurred)) {
+        throw new IOException("Found that a fatal error occurred in"
+            + " recovery during previous attempt, foundFile="
+            + fatalErrorOccurred.toString());
+      }
+
       Path dataRecoveredFile = new Path(attemptPath, dataRecoveredFileFlag);
       try {
         if (recoveryFS.exists(dataRecoveredFile)) {
+          LOG.info("Found data recovered file in attempt directory"
+              + ", dataRecoveredFile=" + dataRecoveredFile
+              + ", path=" + attemptPath);
           foundPreviousAttempt = i;
           break;
         }
+        LOG.info("Skipping attempt directory as data recovered file does not exist"
+            + ", dataRecoveredFile=" + dataRecoveredFile
+            + ", path=" + attemptPath);
       } catch (IOException e) {
         LOG.warn("Exception when checking previous attempt dir for "
             + dataRecoveredFile.toString(), e);
+      }
+    }
+    if (foundPreviousAttempt == -1) {
+      // Look for oldest summary file and use that
+      LOG.info("Did not find any attempt dir that had data recovered file."
+          + " Looking for oldest summary file");
+      for (int i = 1; i < currentAttemptId; ++i) {
+        Path attemptPath = getAttemptRecoveryDataDir(recoveryDataDir, i);
+        Path summaryPath = getSummaryPath(attemptPath);
+        if (recoveryFS.exists(summaryPath)) {
+          LOG.info("Found summary file in attempt directory"
+              + ", summaryFile=" + summaryPath
+              + ", path=" + attemptPath);
+          foundPreviousAttempt = i;
+          break;
+        }
+        LOG.info("Skipping attempt directory as no summary file found"
+            + ", summaryFile=" + summaryPath
+            + ", path=" + attemptPath);
       }
     }
     if (foundPreviousAttempt == -1) {
@@ -466,6 +504,7 @@ public class RecoveryParser {
     if (!recoveryFS.exists(previousAttemptRecoveryDataDir)) {
       LOG.info("Nothing to recover as previous attempt data does not exist"
           + ", previousAttemptDir=" + previousAttemptRecoveryDataDir.toString());
+      createDataRecoveredFlagFile();
       return null;
     }
 
@@ -476,6 +515,7 @@ public class RecoveryParser {
       LOG.info("Nothing to recover as summary file does not exist"
           + ", previousAttemptDir=" + previousAttemptRecoveryDataDir.toString()
           + ", summaryPath=" + summaryPath.toString());
+      createDataRecoveredFlagFile();
       return null;
     }
 
@@ -832,18 +872,23 @@ public class RecoveryParser {
       }
     }
 
+    LOG.info("Finished copying data from previous attempt into current attempt");
+    createDataRecoveredFlagFile();
+
+    return recoveredDAGData;
+  }
+
+  private void createDataRecoveredFlagFile() throws IOException {
     Path dataCopiedFlagPath = new Path(currentAttemptRecoveryDataDir,
         dataRecoveredFileFlag);
-    LOG.info("Finished copying data from previous attempt into current attempt"
-        + " - setting flag by creating file"
-        + ", path=" + dataCopiedFlagPath.toString());
+    LOG.info("Trying to create data recovered flag file"
+        + ", filePath=" + dataCopiedFlagPath.toString());
     FSDataOutputStream flagFile =
         recoveryFS.create(dataCopiedFlagPath, true, recoveryBufferSize);
     flagFile.writeInt(1);
     flagFile.hsync();
     flagFile.close();
 
-    return recoveredDAGData;
   }
 
 }

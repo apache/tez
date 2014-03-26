@@ -444,6 +444,11 @@ public class DAGAppMaster extends AbstractService {
             + ", dagState=" + finishEvt.getDAGState());
         lastDAGCompletionTime = clock.getTime();
         _updateLoggers(currentDAG, "_post");
+        if (this.historyEventHandler.hasRecoveryFailed()) {
+          LOG.warn("Recovery had a fatal error, shutting down session after" +
+              " DAG completion");
+          sessionStopped.set(true);
+        }
         switch(finishEvt.getDAGState()) {
         case SUCCEEDED:
           if (!currentDAG.getName().startsWith(
@@ -451,7 +456,6 @@ public class DAGAppMaster extends AbstractService {
             successfulDAGs.incrementAndGet();
           }
           break;
-        case ERROR:
         case FAILED:
           if (!currentDAG.getName().startsWith(
               TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
@@ -464,6 +468,11 @@ public class DAGAppMaster extends AbstractService {
             killedDAGs.incrementAndGet();
           }
           break;
+        case ERROR:
+          if (!currentDAG.getName().startsWith(
+              TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
+            failedDAGs.incrementAndGet();
+          }
         default:
           LOG.fatal("Received a DAG Finished Event with state="
               + finishEvt.getDAGState()
@@ -481,7 +490,11 @@ public class DAGAppMaster extends AbstractService {
           } else {
             LOG.info("Session shutting down now.");
             this.taskSchedulerEventHandler.setShouldUnregisterFlag();
-            state = DAGAppMasterState.SUCCEEDED;
+            if (this.historyEventHandler.hasRecoveryFailed()) {
+              state = DAGAppMasterState.FAILED;
+            } else {
+              state = DAGAppMasterState.SUCCEEDED;
+            }
             shutdownHandler.shutdown();
           }
         }
@@ -1418,7 +1431,17 @@ public class DAGAppMaster extends AbstractService {
 
     this.lastDAGCompletionTime = clock.getTime();
 
-    RecoveredDAGData recoveredDAGData = recoverDAG();
+    RecoveredDAGData recoveredDAGData;
+    try {
+      recoveredDAGData = recoverDAG();
+    } catch (IOException e) {
+      LOG.error("Error occurred when trying to recover data from previous attempt."
+          + " Shutting down AM", e);
+      this.state = DAGAppMasterState.ERROR;
+      this.taskSchedulerEventHandler.setShouldUnregisterFlag();
+      shutdownHandler.shutdown();
+      return;
+    }
 
     if (!isSession) {
       LOG.info("In Non-Session mode.");
