@@ -553,6 +553,7 @@ public class RecoveryParser {
       dagSummaryDataMap.get(dagId).handleSummaryEvent(proto);
       proto.writeDelimitedTo(newSummaryStream);
     }
+    summaryStream.close();
     newSummaryStream.hsync();
     newSummaryStream.close();
 
@@ -833,6 +834,7 @@ public class RecoveryParser {
       newDAGRecoveryStream.writeInt(eventType.ordinal());
       event.toProtoStream(newDAGRecoveryStream);
     }
+    dagRecoveryStream.close();
     newDAGRecoveryStream.hsync();
     newDAGRecoveryStream.close();
 
@@ -883,12 +885,7 @@ public class RecoveryParser {
         dataRecoveredFileFlag);
     LOG.info("Trying to create data recovered flag file"
         + ", filePath=" + dataCopiedFlagPath.toString());
-    FSDataOutputStream flagFile =
-        recoveryFS.create(dataCopiedFlagPath, true, recoveryBufferSize);
-    flagFile.writeInt(1);
-    flagFile.hsync();
-    flagFile.close();
-
+    recoveryFS.mkdirs(dataCopiedFlagPath);
   }
 
 }
