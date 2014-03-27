@@ -634,7 +634,7 @@ public class MergeManager {
   private class OnDiskMerger extends MergeThread<Path> {
     
     public OnDiskMerger(MergeManager manager) {
-      super(manager, Integer.MAX_VALUE, exceptionReporter);
+      super(manager, ioSortFactor, exceptionReporter);
       setName("DiskToDiskMerger [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "]");
       setDaemon(true);
     }
@@ -888,7 +888,7 @@ public class MergeManager {
       diskSegments.addAll(0, memDiskSegments);
       memDiskSegments.clear();
       TezRawKeyValueIterator diskMerge = TezMerger.merge(
-          job, fs, keyClass, valueClass, diskSegments,
+          job, fs, keyClass, valueClass, codec, diskSegments,
           ioSortFactor, numInMemSegments, tmpDir, comparator,
           nullProgressable, false, spilledRecordsCounter, null, additionalBytesRead, null);
       diskSegments.clear();

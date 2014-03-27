@@ -171,28 +171,6 @@ public class TezMerger {
   }
 
   public static <K extends Object, V extends Object>
-    TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
-                            Class keyClass, Class valueClass,
-                            List<Segment> segments,
-                            int mergeFactor, int inMemSegments, Path tmpDir,
-                            RawComparator comparator, Progressable reporter,
-                            boolean sortSegments,
-                            TezCounter readsCounter,
-                            TezCounter writesCounter,
-                            TezCounter bytesReadCounter,
-                            Progress mergePhase)
-      throws IOException {
-    return new MergeQueue(conf, fs, segments, comparator, reporter,
-                           sortSegments, false).merge(keyClass, valueClass,
-                                               mergeFactor, inMemSegments,
-                                               tmpDir,
-                                               readsCounter, writesCounter,
-                                               bytesReadCounter,
-                                               mergePhase);
-  }
-
-
-  static <K extends Object, V extends Object>
   TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
                           Class keyClass, Class valueClass,
                           CompressionCodec codec,
