@@ -145,13 +145,22 @@ public class ShuffledMergedInput implements LogicalInput {
    * @throws IOException
    * @throws InterruptedException
    */
-  public synchronized void waitForInputReady() throws IOException, InterruptedException {
-    Preconditions.checkState(isStarted.get(), "Must start input before invoking this method");
-    if (this.numInputs == 0) {
-      return;
+  public void waitForInputReady() throws IOException, InterruptedException {
+    // Cannot synchronize entire method since this is called form user code and can block.
+    Shuffle localShuffleCopy = null;
+    synchronized (this) {
+      Preconditions.checkState(isStarted.get(), "Must start input before invoking this method");
+      if (this.numInputs == 0) {
+        return;
+      }
+      localShuffleCopy = shuffle;
     }
-    rawIter = shuffle.waitForInput();
-    createValuesIterator();
+    
+    TezRawKeyValueIterator localRawIter = localShuffleCopy.waitForInput();
+    synchronized(this) {
+      rawIter = localRawIter;
+      createValuesIterator();
+    }
   }
 
   @Override
@@ -175,26 +184,31 @@ public class ShuffledMergedInput implements LogicalInput {
    * @return a KVReader over the sorted input.
    */
   @Override
-  public synchronized KeyValuesReader getReader() throws IOException {
-    if (this.numInputs == 0) {
-      return new KeyValuesReader() {
-        @Override
-        public boolean next() throws IOException {
-          return false;
-        }
+  public KeyValuesReader getReader() throws IOException {
+    // Cannot synchronize entire method since this is called form user code and can block.
+    TezRawKeyValueIterator rawIterLocal;
+    synchronized (this) {
+      rawIterLocal = rawIter;
+      if (this.numInputs == 0) {
+        return new KeyValuesReader() {
+          @Override
+          public boolean next() throws IOException {
+            return false;
+          }
 
-        @Override
-        public Object getCurrentKey() throws IOException {
-          throw new RuntimeException("No data available in Input");
-        }
+          @Override
+          public Object getCurrentKey() throws IOException {
+            throw new RuntimeException("No data available in Input");
+          }
 
-        @Override
-        public Iterable<Object> getCurrentValues() throws IOException {
-          throw new RuntimeException("No data available in Input");
-        }
-      };
+          @Override
+          public Iterable<Object> getCurrentValues() throws IOException {
+            throw new RuntimeException("No data available in Input");
+          }
+        };
+      }
     }
-    if (rawIter == null) {
+    if (rawIterLocal == null) {
       try {
         waitForInputReady();
       } catch (InterruptedException e) {
@@ -202,35 +216,27 @@ public class ShuffledMergedInput implements LogicalInput {
         throw new IOException("Interrupted while waiting for input ready", e);
       }
     }
-    return new KeyValuesReader() {
-
-      @Override
-      public boolean next() throws IOException {
-        return vIter.moveToNext();
-      }
-
-      public Object getCurrentKey() throws IOException {
-        return vIter.getKey();
-      }
-      
-      @SuppressWarnings("unchecked")
-      public Iterable<Object> getCurrentValues() throws IOException {
-        return vIter.getValues();
-      }
-    };
+    @SuppressWarnings("rawtypes")
+    ValuesIterator valuesIter = null;
+    synchronized(this) {
+      valuesIter = vIter;
+    }
+    return new ShuffledMergedKeyValuesReader(valuesIter);
   }
 
   @Override
-  public synchronized void handleEvents(List<Event> inputEvents) {
-    if (numInputs == 0) {
-      throw new RuntimeException("No input events expected as numInputs is 0");
-    }
-    if (!isStarted.get()) {
-      if (firstEventReceivedTime == -1) {
-        firstEventReceivedTime = System.currentTimeMillis();
+  public void handleEvents(List<Event> inputEvents) {
+    synchronized (this) {
+      if (numInputs == 0) {
+        throw new RuntimeException("No input events expected as numInputs is 0");
       }
-      pendingEvents.addAll(inputEvents);
-      return;
+      if (!isStarted.get()) {
+        if (firstEventReceivedTime == -1) {
+          firstEventReceivedTime = System.currentTimeMillis();
+        }
+        pendingEvents.addAll(inputEvents);
+        return;
+      }
     }
     shuffle.handleEvents(inputEvents);
   }
@@ -241,7 +247,7 @@ public class ShuffledMergedInput implements LogicalInput {
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  protected void createValuesIterator()
+  protected synchronized void createValuesIterator()
       throws IOException {
     // Not used by ReduceProcessor
     vIter = new ValuesIterator(rawIter,
@@ -250,4 +256,28 @@ public class ShuffledMergedInput implements LogicalInput {
         ConfigUtils.getIntermediateInputValueClass(conf), conf, inputKeyCounter, inputValueCounter);
 
   }
+
+  @SuppressWarnings("rawtypes")
+  private static class ShuffledMergedKeyValuesReader implements KeyValuesReader {
+
+    private final ValuesIterator valuesIter;
+
+    ShuffledMergedKeyValuesReader(ValuesIterator valuesIter) {
+      this.valuesIter = valuesIter;
+    }
+
+    @Override
+    public boolean next() throws IOException {
+      return valuesIter.moveToNext();
+    }
+
+    public Object getCurrentKey() throws IOException {
+      return valuesIter.getKey();
+    }
+
+    @SuppressWarnings("unchecked")
+    public Iterable<Object> getCurrentValues() throws IOException {
+      return valuesIter.getValues();
+    }
+  };
 }

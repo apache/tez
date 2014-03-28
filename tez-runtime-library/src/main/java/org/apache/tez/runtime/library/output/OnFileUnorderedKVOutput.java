@@ -62,7 +62,7 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
   }
 
   @Override
-  public List<Event> initialize(TezOutputContext outputContext)
+  public synchronized List<Event> initialize(TezOutputContext outputContext)
       throws Exception {
     this.outputContext = outputContext;
     this.conf = TezUtils.createConfFromUserPayload(outputContext
@@ -88,21 +88,22 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
   }
 
   @Override
-  public void start() {
+  public synchronized void start() {
   }
 
   @Override
-  public KeyValueWriter getWriter() throws Exception {
+  public synchronized KeyValueWriter getWriter() throws Exception {
+    // Eventually, disallow multiple invocations.
     return kvWriter;
   }
 
   @Override
-  public void handleEvents(List<Event> outputEvents) {
+  public synchronized void handleEvents(List<Event> outputEvents) {
     throw new TezUncheckedException("Not expecting any events");
   }
 
   @Override
-  public List<Event> close() throws Exception {
+  public synchronized List<Event> close() throws Exception {
     boolean outputGenerated = this.kvWriter.close();
     
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
@@ -150,7 +151,7 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
   }
 
   @Override
-  public void setNumPhysicalOutputs(int numOutputs) {
+  public synchronized void setNumPhysicalOutputs(int numOutputs) {
     Preconditions.checkArgument(numOutputs == 1,
         "Number of outputs can only be 1 for " + this.getClass().getName());
   }

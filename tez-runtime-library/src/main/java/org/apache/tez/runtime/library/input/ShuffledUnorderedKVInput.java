@@ -174,19 +174,21 @@ public class ShuffledUnorderedKVInput implements LogicalInput {
   }
 
   @Override
-  public synchronized void handleEvents(List<Event> inputEvents) throws IOException {
-    if (numInputs == 0) {
-      throw new RuntimeException("No input events expected as numInputs is 0");
-    }
-    if (!isStarted.get()) {
-      if (firstEventReceivedTime == -1) {
-        firstEventReceivedTime = System.currentTimeMillis();
+  public void handleEvents(List<Event> inputEvents) throws IOException {
+    synchronized (this) {
+      if (numInputs == 0) {
+        throw new RuntimeException("No input events expected as numInputs is 0");
       }
-      // This queue will keep growing if the Processor decides never to
-      // start the event. The Input, however has no idea, on whether start
-      // will be invoked or not.
-      pendingEvents.addAll(inputEvents);
-      return;
+      if (!isStarted.get()) {
+        if (firstEventReceivedTime == -1) {
+          firstEventReceivedTime = System.currentTimeMillis();
+        }
+        // This queue will keep growing if the Processor decides never to
+        // start the event. The Input, however has no idea, on whether start
+        // will be invoked or not.
+        pendingEvents.addAll(inputEvents);
+        return;
+      }
     }
     inputEventHandler.handleEvents(inputEvents);
   }
