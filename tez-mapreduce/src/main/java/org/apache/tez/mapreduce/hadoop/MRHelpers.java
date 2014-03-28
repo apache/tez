@@ -1026,6 +1026,10 @@ public class MRHelpers {
    * Uses "mapreduce.job.credentials.binary" property to find location of token file.
    * @param creds Credentials object to add new tokens to
    * @param conf Configuration containing location of token file.
+   * 
+   * TezClient reads credentials from the property - TezJobConfig.TEZ_CREDENTIALS_PATH. This method
+   * is not required if that property is set.
+   * 
    * @throws IOException
    */
   public static void mergeMRBinaryTokens(Credentials creds,

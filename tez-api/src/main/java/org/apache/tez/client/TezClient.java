@@ -96,6 +96,7 @@ public class TezClient {
       if (credentials == null) {
         credentials = new Credentials();
       }
+      TezClientUtils.processTezLocalCredentialsFile(credentials, conf);
 
       // Add session token for shuffle
       TezClientUtils.createSessionToken(appId.toString(),

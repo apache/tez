@@ -94,6 +94,9 @@ public class TezSession {
     yarnClient = YarnClient.createYarnClient();
     yarnClient.init(sessionConfig.getYarnConfiguration());
     yarnClient.start();
+    
+    TezClientUtils.processTezLocalCredentialsFile(sessionCredentials,
+        sessionConfig.getTezConfiguration());
 
     Map<String, LocalResource> tezJarResources =
         TezClientUtils.setupTezJarsLocalResources(

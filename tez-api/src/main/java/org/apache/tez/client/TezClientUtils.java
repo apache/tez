@@ -76,6 +76,7 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Level;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.common.impl.LogUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -198,6 +199,16 @@ public class TezClientUtils {
     return tezJarResources;
   }
 
+  static void processTezLocalCredentialsFile(Credentials credentials, Configuration conf)
+      throws IOException {
+    String path = conf.get(TezJobConfig.TEZ_CREDENTIALS_PATH);
+    if (path == null) {
+      return;
+    } else {
+      TokenCache.mergeBinaryTokens(credentials, conf, path);
+    }
+  }
+
   /**
    * Verify or create the Staging area directory on the configured Filesystem
    * @param stagingArea Staging area directory path
@@ -316,6 +327,7 @@ public class TezClientUtils {
           throws IOException, YarnException{
 
     Preconditions.checkNotNull(sessionCreds);
+    
     FileSystem fs = TezClientUtils.ensureStagingDirExists(conf,
         amConfig.getStagingDir());
     Path binaryConfPath =  new Path(amConfig.getStagingDir(),

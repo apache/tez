@@ -344,4 +344,9 @@ public class TezJobConfig {
   
   /** Defines the ProcessTree implementation which will be used to collect resource utilization. */
   public static final String TEZ_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS = "tez.resource.calculator.process-tree.class";
+  
+  /**
+   * Path to a credentials file located on the local file system with serialized credentials
+   */
+  public static final String TEZ_CREDENTIALS_PATH = "tez.credentials.path";
 }
