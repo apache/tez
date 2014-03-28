@@ -50,6 +50,7 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobSubmissionFiles;
 import org.apache.hadoop.mapreduce.split.JobSplitWriter;
 import org.apache.hadoop.mapreduce.v2.proto.MRProtos;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.yarn.ContainerLogAppender;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -63,6 +64,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezYARNUtils;
+import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -1018,4 +1020,21 @@ public class MRHelpers {
 
     return Lists.newArrayList(iterable);
   }
+
+  /**
+   * Merge tokens from a configured binary file into provided Credentials object.
+   * Uses "mapreduce.job.credentials.binary" property to find location of token file.
+   * @param creds Credentials object to add new tokens to
+   * @param conf Configuration containing location of token file.
+   * @throws IOException
+   */
+  public static void mergeMRBinaryTokens(Credentials creds,
+      Configuration conf) throws IOException {
+    String tokenFilePath = conf.get(MRJobConfig.MAPREDUCE_JOB_CREDENTIALS_BINARY);
+    if (tokenFilePath == null || tokenFilePath.isEmpty()) {
+      return;
+    }
+    TokenCache.mergeBinaryTokens(creds, conf, tokenFilePath);
+  }
+
 }

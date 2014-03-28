@@ -137,4 +137,27 @@ public class TokenCache {
     }
     return (Token<JobTokenIdentifier>) token;
   }
+
+  /**
+   * Merge tokens from a configured binary file into provided Credentials object
+   * @param creds Credentials object to add new tokens to
+   * @param tokenFilePath Location of tokens' binary file
+   */
+  @InterfaceAudience.Private
+  public static void mergeBinaryTokens(Credentials creds,
+      Configuration conf, String tokenFilePath)
+      throws IOException {
+    if (tokenFilePath == null || tokenFilePath.isEmpty()) {
+      throw new RuntimeException("Invalid file path provided"
+          + ", tokenFilePath=" + tokenFilePath);
+    }
+    LOG.info("Merging additional tokens from binary file"
+        + ", binaryFileName=" + tokenFilePath);
+    Credentials binary = Credentials.readTokenStorageFile(
+        new Path("file:///" +  tokenFilePath), conf);
+
+    // supplement existing tokens with the tokens in the binary file
+    creds.mergeAll(binary);
+  }
+
 }
