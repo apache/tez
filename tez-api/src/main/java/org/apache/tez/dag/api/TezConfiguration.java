@@ -174,23 +174,6 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT = TEZ_TASK_PREFIX
       + "max-events-per-heartbeat.max";
   public static final int TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT = 100;
-  
-  /**
-   * Whether to scale down memory requested by each component if the total
-   * exceeds the available JVM memory
-   */
-  @Unstable
-  public static final String TEZ_TASK_SCALE_MEMORY_ENABLED = TEZ_TASK_PREFIX
-      + "scale.memory.enabled";
-  public static final boolean TEZ_TASK_SCALE_MEMORY_ENABLED_DEFAULT = true;
-  
-  /**
-   * The fraction of the JVM memory which will not be considered for allocation.
-   * No defaults, since there are pre-existing defaults based on different scenarios.
-   */
-  @Unstable
-  public static final String TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION = TEZ_TASK_PREFIX
-      + "scale.memory.reserve-fraction";
 
   /**
    * Whether to generate counters per IO or not. Enabling this will rename

@@ -24,23 +24,30 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.TezProcessorContext;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestMemoryDistributor {
 
-
+  protected Configuration conf = new Configuration();
+  
+  @Before
+  public void setup() {
+    conf.setBoolean(TezJobConfig.TEZ_TASK_SCALE_MEMORY_ENABLED, true);
+    conf.set(TezJobConfig.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS,
+        ScalingAllocator.class.getName());
+  }
+  
   @Test(timeout = 5000)
   public void testScalingNoProcessor() {
-    Configuration conf = new Configuration();
-    conf.setBoolean(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED, true);
     MemoryDistributor dist = new MemoryDistributor(2, 1, conf);
     
     dist.setJvmMemory(10000l);
@@ -76,11 +83,9 @@ public class TestMemoryDistributor {
   @Test(timeout = 5000)
   public void testScalingNoProcessor2() {
     // Real world values
-    Configuration conf = new Configuration();
-    conf.setBoolean(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED, true);
     MemoryDistributor dist = new MemoryDistributor(2, 0, conf);
     
-    dist.setJvmMemory(207093760l);
+    dist.setJvmMemory(209715200l);
 
     // First request
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
@@ -92,18 +97,16 @@ public class TestMemoryDistributor {
     MemoryUpdateCallbackForTest e2Callback = new MemoryUpdateCallbackForTest();
     TezInputContext e2InputContext2 = createTestInputContext();
     InputDescriptor e2InDesc2 = createTestInputDescriptor();
-    dist.requestMemory(144965632l, e2Callback, e2InputContext2, e2InDesc2);
+    dist.requestMemory(157286400l, e2Callback, e2InputContext2, e2InDesc2);
     
     dist.makeInitialAllocations();
 
-    assertEquals(60846013, e1Callback.assigned);
-    assertEquals(84119614, e2Callback.assigned);
+    assertEquals(58720256l, e1Callback.assigned);
+    assertEquals(88080384l, e2Callback.assigned);
   }
   
   @Test(timeout = 5000)
   public void testScalingProcessor() {
-    Configuration conf = new Configuration();
-    conf.setBoolean(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED, true);
     MemoryDistributor dist = new MemoryDistributor(2, 1, conf);
     
     dist.setJvmMemory(10000l);
@@ -135,20 +138,20 @@ public class TestMemoryDistributor {
     
     dist.makeInitialAllocations();
     
-    // Total available: 95% of 10K = 9500
+    // Total available: 70% of 10K = 7000
     // 4 requests - 10K, 10K, 5K, 5K
-    // Scale down to - 3166.66, 3166.66, 1583.33, 1583.33
-    assertTrue(e1Callback.assigned >= 3166 && e1Callback.assigned <= 3177);
-    assertTrue(e2Callback.assigned >= 3166 && e2Callback.assigned <= 3177);
-    assertTrue(e3Callback.assigned >= 1583 && e3Callback.assigned <= 1583);
-    assertTrue(e4Callback.assigned >= 1583 && e4Callback.assigned <= 1583);
+    // Scale down to - 2333.33, 2333.33, 1166.66, 1166.66
+    assertTrue(e1Callback.assigned >= 2333 && e1Callback.assigned <= 2334);
+    assertTrue(e2Callback.assigned >= 2333 && e2Callback.assigned <= 2334);
+    assertTrue(e3Callback.assigned >= 1166 && e3Callback.assigned <= 1167);
+    assertTrue(e4Callback.assigned >= 1166 && e4Callback.assigned <= 1167);
   }
   
   @Test(timeout = 5000)
   public void testScalingDisabled() {
     // Real world values
-    Configuration conf = new Configuration();
-    conf.setBoolean(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED, false);
+    Configuration conf = new Configuration(this.conf);
+    conf.setBoolean(TezJobConfig.TEZ_TASK_SCALE_MEMORY_ENABLED, false);
     MemoryDistributor dist = new MemoryDistributor(2, 0, conf);
     
     dist.setJvmMemory(207093760l);
@@ -173,9 +176,8 @@ public class TestMemoryDistributor {
   
   @Test(timeout = 5000)
   public void testReserveFractionConfigured() {
-    Configuration conf = new Configuration();
-    conf.setBoolean(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED, true);
-    conf.setFloat(TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION, 0.5f);
+    Configuration conf = new Configuration(this.conf);
+    conf.setDouble(TezJobConfig.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION, 0.5d);
     MemoryDistributor dist = new MemoryDistributor(2, 1, conf);
     
     dist.setJvmMemory(10000l);
@@ -219,39 +221,39 @@ public class TestMemoryDistributor {
     }
   }
 
-  private InputDescriptor createTestInputDescriptor() {
+  protected InputDescriptor createTestInputDescriptor() {
     InputDescriptor desc = mock(InputDescriptor.class);
     doReturn("InputClass").when(desc).getClassName();
     return desc;
   }
 
-  private OutputDescriptor createTestOutputDescriptor() {
+  protected OutputDescriptor createTestOutputDescriptor() {
     OutputDescriptor desc = mock(OutputDescriptor.class);
     doReturn("OutputClass").when(desc).getClassName();
     return desc;
   }
 
-  private ProcessorDescriptor createTestProcessorDescriptor() {
+  protected ProcessorDescriptor createTestProcessorDescriptor() {
     ProcessorDescriptor desc = mock(ProcessorDescriptor.class);
     doReturn("ProcessorClass").when(desc).getClassName();
     return desc;
   }
 
-  private TezInputContext createTestInputContext() {
+  protected TezInputContext createTestInputContext() {
     TezInputContext context = mock(TezInputContext.class);
     doReturn("input").when(context).getSourceVertexName();
     doReturn("task").when(context).getTaskVertexName();
     return context;
   }
   
-  private TezOutputContext createTestOutputContext() {
+  protected TezOutputContext createTestOutputContext() {
     TezOutputContext context = mock(TezOutputContext.class);
     doReturn("output").when(context).getDestinationVertexName();
     doReturn("task").when(context).getTaskVertexName();
     return context;
   }
   
-  private TezProcessorContext createTestProcessortContext() {
+  protected TezProcessorContext createTestProcessortContext() {
     TezProcessorContext context = mock(TezProcessorContext.class);
     doReturn("task").when(context).getTaskVertexName();
     return context;
