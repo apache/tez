@@ -32,6 +32,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.TezYARNUtils;
@@ -54,6 +55,7 @@ import org.apache.tez.dag.api.client.rpc.DAGClientRPCImpl;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.protobuf.ServiceException;
 
 public class TezSession {
@@ -137,14 +139,50 @@ public class TezSession {
    * Submit a DAG to a Tez Session. Blocks until either the DAG is submitted to
    * the session or configured timeout period expires. Cleans up session if the
    * submission timed out.
+   * 
+   * Recommended API.
+   * 
    * @param dag DAG to be submitted to Session
    * @return DAGClient to monitor the DAG
    * @throws TezException
    * @throws IOException
    * @throws SessionNotRunning if session is not alive
    * @throws DAGSubmissionTimedOut if submission timed out
+   */  
+  public synchronized DAGClient submitDAG(DAG dag) throws TezException, IOException,
+      InterruptedException {
+    return submitDAG(dag, null);
+  }
+
+  /**
+   * Submit a DAG to a Tez Session. Blocks until either the DAG is submitted to
+   * the session or configured timeout period expires. Cleans up session if the
+   * submission timed out.
+   * 
+   * 
+   * 
+   * Allows specification of additional resources which will be added to the
+   * running AMs classpath for execution of this DAG.</p>
+   * Caveats: Resources stack across DAG submissions and are never removed from the classpath. Only
+   * LocalResourceType.FILE is supported. All resources will be treated as private.
+   * 
+   * This method is not recommended unless their is no choice but to add resources to an existing session.
+   * Recommended usage is to setup AM local resources up front via AMConfiguration.
+   * 
+   * @param dag
+   *          DAG to be submitted to Session
+   * @param additionalAmResources
+   *          additional resources which should be localized in the AM while
+   *          executing this DAG.
+   * @return DAGClient to monitor the DAG
+   * @throws TezException
+   * @throws IOException
+   * @throws SessionNotRunning
+   *           if session is not alive
+   * @throws DAGSubmissionTimedOut
+   *           if submission timed out
    */
-  public synchronized DAGClient submitDAG(DAG dag)
+  public synchronized DAGClient submitDAG(DAG dag, Map<String, LocalResource> additionalAmResources)
     throws TezException, IOException, InterruptedException {
     verifySessionStateForSubmission();
 
@@ -152,6 +190,13 @@ public class TezSession {
     LOG.info("Submitting dag to TezSession"
       + ", sessionName=" + sessionName
       + ", applicationId=" + applicationId);
+    
+    if (additionalAmResources != null && !additionalAmResources.isEmpty()) {
+      for (LocalResource lr : additionalAmResources.values()) {
+        Preconditions.checkArgument(lr.getType() == LocalResourceType.FILE, "LocalResourceType: "
+            + lr.getType() + " is not supported, only " + LocalResourceType.FILE + " is supported");
+      }
+    }
 
     // Obtain DAG specific credentials.
     TezClientUtils.setupDAGCredentials(dag, sessionCredentials, sessionConfig.getTezConfiguration());
@@ -167,8 +212,12 @@ public class TezSession {
     }
     
     DAGPlan dagPlan = dag.createDag(sessionConfig.getTezConfiguration());
-    SubmitDAGRequestProto requestProto =
-        SubmitDAGRequestProto.newBuilder().setDAGPlan(dagPlan).build();
+    SubmitDAGRequestProto.Builder requestBuilder = SubmitDAGRequestProto.newBuilder();
+    requestBuilder.setDAGPlan(dagPlan).build();
+    if (additionalAmResources != null && !additionalAmResources.isEmpty()) {
+      requestBuilder.setAdditionalAmResources(DagTypeConverters
+          .convertFromLocalResources(additionalAmResources));
+    }
 
     DAGClientAMProtocolBlockingPB proxy = waitForProxy();
     if (proxy == null) {
@@ -183,7 +232,7 @@ public class TezSession {
     }
 
     try {
-      dagId = proxy.submitDAG(null, requestProto).getDagId();
+      dagId = proxy.submitDAG(null, requestBuilder.build()).getDagId();
     } catch (ServiceException e) {
       throw new TezException(e);
     }

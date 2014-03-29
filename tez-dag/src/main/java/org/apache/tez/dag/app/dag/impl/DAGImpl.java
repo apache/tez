@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import java.io.IOException;
+import java.net.URL;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -88,6 +89,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventRecoverEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
+import org.apache.tez.dag.app.dag.event.DAGEventStartDag;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexReRunning;
@@ -105,6 +107,7 @@ import org.apache.tez.dag.history.events.VertexGroupCommitFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.runtime.api.OutputCommitter;
 
@@ -1301,17 +1304,22 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     @Override
     public DAGState transition(DAGImpl dag, DAGEvent dagEvent) {
-      if (dagEvent instanceof DAGEventRecoverEvent) {
+      DAGEventRecoverEvent recoverEvent = (DAGEventRecoverEvent) dagEvent;
+      if (recoverEvent.hasDesiredState()) {
         // DAG completed or final end state known
-        DAGEventRecoverEvent recoverEvent = (DAGEventRecoverEvent) dagEvent;
         dag.recoveredState = recoverEvent.getDesiredState();
+      }
+      if (recoverEvent.getAdditionalUrlsForClasspath() != null) {
+        LOG.info("Added additional resources : [" + recoverEvent.getAdditionalUrlsForClasspath()
+            + "] to classpath");
+        RelocalizationUtils.addUrlsToClassPath(recoverEvent.getAdditionalUrlsForClasspath());
       }
 
       switch (dag.recoveredState) {
         case NEW:
           // send DAG an Init and start events
           dag.eventHandler.handle(new DAGEvent(dag.getID(), DAGEventType.DAG_INIT));
-          dag.eventHandler.handle(new DAGEvent(dag.getID(), DAGEventType.DAG_START));
+          dag.eventHandler.handle(new DAGEventStartDag(dag.getID(), null));
           return DAGState.NEW;
         case INITED:
           // DAG inited but not started
@@ -1464,8 +1472,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
      */
     @Override
     public void transition(DAGImpl dag, DAGEvent event) {
+      DAGEventStartDag startEvent = (DAGEventStartDag) event;
       dag.startTime = dag.clock.getTime();
       dag.logJobHistoryStartedEvent();
+      List<URL> additionalUrlsForClasspath = startEvent.getAdditionalUrlsForClasspath();
+      if (additionalUrlsForClasspath != null) {
+        LOG.info("Added additional resources : [" + additionalUrlsForClasspath  + "] to classpath");
+        RelocalizationUtils.addUrlsToClassPath(additionalUrlsForClasspath);
+      }
       // TODO Metrics
       //job.metrics.runningJob(job);
 

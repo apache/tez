@@ -77,6 +77,7 @@ import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate.UpdateType;
+import org.apache.tez.dag.app.dag.event.DAGEventStartDag;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
@@ -654,7 +655,7 @@ public class TestDAGImpl {
   @SuppressWarnings("unchecked")
   private void startDAG(DAGImpl impl) {
     dispatcher.getEventHandler().handle(
-        new DAGEvent(impl.getID(), DAGEventType.DAG_START));
+        new DAGEventStartDag(impl.getID(), null));
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, impl.getState());
   }
@@ -1043,7 +1044,7 @@ public class TestDAGImpl {
   @Test(timeout = 5000)
   public void testInvalidEvent() {
     dispatcher.getEventHandler().handle(
-        new DAGEvent(dagId, DAGEventType.DAG_START));
+        new DAGEventStartDag(dagId, null));
     dispatcher.await();
     Assert.assertEquals(DAGState.ERROR, dag.getState());
   }

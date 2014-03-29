@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime;
+package org.apache.tez.common;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -30,6 +30,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 
+@Private
 public class RuntimeUtils {
   
   private static final Map<String, Class<?>> CLAZZ_CACHE = new ConcurrentHashMap<String, Class<?>>();
@@ -39,7 +40,7 @@ public class RuntimeUtils {
     Class<?> clazz = CLAZZ_CACHE.get(className);
     if (clazz == null) {
       try {
-        clazz = Class.forName(className);
+        clazz = Class.forName(className, true, Thread.currentThread().getContextClassLoader());
       } catch (ClassNotFoundException e) {
         throw new TezUncheckedException("Unable to load class: " + className, e);
       }
@@ -106,9 +107,9 @@ public class RuntimeUtils {
       } catch (IllegalArgumentException e) {
         throw new TezException("Failed to invoke addURL for rsrc: " + url, e);
       } catch (IllegalAccessException e) {
-        throw new TezException("Failed to invoke addURL for rsrcs: " + urls, e);
+        throw new TezException("Failed to invoke addURL for rsrc: " + url, e);
       } catch (InvocationTargetException e) {
-        throw new TezException("Failed to invoke addURL for rsrcs: " + urls, e);
+        throw new TezException("Failed to invoke addURL for rsrc: " + url, e);
       }
     }
   }

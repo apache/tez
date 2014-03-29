@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Task;
@@ -103,6 +104,7 @@ public class RecoveryParser {
     public boolean isCompleted = false;
     public boolean nonRecoverable = false;
     public String reason = null;
+    public Map<String, LocalResource> cumulativeAdditionalResources = null;
   }
 
   private static void parseSummaryFile(FSDataInputStream inputStream)
@@ -627,11 +629,14 @@ public class RecoveryParser {
       switch (eventType) {
         case DAG_SUBMITTED:
         {
+          DAGSubmittedEvent submittedEvent = (DAGSubmittedEvent) event;
           LOG.info("Recovering from event"
               + ", eventType=" + eventType
               + ", event=" + event.toString());
-          recoveredDAGData.recoveredDAG = dagAppMaster.createDAG(((DAGSubmittedEvent) event).getDAGPlan(),
+          recoveredDAGData.recoveredDAG = dagAppMaster.createDAG(submittedEvent.getDAGPlan(),
               lastInProgressDAG);
+          recoveredDAGData.cumulativeAdditionalResources = submittedEvent
+            .getCumulativeAdditionalLocalResources();
           recoveredDAGData.recoveredDagID = recoveredDAGData.recoveredDAG.getID();
           dagAppMaster.setCurrentDAG(recoveredDAGData.recoveredDAG);
           if (recoveredDAGData.nonRecoverable) {

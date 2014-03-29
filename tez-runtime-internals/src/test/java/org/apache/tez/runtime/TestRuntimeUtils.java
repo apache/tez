@@ -29,6 +29,7 @@ import java.util.Collections;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.tez.common.RuntimeUtils;
 import org.apache.tez.dag.api.TezException;
 import org.junit.Test;
 

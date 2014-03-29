@@ -21,9 +21,12 @@ package org.apache.tez.dag.history.events;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -45,16 +48,19 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   private long submitTime;
   private DAGProtos.DAGPlan dagPlan;
   private ApplicationAttemptId applicationAttemptId;
+  private Map<String, LocalResource> cumulativeAdditionalLocalResources;
 
   public DAGSubmittedEvent() {
   }
 
   public DAGSubmittedEvent(TezDAGID dagID, long submitTime,
-      DAGProtos.DAGPlan dagPlan, ApplicationAttemptId applicationAttemptId) {
+      DAGProtos.DAGPlan dagPlan, ApplicationAttemptId applicationAttemptId,
+      Map<String, LocalResource> cumulativeAdditionalLocalResources) {
     this.dagID = dagID;
     this.submitTime = submitTime;
     this.dagPlan = dagPlan;
     this.applicationAttemptId = applicationAttemptId;
+    this.cumulativeAdditionalLocalResources = cumulativeAdditionalLocalResources;
   }
 
   @Override
@@ -129,21 +135,28 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   }
 
   public DAGSubmittedProto toProto() {
-    return DAGSubmittedProto.newBuilder()
+    DAGSubmittedProto.Builder builder =DAGSubmittedProto.newBuilder()
         .setDagId(dagID.toString())
         .setApplicationAttemptId(applicationAttemptId.toString())
         .setDagPlan(dagPlan)
-        .setSubmitTime(submitTime)
-        .build();
-
+        .setSubmitTime(submitTime);
+    if (cumulativeAdditionalLocalResources != null && !cumulativeAdditionalLocalResources.isEmpty()) {
+      builder.setCumulativeAdditionalAmResources(DagTypeConverters
+          .convertFromLocalResources(cumulativeAdditionalLocalResources));
+    }
+    return builder.build();
   }
-
+ 
   public void fromProto(DAGSubmittedProto proto) {
     this.dagID = TezDAGID.fromString(proto.getDagId());
     this.dagPlan = proto.getDagPlan();
     this.submitTime = proto.getSubmitTime();
     this.applicationAttemptId = ConverterUtils.toApplicationAttemptId(
         proto.getApplicationAttemptId());
+    if (proto.hasCumulativeAdditionalAmResources()) {
+      this.cumulativeAdditionalLocalResources = DagTypeConverters.convertFromPlanLocalResources(proto
+          .getCumulativeAdditionalAmResources());
+    }
   }
 
   @Override
@@ -197,6 +210,10 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
 
   public ApplicationAttemptId getApplicationAttemptId() {
     return applicationAttemptId;
+  }
+  
+  public Map<String, LocalResource> getCumulativeAdditionalLocalResources() {
+    return cumulativeAdditionalLocalResources;
   }
 
   public long getSubmitTime() {

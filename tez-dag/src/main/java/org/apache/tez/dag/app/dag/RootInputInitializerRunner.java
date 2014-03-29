@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.common.RuntimeUtils;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputFailed;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputInitialized;
@@ -148,13 +149,12 @@ public class RootInputInitializerRunner {
       return events;
     }
 
-    private TezRootInputInitializer createInitializer()
-        throws ClassNotFoundException, InstantiationException,
+    private TezRootInputInitializer createInitializer() throws InstantiationException,
         IllegalAccessException {
       String className = input.getInitializerClassName();
       @SuppressWarnings("unchecked")
-      Class<? extends TezRootInputInitializer> clazz = (Class<? extends TezRootInputInitializer>) Class
-          .forName(className);
+      Class<? extends TezRootInputInitializer> clazz = (Class<? extends TezRootInputInitializer>) RuntimeUtils
+          .getClazz(className);
       TezRootInputInitializer initializer = clazz.newInstance();
       return initializer;
     }

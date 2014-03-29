@@ -141,6 +141,5 @@ public class TestTezJobs {
     assertNotNull(dagStatus.getDAGCounters().getGroup(FileSystemCounter.class.getName()));
     assertNotNull(dagStatus.getDAGCounters().findCounter(TaskCounter.GC_TIME_MILLIS));
     ExampleDriver.printDAGStatus(dagClient, new String[] { "SleepVertex" }, true, true);
-
   }
 }

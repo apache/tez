@@ -19,7 +19,9 @@
 package org.apache.tez.dag.api.client.rpc;
 
 import java.util.List;
+import java.util.Map;
 
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezException;
@@ -49,8 +51,7 @@ import org.apache.tez.dag.app.DAGAppMaster.DAGClientHandler;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
 
-public class DAGClientAMProtocolBlockingPBServerImpl implements
-    DAGClientAMProtocolBlockingPB {
+public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProtocolBlockingPB {
 
   DAGClientHandler real;
 
@@ -122,7 +123,12 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
       SubmitDAGRequestProto request) throws ServiceException {
     try{
       DAGPlan dagPlan = request.getDAGPlan();
-      String dagId = real.submitDAG(dagPlan);
+      Map<String, LocalResource> additionalResources = null;
+      if (request.hasAdditionalAmResources()) {
+        additionalResources = DagTypeConverters.convertFromPlanLocalResources(request
+            .getAdditionalAmResources());
+      }
+      String dagId = real.submitDAG(dagPlan, additionalResources);
       return SubmitDAGResponseProto.newBuilder().setDagId(dagId).build();
     } catch(TezException e) {
       throw wrapException(e);
@@ -166,5 +172,4 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements
       throw wrapException(e);
     }
   }
-
 }

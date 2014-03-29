@@ -61,6 +61,7 @@ message TryKillDAGResponseProto {
 
 message SubmitDAGRequestProto {
   optional DAGPlan d_a_g_plan = 1;
+  optional PlanLocalResourcesProto additional_am_resources = 2;
 }
 
 message SubmitDAGResponseProto {

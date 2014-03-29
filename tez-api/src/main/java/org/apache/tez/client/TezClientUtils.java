@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.UUID;
 import java.util.Vector;
 import java.util.Map.Entry;
 
@@ -55,7 +54,6 @@ import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.SecretManager;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
@@ -480,7 +478,16 @@ public class TezClientUtils {
         DagTypeConverters.convertFromLocalResources(sessionJars);
       sessionJarsPBOutStream = FileSystem.create(fs, sessionJarsPath,
         new FsPermission(TEZ_AM_FILE_PERMISSION));
-      proto.writeTo(sessionJarsPBOutStream);
+      proto.writeDelimitedTo(sessionJarsPBOutStream);
+      
+      // Write out the initial list of resources which will be available in the AM
+      DAGProtos.PlanLocalResourcesProto amResourceProto;
+      if (amConfig.getLocalResources() != null && !amConfig.getLocalResources().isEmpty()) {
+        amResourceProto = DagTypeConverters.convertFromLocalResources(localResources);
+      } else {
+        amResourceProto = DAGProtos.PlanLocalResourcesProto.getDefaultInstance(); 
+      }
+      amResourceProto.writeDelimitedTo(sessionJarsPBOutStream);
     } finally {
       if (sessionJarsPBOutStream != null) {
         sessionJarsPBOutStream.close();
