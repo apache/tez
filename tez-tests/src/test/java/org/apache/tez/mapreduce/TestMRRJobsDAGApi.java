@@ -18,12 +18,28 @@
 
 package org.apache.tez.mapreduce;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
+
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileObject;
+import javax.tools.JavaFileObject.Kind;
+import javax.tools.SimpleJavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.StandardLocation;
+import javax.tools.ToolProvider;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -58,6 +74,9 @@ import org.apache.tez.common.RuntimeUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -65,9 +84,6 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatus.State;
@@ -79,9 +95,9 @@ import org.apache.tez.mapreduce.examples.MRRSleepJob.SleepInputFormat;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.SleepMapper;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.SleepReducer;
 import org.apache.tez.mapreduce.examples.UnionExample;
+import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
@@ -212,16 +228,12 @@ public class TestMRRJobsDAGApi {
     
     // Start the second job with some additional resources.
     
+    // Create a test jar directly to HDFS
+    LOG.info("Creating jar for relocalization test");
     Path relocFilePath = new Path("/tmp/test.jar");
     relocFilePath = remoteFs.makeQualified(relocFilePath);
-    
-    java.net.URL url = Thread.currentThread().getContextClassLoader().getResource("test_jar");
-    FileSystem localFs = FileSystem.getLocal(tezConf);
-    Path localPath = new Path(url.toURI());
-    localPath = localFs.makeQualified(localPath);
-    LOG.info("Copying file from local path: " + localPath);
-
-    remoteFs.copyFromLocalFile(localPath, relocFilePath);
+    OutputStream os = remoteFs.create(relocFilePath, true);
+    createTestJar(os, RELOCALIZATION_TEST_CLASS_NAME);
 
     Map<String, LocalResource> additionalResources = new HashMap<String, LocalResource>();
     additionalResources.put("test.jar", LocalResource.newInstance(
@@ -656,6 +668,7 @@ public class TestMRRJobsDAGApi {
 
   // This class should not be used by more than one test in a single run, since
   // the path it writes to is not dynamic.
+  private static String RELOCALIZATION_TEST_CLASS_NAME = "AMClassloadTestDummyClass";
   public static class MRInputAMSplitGeneratorRelocalizationTest extends MRInputAMSplitGenerator {
     public List<Event> initialize(TezRootInputInitializerContext rootInputContext)  throws Exception {
       MRInputUserPayloadProto userPayloadProto = MRHelpers
@@ -664,7 +677,7 @@ public class TestMRRJobsDAGApi {
           .getConfigurationBytes());
 
       try {
-        RuntimeUtils.getClazz("org.apache.tez.test.Test");
+        RuntimeUtils.getClazz(RELOCALIZATION_TEST_CLASS_NAME);
         LOG.info("Class found");
         FileSystem fs = FileSystem.get(conf);
         fs.mkdirs(new Path("/tmp/relocalizationfilefound"));
@@ -673,6 +686,50 @@ public class TestMRRJobsDAGApi {
       }
 
       return super.initialize(rootInputContext);
+    }
+  }
+  
+  private static void createTestJar(OutputStream outStream, String dummyClassName)
+      throws URISyntaxException, IOException {
+    JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+    JavaFileObject srcFileObject = new SimpleJavaFileObjectImpl(
+        URI.create("string:///" + dummyClassName + Kind.SOURCE.extension), Kind.SOURCE);
+    StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
+    compiler.getTask(null, fileManager, null, null, null, Collections.singletonList(srcFileObject))
+        .call();
+
+    JavaFileObject javaFileObject = fileManager.getJavaFileForOutput(StandardLocation.CLASS_OUTPUT,
+        dummyClassName, Kind.CLASS, null);
+
+    File classFile = new File(dummyClassName + Kind.CLASS.extension);
+
+    JarOutputStream jarOutputStream = new JarOutputStream(outStream);
+    JarEntry jarEntry = new JarEntry(classFile.getName());
+    jarEntry.setTime(classFile.lastModified());
+    jarOutputStream.putNextEntry(jarEntry);
+
+    InputStream in = javaFileObject.openInputStream();
+    byte buffer[] = new byte[4096];
+    while (true) {
+      int nRead = in.read(buffer, 0, buffer.length);
+      if (nRead <= 0)
+        break;
+      jarOutputStream.write(buffer, 0, nRead);
+    }
+    in.close();
+    jarOutputStream.close();
+    javaFileObject.delete();
+  }
+
+  private static class SimpleJavaFileObjectImpl extends SimpleJavaFileObject {
+    static final String code = "public class AMClassloadTestDummyClass {}";
+    SimpleJavaFileObjectImpl(URI uri, Kind kind) {
+      super(uri, kind);
+    }
+
+    @Override
+    public CharSequence getCharContent(boolean ignoreEncodingErrors) {
+      return code;
     }
   }
 }
