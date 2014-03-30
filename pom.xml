@@ -19,7 +19,7 @@
   <groupId>org.apache.tez</groupId>
   <artifactId>tez</artifactId>
   <packaging>pom</packaging>
-  <version>0.4.0-incubating-SNAPSHOT</version>
+  <version>0.4.0-incubating</version>
   <name>tez</name>
 
   <licenses>
