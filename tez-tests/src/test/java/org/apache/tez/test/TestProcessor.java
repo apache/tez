@@ -201,6 +201,11 @@ public class TestProcessor implements LogicalIOProcessor {
              " sum= " + sum);
     //sum = summation of input values
     for (Map.Entry<String, LogicalInput> entry : inputs.entrySet()) {
+      if (!(entry.getValue() instanceof TestInput)) {
+        LOG.info("Ignoring non TestInput: " + entry.getKey()
+            + " inputClass= " + entry.getValue().getClass().getSimpleName());
+        continue;
+      }
       TestInput input = (TestInput) entry.getValue();
       int inputValue = input.doRead();
       LOG.info("Reading input: " + entry.getKey() + " inputValue= " + inputValue);

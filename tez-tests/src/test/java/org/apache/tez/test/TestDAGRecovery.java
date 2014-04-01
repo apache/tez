@@ -32,12 +32,20 @@ import org.apache.tez.client.TezSession;
 import org.apache.tez.client.TezSessionConfiguration;
 import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.DAGStatus.State;
 import org.apache.tez.test.dag.MultiAttemptDAG;
+import org.apache.tez.test.dag.MultiAttemptDAG.FailingInputInitializer;
+import org.apache.tez.test.dag.MultiAttemptDAG.NoOpInput;
+import org.apache.tez.test.dag.SimpleVTestDAG;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -50,17 +58,16 @@ public class TestDAGRecovery {
   private static final Log LOG = LogFactory.getLog(TestDAGRecovery.class);
 
   private static Configuration conf = new Configuration();
-  private static MiniTezCluster miniTezCluster;
+  private static MiniTezCluster miniTezCluster = null;
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestDAGRecovery.class.getName() + "-tmpDir";
-  protected static MiniDFSCluster dfsCluster;
-
+  private static MiniDFSCluster dfsCluster = null;
   private static TezSession tezSession = null;
+  private static FileSystem remoteFs = null;
 
   @BeforeClass
-  public static void setup() throws Exception {
+  public static void beforeClass() throws Exception {
     LOG.info("Starting mini clusters");
-    FileSystem remoteFs = null;
     try {
       conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
       dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(3)
@@ -77,30 +84,78 @@ public class TestDAGRecovery {
       miniTezconf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
       miniTezCluster.init(miniTezconf);
       miniTezCluster.start();
-
-      Path remoteStagingDir = remoteFs.makeQualified(new Path(TEST_ROOT_DIR, String
-          .valueOf(new Random().nextInt(100000))));
-      TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
-
-      TezConfiguration tezConf = new TezConfiguration(miniTezCluster.getConfig());
-      tezConf.setInt(TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS, 0);
-      tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "DEBUG");
-      tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
-          remoteStagingDir.toString());
-      tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
-      tezConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 4);
-      tezConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, 500);
-      tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS, " -Xmx256m");
-
-      AMConfiguration amConfig = new AMConfiguration(
-          new HashMap<String, String>(), new HashMap<String, LocalResource>(),
-          tezConf, null);
-      TezSessionConfiguration tezSessionConfig =
-          new TezSessionConfiguration(amConfig, tezConf);
-      tezSession = new TezSession("TestDAGRecovery", tezSessionConfig);
-      tezSession.start();
     }
   }
+
+  @AfterClass
+  public static void afterClass() throws InterruptedException {
+    if (tezSession != null) {
+      try {
+        LOG.info("Stopping Tez Session");
+        tezSession.stop();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    Thread.sleep(10000);
+    if (miniTezCluster != null) {
+      try {
+        LOG.info("Stopping MiniTezCluster");
+        miniTezCluster.stop();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    if (dfsCluster != null) {
+      try {
+        LOG.info("Stopping DFSCluster");
+        dfsCluster.shutdown();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  @Before
+  public void setup()  throws Exception {
+    LOG.info("Starting session");
+    Path remoteStagingDir = remoteFs.makeQualified(new Path(TEST_ROOT_DIR, String
+        .valueOf(new Random().nextInt(100000))));
+    TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
+
+    TezConfiguration tezConf = new TezConfiguration(miniTezCluster.getConfig());
+    tezConf.setInt(TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS, 0);
+    tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "DEBUG");
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
+        remoteStagingDir.toString());
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
+    tezConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 4);
+    tezConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, 500);
+    tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS, " -Xmx256m");
+
+    AMConfiguration amConfig = new AMConfiguration(
+        new HashMap<String, String>(), new HashMap<String, LocalResource>(),
+        tezConf, null);
+    TezSessionConfiguration tezSessionConfig =
+        new TezSessionConfiguration(amConfig, tezConf);
+    tezSession = new TezSession("TestDAGRecovery", tezSessionConfig);
+    tezSession.start();
+  }
+
+  @After
+  public void teardown() throws InterruptedException {
+    if (tezSession != null) {
+      try {
+        LOG.info("Stopping Tez Session");
+        tezSession.stop();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    tezSession = null;
+    Thread.sleep(10000);
+  }
+
   void runDAGAndVerify(DAG dag, DAGStatus.State finalState) throws Exception {
     TezSessionStatus status = tezSession.getSessionStatus();
     while (status != TezSessionStatus.READY && status != TezSessionStatus.SHUTDOWN) {
@@ -130,6 +185,15 @@ public class TestDAGRecovery {
     DAG dag = MultiAttemptDAG.createDAG("TestBasicRecovery", null);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
 
+  }
+
+  @Test(timeout=120000)
+  public void testDelayedInit() throws Exception {
+    DAG dag = SimpleVTestDAG.createDAG("DelayedInitDAG", null);
+    dag.getVertex("v1").addInput("i1",
+        new InputDescriptor(NoOpInput.class.getName()),
+        FailingInputInitializer.class);
+    runDAGAndVerify(dag, State.SUCCEEDED);
   }
 
 }

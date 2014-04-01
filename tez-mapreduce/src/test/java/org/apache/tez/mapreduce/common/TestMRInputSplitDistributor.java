@@ -191,6 +191,12 @@ public class TestMRInputSplitDistributor {
     public int getNumClusterNodes() {
       return 10;
     }
+
+    @Override
+    public int getDAGAttemptNumber() {
+      return 1;
+    }
+
   }
 
   @Private

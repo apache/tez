@@ -65,11 +65,13 @@ public class RootInputInitializerRunner {
   private volatile boolean isStopped = false;
   private final UserGroupInformation dagUgi;
   private final int numClusterNodes;
+  private final int dagAttemptNumber;
 
   @SuppressWarnings("rawtypes")
   public RootInputInitializerRunner(String dagName, String vertexName,
       TezVertexID vertexID, EventHandler eventHandler, UserGroupInformation dagUgi,
-      Resource vertexTaskResource, Resource totalResource, int numTasks, int numNodes) {
+      Resource vertexTaskResource, Resource totalResource, int numTasks, int numNodes,
+      int dagAttemptNumber) {
     this.dagName = dagName;
     this.vertexName = vertexName;
     this.vertexID = vertexID;
@@ -82,13 +84,15 @@ public class RootInputInitializerRunner {
     this.executor = MoreExecutors.listeningDecorator(rawExecutor);
     this.dagUgi = dagUgi;
     this.numClusterNodes = numNodes;
+    this.dagAttemptNumber = dagAttemptNumber;
   }
   
   public void runInputInitializers(List<RootInputLeafOutputDescriptor<InputDescriptor>> inputs) {
     for (RootInputLeafOutputDescriptor<InputDescriptor> input : inputs) {
       ListenableFuture<List<Event>> future = executor
           .submit(new InputInitializerCallable(input, vertexID, dagName,
-              vertexName, dagUgi, numTasks, numClusterNodes, vertexTaskResource, totalResource));
+              vertexName, dagUgi, numTasks, numClusterNodes, vertexTaskResource, totalResource,
+              dagAttemptNumber));
       Futures.addCallback(future, createInputInitializerCallback(input.getEntityName()));
     }
   }
@@ -119,10 +123,12 @@ public class RootInputInitializerRunner {
     private final Resource totalResource;
     private final UserGroupInformation ugi;
     private final int numClusterNodes;
+    private final int dagAttemptNumber;
 
     public InputInitializerCallable(RootInputLeafOutputDescriptor<InputDescriptor> input,
         TezVertexID vertexID, String dagName, String vertexName, UserGroupInformation ugi, 
-        int numTasks, int numClusterNodes, Resource vertexTaskResource, Resource totalResource) {
+        int numTasks, int numClusterNodes, Resource vertexTaskResource, Resource totalResource,
+        int dagAttemptNumber) {
       this.input = input;
       this.vertexID = vertexID;
       this.dagName = dagName;
@@ -132,6 +138,7 @@ public class RootInputInitializerRunner {
       this.totalResource = totalResource;
       this.ugi = ugi;
       this.numClusterNodes = numClusterNodes;
+      this.dagAttemptNumber = dagAttemptNumber;
     }
 
     @Override
@@ -142,7 +149,8 @@ public class RootInputInitializerRunner {
           TezRootInputInitializer initializer = createInitializer();
           TezRootInputInitializerContext context = new TezRootInputInitializerContextImpl(vertexID,
               dagName, vertexName, input.getEntityName(), input.getDescriptor(), 
-              numTasks, numClusterNodes, vertexTaskResource, totalResource);
+              numTasks, numClusterNodes, vertexTaskResource, totalResource,
+              dagAttemptNumber);
           return initializer.initialize(context);
         }
       });

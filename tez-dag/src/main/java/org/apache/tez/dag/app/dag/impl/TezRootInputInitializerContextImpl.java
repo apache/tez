@@ -36,13 +36,15 @@ public class TezRootInputInitializerContextImpl implements
   private final Resource vertexTaskResource;
   private final Resource totalResource;
   private final int numClusterNodes;
+  private final int dagAttemptNumber;
 
   // TODO Add support for counters - merged with the Vertex counters.
   
   public TezRootInputInitializerContextImpl(TezVertexID vertexID,
       String dagName, String vertexName, String inputName,
       InputDescriptor inputDescriptor, int numTasks, int numClusterNodes,
-      Resource vertexTaskResource, Resource totalResource) {
+      Resource vertexTaskResource, Resource totalResource,
+      int dagAttemptNumber) {
     checkNotNull(vertexID, "vertexID is null");
     checkNotNull(dagName, "dagName is null");
     checkNotNull(inputName, "inputName is null");
@@ -57,6 +59,7 @@ public class TezRootInputInitializerContextImpl implements
     this.vertexTaskResource = vertexTaskResource;
     this.totalResource = totalResource;
     this.numClusterNodes = numClusterNodes;
+    this.dagAttemptNumber = dagAttemptNumber;
   }
 
   @Override
@@ -97,6 +100,11 @@ public class TezRootInputInitializerContextImpl implements
   @Override
   public int getNumClusterNodes() {
     return numClusterNodes;
+  }
+
+  @Override
+  public int getDAGAttemptNumber() {
+    return dagAttemptNumber;
   }
 
 }

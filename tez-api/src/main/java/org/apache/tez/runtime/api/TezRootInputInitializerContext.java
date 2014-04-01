@@ -73,4 +73,10 @@ public interface TezRootInputInitializerContext {
    * @return Number of nodes
    */
   int getNumClusterNodes();
+
+  /**
+   * @return DAG Attempt number
+   */
+  int getDAGAttemptNumber();
+
 }

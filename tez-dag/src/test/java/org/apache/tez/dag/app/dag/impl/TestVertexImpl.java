@@ -2281,7 +2281,7 @@ public class TestVertexImpl {
         Resource taskResource, Resource totalResource) throws IOException {
       super(dagName, vertexName, vertexID, eventHandler, 
           UserGroupInformation.getCurrentUser(), 
-          taskResource, totalResource, numTasks, 1);
+          taskResource, totalResource, numTasks, 1, 1);
       this.eventHandler = eventHandler;
       this.dispatcher = dispatcher;
       this.vertexID = vertexID;
