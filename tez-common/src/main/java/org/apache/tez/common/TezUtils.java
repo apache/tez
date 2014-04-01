@@ -285,10 +285,14 @@ public class TezUtils {
     }
 
     if (containerLogDir != null) {
+      PrintStream temp = System.out;
       System.setOut(new PrintStream(new File(containerLogDir, constructLogFileName(
           TezConfiguration.TEZ_CONTAINER_OUT_FILE_NAME, addend))));
+      temp.close();
+      temp = System.err;
       System.setErr(new PrintStream(new File(containerLogDir, constructLogFileName(
           TezConfiguration.TEZ_CONTAINER_ERR_FILE_NAME, addend))));
+      temp.close();
     }
   }
 

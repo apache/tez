@@ -434,10 +434,11 @@ public class YarnTezDagChild {
     TezVertexID lastVertexId = null;
     EventMetaData currentSourceInfo = null;
     try {
+      String loggerAddend = "";
       while (true) {
         // poll for new task
         if (taskCount > 0) {
-          updateLoggers(null);
+          TezUtils.updateLoggers(loggerAddend);
         }
         boolean isNewGetTask = true;
         long getTaskPollStartTime = System.currentTimeMillis();
@@ -527,8 +528,9 @@ public class YarnTezDagChild {
             }
           }
           lastVertexId = newVertexId;
-          updateLoggers(currentTaskAttemptID);
-
+          TezUtils.updateLoggers(currentTaskAttemptID.toString());
+          loggerAddend = currentTaskAttemptID.toString() + "_post";
+          
           currentTask = createLogicalTask(attemptNumber, taskSpec,
               defaultConf, tezUmbilical, serviceConsumerMetadata);
           
@@ -713,12 +715,4 @@ public class YarnTezDagChild {
     }
   }
 
-  private static void updateLoggers(TezTaskAttemptID tezTaskAttemptID)
-      throws FileNotFoundException {
-    String addend = "";
-    if (tezTaskAttemptID != null) {
-      addend = tezTaskAttemptID.toString();
-    }
-    TezUtils.updateLoggers(addend);
-  }
 }
