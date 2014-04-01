@@ -18,7 +18,6 @@
 
 package org.apache.tez.test.dag;
 
-import com.google.common.primitives.Booleans;
 import com.google.common.primitives.Ints;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -32,24 +31,27 @@ import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.VertexStatus.State;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
+import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.TezRootInputInitializer;
+import org.apache.tez.runtime.api.TezRootInputInitializerContext;
 import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.test.TestInput;
 import org.apache.tez.test.TestOutput;
 import org.apache.tez.test.TestProcessor;
-import org.apache.tez.test.dag.MultiAttemptDAG.FailingOutputCommitter.FailingOutputCommitterConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -201,6 +203,62 @@ public class MultiAttemptDAG {
     }
   }
 
+  public static class FailingInputInitializer implements TezRootInputInitializer {
+
+    @Override
+    public List<Event> initialize(TezRootInputInitializerContext inputVertexContext) throws Exception {
+      try {
+        Thread.sleep(2000l);
+      } catch (InterruptedException e) {
+        // Ignore
+      }
+      if (inputVertexContext.getDAGAttemptNumber() == 1) {
+        LOG.info("Shutting down the AM in 1st attempt");
+        Runtime.getRuntime().halt(-1);
+      }
+      return null;
+    }
+  }
+
+  public static class NoOpInput implements LogicalInput, MemoryUpdateCallback {
+
+    @Override
+    public void setNumPhysicalInputs(int numInputs) {
+
+    }
+
+    @Override
+    public List<Event> initialize(TezInputContext inputContext) throws Exception {
+      inputContext.requestInitialMemory(1l, this);
+      return null;
+    }
+
+    @Override
+    public void start() throws Exception {
+
+    }
+
+    @Override
+    public Reader getReader() throws Exception {
+      return null;
+    }
+
+    @Override
+    public void handleEvents(List<Event> inputEvents) throws Exception {
+
+    }
+
+    @Override
+    public List<Event> close() throws Exception {
+      return null;
+    }
+
+    @Override
+    public void memoryAssigned(long assignedSize) {
+
+    }
+  }
+
   public static class NoOpOutput implements LogicalOutput, MemoryUpdateCallback {
 
     @Override
@@ -238,6 +296,8 @@ public class MultiAttemptDAG {
     public void memoryAssigned(long assignedSize) {
     }
   }
+
+
 
 
   public static DAG createDAG(String name,
