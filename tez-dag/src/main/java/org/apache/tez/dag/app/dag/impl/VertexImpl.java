@@ -65,6 +65,7 @@ import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.dag.api.client.VertexStatus.State;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
@@ -1402,6 +1403,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info(diagnosticMsg);
         vertex.addDiagnostic(diagnosticMsg);
         vertex.abortVertex(VertexStatus.State.FAILED);
+        return vertex.finished(VertexState.FAILED);
+      }
+      else if (vertex.terminationCause == VertexTerminationCause.INTERNAL_ERROR) {
+        vertex.setFinishTime();
+        String diagnosticMsg = "Vertex failed/killed due to internal error. "
+            + "failedTasks:"
+            + vertex.failedTaskCount
+            + " killedTasks:"
+            + vertex.killedTaskCount;
+        LOG.info(diagnosticMsg);
+        vertex.abortVertex(State.FAILED);
         return vertex.finished(VertexState.FAILED);
       }
       else {

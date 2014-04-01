@@ -69,6 +69,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
+import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
@@ -1084,6 +1085,23 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
     @Override
     public TaskStateInternal transition(TaskImpl task, TaskEvent taskEvent) {
+      if (taskEvent instanceof TaskEventRecoverTask) {
+        TaskEventRecoverTask taskEventRecoverTask =
+            (TaskEventRecoverTask) taskEvent;
+        if (taskEventRecoverTask.getDesiredState() != null) {
+          // TODO recover attempts if desired state is given?
+          // History may not have all data.
+          switch (taskEventRecoverTask.getDesiredState()) {
+            case SUCCEEDED:
+              return TaskStateInternal.SUCCEEDED;
+            case FAILED:
+              return TaskStateInternal.FAILED;
+            case KILLED:
+              return TaskStateInternal.KILLED;
+          }
+        }
+      }
+
       TaskStateInternal endState = TaskStateInternal.NEW;
       if (task.attempts != null) {
         for (TaskAttempt taskAttempt : task.attempts.values()) {
