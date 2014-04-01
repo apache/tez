@@ -53,7 +53,7 @@ public class TestMRInputSplitDistributor {
   public void testSerializedPayload() throws IOException {
 
     Configuration conf = new Configuration(false);
-    conf.setBoolean(MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLAOD, true);
+    conf.setBoolean(MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD, true);
     ByteString confByteString = MRHelpers.createByteStringFromConf(conf);
     InputSplit split1 = new InputSplitForTest(1);
     InputSplit split2 = new InputSplitForTest(2);
@@ -101,7 +101,7 @@ public class TestMRInputSplitDistributor {
   public void testDeserializedPayload() throws IOException {
 
     Configuration conf = new Configuration(false);
-    conf.setBoolean(MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLAOD, false);
+    conf.setBoolean(MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD, false);
     ByteString confByteString = MRHelpers.createByteStringFromConf(conf);
     InputSplit split1 = new InputSplitForTest(1);
     InputSplit split2 = new InputSplitForTest(2);

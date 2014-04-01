@@ -173,7 +173,7 @@ public class VertexManager {
     }
 
     @Override
-    public Resource getTotalAVailableResource() {
+    public Resource getTotalAvailableResource() {
       return appContext.getTaskScheduler().getTotalResources();
     }
 

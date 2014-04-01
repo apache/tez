@@ -77,8 +77,8 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
         .getConfigurationBytes());
     
     sendSerializedEvents = conf.getBoolean(
-        MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLAOD,
-        MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLAOD_DEFAULT);
+        MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD,
+        MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD_DEFAULT);
     LOG.info("Emitting serialized splits: " + sendSerializedEvents);
     if (LOG.isDebugEnabled()) {
       sw.stop();

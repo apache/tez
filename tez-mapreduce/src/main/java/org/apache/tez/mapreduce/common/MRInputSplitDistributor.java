@@ -69,8 +69,8 @@ public class MRInputSplitDistributor implements TezRootInputInitializer {
     JobConf jobConf = new JobConf(conf);
     boolean useNewApi = jobConf.getUseNewMapper();
     sendSerializedEvents = conf.getBoolean(
-        MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLAOD,
-        MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLAOD_DEFAULT);
+        MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD,
+        MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD_DEFAULT);
     LOG.info("Emitting serialized splits: " + sendSerializedEvents);
 
     this.splitsProto = userPayloadProto.getSplits();

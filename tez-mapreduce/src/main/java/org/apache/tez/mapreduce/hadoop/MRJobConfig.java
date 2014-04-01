@@ -624,8 +624,8 @@ public interface MRJobConfig {
   public static final String MR_TEZ_SPLITS_VIA_EVENTS = MR_TEZ_PREFIX + "splits.via.events";
   public static final boolean MR_TEZ_SPLITS_VIA_EVENTS_DEFAULT = true;
 
-  public static final String MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLAOD = MR_TEZ_PREFIX
+  public static final String MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD = MR_TEZ_PREFIX
       + "input.initializer.serialize.event.payload";
-  public static final boolean MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLAOD_DEFAULT = true;
+  public static final boolean MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD_DEFAULT = true;
   
 }
