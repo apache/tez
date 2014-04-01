@@ -80,6 +80,8 @@ import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate.UpdateType;
 import org.apache.tez.dag.app.dag.event.DAGEventStartDag;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
@@ -127,6 +129,7 @@ public class TestDAGImpl {
   private DAGImpl groupDag;
   private TezDAGID groupDagId;
   private HistoryEventHandler historyEventHandler;
+  private TaskAttemptEventDispatcher taskAttemptEventDispatcher;
 
   private class DagEventDispatcher implements EventHandler<DAGEvent> {
     @Override
@@ -159,6 +162,14 @@ public class TestDAGImpl {
       Vertex vertex = handler.getVertex(event.getTaskID().getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       ((EventHandler<TaskEvent>)task).handle(event);
+    }
+  }
+
+  private class TaskAttemptEventDispatcher implements EventHandler<TaskAttemptEvent> {
+    @SuppressWarnings("unchecked")
+    @Override
+    public void handle(TaskAttemptEvent event) {
+      // Ignore
     }
   }
 
@@ -627,6 +638,8 @@ public class TestDAGImpl {
     doReturn(historyEventHandler).when(groupAppContext).getHistoryHandler();
     taskEventDispatcher = new TaskEventDispatcher();
     dispatcher.register(TaskEventType.class, taskEventDispatcher);
+    taskAttemptEventDispatcher = new TaskAttemptEventDispatcher();
+    dispatcher.register(TaskAttemptEventType.class, taskAttemptEventDispatcher);
     vertexEventDispatcher = new VertexEventDispatcher();
     dispatcher.register(VertexEventType.class, vertexEventDispatcher);
     dagEventDispatcher = new DagEventDispatcher();
@@ -1213,4 +1226,23 @@ public class TestDAGImpl {
 
     Assert.assertEquals(DAGState.FAILED, mrrDag.getState());
   }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testDAGKillInternalError() {
+    initDAG(dag);
+    startDAG(dag);
+    dispatcher.await();
+
+    dispatcher.getEventHandler().handle(new DAGEvent(dagId,
+        DAGEventType.INTERNAL_ERROR));
+
+    dispatcher.await();
+    Assert.assertEquals(DAGState.ERROR, dag.getState());
+    Assert.assertEquals(0, dag.getSuccessfulVertices());
+    Assert.assertEquals(dag.getVertex(TezVertexID.getInstance(dagId, 2)).getTerminationCause(),
+        VertexTerminationCause.INTERNAL_ERROR);
+    Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
+  }
+
 }
