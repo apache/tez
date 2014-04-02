@@ -1790,7 +1790,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             for (Task task : vertex.tasks.values()) {
               vertex.eventHandler.handle(
                   new TaskEventRecoverTask(task.getTaskId(),
-                      taskState));
+                      taskState, false));
             }
           }
           LOG.info("DAG informed Vertex of its final completed state"

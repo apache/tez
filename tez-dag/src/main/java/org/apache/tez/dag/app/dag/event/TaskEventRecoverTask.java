@@ -25,9 +25,17 @@ public class TaskEventRecoverTask extends TaskEvent {
 
   TaskState desiredState;
 
+  boolean recoverDataForAttempts;
+
   public TaskEventRecoverTask(TezTaskID taskID, TaskState desiredState) {
+    this(taskID, desiredState, true);
+  }
+
+  public TaskEventRecoverTask(TezTaskID taskID, TaskState desiredState,
+      boolean recoverData) {
     super(taskID, TaskEventType.T_RECOVER);
     this.desiredState = desiredState;
+    this.recoverDataForAttempts = recoverData;
   }
 
   public TaskEventRecoverTask(TezTaskID taskID) {
@@ -36,6 +44,10 @@ public class TaskEventRecoverTask extends TaskEvent {
 
   public TaskState getDesiredState() {
     return desiredState;
+  }
+
+  public boolean recoverData() {
+    return recoverDataForAttempts;
   }
 
 }

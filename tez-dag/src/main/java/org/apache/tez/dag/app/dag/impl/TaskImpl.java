@@ -1088,7 +1088,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       if (taskEvent instanceof TaskEventRecoverTask) {
         TaskEventRecoverTask taskEventRecoverTask =
             (TaskEventRecoverTask) taskEvent;
-        if (taskEventRecoverTask.getDesiredState() != null) {
+        if (taskEventRecoverTask.getDesiredState() != null
+            && !taskEventRecoverTask.recoverData()) {
           // TODO recover attempts if desired state is given?
           // History may not have all data.
           switch (taskEventRecoverTask.getDesiredState()) {
