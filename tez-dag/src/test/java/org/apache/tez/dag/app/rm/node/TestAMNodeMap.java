@@ -44,6 +44,7 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -235,18 +236,25 @@ public class TestAMNodeMap {
     assertEquals(8, handler.events.size());
 
     int index = 0;
+    int numBlacklistingDisabledEvents = 0;
+    int numNodeBlacklistedEvents = 0;
+    int numNodeWasBlacklistedEvents = 0;
     for (Event event : handler.events) {
       LOG.info("Logging event: index:" + index++
           + " type: " + event.getType());
+      if (event.getType() == AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED) {
+        numBlacklistingDisabledEvents++;
+      } else if (event.getType() == AMSchedulerEventType.S_NODE_BLACKLISTED) {
+        numNodeBlacklistedEvents++;
+      } else if (event.getType() == AMNodeEventType.N_NODE_WAS_BLACKLISTED) {
+        numNodeWasBlacklistedEvents++;
+      } else {
+        Assert.assertTrue("Unexpected event: " + event.getType(), false);        
+      }
     }
-    assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED, handler.events.get(0).getType());
-    assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED, handler.events.get(1).getType());
-    assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED, handler.events.get(2).getType());
-    assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED, handler.events.get(3).getType());
-    assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(4).getType());
-    assertEquals(AMNodeEventType.N_NODE_WAS_BLACKLISTED, handler.events.get(5).getType());
-    assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(6).getType());
-    assertEquals(AMNodeEventType.N_NODE_WAS_BLACKLISTED, handler.events.get(7).getType());
+    assertEquals(4, numBlacklistingDisabledEvents);
+    assertEquals(2, numNodeBlacklistedEvents);
+    assertEquals(2, numNodeWasBlacklistedEvents);
     
     amNodeMap.stop();
   }
