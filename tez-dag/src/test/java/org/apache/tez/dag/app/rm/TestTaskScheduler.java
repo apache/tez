@@ -42,7 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
@@ -446,6 +445,24 @@ public class TestTaskScheduler {
     float progress = 0.5f;
     when(mockApp.getProgress()).thenReturn(progress);
     Assert.assertEquals(progress, scheduler.getProgress(), 0);
+    
+    // check duplicate allocation request
+    scheduler.allocateTask(mockTask1, mockCapability, hosts, racks,
+        mockPriority, null, mockCookie1);
+    drainableAppCallback.drain();
+    verify(mockRMClient, times(7)).addContainerRequest(
+        (CookieContainerRequest) any());
+    verify(mockRMClient, times(6)).
+        removeContainerRequest((CookieContainerRequest) any());
+    scheduler.allocateTask(mockTask1, mockCapability, hosts, racks,
+        mockPriority, null, mockCookie1);
+    drainableAppCallback.drain();
+    // old request removed and new one added
+    verify(mockRMClient, times(7)).
+        removeContainerRequest((CookieContainerRequest) any());
+    verify(mockRMClient, times(8)).addContainerRequest(
+        (CookieContainerRequest) any());
+    assertFalse(scheduler.deallocateTask(mockTask1, true));
 
     List<NodeReport> mockUpdatedNodes = mock(List.class);
     scheduler.onNodesUpdated(mockUpdatedNodes);
@@ -474,7 +491,7 @@ public class TestTaskScheduler {
     scheduler.close();
   }
   
-  @SuppressWarnings({ "unchecked", "rawtypes" })
+  @SuppressWarnings({ "unchecked" })
   @Test(timeout=10000)
   public void testTaskSchedulerWithReuse() throws Exception {
     RackResolver.init(new YarnConfiguration());

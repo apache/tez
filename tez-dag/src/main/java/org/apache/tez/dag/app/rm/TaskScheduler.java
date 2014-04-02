@@ -1209,8 +1209,11 @@ public class TaskScheduler extends AbstractService
 
   private void addTaskRequest(Object task,
                                 CookieContainerRequest request) {
-    // TODO TEZ-37 fix duplicate handling
-    taskRequests.put(task, request);
+    CookieContainerRequest oldRequest = taskRequests.put(task, request);
+    if (oldRequest != null) {
+      // remove all references of the request from AMRMClient
+      amRmClient.removeContainerRequest(oldRequest);
+    }
     amRmClient.addContainerRequest(request);
   }
 
