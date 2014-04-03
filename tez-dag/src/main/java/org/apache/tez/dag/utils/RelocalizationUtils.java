@@ -53,9 +53,9 @@ public class RelocalizationUtils {
   }
 
   public static void addUrlsToClassPath(List<URL> urls) {
-    RuntimeUtils.addResourcesToClasspath(urls);
+    RuntimeUtils.addResourcesToSystemClassLoader(urls);
   }
-  
+
   private static Path downloadResource(String destName, URI uri, Configuration conf)
       throws IOException {
     FileSystem fs = FileSystem.get(uri, conf);

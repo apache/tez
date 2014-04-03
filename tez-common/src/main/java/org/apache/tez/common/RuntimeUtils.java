@@ -82,21 +82,20 @@ public class RuntimeUtils {
   // Parameters for addResourcesToSystemClassLoader
   private static final Class<?>[] parameters = new Class[]{URL.class};
   private static Method sysClassLoaderMethod = null;
-  
-  
-  @Private  
-  public static synchronized void addResourcesToSystemClassLoader(List<URL> urls) throws TezException {
+
+
+  @Private
+  public static synchronized void addResourcesToSystemClassLoader(List<URL> urls) {
     URLClassLoader sysLoader = (URLClassLoader)ClassLoader.getSystemClassLoader();
-    
     if (sysClassLoaderMethod == null) {
       Class<?> sysClass = URLClassLoader.class;
       Method method;
       try {
         method = sysClass.getDeclaredMethod("addURL", parameters);
       } catch (SecurityException e) {
-        throw new TezException("Failed to get handle on method addURL", e);
+        throw new TezUncheckedException("Failed to get handle on method addURL", e);
       } catch (NoSuchMethodException e) {
-        throw new TezException("Failed to get handle on method addURL", e);
+        throw new TezUncheckedException("Failed to get handle on method addURL", e);
       }
       method.setAccessible(true);
       sysClassLoaderMethod = method;
@@ -105,11 +104,11 @@ public class RuntimeUtils {
       try {
         sysClassLoaderMethod.invoke(sysLoader, new Object[] { url });
       } catch (IllegalArgumentException e) {
-        throw new TezException("Failed to invoke addURL for rsrc: " + url, e);
+        throw new TezUncheckedException("Failed to invoke addURL for rsrc: " + url, e);
       } catch (IllegalAccessException e) {
-        throw new TezException("Failed to invoke addURL for rsrc: " + url, e);
+        throw new TezUncheckedException("Failed to invoke addURL for rsrc: " + url, e);
       } catch (InvocationTargetException e) {
-        throw new TezException("Failed to invoke addURL for rsrc: " + url, e);
+        throw new TezUncheckedException("Failed to invoke addURL for rsrc: " + url, e);
       }
     }
   }
