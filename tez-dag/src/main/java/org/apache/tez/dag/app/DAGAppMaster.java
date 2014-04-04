@@ -30,6 +30,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -1094,27 +1095,75 @@ public class DAGAppMaster extends AbstractService {
   }
 
   private Map<String, LocalResource> getAdditionalLocalResourceDiff(
-      Map<String, LocalResource> additionalResources) {
+      DAG dag, Map<String, LocalResource> additionalResources) throws TezException {
     if (additionalResources == null) {
       return Collections.emptyMap();
-    } else {
-      // Check for existing resources.
-      Iterator<Entry<String, LocalResource>> lrIter = additionalResources.entrySet().iterator();
-      while (lrIter.hasNext()) {
-        Entry<String, LocalResource> lrEntry = lrIter.next();
-        LocalResource existing = amResources.get(lrEntry.getKey());
-        if (existing != null) {
-          if (!existing.equals(lrEntry.getValue())) {
-            throw new TezUncheckedException(
-                "Cannot add different additional resources with the same name : "
-                    + lrEntry.getKey() + ", Existing: [" + existing + "], New: ["
-                    + lrEntry.getValue() + "]");
-          } else {
-            lrIter.remove();
-          }
+    }
+    // Check for existing resources.
+    Iterator<Entry<String, LocalResource>> lrIter = additionalResources.entrySet().iterator();
+    while (lrIter.hasNext()) {
+      Entry<String, LocalResource> lrEntry = lrIter.next();
+      LocalResource existing = amResources.get(lrEntry.getKey());
+      if (existing != null) {
+        if (!isSameFile(dag, lrEntry.getKey(), existing, lrEntry.getValue())) {
+          throw new TezUncheckedException(
+              "Cannot add different additional resources with the same name : "
+                  + lrEntry.getKey() + ", Existing: [" + existing + "], New: ["
+                  + lrEntry.getValue() + "]");
+        } else {
+          lrIter.remove();
         }
       }
-      return containerSignatureMatcher.getAdditionalResources(amResources, additionalResources);
+    }
+    return containerSignatureMatcher.getAdditionalResources(amResources, additionalResources);
+  }
+
+  private boolean isSameFile(DAG dag, final String fileName,
+      final LocalResource oldLr, final LocalResource newLr) throws TezException {
+    try {
+      return oldLr.equals(newLr) || dag.getDagUGI().doAs(new PrivilegedExceptionAction<Boolean>() {
+        @Override
+        public Boolean run() throws Exception {
+          Configuration conf = getConfig();
+          byte[] oldSha = null;
+          try {
+            // The existing file must already be in usercache... let's try to find it.
+            Path localFile = findLocalFileForResource(fileName);
+            if (localFile != null) {
+              oldSha = RelocalizationUtils.getLocalSha(localFile, conf);
+            } else {
+              LOG.warn("Couldn't find local file for " + oldLr);
+            }
+          } catch (Exception ex) {
+            LOG.warn("Error getting SHA from local file for " + oldLr, ex);
+          }
+          if (oldSha == null) { // Well, no dice.
+            oldSha = RelocalizationUtils.getResourceSha(getLocalResourceUri(oldLr), conf);
+          }
+          // Get the new SHA directly from Hadoop stream. If it matches, we already have the
+          // file, and if it doesn't we are going to fail; no need to download either way.
+          byte[] newSha = RelocalizationUtils.getResourceSha(getLocalResourceUri(newLr), conf);
+          return Arrays.equals(oldSha, newSha);
+        }
+      });
+    } catch (InterruptedException ex) {
+      throw new TezException(ex);
+    } catch (IOException ex) {
+      throw new TezException(ex);
+    }
+  }
+
+  private static Path findLocalFileForResource(String fileName) {
+    URL localResource = ClassLoader.getSystemClassLoader().getResource(fileName);
+    if (localResource == null) return null;
+    return new Path(localResource.getPath());
+  }
+
+  private static URI getLocalResourceUri(LocalResource input) {
+    try {
+      return TezConverterUtils.getURIFromYarnURL(input.getResource());
+    } catch (URISyntaxException e) {
+      throw new TezUncheckedException("Failed while handling : " + input, e);
     }
   }
 
@@ -1131,11 +1180,7 @@ public class DAGAppMaster extends AbstractService {
 
               @Override
               public URI apply(LocalResource input) {
-                try {
-                  return TezConverterUtils.getURIFromYarnURL(input.getResource());
-                } catch (URISyntaxException e) {
-                  throw new TezUncheckedException("Failed while handling : " + input, e);
-                }
+                return getLocalResourceUri(input);
               }
             }), getConfig());
       } catch (IOException e) {
@@ -1817,8 +1862,8 @@ public class DAGAppMaster extends AbstractService {
         LOG.debug("DAG has vertex " + v.getName());
       }
     }
-    
-    Map<String, LocalResource> lrDiff = getAdditionalLocalResourceDiff(additionalAMResources);
+    Map<String, LocalResource> lrDiff = getAdditionalLocalResourceDiff(
+        newDAG, additionalAMResources);
     if (lrDiff != null) {
       amResources.putAll(lrDiff);
       cumulativeAdditionalResources.putAll(lrDiff);
@@ -1835,7 +1880,7 @@ public class DAGAppMaster extends AbstractService {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    
+
     startDAGExecution(newDAG, lrDiff);
   }
 
