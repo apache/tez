@@ -350,6 +350,9 @@ public class DAGAppMaster extends AbstractService {
         clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher);
     addIfService(taskSchedulerEventHandler, true);
     if (isLastAMRetry) {
+      LOG.info("AM will unregister as this is the last attempt"
+          + ", currentAttempt=" + appAttemptID.getAttemptId()
+          + ", maxAttempts=" + maxAppAttempts);
       this.taskSchedulerEventHandler.setShouldUnregisterFlag();
     }
 
@@ -448,6 +451,7 @@ public class DAGAppMaster extends AbstractService {
       DAGAppMasterEventDAGFinished finishEvt =
           (DAGAppMasterEventDAGFinished) event;
       if (!isSession) {
+        LOG.info("Not a session, AM will unregister as DAG has completed");
         this.taskSchedulerEventHandler.setShouldUnregisterFlag();
         _updateLoggers(currentDAG, "_post");
         setStateOnDAGCompletion();
