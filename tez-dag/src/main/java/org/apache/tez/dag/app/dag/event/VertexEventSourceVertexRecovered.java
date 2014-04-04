@@ -29,15 +29,18 @@ public class VertexEventSourceVertexRecovered extends VertexEvent {
   VertexState sourceVertexState;
   TezVertexID sourceVertexID;
   List<TezTaskAttemptID> completedTaskAttempts;
+  int sourceDistanceFromRoot;
 
   public VertexEventSourceVertexRecovered(TezVertexID vertexID,
       TezVertexID sourceVertexID,
       VertexState sourceVertexState,
-      List<TezTaskAttemptID> completedTaskAttempts) {
+      List<TezTaskAttemptID> completedTaskAttempts,
+      int sourceDistanceFromRoot) {
     super(vertexID, VertexEventType.V_SOURCE_VERTEX_RECOVERED);
     this.sourceVertexState = sourceVertexState;
     this.sourceVertexID = sourceVertexID;
     this.completedTaskAttempts = completedTaskAttempts;
+    this.sourceDistanceFromRoot = sourceDistanceFromRoot;
   }
 
   public VertexState getSourceVertexState() {
@@ -50,6 +53,10 @@ public class VertexEventSourceVertexRecovered extends VertexEvent {
 
   public List<TezTaskAttemptID> getCompletedTaskAttempts() {
     return completedTaskAttempts;
+  }
+
+  public int getSourceDistanceFromRoot() {
+    return sourceDistanceFromRoot;
   }
 
 }
