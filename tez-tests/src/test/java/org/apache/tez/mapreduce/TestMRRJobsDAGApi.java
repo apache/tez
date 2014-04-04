@@ -25,6 +25,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.rmi.RemoteException;
+import java.security.CodeSource;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -113,7 +115,6 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 public class TestMRRJobsDAGApi {
 
   private static final Log LOG = LogFactory.getLog(TestMRRJobsDAGApi.class);
@@ -199,35 +200,19 @@ public class TestMRRJobsDAGApi {
   // additional local resource, which is verified by the initializer.
   @Test(timeout = 120000)
   public void testAMRelocalization() throws Exception {
-    Map<String, String> commonEnv = createCommonEnv();
-    Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String
-        .valueOf(new Random().nextInt(100000))));
-    remoteFs.mkdirs(remoteStagingDir);
-    TezConfiguration tezConf = new TezConfiguration(
-        mrrTezCluster.getConfig());
-    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
-        remoteStagingDir.toString());
-
-    Map<String, LocalResource> amLocalResources =
-        new HashMap<String, LocalResource>();
-
-    AMConfiguration amConfig = new AMConfiguration(
-        commonEnv, amLocalResources,
-        tezConf, null);
-    TezSessionConfiguration tezSessionConfig =
-        new TezSessionConfiguration(amConfig, tezConf);
-    TezSession tezSession = new TezSession("testrelocalizationsession", tezSessionConfig);
-    tezSession.start();
-    Assert.assertEquals(TezSessionStatus.INITIALIZING,
-        tezSession.getSessionStatus());
+    Path relocPath = new Path("/tmp/relocalizationfilefound");
+    if (remoteFs.exists(relocPath)) {
+      remoteFs.delete(relocPath, true);
+    }
+    TezSession tezSession = createTezSession();
 
     State finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, true, MRInputAMSplitGeneratorRelocalizationTest.class, null);
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
     Assert.assertFalse(remoteFs.exists(new Path("/tmp/relocalizationfilefound")));
-    
+
     // Start the second job with some additional resources.
-    
+
     // Create a test jar directly to HDFS
     LOG.info("Creating jar for relocalization test");
     Path relocFilePath = new Path("/tmp/test.jar");
@@ -235,10 +220,14 @@ public class TestMRRJobsDAGApi {
     OutputStream os = remoteFs.create(relocFilePath, true);
     createTestJar(os, RELOCALIZATION_TEST_CLASS_NAME);
 
+    // Also upload one of Tez's own JARs to HDFS and add as resource; should be ignored
+    Path tezAppJar = new Path(MiniTezCluster.APPJAR);
+    Path tezAppJarRemote = remoteFs.makeQualified(new Path("/tmp/" + tezAppJar.getName()));
+    remoteFs.copyFromLocalFile(tezAppJar, tezAppJarRemote);
+
     Map<String, LocalResource> additionalResources = new HashMap<String, LocalResource>();
-    additionalResources.put("test.jar", LocalResource.newInstance(
-        ConverterUtils.getYarnUrlFromPath(relocFilePath), LocalResourceType.FILE,
-        LocalResourceVisibility.PRIVATE, 0, 0));
+    additionalResources.put("test.jar", createLrObjFromPath(relocFilePath));
+    additionalResources.put("TezAppJar.jar", createLrObjFromPath(tezAppJarRemote));
 
     Assert.assertEquals(TezSessionStatus.READY,
         tezSession.getSessionStatus());
@@ -249,6 +238,11 @@ public class TestMRRJobsDAGApi {
         tezSession.getSessionStatus());
     Assert.assertTrue(remoteFs.exists(new Path("/tmp/relocalizationfilefound")));
 
+    stopAndVerifyYarnApp(tezSession);
+  }
+
+  private void stopAndVerifyYarnApp(TezSession tezSession) throws TezException,
+      IOException, YarnException {
     ApplicationId appId = tezSession.getApplicationId();
     tezSession.stop();
     Assert.assertEquals(TezSessionStatus.SHUTDOWN,
@@ -276,7 +270,66 @@ public class TestMRRJobsDAGApi {
     Assert.assertEquals(FinalApplicationStatus.SUCCEEDED,
         appReport.getFinalApplicationStatus());
   }
-  
+
+
+  @Test(timeout = 120000)
+  public void testAMRelocalizationConflict() throws Exception {
+    Path relocPath = new Path("/tmp/relocalizationfilefound");
+    if (remoteFs.exists(relocPath)) {
+      remoteFs.delete(relocPath, true);
+    }
+
+    // Run a DAG w/o a file.
+    TezSession tezSession = createTezSession();
+    State finalState = testMRRSleepJobDagSubmitCore(true, false, false,
+        tezSession, true, MRInputAMSplitGeneratorRelocalizationTest.class, null);
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
+    Assert.assertFalse(remoteFs.exists(relocPath));
+
+    // Create a bogus TezAppJar directly to HDFS
+    LOG.info("Creating jar for relocalization test");
+    Path tezAppJar = new Path(MiniTezCluster.APPJAR);
+    Path tezAppJarRemote = remoteFs.makeQualified(new Path("/tmp/" + tezAppJar.getName()));
+    OutputStream os = remoteFs.create(tezAppJarRemote, true);
+    createTestJar(os, RELOCALIZATION_TEST_CLASS_NAME);
+
+    Map<String, LocalResource> additionalResources = new HashMap<String, LocalResource>();
+    additionalResources.put("TezAppJar.jar", createLrObjFromPath(tezAppJarRemote));
+
+    try {
+      testMRRSleepJobDagSubmitCore(true, false, false,
+        tezSession, true, MRInputAMSplitGeneratorRelocalizationTest.class, additionalResources);
+      Assert.fail("should have failed");
+    } catch (Exception ex) {
+      // expected
+    }
+
+    stopAndVerifyYarnApp(tezSession);
+  }
+
+  private LocalResource createLrObjFromPath(Path filePath) {
+    return LocalResource.newInstance(ConverterUtils.getYarnUrlFromPath(filePath),
+        LocalResourceType.FILE, LocalResourceVisibility.PRIVATE, 0, 0);
+  }
+
+  private TezSession createTezSession() throws IOException, TezException {
+    Map<String, String> commonEnv = createCommonEnv();
+    Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String
+        .valueOf(new Random().nextInt(100000))));
+    remoteFs.mkdirs(remoteStagingDir);
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
+
+    Map<String, LocalResource> amLocalResources = new HashMap<String, LocalResource>();
+
+    AMConfiguration amConfig = new AMConfiguration(commonEnv, amLocalResources, tezConf, null);
+    TezSessionConfiguration tezSessionConfig = new TezSessionConfiguration(amConfig, tezConf);
+    TezSession tezSession = new TezSession("testrelocalizationsession", tezSessionConfig);
+    tezSession.start();
+    Assert.assertEquals(TezSessionStatus.INITIALIZING, tezSession.getSessionStatus());
+    return tezSession;
+  }
+
   // Submits a DAG to AM via RPC after AM has started
   @Test(timeout = 120000)
   public void testMultipleMRRSleepJobViaSession() throws IOException,
@@ -314,32 +367,7 @@ public class TestMRRJobsDAGApi {
     Assert.assertEquals(TezSessionStatus.READY,
         tezSession.getSessionStatus());
 
-    ApplicationId appId = tezSession.getApplicationId();
-    tezSession.stop();
-    Assert.assertEquals(TezSessionStatus.SHUTDOWN,
-        tezSession.getSessionStatus());
-
-    YarnClient yarnClient = YarnClient.createYarnClient();
-    yarnClient.init(mrrTezCluster.getConfig());
-    yarnClient.start();
-
-    while (true) {
-      ApplicationReport appReport = yarnClient.getApplicationReport(appId);
-      if (appReport.getYarnApplicationState().equals(
-          YarnApplicationState.FINISHED)
-          || appReport.getYarnApplicationState().equals(
-              YarnApplicationState.FAILED)
-          || appReport.getYarnApplicationState().equals(
-              YarnApplicationState.KILLED)) {
-        break;
-      }
-    }
-
-    ApplicationReport appReport = yarnClient.getApplicationReport(appId);
-    Assert.assertEquals(YarnApplicationState.FINISHED,
-        appReport.getYarnApplicationState());
-    Assert.assertEquals(FinalApplicationStatus.SUCCEEDED,
-        appReport.getFinalApplicationStatus());
+    stopAndVerifyYarnApp(tezSession);
   }
 
   // Submits a simple 5 stage sleep job using tez session. Then kills it.
