@@ -16,7 +16,7 @@
 * limitations under the License.
 */
 
-package org.apache.tez.dag.app;
+package org.apache.tez.common.security;
 
 import java.lang.annotation.Annotation;
 
