@@ -1933,9 +1933,9 @@ public class TestVertexImpl {
     dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v.getState());
 
-    Assert.assertEquals(1,
+    Assert.assertEquals(2,
         dagEventDispatcher.eventCount.get(
-            DAGEventType.INTERNAL_ERROR).intValue());
+            DAGEventType.DAG_VERTEX_COMPLETED).intValue());
   }
 
   @SuppressWarnings("unchecked")
@@ -1955,13 +1955,31 @@ public class TestVertexImpl {
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
     dispatcher.getEventHandler().handle(
-        new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
-    dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, committer.commitCounter);
+    Assert.assertEquals(0, committer.abortCounter);
+    Assert.assertEquals(1, committer.initCounter);
+    Assert.assertEquals(1, committer.setupCounter);
+  }
 
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testTaskFailedAfterVertexSuccess() {
+    initAllVertices(VertexState.INITED);
+
+    VertexImpl v = vertices.get("vertex6");
+
+    startVertex(v);
+    CountingOutputCommitter committer =
+        (CountingOutputCommitter) v.getOutputCommitter("outputx");
+
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
     dispatcher.await();
@@ -1970,6 +1988,14 @@ public class TestVertexImpl {
     Assert.assertEquals(0, committer.abortCounter);
     Assert.assertEquals(1, committer.initCounter);
     Assert.assertEquals(1, committer.setupCounter);
+    
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskCompleted(t2, TaskState.FAILED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.FAILED, v.getState());
+    Assert.assertEquals(1, committer.commitCounter);
+    Assert.assertEquals(1, committer.abortCounter);
+    
   }
 
   @Test(timeout = 5000)

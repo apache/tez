@@ -412,6 +412,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               // accumulate these in case we get restarted
               VertexEventType.V_ROUTE_EVENT,
               ROUTE_EVENT_TRANSITION)
+          .addTransition(
+              VertexState.SUCCEEDED, 
+              EnumSet.of(VertexState.FAILED, VertexState.ERROR),
+              VertexEventType.V_TASK_COMPLETED,
+              new TaskCompletedAfterVertexSuccessTransition())
           .addTransition(VertexState.SUCCEEDED, VertexState.SUCCEEDED,
               EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
@@ -419,8 +424,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   // us. These reruns may be triggered by other consumer vertices.
                   // We should have been in RUNNING state if we had triggered the
                   // reruns.
-                  VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
-                  VertexEventType.V_TASK_COMPLETED))
+                  VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED))
           .addTransition(VertexState.SUCCEEDED, VertexState.SUCCEEDED,
               VertexEventType.V_TASK_ATTEMPT_COMPLETED,
               new TaskAttemptCompletedEventTransition())
@@ -2882,13 +2886,40 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       vertex.succeededTaskCount--;
     }
   }
-
-  static class VertexNoTasksCompletedTransition implements
+  
+  private static class VertexNoTasksCompletedTransition implements
       MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
 
     @Override
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
       return VertexImpl.checkVertexForCompletion(vertex);
+    }
+  }
+  
+  private static class TaskCompletedAfterVertexSuccessTransition implements
+    MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
+    @Override
+    public VertexState transition(VertexImpl vertex, VertexEvent event) {
+      VertexEventTaskCompleted vEvent = (VertexEventTaskCompleted) event;
+      VertexState finalState;
+      VertexStatus.State finalStatus;
+      String diagnosticMsg;
+      if (vEvent.getState() == TaskState.FAILED) {
+        finalState = VertexState.FAILED;
+        finalStatus = VertexStatus.State.FAILED;
+        diagnosticMsg = "Vertex " + vertex.logIdentifier +" failed as task " + vEvent.getTaskID() + 
+          " failed after vertex succeeded.";
+      } else {
+        finalState = VertexState.ERROR;
+        finalStatus = VertexStatus.State.ERROR;
+        diagnosticMsg = "Vertex " + vertex.logIdentifier + " error as task " + vEvent.getTaskID() + 
+            " completed with state " + vEvent.getState() + " after vertex succeeded.";
+      }
+      LOG.info(diagnosticMsg);
+      vertex.addDiagnostic(diagnosticMsg);
+      vertex.abortVertex(finalStatus);
+      vertex.finished(finalState, VertexTerminationCause.OWN_TASK_FAILURE);
+      return finalState;
     }
   }
 
@@ -2908,15 +2939,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         return VertexState.RUNNING;
       }
 
-      LOG.info(vertex.getVertexId() + " failed due to post-commit rescheduling of "
-          + ((VertexEventTaskReschedule)event).getTaskID());
       // terminate any running tasks
+      String diagnosticMsg = vertex.getVertexId() + " failed due to post-commit rescheduling of "
+          + ((VertexEventTaskReschedule)event).getTaskID();
+      LOG.info(diagnosticMsg);
       vertex.tryEnactKill(VertexTerminationCause.OWN_TASK_FAILURE,
           TaskTerminationCause.OWN_TASK_FAILURE);
-      // since the DAG thinks this vertex is completed it must be notified of
-      // an error
-      vertex.eventHandler.handle(new DAGEvent(vertex.getDAGId(),
-          DAGEventType.INTERNAL_ERROR));
+      vertex.addDiagnostic(diagnosticMsg);
+      vertex.abortVertex(VertexStatus.State.FAILED);
+      vertex.finished(VertexState.FAILED, VertexTerminationCause.OWN_TASK_FAILURE);
       return VertexState.FAILED;
     }
   }
