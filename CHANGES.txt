@@ -7,9 +7,88 @@ INCOMPATIBLE CHANGES
   TEZ-960. VertexManagerPluginContext::getTotalAVailableResource() changed to
   VertexManagerPluginContext::getTotalAvailableResource()
 
-Release 0.4.0-incubating: Unreleased
+Release 0.4.0-incubating: 2014-04-05
 
-INCOMPATIBLE CHANGES
+ALL CHANGES
+
+  TEZ-932 addendum. Add missing license to file.
+  TEZ-1001 addendum. Remove checked in jar. (sseth)
+  TEZ-1001. Change unit test for AM relocalization to generate a jar, and remove previously checked in test jar. (sseth)
+  TEZ-1000. Add a placeholder partitioned unsorted output. (sseth)
+  TEZ-932. Add a weighted scaling initial memory allocator. (sseth)
+  TEZ-989. Allow addition of resources to the AM for a running session. (sseth)
+  TEZ-991. Fix a bug which could cause getReader to occasionally hang on ShuffledMergedInput. (sseth)
+  TEZ-990. Add support for a credentials file read by TezClient. (sseth)
+  TEZ-983. Support a helper function to extract required additional tokens from a file. (hitesh)
+  TEZ-981. Port MAPREDUCE-3685. (sseth)
+  TEZ-980. Data recovered flag file should be a namenode only OP. (hitesh)
+  TEZ-973. Abort additional attempts if recovery fails. (hitesh)
+  TEZ-976. WordCount example does not handle -D<param> args. (Tassapol Athiapinya via hitesh)
+  TEZ-977. Flaky test: TestAMNodeMap - add more debug logging. (hitesh)
+  TEZ-8649. Fix BufferOverflow in PipelinedSorter by ensuring the last block is big enough for one k,v pair (gopalv)
+  TEZ-972. Shuffle Phase - optimize memory usage of empty partition data in DataMovementEvent. Contributed by Rajesh Balamohan.
+  TEZ-879. Fix potential synchronization issues in runtime components. (sseth)
+  TEZ-876. Fix graphviz dag generation for Hive. (hitesh)
+  TEZ-951. Port MAPREDUCE-5028. Contributed by Gopal V and Siddharth Seth.
+  TEZ-950. Port MAPREDUCE-5462. Contributed by Gopal V and Siddharth Seth.
+  TEZ-971. Change Shuffle to report errors early rather than waiting for access before reporting them. (sseth)
+  TEZ-970. Consolidate Shuffle payload to have a single means of indicating absence of a partition. (sseth)
+  TEZ-969. Fix a bug which could cause the Merger to get stuck when merging 0 segments, in case of container re-use. (sseth)
+  TEZ-968. Fix flush mechanism when max unflushed events count set to -1. (hitesh)
+  TEZ-948. Log counters at the end of Task execution. (sseth)
+  TEZ-964. Flaky test: TestAMNodeMap.testNodeSelfBlacklist. (hitesh)
+  TEZ-966. Tez AM has invalid state transition error when datanode is bad. (hitesh)
+  TEZ-949. Handle Session Tokens for Recovery. (hitesh)
+  TEZ-955. Tez should close inputs after calling processor's close. (hitesh)
+  TEZ-953. Port MAPREDUCE-5493. (sseth)
+  TEZ-958. Increase sleeps in TestContainerReuse to fix flaky tests. (hitesh)
+  TEZ-952. Port MAPREDUCE-5209 and MAPREDUCE-5251. (sseth)
+  TEZ-956. Handle zero task vertices correctly on Recovery. (hitesh)
+  TEZ-938. Avoid fetching empty partitions when the OnFileSortedOutput, ShuffledMergedInput pair is used. Contributed by Rajesh Balamohan.
+  TEZ-934. Add configuration fields for Tez Local Mode (part of TEZ-684). Contributed by Chen He.
+  TEZ-947. Fix OrderedWordCount job progress reporting to work across AM attempts. (hitesh)
+  TEZ-944. Tez Job gets "Could not load native gpl library" Error. (hitesh)
+  TEZ-851. Handle failure to persist events to HDFS. (hitesh)
+  TEZ-940. Fix a memory leak in TaskSchedulerAppCallbackWrapper. Contributed by Gopal V and Siddharth Seth.
+  TEZ-939. Fix build break caused by changes in YARN-1824. (sseth)
+  TEZ-903. Make max maps per fetcher configurable in ShuffleScheduler. Contributed by Rajesh Balamohan.
+  TEZ-942. Mrrsleep job with only maps fails with 'Illegal output to map'. (hitesh)
+  TEZ-936. Remove unused event types from AMSchedulerEventType. (sseth)
+  TEZ-933 addendum. Fix a unit test to work correctly. (sseth)
+  TEZ-933. Change Vertex.getNumTasks to return the initially configured number of tasks if initialization has not completed. (sseth) depending on when it's called. (sseth)
+  TEZ-935. Fix function names for Vertex Stats. (hitesh)
+  TEZ-930. Addendum patch. Provide additional aggregated task stats at the vertex level. (hitesh)
+  TEZ-930. Provide additional aggregated task stats at the vertex level. (hitesh)
+  TEZ-931. DAGHistoryEvent should not be allowed to be sent to Dispatcher/EventHandlers. (hitesh)
+  TEZ-904. Committer recovery events should be out-of-band. (hitesh)
+  TEZ-813. Remove unused imports across project. (Jonathan Eagles via hitesh)
+  TEZ-920. Increase defaults for number of counters, ensure AM uses this. (sseth)
+  TEZ-928. NPE in last app attempt caused by registering for an RM unregister. (hitesh)
+  TEZ-676. Tez job fails on client side if nodemanager running AM is lost. (Tsuyoshi Ozawa and hitesh via hitesh)
+  TEZ-918. Fix a bug which could cause shuffle to hang if there are intermittent fetch failures. (sseth)
+  TEZ-910. Allow ShuffledUnorderedKVInput to work for cases other than broadcast. (sseth)
+  TEZ-911. Re-factor BroadcastShuffle related code to be independent of Braodcast. (sseth)
+  TEZ-901. Improvements to Counters generated by runtime components. (sseth)
+  TEZ-902. SortedMergedInput Fetcher can hang on retrying a bad input (bikas)
+  Addendum to TEZ-804. Remove comments to add test since test has been added. Some new logs added. (bikas)
+  TEZ-847. Support basic AM recovery. (hitesh)
+  TEZ-915. TaskScheduler can get hung when all headroom is used and it cannot utilize existing new containers (bikas)
+  TEZ-894. Tez should have a way to know build manifest. (Ashish Singh via hitesh)
+  TEZ-893. Terasort gives ArrayIndexOutOfBound Exception for 'hadoop jar <jar> terasort'. (hitesh)
+  TEZ-884. Add parameter checking for context related user API's (Tsuyoshi Ozawa via bikas)
+  TEZ-906. Finalize Tez 0.3.0 release. (hitesh)
+  TEZ-535. Redirect AM logs to different files when running multiple DAGs in the same AM. Contributed by  Mohammad Kamrul Islam.
+  TEZ-887. Allow counters to be separated at a per Input/Output level. (sseth)
+  TEZ-898. Handle inputReady and initial memory request in case of 0 physical inputs. (sseth)
+  TEZ-896. Fix AM splits to work on secure clusters when using the mapred API. (sseth)
+  TEZ-715. Auto Reduce Parallelism can rarely trigger NPE in AM at DAGAppMaster.handle(DAGAppMaster.java:1268) (bikas)
+  TEZ-891. TestTaskScheduler does not handle mockApp being called on different thread (bikas)
+  TEZ-889. Fixes a bug in MRInputSplitDistributor (caused by TEZ-880). (sseth)
+  TEZ-883. Fix unit tests to use comma separated values in tests having output verification at more than 1 tasks. (Tassapol Athiapinya via bikas)
+  TEZ-888. TestAMNodeMap.testNodeSelfBlacklist failing intermittently (bikas)
+  TEZ-865. TezTaskContext.getDAGName() does not return DAG name (Tsuyoshi OZAWA via bikas)
+  TEZ-885. TestTaskScheduler intermittent failures (bikas)
+  TEZ-882. Update versions in master for next release. (hitesh)
 
 Release 0.3.0-incubating: 2014-02-26
 
