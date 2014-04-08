@@ -110,9 +110,13 @@ public class TezConfiguration extends Configuration {
       "max.app.attempts";
   public static int TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT = 2;
   
-  public static final String TEZ_AM_MAX_TASK_ATTEMPTS =
-      TEZ_AM_PREFIX + "max.task.attempts";
-  public static final int TEZ_AM_MAX_TASK_ATTEMPTS_DEFAULT = 4;
+  /**
+   * The maximum number of attempts that can fail for a particular task. This 
+   * does not count killed attempts.
+   */
+  public static final String TEZ_AM_TASK_MAX_FAILED_ATTEMPTS =
+      TEZ_AM_PREFIX + "task.max.failed.attempts";
+  public static final int TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT = 4;
 
   public static final String TEZ_AM_NODE_BLACKLISTING_ENABLED = TEZ_AM_PREFIX
       + "node-blacklisting.enabled";

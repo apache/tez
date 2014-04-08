@@ -108,7 +108,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   protected final EventHandler eventHandler;
   private final TezTaskID taskId;
   private Map<TezTaskAttemptID, TaskAttempt> attempts;
-  private final int maxAttempts;
+  private final int maxFailedAttempts;
   protected final Clock clock;
   private final Lock readLock;
   private final Lock writeLock;
@@ -340,8 +340,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     writeLock = readWriteLock.writeLock();
     this.attempts = Collections.emptyMap();
     // TODO Avoid reading this from configuration for each task.
-    maxAttempts = this.conf.getInt(TezConfiguration.TEZ_AM_MAX_TASK_ATTEMPTS,
-                              TezConfiguration.TEZ_AM_MAX_TASK_ATTEMPTS_DEFAULT);
+    maxFailedAttempts = this.conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
+                              TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT);
     taskId = TezTaskID.getInstance(vertexId, taskIndex);
     this.taskAttemptListener = taskAttemptListener;
     this.taskHeartbeatHandler = thh;
@@ -788,7 +788,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
       case 1:
         Map<TezTaskAttemptID, TaskAttempt> newAttempts
-            = new LinkedHashMap<TezTaskAttemptID, TaskAttempt>(maxAttempts);
+            = new LinkedHashMap<TezTaskAttemptID, TaskAttempt>(maxFailedAttempts);
         newAttempts.putAll(attempts);
         attempts = newAttempts;
         attempts.put(attempt.getID(), attempt);
@@ -1173,7 +1173,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           }
 
           if (endState != TaskStateInternal.SUCCEEDED &&
-              task.attempts.size() >= task.maxAttempts) {
+              task.attempts.size() >= task.maxFailedAttempts) {
             // Exceeded max attempts
             task.finished(TaskStateInternal.FAILED);
             endState = TaskStateInternal.FAILED;
@@ -1260,7 +1260,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // The attempt would have informed the scheduler about it's failure
 
       task.finishedAttempts++;
-      if (task.failedAttempts < task.maxAttempts) {
+      if (task.failedAttempts < task.maxFailedAttempts) {
         task.handleTaskAttemptCompletion(
             ((TaskEventTAUpdate) event).getTaskAttemptID(),
             TaskAttemptStateInternal.FAILED);
@@ -1268,14 +1268,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         if (--task.numberUncompletedAttempts == 0
             && task.successfulAttempt == null) {
           LOG.info("Scheduling new attempt for task: " + task.getTaskId()
-              + ", currentFailedAttempts: " + task.failedAttempts + ", maxAttempts: "
-              + task.maxAttempts);
+              + ", currentFailedAttempts: " + task.failedAttempts + ", maxFailedAttempts: "
+              + task.maxFailedAttempts);
           task.addAndScheduleAttempt();
         }
       } else {
         LOG.info("Failing task: " + task.getTaskId()
-            + ", currentFailedAttempts: " + task.failedAttempts + ", maxAttempts: "
-            + task.maxAttempts);
+            + ", currentFailedAttempts: " + task.failedAttempts + ", maxFailedAttempts: "
+            + task.maxFailedAttempts);
         task.handleTaskAttemptCompletion(
             ((TaskEventTAUpdate) event).getTaskAttemptID(),
             TaskAttemptStateInternal.FAILED);

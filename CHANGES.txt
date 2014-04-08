@@ -6,6 +6,7 @@ Release 0.5.0-incubating: Unreleased
 INCOMPATIBLE CHANGES
   TEZ-960. VertexManagerPluginContext::getTotalAVailableResource() changed to
   VertexManagerPluginContext::getTotalAvailableResource()
+  TEZ-1025. Rename tez.am.max.task.attempts to tez.am.task.max.failed.attempts 
 
 Release 0.4.0-incubating: 2014-04-05
 

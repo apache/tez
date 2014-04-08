@@ -359,7 +359,7 @@ public class TestFaultTolerance {
   public void testThreeLevelsFailingDAG2VerticesHaveFailedAttemptsDAGSucceeds() throws Exception {
     Configuration testConf = new Configuration();
     //set maximum number of task attempts to 4
-    testConf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_ATTEMPTS, 4);
+    testConf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 4);
     //l2v1 failure
     testConf.setBoolean(TestProcessor.getVertexConfName(
             TestProcessor.TEZ_FAILING_PROCESSOR_DO_FAIL, "l2v1"), true);
