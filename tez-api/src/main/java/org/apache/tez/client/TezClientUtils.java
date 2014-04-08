@@ -612,8 +612,9 @@ public class TezClientUtils {
     return environment.get(Environment.CLASSPATH.name());
   }
 
+  @Private
   @VisibleForTesting
-  static void addLog4jSystemProperties(String logLevel,
+  public static void addLog4jSystemProperties(String logLevel,
       List<String> vargs) {
     vargs.add("-Dlog4j.configuration="
         + TezConfiguration.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
