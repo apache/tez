@@ -309,7 +309,8 @@ class Fetcher extends Thread {
 
       for(InputAttemptIdentifier left: remaining) {
         // Need to be handling temporary glitches .. 
-        scheduler.copyFailed(left, host, !connectSucceeded);
+        // Report read error to the AM to trigger source failure heuristics
+        scheduler.copyFailed(left, host, connectSucceeded, !connectSucceeded);
       }
 
       // Add back all remaining maps - which at this point is ALL MAPS the
@@ -335,7 +336,7 @@ class Fetcher extends Thread {
       if(failedTasks != null && failedTasks.length > 0) {
         LOG.warn("copyMapOutput failed for tasks "+Arrays.toString(failedTasks));
         for(InputAttemptIdentifier left: failedTasks) {
-          scheduler.copyFailed(left, host, true);
+          scheduler.copyFailed(left, host, true, false);
         }
       }
       

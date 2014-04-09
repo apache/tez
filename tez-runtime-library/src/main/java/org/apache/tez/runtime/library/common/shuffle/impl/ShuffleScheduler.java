@@ -215,7 +215,8 @@ class ShuffleScheduler {
 
   public synchronized void copyFailed(InputAttemptIdentifier srcAttempt,
                                       MapHost host,
-                                      boolean readError) {
+                                      boolean readError,
+                                      boolean connectError) {
     host.penalize();
     int failures = 1;
     if (failureCounts.containsKey(srcAttempt)) {
@@ -252,7 +253,7 @@ class ShuffleScheduler {
     }
 
     failedShuffleCounter.increment(1);
-    checkAndInformAM(failures, srcAttempt, readError);
+    checkAndInformAM(failures, srcAttempt, readError, connectError);
 
     checkReducerHealth();
     
@@ -271,8 +272,9 @@ class ShuffleScheduler {
   // after every read error, if 'reportReadErrorImmediately' is true or
   // after every 'maxFetchFailuresBeforeReporting' failures
   private void checkAndInformAM(
-      int failures, InputAttemptIdentifier srcAttempt, boolean readError) {
-    if ((reportReadErrorImmediately && readError)
+      int failures, InputAttemptIdentifier srcAttempt, boolean readError,
+      boolean connectError) {
+    if ((reportReadErrorImmediately && (readError || connectError))
         || ((failures % maxFetchFailuresBeforeReporting) == 0)) {
       LOG.info("Reporting fetch failure for InputIdentifier: " 
           + srcAttempt + " taskAttemptIdentifier: "
