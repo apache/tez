@@ -508,10 +508,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     return diagnostics;
   }
 
-  private TaskAttempt createRecoveredEvent(TaskAttemptStartedEvent
-      taskAttemptStartedEvent) {
-    TaskAttempt taskAttempt = createAttempt(
-        taskAttemptStartedEvent.getTaskAttemptID().getId());
+  private TaskAttempt createRecoveredEvent(TezTaskAttemptID tezTaskAttemptID) {
+    TaskAttempt taskAttempt = createAttempt(tezTaskAttemptID.getId());
     return taskAttempt;
   }
 
@@ -533,11 +531,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       }
       case TASK_FINISHED:
       {
-        if (!recoveryStartEventSeen) {
-          throw new RuntimeException("Finished Event seen but"
-              + " no Started Event was encountered earlier");
-        }
         TaskFinishedEvent tEvent = (TaskFinishedEvent) historyEvent;
+        if (!recoveryStartEventSeen
+            && !tEvent.getState().equals(TaskState.KILLED)) {
+          throw new TezUncheckedException("Finished Event seen but"
+              + " no Started Event was encountered earlier"
+              + ", taskId=" + taskId
+              + ", finishState=" + tEvent.getState());
+        }
         recoveredState = tEvent.getState();
         if (tEvent.getState() == TaskState.SUCCEEDED
             && tEvent.getSuccessfulAttemptID() != null) {
@@ -549,7 +550,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       {
         TaskAttemptStartedEvent taskAttemptStartedEvent =
             (TaskAttemptStartedEvent) historyEvent;
-        TaskAttempt recoveredAttempt = createRecoveredEvent(taskAttemptStartedEvent);
+        TaskAttempt recoveredAttempt = createRecoveredEvent(
+            taskAttemptStartedEvent.getTaskAttemptID());
         recoveredAttempt.restoreFromEvent(taskAttemptStartedEvent);
         if (LOG.isDebugEnabled()) {
           LOG.debug("Adding restored attempt into known attempts map"
@@ -563,22 +565,35 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       }
       case TASK_ATTEMPT_FINISHED:
       {
-        finishedAttempts++;
-        --numberUncompletedAttempts;
-        if (numberUncompletedAttempts < 0) {
-          throw new RuntimeException("Invalid recovery event for attempt finished"
-              + ", more completions than starts encountered"
-              + ", finishedAttempts=" + finishedAttempts
-              + ", incompleteAttempts=" + numberUncompletedAttempts);
-        }
         TaskAttemptFinishedEvent taskAttemptFinishedEvent =
             (TaskAttemptFinishedEvent) historyEvent;
         TaskAttempt taskAttempt = this.attempts.get(
             taskAttemptFinishedEvent.getTaskAttemptID());
+        finishedAttempts++;
         if (taskAttempt == null) {
-          throw new RuntimeException("Could not find task attempt"
-              + " when trying to recover"
-              + ", taskAttemptId=" + taskAttemptFinishedEvent.getTaskAttemptID());
+          LOG.warn("Received an attempt finished event for an attempt that "
+              + " never started or does not exist"
+              + ", taskAttemptId=" + taskAttemptFinishedEvent.getTaskAttemptID()
+              + ", taskAttemptFinishState=" + taskAttemptFinishedEvent.getState());
+          TaskAttempt recoveredAttempt = createRecoveredEvent(
+              taskAttemptFinishedEvent.getTaskAttemptID());
+          this.attempts.put(taskAttemptFinishedEvent.getTaskAttemptID(),
+              recoveredAttempt);
+          if (!taskAttemptFinishedEvent.getState().equals(TaskAttemptState.KILLED)) {
+            throw new TezUncheckedException("Could not find task attempt"
+                + " when trying to recover"
+                + ", taskAttemptId=" + taskAttemptFinishedEvent.getTaskAttemptID()
+                + ", taskAttemptFinishState" + taskAttemptFinishedEvent.getState());
+          }
+          return recoveredState;
+        }
+        --numberUncompletedAttempts;
+        if (numberUncompletedAttempts < 0) {
+          throw new TezUncheckedException("Invalid recovery event for attempt finished"
+              + ", more completions than starts encountered"
+              + ", taskId=" + taskId
+              + ", finishedAttempts=" + finishedAttempts
+              + ", incompleteAttempts=" + numberUncompletedAttempts);
         }
         TaskAttemptState taskAttemptState = taskAttempt.restoreFromEvent(
             taskAttemptFinishedEvent);
