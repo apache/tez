@@ -199,6 +199,11 @@ class ShuffleScheduler {
                 inputContext.getSourceVertexName(), srcAttemptIdentifier.getInputIdentifier().getInputIndex(),
                 srcAttemptIdentifier.getAttemptNumber()) + " done");
       }
+    } else {
+      // input is already finished. duplicate fetch.
+      LOG.warn("Duplicate fetch of input no longer needs to be fetched: " + srcAttemptIdentifier);
+      // free the resource - specially memory
+      output.abort();
     }
     // TODO NEWTEZ Should this be releasing the output, if not committed ? Possible memory leak in case of speculation.
   }

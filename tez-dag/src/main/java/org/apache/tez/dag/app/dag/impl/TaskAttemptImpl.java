@@ -1457,6 +1457,8 @@ public class TaskAttemptImpl implements TaskAttempt,
       if (attempt.leafVertex) {
         return TaskAttemptStateInternal.SUCCEEDED;
       }
+      // TODO - TEZ-834. This assumes that the outputs were on that node
+      attempt.sendInputFailedToConsumers();
       TaskAttemptImpl.TERMINATED_AFTER_SUCCESS_HELPER.transition(attempt, event);
       return TaskAttemptStateInternal.KILLED;
     }
@@ -1498,19 +1500,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       LOG.info(message);
       attempt.addDiagnosticInfo(message);
       // send input failed event
-      Vertex vertex = attempt.getVertex();
-      Map<Vertex, Edge> edges = vertex.getOutputVertices();
-      if (edges != null && !edges.isEmpty()) {
-        List<TezEvent> tezIfEvents = Lists.newArrayListWithCapacity(edges.size());
-        for (Vertex edgeVertex : edges.keySet()) {
-          tezIfEvents.add(new TezEvent(new InputFailedEvent(), 
-              new EventMetaData(EventProducerConsumerType.SYSTEM, 
-                  vertex.getName(), 
-                  edgeVertex.getName(), 
-                  attempt.getID())));
-        }
-        attempt.sendEvent(new VertexEventRouteEvent(vertex.getVertexId(), tezIfEvents));
-      }
+      attempt.sendInputFailedToConsumers();
       // Not checking for leafVertex since a READ_ERROR should only be reported for intermediate tasks.
       if (attempt.getInternalState() == TaskAttemptStateInternal.SUCCEEDED) {
         (new TerminatedAfterSuccessHelper(FAILED_HELPER)).transition(
@@ -1523,6 +1513,23 @@ public class TaskAttemptImpl implements TaskAttempt,
       }
       // TODO at some point. Nodes may be interested in FetchFailure info.
       // Can be used to blacklist nodes.
+    }
+  }
+  
+  @VisibleForTesting
+  protected void sendInputFailedToConsumers() {
+    Vertex vertex = getVertex();
+    Map<Vertex, Edge> edges = vertex.getOutputVertices();
+    if (edges != null && !edges.isEmpty()) {
+      List<TezEvent> tezIfEvents = Lists.newArrayListWithCapacity(edges.size());
+      for (Vertex edgeVertex : edges.keySet()) {
+        tezIfEvents.add(new TezEvent(new InputFailedEvent(), 
+            new EventMetaData(EventProducerConsumerType.SYSTEM, 
+                vertex.getName(), 
+                edgeVertex.getName(), 
+                getID())));
+      }
+      sendEvent(new VertexEventRouteEvent(vertex.getVertexId(), tezIfEvents));
     }
   }
 

@@ -713,7 +713,7 @@ public class TestTaskAttempt {
     doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
     doReturn(containers).when(appCtx).getAllContainers();
 
-    TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
+    MockTaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
         mock(TaskHeartbeatHandler.class), appCtx, locationHint, false,
         resource, createFakeContainerContext(), false);
@@ -750,7 +750,10 @@ public class TestTaskAttempt {
 
     // Send out a Node Failure.
     taImpl.handle(new TaskAttemptEventNodeFailed(taskAttemptID, "NodeDecomissioned"));
-
+    // Verify in KILLED state
+    assertEquals("Task attempt is not in the  KILLED state", TaskAttemptState.KILLED,
+        taImpl.getState());
+    assertEquals(true, taImpl.inputFailedReported);
     // Verify one event to the Task informing it about FAILURE. No events to scheduler. Counter event.
     int expectedEventsNodeFailure = expectedEvenstAfterTerminating + 2;
     arg = ArgumentCaptor.forClass(Event.class);
@@ -894,7 +897,7 @@ public class TestTaskAttempt {
     doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
     doReturn(containers).when(appCtx).getAllContainers();
 
-    TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
+    MockTaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
         mock(TaskHeartbeatHandler.class), appCtx, locationHint, false,
         resource, createFakeContainerContext(), false);
@@ -937,6 +940,7 @@ public class TestTaskAttempt {
     assertEquals("Task attempt is not in FAILED state", taImpl.getState(),
         TaskAttemptState.FAILED);
 
+    assertEquals(true, taImpl.inputFailedReported);
     int expectedEventsAfterFetchFailure = expectedEventsTillSucceeded + 2;
     arg.getAllValues().clear();
     verify(eventHandler, times(expectedEventsAfterFetchFailure)).handle(arg.capture());
@@ -996,6 +1000,7 @@ public class TestTaskAttempt {
     }
     
     Vertex mockVertex = mock(Vertex.class);
+    boolean inputFailedReported = false;
     
     @Override
     protected Vertex getVertex() {
@@ -1021,6 +1026,11 @@ public class TestTaskAttempt {
     @Override
     protected void logJobHistoryAttemptUnsuccesfulCompletion(
         TaskAttemptState state) {
+    }
+    
+    @Override
+    protected void sendInputFailedToConsumers() {
+      inputFailedReported = true;
     }
   }
 
