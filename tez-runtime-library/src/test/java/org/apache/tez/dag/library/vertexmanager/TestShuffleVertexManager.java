@@ -253,7 +253,7 @@ public class TestShuffleVertexManager {
   }
   
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  @Test//(timeout = 5000)
+  @Test(timeout = 5000)
   public void testShuffleVertexManagerSlowStart() {
     Configuration conf = new Configuration();
     ShuffleVertexManager manager = null;
