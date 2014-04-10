@@ -2500,8 +2500,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         }
 
         if (vertex.startSignalPending) {
-          vertex.startVertex(); // Could be modelled as a separate state
-          return VertexState.RUNNING;
+          // Trigger a start event to ensure route events are seen before
+          // a start event.
+          LOG.info("Triggering start event for vertex: " + vertex.logIdentifier +
+              " with distanceFromRoot: " + vertex.distanceFromRoot );
+          vertex.eventHandler.handle(new VertexEvent(vertex.vertexId,
+              VertexEventType.V_START));
+          return VertexState.INITED;
         }
 
         return vertexState;
