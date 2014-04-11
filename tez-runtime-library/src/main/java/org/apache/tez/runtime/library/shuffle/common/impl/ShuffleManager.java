@@ -263,7 +263,7 @@ public class ShuffleManager implements FetcherCallback {
                 LOG.debug("Processing pending host: " + inputHost.toDetailedString());
               }
               if (inputHost.getNumPendingInputs() > 0) {
-                LOG.info("Scheduling fetch for inputHost: " + inputHost.getHost());
+                LOG.info("Scheduling fetch for inputHost: " + inputHost.getIdentifier());
                 Fetcher fetcher = constructFetcherForHost(inputHost);
                 numRunningFetchers.incrementAndGet();
                 if (isShutdown.get()) {
@@ -277,7 +277,7 @@ public class ShuffleManager implements FetcherCallback {
                 }
               } else {
                 if (LOG.isDebugEnabled()) {
-                  LOG.debug("Skipping host: " + inputHost.getHost()
+                  LOG.debug("Skipping host: " + inputHost.getIdentifier()
                       + " since it has no inputs to process");
                 }
               }
@@ -336,10 +336,12 @@ public class ShuffleManager implements FetcherCallback {
   
   public void addKnownInput(String hostName, int port,
       InputAttemptIdentifier srcAttemptIdentifier, int srcPhysicalIndex) {
-    InputHost host = knownSrcHosts.get(hostName);
+    String identifier = InputHost.createIdentifier(hostName, port);
+    InputHost host = knownSrcHosts.get(identifier);
     if (host == null) {
       host = new InputHost(hostName, port, inputContext.getApplicationId(), srcPhysicalIndex);
-      InputHost old = knownSrcHosts.putIfAbsent(hostName, host);
+      assert identifier.equals(host.getIdentifier());
+      InputHost old = knownSrcHosts.putIfAbsent(identifier, host);
       if (old != null) {
         host = old;
       }
@@ -352,7 +354,7 @@ public class ShuffleManager implements FetcherCallback {
     try {
       boolean added = pendingHosts.offer(host);
       if (!added) {
-        String errorMessage = "Unable to add host: " + host.getHost() + " to pending queue";
+        String errorMessage = "Unable to add host: " + host.getIdentifier() + " to pending queue";
         LOG.error(errorMessage);
         throw new TezUncheckedException(errorMessage);
       }
@@ -665,7 +667,7 @@ public class ShuffleManager implements FetcherCallback {
     public void onSuccess(FetchResult result) {
       Iterable<InputAttemptIdentifier> pendingInputs = result.getPendingInputs();
       if (pendingInputs != null && pendingInputs.iterator().hasNext()) {
-        InputHost inputHost = knownSrcHosts.get(result.getHost());
+        InputHost inputHost = knownSrcHosts.get(InputHost.createIdentifier(result.getHost(), result.getPort()));
         assert inputHost != null;
         for (InputAttemptIdentifier input : pendingInputs) {
           inputHost.addKnownInput(input);

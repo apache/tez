@@ -34,18 +34,18 @@ class MapHost {
   }
   
   private State state = State.IDLE;
-  private final String hostName;
+  private final String hostIdentifier;
   private final int partitionId;
   private final String baseUrl;
   private final String identifier;
   // Tracks attempt IDs
   private List<InputAttemptIdentifier> maps = new ArrayList<InputAttemptIdentifier>();
   
-  public MapHost(int partitionId, String hostName, String baseUrl) {
+  public MapHost(int partitionId, String hostPort, String baseUrl) {
     this.partitionId = partitionId;
-    this.hostName = hostName;
+    this.hostIdentifier = hostPort;
     this.baseUrl = baseUrl;
-    this.identifier = createIdentifier(hostName, partitionId);
+    this.identifier = createIdentifier(hostPort, partitionId);
   }
   
   public static String createIdentifier(String hostName, int partitionId) {
@@ -64,8 +64,8 @@ class MapHost {
     return state;
   }
 
-  public String getHostName() {
-    return hostName;
+  public String getHostIdentifier() {
+    return hostIdentifier;
   }
 
   public String getBaseUrl() {
@@ -112,7 +112,7 @@ class MapHost {
   
   @Override
   public String toString() {
-    return hostName;
+    return hostIdentifier;
   }
   
   /**
