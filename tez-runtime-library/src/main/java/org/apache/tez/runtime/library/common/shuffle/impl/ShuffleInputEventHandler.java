@@ -90,7 +90,8 @@ public class ShuffleInputEventHandler {
         byte[] emptyPartitions = TezUtils.decompressByteStringToByteArray(shufflePayload.getEmptyPartitions());
         BitSet emptyPartitionsBitSet = TezUtils.fromByteArray(emptyPartitions);
         if (emptyPartitionsBitSet.get(partitionId)) {
-          LOG.info("Source partition: " + partitionId + " did not generate any data. Not fetching.");
+          LOG.info("Source partition: " + partitionId + " did not generate any data. SrcAttempt: ["
+              + srcAttemptIdentifier + "]. Not fetching.");
           scheduler.copySucceeded(srcAttemptIdentifier, null, 0, 0, 0, null);
           return;
         }
