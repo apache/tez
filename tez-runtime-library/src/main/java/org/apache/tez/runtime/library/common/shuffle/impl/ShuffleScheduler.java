@@ -203,7 +203,11 @@ class ShuffleScheduler {
       // input is already finished. duplicate fetch.
       LOG.warn("Duplicate fetch of input no longer needs to be fetched: " + srcAttemptIdentifier);
       // free the resource - specially memory
-      output.abort();
+      
+      // If the src does not generate data, output will be null.
+      if (output != null) {
+        output.abort();
+      }
     }
     // TODO NEWTEZ Should this be releasing the output, if not committed ? Possible memory leak in case of speculation.
   }

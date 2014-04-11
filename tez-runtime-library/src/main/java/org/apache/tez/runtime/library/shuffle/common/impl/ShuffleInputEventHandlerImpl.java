@@ -106,7 +106,8 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
       if (emptyPartionsBitSet.get(srcIndex)) {
         InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dme.getTargetIndex(),
             dme.getVersion());
-        LOG.info("Source partition: " + srcIndex + " did not generate any data. Not fetching.");
+        LOG.info("Source partition: " + srcIndex + " did not generate any data. SrcAttempt: ["
+            + srcAttemptIdentifier + "]. Not fetching.");
         shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier);
         return;
       }
