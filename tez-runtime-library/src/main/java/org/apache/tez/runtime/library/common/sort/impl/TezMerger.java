@@ -813,6 +813,8 @@ public class TezMerger {
         }
         segmentSizes.add(pos, mergedSize);
 
+        n -= (f-1);
+        f = factor;
       }
 
       return totalBytes;
