@@ -163,7 +163,7 @@ class ShuffleScheduler {
                                          ) throws IOException {
     failureCounts.remove(srcAttemptIdentifier);
     if (host != null) {
-      hostFailures.remove(host.getHostName());
+      hostFailures.remove(host.getHostIdentifier());
     }
     
     if (!isInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex())) {
@@ -231,14 +231,14 @@ class ShuffleScheduler {
     } else {
       failureCounts.put(srcAttempt, new IntWritable(1));      
     }
-    String hostname = host.getHostName();
+    String hostPort = host.getHostIdentifier();
     // TODO TEZ-922 hostFailures isn't really used for anything. Factor it into error
     // reporting / potential blacklisting of hosts.
-    if (hostFailures.containsKey(hostname)) {
-      IntWritable x = hostFailures.get(hostname);
+    if (hostFailures.containsKey(hostPort)) {
+      IntWritable x = hostFailures.get(hostPort);
       x.set(x.get() + 1);
     } else {
-      hostFailures.put(hostname, new IntWritable(1));
+      hostFailures.put(hostPort, new IntWritable(1));
     }
     if (failures >= abortFailureLimit) {
       // This task has seen too many fetch failures - report it as failed. The
@@ -348,14 +348,16 @@ class ShuffleScheduler {
 
   }
   
-  public synchronized void addKnownMapOutput(String hostName,
+  public synchronized void addKnownMapOutput(String inputHostName,
+                                             int port,
                                              int partitionId,
                                              String hostUrl,
                                              InputAttemptIdentifier srcAttempt) {
-    String identifier = MapHost.createIdentifier(hostName, partitionId);
+    String hostPort = (inputHostName + ":" + String.valueOf(port));
+    String identifier = MapHost.createIdentifier(hostPort, partitionId);
     MapHost host = mapLocations.get(identifier);
     if (host == null) {
-      host = new MapHost(partitionId, hostName, hostUrl);
+      host = new MapHost(partitionId, hostPort, hostUrl);
       assert identifier.equals(host.getIdentifier());
       mapLocations.put(identifier, host);
     }

@@ -99,7 +99,8 @@ public class ShuffleInputEventHandler {
                 "the empty partition to succeeded", e);
       }
     }
-    scheduler.addKnownMapOutput(shufflePayload.getHost(), partitionId, baseUri.toString(), srcAttemptIdentifier);
+    scheduler.addKnownMapOutput(shufflePayload.getHost(), shufflePayload.getPort(), 
+        partitionId, baseUri.toString(), srcAttemptIdentifier);
   }
   
   private void processTaskFailedEvent(InputFailedEvent ifEvent) {

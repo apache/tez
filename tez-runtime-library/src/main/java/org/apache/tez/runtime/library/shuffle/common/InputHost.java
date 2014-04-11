@@ -37,13 +37,19 @@ public class InputHost {
   private final String host;
   private final int port;
   private final int srcPhysicalIndex;
+  private final String identifier;
 
   private final BlockingQueue<InputAttemptIdentifier> inputs = new LinkedBlockingQueue<InputAttemptIdentifier>();
 
+  public static String createIdentifier(String host, int port) {
+    return (host + ":" + String.valueOf(port));
+  }
+  
   public InputHost(String hostName, int port, ApplicationId appId, int srcPhysicalIndex) {
     this.host = hostName;
     this.port = port;
     this.srcPhysicalIndex = srcPhysicalIndex;
+    this.identifier = createIdentifier(hostName, port);
   }
 
   public String getHost() {
@@ -52,6 +58,10 @@ public class InputHost {
 
   public int getPort() {
     return this.port;
+  }
+  
+  public String getIdentifier() {
+    return this.identifier;
   }
 
   public int getSrcPhysicalIndex() {

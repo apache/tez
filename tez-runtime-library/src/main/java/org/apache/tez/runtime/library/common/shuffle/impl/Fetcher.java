@@ -472,7 +472,7 @@ class Fetcher extends Thread {
       }
       
       LOG.warn("Failed to shuffle output of " + srcAttemptId + 
-               " from " + host.getHostName(), ioe); 
+               " from " + host.getHostIdentifier(), ioe); 
 
       // Inform the shuffle-scheduler
       mapOutput.abort();
@@ -668,7 +668,7 @@ class Fetcher extends Thread {
     if (bytesLeft != 0) {
       throw new IOException("Incomplete map output received for " +
                             mapOutput.getAttemptIdentifier() + " from " +
-                            host.getHostName() + " (" + 
+                            host.getHostIdentifier() + " (" + 
                             bytesLeft + " bytes missing of " + 
                             compressedLength + ")"
       );
