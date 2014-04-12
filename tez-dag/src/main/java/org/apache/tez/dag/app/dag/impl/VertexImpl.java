@@ -843,6 +843,20 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       this.readLock.unlock();
     }
   }
+  
+  @Override
+  public TaskLocationHint getTaskLocationHint(TezTaskID taskId) {
+    this.readLock.lock();
+    try {
+      if (vertexLocationHint == null || 
+          vertexLocationHint.getTaskLocationHints().size() <= taskId.getId()) {
+        return null;
+      }
+      return vertexLocationHint.getTaskLocationHints().get(taskId.getId());
+    } finally {
+      this.readLock.unlock();
+    }
+  }
 
   private void computeProgress() {
     this.readLock.lock();
@@ -1589,18 +1603,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private void createTasks() {
     Configuration conf = this.conf;
-    boolean useNullLocationHint = true;
-    if (this.vertexLocationHint != null
-        && this.vertexLocationHint.getTaskLocationHints() != null
-        && this.vertexLocationHint.getTaskLocationHints().size() ==
-            this.numTasks) {
-      useNullLocationHint = false;
-    }
     for (int i=0; i < this.numTasks; ++i) {
-      TaskLocationHint locHint = null;
-      if (!useNullLocationHint) {
-        locHint = this.vertexLocationHint.getTaskLocationHints().get(i);
-      }
       TaskImpl task =
           new TaskImpl(this.getVertexId(), i,
               this.eventHandler,
@@ -1611,7 +1614,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               this.appContext,
               (this.targetVertices != null ?
                 this.targetVertices.isEmpty() : true),
-              locHint, this.taskResource,
+              this.taskResource,
               this.containerContext);
       this.addTask(task);
       if(LOG.isDebugEnabled()) {

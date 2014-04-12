@@ -42,12 +42,10 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
-import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskReport;
 import org.apache.tez.dag.api.oldrecords.TaskState;
@@ -118,8 +116,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private final Resource taskResource;
   private final ContainerContext containerContext;
   private long scheduledTime;
-
-  protected TaskLocationHint locationHint;
 
   private List<TezEvent> tezEventsForTaskAttempts = new ArrayList<TezEvent>();
   private static final List<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS =
@@ -331,7 +327,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       EventHandler eventHandler, Configuration conf,
       TaskAttemptListener taskAttemptListener,
       Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
-      boolean leafVertex, TaskLocationHint locationHint, Resource resource,
+      boolean leafVertex, Resource resource,
       ContainerContext containerContext) {
     this.conf = conf;
     this.clock = clock;
@@ -349,7 +345,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.appContext = appContext;
 
     this.leafVertex = leafVertex;
-    this.locationHint = locationHint;
     this.taskResource = resource;
     this.containerContext = containerContext;
     stateMachine = stateMachineFactory.make(this);
@@ -775,7 +770,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   TaskAttemptImpl createAttempt(int attemptNumber) {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
         taskAttemptListener, conf, clock, taskHeartbeatHandler, appContext,
-        locationHint, (failedAttempts > 0), taskResource, containerContext, leafVertex);
+        (failedAttempts > 0), taskResource, containerContext, leafVertex);
   }
 
   protected TaskAttempt getSuccessfulAttempt() {

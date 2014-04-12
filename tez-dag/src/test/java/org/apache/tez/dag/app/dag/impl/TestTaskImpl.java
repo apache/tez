@@ -63,9 +63,7 @@ import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.rm.container.AMContainer;
-import org.apache.tez.dag.app.rm.node.AMNodeEvent;
 import org.apache.tez.dag.app.rm.node.AMNodeEventType;
-import org.apache.tez.dag.app.rm.node.AMNodeMap;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -519,6 +517,7 @@ public class TestTaskImpl {
 
     private List<MockTaskAttemptImpl> taskAttempts = new LinkedList<MockTaskAttemptImpl>();
     private Vertex vertex;
+    TaskLocationHint locationHint;
     
     public MockTaskImpl(TezVertexID vertexId, int partition,
         EventHandler eventHandler, Configuration conf,
@@ -527,9 +526,10 @@ public class TestTaskImpl {
         TaskLocationHint locationHint, Resource resource,
         ContainerContext containerContext, Vertex vertex) {
       super(vertexId, partition, eventHandler, conf, taskAttemptListener,
-          clock, thh, appContext, leafVertex, locationHint, resource,
+          clock, thh, appContext, leafVertex, resource,
           containerContext);
       this.vertex = vertex;
+      this.locationHint = locationHint;
     }
 
     @Override
@@ -576,16 +576,23 @@ public class TestTaskImpl {
 
     private float progress = 0;
     private TaskAttemptState state = TaskAttemptState.NEW;
+    TaskLocationHint locationHint;
 
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
         EventHandler eventHandler, TaskAttemptListener tal, Configuration conf,
         Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
-        TaskLocationHint locationHing, boolean isRescheduled,
+        TaskLocationHint locationHint, boolean isRescheduled,
         Resource resource, ContainerContext containerContext) {
       super(taskId, attemptNumber, eventHandler, tal, conf, clock, thh,
-          appContext, locationHing, isRescheduled, resource, containerContext, false);
+          appContext, isRescheduled, resource, containerContext, false);
+      this.locationHint = locationHint;
     }
 
+    @Override 
+    public TaskLocationHint getTaskLocationHint() {
+      return locationHint;
+    }
+    
     @Override
     public float getProgress() {
       return progress;

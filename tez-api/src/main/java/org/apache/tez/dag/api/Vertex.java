@@ -33,6 +33,7 @@ import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 public class Vertex {
@@ -97,7 +98,8 @@ public class Vertex {
     if (locations == null) {
       return this;
     }
-    assert locations.size() == parallelism;
+    Preconditions.checkArgument((locations.size() == parallelism), 
+        "Locations array length must match the parallelism set for the vertex");
     taskLocationsHint = new VertexLocationHint(locations);
     return this;
   }

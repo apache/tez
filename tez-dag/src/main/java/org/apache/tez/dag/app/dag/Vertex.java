@@ -29,6 +29,7 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint;
+import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
@@ -76,6 +77,7 @@ public interface Vertex extends Comparable<Vertex> {
   ProgressBuilder getVertexProgress();
   VertexStatusBuilder getVertexStatus(Set<StatusGetOpts> statusOptions);
 
+  TaskLocationHint getTaskLocationHint(TezTaskID taskID);
 
   boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerDescriptor> sourceEdgeManagers);

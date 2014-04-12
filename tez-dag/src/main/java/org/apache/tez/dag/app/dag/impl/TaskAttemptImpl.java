@@ -147,7 +147,6 @@ public class TaskAttemptImpl implements TaskAttempt,
       new HashSet<TezTaskAttemptID>();
   private static final double MAX_ALLOWED_OUTPUT_FAILURES_FRACTION = 0.25;
 
-  protected final TaskLocationHint locationHint;
   protected final boolean isRescheduled;
   private final Resource taskResource;
   private final ContainerContext containerContext;
@@ -478,7 +477,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener, Configuration conf, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
-      TaskLocationHint locationHint, boolean isRescheduled,
+      boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
@@ -494,7 +493,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     initTaskAttemptStatus(reportedStatus);
     RackResolver.init(conf);
     this.stateMachine = stateMachineFactory.make(this);
-    this.locationHint = locationHint;
     this.isRescheduled = isRescheduled;
     this.taskResource = resource;
     this.containerContext = containerContext;
@@ -1004,12 +1002,16 @@ public class TaskAttemptImpl implements TaskAttempt,
 //            TezMRTypeConverter.fromTez(this.attemptId));
 //    sendEvent(new TaskCleanupEvent(this.attemptId, this.committer, taContext));
   }
+  
+  @VisibleForTesting
+  protected TaskLocationHint getTaskLocationHint() {
+    return getVertex().getTaskLocationHint(getTaskID());
+  }
 
   protected String[] resolveHosts(String[] src) {
     return TaskAttemptImplHelpers.resolveHosts(src);
   }
 
-  @SuppressWarnings("unchecked")
   protected void logJobHistoryAttemptStarted() {
     final String containerIdStr = containerId.toString();
     String inProgressLogsUrl = nodeHttpAddress
@@ -1036,7 +1038,6 @@ public class TaskAttemptImpl implements TaskAttempt,
         new DAGHistoryEvent(getDAGID(), startEvt));
   }
 
-  @SuppressWarnings("unchecked")
   protected void logJobHistoryAttemptFinishedEvent(TaskAttemptStateInternal state) {
     //Log finished events only if an attempt started.
     if (getLaunchTime() == 0) return;
@@ -1050,7 +1051,6 @@ public class TaskAttemptImpl implements TaskAttempt,
         new DAGHistoryEvent(getDAGID(), finishEvt));
   }
 
-  @SuppressWarnings("unchecked")
   protected void logJobHistoryAttemptUnsuccesfulCompletion(
       TaskAttemptState state) {
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
@@ -1087,16 +1087,17 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       // Compute node/rack location request even if re-scheduled.
       Set<String> racks = new HashSet<String>();
-      if (ta.locationHint != null) {
-        if (ta.locationHint.getRacks() != null) {
-          racks.addAll(ta.locationHint.getRacks());
+      TaskLocationHint locationHint = ta.getTaskLocationHint();
+      if (locationHint != null) {
+        if (locationHint.getRacks() != null) {
+          racks.addAll(locationHint.getRacks());
         }
-        if (ta.locationHint.getDataLocalHosts() != null) {
-          for (String host : ta.locationHint.getDataLocalHosts()) {
+        if (locationHint.getDataLocalHosts() != null) {
+          for (String host : locationHint.getDataLocalHosts()) {
             racks.add(RackResolver.resolve(host).getNetworkLocation());
           }
-          requestHosts = ta.resolveHosts(ta.locationHint.getDataLocalHosts()
-              .toArray(new String[ta.locationHint.getDataLocalHosts().size()]));
+          requestHosts = ta.resolveHosts(locationHint.getDataLocalHosts()
+              .toArray(new String[locationHint.getDataLocalHosts().size()]));
         }
       }
       requestRacks = racks.toArray(new String[racks.size()]);
@@ -1211,7 +1212,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         ta.localityCounter = DAGCounter.RACK_LOCAL_TASKS;
       } else {
         // Not computing this if the task does not have locality information.
-        if (ta.locationHint != null) {
+        if (ta.getTaskLocationHint() != null) {
           ta.localityCounter = DAGCounter.OTHER_LOCAL_TASKS;
         }
       }

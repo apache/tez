@@ -987,6 +987,7 @@ public class TestTaskAttempt {
   };
 
   private class MockTaskAttemptImpl extends TaskAttemptImpl {
+    TaskLocationHint locationHint;
 
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
         EventHandler eventHandler, TaskAttemptListener tal,
@@ -996,11 +997,17 @@ public class TestTaskAttempt {
         Resource resource, ContainerContext containerContext, boolean leafVertex) {
       super(taskId, attemptNumber, eventHandler, tal, conf,
           clock, taskHeartbeatHandler, appContext,
-          locationHint, isRescheduled, resource, containerContext, leafVertex);
+          isRescheduled, resource, containerContext, leafVertex);
+      this.locationHint = locationHint;
     }
     
     Vertex mockVertex = mock(Vertex.class);
     boolean inputFailedReported = false;
+    
+    @Override
+    public TaskLocationHint getTaskLocationHint() {
+      return locationHint;
+    }
     
     @Override
     protected Vertex getVertex() {
