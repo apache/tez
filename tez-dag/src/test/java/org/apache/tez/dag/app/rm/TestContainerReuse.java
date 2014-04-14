@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -56,6 +57,7 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ClusterInfo;
@@ -92,6 +94,7 @@ import org.mockito.stubbing.Answer;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class TestContainerReuse {
   private static final Log LOG = LogFactory.getLog(TestContainerReuse.class);
@@ -900,13 +903,19 @@ public class TestContainerReuse {
     TezTaskAttemptID taID, TaskAttempt ta, Resource capability,
     String[] hosts, String[] racks, Priority priority,
     ContainerContext containerContext) {
+    TaskLocationHint locationHint = null;
+    if (hosts != null || racks != null) {
+      Set<String> hostsSet = Sets.newHashSet(hosts);
+      Set<String> racksSet = Sets.newHashSet(racks);
+      locationHint = new TaskLocationHint(hostsSet, racksSet);
+    }
     AMSchedulerEventTALaunchRequest lr = new AMSchedulerEventTALaunchRequest(
       taID, capability, new TaskSpec(taID, "dagName", "vertexName",
       new ProcessorDescriptor("processorClassName"),
       Collections.singletonList(new InputSpec("vertexName",
         new InputDescriptor("inputClassName"), 1)),
       Collections.singletonList(new OutputSpec("vertexName",
-        new OutputDescriptor("outputClassName"), 1)), null), ta, hosts, racks,
+        new OutputDescriptor("outputClassName"), 1)), null), ta, locationHint,
       priority, containerContext);
     return lr;
   }

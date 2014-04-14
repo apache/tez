@@ -40,6 +40,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
@@ -63,6 +64,7 @@ import org.apache.tez.dag.app.rm.node.AMNodeEventNodeCountUpdated;
 import org.apache.tez.dag.app.rm.node.AMNodeEventStateChanged;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptEnded;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptSucceeded;
+
 
 public class TaskSchedulerEventHandler extends AbstractService
                                          implements TaskSchedulerAppCallback,
@@ -328,10 +330,17 @@ public class TaskSchedulerEventHandler extends AbstractService
         TaskType.MAP, mapResourceReqt);
     event.getCapability().setMemory(mapResourceReqt);*/
     TaskAttempt taskAttempt = event.getTaskAttempt();
+    TaskLocationHint locationHint = event.getLocationHint();
+    String hosts[] = (locationHint != null && locationHint.getDataLocalHosts() != null) ? locationHint
+        .getDataLocalHosts().toArray(
+            new String[locationHint.getDataLocalHosts().size()]) : null;
+    String racks[] = (locationHint != null && locationHint.getRacks() != null) ? locationHint
+        .getRacks().toArray(new String[locationHint.getRacks().size()]) : null;
+    
     taskScheduler.allocateTask(taskAttempt,
                                event.getCapability(),
-                               event.getHosts(),
-                               event.getRacks(),
+                               hosts,
+                               racks,
                                event.getPriority(),
                                event.getContainerContext(),
                                event);

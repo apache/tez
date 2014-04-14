@@ -150,13 +150,12 @@ public class TestTaskAttempt {
           + AMSchedulerEventTALaunchRequest.class.getName());
     }
     // TODO Move the Rack request check to the client after TEZ-125 is fixed.
-    AMSchedulerEventTALaunchRequest lre = (AMSchedulerEventTALaunchRequest) arg
-        .getAllValues().get(0);
-    String[] requestedRacks = lre.getRacks();
-    assertEquals(1, requestedRacks.length);
-    assertEquals(3, lre.getHosts().length);
+    Set<String> requestedRacks = taImpl.taskRacks;
+    assertEquals(1, requestedRacks.size());
+    assertEquals(3, taImpl.taskHosts.size());
     for (int i = 0; i < 3; i++) {
-      assertEquals("host" + (i + 1), lre.getHosts()[i]);
+      String host = ("host" + (i + 1));
+      assertEquals(host, true, taImpl.taskHosts.contains(host));
     }
   }
 
@@ -200,9 +199,7 @@ public class TestTaskAttempt {
     expected.put("host1", true);
     expected.put("host2", true);
     expected.put("host3", true);
-    AMSchedulerEventTALaunchRequest cre = (AMSchedulerEventTALaunchRequest) arg
-        .getAllValues().get(0);
-    String[] requestedHosts = cre.getHosts();
+    Set<String> requestedHosts = spyTa.taskHosts;
     for (String h : requestedHosts) {
       expected.remove(h);
     }

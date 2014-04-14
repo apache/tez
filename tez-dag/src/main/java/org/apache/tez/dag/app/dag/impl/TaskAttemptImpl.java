@@ -1083,7 +1083,6 @@ public class TaskAttemptImpl implements TaskAttempt,
       // Create startTaskRequest
 
       String[] requestHosts = new String[0];
-      String[] requestRacks = new String[0];
 
       // Compute node/rack location request even if re-scheduled.
       Set<String> racks = new HashSet<String>();
@@ -1100,15 +1099,13 @@ public class TaskAttemptImpl implements TaskAttempt,
               .toArray(new String[locationHint.getDataLocalHosts().size()]));
         }
       }
-      requestRacks = racks.toArray(new String[racks.size()]);
 
       ta.taskHosts.addAll(Arrays.asList(requestHosts));
       ta.taskRacks = racks;
 
       // Ask for hosts / racks only if not a re-scheduled task.
       if (ta.isRescheduled) {
-        requestHosts = new String[0];
-        requestRacks = new String[0];
+        locationHint = null;
       }
 
       if (LOG.isDebugEnabled()) {
@@ -1118,8 +1115,8 @@ public class TaskAttemptImpl implements TaskAttempt,
       // Send out a launch request to the scheduler.
 
       AMSchedulerEventTALaunchRequest launchRequestEvent = new AMSchedulerEventTALaunchRequest(
-          ta.attemptId, ta.taskResource, remoteTaskSpec, ta, requestHosts,
-          requestRacks, scheduleEvent.getPriority(), ta.containerContext);
+          ta.attemptId, ta.taskResource, remoteTaskSpec, ta, locationHint,
+          scheduleEvent.getPriority(), ta.containerContext);
       ta.sendEvent(launchRequestEvent);
     }
   }
