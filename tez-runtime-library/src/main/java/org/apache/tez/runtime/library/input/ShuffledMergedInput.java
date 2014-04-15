@@ -33,9 +33,8 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
@@ -47,7 +46,7 @@ import com.google.common.base.Preconditions;
 
 
 /**
- * <code>ShuffleMergedInput</code> in a {@link LogicalInput} which shuffles
+ * <code>ShuffleMergedInput</code> in a {@link AbstractLogicalInput} which shuffles
  * intermediate sorted data, merges them and provides key/<values> to the
  * consumer.
  *
@@ -57,14 +56,12 @@ import com.google.common.base.Preconditions;
  * completion. Attempting to get a reader on a non-complete input will block.
  *
  */
-public class ShuffledMergedInput implements LogicalInput {
+public class ShuffledMergedInput extends AbstractLogicalInput {
 
   static final Log LOG = LogFactory.getLog(ShuffledMergedInput.class);
 
-  protected TezInputContext inputContext;
   protected TezRawKeyValueIterator rawIter = null;
   protected Configuration conf;
-  protected int numInputs = 0;
   protected Shuffle shuffle;
   protected MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;
   private final BlockingQueue<Event> pendingEvents = new LinkedBlockingQueue<Event>();
@@ -78,28 +75,27 @@ public class ShuffledMergedInput implements LogicalInput {
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
   @Override
-  public synchronized List<Event> initialize(TezInputContext inputContext) throws IOException {
-    this.inputContext = inputContext;
-    this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
+  public synchronized List<Event> initialize() throws IOException {
+    this.conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
 
-    if (this.numInputs == 0) {
-      inputContext.requestInitialMemory(0l, null);
+    if (this.getNumPhysicalInputs() == 0) {
+      getContext().requestInitialMemory(0l, null);
       isStarted.set(true);
-      inputContext.inputIsReady();
+      getContext().inputIsReady();
       LOG.info("input fetch not required since there are 0 physical inputs for input vertex: "
-          + inputContext.getSourceVertexName());
+          + getContext().getSourceVertexName());
       return Collections.emptyList();
     }
     
     long initialMemoryRequest = Shuffle.getInitialMemoryRequirement(conf,
-        inputContext.getTotalMemoryAvailableToTask());
+        getContext().getTotalMemoryAvailableToTask());
     this.memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
-    inputContext.requestInitialMemory(initialMemoryRequest, memoryUpdateCallbackHandler);
+    getContext().requestInitialMemory(initialMemoryRequest, memoryUpdateCallbackHandler);
 
-    this.inputKeyCounter = inputContext.getCounters().findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
-    this.inputValueCounter = inputContext.getCounters().findCounter(
+    this.inputKeyCounter = getContext().getCounters().findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
+    this.inputValueCounter = getContext().getCounters().findCounter(
         TaskCounter.REDUCE_INPUT_RECORDS);
-    this.conf.setStrings(TezJobConfig.LOCAL_DIRS, inputContext.getWorkDirs());
+    this.conf.setStrings(TezJobConfig.LOCAL_DIRS, getContext().getWorkDirs());
 
     return Collections.emptyList();
   }
@@ -109,7 +105,7 @@ public class ShuffledMergedInput implements LogicalInput {
     if (!isStarted.get()) {
       memoryUpdateCallbackHandler.validateUpdateReceived();
       // Start the shuffle - copy and merge
-      shuffle = new Shuffle(inputContext, conf, numInputs, memoryUpdateCallbackHandler.getMemoryAssigned());
+      shuffle = new Shuffle(getContext(), conf, getNumPhysicalInputs(), memoryUpdateCallbackHandler.getMemoryAssigned());
       shuffle.run();
       if (LOG.isDebugEnabled()) {
         LOG.debug("Initialized the handlers in shuffle..Safe to start processing..");
@@ -134,7 +130,7 @@ public class ShuffledMergedInput implements LogicalInput {
    */
   public synchronized boolean isInputReady() {
     Preconditions.checkState(isStarted.get(), "Must start input before invoking this method");
-    if (this.numInputs == 0) {
+    if (getNumPhysicalInputs() == 0) {
       return true;
     }
     return shuffle.isInputReady();
@@ -150,7 +146,7 @@ public class ShuffledMergedInput implements LogicalInput {
     Shuffle localShuffleCopy = null;
     synchronized (this) {
       Preconditions.checkState(isStarted.get(), "Must start input before invoking this method");
-      if (this.numInputs == 0) {
+      if (getNumPhysicalInputs() == 0) {
         return;
       }
       localShuffleCopy = shuffle;
@@ -165,7 +161,7 @@ public class ShuffledMergedInput implements LogicalInput {
 
   @Override
   public synchronized List<Event> close() throws IOException {
-    if (this.numInputs != 0 && rawIter != null) {
+    if (this.getNumPhysicalInputs() != 0 && rawIter != null) {
       rawIter.close();
     }
     return Collections.emptyList();
@@ -189,7 +185,7 @@ public class ShuffledMergedInput implements LogicalInput {
     TezRawKeyValueIterator rawIterLocal;
     synchronized (this) {
       rawIterLocal = rawIter;
-      if (this.numInputs == 0) {
+      if (getNumPhysicalInputs() == 0) {
         return new KeyValuesReader() {
           @Override
           public boolean next() throws IOException {
@@ -227,7 +223,7 @@ public class ShuffledMergedInput implements LogicalInput {
   @Override
   public void handleEvents(List<Event> inputEvents) {
     synchronized (this) {
-      if (numInputs == 0) {
+      if (getNumPhysicalInputs() == 0) {
         throw new RuntimeException("No input events expected as numInputs is 0");
       }
       if (!isStarted.get()) {
@@ -239,11 +235,6 @@ public class ShuffledMergedInput implements LogicalInput {
       }
     }
     shuffle.handleEvents(inputEvents);
-  }
-
-  @Override
-  public synchronized void setNumPhysicalInputs(int numInputs) {
-    this.numInputs = numInputs;
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })

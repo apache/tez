@@ -35,7 +35,7 @@ public class ShuffledMergedInputLegacy extends ShuffledMergedInput {
   public TezRawKeyValueIterator getIterator() throws IOException, InterruptedException {
     // wait for input so that iterator is available
     synchronized(this) {
-    if (this.numInputs == 0) {
+    if (getNumPhysicalInputs() == 0) {
       return new TezRawKeyValueIterator() {
         @Override
         public DataInputBuffer getKey() throws IOException {
