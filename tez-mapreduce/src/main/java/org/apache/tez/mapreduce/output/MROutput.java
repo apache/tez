@@ -46,19 +46,17 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
 import org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
+import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
-public class MROutput implements LogicalOutput {
+public class MROutput extends AbstractLogicalOutput {
 
   private static final Log LOG = LogFactory.getLog(MROutput.class);
 
   private final NumberFormat taskNumberFormat = NumberFormat.getInstance();
   private final NumberFormat nonTaskNumberFormat = NumberFormat.getInstance();
   
-  private TezOutputContext outputContext;
   private JobConf jobConf;
   boolean useNewApi;
   private AtomicBoolean closed = new AtomicBoolean(false);
@@ -83,17 +81,15 @@ public class MROutput implements LogicalOutput {
   protected OutputCommitter committer;
 
   @Override
-  public List<Event> initialize(TezOutputContext outputContext)
-      throws IOException, InterruptedException {
+  public List<Event> initialize() throws IOException, InterruptedException {
     LOG.info("Initializing Simple Output");
-    outputContext.requestInitialMemory(0l, null); //mandatory call
+    getContext().requestInitialMemory(0l, null); //mandatory call
     taskNumberFormat.setMinimumIntegerDigits(5);
     taskNumberFormat.setGroupingUsed(false);
     nonTaskNumberFormat.setMinimumIntegerDigits(3);
     nonTaskNumberFormat.setGroupingUsed(false);
-    this.outputContext = outputContext;
     Configuration conf = TezUtils.createConfFromUserPayload(
-        outputContext.getUserPayload());
+        getContext().getUserPayload());
     this.jobConf = new JobConf(conf);
     // Add tokens to the jobConf - in case they are accessed within the RW / OF
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
@@ -101,9 +97,9 @@ public class MROutput implements LogicalOutput {
     this.isMapperOutput = jobConf.getBoolean(MRConfig.IS_MAP_PROCESSOR,
         false);
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
-        outputContext.getDAGAttemptNumber());
+        getContext().getDAGAttemptNumber());
     TaskAttemptID taskAttemptId = org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl
-        .createMockTaskAttemptID(outputContext, isMapperOutput);
+        .createMockTaskAttemptID(getContext(), isMapperOutput);
     jobConf.set(JobContext.TASK_ATTEMPT_ID, taskAttemptId.toString());
     jobConf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString());
     jobConf.setBoolean(JobContext.TASK_ISMAP, isMapperOutput);
@@ -118,7 +114,7 @@ public class MROutput implements LogicalOutput {
       }
     }
 
-    outputRecordCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_RECORDS);    
+    outputRecordCounter = getContext().getCounters().findCounter(TaskCounter.OUTPUT_RECORDS);    
 
     if (useNewApi) {
       newApiTaskAttemptContext = createTaskAttemptContext(taskAttemptId);
@@ -140,7 +136,7 @@ public class MROutput implements LogicalOutput {
       oldApiTaskAttemptContext =
           new org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl(
               jobConf, taskAttemptId,
-              new MRTaskReporter(outputContext));
+              new MRTaskReporter(getContext()));
       oldOutputFormat = jobConf.getOutputFormat();
 
       FileSystem fs = FileSystem.get(jobConf);
@@ -148,7 +144,7 @@ public class MROutput implements LogicalOutput {
 
       oldRecordWriter =
           oldOutputFormat.getRecordWriter(
-              fs, jobConf, finalName, new MRReporter(outputContext));
+              fs, jobConf, finalName, new MRReporter(getContext()));
     }
     initCommitter(jobConf, useNewApi);
 
@@ -156,7 +152,7 @@ public class MROutput implements LogicalOutput {
         + ", using_new_api: " + useNewApi);
     return null;
   }
-  
+
   @Override
   public void start() {
   }
@@ -208,7 +204,7 @@ public class MROutput implements LogicalOutput {
   }
 
   private TaskAttemptContext createTaskAttemptContext(TaskAttemptID attemptId) {
-    return new TaskAttemptContextImpl(this.jobConf, attemptId, outputContext,
+    return new TaskAttemptContextImpl(this.jobConf, attemptId, getContext(),
         isMapperOutput, null);
   }
 
@@ -216,8 +212,8 @@ public class MROutput implements LogicalOutput {
     String prefix = jobConf.get(MRJobConfig.MROUTPUT_FILE_NAME_PREFIX);
     if (prefix == null) {
       prefix = "part-v" + 
-          nonTaskNumberFormat.format(outputContext.getTaskVertexIndex()) +  
-          "-o" + nonTaskNumberFormat.format(outputContext.getOutputIndex());
+          nonTaskNumberFormat.format(getContext().getTaskVertexIndex()) +  
+          "-o" + nonTaskNumberFormat.format(getContext().getOutputIndex());
     }
     return prefix;
   }
@@ -225,7 +221,7 @@ public class MROutput implements LogicalOutput {
   private String getOutputName() {
     // give a unique prefix to the output name
     return getOutputFileNamePrefix() + 
-        "-" + taskNumberFormat.format(outputContext.getTaskIndex());
+        "-" + taskNumberFormat.format(getContext().getTaskIndex());
   }
 
   @Override
@@ -274,11 +270,6 @@ public class MROutput implements LogicalOutput {
     }
     LOG.info("Closed Simple Output");
     return null;
-  }
-
-  @Override
-  public void setNumPhysicalOutputs(int numOutputs) {
-    // Nothing to do for now
   }
 
   /**

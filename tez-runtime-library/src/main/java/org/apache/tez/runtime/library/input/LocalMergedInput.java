@@ -24,7 +24,6 @@ import java.util.List;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.common.localshuffle.LocalShuffle;
 
 /**
@@ -34,17 +33,16 @@ import org.apache.tez.runtime.library.common.localshuffle.LocalShuffle;
 public class LocalMergedInput extends ShuffledMergedInputLegacy {
 
   @Override
-  public List<Event> initialize(TezInputContext inputContext) throws IOException {
-    this.inputContext = inputContext;
-    this.inputContext.requestInitialMemory(0l, null); // mandatory call.
-    this.inputContext.inputIsReady();
-    this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
+  public List<Event> initialize() throws IOException {
+    getContext().requestInitialMemory(0l, null); // mandatory call.
+    getContext().inputIsReady();
+    this.conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
 
-    if (numInputs == 0) {
+    if (getNumPhysicalInputs() == 0) {
       return Collections.emptyList();
     }
 
-    LocalShuffle localShuffle = new LocalShuffle(inputContext, conf, numInputs);
+    LocalShuffle localShuffle = new LocalShuffle(getContext(), conf, getNumPhysicalInputs());
     rawIter = localShuffle.run();
     createValuesIterator();
     return Collections.emptyList();
@@ -56,7 +54,7 @@ public class LocalMergedInput extends ShuffledMergedInputLegacy {
 
   @Override
   public List<Event> close() throws IOException {
-    if (numInputs != 0) {
+    if (getNumPhysicalInputs() != 0) {
       rawIter.close();
     }
     return Collections.emptyList();

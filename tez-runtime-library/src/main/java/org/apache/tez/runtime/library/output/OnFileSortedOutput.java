@@ -32,9 +32,8 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
@@ -53,17 +52,15 @@ import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
 /**
- * <code>OnFileSortedOutput</code> is an {@link LogicalOutput} which sorts key/value pairs 
+ * <code>OnFileSortedOutput</code> is an {@link AbstractLogicalOutput} which sorts key/value pairs 
  * written to it and persists it to a file.
  */
-public class OnFileSortedOutput implements LogicalOutput {
+public class OnFileSortedOutput extends AbstractLogicalOutput {
 
   private static final Log LOG = LogFactory.getLog(OnFileSortedOutput.class);
 
   protected ExternalSorter sorter;
   protected Configuration conf;
-  protected int numOutputs;
-  protected TezOutputContext outputContext;
   protected MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;
   private long startTime;
   private long endTime;
@@ -71,19 +68,17 @@ public class OnFileSortedOutput implements LogicalOutput {
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
   @Override
-  public synchronized List<Event> initialize(TezOutputContext outputContext)
-      throws IOException {
+  public synchronized List<Event> initialize() throws IOException {
     this.startTime = System.nanoTime();
-    this.outputContext = outputContext;
-    this.conf = TezUtils.createConfFromUserPayload(outputContext.getUserPayload());
+    this.conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
     // Initializing this parametr in this conf since it is used in multiple
     // places (wherever LocalDirAllocator is used) - TezTaskOutputFiles,
     // TezMerger, etc.
-    this.conf.setStrings(TezJobConfig.LOCAL_DIRS, outputContext.getWorkDirs());
+    this.conf.setStrings(TezJobConfig.LOCAL_DIRS, getContext().getWorkDirs());
     this.memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
-    outputContext.requestInitialMemory(
+    getContext().requestInitialMemory(
         ExternalSorter.getInitialMemoryRequirement(conf,
-            outputContext.getTotalMemoryAvailableToTask()), memoryUpdateCallbackHandler);
+            getContext().getTotalMemoryAvailableToTask()), memoryUpdateCallbackHandler);
 
     sendEmptyPartitionDetails = this.conf.getBoolean(
         TezJobConfig.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED,
@@ -97,10 +92,10 @@ public class OnFileSortedOutput implements LogicalOutput {
       memoryUpdateCallbackHandler.validateUpdateReceived();
       if (this.conf.getInt(TezJobConfig.TEZ_RUNTIME_SORT_THREADS,
           TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_THREADS) > 1) {
-        sorter = new PipelinedSorter(outputContext, conf, numOutputs,
+        sorter = new PipelinedSorter(getContext(), conf, getNumPhysicalOutputs(),
             memoryUpdateCallbackHandler.getMemoryAssigned());
       } else {
-        sorter = new DefaultSorter(outputContext, conf, numOutputs,
+        sorter = new DefaultSorter(getContext(), conf, getNumPhysicalOutputs(),
             memoryUpdateCallbackHandler.getMemoryAssigned());
       }
       isStarted.set(true);
@@ -124,11 +119,6 @@ public class OnFileSortedOutput implements LogicalOutput {
   }
 
   @Override
-  public synchronized void setNumPhysicalOutputs(int numOutputs) {
-    this.numOutputs = numOutputs;
-  }
-
-  @Override
   public synchronized List<Event> close() throws IOException {
     if (sorter != null) {
       sorter.flush();
@@ -136,7 +126,7 @@ public class OnFileSortedOutput implements LogicalOutput {
       this.endTime = System.nanoTime();
       return generateEventsOnClose();
     } else {
-      LOG.warn("Attempting to close output " + outputContext.getDestinationVertexName()
+      LOG.warn("Attempting to close output " + getContext().getDestinationVertexName()
           + " before it was started");
       return Collections.emptyList();
     }
@@ -145,7 +135,7 @@ public class OnFileSortedOutput implements LogicalOutput {
   protected List<Event> generateEventsOnClose() throws IOException {
     String host = System.getenv(ApplicationConstants.Environment.NM_HOST
         .toString());
-    ByteBuffer shuffleMetadata = outputContext
+    ByteBuffer shuffleMetadata = getContext()
         .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
     int shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(shuffleMetadata);
 
@@ -169,29 +159,29 @@ public class OnFileSortedOutput implements LogicalOutput {
             TezUtils.compressByteArrayToByteString(TezUtils.toByteArray(emptyPartitionDetails));
         payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
         LOG.info("EmptyPartition bitsetSize=" + emptyPartitionDetails.cardinality() + ", numOutputs="
-                + numOutputs + ", emptyPartitions=" + emptyPartitions
+                + getNumPhysicalOutputs() + ", emptyPartitions=" + emptyPartitions
               + ", compressedSize=" + emptyPartitionsBytesString.size());
       }
     }
     payloadBuilder.setHost(host);
     payloadBuilder.setPort(shufflePort);
-    payloadBuilder.setPathComponent(outputContext.getUniqueIdentifier());
+    payloadBuilder.setPathComponent(getContext().getUniqueIdentifier());
     payloadBuilder.setRunDuration((int) ((endTime - startTime) / 1000));
     DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
     byte[] payloadBytes = payloadProto.toByteArray();
 
-    long outputSize = outputContext.getCounters()
+    long outputSize = getContext().getCounters()
         .findCounter(TaskCounter.OUTPUT_BYTES).getValue();
     VertexManagerEventPayloadProto.Builder vmBuilder = VertexManagerEventPayloadProto
         .newBuilder();
     vmBuilder.setOutputSize(outputSize);
     VertexManagerEvent vmEvent = new VertexManagerEvent(
-        outputContext.getDestinationVertexName(), vmBuilder.build().toByteArray());    
+        getContext().getDestinationVertexName(), vmBuilder.build().toByteArray());    
 
-    List<Event> events = Lists.newArrayListWithCapacity(numOutputs+1);
+    List<Event> events = Lists.newArrayListWithCapacity(getNumPhysicalOutputs() + 1);
     events.add(vmEvent);
 
-    CompositeDataMovementEvent csdme = new CompositeDataMovementEvent(0, numOutputs, payloadBytes);
+    CompositeDataMovementEvent csdme = new CompositeDataMovementEvent(0, getNumPhysicalOutputs(), payloadBytes);
     events.add(csdme);
 
     return events;

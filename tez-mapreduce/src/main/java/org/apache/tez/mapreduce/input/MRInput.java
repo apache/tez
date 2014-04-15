@@ -56,10 +56,9 @@ import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
 import org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
+import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
-import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 
@@ -75,13 +74,12 @@ import com.google.common.base.Preconditions;
  * This class is not meant to be extended by external projects.
  */
 
-public class MRInput implements LogicalInput {
+public class MRInput extends AbstractLogicalInput {
 
   private static final Log LOG = LogFactory.getLog(MRInput.class);
   
   private final Lock rrLock = new ReentrantLock();
   private Condition rrInited = rrLock.newCondition();
-  private TezInputContext inputContext;
   
   private volatile boolean eventReceived = false;
   
@@ -115,12 +113,11 @@ public class MRInput implements LogicalInput {
   
   
   @Override
-  public List<Event> initialize(TezInputContext inputContext) throws IOException {
-    this.inputContext = inputContext;
-    this.inputContext.requestInitialMemory(0l, null); //mandatory call
-    this.inputContext.inputIsReady();
+  public List<Event> initialize() throws IOException {
+    getContext().requestInitialMemory(0l, null); //mandatory call
+    getContext().inputIsReady();
     MRInputUserPayloadProto mrUserPayload =
-      MRHelpers.parseMRInputPayload(inputContext.getUserPayload());
+      MRHelpers.parseMRInputPayload(getContext().getUserPayload());
     Preconditions.checkArgument(mrUserPayload.hasSplits() == false,
         "Split information not expected in MRInput");
     Configuration conf =
@@ -131,21 +128,21 @@ public class MRInput implements LogicalInput {
 
     TaskAttemptID taskAttemptId = new TaskAttemptID(
       new TaskID(
-        Long.toString(inputContext.getApplicationId().getClusterTimestamp()),
-        inputContext.getApplicationId().getId(), TaskType.MAP,
-        inputContext.getTaskIndex()),
-      inputContext.getTaskAttemptNumber());
+        Long.toString(getContext().getApplicationId().getClusterTimestamp()),
+        getContext().getApplicationId().getId(), TaskType.MAP,
+        getContext().getTaskIndex()),
+        getContext().getTaskAttemptNumber());
 
     jobConf.set(MRJobConfig.TASK_ATTEMPT_ID,
       taskAttemptId.toString());
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
-      inputContext.getDAGAttemptNumber());
+        getContext().getDAGAttemptNumber());
 
     // TODO NEWTEZ Rename this to be specific to MRInput. This Input, in
     // theory, can be used by the MapProcessor, ReduceProcessor or a custom
     // processor. (The processor could provide the counter though)
 
-    this.inputRecordCounter = inputContext.getCounters().findCounter(TaskCounter.INPUT_RECORDS_PROCESSED);
+    this.inputRecordCounter = getContext().getCounters().findCounter(TaskCounter.INPUT_RECORDS_PROCESSED);
 
     useNewApi = this.jobConf.getUseNewMapper();
     this.splitInfoViaEvents = jobConf.getBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS,
@@ -156,7 +153,7 @@ public class MRInput implements LogicalInput {
     initializeInternal();
     return null;
   }
-  
+
   @Override
   public void start() {
   }
@@ -175,7 +172,7 @@ public class MRInput implements LogicalInput {
       } else {
         // Read split information.
         TaskSplitMetaInfo[] allMetaInfo = readSplits(jobConf);
-        TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[inputContext
+        TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[getContext()
             .getTaskIndex()];
         this.splitMetaInfo = new TaskSplitIndex(
             thisTaskMetaInfo.getSplitLocation(),
@@ -193,7 +190,7 @@ public class MRInput implements LogicalInput {
     } finally {
       rrLock.unlock();
     }
-    LOG.info("Initialzed MRInput: " + inputContext.getSourceVertexName());
+    LOG.info("Initialzed MRInput: " + getContext().getSourceVertexName());
   }
 
   private void setupOldInputFormat() {
@@ -203,7 +200,7 @@ public class MRInput implements LogicalInput {
   private void setupOldRecordReader() throws IOException {
     Preconditions.checkNotNull(oldInputSplit, "Input split hasn't yet been setup");
     oldRecordReader = oldInputFormat.getRecordReader(oldInputSplit,
-        this.jobConf, new MRReporter(inputContext, oldInputSplit));
+        this.jobConf, new MRReporter(getContext(), oldInputSplit));
     setIncrementalConfigParams(oldInputSplit);
   }
   
@@ -244,7 +241,7 @@ public class MRInput implements LogicalInput {
     }
 
     LOG.info("Creating reader for MRInput: "
-        + inputContext.getSourceVertexName());
+        + getContext().getSourceVertexName());
     return new MRInputKVReader();
   }
 
@@ -263,13 +260,6 @@ public class MRInput implements LogicalInput {
             + RootInputDataInformationEvent.class.getSimpleName());
 
     processSplitEvent((RootInputDataInformationEvent)event);
-  }
-
-  
-
-  @Override
-  public void setNumPhysicalInputs(int numInputs) {
-    // Not required at the moment. May be required if splits are sent via events.
   }
 
   @Override
@@ -308,7 +298,7 @@ public class MRInput implements LogicalInput {
 
   
   private TaskAttemptContext createTaskAttemptContext() {
-    return new TaskAttemptContextImpl(this.jobConf, inputContext, true, null);
+    return new TaskAttemptContextImpl(this.jobConf, getContext(), true, null);
   }
   
   void processSplitEvent(RootInputDataInformationEvent event)
@@ -401,7 +391,7 @@ public class MRInput implements LogicalInput {
     deserializer.open(inFile);
     org.apache.hadoop.mapred.InputSplit split = deserializer.deserialize(null);
     long pos = inFile.getPos();
-    inputContext.getCounters().findCounter(TaskCounter.SPLIT_RAW_BYTES)
+    getContext().getCounters().findCounter(TaskCounter.SPLIT_RAW_BYTES)
         .increment(pos - offset);
     inFile.close();
     return split;
@@ -447,7 +437,7 @@ public class MRInput implements LogicalInput {
     org.apache.hadoop.mapreduce.InputSplit split = 
         deserializer.deserialize(null);
     long pos = inFile.getPos();
-    inputContext.getCounters().findCounter(TaskCounter.SPLIT_RAW_BYTES)
+    getContext().getCounters().findCounter(TaskCounter.SPLIT_RAW_BYTES)
         .increment(pos - offset);
     inFile.close();
     return split;

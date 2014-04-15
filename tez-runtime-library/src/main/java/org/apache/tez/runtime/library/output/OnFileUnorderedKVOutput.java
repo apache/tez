@@ -31,9 +31,8 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.broadcast.output.FileBasedKVWriter;
@@ -46,11 +45,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
-public class OnFileUnorderedKVOutput implements LogicalOutput {
+public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
 
   private static final Log LOG = LogFactory.getLog(OnFileUnorderedKVOutput.class);
 
-  private TezOutputContext outputContext;
   private FileBasedKVWriter kvWriter;
   
   private Configuration conf;
@@ -62,15 +60,14 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
   }
 
   @Override
-  public synchronized List<Event> initialize(TezOutputContext outputContext)
+  public synchronized List<Event> initialize()
       throws Exception {
-    this.outputContext = outputContext;
-    this.conf = TezUtils.createConfFromUserPayload(outputContext
+    this.conf = TezUtils.createConfFromUserPayload(getContext()
         .getUserPayload());
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS,
-        outputContext.getWorkDirs());
+        getContext().getWorkDirs());
 
-    this.outputContext.requestInitialMemory(0l, null); // mandatory call
+    getContext().requestInitialMemory(0l, null); // mandatory call
 
     this.dataViaEventsEnabled = conf.getBoolean(
         TezJobConfig.TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED,
@@ -83,7 +80,7 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
         + "dataViaEventsEnabled: " + dataViaEventsEnabled
         + ", dataViaEventsMaxSize: " + dataViaEventsMaxSize);
     
-    this.kvWriter = new FileBasedKVWriter(outputContext, conf);
+    this.kvWriter = new FileBasedKVWriter(getContext(), conf);
     return Collections.emptyList();
   }
 
@@ -123,7 +120,7 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
     }
 
     String host = getHost();
-    ByteBuffer shuffleMetadata = outputContext
+    ByteBuffer shuffleMetadata = getContext()
         .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
     int shufflePort = ShuffleUtils
         .deserializeShuffleProviderMetaData(shuffleMetadata);
@@ -139,7 +136,7 @@ public class OnFileUnorderedKVOutput implements LogicalOutput {
     if (outputGenerated) {
       payloadBuilder.setHost(host);
       payloadBuilder.setPort(shufflePort);
-      payloadBuilder.setPathComponent(outputContext.getUniqueIdentifier());
+      payloadBuilder.setPathComponent(getContext().getUniqueIdentifier());
     }
     DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
 

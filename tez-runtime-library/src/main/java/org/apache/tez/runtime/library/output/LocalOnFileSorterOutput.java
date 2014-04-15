@@ -45,7 +45,7 @@ public class LocalOnFileSorterOutput extends OnFileSortedOutput {
     Path src = mapOutputFile.getOutputFile();
     Path dst =
         mapOutputFile.getInputFileForWrite(
-            outputContext.getTaskIndex(),
+            getContext().getTaskIndex(),
             localFs.getFileStatus(src).getLen());
 
     LOG.info("Renaming src = " + src + ", dst = " + dst);

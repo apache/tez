@@ -226,6 +226,20 @@ public class TezJobConfig {
   /**
    * 
    */
+  public static final String TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED =
+      "tez.runtime.shuffle.keep-alive.enabled";
+  public static final boolean DEFAULT_TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED = false;
+
+  /**
+   *
+   */
+  public static final String TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS =
+      "tez.runtime.shuffle.keep-alive.max.connections";
+  public static final int DEFAULT_TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS = 20;
+
+  /**
+   *
+   */
   public static final String TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT = "tez.runtime.shuffle.read.timeout";
   public final static int DEFAULT_TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT = 
       3 * 60 * 1000;
