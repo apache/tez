@@ -40,6 +40,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -132,24 +133,24 @@ class TestTaskSchedulerHelpers {
     }
 
     @Override
-    public TaskScheduler createTaskScheduler(String host, int port,
+    public TaskSchedulerInterface createTaskScheduler(String host, int port,
         String trackingUrl, AppContext appContext) {
       return new TaskSchedulerWithDrainableAppCallback(this,
           containerSignatureMatcher, host, port, trackingUrl, amrmClientAsync,
           appContext);
     }
 
-    public TaskScheduler getSpyTaskScheduler() {
+    public TaskSchedulerInterface getSpyTaskScheduler() {
       return this.taskScheduler;
     }
 
     @Override
     public void serviceStart() {
-      TaskScheduler taskSchedulerReal = createTaskScheduler("host", 0, "",
+      TaskSchedulerInterface taskSchedulerReal = createTaskScheduler("host", 0, "",
         appContext);
       // Init the service so that reuse configuration is picked up.
-      taskSchedulerReal.serviceInit(getConfig());
-      taskSchedulerReal.serviceStart();
+      ((AbstractService)taskSchedulerReal).init(getConfig());
+      ((AbstractService)taskSchedulerReal).start();
       taskScheduler = spy(taskSchedulerReal);
     }
 

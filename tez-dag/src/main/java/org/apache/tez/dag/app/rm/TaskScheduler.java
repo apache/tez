@@ -80,7 +80,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
     }
  */
 public class TaskScheduler extends AbstractService
-                             implements AMRMClientAsync.CallbackHandler {
+                             implements AMRMClientAsync.CallbackHandler, TaskSchedulerInterface {
   private static final Log LOG = LogFactory.getLog(TaskScheduler.class);
 
   public interface TaskSchedulerAppCallback {
@@ -260,10 +260,12 @@ public class TaskScheduler extends AbstractService
         .setNameFormat("TaskSchedulerAppCaller #%d").setDaemon(true).build());
   }
   
+  @Override
   public Resource getAvailableResources() {
     return amRmClient.getAvailableResources();
   }
 
+  @Override
   public int getClusterNodeCount() {
     // this can potentially be cheaper after YARN-1722
     return amRmClient.getClusterNodeCount();
@@ -275,6 +277,7 @@ public class TaskScheduler extends AbstractService
         appCallbackExecutor);
   }
 
+  @Override
   public void setShouldUnregister() {
     this.shouldUnregister.set(true);
   }
@@ -738,6 +741,7 @@ public class TaskScheduler extends AbstractService
     return null;
   }
 
+  @Override
   public synchronized void resetMatchLocalityForAllHeldContainers() {
     for (HeldContainer heldContainer : heldContainers.values()) {
       heldContainer.resetLocalityMatchLevel();
@@ -795,16 +799,19 @@ public class TaskScheduler extends AbstractService
     appClientDelegate.onError(t);
   }
 
+  @Override
   public Resource getTotalResources() {
     return totalResources;
   }
 
+  @Override
   public synchronized void blacklistNode(NodeId nodeId) {
     LOG.info("Blacklisting node: " + nodeId);
     amRmClient.addNodeToBlacklist(nodeId);
     blacklistedNodes.add(nodeId);
   }
   
+  @Override
   public synchronized void unblacklistNode(NodeId nodeId) {
     if (blacklistedNodes.remove(nodeId)) {
       LOG.info("UnBlacklisting node: " + nodeId);
@@ -812,6 +819,7 @@ public class TaskScheduler extends AbstractService
     }
   }
   
+  @Override
   public synchronized void allocateTask(
       Object task,
       Resource capability,
@@ -844,6 +852,7 @@ public class TaskScheduler extends AbstractService
    *          specify whether the task succeeded or failed.
    * @return true if a container is assigned to this task.
    */
+  @Override
   public boolean deallocateTask(Object task, boolean taskSucceeded) {
     Map<CookieContainerRequest, Container> assignedContainers = null;
 
@@ -897,6 +906,7 @@ public class TaskScheduler extends AbstractService
     return true;
   }
   
+  @Override
   public synchronized Object deallocateContainer(ContainerId containerId) {
     Object task = unAssignContainer(containerId, true);
     if(task != null) {

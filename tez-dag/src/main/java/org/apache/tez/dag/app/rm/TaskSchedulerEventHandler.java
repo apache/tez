@@ -39,6 +39,7 @@ import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.DAGClientServer;
@@ -74,7 +75,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   protected final AppContext appContext;
   @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
-  protected TaskScheduler taskScheduler;
+  protected TaskSchedulerInterface taskScheduler;
   private DAGAppMaster dagAppMaster;
   private Map<ApplicationAccessType, String> appAcls = null;
   private Thread eventHandlingThread;
@@ -347,10 +348,18 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
 
-  protected TaskScheduler createTaskScheduler(String host, int port,
+  protected TaskSchedulerInterface createTaskScheduler(String host, int port,
       String trackingUrl, AppContext appContext) {
-    return new TaskScheduler(this, this.containerSignatureMatcher,
-      host, port, trackingUrl, appContext);
+    boolean isLocal = getConfig().getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
+        TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
+    if (isLocal) {
+      return new LocalTaskScheduler(this, this.containerSignatureMatcher,
+          host, port, trackingUrl, appContext);
+    }
+    else {
+      return new TaskScheduler(this, this.containerSignatureMatcher,
+          host, port, trackingUrl, appContext);
+    }
   }
   
   @Override
@@ -359,8 +368,8 @@ public class TaskSchedulerEventHandler extends AbstractService
     dagAppMaster = appContext.getAppMaster();
     taskScheduler = createTaskScheduler(serviceAddr.getHostName(),
         serviceAddr.getPort(), "", appContext);
-    taskScheduler.init(getConfig());
-    taskScheduler.start();
+    ((AbstractService)taskScheduler).init(getConfig());
+    ((AbstractService)taskScheduler).start();
     if (shouldUnregisterFlag.get()) {
       // Flag may have been set earlier when task scheduler was not initialized
       taskScheduler.setShouldUnregister();
@@ -405,7 +414,7 @@ public class TaskSchedulerEventHandler extends AbstractService
         eventHandlingThread.interrupt();
     }
     if (taskScheduler != null) {
-      taskScheduler.stop();
+      ((AbstractService)taskScheduler).stop();
     }
   }
 
