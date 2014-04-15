@@ -34,13 +34,14 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
-import org.apache.tez.runtime.api.AbstractLogicalInput;
-import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
@@ -135,7 +136,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     return TezDAGID.getInstance("2000", 100, 1);
   }
 
-  public static class TestProcessor extends AbstractLogicalIOProcessor {
+  public static class TestProcessor implements LogicalIOProcessor {
 
     public static volatile int runCount = 0;
 
@@ -143,7 +144,19 @@ public class TestLogicalIOProcessorRuntimeTask {
     }
 
     @Override
-    public void initialize() throws Exception {
+    public void initialize(TezProcessorContext processorContext) throws Exception {
+    }
+
+    @Override
+    public void handleEvents(List<Event> processorEvents) {
+      // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void close() throws Exception {
+      // TODO Auto-generated method stub
+
     }
 
     @Override
@@ -152,19 +165,9 @@ public class TestLogicalIOProcessorRuntimeTask {
       runCount++;
     }
 
-	@Override
-	public void handleEvents(List<Event> processorEvents) {
-		
-	}
-
-	@Override
-	public void close() throws Exception {
-		
-	}
-
   }
 
-  public static class TestInput extends AbstractLogicalInput {
+  public static class TestInput implements LogicalInput {
 
     public static volatile int startCount = 0;
 
@@ -172,9 +175,9 @@ public class TestLogicalIOProcessorRuntimeTask {
     }
 
     @Override
-    public List<Event> initialize() throws Exception {
-      getContext().requestInitialMemory(0, null);
-      getContext().inputIsReady();
+    public List<Event> initialize(TezInputContext inputContext) throws Exception {
+      inputContext.requestInitialMemory(0, null);
+      inputContext.inputIsReady();
       return null;
     }
 
@@ -198,9 +201,13 @@ public class TestLogicalIOProcessorRuntimeTask {
       return null;
     }
 
+    @Override
+    public void setNumPhysicalInputs(int numInputs) {
+    }
+
   }
 
-  public static class TestOutput extends AbstractLogicalOutput {
+  public static class TestOutput implements LogicalOutput {
 
     public static volatile int startCount = 0;
 
@@ -208,8 +215,8 @@ public class TestLogicalIOProcessorRuntimeTask {
     }
 
     @Override
-    public List<Event> initialize() throws Exception {
-      getContext().requestInitialMemory(0, null);
+    public List<Event> initialize(TezOutputContext outputContext) throws Exception {
+      outputContext.requestInitialMemory(0, null);
       return null;
     }
 
@@ -231,6 +238,10 @@ public class TestLogicalIOProcessorRuntimeTask {
     @Override
     public List<Event> close() throws Exception {
       return null;
+    }
+
+    @Override
+    public void setNumPhysicalOutputs(int numOutputs) {
     }
 
   }

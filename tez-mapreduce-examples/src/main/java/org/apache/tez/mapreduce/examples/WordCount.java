@@ -18,9 +18,11 @@
 package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 
@@ -47,6 +49,7 @@ import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezSession;
 import org.apache.tez.client.TezSessionConfiguration;
+import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -54,12 +57,14 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
@@ -67,10 +72,11 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
-import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
@@ -81,9 +87,24 @@ import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 import com.google.common.base.Preconditions;
 
 public class WordCount {
-  public static class TokenProcessor extends AbstractLogicalIOProcessor {
+  public static class TokenProcessor implements LogicalIOProcessor {
+    TezProcessorContext context;
     IntWritable one = new IntWritable(1);
     Text word = new Text();
+
+    @Override
+    public void initialize(TezProcessorContext processorContext)
+        throws Exception {
+      this.context = processorContext;
+    }
+
+    @Override
+    public void handleEvents(List<Event> processorEvents) {
+    }
+
+    @Override
+    public void close() throws Exception {
+    }
 
     @Override
     public void run(Map<String, LogicalInput> inputs,
@@ -108,25 +129,26 @@ public class WordCount {
         }
       }
     }
-
+    
+  }
+  
+  public static class SumProcessor implements LogicalIOProcessor {
+    TezProcessorContext context;
+    
     @Override
-    public void initialize() throws Exception {
-
+    public void initialize(TezProcessorContext processorContext)
+        throws Exception {
+      this.context = processorContext;
     }
 
     @Override
     public void handleEvents(List<Event> processorEvents) {
-      
     }
 
     @Override
     public void close() throws Exception {
-      
     }
 
-  }
-  
-  public static class SumProcessor extends AbstractLogicalIOProcessor {
     @Override
     public void run(Map<String, LogicalInput> inputs,
         Map<String, LogicalOutput> outputs) throws Exception {
@@ -151,28 +173,13 @@ public class WordCount {
         kvWriter.write(word, new IntWritable(sum));
       }
       if (out.isCommitRequired()) {
-        while (!getContext().canCommit()) {
+        while (!context.canCommit()) {
           Thread.sleep(100);
         }
         out.commit();
       }
     }
-
-    @Override
-    public void initialize() throws Exception {
-
-    }
-
-    @Override
-    public void handleEvents(List<Event> processorEvents) {
-      
-    }
-
-    @Override
-    public void close() throws Exception {
-      
-    }
-
+    
   }
   
   private DAG createDAG(FileSystem fs, TezConfiguration tezConf,

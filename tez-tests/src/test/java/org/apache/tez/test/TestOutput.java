@@ -25,14 +25,15 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.dag.api.OutputDescriptor;
-import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 
 import com.google.common.collect.Lists;
 
-public class TestOutput extends AbstractLogicalOutput {
+public class TestOutput implements LogicalOutput {
   private static final Log LOG = LogFactory.getLog(TestOutput.class);
   
   public static OutputDescriptor getOutputDesc(byte[] payload) {
@@ -41,10 +42,14 @@ public class TestOutput extends AbstractLogicalOutput {
   }
   
   int output;
+  int numOutputs;
+  TezOutputContext outputContext;
   
   @Override
-  public List<Event> initialize() throws Exception {
-    getContext().requestInitialMemory(0l, null); //Mandatory call
+  public List<Event> initialize(TezOutputContext outputContext)
+      throws Exception {
+    this.outputContext = outputContext;
+    this.outputContext.requestInitialMemory(0l, null); //Mandatory call
     return Collections.emptyList();
   }
   
@@ -69,12 +74,17 @@ public class TestOutput extends AbstractLogicalOutput {
   public List<Event> close() throws Exception {
     LOG.info("Sending data movement event with value: " + output);
     byte[] result = ByteBuffer.allocate(4).putInt(output).array();
-    List<Event> events = Lists.newArrayListWithCapacity(getNumPhysicalOutputs());
-    for (int i = 0; i < getNumPhysicalOutputs(); i++) {
+    List<Event> events = Lists.newArrayListWithCapacity(numOutputs);
+    for (int i = 0; i < numOutputs; i++) {
       DataMovementEvent event = new DataMovementEvent(i, result);
       events.add(event);
     }
     return events;
+  }
+
+  @Override
+  public void setNumPhysicalOutputs(int numOutputs) {
+    this.numOutputs = numOutputs;
   }
 
 }

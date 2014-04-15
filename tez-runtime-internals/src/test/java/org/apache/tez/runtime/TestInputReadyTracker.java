@@ -26,11 +26,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
+import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.TezInputContext;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -204,7 +205,7 @@ public class TestInputReadyTracker {
     return startTime;
   }
 
-  private static class ImmediatelyReadyInputForTest extends AbstractLogicalInput {
+  private static class ImmediatelyReadyInputForTest implements LogicalInput {
 
     private volatile boolean isReady = false;
     
@@ -214,7 +215,7 @@ public class TestInputReadyTracker {
     }
 
     @Override
-    public List<Event> initialize() throws Exception {
+    public List<Event> initialize(TezInputContext inputContext) throws Exception {
       return null;
     }
 
@@ -235,9 +236,13 @@ public class TestInputReadyTracker {
     public List<Event> close() throws Exception {
       return null;
     }
+
+    @Override
+    public void setNumPhysicalInputs(int numInputs) {
+    }
   }
   
-  private static class ControlledReadyInputForTest extends AbstractLogicalInput {
+  private static class ControlledReadyInputForTest implements LogicalInput {
 
     private volatile boolean isReady = false;
     private InputReadyTracker inputReadyTracker;
@@ -247,7 +252,7 @@ public class TestInputReadyTracker {
     }
 
     @Override
-    public List<Event> initialize() throws Exception {
+    public List<Event> initialize(TezInputContext inputContext) throws Exception {
       return null;
     }
 
@@ -269,7 +274,11 @@ public class TestInputReadyTracker {
       return null;
     }
 
-   // Used by the test to control when this input will be ready
+    @Override
+    public void setNumPhysicalInputs(int numInputs) {
+    }
+    
+    // Used by the test to control when this input will be ready
     public void setInputIsReady() {
       isReady = true;
       inputReadyTracker.setInputIsReady(this);

@@ -1,5 +1,5 @@
 /**
-git diff * Licensed to the Apache Software Foundation (ASF) under one
+* Licensed to the Apache Software Foundation (ASF) under one
 * or more contributor license agreements.  See the NOTICE file
 * distributed with this work for additional information
 * regarding copyright ownership.  The ASF licenses this file
@@ -36,8 +36,9 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.LogicalInput;
+import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
@@ -48,12 +49,13 @@ import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleManager;
 import org.apache.tez.runtime.library.shuffle.common.impl.SimpleFetchedInputAllocator;
 
 import com.google.common.base.Preconditions;
-
-public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
+public class ShuffledUnorderedKVInput implements LogicalInput {
 
   private static final Log LOG = LogFactory.getLog(ShuffledUnorderedKVInput.class);
   
   private Configuration conf;
+  private int numInputs = -1;
+  private TezInputContext inputContext;
   private ShuffleManager shuffleManager;
   private final BlockingQueue<Event> pendingEvents = new LinkedBlockingQueue<Event>();
   private long firstEventReceivedTime = -1;
@@ -71,25 +73,26 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
   }
 
   @Override
-  public synchronized List<Event> initialize() throws Exception {
-    Preconditions.checkArgument(getNumPhysicalInputs() != -1, "Number of Inputs has not been set");
-    this.conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
+  public synchronized List<Event> initialize(TezInputContext inputContext) throws Exception {
+    Preconditions.checkArgument(numInputs != -1, "Number of Inputs has not been set");
+    this.inputContext = inputContext;
+    this.conf = TezUtils.createConfFromUserPayload(inputContext.getUserPayload());
 
-    if (getNumPhysicalInputs() == 0) {
-      getContext().requestInitialMemory(0l, null);
+    if (numInputs == 0) {
+      inputContext.requestInitialMemory(0l, null);
       isStarted.set(true);
-      getContext().inputIsReady();
+      inputContext.inputIsReady();
       LOG.info("input fetch not required since there are 0 physical inputs for input vertex: "
-          + getContext().getSourceVertexName());
+          + inputContext.getSourceVertexName());
       return Collections.emptyList();
     } else {
       long initalMemReq = getInitialMemoryReq();
       memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
-      this.getContext().requestInitialMemory(initalMemReq, memoryUpdateCallbackHandler);
+      this.inputContext.requestInitialMemory(initalMemReq, memoryUpdateCallbackHandler);
     }
 
-    this.conf.setStrings(TezJobConfig.LOCAL_DIRS, getContext().getWorkDirs());
-    this.inputRecordCounter = getContext().getCounters().findCounter(
+    this.conf.setStrings(TezJobConfig.LOCAL_DIRS, inputContext.getWorkDirs());
+    this.inputRecordCounter = inputContext.getCounters().findCounter(
         TaskCounter.INPUT_RECORDS_PROCESSED);
     return Collections.emptyList();
   }
@@ -120,14 +123,14 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
       ifileBufferSize = conf.getInt("io.file.buffer.size",
           TezJobConfig.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
 
-      this.inputManager = new SimpleFetchedInputAllocator(getContext().getUniqueIdentifier(), conf,
-          getContext().getTotalMemoryAvailableToTask(),
+      this.inputManager = new SimpleFetchedInputAllocator(inputContext.getUniqueIdentifier(), conf,
+          inputContext.getTotalMemoryAvailableToTask(),
           memoryUpdateCallbackHandler.getMemoryAssigned());
 
-      this.shuffleManager = new ShuffleManager(getContext(), conf, getNumPhysicalInputs(), ifileBufferSize,
+      this.shuffleManager = new ShuffleManager(inputContext, conf, numInputs, ifileBufferSize,
           ifileReadAhead, ifileReadAheadLength, codec, inputManager);
 
-      this.inputEventHandler = new ShuffleInputEventHandlerImpl(getContext(), shuffleManager,
+      this.inputEventHandler = new ShuffleInputEventHandlerImpl(inputContext, shuffleManager,
           inputManager, codec, ifileReadAhead, ifileReadAheadLength);
 
       ////// End of Initial configuration
@@ -149,7 +152,7 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
   @Override
   public synchronized KeyValueReader getReader() throws Exception {
     Preconditions.checkState(isStarted.get(), "Must start input before invoking this method");
-    if (getNumPhysicalInputs() == 0) {
+    if (numInputs == 0) {
       return new KeyValueReader() {
         @Override
         public boolean next() throws IOException {
@@ -173,7 +176,7 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
   @Override
   public void handleEvents(List<Event> inputEvents) throws IOException {
     synchronized (this) {
-      if (getNumPhysicalInputs() == 0) {
+      if (numInputs == 0) {
         throw new RuntimeException("No input events expected as numInputs is 0");
       }
       if (!isStarted.get()) {
@@ -198,9 +201,14 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
     return null;
   }
 
+  @Override
+  public synchronized void setNumPhysicalInputs(int numInputs) {
+    this.numInputs = numInputs;
+  }
+
   private long getInitialMemoryReq() {
     return SimpleFetchedInputAllocator.getInitialMemoryReq(conf,
-        getContext().getTotalMemoryAvailableToTask());
+        inputContext.getTotalMemoryAvailableToTask());
   }
   
   

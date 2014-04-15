@@ -38,7 +38,6 @@ import javax.net.ssl.HttpsURLConnection;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -65,9 +64,6 @@ class Fetcher extends Thread {
   private static enum ShuffleErrors{IO_ERROR, WRONG_LENGTH, BAD_ID, WRONG_MAP,
                                     CONNECTION, WRONG_REDUCE}
   
-  private final static String URL_CONNECTION_ERROR_STREAM_BUFFER_ENABLED =
-      "sun.net.http.errorstream.enableBuffering";
-  private final static String URL_CONNECTION_MAX_CONNECTIONS = "http.maxConnections";
   private final static String SHUFFLE_ERR_GRP_NAME = "Shuffle Errors";
   private final TezCounter connectionErrs;
   private final TezCounter ioErrs;
@@ -102,8 +98,6 @@ class Fetcher extends Thread {
   
   private LinkedHashSet<InputAttemptIdentifier> remaining;
 
-  private boolean keepAlive = false;
-
   public Fetcher(Configuration job, 
       ShuffleScheduler scheduler, MergeManager merger,
       ShuffleClientMetrics metrics,
@@ -136,19 +130,6 @@ class Fetcher extends Thread {
     } else {
       this.codec = null;
       this.decompressor = null;
-    }
-
-    this.keepAlive =
-        job.getBoolean(TezJobConfig.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED,
-          TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED);
-    int keepAliveMaxConnections =
-        job.getInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS,
-          TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS);
-
-    if (keepAlive) {
-      System.setProperty(URL_CONNECTION_ERROR_STREAM_BUFFER_ENABLED, "true");
-      System.setProperty(URL_CONNECTION_MAX_CONNECTIONS, String.valueOf(keepAliveMaxConnections));
-      LOG.info("Set keepAlive max connections: " + keepAliveMaxConnections);
     }
 
     this.connectionTimeout = 
@@ -264,12 +245,11 @@ class Fetcher extends Thread {
     
     // Construct the url and connect
     DataInputStream input;
-    HttpURLConnection connection = null;
     boolean connectSucceeded = false;
     
     try {
       URL url = getMapOutputURL(host, srcAttempts);
-      connection = openConnection(url);
+      HttpURLConnection connection = openConnection(url);
       
       // generate hash of the url
       String msgToEncode = SecureShuffleUtils.buildMsgFrom(url);
@@ -313,11 +293,6 @@ class Fetcher extends Thread {
       SecureShuffleUtils.verifyReply(replyHash, encHash, jobTokenSecret);
       LOG.info("for url="+msgToEncode+" sent hash and receievd reply");
     } catch (IOException ie) {
-      if (keepAlive && connection != null) {
-        //Read the response body in case of error. This helps in connection reuse.
-        //Refer: http://docs.oracle.com/javase/6/docs/technotes/guides/net/http-keepalive.html
-        readErrorStream(connection.getErrorStream());
-      }
       ioErrs.increment(1);
       if (!connectSucceeded) {
         LOG.warn("Failed to connect to " + host + " with " + remaining.size() + " inputs", ie);
@@ -329,6 +304,7 @@ class Fetcher extends Thread {
 
       // At this point, either the connection failed, or the initial header verification failed.
       // The error does not relate to any specific Input. Report all of them as failed.
+      
       // This ends up indirectly penalizing the host (multiple failures reported on the single host)
 
       for(InputAttemptIdentifier left: remaining) {
@@ -362,10 +338,6 @@ class Fetcher extends Thread {
         for(InputAttemptIdentifier left: failedTasks) {
           scheduler.copyFailed(left, host, true, false);
         }
-        //Being defensive: cleanup the error stream in case of keepAlive
-        if (keepAlive && connection != null) {
-          readErrorStream(connection.getErrorStream());
-        }
       }
       
       IOUtils.cleanup(LOG, input);
@@ -379,23 +351,7 @@ class Fetcher extends Thread {
       putBackRemainingMapOutputs(host);
     }
   }
-
-  /**
-   * Cleanup the error stream if any, for keepAlive connections
-   * 
-   * @param errorStream
-   */
-  private void readErrorStream(InputStream errorStream) {
-    try {
-      DataOutputBuffer errorBuffer = new DataOutputBuffer();
-      IOUtils.copyBytes(errorStream, errorBuffer, 4096);
-      IOUtils.closeStream(errorBuffer);
-      IOUtils.closeStream(errorStream);
-    } catch(IOException ioe) {
-      //ignore
-    }
-  }
-
+  
   private void putBackRemainingMapOutputs(MapHost host) {
     // Cycle through remaining MapOutputs
     boolean isFirst = true;
@@ -594,11 +550,7 @@ class Fetcher extends Thread {
       url.append(mapId.getPathComponent());
       first = false;
     }
-    //It is possible to override keep-alive setting in cluster by adding keepAlive in url.
-    //Refer MAPREDUCE-5787 to enable/disable keep-alive in the cluster.
-    if (keepAlive) {
-      url.append("&keepAlive=true");
-    }
+   
     if (LOG.isDebugEnabled()) {
       LOG.debug("MapOutput URL for " + host + " -> " + url.toString());
     }
