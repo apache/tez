@@ -259,24 +259,6 @@ public class WordCount {
     return dag;  
   }
 
-  private static void waitForTezSessionReady(TezSession tezSession)
-      throws IOException, TezException {
-      while (true) {
-        TezSessionStatus status = tezSession.getSessionStatus();
-        if (status.equals(TezSessionStatus.SHUTDOWN)) {
-          throw new RuntimeException("TezSession has already shutdown");
-        }
-        if (status.equals(TezSessionStatus.READY)) {
-          return;
-        }
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException e) {
-          return;
-        }
-      }
-    }
-
   private static void printUsage() {
     System.err.println("Usage: " + " wordcount <in1> <out1>");
   }
@@ -330,11 +312,8 @@ public class WordCount {
         sessionConfig);
     tezSession.start();
 
-    DAGStatus dagStatus = null;
     DAGClient dagClient = null;
-    String[] vNames = { "tokenizer", "summer" };
 
-    Set<StatusGetOpts> statusGetOpts = EnumSet.of(StatusGetOpts.GET_COUNTERS);
     try {
         if (fs.exists(new Path(outputPath))) {
           throw new FileAlreadyExistsException("Output directory "
@@ -347,44 +326,11 @@ public class WordCount {
         DAG dag = createDAG(fs, tezConf, localResources,
             stagingDir, inputPath, outputPath);
 
-        waitForTezSessionReady(tezSession);
+        tezSession.waitTillReady();
         dagClient = tezSession.submitDAG(dag);
-        //dagClient = tezClient.submitDAGApplication(dag, amConfig);
 
         // monitoring
-        while (true) {
-          dagStatus = dagClient.getDAGStatus(statusGetOpts);
-          if(dagStatus.getState() == DAGStatus.State.RUNNING ||
-              dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
-              dagStatus.getState() == DAGStatus.State.FAILED ||
-              dagStatus.getState() == DAGStatus.State.KILLED ||
-              dagStatus.getState() == DAGStatus.State.ERROR) {
-            break;
-          }
-          try {
-            Thread.sleep(500);
-          } catch (InterruptedException e) {
-            // continue;
-          }
-        }
-
-
-        while (dagStatus.getState() == DAGStatus.State.RUNNING) {
-          try {
-            ExampleDriver.printDAGStatus(dagClient, vNames);
-            try {
-              Thread.sleep(1000);
-            } catch (InterruptedException e) {
-              // continue;
-            }
-            dagStatus = dagClient.getDAGStatus(statusGetOpts);
-          } catch (TezException e) {
-            System.exit(-1);
-          }
-        }
-        ExampleDriver.printDAGStatus(dagClient, vNames,
-            true, true);
-        System.out.println("DAG completed. " + "FinalState=" + dagStatus.getState());
+        DAGStatus dagStatus = dagClient.waitForCompletionWithAllStatusUpdates(null);
         if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
           System.out.println("DAG diagnostics: " + dagStatus.getDiagnostics());
           return false;

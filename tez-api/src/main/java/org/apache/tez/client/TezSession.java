@@ -71,6 +71,7 @@ public class TezSession {
   /** Tokens which will be required for all DAGs submitted to this session. */
   private Credentials sessionCredentials = new Credentials();
   private long clientTimeout;
+  private static final long SLEEP_FOR_READY = 500;
   private JobTokenSecretManager jobTokenSecretManager =
       new JobTokenSecretManager();
 
@@ -380,6 +381,31 @@ public class TezSession {
       }
     } catch (ServiceException e) {
       throw new TezException(e);
+    }
+  }
+  /**
+   * Wait until TEZ session is ready.
+   *
+   * @throws IOException
+   * @throws TezException
+   */
+  @InterfaceStability.Evolving
+  public void waitTillReady() throws IOException, TezException {
+    verifySessionStateForSubmission();
+    while (true) {
+      TezSessionStatus status = getSessionStatus();
+      if (status.equals(TezSessionStatus.SHUTDOWN)) {
+        throw new SessionNotRunning("TezSession has already shutdown");
+      }
+      if (status.equals(TezSessionStatus.READY)) {
+        return;
+      }
+      try {
+        Thread.sleep(SLEEP_FOR_READY);
+      } catch (InterruptedException e) {
+        LOG.info("Sleep interrupted", e);
+        continue;
+      }
     }
   }
 

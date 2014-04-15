@@ -20,12 +20,15 @@ package org.apache.tez.dag.api.client;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.Set;
+import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.Vertex;
 
 /*
  * Interface class for monitoring the <code>DAG</code> running in a Tez DAG
@@ -71,4 +74,41 @@ public interface DAGClient extends Closeable {
    */
   public void tryKillDAG() throws IOException, TezException;
 
+  /**
+   * Wait for DAG to complete without printing any vertex statuses
+   * 
+   * @return Final DAG Status
+   * @throws IOException
+   * @throws TezException
+   */
+  public DAGStatus waitForCompletion() throws IOException, TezException;
+
+  /**
+   * Wait for DAG to complete and print the selected vertex status periodically.
+   * 
+   * @param vertexNames
+   *          which vertex details to print; null mean no vertex status and it
+   *          is equivalent to call <code>waitForCompletion()</code>
+   * @param statusGetOpts
+   *          : status get options. For example, to get counter pass
+   *          <code>EnumSet.of(StatusGetOpts.GET_COUNTERS)</code>
+   * @return Final DAG Status
+   * @throws IOException
+   * @throws TezException
+   */
+  public DAGStatus waitForCompletionWithStatusUpdates(@Nullable Set<Vertex> vertices,
+      @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException;
+
+  /**
+   * Wait for DAG to complete and periodically print *all* vertices' status.
+   * 
+   * @param statusGetOpts
+   *          : status get options. For example, to get counter pass
+   *          <code>EnumSet.of(StatusGetOpts.GET_COUNTERS)</code>
+   * @return Final DAG Status
+   * @throws IOException
+   * @throws TezException
+   */
+  DAGStatus waitForCompletionWithAllStatusUpdates(@Nullable Set<StatusGetOpts> statusGetOpts)
+      throws IOException, TezException;
 }

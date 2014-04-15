@@ -19,9 +19,14 @@
 package org.apache.tez.dag.api.client.rpc;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Set;
+import javax.annotation.Nullable;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.ipc.RPC;
@@ -33,12 +38,15 @@ import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.client.TezClientUtils;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.Progress;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequestProto;
@@ -52,6 +60,8 @@ import com.google.protobuf.ServiceException;
 public class DAGClientRPCImpl implements DAGClient {
   private static final Log LOG = LogFactory.getLog(DAGClientRPCImpl.class);
 
+  private static final long SLEEP_FOR_COMPLETION = 500;
+  private final DecimalFormat formatter = new DecimalFormat("###.##%");
   private final ApplicationId appId;
   private final String dagId;
   private final TezConfiguration conf;
@@ -305,4 +315,128 @@ public class DAGClientRPCImpl implements DAGClient {
     return true;
   }
 
+  @Override
+  public DAGStatus waitForCompletion() throws IOException, TezException {
+    return waitForCompletionWithStatusUpdates(null, EnumSet.noneOf(StatusGetOpts.class));
+  }
+
+  @Override
+  public DAGStatus waitForCompletionWithAllStatusUpdates(@Nullable Set<StatusGetOpts> statusGetOpts)
+      throws IOException, TezException {
+    Set<String> vertexSet = getDAGStatus(statusGetOpts).getVertexProgress().keySet();
+    return _waitForCompletionWithStatusUpdates(vertexSet, statusGetOpts);
+  }
+
+  @Override
+  public DAGStatus waitForCompletionWithStatusUpdates(@Nullable Set<Vertex> vertices,
+      @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException {
+    Set<String> vertexNames = new HashSet<String>();
+    if (vertices != null) {
+      for (Vertex vertex : vertices) {
+        vertexNames.add(vertex.getVertexName());
+      }
+    }
+    return _waitForCompletionWithStatusUpdates(vertexNames, statusGetOpts);
+  }
+
+  private DAGStatus _waitForCompletionWithStatusUpdates(@Nullable Set<String> vertexNames,
+      @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException {
+    DAGStatus dagStatus;
+    boolean initPrinted = false;
+    double dagProgress = -1.0; // Print the first one
+    // monitoring
+    while (true) {
+      dagStatus = getDAGStatus(statusGetOpts);
+      if (!initPrinted
+          && (dagStatus.getState() == DAGStatus.State.INITING || dagStatus.getState() == DAGStatus.State.SUBMITTED)) {
+        initPrinted = true; // Print once
+        log("Waiting for DAG to start running");
+      }
+      if (dagStatus.getState() == DAGStatus.State.RUNNING
+          || dagStatus.getState() == DAGStatus.State.SUCCEEDED
+          || dagStatus.getState() == DAGStatus.State.FAILED
+          || dagStatus.getState() == DAGStatus.State.KILLED
+          || dagStatus.getState() == DAGStatus.State.ERROR) {
+        break;
+      }
+      try {
+        Thread.sleep(SLEEP_FOR_COMPLETION);
+      } catch (InterruptedException e) {
+        // continue;
+      }
+    }// End of while(true)
+    while (dagStatus.getState() == DAGStatus.State.RUNNING) {
+      if (vertexNames != null) {
+        dagProgress = monitorProgress(vertexNames, dagProgress, null, dagStatus);
+      }
+      try {
+        Thread.sleep(SLEEP_FOR_COMPLETION);
+      } catch (InterruptedException e) {
+      }
+      dagStatus = getDAGStatus(statusGetOpts);
+    }// end of while
+    if (vertexNames != null) {
+      // Always print the last status irrespective of progress change
+      monitorProgress(vertexNames, -1.0, statusGetOpts, dagStatus);
+    }
+    log("DAG completed. " + "FinalState=" + dagStatus.getState());
+    return dagStatus;
+  }
+
+  private double monitorProgress(Set<String> vertexNamess, double prevDagProgress,
+      Set<StatusGetOpts> opts, DAGStatus dagStatus) throws IOException, TezException {
+    Progress progress = dagStatus.getDAGProgress();
+    double dagProgress = 0.0;
+    if (progress != null && (dagProgress = getProgress(progress)) > prevDagProgress) {
+      printDAGStatus(vertexNamess, opts, dagStatus, progress);
+    }
+    return dagProgress;
+  }
+
+  private void printDAGStatus(Set<String> vertexNamess, Set<StatusGetOpts> opts,
+      DAGStatus dagStatus, Progress dagProgress) throws IOException, TezException {
+    double vProgressFloat = 0.0f;
+    log("DAG: State: " + dagStatus.getState() + " Progress: "
+        + formatter.format(getProgress(dagProgress)) + " " + dagProgress);
+    boolean displayCounter = opts != null ? opts.contains(StatusGetOpts.GET_COUNTERS) : false;
+    if (displayCounter) {
+      TezCounters counters = dagStatus.getDAGCounters();
+      if (counters != null) {
+        log("DAG Counters:\n" + counters);
+      }
+    }
+    for (String vertex : vertexNamess) {
+      VertexStatus vStatus = getVertexStatus(vertex, opts);
+      if (vStatus == null) {
+        log("Could not retrieve status for vertex: " + vertex);
+        continue;
+      }
+      Progress vProgress = vStatus.getProgress();
+      if (vProgress != null) {
+        vProgressFloat = 0.0f;
+        if (vProgress.getTotalTaskCount() == 0) {
+          vProgressFloat = 1.0f;
+        } else if (vProgress.getTotalTaskCount() > 0) {
+          vProgressFloat = getProgress(vProgress);
+        }
+        log("VertexStatus:" + " VertexName: " + vertex + " Progress: "
+            + formatter.format(vProgressFloat) + " " + vProgress);
+      }
+      if (displayCounter) {
+        TezCounters counters = vStatus.getVertexCounters();
+        if (counters != null) {
+          log("Vertex Counters for " + vertex + ":\n" + counters);
+        }
+      }
+    } // end of for loop
+  }
+
+  private double getProgress(Progress progress) {
+    return (progress.getTotalTaskCount() == 0 ? 0.0 : (double) (progress.getSucceededTaskCount())
+        / progress.getTotalTaskCount());
+  }
+
+  private void log(String message) {
+    LOG.info(message);
+  }
 }
