@@ -23,8 +23,6 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
-import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -32,15 +30,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.crypto.SecretKey;
-import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -76,6 +72,10 @@ public class Fetcher implements Callable<FetchResult> {
   private final FetcherCallback fetcherCallback;
   private final FetchedInputAllocator inputManager;
   private final ApplicationId appId;
+  
+  private final String logIdentifier;
+  
+  private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
   private static boolean sslShuffle = false;
   private static SSLFactory sslFactory;
@@ -94,12 +94,14 @@ public class Fetcher implements Callable<FetchResult> {
   private LinkedHashSet<InputAttemptIdentifier> remaining;
 
   private URL url;
+  private volatile HttpURLConnection connection;
+  private volatile DataInputStream input;
   private String encHash;
   private String msgToEncode;
 
   private Fetcher(FetcherCallback fetcherCallback,
       FetchedInputAllocator inputManager, ApplicationId appId, SecretKey shuffleSecret,
-      Configuration conf) {
+      String srcNameTrimmed) {
     this.fetcherCallback = fetcherCallback;
     this.inputManager = inputManager;
     this.shuffleSecret = shuffleSecret;
@@ -107,6 +109,7 @@ public class Fetcher implements Callable<FetchResult> {
     this.pathToAttemptMap = new HashMap<String, InputAttemptIdentifier>();
 
     this.fetcherIdentifier = fetcherIdGen.getAndIncrement();
+    this.logIdentifier = "fetcher [" + srcNameTrimmed +"] " + fetcherIdentifier;
     
     // TODO NEWTEZ Ideally, move this out from here into a static initializer block.
     // Re-enable when ssl shuffle support is needed.
@@ -141,39 +144,61 @@ public class Fetcher implements Callable<FetchResult> {
 
     remaining = new LinkedHashSet<InputAttemptIdentifier>(srcAttempts);
 
-    HttpURLConnection connection;
     try {
-      connection = connectToShuffleHandler(host, port, partition, srcAttempts);
+      connectToShuffleHandler(host, port, partition, srcAttempts);
     } catch (IOException e) {
       // ioErrs.increment(1);
       // If connect did not succeed, just mark all the maps as failed,
       // indirectly penalizing the host
-      for (Iterator<InputAttemptIdentifier> leftIter = remaining.iterator(); leftIter
-          .hasNext();) {
-        fetcherCallback.fetchFailed(host, leftIter.next(), true);
+      if (isShutDown.get()) {
+        LOG.info("Not reporting fetch failure, since an Exception was caught after shutdown");
+      } else {
+        for (Iterator<InputAttemptIdentifier> leftIter = remaining.iterator(); leftIter
+            .hasNext();) {
+          fetcherCallback.fetchFailed(host, leftIter.next(), true);
+        }
       }
       return new FetchResult(host, port, partition, remaining);
     }
-
-    DataInputStream input;
+    if (isShutDown.get()) {
+      // shutdown would have no effect if in the process of establishing the connection.
+      shutdownInternal();
+      LOG.info("Detected fetcher has been shutdown after connection establishment. Returning");
+      return new FetchResult(host, port, partition, remaining);
+    }
 
     try {
       input = new DataInputStream(connection.getInputStream());
-      validateConnectionResponse(connection, url, msgToEncode, encHash);
+      validateConnectionResponse(msgToEncode, encHash);
     } catch (IOException e) {
       // ioErrs.increment(1);
       // If we got a read error at this stage, it implies there was a problem
       // with the first map, typically lost map. So, penalize only that map
       // and add the rest
-      InputAttemptIdentifier firstAttempt = srcAttempts.get(0);
-      LOG.warn("Fetch Failure from host while connecting: " + host
-          + ", attempt: " + firstAttempt + " Informing ShuffleManager: ", e);
-      fetcherCallback.fetchFailed(host, firstAttempt, false);
-      return new FetchResult(host, port, partition, remaining);
+      if (isShutDown.get()) {
+        LOG.info("Not reporting fetch failure, since an Exception was caught after shutdown");
+      } else {
+        InputAttemptIdentifier firstAttempt = srcAttempts.get(0);
+        LOG.warn("Fetch Failure from host while connecting: " + host + ", attempt: " + firstAttempt
+            + " Informing ShuffleManager: ", e);
+        fetcherCallback.fetchFailed(host, firstAttempt, false);
+        return new FetchResult(host, port, partition, remaining);
+      }
     }
 
     // By this point, the connection is setup and the response has been
     // validated.
+
+    // Handle any shutdown which may have been invoked.
+    if (isShutDown.get()) {
+      // shutdown would have no effect if in the process of establishing the connection.
+      shutdownInternal();
+      LOG.info("Detected fetcher has been shutdown after opening stream. Returning");
+      return new FetchResult(host, port, partition, remaining);
+    }
+    // After this point, closing the stream and connection, should cause a
+    // SocketException,
+    // which will be ignored since shutdown has been invoked.
 
     // Loop through available map-outputs and fetch them
     // On any error, faildTasks is not null and we exit
@@ -191,7 +216,7 @@ public class Fetcher implements Callable<FetchResult> {
       }
     }
 
-    IOUtils.cleanup(LOG, input);
+    shutdown();
 
     // Sanity check
     if (failedInputs == null && !remaining.isEmpty()) {
@@ -201,6 +226,36 @@ public class Fetcher implements Callable<FetchResult> {
 
     return new FetchResult(host, port, partition, remaining);
 
+  }
+
+  public void shutdown() {
+    if (!isShutDown.getAndSet(true)) {
+      shutdownInternal();
+    }
+  }
+
+  private void shutdownInternal() {
+    // Synchronizing on isShutDown to ensure we don't run into a parallel close
+    // Can't synchronize on the main class itself since that would cause the
+    // shutdown request to block
+    synchronized (isShutDown) {
+      try {
+        if (input != null) {
+          LOG.info("Closing input on " + logIdentifier);
+          input.close();
+        }
+        if (connection != null) {
+          LOG.info("Closing connection on " + logIdentifier);
+          connection.disconnect();
+        }
+      } catch (IOException e) {
+        LOG.info("Exception while shutting down fetcher on " + logIdentifier + " : "
+            + e.getMessage());
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(e);
+        }
+      }
+    }
   }
 
   private InputAttemptIdentifier[] fetchInputs(DataInputStream input) {
@@ -285,6 +340,8 @@ public class Fetcher implements Callable<FetchResult> {
       // metrics.successFetch();
       return null;
     } catch (IOException ioe) {
+      // ZZZ Add some shutdown code here
+      // ZZZ Make sure any assigned memory inputs are aborted
       // ioErrs.increment(1);
       if (srcAttemptId == null || fetchedInput == null) {
         LOG.info("fetcher" + " failed to read map header" + srcAttemptId
@@ -360,11 +417,11 @@ public class Fetcher implements Callable<FetchResult> {
     }
   }
 
-  private HttpURLConnection connectToShuffleHandler(String host, int port,
+  private void connectToShuffleHandler(String host, int port,
       int partition, List<InputAttemptIdentifier> inputs) throws IOException {
     try {
       this.url = constructInputURL(host, port, partition, inputs);
-      HttpURLConnection connection = openConnection(url);
+      this.connection = openConnection(url);
 
       // generate hash of the url
       this.msgToEncode = SecureShuffleUtils.buildMsgFrom(url);
@@ -382,8 +439,7 @@ public class Fetcher implements Callable<FetchResult> {
       connection.addRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
 
-      connect(connection, connectionTimeout);
-      return connection;
+      connect(connectionTimeout);
     } catch (IOException e) {
       LOG.warn("Failed to connect to " + host + " with " + srcAttempts.size()
           + " inputs", e);
@@ -391,8 +447,7 @@ public class Fetcher implements Callable<FetchResult> {
     }
   }
 
-  private void validateConnectionResponse(HttpURLConnection connection,
-      URL url, String msgToEncode, String encHash) throws IOException {
+  private void validateConnectionResponse(String msgToEncode, String encHash) throws IOException {
     int rc = connection.getResponseCode();
     if (rc != HttpURLConnection.HTTP_OK) {
       throw new IOException("Got invalid response code " + rc + " from " + url
@@ -422,17 +477,8 @@ public class Fetcher implements Callable<FetchResult> {
   }
 
   protected HttpURLConnection openConnection(URL url) throws IOException {
-    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-    if (sslShuffle) {
-      HttpsURLConnection httpsConn = (HttpsURLConnection) conn;
-      try {
-        httpsConn.setSSLSocketFactory(sslFactory.createSSLSocketFactory());
-      } catch (GeneralSecurityException ex) {
-        throw new IOException(ex);
-      }
-      httpsConn.setHostnameVerifier(sslFactory.getHostnameVerifier());
-    }
-    return conn;
+    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+    return connection;
   }
 
   /**
@@ -440,8 +486,7 @@ public class Fetcher implements Callable<FetchResult> {
    * only on the last failure. Instead of connecting with a timeout of X, we try
    * connecting with a timeout of x < X but multiple times.
    */
-  private void connect(URLConnection connection, int connectionTimeout)
-      throws IOException {
+  private void connect(int connectionTimeout) throws IOException {
     int unit = 0;
     if (connectionTimeout < 0) {
       throw new IOException("Invalid timeout " + "[timeout = "
@@ -456,6 +501,13 @@ public class Fetcher implements Callable<FetchResult> {
         connection.connect();
         break;
       } catch (IOException ioe) {
+
+        // Check if already shutdown and abort subsequent connect attempts
+        if (isShutDown.get()) {
+          LOG.info("Fetcher already shutdown. Not attempting to connect again. Last exception was: ["
+              + ioe.getClass().getName() + ", " + ioe.getMessage() + "]");
+          return;
+        }
         // update the total remaining connect-timeout
         connectionTimeout -= unit;
 
@@ -503,9 +555,9 @@ public class Fetcher implements Callable<FetchResult> {
 
     public FetcherBuilder(FetcherCallback fetcherCallback,
         FetchedInputAllocator inputManager, ApplicationId appId,
-        SecretKey shuffleSecret, Configuration conf) {
+        SecretKey shuffleSecret, String srcNameTrimmed) {
       this.fetcher = new Fetcher(fetcherCallback, inputManager, appId,
-          shuffleSecret, conf);
+          shuffleSecret, srcNameTrimmed);
     }
 
     public FetcherBuilder setCompressionParameters(CompressionCodec codec) {

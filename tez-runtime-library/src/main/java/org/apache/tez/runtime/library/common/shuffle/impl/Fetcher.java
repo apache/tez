@@ -25,7 +25,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -80,6 +79,7 @@ class Fetcher extends Thread {
   private final ShuffleClientMetrics metrics;
   private final Shuffle shuffle;
   private final int id;
+  private final String logIdentifier;
   private static int nextId = 0;
   private int currentPartition = -1;
   
@@ -104,10 +104,16 @@ class Fetcher extends Thread {
 
   private boolean keepAlive = false;
 
+  volatile HttpURLConnection connection;
+  volatile DataInputStream input;
+
   public Fetcher(Configuration job, 
       ShuffleScheduler scheduler, MergeManager merger,
       ShuffleClientMetrics metrics,
-      Shuffle shuffle, SecretKey jobTokenSecret, boolean ifileReadAhead, int ifileReadAheadLength, CompressionCodec codec, TezInputContext inputContext) throws IOException {
+      Shuffle shuffle, SecretKey jobTokenSecret,
+      boolean ifileReadAhead, int ifileReadAheadLength, CompressionCodec codec,
+      TezInputContext inputContext) throws IOException {
+    setDaemon(true);
     this.scheduler = scheduler;
     this.merger = merger;
     this.metrics = metrics;
@@ -161,7 +167,8 @@ class Fetcher extends Thread {
     this.bufferSize = job.getInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE, 
             TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE);
 
-    setName("fetcher [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "] #" + id);
+    this.logIdentifier = "fetcher [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "] #" + id;
+    setName(logIdentifier);
     setDaemon(true);
 
     synchronized (Fetcher.class) {
@@ -195,6 +202,7 @@ class Fetcher extends Thread {
           // Shuffle
           copyFromHost(host);
         } finally {
+          cleanupCurrentConnection();
           if (host != null) {
             scheduler.freeHost(host);
             metrics.threadFree();            
@@ -211,6 +219,7 @@ class Fetcher extends Thread {
   public void shutDown() throws InterruptedException {
     this.stopped = true;
     interrupt();
+    cleanupCurrentConnection();
     try {
       join(5000);
     } catch (InterruptedException ie) {
@@ -218,6 +227,31 @@ class Fetcher extends Thread {
     }
     if (sslFactory != null) {
       sslFactory.destroy();
+    }
+  }
+
+  private Object cleanupLock = new Object();
+  private void cleanupCurrentConnection() {
+    // Synchronizing on cleanupLock to ensure we don't run into a parallel close
+    // Can't synchronize on the main class itself since that would cause the
+    // shutdown request to block
+    synchronized (cleanupLock) {
+      try {
+        if (input != null) {
+          LOG.info("Closing input on " + logIdentifier);
+          input.close();
+        }
+        if (connection != null) {
+          LOG.info("Closing connection on " + logIdentifier);
+          connection.disconnect();
+        }
+      } catch (IOException e) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Exception while shutting down fetcher " + logIdentifier, e);
+        } else {
+          LOG.info("Exception while shutting down fetcher " + logIdentifier + ": " + e.getMessage());
+        }
+      }
     }
   }
 
@@ -263,8 +297,6 @@ class Fetcher extends Thread {
     remaining = new LinkedHashSet<InputAttemptIdentifier>(srcAttempts);
     
     // Construct the url and connect
-    DataInputStream input;
-    HttpURLConnection connection = null;
     boolean connectSucceeded = false;
     
     try {
@@ -285,7 +317,14 @@ class Fetcher extends Thread {
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
       connection.addRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
-      connect(connection, connectionTimeout);
+      connect(connectionTimeout);
+      
+      if (stopped) {
+        LOG.info("Detected fetcher has been shutdown after connection establishment. Returning");
+        cleanupCurrentConnection();
+        putBackRemainingMapOutputs(host);
+        return;
+      }
       connectSucceeded = true;
       input = new DataInputStream(new BufferedInputStream(connection.getInputStream(), bufferSize));
 
@@ -313,6 +352,12 @@ class Fetcher extends Thread {
       SecureShuffleUtils.verifyReply(replyHash, encHash, jobTokenSecret);
       LOG.info("for url="+msgToEncode+" sent hash and receievd reply");
     } catch (IOException ie) {
+      if (stopped) {
+        LOG.info("Not reporting fetch failure, since an Exception was caught after shutdown");
+        cleanupCurrentConnection();
+        putBackRemainingMapOutputs(host);
+        return;
+      }
       if (keepAlive && connection != null) {
         //Read the response body in case of error. This helps in connection reuse.
         //Refer: http://docs.oracle.com/javase/6/docs/technotes/guides/net/http-keepalive.html
@@ -367,9 +412,9 @@ class Fetcher extends Thread {
           readErrorStream(connection.getErrorStream());
         }
       }
-      
-      IOUtils.cleanup(LOG, input);
-      
+
+      cleanupCurrentConnection();
+
       // Sanity check
       if (failedTasks == null && !remaining.isEmpty()) {
         throw new IOException("server didn't return all expected map outputs: "
@@ -503,6 +548,16 @@ class Fetcher extends Thread {
       metrics.successFetch();
       return null;
     } catch (IOException ioe) {
+      if (stopped) {
+        LOG.info("Not reporting fetch failure for exception during data copy: ["
+            + ioe.getClass().getName() + ", " + ioe.getMessage() + "]");
+        cleanupCurrentConnection();
+        if (mapOutput != null) {
+          mapOutput.abort(); // Release resources
+        }
+        // Don't need to put back - since that's handled by the invoker
+        return EMPTY_ATTEMPT_ID_ARRAY;
+      }
       ioErrs.increment(1);
       if (srcAttemptId == null || mapOutput == null) {
         LOG.info("fetcher#" + id + " failed to read map header" + 
@@ -610,8 +665,7 @@ class Fetcher extends Thread {
    * only on the last failure. Instead of connecting with a timeout of 
    * X, we try connecting with a timeout of x < X but multiple times. 
    */
-  private void connect(URLConnection connection, int connectionTimeout)
-  throws IOException {
+  private void connect(int connectionTimeout) throws IOException {
     int unit = 0;
     if (connectionTimeout < 0) {
       throw new IOException("Invalid timeout "
@@ -626,6 +680,14 @@ class Fetcher extends Thread {
         connection.connect();
         break;
       } catch (IOException ioe) {
+        
+        // Don't attempt another connect if already stopped.
+        if (stopped) {
+          LOG.info("Fetcher already shutdown. Not attempting to connect again. Last exception was: ["
+              + ioe.getClass().getName() + ", " + ioe.getMessage() + "]");
+          return;
+        }
+
         // update the total remaining connect-timeout
         connectionTimeout -= unit;
 
@@ -646,31 +708,31 @@ class Fetcher extends Thread {
   }
 
   private void shuffleToMemory(MapHost host, MapOutput mapOutput, 
-                               InputStream input, 
+                               InputStream localInput, 
                                int decompressedLength, 
                                int compressedLength) throws IOException {    
     IFileInputStream checksumIn = 
-      new IFileInputStream(input, compressedLength, ifileReadAhead, ifileReadAheadLength);
+      new IFileInputStream(localInput, compressedLength, ifileReadAhead, ifileReadAheadLength);
 
-    input = checksumIn;       
+    localInput = checksumIn;       
   
     // Are map-outputs compressed?
     if (codec != null) {
       decompressor.reset();
-      input = codec.createInputStream(input, decompressor);
+      localInput = codec.createInputStream(localInput, decompressor);
     }
   
     // Copy map-output into an in-memory buffer
     byte[] shuffleData = mapOutput.getMemory();
     
     try {
-      IOUtils.readFully(input, shuffleData, 0, shuffleData.length);
+      IOUtils.readFully(localInput, shuffleData, 0, shuffleData.length);
       metrics.inputBytes(shuffleData.length);
       LOG.info("Read " + shuffleData.length + " bytes from map-output for " +
                mapOutput.getAttemptIdentifier());
     } catch (IOException ioe) {      
       // Close the streams
-      IOUtils.cleanup(LOG, input);
+      IOUtils.cleanup(LOG, localInput);
 
       // Re-throw
       throw ioe;
@@ -679,7 +741,7 @@ class Fetcher extends Thread {
   }
   
   private void shuffleToDisk(MapHost host, MapOutput mapOutput, 
-                             InputStream input, 
+                             InputStream localInput, 
                              long compressedLength) 
   throws IOException {
     // Copy data to local-disk
@@ -689,7 +751,7 @@ class Fetcher extends Thread {
       final int BYTES_TO_READ = 64 * 1024;
       byte[] buf = new byte[BYTES_TO_READ];
       while (bytesLeft > 0) {
-        int n = input.read(buf, 0, (int) Math.min(bytesLeft, BYTES_TO_READ));
+        int n = localInput.read(buf, 0, (int) Math.min(bytesLeft, BYTES_TO_READ));
         if (n < 0) {
           throw new IOException("read past end of stream reading " + 
                                 mapOutput.getAttemptIdentifier());
@@ -706,7 +768,7 @@ class Fetcher extends Thread {
       output.close();
     } catch (IOException ioe) {
       // Close the streams
-      IOUtils.cleanup(LOG, input, output);
+      IOUtils.cleanup(LOG, localInput, output);
 
       // Re-throw
       throw ioe;

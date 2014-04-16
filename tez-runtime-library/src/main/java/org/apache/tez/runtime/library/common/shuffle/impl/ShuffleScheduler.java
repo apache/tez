@@ -570,6 +570,7 @@ class ShuffleScheduler {
   }
   
   public void close() throws InterruptedException {
+    /// ZZZ need to interrupt setlf ?
     referee.interrupt();
     referee.join();
   }

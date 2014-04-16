@@ -127,8 +127,10 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
    * @return true if the input is ready for consumption, or if an error occurred
    *         processing fetching the input. false if the shuffle and merge are
    *         still in progress
+   * @throws InterruptedException 
+   * @throws IOException 
    */
-  public synchronized boolean isInputReady() {
+  public synchronized boolean isInputReady() throws IOException, InterruptedException {
     Preconditions.checkState(isStarted.get(), "Must start input before invoking this method");
     if (getNumPhysicalInputs() == 0) {
       return true;
@@ -163,6 +165,9 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
   public synchronized List<Event> close() throws IOException {
     if (this.getNumPhysicalInputs() != 0 && rawIter != null) {
       rawIter.close();
+    }
+    if (shuffle != null) {
+      shuffle.shutdown();
     }
     return Collections.emptyList();
   }
