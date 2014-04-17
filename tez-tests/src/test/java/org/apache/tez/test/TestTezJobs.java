@@ -20,6 +20,8 @@ package org.apache.tez.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -31,13 +33,17 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.client.TezSession;
+import org.apache.tez.client.TezSessionConfiguration;
 import org.apache.tez.common.counters.FileSystemCounter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DuplicateDAGName;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -67,6 +73,7 @@ public class TestTezJobs {
 
   private static Configuration conf = new Configuration();
   private static FileSystem remoteFs;
+  private Random random = new Random();
 
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR + TestTezJobs.class.getName()
       + "-tmpDir";
@@ -116,7 +123,7 @@ public class TestTezJobs {
     dag.addVertex(vertex);
 
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
-    Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String.valueOf(new Random()
+    Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String.valueOf(random
         .nextInt(100000))));
     remoteFs.mkdirs(remoteStagingDir);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
@@ -142,4 +149,60 @@ public class TestTezJobs {
     assertNotNull(dagStatus.getDAGCounters().findCounter(TaskCounter.GC_TIME_MILLIS));
     ExampleDriver.printDAGStatus(dagClient, new String[] { "SleepVertex" }, true, true);
   }
+
+  @Test(timeout = 100000)
+  public void testMultipleDAGsWithDuplicateName() throws TezException, IOException,
+      InterruptedException {
+    TezSession tezSession = null;
+    try {
+      TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+      Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String.valueOf(random
+          .nextInt(100000))));
+      remoteFs.mkdirs(remoteStagingDir);
+      tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
+      AMConfiguration amConf = new AMConfiguration(new HashMap<String, String>(),
+          new HashMap<String, LocalResource>(), tezConf, null);
+      TezSessionConfiguration sessionConfig = new TezSessionConfiguration(amConf, tezConf);
+
+      TezClient tezClient = new TezClient(tezConf);
+      ApplicationId appId = tezClient.createApplication();
+      tezSession = new TezSession("OrderedWordCountSession", appId, sessionConfig);
+      tezSession.start();
+
+      SleepProcessorConfig spConf = new SleepProcessorConfig(1);
+      for (int dagIndex = 1; dagIndex <= 2; dagIndex++) {
+        DAG dag = new DAG("TezSleepProcessor");
+        Vertex vertex = new Vertex("SleepVertex", new ProcessorDescriptor(
+            SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
+            Resource.newInstance(1024, 1));
+        dag.addVertex(vertex);
+
+        DAGClient dagClient = null;
+        try {
+          dagClient = tezSession.submitDAG(dag);
+          if (dagIndex > 1) {
+            fail("Should fail due to duplicate dag name for dagIndex: " + dagIndex);
+          }
+        } catch (TezException tex) {
+          if (dagIndex > 1) {
+            assertTrue(tex.getMessage().contains("Duplicate dag name "));
+            continue;
+          }
+          fail("DuplicateDAGName exception thrown for 1st DAG submission");
+        }
+        DAGStatus dagStatus = dagClient.getDAGStatus(null);
+        while (!dagStatus.isCompleted()) {
+          LOG.debug("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
+              + dagStatus.getState());
+          Thread.sleep(500l);
+          dagStatus = dagClient.getDAGStatus(null);
+        }
+      }
+    } finally {
+      if (tezSession != null) {
+        tezSession.stop();
+      }
+    }
+  }
+
 }

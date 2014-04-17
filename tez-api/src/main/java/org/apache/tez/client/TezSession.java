@@ -190,7 +190,8 @@ public class TezSession {
     String dagId;
     LOG.info("Submitting dag to TezSession"
       + ", sessionName=" + sessionName
-      + ", applicationId=" + applicationId);
+      + ", applicationId=" + applicationId
+      + ", dagName=" + dag.getName());
     
     if (additionalAmResources != null && !additionalAmResources.isEmpty()) {
       for (LocalResource lr : additionalAmResources.values()) {

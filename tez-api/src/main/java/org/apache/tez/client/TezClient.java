@@ -107,7 +107,8 @@ public class TezClient {
       ApplicationSubmissionContext appContext = TezClientUtils.createApplicationSubmissionContext(
           conf, appId, dag, dag.getName(), amConfig, tezJarResources, credentials);
       LOG.info("Submitting DAG to YARN"
-          + ", applicationId=" + appId);
+          + ", applicationId=" + appId
+          + ", dagName=" + dag.getName());
       yarnClient.submitApplication(appContext);
     } catch (YarnException e) {
       throw new TezException(e);

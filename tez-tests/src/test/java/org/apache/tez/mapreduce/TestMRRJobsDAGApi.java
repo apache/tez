@@ -25,8 +25,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.rmi.RemoteException;
-import java.security.CodeSource;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -124,6 +122,7 @@ public class TestMRRJobsDAGApi {
 
   private static Configuration conf = new Configuration();
   private static FileSystem remoteFs;
+  private Random random = new Random();
 
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestMRRJobsDAGApi.class.getName() + "-tmpDir";
@@ -491,7 +490,7 @@ public class TestMRRJobsDAGApi {
     byte[] stage1InputPayload = MRHelpers.createMRInputPayload(stage1Payload, null);
     byte[] stage3Payload = MRHelpers.createUserPayloadFromConf(stage3Conf);
     
-    DAG dag = new DAG("testMRRSleepJobDagSubmit");
+    DAG dag = new DAG("testMRRSleepJobDagSubmit-" + random.nextInt(1000));
     int stage1NumTasks = genSplitsInAM ? -1 : inputSplitInfo.getNumTasks();
     Class<? extends TezRootInputInitializer> inputInitializerClazz =
         genSplitsInAM ? (initializerClass == null ? MRInputAMSplitGenerator.class : initializerClass)
@@ -631,8 +630,8 @@ public class TestMRRJobsDAGApi {
     }
 
     if(dagViaRPC) {
-      LOG.info("Submitting dag to tez session with appId="
-          + tezSession.getApplicationId());
+      LOG.info("Submitting dag to tez session with appId=" + tezSession.getApplicationId()
+          + " and Dag Name=" + dag.getName());
       dagClient = tezSession.submitDAG(dag, additionalLocalResources);
       Assert.assertEquals(TezSessionStatus.RUNNING,
           tezSession.getSessionStatus());

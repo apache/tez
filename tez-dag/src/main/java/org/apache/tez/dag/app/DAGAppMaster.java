@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -93,6 +94,7 @@ import org.apache.tez.common.impl.LogUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.DuplicateDAGName;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
@@ -236,6 +238,10 @@ public class DAGAppMaster extends AbstractService {
   private Path recoveryDataDir;
   private Path currentRecoveryDataDir;
   private FileSystem recoveryFS;
+  /**
+   * set of already executed dag names.
+   */
+  Set<String> dagNames = new HashSet<String>();
 
   protected boolean isLastAMRetry = false;
 
@@ -1856,6 +1862,11 @@ public class DAGAppMaster extends AbstractService {
     long submitTime = this.clock.getTime();
     this.state = DAGAppMasterState.RUNNING;
     this.appName = dagPlan.getName();
+    if (dagNames.contains(dagPlan.getName())) {
+      throw new DuplicateDAGName("Duplicate dag name '" + dagPlan.getName() + "'");
+    }
+    dagNames.add(dagPlan.getName());
+
     // /////////////////// Create the job itself.
     DAG newDAG = createDAG(dagPlan);
     _updateLoggers(newDAG, "");
