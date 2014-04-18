@@ -55,7 +55,11 @@ public class TezGroupedSplit implements InputSplit, Configurable {
       String[] locations) {
     this(numSplits, wrappedInputFormatName, locations, null);
   }
-  
+
+  public List<InputSplit> getGroupedSplits() {
+    return wrappedSplits;
+  }
+
   public void addSplit(InputSplit split) {
     wrappedSplits.add(split);
     try {

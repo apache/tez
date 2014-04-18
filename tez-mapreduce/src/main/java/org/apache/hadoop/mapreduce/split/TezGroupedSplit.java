@@ -66,7 +66,11 @@ public class TezGroupedSplit extends InputSplit
       throw new TezUncheckedException(e);
     }
   }
-  
+
+  public List<InputSplit> getGroupedSplits() {
+    return wrappedSplits;
+  }
+
   @Override
   public void write(DataOutput out) throws IOException {
     if (wrappedSplits == null) {

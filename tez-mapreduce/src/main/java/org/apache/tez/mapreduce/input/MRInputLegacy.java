@@ -26,6 +26,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
@@ -49,13 +50,23 @@ public class MRInputLegacy extends MRInput {
   public org.apache.hadoop.mapreduce.InputSplit getNewInputSplit() {
     return this.newInputSplit;
   }  
-  
+
+  @SuppressWarnings("rawtypes")
+  @Unstable
+  public org.apache.hadoop.mapreduce.RecordReader getNewRecordReader() {
+    return this.newRecordReader;
+  }
 
   @Private
   public InputSplit getOldInputSplit() {
     return this.oldInputSplit;
   }
-  
+
+  @Unstable
+  public boolean isUsingNewApi() {
+    return this.useNewApi;
+  }
+
   @SuppressWarnings("rawtypes")
   @Private
   public RecordReader getOldRecordReader() {

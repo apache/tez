@@ -94,7 +94,7 @@ public class MRInput extends AbstractLogicalInput {
   @SuppressWarnings("rawtypes")
   private org.apache.hadoop.mapreduce.InputFormat newInputFormat;
   @SuppressWarnings("rawtypes")
-  private org.apache.hadoop.mapreduce.RecordReader newRecordReader;
+  protected org.apache.hadoop.mapreduce.RecordReader newRecordReader;
   protected org.apache.hadoop.mapreduce.InputSplit newInputSplit;
 
   @SuppressWarnings("rawtypes")
