@@ -30,6 +30,7 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
@@ -107,7 +108,7 @@ public interface Vertex extends Comparable<Vertex> {
 
   int getInputVerticesCount();
   int getOutputVerticesCount();
-  void scheduleTasks(List<Integer> taskIDs);
+  void scheduleTasks(List<TaskWithLocationHint> tasks);
   Resource getTaskResource();
 
   ProcessorDescriptor getProcessorDescriptor();

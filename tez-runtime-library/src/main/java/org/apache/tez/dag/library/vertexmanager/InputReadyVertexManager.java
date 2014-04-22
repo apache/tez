@@ -23,12 +23,15 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
+import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
@@ -42,7 +45,8 @@ public class InputReadyVertexManager implements VertexManagerPlugin {
   VertexManagerPluginContext context;
   Map<String, SourceVertexInfo> srcVertexInfo = Maps.newHashMap();
   boolean taskIsStarted[];
-  int templateOneToOne[];
+  int oneToOneSrcTasksDoneCount[];
+  Container oneToOneLocationHints[];
   int numOneToOneEdges;
   
   class SourceVertexInfo {
@@ -67,7 +71,7 @@ public class InputReadyVertexManager implements VertexManagerPlugin {
   @Override
   public void onVertexStarted(Map<String, List<Integer>> completions) {
     int numManagedTasks = context.getVertexNumTasks(context.getVertexName());
-    LOG.info("Managing " + numManagedTasks + " for vertex: " + context.getVertexName());
+    LOG.info("Managing " + numManagedTasks + " tasks for vertex: " + context.getVertexName());
     taskIsStarted = new boolean[numManagedTasks];
 
     // find out about all input edge types. If there is a custom edge then 
@@ -106,19 +110,20 @@ public class InputReadyVertexManager implements VertexManagerPlugin {
         throw new TezUncheckedException(
             "Managed task number must equal 1-1 source task number");
       }
-      templateOneToOne = new int[oneToOneSrcTaskCount];
+      oneToOneSrcTasksDoneCount = new int[oneToOneSrcTaskCount];
+      oneToOneLocationHints = new Container[oneToOneSrcTaskCount];
     }
 
     for (Map.Entry<String, List<Integer>> entry : completions.entrySet()) {
       for (Integer task : entry.getValue()) {
-        handleSouceTaskFinished(entry.getKey(), task);
+        handleSourceTaskFinished(entry.getKey(), task);
       }
     }
   }
 
   @Override
   public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
-    handleSouceTaskFinished(srcVertexName, taskId);
+    handleSourceTaskFinished(srcVertexName, taskId);
   }
 
   @Override
@@ -130,19 +135,23 @@ public class InputReadyVertexManager implements VertexManagerPlugin {
       InputDescriptor inputDescriptor, List<Event> events) {
   }
   
-  void handleSouceTaskFinished(String vertex, Integer taskId) {
+  void handleSourceTaskFinished(String vertex, Integer taskId) {
     SourceVertexInfo srcInfo = srcVertexInfo.get(vertex);
     if (srcInfo.taskIsFinished[taskId.intValue()] == null) {
       // not a duplicate completion
       srcInfo.taskIsFinished[taskId.intValue()] = new Boolean(true);
       srcInfo.numFinishedTasks++;
       if (srcInfo.edgeProperty.getDataMovementType() == DataMovementType.ONE_TO_ONE) {
-        templateOneToOne[taskId.intValue()]++;
+        oneToOneSrcTasksDoneCount[taskId.intValue()]++;
+        // keep the latest container that completed as the location hint
+        // After there is standard data size info available then use it
+        oneToOneLocationHints[taskId.intValue()] = context.getTaskContainer(vertex, taskId);
       }
     }
     
     // custom edge needs to tell us which of our tasks its connected to
     // for now only-built in edges supported
+    // Check if current source task's vertex is completed.
     if (srcInfo.edgeProperty.getDataMovementType() != DataMovementType.ONE_TO_ONE
         && srcInfo.numTasks != srcInfo.numFinishedTasks) {
       // we depend on all tasks to finish. So nothing to do now.
@@ -161,27 +170,35 @@ public class InputReadyVertexManager implements VertexManagerPlugin {
     }
     
     // all source vertices will full dependencies are done
-    List<Integer> tasksToStart = null;
+    List<TaskWithLocationHint> tasksToStart = null;
     if (numOneToOneEdges == 0) {
       // no 1-1 dependency. Start all tasks
-      tasksToStart = Lists.newArrayListWithCapacity(taskIsStarted.length);
-      for (int i=0; i<taskIsStarted.length; ++i) {
+      int numTasks = taskIsStarted.length;
+      LOG.info("Starting all " + numTasks + "tasks for vertex: " + context.getVertexName());
+      tasksToStart = Lists.newArrayListWithCapacity(numTasks);
+      for (int i=0; i<numTasks; ++i) {
         taskIsStarted[i] = true;
-        tasksToStart.add(new Integer(i));
+        tasksToStart.add(new TaskWithLocationHint(new Integer(i), null));
       }
     } else {
       // start only the ready 1-1 tasks
       tasksToStart = Lists.newLinkedList();
       for (int i=0; i<taskIsStarted.length; ++i) {
-        if (!taskIsStarted[i] && templateOneToOne[i] == numOneToOneEdges) {
+        if (!taskIsStarted[i] && oneToOneSrcTasksDoneCount[i] == numOneToOneEdges) {
           taskIsStarted[i] = true;
-          tasksToStart.add(new Integer(i));
+          TaskLocationHint locationHint = null;
+          if (oneToOneLocationHints[i] != null) {
+            locationHint = new TaskLocationHint(oneToOneLocationHints[i].getId());
+          }
+          LOG.info("Starting task " + i + " for vertex: "
+              + context.getVertexName() + " with location: "
+              + ((locationHint != null) ? locationHint.getAffinitizedContainer() : "null"));
+          tasksToStart.add(new TaskWithLocationHint(new Integer(i), locationHint));
         }
       }
     }
     
     if (tasksToStart != null && !tasksToStart.isEmpty()) {
-      // TODO determine placement after TEZ-1018
       context.scheduleVertexTasks(tasksToStart);
     }
     

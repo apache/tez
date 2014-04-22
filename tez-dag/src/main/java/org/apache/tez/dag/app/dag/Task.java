@@ -40,6 +40,7 @@ public interface Task {
   float getProgress();
   Map<TezTaskAttemptID, TaskAttempt> getAttempts();
   TaskAttempt getAttempt(TezTaskAttemptID attemptID);
+  TaskAttempt getSuccessfulAttempt();
 
   /** Has Task reached the final state or not.
    */

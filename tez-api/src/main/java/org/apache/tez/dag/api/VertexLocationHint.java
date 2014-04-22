@@ -22,6 +22,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hadoop.yarn.api.records.ContainerId;
+
+import com.google.common.base.Preconditions;
+
 public class VertexLocationHint  {
 
   private final List<TaskLocationHint> taskLocationHints;
@@ -73,11 +77,26 @@ public class VertexLocationHint  {
 
   public static class TaskLocationHint {
 
+    // Container to which to affinitize
+    ContainerId containerId;
     // Host names if any to be used
-    private final Set<String> hosts;
+    private Set<String> hosts;
     // Rack names if any to be used
-    private final Set<String> racks;
+    private Set<String> racks;
 
+    /**
+     * Provide a container to which the task may be affinitized
+     * Tez will try to run the task on that container or node local to it
+     */
+    public TaskLocationHint(ContainerId containerId) {
+      Preconditions.checkNotNull(containerId);
+      this.containerId = containerId;
+    }
+    
+    /**
+     * Provides nodes and racks at which the task may be executed.
+     * Tez will try to execute the task at those locations
+     */
     public TaskLocationHint(Set<String> hosts, Set<String> racks) {
       if (hosts != null) {
         this.hosts = Collections.unmodifiableSet(hosts);
@@ -91,6 +110,10 @@ public class VertexLocationHint  {
       }
     }
 
+    public ContainerId getAffinitizedContainer() {
+      return containerId;
+    }
+    
     public Set<String> getDataLocalHosts() {
       return hosts;
     }
@@ -108,6 +131,9 @@ public class VertexLocationHint  {
           result + prime;
       result = ( racks != null) ?
           prime * result + racks.hashCode() :
+          result + prime;
+      result = ( containerId != null) ?
+          prime * result + containerId.hashCode() :
           result + prime;
       return result;
     }
@@ -136,6 +162,13 @@ public class VertexLocationHint  {
           return false;
         }
       } else if (other.racks != null) {
+        return false;
+      }
+      if (containerId != null) {
+        if (!containerId.equals(other.containerId)) {
+          return false;
+        }
+      } else if (other.containerId != null) {
         return false;
       }
       return true;

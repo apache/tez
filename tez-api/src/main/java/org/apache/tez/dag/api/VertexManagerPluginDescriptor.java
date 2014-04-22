@@ -27,8 +27,8 @@ public class VertexManagerPluginDescriptor extends TezEntityDescriptor {
     super();
   }
   
-  public VertexManagerPluginDescriptor(String outputClassName) {
-    super(outputClassName);
+  public VertexManagerPluginDescriptor(String className) {
+    super(className);
   }
 
   @Override

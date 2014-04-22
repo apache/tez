@@ -38,6 +38,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
+import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
@@ -108,7 +109,10 @@ public class TestShuffleVertexManager {
       public Object answer(InvocationOnMock invocation) {
           Object[] args = invocation.getArguments();
           scheduledTasks.clear();
-          scheduledTasks.addAll((List<Integer>)args[0]); 
+          List<TaskWithLocationHint> tasks = (List<TaskWithLocationHint>)args[0];
+          for (TaskWithLocationHint task : tasks) {
+            scheduledTasks.add(task.getTaskIndex());
+          }
           return null;
       }}).when(mockContext).scheduleVertexTasks(anyList());
     
@@ -312,7 +316,10 @@ public class TestShuffleVertexManager {
       public Object answer(InvocationOnMock invocation) {
           Object[] args = invocation.getArguments();
           scheduledTasks.clear();
-          scheduledTasks.addAll((List<Integer>)args[0]); 
+          List<TaskWithLocationHint> tasks = (List<TaskWithLocationHint>)args[0];
+          for (TaskWithLocationHint task : tasks) {
+            scheduledTasks.add(task.getTaskIndex());
+          }
           return null;
       }}).when(mockContext).scheduleVertexTasks(anyList());
     

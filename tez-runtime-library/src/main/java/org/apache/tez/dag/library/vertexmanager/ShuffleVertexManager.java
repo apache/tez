@@ -19,7 +19,6 @@
 package org.apache.tez.dag.library.vertexmanager;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,6 +39,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
@@ -116,7 +116,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
   int numSourceTasks = 0;
   int numSourceTasksCompleted = 0;
   int numVertexManagerEventsReceived = 0;
-  ArrayList<Integer> pendingTasks;
+  List<Integer> pendingTasks;
   int totalTasksToSchedule = 0;
   
   Map<String, Set<Integer>> bipartiteSources = Maps.newHashMap();
@@ -289,7 +289,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
   
   @Override
   public void onVertexStarted(Map<String, List<Integer>> completions) {
-    pendingTasks = new ArrayList<Integer>(
+    pendingTasks = Lists.newArrayListWithCapacity(
         context.getVertexNumTasks(context.getVertexName()));
     // track the tasks in this vertex
     updatePendingTasks();
@@ -445,10 +445,10 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
       parallelismDetermined = true;
       determineParallelismAndApply();
     }
-    ArrayList<Integer> scheduledTasks = new ArrayList<Integer>(numTasksToSchedule);
+    List<TaskWithLocationHint> scheduledTasks = Lists.newArrayListWithCapacity(numTasksToSchedule);
     while(!pendingTasks.isEmpty() && numTasksToSchedule > 0) {
       numTasksToSchedule--;
-      scheduledTasks.add(pendingTasks.get(0));
+      scheduledTasks.add(new TaskWithLocationHint(pendingTasks.get(0), null));
       pendingTasks.remove(0);
     }
     context.scheduleVertexTasks(scheduledTasks);

@@ -130,7 +130,8 @@ public class TaskAttemptImpl implements TaskAttempt,
   private String trackerName;
   private int httpPort;
 
-  // TODO Can these be replaced by the container object ?
+  // TODO Can these be replaced by the container object TEZ-1037
+  private Container container;
   private ContainerId containerId;
   private NodeId containerNodeId;
   private String nodeHttpAddress;
@@ -633,6 +634,16 @@ public class TaskAttemptImpl implements TaskAttempt,
     readLock.lock();
     try {
       return containerId;
+    } finally {
+      readLock.unlock();
+    }
+  }
+  
+  @Override
+  public Container getAssignedContainer() {
+    readLock.lock();
+    try {
+      return container;
     } finally {
       readLock.unlock();
     }
@@ -1179,6 +1190,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       Container container = ta.appContext.getAllContainers()
           .get(event.getContainerId()).getContainer();
 
+      ta.container = container;
       ta.containerId = event.getContainerId();
       ta.containerNodeId = container.getNodeId();
       ta.nodeHttpAddress = StringInterner.weakIntern(container.getNodeHttpAddress());

@@ -332,11 +332,24 @@ public class TaskSchedulerEventHandler extends AbstractService
     event.getCapability().setMemory(mapResourceReqt);*/
     TaskAttempt taskAttempt = event.getTaskAttempt();
     TaskLocationHint locationHint = event.getLocationHint();
-    String hosts[] = (locationHint != null && locationHint.getDataLocalHosts() != null) ? locationHint
-        .getDataLocalHosts().toArray(
-            new String[locationHint.getDataLocalHosts().size()]) : null;
-    String racks[] = (locationHint != null && locationHint.getRacks() != null) ? locationHint
-        .getRacks().toArray(new String[locationHint.getRacks().size()]) : null;
+    String hosts[] = null;
+    String racks[] = null;
+    // Until TEZ-1039 is done we need to translate container affinity to the node
+    // for that container
+    if (locationHint != null) {
+      if (locationHint.getAffinitizedContainer() != null) {
+        ContainerId containerId = locationHint.getAffinitizedContainer();
+        AMContainer container = appContext.getAllContainers().get(containerId);
+        hosts = new String[1];
+        hosts[0] = container.getContainer().getNodeId().getHost();
+      } else {
+        hosts = (locationHint.getDataLocalHosts() != null) ? locationHint
+            .getDataLocalHosts().toArray(
+                new String[locationHint.getDataLocalHosts().size()]) : null;
+        racks = (locationHint.getRacks() != null) ? locationHint.getRacks()
+            .toArray(new String[locationHint.getRacks().size()]) : null;
+      }
+    }
     
     taskScheduler.allocateTask(taskAttempt,
                                event.getCapability(),

@@ -7,6 +7,8 @@ INCOMPATIBLE CHANGES
   TEZ-960. VertexManagerPluginContext::getTotalAVailableResource() changed to
   VertexManagerPluginContext::getTotalAvailableResource()
   TEZ-1025. Rename tez.am.max.task.attempts to tez.am.task.max.failed.attempts 
+  TEZ-1018. VertexManagerPluginContext should enable assigning locality to
+  scheduled tasks
 
 Release 0.4.0-incubating: 2014-04-05
 

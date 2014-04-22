@@ -37,7 +37,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
@@ -56,13 +55,13 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManager;
-import org.apache.tez.dag.api.EdgeManagerContext;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos;
@@ -117,7 +116,6 @@ import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
-import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.test.EdgeManagerForTest;
@@ -1455,7 +1453,7 @@ public class TestVertexImpl {
         new VertexEventRouteEvent(v3.getVertexId(), taskEvents));
     dispatcher.await();
     Assert.assertEquals(2, v3.pendingTaskEvents.size());
-    v3.scheduleTasks(Collections.singletonList(new Integer(0)));
+    v3.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), null)));
     dispatcher.await();
     Assert.assertEquals(0, v3.pendingTaskEvents.size());
     // send events and test that they are not buffered anymore
@@ -2112,7 +2110,9 @@ public class TestVertexImpl {
     Assert.assertEquals(numTasks, v1.getTotalTasks());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v1
         .getVertexManager().getPlugin().getClass().getName());
-    Assert.assertEquals(v1Hints, v1.getVertexLocationHint().getTaskLocationHints());
+    for (int i=0; i < v1Hints.size(); ++i) {
+      Assert.assertEquals(v1Hints.get(i), v1.getTaskLocationHints()[i]);
+    }
     Assert.assertEquals(true, runner1.hasShutDown);
     
     Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
@@ -2201,7 +2201,9 @@ public class TestVertexImpl {
     Assert.assertEquals(5, v1.getTotalTasks());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v1
         .getVertexManager().getPlugin().getClass().getName());
-    Assert.assertEquals(v1Hints, v1.getVertexLocationHint().getTaskLocationHints());
+    for (int i=0; i < v1Hints.size(); ++i) {
+      Assert.assertEquals(v1Hints.get(i), v1.getTaskLocationHints()[i]);
+    }
     Assert.assertEquals(true, runner1.hasShutDown);
     
     VertexImplWithCustomInitializer v2 = (VertexImplWithCustomInitializer) vertices.get("vertex2");
@@ -2214,7 +2216,9 @@ public class TestVertexImpl {
     Assert.assertEquals(10, v2.getTotalTasks());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v2
         .getVertexManager().getPlugin().getClass().getName());
-    Assert.assertEquals(v2Hints, v2.getVertexLocationHint().getTaskLocationHints());
+    for (int i=0; i < v2Hints.size(); ++i) {
+      Assert.assertEquals(v2Hints.get(i), v2.getTaskLocationHints()[i]);
+    }
     Assert.assertEquals(true, runner2.hasShutDown);
   }
   

@@ -22,15 +22,39 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
 
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 
+import com.google.common.base.Preconditions;
+
+@Unstable
 /**
  * Object with API's to interact with the Tez execution engine
  */
 public interface VertexManagerPluginContext {
   
+  public class TaskWithLocationHint {
+    Integer taskIndex;
+    TaskLocationHint locationHint;
+    public TaskWithLocationHint(Integer taskIndex, @Nullable TaskLocationHint locationHint) {
+      Preconditions.checkNotNull(taskIndex);
+      this.taskIndex = taskIndex;
+      this.locationHint = locationHint;
+    }
+    
+    public Integer getTaskIndex() {
+      return taskIndex;
+    }
+    
+    public TaskLocationHint getTaskLocationHint() {
+      return locationHint;
+    }
+  }
   /**
    * Get the edge properties on the input edges of this vertex. The input edge 
    * is represented by the source vertex name
@@ -62,6 +86,13 @@ public interface VertexManagerPluginContext {
    * @return Resource
    */
   Resource getVertexTaskResource();
+  
+  /**
+   * Get the container for the successful attempt of the task
+   * @return YARN container for the successful task. Maybe null if there is no
+   * successful task.
+   */
+  public Container getTaskContainer(String vertexName, Integer taskIndex);
   
   /**
    * Get the total resource allocated to this vertex. If the DAG is running in 
@@ -110,8 +141,8 @@ public interface VertexManagerPluginContext {
    * Notify the vertex to start the given tasks
    * @param taskIDs Indices of the tasks to be started
    */
-  public void scheduleVertexTasks(List<Integer> taskIDs);
-
+  public void scheduleVertexTasks(List<TaskWithLocationHint> tasks);
+  
   /**
    * Get the names of the non-vertex inputs of this vertex. These are primary 
    * sources of data.

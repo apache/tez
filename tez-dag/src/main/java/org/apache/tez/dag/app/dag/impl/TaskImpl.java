@@ -368,7 +368,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       readLock.unlock();
     }
   }
-
+  
   @Override
   public TaskAttempt getAttempt(TezTaskAttemptID attemptID) {
     readLock.lock();
@@ -773,7 +773,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         (failedAttempts > 0), taskResource, containerContext, leafVertex);
   }
 
-  protected TaskAttempt getSuccessfulAttempt() {
+  @Override
+  public TaskAttempt getSuccessfulAttempt() {
     readLock.lock();
     try {
       if (null == successfulAttempt) {

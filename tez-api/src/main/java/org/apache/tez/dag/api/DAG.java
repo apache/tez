@@ -547,6 +547,10 @@ public class DAG { // FIXME rename to Topology
           for (TaskLocationHint hint : vertex.getTaskLocationsHint().getTaskLocationHints()) {
             PlanTaskLocationHint.Builder taskLocationHintBuilder = PlanTaskLocationHint.newBuilder();
 
+            if (hint.getAffinitizedContainer() != null) {
+              throw new TezUncheckedException(
+                  "Container affinity may not be specified via the DAG API");
+            }
             if (hint.getDataLocalHosts() != null) {
               taskLocationHintBuilder.addAllHost(hint.getDataLocalHosts());
             }

@@ -62,6 +62,7 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -547,7 +548,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   
   private Map<String, VertexGroupInfo> dagVertexGroups;
   
-  private VertexLocationHint vertexLocationHint;
+  private TaskLocationHint taskLocationHints[];
   private Map<String, LocalResource> localResources;
   private Map<String, String> environment;
   private final String javaOpts;
@@ -587,11 +588,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.readLock = readWriteLock.readLock();
     this.writeLock = readWriteLock.writeLock();
 
-    this.vertexLocationHint = vertexLocationHint;
     if (LOG.isDebugEnabled()) {
-      logLocationHints(this.vertexName, this.vertexLocationHint);
+      logLocationHints(this.vertexName, vertexLocationHint);
     }
-
+    setTaskLocationHints(vertexLocationHint);
+    
     this.dagUgi = appContext.getCurrentDAG().getDagUGI();
 
     this.taskResource = DagTypeConverters
@@ -848,11 +849,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public TaskLocationHint getTaskLocationHint(TezTaskID taskId) {
     this.readLock.lock();
     try {
-      if (vertexLocationHint == null || 
-          vertexLocationHint.getTaskLocationHints().size() <= taskId.getId()) {
+      if (taskLocationHints == null || 
+          taskLocationHints.length <= taskId.getId()) {
         return null;
       }
-      return vertexLocationHint.getTaskLocationHints().get(taskId.getId());
+      return taskLocationHints[taskId.getId()];
     } finally {
       this.readLock.unlock();
     }
@@ -972,7 +973,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         VertexParallelismUpdatedEvent updatedEvent =
             (VertexParallelismUpdatedEvent) historyEvent;
         if (updatedEvent.getVertexLocationHint() != null) {
-          vertexLocationHint = updatedEvent.getVertexLocationHint();
+          setTaskLocationHints(updatedEvent.getVertexLocationHint());
         }
         numTasks = updatedEvent.getNumTasks();
         handleParallelismUpdate(numTasks, updatedEvent.getSourceEdgeManagers());
@@ -1015,12 +1016,19 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     }
   }
+  
+  private void setTaskLocationHints(VertexLocationHint vertexLocationHint) {
+    if (vertexLocationHint != null && 
+        vertexLocationHint.getTaskLocationHints() != null && 
+        !vertexLocationHint.getTaskLocationHints().isEmpty()) {
+      List<TaskLocationHint> locHints = vertexLocationHint.getTaskLocationHints();
+      taskLocationHints = locHints.toArray(new TaskLocationHint[locHints.size()]);
+    }
+  }
 
-  // TODO Create InputReadyVertexManager that schedules when there is something
-  // to read and use that as default instead of ImmediateStart.TEZ-480
   @Override
-  public void scheduleTasks(List<Integer> taskIDs) {
-    readLock.lock();
+  public void scheduleTasks(List<TaskWithLocationHint> tasksToSchedule) {
+    writeLock.lock();
     try {
       tasksNotYetScheduled = false;
       if (!pendingTaskEvents.isEmpty()) {
@@ -1028,17 +1036,24 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             new VertexEventRouteEvent(getVertexId(), pendingTaskEvents));
         pendingTaskEvents.clear();
       }
-      for (Integer taskID : taskIDs) {
-        if (tasks.size() <= taskID.intValue()) {
+      for (TaskWithLocationHint task : tasksToSchedule) {
+        if (numTasks <= task.getTaskIndex().intValue()) {
           throw new TezUncheckedException(
-              "Invalid taskId: " + taskID + " for vertex: " + vertexName);
+              "Invalid taskId: " + task.getTaskIndex() + " for vertex: " + logIdentifier);
+        }
+        TaskLocationHint locationHint = task.getTaskLocationHint();
+        if (locationHint != null) {
+          if (taskLocationHints == null) {
+            taskLocationHints = new TaskLocationHint[numTasks];
+          }
+          taskLocationHints[task.getTaskIndex().intValue()] = locationHint;
         }
         eventHandler.handle(new TaskEvent(
-            TezTaskID.getInstance(vertexId, taskID.intValue()),
+            TezTaskID.getInstance(vertexId, task.getTaskIndex().intValue()),
             TaskEventType.T_SCHEDULE));
       }
     } finally {
-      readLock.unlock();
+      writeLock.unlock();
     }
   }
 
@@ -1081,7 +1096,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     writeLock.lock();
     try {
       if (parallelismSet == true) {
-        LOG.info("Parallelism can only be set dynamically once per vertex");
+        LOG.info("Parallelism can only be set dynamically once per vertex: " + logIdentifier);
         return false;
       }
       
@@ -1120,10 +1135,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           return false;
         }
         if (parallelism == numTasks) {
-          LOG.info("setParallelism same as current value: " + parallelism);
+          LOG.info("setParallelism same as current value: " + parallelism + 
+              " for vertex: " + logIdentifier);
           Preconditions
           .checkArgument(sourceEdgeManagers != null,
               "Source edge managers must be set when not changing parallelism");
+        } else {
+          LOG.info(
+              "Resetting vertex location hints due to change in parallelism for vertex: " + logIdentifier);
+          vertexLocationHint = null;
         }
   
         // start buffering incoming events so that we can re-route existing events
@@ -1215,10 +1235,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public void setVertexLocationHint(VertexLocationHint vertexLocationHint) {
     writeLock.lock();
     try {
-      this.vertexLocationHint = vertexLocationHint;
       if (LOG.isDebugEnabled()) {
-        logLocationHints(this.vertexName, this.vertexLocationHint);
+        logLocationHints(this.vertexName, vertexLocationHint);
       }
+      setTaskLocationHints(vertexLocationHint);
     } finally {
       writeLock.unlock();
     }
@@ -3305,8 +3325,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
   
   @VisibleForTesting
-  VertexLocationHint getVertexLocationHint() {
-    return this.vertexLocationHint;
+  TaskLocationHint[] getTaskLocationHints() {
+    return taskLocationHints;
   }
 
   // TODO Eventually remove synchronization.

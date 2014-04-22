@@ -27,6 +27,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.RuntimeUtils;
 import org.apache.tez.common.TezUtils;
@@ -39,6 +40,8 @@ import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -102,8 +105,8 @@ public class VertexManager {
     }
 
     @Override
-    public void scheduleVertexTasks(List<Integer> taskIDs) {
-      managedVertex.scheduleTasks(taskIDs);
+    public void scheduleVertexTasks(List<TaskWithLocationHint> tasks) {
+      managedVertex.scheduleTasks(tasks);
     }
 
     @Override
@@ -180,6 +183,17 @@ public class VertexManager {
     @Override
     public int getNumClusterNodes() {
       return appContext.getTaskScheduler().getNumClusterNodes();
+    }
+
+    @Override
+    public Container getTaskContainer(String vertexName, Integer taskIndex) {
+      Vertex vertex = appContext.getCurrentDAG().getVertex(vertexName);
+      Task task = vertex.getTask(taskIndex.intValue());
+      TaskAttempt attempt = task.getSuccessfulAttempt();
+      if (attempt != null) {
+        return attempt.getAssignedContainer();
+      }
+      return null;
     }
   }
   

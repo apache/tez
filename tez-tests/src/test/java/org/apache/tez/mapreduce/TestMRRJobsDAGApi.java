@@ -88,6 +88,7 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatus.State;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
+import org.apache.tez.mapreduce.examples.BroadcastAndOneToOneExample;
 import org.apache.tez.mapreduce.examples.MRRSleepJob;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.ISleepReducer;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.MRRSleepJobPartitioner;
@@ -674,8 +675,8 @@ public class TestMRRJobsDAGApi {
   @Test(timeout = 60000)
   public void testVertexGroups() throws Exception {
     LOG.info("Running Group Test");
-    Path inPath = new Path(TEST_ROOT_DIR, "in");
-    Path outPath = new Path(TEST_ROOT_DIR, "out");
+    Path inPath = new Path(TEST_ROOT_DIR, "in-groups");
+    Path outPath = new Path(TEST_ROOT_DIR, "out-groups");
     FSDataOutputStream out = remoteFs.create(inPath);
     OutputStreamWriter writer = new OutputStreamWriter(out);
     writer.write("abcd ");
@@ -690,6 +691,17 @@ public class TestMRRJobsDAGApi {
       LOG.info("Success VertexGroups Test");
     } else {
       throw new TezUncheckedException("VertexGroups Test Failed");
+    }
+  }
+  
+  @Test(timeout = 60000)
+  public void testBroadcastAndOneToOne() throws Exception {
+    LOG.info("Running BroadcastAndOneToOne Test");
+    BroadcastAndOneToOneExample job = new BroadcastAndOneToOneExample();
+    if (job.run(mrrTezCluster.getConfig())) {
+      LOG.info("Success BroadcastAndOneToOne Test");
+    } else {
+      throw new TezUncheckedException("BroadcastAndOneToOne Test Failed");
     }
   }
 

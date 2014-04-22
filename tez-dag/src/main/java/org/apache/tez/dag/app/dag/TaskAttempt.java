@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.dag;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.counters.DAGCounter;
@@ -83,6 +84,11 @@ public interface TaskAttempt {
    * @return the container ID if a container is assigned, otherwise null.
    */
   ContainerId getAssignedContainerID();
+  
+  /**
+   * @return the container if assigned, otherwise null
+   */
+  Container getAssignedContainer();
 
   /**
    * @return container mgr address if a container is assigned, otherwise null.

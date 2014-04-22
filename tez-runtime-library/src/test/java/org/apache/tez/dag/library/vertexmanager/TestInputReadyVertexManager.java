@@ -25,12 +25,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
+import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,7 +47,7 @@ import com.google.common.collect.Maps;
 public class TestInputReadyVertexManager {
   
   @Captor
-  ArgumentCaptor<List<Integer>> requestCaptor;
+  ArgumentCaptor<List<TaskWithLocationHint>> requestCaptor;
   
   @Before
   public void init() {
@@ -98,12 +101,21 @@ public class TestInputReadyVertexManager {
         new InputDescriptor("in"));
     
     String mockManagedVertexId = "Vertex";
+    Container mockContainer1 = mock(Container.class);
+    ContainerId mockCId1 = mock(ContainerId.class);
+    when(mockContainer1.getId()).thenReturn(mockCId1);
+    Container mockContainer2 = mock(Container.class);
+    ContainerId mockCId2 = mock(ContainerId.class);
+    when(mockContainer2.getId()).thenReturn(mockCId2);
     
     VertexManagerPluginContext mockContext = mock(VertexManagerPluginContext.class);
     when(mockContext.getInputVertexEdgeProperties()).thenReturn(mockInputVertices);
     when(mockContext.getVertexName()).thenReturn(mockManagedVertexId);
     when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(3);
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(3);
+    when(mockContext.getTaskContainer(mockSrcVertexId1, 0)).thenReturn(mockContainer1);
+    when(mockContext.getTaskContainer(mockSrcVertexId1, 1)).thenReturn(mockContainer2);
+    when(mockContext.getTaskContainer(mockSrcVertexId1, 2)).thenReturn(mockContainer1);
     mockInputVertices.put(mockSrcVertexId1, eProp1);
     
     Map<String, List<Integer>> initialCompletions = Maps.newHashMap();
@@ -114,15 +126,21 @@ public class TestInputReadyVertexManager {
     manager.onVertexStarted(initialCompletions);
     verify(mockContext, times(1)).scheduleVertexTasks(requestCaptor.capture());
     Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(0, requestCaptor.getValue().get(0).intValue());
+    Assert.assertEquals(0, requestCaptor.getValue().get(0).getTaskIndex().intValue());
+    Assert.assertEquals(mockCId1, requestCaptor.getValue().get(0)
+        .getTaskLocationHint().getAffinitizedContainer());
     manager.onSourceTaskCompleted(mockSrcVertexId1, 1);
     verify(mockContext, times(2)).scheduleVertexTasks(requestCaptor.capture());
     Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(1, requestCaptor.getValue().get(0).intValue());
+    Assert.assertEquals(1, requestCaptor.getValue().get(0).getTaskIndex().intValue());
+    Assert.assertEquals(mockCId2, requestCaptor.getValue().get(0)
+        .getTaskLocationHint().getAffinitizedContainer());
     manager.onSourceTaskCompleted(mockSrcVertexId1, 2);
     verify(mockContext, times(3)).scheduleVertexTasks(requestCaptor.capture());
     Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(2, requestCaptor.getValue().get(0).intValue());
+    Assert.assertEquals(2, requestCaptor.getValue().get(0).getTaskIndex().intValue());
+    Assert.assertEquals(mockCId1, requestCaptor.getValue().get(0)
+        .getTaskLocationHint().getAffinitizedContainer());
   }
 
   @Test (timeout=5000)
@@ -152,6 +170,12 @@ public class TestInputReadyVertexManager {
         new InputDescriptor("in"));
     
     String mockManagedVertexId = "Vertex";
+    Container mockContainer2 = mock(Container.class);
+    ContainerId mockCId2 = mock(ContainerId.class);
+    when(mockContainer2.getId()).thenReturn(mockCId2);
+    Container mockContainer3 = mock(Container.class);
+    ContainerId mockCId3 = mock(ContainerId.class);
+    when(mockContainer3.getId()).thenReturn(mockCId3);
     
     VertexManagerPluginContext mockContext = mock(VertexManagerPluginContext.class);
     when(mockContext.getInputVertexEdgeProperties()).thenReturn(mockInputVertices);
@@ -159,6 +183,12 @@ public class TestInputReadyVertexManager {
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(3);
     when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(3);
     when(mockContext.getVertexNumTasks(mockSrcVertexId3)).thenReturn(3);
+    when(mockContext.getTaskContainer(mockSrcVertexId2, 0)).thenReturn(mockContainer2);
+    when(mockContext.getTaskContainer(mockSrcVertexId2, 1)).thenReturn(mockContainer2);
+    when(mockContext.getTaskContainer(mockSrcVertexId2, 2)).thenReturn(mockContainer2);
+    when(mockContext.getTaskContainer(mockSrcVertexId3, 0)).thenReturn(mockContainer3);
+    when(mockContext.getTaskContainer(mockSrcVertexId3, 1)).thenReturn(mockContainer3);
+    when(mockContext.getTaskContainer(mockSrcVertexId3, 2)).thenReturn(mockContainer3);
     mockInputVertices.put(mockSrcVertexId1, eProp1);
     mockInputVertices.put(mockSrcVertexId2, eProp2);
     mockInputVertices.put(mockSrcVertexId3, eProp3);
@@ -203,20 +233,26 @@ public class TestInputReadyVertexManager {
     manager.onSourceTaskCompleted(mockSrcVertexId1, 2); // v1 done
     verify(mockContext, times(1)).scheduleVertexTasks(requestCaptor.capture());
     Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(0, requestCaptor.getValue().get(0).intValue());
+    Assert.assertEquals(0, requestCaptor.getValue().get(0).getTaskIndex().intValue());
+    Assert.assertEquals(mockCId3, requestCaptor.getValue().get(0)
+        .getTaskLocationHint().getAffinitizedContainer()); // affinity to last completion
     // 1-1 completion triggers since other 1-1 is done
     manager.onSourceTaskCompleted(mockSrcVertexId3, 1);
     verify(mockContext, times(2)).scheduleVertexTasks(requestCaptor.capture());
     Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(1, requestCaptor.getValue().get(0).intValue());
+    Assert.assertEquals(1, requestCaptor.getValue().get(0).getTaskIndex().intValue());
+    Assert.assertEquals(mockCId3, requestCaptor.getValue().get(0)
+        .getTaskLocationHint().getAffinitizedContainer()); // affinity to last completion
     // 1-1 completion does not trigger since other 1-1 is not done
-    manager.onSourceTaskCompleted(mockSrcVertexId2, 2);
+    manager.onSourceTaskCompleted(mockSrcVertexId3, 2);
     verify(mockContext, times(2)).scheduleVertexTasks(anyList());
     // 1-1 completion trigger start
-    manager.onSourceTaskCompleted(mockSrcVertexId3, 2);
+    manager.onSourceTaskCompleted(mockSrcVertexId2, 2);
     verify(mockContext, times(3)).scheduleVertexTasks(requestCaptor.capture());
     Assert.assertEquals(1, requestCaptor.getValue().size());
-    Assert.assertEquals(2, requestCaptor.getValue().get(0).intValue());
+    Assert.assertEquals(2, requestCaptor.getValue().get(0).getTaskIndex().intValue());
+    Assert.assertEquals(mockCId2, requestCaptor.getValue().get(0)
+        .getTaskLocationHint().getAffinitizedContainer()); // affinity to last completion
     
     // no more starts
     manager.onSourceTaskCompleted(mockSrcVertexId3, 2);
