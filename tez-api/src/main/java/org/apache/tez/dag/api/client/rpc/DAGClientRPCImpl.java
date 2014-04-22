@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.Set;
 import javax.annotation.Nullable;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.ipc.RPC;

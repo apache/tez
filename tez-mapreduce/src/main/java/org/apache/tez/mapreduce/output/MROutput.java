@@ -42,7 +42,9 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
+import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
 import org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
@@ -79,6 +81,25 @@ public class MROutput extends AbstractLogicalOutput {
   private boolean isMapperOutput;
 
   protected OutputCommitter committer;
+  
+  /**
+   * Creates the user payload to be set on the OutputDescriptor for MROutput
+   * @param conf Configuration for the OutputFormat
+   * @param outputFormatName Name of the class of the OutputFormat
+   * @param useNewApi Use new mapreduce API or old mapred API
+   * @return
+   * @throws IOException
+   */
+  public static byte[] createUserPayload(Configuration conf, 
+      String outputFormatName, boolean useNewApi) throws IOException {
+    Configuration outputConf = new JobConf(conf);
+    outputConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, outputFormatName);
+    outputConf.setBoolean("mapred.mapper.new-api", useNewApi);
+    MultiStageMRConfToTezTranslator.translateVertexConfToTez(outputConf,
+        null);
+    MRHelpers.doJobClientMagic(outputConf);
+    return TezUtils.createUserPayloadFromConf(outputConf);
+  }
 
   @Override
   public List<Event> initialize() throws IOException, InterruptedException {

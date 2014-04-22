@@ -19,7 +19,6 @@ package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -32,13 +31,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
-import org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -68,16 +65,12 @@ import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezProcessorContext;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
@@ -90,15 +83,12 @@ import com.google.common.collect.Maps;
 
 public class UnionExample {
 
-  public static class TokenProcessor implements LogicalIOProcessor {
-    TezProcessorContext context;
+  public static class TokenProcessor extends AbstractLogicalIOProcessor {
     IntWritable one = new IntWritable(1);
     Text word = new Text();
 
     @Override
-    public void initialize(TezProcessorContext processorContext)
-        throws Exception {
-      this.context = processorContext;
+    public void initialize() throws Exception {
     }
 
     @Override
@@ -120,7 +110,7 @@ public class UnionExample {
         output.start();
       }
       boolean inUnion = true;
-      if (context.getTaskVertexName().equals("map3")) {
+      if (getContext().getTaskVertexName().equals("map3")) {
         inUnion = false;
       }
       Preconditions.checkArgument(outputs.size() == (inUnion ? 2 : 1));
@@ -147,7 +137,7 @@ public class UnionExample {
       }
       if (inUnion) {
         if (parts.isCommitRequired()) {
-          while (!context.canCommit()) {
+          while (!getContext().canCommit()) {
             Thread.sleep(100);
           }
           parts.commit();
@@ -157,14 +147,11 @@ public class UnionExample {
     
   }
   
-  public static class UnionProcessor implements LogicalIOProcessor {
-    TezProcessorContext context;
+  public static class UnionProcessor extends AbstractLogicalIOProcessor {
     IntWritable one = new IntWritable(1);
     
     @Override
-    public void initialize(TezProcessorContext processorContext)
-        throws Exception {
-      this.context = processorContext;
+    public void initialize() throws Exception {
     }
 
     @Override
@@ -225,13 +212,13 @@ public class UnionExample {
       }
       kvWriter.write("Union", new IntWritable(unionKv.size()));
       if (out.isCommitRequired()) {
-        while (!context.canCommit()) {
+        while (!getContext().canCommit()) {
           Thread.sleep(100);
         }
         out.commit();
       }
       if (allParts.isCommitRequired()) {
-        while (!context.canCommit()) {
+        while (!getContext().canCommit()) {
           Thread.sleep(100);
         }
         allParts.commit();
@@ -243,100 +230,70 @@ public class UnionExample {
   private DAG createDAG(FileSystem fs, TezConfiguration tezConf,
       Map<String, LocalResource> localResources, Path stagingDir,
       String inputPath, String outputPath) throws IOException {
-    Configuration mapStageConf = new JobConf((Configuration)tezConf);
-    mapStageConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
-        Text.class.getName());
-    mapStageConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
-        IntWritable.class.getName());
-    mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, 
-        TezGroupedSplitsInputFormat.class.getName());
-
-    mapStageConf.set(FileInputFormat.INPUT_DIR, inputPath);
-    mapStageConf.setBoolean("mapred.mapper.new-api", true);
-
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(mapStageConf,
-        null);
-
-    Configuration finalReduceConf = new JobConf((Configuration)tezConf);
-    finalReduceConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
-        Text.class.getName());
-    finalReduceConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
-        IntWritable.class.getName());
-    finalReduceConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
-        TextOutputFormat.class.getName());
-    finalReduceConf.set(FileOutputFormat.OUTDIR, outputPath);
-    finalReduceConf.setBoolean("mapred.mapper.new-api", true);
-
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(finalReduceConf,
-        mapStageConf);
-
-    MRHelpers.doJobClientMagic(mapStageConf);
-    MRHelpers.doJobClientMagic(finalReduceConf);
-
-    byte[] mapPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
-    byte[] mapInputPayload = MRHelpers.createMRInputPayloadWithGrouping(mapPayload, 
-            TextInputFormat.class.getName());
+    DAG dag = new DAG("UnionExample");
+    
     int numMaps = -1;
+    Configuration inputConf = new Configuration(tezConf);
+    inputConf.set(FileInputFormat.INPUT_DIR, inputPath);
+    InputDescriptor id = new InputDescriptor(MRInput.class.getName())
+        .setUserPayload(MRInput.createUserPayload(inputConf,
+            TextInputFormat.class.getName(), true, true));
+
     Vertex mapVertex1 = new Vertex("map1", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
-        numMaps, MRHelpers.getMapResource(mapStageConf));
-    mapVertex1.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
-    Map<String, String> mapEnv = new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRTasks(mapStageConf, mapEnv, true);
-    mapVertex1.setTaskEnvironment(mapEnv);
-    Class<? extends TezRootInputInitializer> initializerClazz = MRInputAMSplitGenerator.class;
-    InputDescriptor id = new InputDescriptor(MRInput.class.getName()).
-        setUserPayload(mapInputPayload);
-    mapVertex1.addInput("MRInput", id, initializerClazz);
+        numMaps, MRHelpers.getMapResource(tezConf));
+    mapVertex1.setJavaOpts(MRHelpers.getMapJavaOpts(tezConf));
+    mapVertex1.addInput("MRInput", id, MRInputAMSplitGenerator.class);
 
     Vertex mapVertex2 = new Vertex("map2", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
-        numMaps, MRHelpers.getMapResource(mapStageConf));
-    mapVertex2.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
-    MRHelpers.updateEnvironmentForMRTasks(mapStageConf, mapEnv, true);
-    mapVertex2.setTaskEnvironment(mapEnv);
-    mapVertex2.addInput("MRInput", id, initializerClazz);
+        numMaps, MRHelpers.getMapResource(tezConf));
+    mapVertex2.setJavaOpts(MRHelpers.getMapJavaOpts(tezConf));
+    mapVertex2.addInput("MRInput", id, MRInputAMSplitGenerator.class);
 
     Vertex mapVertex3 = new Vertex("map3", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
-        numMaps, MRHelpers.getMapResource(mapStageConf));
-    mapVertex3.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
-    MRHelpers.updateEnvironmentForMRTasks(mapStageConf, mapEnv, true);
-    mapVertex3.setTaskEnvironment(mapEnv);
-    mapVertex3.addInput("MRInput", id, initializerClazz);
-    
-    byte[] finalReducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
+        numMaps, MRHelpers.getMapResource(tezConf));
+    mapVertex3.setJavaOpts(MRHelpers.getMapJavaOpts(tezConf));
+    mapVertex3.addInput("MRInput", id, MRInputAMSplitGenerator.class);
+
     Vertex checkerVertex = new Vertex("checker",
         new ProcessorDescriptor(
-            UnionProcessor.class.getName()).setUserPayload(finalReducePayload),
-                1, MRHelpers.getReduceResource(finalReduceConf));
+            UnionProcessor.class.getName()),
+                1, MRHelpers.getReduceResource(tezConf));
     checkerVertex.setJavaOpts(
-        MRHelpers.getReduceJavaOpts(finalReduceConf));
-    Map<String, String> reduceEnv = new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRTasks(finalReduceConf, reduceEnv, false);
-    checkerVertex.setTaskEnvironment(reduceEnv);
+        MRHelpers.getReduceJavaOpts(tezConf));
+
+    Configuration outputConf = new Configuration(tezConf);
+    outputConf.set(FileOutputFormat.OUTDIR, outputPath);
     OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
-      .setUserPayload(finalReducePayload);
+      .setUserPayload(MROutput.createUserPayload(
+          outputConf, TextOutputFormat.class.getName(), true));
     checkerVertex.addOutput("union", od, MROutputCommitter.class);
 
-    Configuration partsConf = new Configuration(finalReduceConf);
+    Configuration allPartsConf = new Configuration(tezConf);
+    allPartsConf.set(FileOutputFormat.OUTDIR, outputPath+"-all-parts");
+    OutputDescriptor od2 = new OutputDescriptor(MROutput.class.getName())
+      .setUserPayload(MROutput.createUserPayload(
+          allPartsConf, TextOutputFormat.class.getName(), true));
+    checkerVertex.addOutput("all-parts", od2, MROutputCommitter.class);
+
+    Configuration partsConf = new Configuration(tezConf);
     partsConf.set(FileOutputFormat.OUTDIR, outputPath+"-parts");
-    byte[] partsPayload = MRHelpers.createUserPayloadFromConf(partsConf);
-    
-    DAG dag = new DAG("UnionExample");
     
     VertexGroup unionVertex = dag.createVertexGroup("union", mapVertex1, mapVertex2);
     OutputDescriptor od1 = new OutputDescriptor(MROutput.class.getName())
-      .setUserPayload(partsPayload);
-    Configuration allPartsConf = new Configuration(finalReduceConf);
-    allPartsConf.set(FileOutputFormat.OUTDIR, outputPath+"-all-parts");
-    byte[] allPartsPayload = MRHelpers.createUserPayloadFromConf(allPartsConf);
-    OutputDescriptor od2 = new OutputDescriptor(MROutput.class.getName())
-      .setUserPayload(allPartsPayload);
+      .setUserPayload(MROutput.createUserPayload(
+          partsConf, TextOutputFormat.class.getName(), true));
     unionVertex.addOutput("parts", od1, MROutputCommitter.class);
-    checkerVertex.addOutput("all-parts", od2, MROutputCommitter.class);
     
-    
+    byte[] intermediateDataPayloadIn = 
+        MRHelpers.createMRIntermediateDataPayload(tezConf, Text.class.getName(), 
+            IntWritable.class.getName(), true, null, null);
+    byte[] intermediateDataPayloadOut = 
+        MRHelpers.createMRIntermediateDataPayload(tezConf, Text.class.getName(), 
+            IntWritable.class.getName(), true, null, null);
+
     dag.addVertex(mapVertex1)
         .addVertex(mapVertex2)
         .addVertex(mapVertex3)
@@ -346,17 +303,17 @@ public class UnionExample {
                 DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
                 SchedulingType.SEQUENTIAL, 
                 new OutputDescriptor(OnFileSortedOutput.class.getName())
-                        .setUserPayload(mapPayload), 
+                        .setUserPayload(intermediateDataPayloadIn), 
                 new InputDescriptor(ShuffledMergedInput.class.getName())
-                        .setUserPayload(finalReducePayload))))
+                        .setUserPayload(intermediateDataPayloadOut))))
         .addEdge(
             new GroupInputEdge(unionVertex, checkerVertex, new EdgeProperty(
                 DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
                 SchedulingType.SEQUENTIAL,
                 new OutputDescriptor(OnFileSortedOutput.class.getName())
-                    .setUserPayload(mapPayload), 
+                    .setUserPayload(intermediateDataPayloadIn), 
                 new InputDescriptor(ShuffledMergedInput.class.getName())
-                    .setUserPayload(finalReducePayload)),
+                    .setUserPayload(intermediateDataPayloadOut)),
                 new InputDescriptor(
                     ConcatenatedMergedKeyValuesInput.class.getName())));
     return dag;  
@@ -395,7 +352,7 @@ public class UnionExample {
     // security
     TokenCache.obtainTokensForNamenodes(credentials, new Path[] {stagingDir}, tezConf);
     TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
-
+ 
     tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
         MRHelpers.getMRAMJavaOpts(tezConf));
 
@@ -446,7 +403,7 @@ public class UnionExample {
   }
 
   public static void main(String[] args) throws Exception {
-    if ((args.length%2) != 0) {
+    if (args.length != 2) {
       printUsage();
       System.exit(2);
     }

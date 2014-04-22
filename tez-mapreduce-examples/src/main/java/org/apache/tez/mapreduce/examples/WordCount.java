@@ -18,7 +18,6 @@
 package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -30,13 +29,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
-import org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
@@ -63,15 +60,12 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
@@ -178,64 +172,33 @@ public class WordCount {
   private DAG createDAG(FileSystem fs, TezConfiguration tezConf,
       Map<String, LocalResource> localResources, Path stagingDir,
       String inputPath, String outputPath) throws IOException {
-    Configuration mapStageConf = new JobConf((Configuration)tezConf);
-    mapStageConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
-        Text.class.getName());
-    mapStageConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
-        IntWritable.class.getName());
-    mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, 
-        TezGroupedSplitsInputFormat.class.getName());
 
-    mapStageConf.set(FileInputFormat.INPUT_DIR, inputPath);
-    mapStageConf.setBoolean("mapred.mapper.new-api", true);
+    Configuration inputConf = new Configuration(tezConf);
+    inputConf.set(FileInputFormat.INPUT_DIR, inputPath);
+    InputDescriptor id = new InputDescriptor(MRInput.class.getName())
+        .setUserPayload(MRInput.createUserPayload(inputConf,
+            TextInputFormat.class.getName(), true, true));
 
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(mapStageConf,
-        null);
-
-    Configuration finalReduceConf = new JobConf((Configuration)tezConf);
-    finalReduceConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
-        Text.class.getName());
-    finalReduceConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
-        IntWritable.class.getName());
-    finalReduceConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
-        TextOutputFormat.class.getName());
-    finalReduceConf.set(FileOutputFormat.OUTDIR, outputPath);
-    finalReduceConf.setBoolean("mapred.mapper.new-api", false);
-
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(finalReduceConf,
-        mapStageConf);
-
-    MRHelpers.doJobClientMagic(mapStageConf);
-    MRHelpers.doJobClientMagic(finalReduceConf);
-
-    byte[] mapPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
-    byte[] mapInputPayload = MRHelpers.createMRInputPayloadWithGrouping(mapPayload, 
-            TextInputFormat.class.getName());
-    int numMaps = -1;
+    Configuration outputConf = new Configuration(tezConf);
+    outputConf.set(FileOutputFormat.OUTDIR, outputPath);
+    OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
+      .setUserPayload(MROutput.createUserPayload(
+          outputConf, TextOutputFormat.class.getName(), true));
+    
+    byte[] intermediateDataPayload = 
+        MRHelpers.createMRIntermediateDataPayload(tezConf, Text.class.getName(), 
+            IntWritable.class.getName(), true, null, null);
+    
     Vertex tokenizerVertex = new Vertex("tokenizer", new ProcessorDescriptor(
-        TokenProcessor.class.getName()),
-        numMaps, MRHelpers.getMapResource(mapStageConf));
-    tokenizerVertex.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
-    Map<String, String> mapEnv = new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRTasks(mapStageConf, mapEnv, true);
-    tokenizerVertex.setTaskEnvironment(mapEnv);
-    Class<? extends TezRootInputInitializer> initializerClazz = MRInputAMSplitGenerator.class;
-    InputDescriptor id = new InputDescriptor(MRInput.class.getName()).
-        setUserPayload(mapInputPayload);
-    tokenizerVertex.addInput("MRInput", id, initializerClazz);
+        TokenProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf));
+    tokenizerVertex.setJavaOpts(MRHelpers.getMapJavaOpts(tezConf));
+    tokenizerVertex.addInput("MRInput", id, MRInputAMSplitGenerator.class);
 
-    byte[] finalReducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
     Vertex summerVertex = new Vertex("summer",
         new ProcessorDescriptor(
-            SumProcessor.class.getName()).setUserPayload(finalReducePayload),
-                1, MRHelpers.getReduceResource(finalReduceConf));
+            SumProcessor.class.getName()), 1, MRHelpers.getReduceResource(tezConf));
     summerVertex.setJavaOpts(
-        MRHelpers.getReduceJavaOpts(finalReduceConf));
-    Map<String, String> reduceEnv = new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRTasks(finalReduceConf, reduceEnv, false);
-    summerVertex.setTaskEnvironment(reduceEnv);
-    OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
-        .setUserPayload(finalReducePayload);
+        MRHelpers.getReduceJavaOpts(tezConf));
     summerVertex.addOutput("MROutput", od, MROutputCommitter.class);
     
     DAG dag = new DAG("WordCount");
@@ -246,9 +209,9 @@ public class WordCount {
                 DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
                 SchedulingType.SEQUENTIAL, 
                 new OutputDescriptor(OnFileSortedOutput.class.getName())
-                        .setUserPayload(mapPayload), 
+                        .setUserPayload(intermediateDataPayload), 
                 new InputDescriptor(ShuffledMergedInput.class.getName())
-                        .setUserPayload(finalReducePayload))));
+                        .setUserPayload(intermediateDataPayload))));
     return dag;  
   }
 

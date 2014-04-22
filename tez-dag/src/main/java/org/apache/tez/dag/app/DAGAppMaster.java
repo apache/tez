@@ -1537,7 +1537,6 @@ public class DAGAppMaster extends AbstractService {
     return null;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public synchronized void serviceStart() throws Exception {
 

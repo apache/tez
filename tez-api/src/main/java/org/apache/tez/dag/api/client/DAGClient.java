@@ -20,7 +20,6 @@ package org.apache.tez.dag.api.client;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.EnumSet;
 import java.util.Set;
 import javax.annotation.Nullable;
 
