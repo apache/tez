@@ -254,6 +254,11 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
   }
 
   @SuppressWarnings("rawtypes")
+  public RawComparator getInputKeyComparator() {
+    return (RawComparator) ConfigUtils.getIntermediateInputKeyComparator(conf);
+  }
+
+  @SuppressWarnings("rawtypes")
   private static class ShuffledMergedKeyValuesReader implements KeyValuesReader {
 
     private final ValuesIterator valuesIter;
@@ -267,10 +272,12 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
       return valuesIter.moveToNext();
     }
 
+    @Override
     public Object getCurrentKey() throws IOException {
       return valuesIter.getKey();
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public Iterable<Object> getCurrentValues() throws IOException {
       return valuesIter.getValues();
