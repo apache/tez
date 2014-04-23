@@ -268,10 +268,17 @@ public class MultiStageMRConfToTezTranslator {
         // TODO Deprecation reason does not seem to reflect in the config ?
         // The ordering is important in case of keys which are also deprecated.
         // Unset will unset the deprecated keys and all it's variants.
-        String value = conf.get(dep.getKey());
+        final String mrValue = conf.get(dep.getKey());
+        final String tezValue = conf.get(dep.getValue());
         conf.unset(dep.getKey());
-        conf.set(dep.getValue(), value,
-            DeprecationReason.DEPRECATED_DIRECT_TRANSLATION.name());
+        if (tezValue == null) {
+          conf.set(dep.getValue(), mrValue,
+              DeprecationReason.DEPRECATED_DIRECT_TRANSLATION.name());  
+        }
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Config: mr(unset):" + dep.getKey() + ", mr initial value="
+            + mrValue + ", tez:" + dep.getValue() + "=" + conf.get(dep.getValue()));
+        }
       }
     }
   }
@@ -289,8 +296,15 @@ public class MultiStageMRConfToTezTranslator {
       if (vertexConf.get(dep.getKey()) != null) {
         String value = vertexConf.get(dep.getKey());
         vertexConf.unset(dep.getKey());
-        vertexConf.set(dep.getValue().get(MultiStageKeys.OUTPUT), value,
+        if (vertexConf.get(dep.getValue().get(MultiStageKeys.OUTPUT)) == null) {
+          vertexConf.set(dep.getValue().get(MultiStageKeys.OUTPUT), value,
             DeprecationReason.DEPRECATED_MULTI_STAGE.name());
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Config: mr(unset):" + dep.getKey() + ", mr initial value="
+              + value + ", tez:" + dep.getValue().get(MultiStageKeys.OUTPUT) + "="
+              + vertexConf.get(dep.getValue().get(MultiStageKeys.OUTPUT)));
+          }
+        }
       }
       // Set keys from the predecessor conf.
       if (predecessorConf != null) {
@@ -323,6 +337,11 @@ public class MultiStageMRConfToTezTranslator {
               DeprecationReason.DEPRECATED_MULTI_STAGE.name());
           destVertexConf.set(dep.getValue().get(MultiStageKeys.INPUT), value,
               DeprecationReason.DEPRECATED_MULTI_STAGE.name());
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Config: mr(unset):" + dep.getKey() + ", mr initial value="
+              + value + ", tez:" + dep.getValue() + "="
+              + destVertexConf.get(dep.getValue().get(MultiStageKeys.INPUT)));
+          }
         } else { // Last stage. Just remove the key reference.
           srcVertexConf.unset(dep.getKey());
         }

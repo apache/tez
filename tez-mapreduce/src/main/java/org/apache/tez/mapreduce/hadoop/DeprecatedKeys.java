@@ -85,13 +85,13 @@ public class DeprecatedKeys {
         getDeprecationMap(
             TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS,
             TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS));
-    
+
     multiStageParamMap.put(
         MRJobConfig.MAP_OUTPUT_COMPRESS,
         getDeprecationMap(
             TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED,
             TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS));
-    
+
     multiStageParamMap.put(
         MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC,
         getDeprecationMap(
@@ -118,6 +118,24 @@ public class DeprecatedKeys {
     mrParamToDAGParamMap.put(
         MRJobConfig.MR_AM_IGNORE_BLACKLISTING_BLACKLISTED_NODE_PERECENT,
         TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD);
+
+    mrParamToDAGParamMap.put(MRJobConfig.QUEUE_NAME,
+      TezConfiguration.TEZ_QUEUE_NAME);
+
+    // Counter replacement will work in this manner, as long as TezCounters
+    // extends MRCounters and is used directly by the Mapper/Reducer.
+    // When these counters are eventually translated over to MRCounters, this
+    // may break.
+    // Framework counters, like FILESYSTEM will likely be incompatible since
+    // they enum key belongs to a different package.
+    mrParamToDAGParamMap.put(MRJobConfig.COUNTERS_MAX_KEY,
+      TezJobConfig.COUNTERS_MAX_KEY);
+    mrParamToDAGParamMap.put(MRJobConfig.COUNTER_GROUP_NAME_MAX_KEY,
+      TezJobConfig.COUNTER_GROUP_NAME_MAX_KEY);
+    mrParamToDAGParamMap.put(MRJobConfig.COUNTER_GROUP_NAME_MAX_KEY,
+      TezJobConfig.COUNTER_NAME_MAX_KEY);
+    mrParamToDAGParamMap.put(MRJobConfig.COUNTER_GROUPS_MAX_KEY,
+      TezJobConfig.COUNTER_GROUPS_MAX_KEY);
   }
 
   // TODO TEZAM4 Sometime, make sure this gets loaded by default. Insteaf of the current initialization in MRAppMaster, TezChild.
@@ -127,9 +145,7 @@ public class DeprecatedKeys {
   }
   
   private static void populateMRToTezRuntimeParamMap() {
-    
-    registerMRToRuntimeKeyTranslation(MRJobConfig.QUEUE_NAME, TezConfiguration.TEZ_QUEUE_NAME);
-    
+
     registerMRToRuntimeKeyTranslation(MRConfig.MAPRED_IFILE_READAHEAD, TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD);
 
     registerMRToRuntimeKeyTranslation(MRConfig.MAPRED_IFILE_READAHEAD_BYTES, TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
@@ -145,20 +161,6 @@ public class DeprecatedKeys {
     registerMRToRuntimeKeyTranslation(MRJobConfig.INDEX_CACHE_MEMORY_LIMIT, TezJobConfig.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
     
     registerMRToRuntimeKeyTranslation(MRJobConfig.MAP_COMBINE_MIN_SPILLS, TezJobConfig.TEZ_RUNTIME_COMBINE_MIN_SPILLS);
-    
-    // Counter replacement will work in this manner, as long as TezCounters
-    // extends MRCounters and is used directly by the Mapper/Reducer.
-    // When these counters are eventually translated over to MRCounters, this
-    // may break.
-    // Framework counters, like FILESYSTEM will likely be incompatible since
-    // they enum key belongs to a different package.
-    registerMRToRuntimeKeyTranslation(MRJobConfig.COUNTERS_MAX_KEY, TezJobConfig.COUNTERS_MAX_KEY);
-    
-    registerMRToRuntimeKeyTranslation(MRJobConfig.COUNTER_GROUP_NAME_MAX_KEY, TezJobConfig.COUNTER_GROUP_NAME_MAX_KEY);
-    
-    registerMRToRuntimeKeyTranslation(MRJobConfig.COUNTER_NAME_MAX_KEY, TezJobConfig.COUNTER_NAME_MAX_KEY);
-    
-    registerMRToRuntimeKeyTranslation(MRJobConfig.COUNTER_GROUPS_MAX_KEY, TezJobConfig.COUNTER_GROUPS_MAX_KEY);
     
     registerMRToRuntimeKeyTranslation(MRJobConfig.REDUCE_MEMORY_TOTAL_BYTES, Constants.TEZ_RUNTIME_TASK_MEMORY);
     
@@ -192,8 +194,7 @@ public class DeprecatedKeys {
     
     registerMRToRuntimeKeyTranslation(MRJobConfig.GROUP_COMPARATOR_CLASS, TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS);
     
-    registerMRToRuntimeKeyTranslation(MRJobConfig.MAPREDUCE_JOB_CREDENTIALS_BINARY, TezJobConfig.TEZ_CREDENTIALS_PATH);
-
+    registerMRToRuntimeKeyTranslation(TezJobConfig.TEZ_CREDENTIALS_PATH, MRJobConfig.MAPREDUCE_JOB_CREDENTIALS_BINARY);
   }
   
   private static void addDeprecatedKeys() {
