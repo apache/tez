@@ -506,7 +506,7 @@ public class IFile {
       return true;
     }
     
-    public boolean nextRawKey(DataInputBuffer key) throws IOException {
+    public final boolean nextRawKey(DataInputBuffer key) throws IOException {
       return readRawKey(key) != KeyState.NO_KEY;
     }
     

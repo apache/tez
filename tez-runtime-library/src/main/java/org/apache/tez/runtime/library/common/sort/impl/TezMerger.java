@@ -43,6 +43,7 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader;
+import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader.KeyState;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 
 
@@ -313,6 +314,10 @@ public class TezMerger {
         segmentLength : reader.getLength();
     }
     
+    KeyState readRawKey() throws IOException {
+      return reader.readRawKey(key);
+    }
+    
     boolean nextRawKey() throws IOException {
       return reader.nextRawKey(key);
     }
@@ -472,15 +477,17 @@ public class TezMerger {
 
     private void adjustPriorityQueue(Segment reader) throws IOException{
       long startPos = reader.getPosition();
-      boolean hasNext = reader.nextRawKey();
+      KeyState hasNext = reader.readRawKey();
       long endPos = reader.getPosition();
       totalBytesProcessed += endPos - startPos;
       mergeProgress.set(totalBytesProcessed * progPerByte);
-      if (hasNext) {
+      if (hasNext == KeyState.NEW_KEY) {
         adjustTop();
-      } else {
+      } else if(hasNext == KeyState.NO_KEY) {
         pop();
         reader.close();
+      } else if(hasNext == KeyState.SAME_KEY) {
+        // do not rebalance the priority queue
       }
     }
 

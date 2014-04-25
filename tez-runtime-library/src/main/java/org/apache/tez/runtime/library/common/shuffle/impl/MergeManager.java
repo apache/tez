@@ -744,16 +744,17 @@ public class MergeManager {
           ifileReadAheadLength, ifileBufferSize);
       this.kvIter = kvIter;
     }
-    public boolean nextRawKey(DataInputBuffer key) throws IOException {
+    @Override
+    public KeyState readRawKey(DataInputBuffer key) throws IOException {
       if (kvIter.next()) {
         final DataInputBuffer kb = kvIter.getKey();
         final int kp = kb.getPosition();
         final int klen = kb.getLength() - kp;
         key.reset(kb.getData(), kp, klen);
         bytesRead += klen;
-        return true;
+        return KeyState.NEW_KEY;
       }
-      return false;
+      return KeyState.NO_KEY;
     }
     public void nextRawValue(DataInputBuffer value) throws IOException {
       final DataInputBuffer vb = kvIter.getValue();
