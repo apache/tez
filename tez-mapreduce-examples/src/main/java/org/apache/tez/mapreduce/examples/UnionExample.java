@@ -19,7 +19,6 @@ package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
@@ -67,62 +66,42 @@ import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
-import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
-import org.apache.tez.runtime.api.Event;
+import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValuesInput;
 import org.apache.tez.runtime.library.input.ShuffledMergedInput;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 public class UnionExample {
 
-  public static class TokenProcessor extends AbstractLogicalIOProcessor {
+  public static class TokenProcessor extends SimpleProcessor {
     IntWritable one = new IntWritable(1);
     Text word = new Text();
 
     @Override
-    public void initialize() throws Exception {
-    }
-
-    @Override
-    public void handleEvents(List<Event> processorEvents) {
-    }
-
-    @Override
-    public void close() throws Exception {
-    }
-
-    @Override
-    public void run(Map<String, LogicalInput> inputs,
-        Map<String, LogicalOutput> outputs) throws Exception {
-      Preconditions.checkArgument(inputs.size() == 1);
-      for (LogicalInput input : inputs.values()) {
-        input.start();
-      }
-      for (LogicalOutput output : outputs.values()) {
-        output.start();
-      }
+    public void run() throws Exception {
+      Preconditions.checkArgument(getInputs().size() == 1);
       boolean inUnion = true;
       if (getContext().getTaskVertexName().equals("map3")) {
         inUnion = false;
       }
-      Preconditions.checkArgument(outputs.size() == (inUnion ? 2 : 1));
-      Preconditions.checkArgument(outputs.containsKey("checker"));
-      MRInput input = (MRInput) inputs.values().iterator().next();
+      Preconditions.checkArgument(getOutputs().size() == (inUnion ? 2 : 1));
+      Preconditions.checkArgument(getOutputs().containsKey("checker"));
+      MRInput input = (MRInput) getInputs().values().iterator().next();
       KeyValueReader kvReader = input.getReader();
-      OnFileSortedOutput output = (OnFileSortedOutput) outputs.get("checker");
+      OnFileSortedOutput output = (OnFileSortedOutput) getOutputs().get("checker");
       KeyValueWriter kvWriter = output.getWriter();
       MROutput parts = null;
       KeyValueWriter partsWriter = null;
       if (inUnion) {
-        parts = (MROutput) outputs.get("parts");
+        parts = (MROutput) getOutputs().get("parts");
         partsWriter = parts.getWriter();
       }
       while (kvReader.next()) {
@@ -144,46 +123,27 @@ public class UnionExample {
         }
       }
     }
-    
+
   }
-  
-  public static class UnionProcessor extends AbstractLogicalIOProcessor {
+
+  public static class UnionProcessor extends SimpleMRProcessor {
     IntWritable one = new IntWritable(1);
-    
-    @Override
-    public void initialize() throws Exception {
-    }
 
     @Override
-    public void handleEvents(List<Event> processorEvents) {
-    }
-
-    @Override
-    public void close() throws Exception {
-    }
-
-    @Override
-    public void run(Map<String, LogicalInput> inputs,
-        Map<String, LogicalOutput> outputs) throws Exception {
-      Preconditions.checkArgument(inputs.size() == 2);
-      Preconditions.checkArgument(outputs.size() == 2);
-      for (LogicalInput input : inputs.values()) {
-        input.start();
-      }
-      for (LogicalOutput output : outputs.values()) {
-        output.start();
-      }
-      MROutput out = (MROutput) outputs.get("union");
-      MROutput allParts = (MROutput) outputs.get("all-parts");
+    public void run() throws Exception {
+      Preconditions.checkArgument(getInputs().size() == 2);
+      Preconditions.checkArgument(getOutputs().size() == 2);
+      MROutput out = (MROutput) getOutputs().get("union");
+      MROutput allParts = (MROutput) getOutputs().get("all-parts");
       KeyValueWriter kvWriter = out.getWriter();
       KeyValueWriter partsWriter = allParts.getWriter();
       Map<String, AtomicInteger> unionKv = Maps.newHashMap();
-      LogicalInput union = inputs.get("union");
+      LogicalInput union = getInputs().get("union");
       KeyValuesReader kvReader = (KeyValuesReader) union.getReader();
       while (kvReader.next()) {
         String word = ((Text) kvReader.getCurrentKey()).toString();
         IntWritable intVal = (IntWritable) kvReader.getCurrentValues().iterator().next();
-        for (int i=0; i<intVal.get(); ++i) {
+        for (int i = 0; i < intVal.get(); ++i) {
           partsWriter.write(word, one);
         }
         AtomicInteger value = unionKv.get(word);
@@ -193,16 +153,16 @@ public class UnionExample {
           value.addAndGet(intVal.get());
         }
       }
-      LogicalInput map3 = inputs.get("map3");
+      LogicalInput map3 = getInputs().get("map3");
       kvReader = (KeyValuesReader) map3.getReader();
       while (kvReader.next()) {
         String word = ((Text) kvReader.getCurrentKey()).toString();
         IntWritable intVal = (IntWritable) kvReader.getCurrentValues().iterator().next();
         AtomicInteger value = unionKv.get(word);
-        if  (value == null) {
+        if (value == null) {
           throw new TezUncheckedException("Expected to exist: " + word);
         } else {
-          value.getAndAdd(intVal.get()*-2);
+          value.getAndAdd(intVal.get() * -2);
         }
       }
       for (AtomicInteger value : unionKv.values()) {
@@ -211,22 +171,10 @@ public class UnionExample {
         }
       }
       kvWriter.write("Union", new IntWritable(unionKv.size()));
-      if (out.isCommitRequired()) {
-        while (!getContext().canCommit()) {
-          Thread.sleep(100);
-        }
-        out.commit();
-      }
-      if (allParts.isCommitRequired()) {
-        while (!getContext().canCommit()) {
-          Thread.sleep(100);
-        }
-        allParts.commit();
-      }
     }
-    
+
   }
-  
+
   private DAG createDAG(FileSystem fs, TezConfiguration tezConf,
       Map<String, LocalResource> localResources, Path stagingDir,
       String inputPath, String outputPath) throws IOException {

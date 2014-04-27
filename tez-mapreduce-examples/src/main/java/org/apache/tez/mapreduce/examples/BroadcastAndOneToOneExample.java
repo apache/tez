@@ -56,72 +56,37 @@ import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
-import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
-import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
+import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import com.google.common.base.Preconditions;
 
 public class BroadcastAndOneToOneExample {
-  public static class InputProcessor extends AbstractLogicalIOProcessor {
+  public static class InputProcessor extends SimpleProcessor {
     Text word = new Text();
 
     @Override
-    public void initialize() throws Exception {
-    }
-
-    @Override
-    public void handleEvents(List<Event> processorEvents) {
-    }
-
-    @Override
-    public void close() throws Exception {
-    }
-
-    @Override
-    public void run(Map<String, LogicalInput> inputs,
-        Map<String, LogicalOutput> outputs) throws Exception {
-      for (LogicalOutput output : outputs.values()) {
-        output.start();
-      }
-      Preconditions.checkArgument(outputs.size() == 1);
-      OnFileUnorderedKVOutput output = (OnFileUnorderedKVOutput) outputs.values().iterator().next();
+    public void run() throws Exception {
+      Preconditions.checkArgument(getOutputs().size() == 1);
+      OnFileUnorderedKVOutput output = (OnFileUnorderedKVOutput) getOutputs().values().iterator()
+          .next();
       KeyValueWriter kvWriter = (KeyValueWriter) output.getWriter();
       kvWriter.write(word, new IntWritable(getContext().getTaskIndex()));
     }
   }
-  
-  public static class OneToOneProcessor extends AbstractLogicalIOProcessor {
+
+  public static class OneToOneProcessor extends SimpleProcessor {
     Text word = new Text();
-    
-    @Override
-    public void initialize() throws Exception {
-    }
 
     @Override
-    public void handleEvents(List<Event> processorEvents) {
-    }
-
-    @Override
-    public void close() throws Exception {
-    }
-
-    @Override
-    public void run(Map<String, LogicalInput> inputs,
-        Map<String, LogicalOutput> outputs) throws Exception {
+    public void run() throws Exception {
       Preconditions.checkArgument(inputs.size() == 2);
 
-      for (LogicalInput input : inputs.values()) {
-        input.start();
-      }
-
-      KeyValueReader inputKvReader = (KeyValueReader) inputs.get("Input").getReader();
-      KeyValueReader broadcastKvReader = (KeyValueReader) inputs.get("Broadcast").getReader();
+      KeyValueReader inputKvReader = (KeyValueReader) getInputs().get("Input").getReader();
+      KeyValueReader broadcastKvReader = (KeyValueReader) getInputs().get("Broadcast").getReader();
       int sum = 0;
       while (broadcastKvReader.next()) {
         sum += ((IntWritable) broadcastKvReader.getCurrentValue()).get();
@@ -133,21 +98,21 @@ public class BroadcastAndOneToOneExample {
       int taskIndex = getContext().getTaskIndex();
       switch (taskIndex) {
       case 0:
-        Preconditions.checkState((sum==1), "Sum = " + sum);
+        Preconditions.checkState((sum == 1), "Sum = " + sum);
         break;
       case 1:
-        Preconditions.checkState((sum==2), "Sum = " + sum);
+        Preconditions.checkState((sum == 2), "Sum = " + sum);
         break;
       case 2:
-        Preconditions.checkState((sum==3), "Sum = " + sum);
+        Preconditions.checkState((sum == 3), "Sum = " + sum);
         break;
       default:
         throw new TezUncheckedException("Unexpected taskIndex: " + taskIndex);
       }
     }
-    
+
   }
-  
+
   private DAG createDAG(FileSystem fs, TezConfiguration tezConf,
       Path stagingDir) throws IOException {
     Configuration kvInputConf = new JobConf((Configuration)tezConf);

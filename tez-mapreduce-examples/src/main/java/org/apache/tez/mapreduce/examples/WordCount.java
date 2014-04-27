@@ -18,7 +18,6 @@
 package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
@@ -62,10 +61,7 @@ import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
-import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
-import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
@@ -74,25 +70,19 @@ import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 import com.google.common.base.Preconditions;
 
+
 public class WordCount {
-  public static class TokenProcessor extends AbstractLogicalIOProcessor {
+  public static class TokenProcessor extends SimpleMRProcessor {
     IntWritable one = new IntWritable(1);
     Text word = new Text();
 
     @Override
-    public void run(Map<String, LogicalInput> inputs,
-        Map<String, LogicalOutput> outputs) throws Exception {
-      for (LogicalInput input : inputs.values()) {
-        input.start();
-      }
-      for (LogicalOutput output : outputs.values()) {
-        output.start();
-      }
-      Preconditions.checkArgument(inputs.size() == 1);
-      Preconditions.checkArgument(outputs.size() == 1);
-      MRInput input = (MRInput) inputs.values().iterator().next();
+    public void run() throws Exception {
+      Preconditions.checkArgument(getInputs().size() == 1);
+      Preconditions.checkArgument(getOutputs().size() == 1);
+      MRInput input = (MRInput) getInputs().values().iterator().next();
       KeyValueReader kvReader = input.getReader();
-      OnFileSortedOutput output = (OnFileSortedOutput) outputs.values().iterator().next();
+      OnFileSortedOutput output = (OnFileSortedOutput) getOutputs().values().iterator().next();
       KeyValueWriter kvWriter = (KeyValueWriter) output.getWriter();
       while (kvReader.next()) {
         StringTokenizer itr = new StringTokenizer(kvReader.getCurrentValue().toString());
@@ -103,39 +93,16 @@ public class WordCount {
       }
     }
 
-    @Override
-    public void initialize() throws Exception {
-
-    }
-
-    @Override
-    public void handleEvents(List<Event> processorEvents) {
-      
-    }
-
-    @Override
-    public void close() throws Exception {
-      
-    }
-
   }
-  
-  public static class SumProcessor extends AbstractLogicalIOProcessor {
+
+  public static class SumProcessor extends SimpleMRProcessor {
     @Override
-    public void run(Map<String, LogicalInput> inputs,
-        Map<String, LogicalOutput> outputs) throws Exception {
-      Preconditions.checkArgument(inputs.size() == 1);
-
-      for (LogicalInput input : inputs.values()) {
-        input.start();
-      }
-      for (LogicalOutput output : outputs.values()) {
-        output.start();
-      }
-
-      MROutput out = (MROutput) outputs.values().iterator().next();
+    public void run() throws Exception {
+      Preconditions.checkArgument(getInputs().size() == 1);
+      MROutput out = (MROutput) getOutputs().values().iterator().next();
       KeyValueWriter kvWriter = out.getWriter();
-      KeyValuesReader kvReader = (KeyValuesReader) inputs.values().iterator().next().getReader();
+      KeyValuesReader kvReader = (KeyValuesReader) getInputs().values().iterator().next()
+          .getReader();
       while (kvReader.next()) {
         Text word = (Text) kvReader.getCurrentKey();
         int sum = 0;
@@ -144,31 +111,9 @@ public class WordCount {
         }
         kvWriter.write(word, new IntWritable(sum));
       }
-      if (out.isCommitRequired()) {
-        while (!getContext().canCommit()) {
-          Thread.sleep(100);
-        }
-        out.commit();
-      }
     }
-
-    @Override
-    public void initialize() throws Exception {
-
-    }
-
-    @Override
-    public void handleEvents(List<Event> processorEvents) {
-      
-    }
-
-    @Override
-    public void close() throws Exception {
-      
-    }
-
   }
-  
+
   private DAG createDAG(FileSystem fs, TezConfiguration tezConf,
       Map<String, LocalResource> localResources, Path stagingDir,
       String inputPath, String outputPath) throws IOException {
