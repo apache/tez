@@ -64,6 +64,7 @@ import org.apache.tez.common.TezLocalResource;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.Limits;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -111,6 +112,7 @@ public class YarnTezDagChild {
       new LinkedBlockingQueue<TezEvent>();
   private static AtomicLong requestCounter = new AtomicLong(0);
   private static long amPollInterval;
+  private static long hbCounterInterval;
   private static TezTaskUmbilicalProtocol umbilical;
   private static ReentrantReadWriteLock taskLock = new ReentrantReadWriteLock();
   private static LogicalIOProcessorRuntimeTask currentTask = null;
@@ -131,6 +133,7 @@ public class YarnTezDagChild {
   private static final float LOG_COUNTER_BACKOFF = 1.3f;
   private static int taskNonOobHeartbeatCounter = 0;
   private static int nextHeartbeatNumToLog = 0;
+  private static long prevHeartbeatTimeStamp =  System.currentTimeMillis();
 
   private static Thread startHeartbeatThread() {
     Thread heartbeatThread = new Thread(new Runnable() {
@@ -213,8 +216,19 @@ public class YarnTezDagChild {
         eventCounter = currentTask.getEventCounter();
         eventsRange = maxEventsToGet;
         if (!currentTask.isTaskDone() && !currentTask.hadFatalError()) {
+          TezCounters counters = null;
+          /**
+           * Increasing the heartbeat interval can delay the delivery of events.
+           * Sending just updated records would save CPU in DAG AM, but certain
+           * counters are updated very frequently. Until real time decisions are made
+           * based on these counters, it can be sent once per second.
+           */
+          if ((System.currentTimeMillis() - prevHeartbeatTimeStamp) > hbCounterInterval) {
+            counters = currentTask.getCounters();
+            prevHeartbeatTimeStamp = System.currentTimeMillis();
+          }
           updateEvent = new TezEvent(new TaskStatusUpdateEvent(
-              currentTask.getCounters(), currentTask.getProgress()),
+              counters, currentTask.getProgress()),
                 new EventMetaData(EventProducerConsumerType.SYSTEM,
                     currentTask.getVertexName(), "", taskAttemptID));
           events.add(updateEvent);
@@ -344,6 +358,9 @@ public class YarnTezDagChild {
     amPollInterval = defaultConf.getLong(
         TezConfiguration.TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS,
         TezConfiguration.TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS_DEFAULT);
+    hbCounterInterval = defaultConf.getLong(
+      TezConfiguration.TEZ_TASK_AM_HEARTBEAT_COUNTER_INTERVAL_MS,
+      TezConfiguration.TEZ_TASK_AM_HEARTBEAT_COUNTER_INTERVAL_MS_DEFAULT);
     maxEventsToGet = defaultConf.getInt(
         TezConfiguration.TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT,
         TezConfiguration.TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT);
