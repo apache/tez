@@ -23,6 +23,7 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -36,6 +37,8 @@ import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.AMConfiguration;
@@ -71,7 +74,7 @@ import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 import com.google.common.base.Preconditions;
 
 
-public class WordCount {
+public class WordCount extends Configured implements Tool {
   public static class TokenProcessor extends SimpleMRProcessor {
     IntWritable one = new IntWritable(1);
     Text word = new Text();
@@ -162,6 +165,7 @@ public class WordCount {
 
   private static void printUsage() {
     System.err.println("Usage: " + " wordcount <in1> <out1>");
+    ToolRunner.printGenericCommandUsage(System.err);
   }
 
   private Credentials credentials = new Credentials();
@@ -243,16 +247,22 @@ public class WordCount {
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
+  @Override
+  public int run(String[] args) throws Exception {
+    Configuration conf = getConf();
     String [] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
 
     if (otherArgs.length != 2) {
       printUsage();
-      System.exit(2);
+      return 2;
     }
     WordCount job = new WordCount();
     job.run(otherArgs[0], otherArgs[1], conf);
+    return 0;
   }
 
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(new Configuration(), new WordCount(), args);
+    System.exit(res);
+  }
 }

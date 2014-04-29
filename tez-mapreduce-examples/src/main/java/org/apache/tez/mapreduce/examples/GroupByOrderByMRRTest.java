@@ -24,6 +24,7 @@ import java.util.StringTokenizer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -35,6 +36,8 @@ import org.apache.hadoop.mapreduce.TypeConverter;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -73,7 +76,7 @@ import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
  *  done
  *
  */
-public class GroupByOrderByMRRTest {
+public class GroupByOrderByMRRTest extends Configured implements Tool {
 
   private static final Log LOG = LogFactory.getLog(GroupByOrderByMRRTest.class);
 
@@ -146,8 +149,9 @@ public class GroupByOrderByMRRTest {
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
+  @Override
+  public int run(String[] args) throws Exception {
+    Configuration conf = getConf();
 
     // Configure intermediate reduces
     conf.setInt(MRJobConfig.MRR_INTERMEDIATE_STAGES, 1);
@@ -168,7 +172,8 @@ public class GroupByOrderByMRRTest {
         getRemainingArgs();
     if (otherArgs.length != 2) {
       System.err.println("Usage: groupbyorderbymrrtest <in> <out>");
-      System.exit(2);
+      ToolRunner.printGenericCommandUsage(System.err);
+      return 2;
     }
 
     @SuppressWarnings("deprecation")
@@ -226,13 +231,19 @@ public class GroupByOrderByMRRTest {
         dagStatus = dagClient.getDAGStatus(null);
       } catch (TezException e) {
         LOG.fatal("Failed to get application progress. Exiting");
-        System.exit(-1);
+        return -1;
       }
     }
 
     ExampleDriver.printDAGStatus(dagClient, vNames);
     LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
-    System.exit(dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1);
+    return dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1;
   }
 
+  public static void main(String[] args) throws Exception {
+    Configuration configuration = new Configuration();
+    GroupByOrderByMRRTest groupByOrderByMRRTest = new GroupByOrderByMRRTest();
+    int status = ToolRunner.run(configuration, groupByOrderByMRRTest, args);
+    System.exit(status);
+  }
 }

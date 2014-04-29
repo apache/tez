@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -31,6 +32,8 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
@@ -64,7 +67,7 @@ import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import com.google.common.base.Preconditions;
 
-public class BroadcastAndOneToOneExample {
+public class BroadcastAndOneToOneExample extends Configured implements Tool {
   public static class InputProcessor extends SimpleProcessor {
     Text word = new Text();
 
@@ -243,10 +246,17 @@ public class BroadcastAndOneToOneExample {
       tezSession.stop();
     }
   }
+  
+  @Override
+  public int run(String[] args) throws Exception {
+    boolean status = run(getConf());
+    return status ? 0 : 1;
+  }
 
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     BroadcastAndOneToOneExample job = new BroadcastAndOneToOneExample();
-    job.run(conf);
+    int status = ToolRunner.run(conf, job, args);
+    System.exit(status);
   }
 }

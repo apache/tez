@@ -18,7 +18,6 @@
 
 package org.apache.tez.mapreduce.examples;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -28,6 +27,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -37,6 +37,8 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.ClassUtil;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -76,7 +78,7 @@ import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
-public class FilterLinesByWordOneToOne {
+public class FilterLinesByWordOneToOne extends Configured implements Tool {
 
   private static Log LOG = LogFactory.getLog(FilterLinesByWordOneToOne.class);
 
@@ -85,12 +87,20 @@ public class FilterLinesByWordOneToOne {
   private static void printUsage() {
     System.err.println("Usage filterLinesByWordOneToOne <in> <out> <filter_word>" 
         + " [-generateSplitsInClient true/<false>]");
+    ToolRunner.printGenericCommandUsage(System.err);
   }
 
-  public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, TezException {
+  public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
-    String [] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+    String[] otherArgs = new GenericOptionsParser(conf, args)
+        .getRemainingArgs();
+    int status = ToolRunner.run(conf, new FilterLinesByWordOneToOne(),
+        otherArgs);
+    System.exit(status);
+  }
 
+  @Override
+  public int run(String[] otherArgs) throws Exception {
     boolean generateSplitsInClient = false;
     SplitsInClientOptionParser splitCmdLineParser = new SplitsInClientOptionParser();
     try {
@@ -99,22 +109,23 @@ public class FilterLinesByWordOneToOne {
     } catch (ParseException e1) {
       System.err.println("Invalid options");
       printUsage();
-      System.exit(2);
+      return 2;
     }
 
     if (otherArgs.length != 3) {
       printUsage();
-      System.exit(2);
+      return 2;
     }
 
     String inputPath = otherArgs[0];
     String outputPath = otherArgs[1];
     String filterWord = otherArgs[2];
-
+    
+    Configuration conf = getConf();
     FileSystem fs = FileSystem.get(conf);
     if (fs.exists(new Path(outputPath))) {
       System.err.println("Output directory : " + outputPath + " already exists");
-      System.exit(2);
+      return 2;
     }
 
     TezConfiguration tezConf = new TezConfiguration(conf);
@@ -261,7 +272,7 @@ public class FilterLinesByWordOneToOne {
           dagStatus = dagClient.getDAGStatus(null);
         } catch (TezException e) {
           LOG.fatal("Failed to get application progress. Exiting");
-          System.exit(-1);
+          return -1;
         }
       }
     } finally {
@@ -271,7 +282,6 @@ public class FilterLinesByWordOneToOne {
 
     ExampleDriver.printDAGStatus(dagClient, vNames);
     LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
-    System.exit(dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1);
+    return dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1;
   }
-
 }

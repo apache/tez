@@ -32,6 +32,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -49,6 +50,8 @@ import org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.AMConfiguration;
@@ -97,7 +100,7 @@ import org.apache.tez.runtime.library.processor.SleepProcessor;
  * Use -DINTER_JOB_SLEEP_INTERVAL=<N> where N is the sleep interval in seconds
  * between the sequential DAGs.
  */
-public class OrderedWordCount {
+public class OrderedWordCount extends Configured implements Tool {
 
   private static Log LOG = LogFactory.getLog(OrderedWordCount.class);
 
@@ -294,11 +297,13 @@ public class OrderedWordCount {
     System.err.println("Usage: orderedwordcount <in> <out>" + options);
     System.err.println("Usage (In Session Mode):"
         + " orderedwordcount <in1> <out1> ... <inN> <outN>" + options);
+    ToolRunner.printGenericCommandUsage(System.err);
   }
 
 
-  public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
+  @Override
+  public int run(String[] args) throws Exception {
+    Configuration conf = getConf();
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
 
     boolean generateSplitsInClient = false;
@@ -310,7 +315,7 @@ public class OrderedWordCount {
     } catch (ParseException e1) {
       System.err.println("Invalid options");
       printUsage();
-      System.exit(2);
+      return 2;
     }
 
     boolean useTezSession = conf.getBoolean("USE_TEZ_SESSION", true);
@@ -322,7 +327,7 @@ public class OrderedWordCount {
     if (((otherArgs.length%2) != 0)
         || (!useTezSession && otherArgs.length != 2)) {
       printUsage();
-      System.exit(2);
+      return 2;
     }
 
     List<String> inputPaths = new ArrayList<String>();
@@ -497,7 +502,7 @@ public class OrderedWordCount {
             dagStatus = dagClient.getDAGStatus(statusGetOpts);
           } catch (TezException e) {
             LOG.fatal("Failed to get application progress. Exiting");
-            System.exit(-1);
+            return -1;
           }
         }
         ExampleDriver.printDAGStatus(dagClient, vNames,
@@ -525,8 +530,9 @@ public class OrderedWordCount {
     if (!useTezSession) {
       ExampleDriver.printDAGStatus(dagClient, vNames);
       LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
-      System.exit(dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1);
+      return dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1;
     }
+    return 0;
   }
 
   private static void waitForTezSessionReady(TezSession tezSession)
@@ -548,4 +554,8 @@ public class OrderedWordCount {
     }
   }
 
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(new Configuration(), new OrderedWordCount(), args);
+    System.exit(res);
+  }
 }

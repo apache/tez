@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.StringTokenizer;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -38,6 +39,8 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
 /**
  * This is an example Hadoop Map/Reduce application.
@@ -48,7 +51,7 @@ import org.apache.hadoop.util.GenericOptionsParser;
  * To run: bin/hadoop jar build/hadoop-examples.jar secondarysort
  *            <i>in-dir</i> <i>out-dir</i> 
  */
-public class SecondarySort {
+public class SecondarySort extends Configured implements Tool {
  
   /**
    * Define a pair of integers that are writable.
@@ -207,11 +210,13 @@ public class SecondarySort {
     }
   }
   
-  public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
+  @Override
+  public int run(String[] args) throws Exception {
+    Configuration conf = getConf();
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
     if (otherArgs.length != 2) {
       System.err.println("Usage: secondarysort <in> <out>");
+      ToolRunner.printGenericCommandUsage(System.out);
       System.exit(2);
     }
     Job job = new Job(conf, "secondary sort");
@@ -233,7 +238,11 @@ public class SecondarySort {
     
     FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
     FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
+    return job.waitForCompletion(true) ? 0 : 1;
   }
 
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(new Configuration(), new SecondarySort(), args);
+    System.exit(res);
+  }
 }

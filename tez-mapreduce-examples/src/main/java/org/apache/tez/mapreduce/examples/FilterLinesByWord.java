@@ -30,6 +30,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -43,6 +44,8 @@ import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.util.ClassUtil;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -85,14 +88,13 @@ import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
 import com.google.common.collect.Sets;
 
-public class FilterLinesByWord {
+public class FilterLinesByWord extends Configured implements Tool {
 
   private static Log LOG = LogFactory.getLog(FilterLinesByWord.class);
 
   public static final String FILTER_PARAM_NAME = "tez.runtime.examples.filterbyword.word";
   
   private TezCounters counters = null;
-  private int errorCode = 0;
   private boolean exitOnCompletion = false;
 
   public FilterLinesByWord(boolean exitOnCompletion) {
@@ -101,10 +103,12 @@ public class FilterLinesByWord {
   
   private static void printUsage() {
     System.err.println("Usage filtelinesrbyword <in> <out> <filter_word> [-generateSplitsInClient true/<false>]");
+    ToolRunner.printGenericCommandUsage(System.err);
   }
 
-  public void run(String[] args) throws IOException, InterruptedException, ClassNotFoundException, TezException {
-    Configuration conf = new Configuration();
+  @Override
+  public int run(String[] args) throws Exception {
+    Configuration conf = getConf();
     String [] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
     Credentials credentials = new Credentials();
 
@@ -117,14 +121,12 @@ public class FilterLinesByWord {
     } catch (ParseException e1) {
       System.err.println("Invalid options");
       printUsage();
-      errorCode = 2;
-      return;
+      return 2;
     }
 
     if (otherArgs.length != 3) {
       printUsage();
-      errorCode = 2;
-      return;
+      return 2;
     }
 
     String inputPath = otherArgs[0];
@@ -134,8 +136,7 @@ public class FilterLinesByWord {
     FileSystem fs = FileSystem.get(conf);
     if (fs.exists(new Path(outputPath))) {
       System.err.println("Output directory : " + outputPath + " already exists");
-      errorCode = 2;
-      return;
+      return 2;
     }
 
     TezConfiguration tezConf = new TezConfiguration(conf);
@@ -285,8 +286,7 @@ public class FilterLinesByWord {
           dagStatus = dagClient.getDAGStatus(null);
         } catch (TezException e) {
           LOG.fatal("Failed to get application progress. Exiting");
-          errorCode = -1;
-          return;
+          return -1;
         }
       }
       
@@ -300,16 +300,14 @@ public class FilterLinesByWord {
 
     ExampleDriver.printDAGStatus(dagClient, vNames, true, true);
     LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
-    errorCode = (dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1);
-    return;
+    return dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1;
   }
   
-  public static void main(String[] args) throws IOException, InterruptedException,
-      ClassNotFoundException, TezException {
+  public static void main(String[] args) throws Exception {
     FilterLinesByWord fl = new FilterLinesByWord(true);
-    fl.run(args);
+    int status = ToolRunner.run(new Configuration(), fl, args);
     if (fl.exitOnCompletion) {
-      System.exit(fl.errorCode);
+      System.exit(status);
     }
   }
 
