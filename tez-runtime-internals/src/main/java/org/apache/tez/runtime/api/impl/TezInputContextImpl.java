@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.api.impl;
 
+import com.google.common.base.Preconditions;
 import static com.google.common.base.Preconditions.checkNotNull;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -87,6 +88,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
 
   @Override
   public void sendEvents(List<Event> events) {
+    Preconditions.checkNotNull(events, "events are null");
     List<TezEvent> tezEvents = new ArrayList<TezEvent>(events.size());
     for (Event e : events) {
       TezEvent tEvt = new TezEvent(e, sourceInfo);
@@ -95,6 +97,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
     tezUmbilical.addEvents(tezEvents);
   }
 
+  @Nullable
   @Override
   public byte[] getUserPayload() {
     return userPayload;

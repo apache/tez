@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.library.output;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -120,10 +121,13 @@ public class TestOnFileUnorderedKVOutput {
     AuxiliaryServiceHelper.setServiceDataIntoEnv(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, bb, auxEnv);
 
 
+    OutputDescriptor outputDescriptor = mock(OutputDescriptor.class);
+    when(outputDescriptor.getClassName()).thenReturn("OutputDescriptor");
+
     TezOutputContext outputContext = new TezOutputContextImpl(conf,
         appAttemptNumber, tezUmbilical, dagName, taskVertexName, destinationVertexName,
         taskAttemptID, counters, 0, userPayload, runtimeTask,
-        null, auxEnv, new MemoryDistributor(1, 1, conf) , mock(OutputDescriptor.class));
+        null, auxEnv, new MemoryDistributor(1, 1, conf) , outputDescriptor);
 
     List<Event> events = null;
 

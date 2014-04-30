@@ -21,6 +21,7 @@ package org.apache.tez.runtime.api;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounters;
 
@@ -90,6 +91,7 @@ public interface TezTaskContext {
    * Get the User Payload for the Input/Output/Processor
    * @return User Payload
    */
+  @Nullable
   public byte[] getUserPayload();
 
   /**
@@ -112,7 +114,7 @@ public interface TezTaskContext {
    *
    * @param exception an exception representing the error
    */
-  public void fatalError(Throwable exception, String message);
+  public void fatalError(@Nullable Throwable exception, @Nullable String message);
 
   /**
    * Returns meta-data for the specified service. As an example, when the MR
@@ -133,6 +135,7 @@ public interface TezTaskContext {
    *          the name of the service for which provider meta-data is required
    * @return a ByteBuffer representing the meta-data
    */
+  @Nullable
   public ByteBuffer getServiceProviderMetaData(String serviceName);
   
   /**

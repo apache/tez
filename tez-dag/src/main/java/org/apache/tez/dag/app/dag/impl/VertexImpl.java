@@ -35,6 +35,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import javax.annotation.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -3238,12 +3239,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
 
   }
-  
+
+  @Nullable
   @Override
   public Map<String, OutputCommitter> getOutputCommitters() {
     return outputCommitters;
   }
 
+  @Nullable
   @Private
   @VisibleForTesting
   public OutputCommitter getOutputCommitter(String outputName) {
@@ -3272,11 +3275,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
 
+  @Nullable
   @Override
   public Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> getAdditionalInputs() {
     return this.additionalInputs;
   }
 
+  @Nullable
   @Override
   public Map<String, RootInputLeafOutputDescriptor<OutputDescriptor>> getAdditionalOutputs() {
     return this.additionalOutputs;

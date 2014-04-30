@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
@@ -78,6 +79,7 @@ public interface Vertex extends Comparable<Vertex> {
   ProgressBuilder getVertexProgress();
   VertexStatusBuilder getVertexStatus(Set<StatusGetOpts> statusOptions);
 
+  @Nullable
   TaskLocationHint getTaskLocationHint(TezTaskID taskID);
 
   boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
@@ -96,7 +98,9 @@ public interface Vertex extends Comparable<Vertex> {
   void setAdditionalInputs(List<RootInputLeafOutputProto> inputs);
   void setAdditionalOutputs(List<RootInputLeafOutputProto> outputs);
 
+  @Nullable
   Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> getAdditionalInputs();
+  @Nullable
   Map<String, RootInputLeafOutputDescriptor<OutputDescriptor>> getAdditionalOutputs();
 
   List<InputSpec> getInputSpecList(int taskIndex);
@@ -113,6 +117,7 @@ public interface Vertex extends Comparable<Vertex> {
 
   ProcessorDescriptor getProcessorDescriptor();
   public DAG getDAG();
+  @Nullable
   VertexTerminationCause getTerminationCause();
 
   // TODO remove this once RootInputVertexManager is fixed to not use

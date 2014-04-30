@@ -18,6 +18,7 @@
 
 package org.apache.tez.client;
 
+import javax.annotation.Nullable;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -26,6 +27,8 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint;
 
 import java.util.Map;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Context to define how the pre-warm containers should be launched within a
@@ -62,7 +65,9 @@ public class PreWarmContext {
   public PreWarmContext(ProcessorDescriptor processorDescriptor,
       Resource resource,
       int numTasks,
-      VertexLocationHint locationHints) {
+      @Nullable VertexLocationHint locationHints) {
+    checkNotNull(processorDescriptor, "processorDescriptor is null");
+    checkNotNull(resource, "resource is null");
     this.processorDescriptor =  processorDescriptor;
     this.resource = resource;
     this.numTasks = numTasks;
@@ -114,18 +119,22 @@ public class PreWarmContext {
     return numTasks;
   }
 
+  @Nullable
   public VertexLocationHint getLocationHints() {
     return locationHints;
   }
 
+  @Nullable
   public Map<String, LocalResource> getLocalResources() {
     return localResources;
   }
 
+  @Nullable
   public Map<String, String> getEnvironment() {
     return environment;
   }
 
+  @Nullable
   public String getJavaOpts() {
     return javaOpts;
   }

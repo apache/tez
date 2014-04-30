@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nullable;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.StringUtils;
@@ -152,8 +153,10 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
         .asReadOnlyBuffer().rewind();
   }
 
+  @Nullable
   @Override
   public ByteBuffer getServiceProviderMetaData(String serviceName) {
+    Preconditions.checkNotNull(serviceName, "serviceName is null");
     return AuxiliaryServiceHelper.getServiceDataFromEnv(
         serviceName, auxServiceEnv);
   }

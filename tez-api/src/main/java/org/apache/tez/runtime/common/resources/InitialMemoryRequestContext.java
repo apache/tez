@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.common.resources;
 
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
 
@@ -37,6 +38,9 @@ public class InitialMemoryRequestContext {
 
   public InitialMemoryRequestContext(long requestedSize, String componentClassName,
       ComponentType componentType, String componentVertexName) {
+    Preconditions.checkNotNull(componentClassName, "componentClassName is null");
+    Preconditions.checkNotNull(componentType, "componentType is null");
+    Preconditions.checkNotNull(componentVertexName, "componentVertexName is null");
     this.requestedSize = requestedSize;
     this.componentClassName = componentClassName;
     this.componentType = componentType;

@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app;
 
+import com.google.common.base.Preconditions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.File;
@@ -1345,6 +1346,7 @@ public class DAGAppMaster extends AbstractService {
 
     @Override
     public void setDAG(DAG dag) {
+      Preconditions.checkNotNull(dag, "dag is null");
       try {
         wLock.lock();
         this.dag = dag;

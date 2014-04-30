@@ -20,6 +20,7 @@ package org.apache.tez.runtime.api;
 
 import java.io.IOException;
 import java.util.Collection;
+import javax.annotation.Nullable;
 
 /**
  * Context handle for the Processor to initialize itself.

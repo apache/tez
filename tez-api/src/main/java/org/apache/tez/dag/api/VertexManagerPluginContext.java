@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.Container;
+import javax.annotation.Nullable;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
@@ -72,6 +73,7 @@ public interface VertexManagerPluginContext {
    * Get the payload set for the plugin
    * @return user payload
    */
+  @Nullable
   public byte[] getUserPayload();
   
   /**
@@ -119,8 +121,9 @@ public interface VertexManagerPluginContext {
    * @param sourceEdgeManagers Edge Managers to be updated
    * @return true if the operation was allowed.
    */
-  public boolean setVertexParallelism(int parallelism, VertexLocationHint locationHint,
-      Map<String, EdgeManagerDescriptor> sourceEdgeManagers);
+  public boolean setVertexParallelism(int parallelism,
+      @Nullable VertexLocationHint locationHint,
+      @Nullable Map<String, EdgeManagerDescriptor> sourceEdgeManagers);
   
   /**
    * Allows a VertexManagerPlugin to assign Events for Root Inputs
@@ -139,7 +142,7 @@ public interface VertexManagerPluginContext {
   
   /**
    * Notify the vertex to start the given tasks
-   * @param taskIDs Indices of the tasks to be started
+   * @param tasks Indices of the tasks to be started
    */
   public void scheduleVertexTasks(List<TaskWithLocationHint> tasks);
   
@@ -148,6 +151,7 @@ public interface VertexManagerPluginContext {
    * sources of data.
    * @return Names of inputs to this vertex. Maybe null if there are no inputs
    */
+  @Nullable
   public Set<String> getVertexInputNames();
 
   /**

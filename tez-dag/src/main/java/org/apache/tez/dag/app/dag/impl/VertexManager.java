@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -75,7 +76,7 @@ public class VertexManager {
     private EventMetaData rootEventSourceMetadata = new EventMetaData(EventProducerConsumerType.INPUT,
         managedVertex.getName(), "NULL_VERTEX", null);
     private Map<String, EventMetaData> destinationEventMetadataMap = Maps.newHashMap();
-    
+
     @Override
     public Map<String, EdgeProperty> getInputVertexEdgeProperties() {
       // TODO Something similar for Initial Inputs - payload etc visible
@@ -109,6 +110,7 @@ public class VertexManager {
       managedVertex.scheduleTasks(tasks);
     }
 
+    @Nullable
     @Override
     public Set<String> getVertexInputNames() {
       Set<String> inputNames = null;
@@ -120,6 +122,7 @@ public class VertexManager {
       return inputNames;
     }
 
+    @Nullable
     @Override
     public byte[] getUserPayload() {
       return payload;
@@ -147,6 +150,7 @@ public class VertexManager {
 
     @Override
     public void setVertexLocationHint(VertexLocationHint locationHint) {
+      Preconditions.checkNotNull(locationHint, "locationHint is null");
       managedVertex.setVertexLocationHint(locationHint);
     }
 
