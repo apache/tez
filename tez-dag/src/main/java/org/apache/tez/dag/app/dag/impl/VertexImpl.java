@@ -121,6 +121,7 @@ import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
 import org.apache.tez.dag.history.events.VertexParallelismUpdatedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
+import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -1726,37 +1727,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       }
     }
 
-    boolean hasUserVertexManager = vertexPlan.hasVertexManagerPlugin();
-
-    if (hasUserVertexManager) {
-      VertexManagerPluginDescriptor pluginDesc = DagTypeConverters
-          .convertVertexManagerPluginDescriptorFromDAGPlan(vertexPlan
-              .getVertexManagerPlugin());
-      LOG.info("Setting user vertex manager plugin: "
-          + pluginDesc.getClassName() + " on vertex: " + getName());
-      vertexManager = new VertexManager(pluginDesc, this, appContext);
-    } else {
-      if (hasBipartite) {
-        // setup vertex manager
-        // TODO this needs to consider data size and perhaps API.
-        // Currently implicitly BIPARTITE is the only edge type
-        LOG.info("Setting vertexManager to ShuffleVertexManager for "
-            + logIdentifier);
-        vertexManager = new VertexManager(new ShuffleVertexManager(),
-            this, appContext);
-      } else if (inputsWithInitializers != null) {
-        LOG.info("Setting vertexManager to RootInputVertexManager for "
-            + logIdentifier);
-        vertexManager = new VertexManager(new RootInputVertexManager(),
-            this, appContext);
-      } else {
-        // schedule all tasks upon vertex start. Default behavior.
-        LOG.info("Setting vertexManager to ImmediateStartVertexManager for "
-            + logIdentifier);
-        vertexManager = new VertexManager(
-            new ImmediateStartVertexManager(), this, appContext);
-      }
-    }
+    assignVertexManager();
 
     vertexManager.initialize();
 
@@ -1785,6 +1756,72 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     checkTaskLimits();
     return VertexState.INITED;
+  }
+  
+  private void assignVertexManager() {
+    boolean hasBipartite = false;
+    boolean hasOneToOne = false;
+    boolean hasCustom = false;
+    if (sourceVertices != null) {
+      for (Edge edge : sourceVertices.values()) {
+        switch(edge.getEdgeProperty().getDataMovementType()) {
+        case SCATTER_GATHER:
+          hasBipartite = true;
+          break;
+        case ONE_TO_ONE:
+          hasOneToOne = true;
+          break;
+        case BROADCAST:
+          break;
+        case CUSTOM:
+          hasCustom = true;
+          break;
+        default:
+          throw new TezUncheckedException("Unknown data movement type: " + 
+              edge.getEdgeProperty().getDataMovementType());
+        }
+      }
+    }
+    
+    boolean hasUserVertexManager = vertexPlan.hasVertexManagerPlugin();
+
+    if (hasUserVertexManager) {
+      VertexManagerPluginDescriptor pluginDesc = DagTypeConverters
+          .convertVertexManagerPluginDescriptorFromDAGPlan(vertexPlan
+              .getVertexManagerPlugin());
+      LOG.info("Setting user vertex manager plugin: "
+          + pluginDesc.getClassName() + " on vertex: " + getName());
+      vertexManager = new VertexManager(pluginDesc, this, appContext);
+    } else {
+      // Intended order of picking a vertex manager
+      // If there is an InputInitializer then we use the RootInputVertexManager. May be fixed by TEZ-703
+      // If there is a custom edge we fall back to default ImmediateStartVertexManager
+      // If there is a one to one edge then we use the InputReadyVertexManager
+      // If there is a scatter-gather edge then we use the ShuffleVertexManager
+      // Else we use the default ImmediateStartVertexManager
+      if (inputsWithInitializers != null) {
+        LOG.info("Setting vertexManager to RootInputVertexManager for "
+            + logIdentifier);
+        vertexManager = new VertexManager(new RootInputVertexManager(),
+            this, appContext);
+      } else if (hasOneToOne && !hasCustom) {
+        LOG.info("Setting vertexManager to InputReadyVertexManager for "
+            + logIdentifier);
+        vertexManager = new VertexManager(new InputReadyVertexManager(),
+            this, appContext);
+      } else if (hasBipartite && !hasCustom) {
+        LOG.info("Setting vertexManager to ShuffleVertexManager for "
+            + logIdentifier);
+        vertexManager = new VertexManager(new ShuffleVertexManager(),
+            this, appContext);
+      } else {
+        // schedule all tasks upon vertex start. Default behavior.
+        LOG.info("Setting vertexManager to ImmediateStartVertexManager for "
+            + logIdentifier);
+        vertexManager = new VertexManager(
+            new ImmediateStartVertexManager(), this, appContext);
+      }
+    }
   }
 
   public static class StartRecoverTransition implements
