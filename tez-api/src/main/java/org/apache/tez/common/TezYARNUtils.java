@@ -27,15 +27,16 @@ import org.apache.hadoop.util.StringInterner;
 
 @Private
 public class TezYARNUtils {
+  
+  private static Pattern ENV_VARIABLE_PATTERN = Pattern.compile(Shell.getEnvironmentVariableRegex());
 
   public static void setEnvFromInputString(Map<String, String> env,
       String envString,  String classPathSeparator) {
     if (envString != null && envString.length() > 0) {
       String childEnvs[] = envString.split(",");
-      Pattern p = Pattern.compile(Shell.getEnvironmentVariableRegex());
       for (String cEnv : childEnvs) {
         String[] parts = cEnv.split("="); // split on '='
-        Matcher m = p.matcher(parts[1]);
+        Matcher m = ENV_VARIABLE_PATTERN.matcher(parts[1]);
         StringBuffer sb = new StringBuffer();
         while (m.find()) {
           String var = m.group(1);
@@ -45,10 +46,10 @@ public class TezYARNUtils {
           // from the tt's env
           if (replace == null)
             replace = System.getenv(var);
-          // the env key is note present anywhere .. simply set it
-          if (replace == null)
-            replace = "";
-          m.appendReplacement(sb, Matcher.quoteReplacement(replace));
+          // If the env key is note present leave it as it is and assume it will
+          // be set by YARN ContainerLauncher. For eg: $HADOOP_COMMON_HOME
+          if (replace != null)
+            m.appendReplacement(sb, Matcher.quoteReplacement(replace));
         }
         m.appendTail(sb);
         addToEnvironment(env, parts[0], sb.toString(), classPathSeparator);

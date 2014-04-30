@@ -42,17 +42,14 @@ import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.split.SplitMetaInfoReader;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
+import org.apache.hadoop.mapreduce.split.SplitMetaInfoReader;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
-import org.apache.zookeeper.Environment.Entry;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -339,6 +336,8 @@ public class TestMRHelpers {
     Assert.assertTrue(env.containsKey(Environment.LD_LIBRARY_PATH.name()));
     Assert.assertTrue(env.containsKey(Environment.SHELL.name()));
     Assert.assertTrue(env.containsKey("HADOOP_ROOT_LOGGER"));
+    Assert.assertEquals("$PWD:$HADOOP_COMMON_HOME/lib/native",
+        env.get(Environment.LD_LIBRARY_PATH.name()));
 
 //    TEZ-273 will reinstate this or similar. 
 //    for (String val : YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH) {
