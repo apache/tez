@@ -358,7 +358,7 @@ class Fetcher extends Thread {
         putBackRemainingMapOutputs(host);
         return;
       }
-      if (keepAlive && connection != null) {
+      if (keepAlive && connectSucceeded) {
         //Read the response body in case of error. This helps in connection reuse.
         //Refer: http://docs.oracle.com/javase/6/docs/technotes/guides/net/http-keepalive.html
         readErrorStream(connection.getErrorStream());
@@ -431,6 +431,9 @@ class Fetcher extends Thread {
    * @param errorStream
    */
   private void readErrorStream(InputStream errorStream) {
+    if (errorStream == null) {
+      return;
+    }
     try {
       DataOutputBuffer errorBuffer = new DataOutputBuffer();
       IOUtils.copyBytes(errorStream, errorBuffer, 4096);
