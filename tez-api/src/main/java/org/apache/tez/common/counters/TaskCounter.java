@@ -91,6 +91,12 @@ public enum TaskCounter {
    */
   OUTPUT_RECORDS,
   
+  /**
+   * Represent the number of large records in the output - typically, records which are
+   * spilled directly
+   */
+  OUTPUT_LARGE_RECORDS,
+  
   SKIPPED_RECORDS, // Not used at the moment.
 
   /**

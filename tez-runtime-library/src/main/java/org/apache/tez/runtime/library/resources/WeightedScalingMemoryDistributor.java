@@ -35,6 +35,7 @@ import org.apache.tez.runtime.library.input.ShuffledMergedInput;
 import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -185,6 +186,8 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
       requestType = RequestType.SORTED_MERGED_INPUT;
     } else if (className.equals(ShuffledUnorderedKVInput.class.getName())) {
       requestType = RequestType.UNSORTED_INPUT;
+    } else if (className.equals(OnFileUnorderedPartitionedKVOutput.class.getName())) {
+      requestType = RequestType.PARTITIONED_UNSORTED_OUTPUT;
     } else {
       requestType = RequestType.OTHER;
       LOG.info("Falling back to RequestType.OTHER for class: " + className);

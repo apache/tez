@@ -132,6 +132,21 @@ public class TezJobConfig {
   public static final int DEFAULT_TEZ_RUNTIME_SORT_THREADS = 1;
 
   /**
+   * Size of the buffer to use if not writing directly to disk.
+   */
+  public static final String TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB = 
+      "tez.runtime.unordered.output.buffer.size-mb";
+  public static final int TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB_DEFAULT = 100;
+  
+  /**
+   * Maximum size for individual buffers used in the UnsortedPartitionedOutput.
+   * This is only meant to be used by unit tests.
+   */
+  @Private
+  public static final String TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES =
+      "tez.runtime.unordered.output.max-per-buffer.size-bytes";
+  
+  /**
    * Specifies a partitioner class, which is used in Tez Runtime components
    * like OnFileSortedOutput
    */

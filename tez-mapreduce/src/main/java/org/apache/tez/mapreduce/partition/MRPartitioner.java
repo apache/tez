@@ -33,16 +33,16 @@ public class MRPartitioner implements org.apache.tez.runtime.library.api.Partiti
   static final Log LOG = LogFactory.getLog(MRPartitioner.class);
 
   private final boolean useNewApi;
-  private int partitions = 1;
 
-  private org.apache.hadoop.mapreduce.Partitioner newPartitioner;
-  private org.apache.hadoop.mapred.Partitioner oldPartitioner;
+  private final org.apache.hadoop.mapreduce.Partitioner newPartitioner;
+  private final org.apache.hadoop.mapred.Partitioner oldPartitioner;
 
   public MRPartitioner(Configuration conf) {
     this.useNewApi = ConfigUtils.useNewApi(conf);
-    this.partitions = conf.getInt(TezJobConfig.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS, 1);
+    int partitions = conf.getInt(TezJobConfig.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS, 1);
 
     if (useNewApi) {
+      oldPartitioner = null;
       if (partitions > 1) {
         newPartitioner = (org.apache.hadoop.mapreduce.Partitioner) ReflectionUtils
             .newInstance(
@@ -58,6 +58,7 @@ public class MRPartitioner implements org.apache.tez.runtime.library.api.Partiti
         };
       }
     } else {
+      newPartitioner = null;
       if (partitions > 1) {
         oldPartitioner = (org.apache.hadoop.mapred.Partitioner) ReflectionUtils.newInstance(
             (Class<? extends org.apache.hadoop.mapred.Partitioner>) conf.getClass(

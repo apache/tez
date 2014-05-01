@@ -25,6 +25,11 @@ public class TezIndexRecord {
 
   public TezIndexRecord() { }
 
+  /**
+   * @param startOffset start offset within the data file
+   * @param rawLength raw data length - typically uncompressed
+   * @param partLength actual data length in file - factors in checksums and compression
+   */
   public TezIndexRecord(long startOffset, long rawLength, long partLength) {
     this.startOffset = startOffset;
     this.rawLength = rawLength;
