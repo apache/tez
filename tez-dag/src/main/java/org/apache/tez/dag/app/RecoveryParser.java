@@ -44,6 +44,7 @@ import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
 import org.apache.tez.dag.history.events.AMStartedEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
+import org.apache.tez.dag.history.events.ContainerStoppedEvent;
 import org.apache.tez.dag.history.events.DAGCommitStartedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGInitializedEvent;
@@ -155,6 +156,9 @@ public class RecoveryParser {
         break;
       case CONTAINER_LAUNCHED:
         event = new ContainerLaunchedEvent();
+        break;
+      case CONTAINER_STOPPED:
+        event = new ContainerStoppedEvent();
         break;
       case VERTEX_INITIALIZED:
         event = new VertexInitializedEvent();

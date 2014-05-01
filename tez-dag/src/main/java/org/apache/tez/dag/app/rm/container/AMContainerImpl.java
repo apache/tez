@@ -32,6 +32,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -42,6 +43,7 @@ import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
+import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.ContainerContext;
@@ -54,6 +56,9 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventNodeFailed;
 import org.apache.tez.dag.app.rm.AMSchedulerEventDeallocateContainer;
 import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
 import org.apache.tez.dag.app.rm.NMCommunicatorStopRequestEvent;
+import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.HistoryEventHandler;
+import org.apache.tez.dag.history.events.ContainerStoppedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 //import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
@@ -673,6 +678,9 @@ public class AMContainerImpl implements AMContainer {
         LOG.info("Container " + container.getContainerId()
             + " exited with diagnostics set to " + diag);
       }
+      container.logStopped(event.isPreempted() ?
+            ContainerExitStatus.PREEMPTED
+          : ContainerExitStatus.SUCCESS);
     }
 
     public String getMessage(AMContainerImpl container,
@@ -694,6 +702,9 @@ public class AMContainerImpl implements AMContainer {
             getMessage(container, cEvent));
       }
       container.unregisterFromTAListener();
+      container.logStopped(container.pendingAttempt == null ? 
+          ContainerExitStatus.SUCCESS 
+          : ContainerExitStatus.INVALID);
       container.sendStopRequestToNM();
     }
 
@@ -736,6 +747,7 @@ public class AMContainerImpl implements AMContainer {
         container.sendNodeFailureToTA(container.runningAttempt, errorMessage);
         container.sendTerminatingToTaskAttempt(container.runningAttempt, "Node failure");
       }
+      container.logStopped(ContainerExitStatus.ABORTED);
     }
   }
 
@@ -760,6 +772,7 @@ public class AMContainerImpl implements AMContainer {
                 " hit an invalid transition - " + cEvent.getType() + " at " +
                 container.getState());
       }
+      container.logStopped(ContainerExitStatus.ABORTED);
       container.sendStopRequestToNM();
       container.unregisterFromTAListener();
     }
@@ -1087,6 +1100,7 @@ public class AMContainerImpl implements AMContainer {
     this.sendTerminatingToTaskAttempt(currentTaId, errorMessage);
     this.registerFailedAttempt(event.getTaskAttemptId());
     LOG.warn(errorMessage);
+    this.logStopped(ContainerExitStatus.INVALID);
     this.sendStopRequestToNM();
     this.unregisterFromTAListener();
     this.unregisterFromContainerListener();
@@ -1096,6 +1110,17 @@ public class AMContainerImpl implements AMContainer {
     failedAssignments.add(taId);
   }
 
+  private void logStopped(int exitStatus) {
+    final Clock clock = appContext.getClock();
+    final HistoryEventHandler historyHandler = appContext.getHistoryHandler();
+    ContainerStoppedEvent lEvt = new ContainerStoppedEvent(containerId,
+        clock.getTime(), 
+        exitStatus, 
+        appContext.getApplicationAttemptId());
+    historyHandler.handle(
+        new DAGHistoryEvent(appContext.getCurrentDAGID(),lEvt));
+  }
+  
   protected void deAllocate() {
     sendEvent(new AMSchedulerEventDeallocateContainer(containerId));
   }

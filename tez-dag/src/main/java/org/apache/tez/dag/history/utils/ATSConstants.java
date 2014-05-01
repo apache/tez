@@ -62,6 +62,7 @@ public class ATSConstants {
   public static final String PROCESSOR_CLASS_NAME = "processorClassName";
   public static final String IN_PROGRESS_LOGS_URL = "inProgressLogsURL";
   public static final String COMPLETED_LOGS_URL = "completedLogsURL";
+  public static final String EXIT_STATUS = "exitStatus";
 
   /* Counters-related keys */
   public static final String COUNTER_GROUPS = "counterGroups";

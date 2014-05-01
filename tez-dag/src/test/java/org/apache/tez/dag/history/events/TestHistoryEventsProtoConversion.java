@@ -22,6 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.RuntimeUtils;
@@ -480,6 +481,23 @@ public class TestHistoryEventsProtoConversion {
     logEvents(event, deserializedEvent);
   }
 
+  private void testContainerStoppedEvent() throws Exception {
+    ContainerStoppedEvent event = new ContainerStoppedEvent(
+        ContainerId.newInstance(ApplicationAttemptId.newInstance(
+            ApplicationId.newInstance(0, 1), 1), 1001), 100034566,
+        ContainerExitStatus.SUCCESS, ApplicationAttemptId.newInstance(
+            ApplicationId.newInstance(0, 1), 1));
+    ContainerStoppedEvent deserializedEvent = (ContainerStoppedEvent)
+        testProtoConversion(event);
+    Assert.assertEquals(event.getContainerId(),
+        deserializedEvent.getContainerId());
+    Assert.assertEquals(event.getStoppedTime(),
+        deserializedEvent.getStoppedTime());
+    Assert.assertEquals(event.getApplicationAttemptId(),
+        deserializedEvent.getApplicationAttemptId());
+    logEvents(event, deserializedEvent);
+  }
+
   private void testVertexDataMovementEventsGeneratedEvent() throws Exception {
     VertexDataMovementEventsGeneratedEvent event;
     try {
@@ -616,6 +634,9 @@ public class TestHistoryEventsProtoConversion {
           break;
         case CONTAINER_LAUNCHED:
           testContainerLaunchedEvent();
+          break;
+        case CONTAINER_STOPPED:
+          testContainerStoppedEvent();
           break;
         case VERTEX_DATA_MOVEMENT_EVENTS_GENERATED:
           testVertexDataMovementEventsGeneratedEvent();

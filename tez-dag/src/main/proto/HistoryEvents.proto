@@ -39,6 +39,14 @@ message ContainerLaunchedProto {
   optional string container_id = 2;
   optional int64 launch_time = 3;
 }
+
+message ContainerStoppedProto {
+  optional string application_attempt_id = 1;
+  optional string container_id = 2;
+  optional int64 stop_time = 3;
+  optional int32 exit_status  = 4;
+}
+
 message DAGSubmittedProto {
   optional string dag_id = 1;
   optional DAGPlan dag_plan = 2;

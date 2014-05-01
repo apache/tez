@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.jobhistory.HistoryEvent;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
@@ -60,6 +61,8 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.hadoop.yarn.util.Clock;
+import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.app.AppContext;
@@ -72,6 +75,8 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.NMCommunicatorEventType;
 import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
+import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -135,6 +140,7 @@ public class TestAMContainer {
     verify(wc.tal).unregisterTaskAttempt(wc.taskAttemptID);
 
     wc.containerCompleted(false);
+    wc.verifyHistoryStopEvent();
     wc.verifyState(AMContainerState.COMPLETED);
     wc.verifyNoOutgoingEvents();
     verify(wc.tal).unregisterRunningContainer(wc.containerID);
@@ -190,6 +196,7 @@ public class TestAMContainer {
     verify(wc.tal).unregisterTaskAttempt(wc.taskAttemptID);
 
     wc.containerCompleted(false);
+    wc.verifyHistoryStopEvent();
     wc.verifyState(AMContainerState.COMPLETED);
     wc.verifyNoOutgoingEvents();
     verify(wc.tal).unregisterRunningContainer(wc.containerID);
@@ -223,6 +230,7 @@ public class TestAMContainer {
     wc.verifyNoOutgoingEvents();
 
     wc.containerCompleted(false);
+    wc.verifyHistoryStopEvent();
     wc.verifyState(AMContainerState.COMPLETED);
     wc.verifyNoOutgoingEvents();
     verify(wc.tal).unregisterRunningContainer(wc.containerID);
@@ -261,6 +269,7 @@ public class TestAMContainer {
         AMSchedulerEventType.S_CONTAINER_DEALLOCATE);
 
     wc.containerCompleted(false);
+    wc.verifyHistoryStopEvent();
     wc.verifyState(AMContainerState.COMPLETED);
     wc.verifyNoOutgoingEvents();
     verify(wc.tal).unregisterRunningContainer(wc.containerID);
@@ -299,6 +308,7 @@ public class TestAMContainer {
 
     wc.nmStopSent();
     wc.containerCompleted(false);
+    wc.verifyHistoryStopEvent();
     // 1 Inform scheduler. 2 TERMINATED to TaskAttempt.
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(2);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
@@ -338,6 +348,7 @@ public class TestAMContainer {
 
     wc.nmStopSent();
     wc.containerCompleted(false);
+    wc.verifyHistoryStopEvent();
     // 1 Inform scheduler. 2 TERMINATED to TaskAttempt.
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(2);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
@@ -376,6 +387,7 @@ public class TestAMContainer {
 
     wc.nmStopSent();
     wc.containerCompleted(false);
+    wc.verifyHistoryStopEvent();
     // 1 Inform scheduler. 2 TERMINATED to TaskAttempt.
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(2);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
@@ -411,6 +423,7 @@ public class TestAMContainer {
     // TODO Should this be an RM DE-ALLOCATE instead ?
 
     wc.containerCompleted(false);
+    wc.verifyHistoryStopEvent();
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
         TaskAttemptEventType.TA_CONTAINER_TERMINATED);
@@ -523,6 +536,7 @@ public class TestAMContainer {
     // can cause it to be genreated)
     wc.pullTaskToRun();
     wc.verifyNoOutgoingEvents();
+    wc.verifyHistoryStopEvent();
 
     assertFalse(wc.amContainer.isInErrorState());
   }
@@ -558,6 +572,7 @@ public class TestAMContainer {
     // can cause it to be genreated)
     wc.taskAttemptSucceeded(wc.taskAttemptID);
     wc.verifyNoOutgoingEvents();
+    wc.verifyHistoryStopEvent();
 
     assertFalse(wc.amContainer.isInErrorState());
   }
@@ -593,6 +608,7 @@ public class TestAMContainer {
     // can cause it to be genreated)
     wc.taskAttemptSucceeded(wc.taskAttemptID);
     wc.verifyNoOutgoingEvents();
+    wc.verifyHistoryStopEvent();
 
     assertFalse(wc.amContainer.isInErrorState());
   }
@@ -622,6 +638,7 @@ public class TestAMContainer {
     TaskAttemptEventContainerTerminated ctEvent =
         (TaskAttemptEventContainerTerminated) outgoingEvents.get(0);
     assertEquals(taID2, ctEvent.getTaskAttemptID());
+    wc.verifyHistoryStopEvent();
 
     // Allocation to a completed Container is considered an error.
     // TODO Is this valid ?
@@ -668,6 +685,7 @@ public class TestAMContainer {
     }
 
     wc.containerCompleted(false);
+    wc.verifyHistoryStopEvent();
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
         TaskAttemptEventType.TA_CONTAINER_TERMINATED);
@@ -714,6 +732,7 @@ public class TestAMContainer {
 
     wc.containerCompleted(false);
     wc.verifyNoOutgoingEvents();
+    wc.verifyHistoryStopEvent();
 
     assertNull(wc.amContainer.getRunningTaskAttempt());
     assertEquals(0, wc.amContainer.getQueuedTaskAttempts().size());
@@ -755,6 +774,7 @@ public class TestAMContainer {
     }
 
     wc.containerCompleted(false);
+    wc.verifyHistoryStopEvent();
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
         TaskAttemptEventType.TA_CONTAINER_TERMINATED);
@@ -820,6 +840,7 @@ public class TestAMContainer {
 
     wc.containerCompleted(false);
     wc.verifyNoOutgoingEvents();
+    wc.verifyHistoryStopEvent();
   }
   
   @Test
@@ -995,6 +1016,8 @@ public class TestAMContainer {
     EventHandler eventHandler;
 
     AppContext appContext;
+    
+    HistoryEventHandler historyEventHandler;
 
     TezDAGID dagID;
     TezVertexID vertexID;
@@ -1028,6 +1051,7 @@ public class TestAMContainer {
       taskAttemptID = TezTaskAttemptID.getInstance(taskID, 1);
       
       eventHandler = mock(EventHandler.class);
+      historyEventHandler = mock(HistoryEventHandler.class);
 
       appContext = mock(AppContext.class);
       doReturn(new HashMap<ApplicationAccessType, String>()).when(appContext)
@@ -1035,6 +1059,8 @@ public class TestAMContainer {
       doReturn(eventHandler).when(appContext).getEventHandler();
       doReturn(appAttemptID).when(appContext).getApplicationAttemptId();
       doReturn(applicationID).when(appContext).getApplicationID();
+      doReturn(new SystemClock()).when(appContext).getClock();
+      doReturn(historyEventHandler).when(appContext).getHistoryHandler();
       mockDAGID();
 
       taskSpec = mock(TaskSpec.class);
@@ -1073,6 +1099,12 @@ public class TestAMContainer {
       ArgumentCaptor<Event> args = ArgumentCaptor.forClass(Event.class);
       verify(eventHandler, times(invocations)).handle(args.capture());
       return args.getAllValues();
+    }
+    
+    public void verifyHistoryStopEvent() {
+      ArgumentCaptor<DAGHistoryEvent> args = ArgumentCaptor.forClass(DAGHistoryEvent.class);
+      verify(historyEventHandler, times(1)).handle(args.capture());
+      assertEquals(1, args.getAllValues().size());
     }
 
     public void launchContainer() {
