@@ -85,6 +85,8 @@ public class ExampleDriver {
           "Filters lines by the specified word using broadcast edge");
       pgd.addClass("filterLinesByWordOneToOne", FilterLinesByWordOneToOne.class,
           "Filters lines by the specified word using OneToOne edge");
+      pgd.addClass("intersect", IntersectExample.class,
+          "Identify all occurences of lines in file1 which also occur in file2");
       exitCode = pgd.run(argv);
     }
     catch(Throwable e){

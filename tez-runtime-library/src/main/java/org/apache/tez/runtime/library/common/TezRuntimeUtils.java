@@ -97,10 +97,11 @@ public class TezRuntimeUtils {
       throws IOException {
     Class<? extends Partitioner> clazz;
     try {
-      clazz = (Class<? extends Partitioner>) conf
-          .getClassByName(conf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS));
+      clazz = (Class<? extends Partitioner>) conf.getClassByName(conf
+          .get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS));
     } catch (ClassNotFoundException e) {
-      throw new IOException("Unable to find Partitioner class in config", e);
+      throw new IOException("Unable to find Partitioner class specified in config : "
+          + conf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS), e);
     }
 
     LOG.info("Using partitioner class: " + clazz.getName());
