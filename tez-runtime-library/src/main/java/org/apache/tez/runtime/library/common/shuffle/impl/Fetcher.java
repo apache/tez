@@ -202,7 +202,7 @@ class Fetcher extends Thread {
           // Shuffle
           copyFromHost(host);
         } finally {
-          cleanupCurrentConnection();
+          cleanupCurrentConnection(!keepAlive);
           if (host != null) {
             scheduler.freeHost(host);
             metrics.threadFree();            
@@ -219,7 +219,7 @@ class Fetcher extends Thread {
   public void shutDown() throws InterruptedException {
     this.stopped = true;
     interrupt();
-    cleanupCurrentConnection();
+    cleanupCurrentConnection(true);
     try {
       join(5000);
     } catch (InterruptedException ie) {
@@ -231,7 +231,7 @@ class Fetcher extends Thread {
   }
 
   private Object cleanupLock = new Object();
-  private void cleanupCurrentConnection() {
+  private void cleanupCurrentConnection(boolean disconnect) {
     // Synchronizing on cleanupLock to ensure we don't run into a parallel close
     // Can't synchronize on the main class itself since that would cause the
     // shutdown request to block
@@ -241,7 +241,7 @@ class Fetcher extends Thread {
           LOG.info("Closing input on " + logIdentifier);
           input.close();
         }
-        if (connection != null) {
+        if (connection != null && disconnect) {
           LOG.info("Closing connection on " + logIdentifier);
           connection.disconnect();
         }
@@ -321,7 +321,7 @@ class Fetcher extends Thread {
       
       if (stopped) {
         LOG.info("Detected fetcher has been shutdown after connection establishment. Returning");
-        cleanupCurrentConnection();
+        cleanupCurrentConnection(true);
         putBackRemainingMapOutputs(host);
         return;
       }
@@ -354,7 +354,7 @@ class Fetcher extends Thread {
     } catch (IOException ie) {
       if (stopped) {
         LOG.info("Not reporting fetch failure, since an Exception was caught after shutdown");
-        cleanupCurrentConnection();
+        cleanupCurrentConnection(true);
         putBackRemainingMapOutputs(host);
         return;
       }
@@ -413,7 +413,7 @@ class Fetcher extends Thread {
         }
       }
 
-      cleanupCurrentConnection();
+      cleanupCurrentConnection(!keepAlive); //do not disconnect if keepAlive is on
 
       // Sanity check
       if (failedTasks == null && !remaining.isEmpty()) {
@@ -522,14 +522,13 @@ class Fetcher extends Thread {
         return EMPTY_ATTEMPT_ID_ARRAY;
       }
       
-      // Check if we can shuffle *now* ...
       if (mapOutput.getType() == Type.WAIT) {
         // TODO Review: Does this cause a tight loop ?
         LOG.info("fetcher#" + id + " - MergerManager returned Status.WAIT ...");
-        //Not an error but wait to process data.
+        //Not an error but wait to process data.  
         return EMPTY_ATTEMPT_ID_ARRAY;
-      } 
-      
+      }
+
       // Go!
       LOG.info("fetcher#" + id + " about to shuffle output of map " + 
                mapOutput.getAttemptIdentifier() + " decomp: " +
@@ -554,7 +553,7 @@ class Fetcher extends Thread {
       if (stopped) {
         LOG.info("Not reporting fetch failure for exception during data copy: ["
             + ioe.getClass().getName() + ", " + ioe.getMessage() + "]");
-        cleanupCurrentConnection();
+        cleanupCurrentConnection(true);
         if (mapOutput != null) {
           mapOutput.abort(); // Release resources
         }
