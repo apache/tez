@@ -271,4 +271,48 @@ public class TestTezJobs {
     inStream.close();
     assertEquals(0, expectedResult.size());
   }
+
+  @Test
+  public void testNonDefaultFSStagingDir() throws Exception {
+    SleepProcessorConfig spConf = new SleepProcessorConfig(1);
+
+    DAG dag = new DAG("TezSleepProcessor");
+    Vertex vertex = new Vertex("SleepVertex", new ProcessorDescriptor(
+        SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
+        Resource.newInstance(1024, 1));
+    dag.addVertex(vertex);
+
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    Path stagingDir = new Path(TEST_ROOT_DIR, "testNonDefaultFSStagingDir"
+        + String.valueOf(random.nextInt(100000)));
+    FileSystem localFs = FileSystem.getLocal(tezConf);
+    stagingDir = localFs.makeQualified(stagingDir);
+    localFs.mkdirs(stagingDir);
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir.toString());
+
+    TezClient tezClient = new TezClient(tezConf);
+    AMConfiguration amConf = new AMConfiguration(new HashMap<String, String>(),
+        new HashMap<String, LocalResource>(), tezConf, null);
+
+    DAGClient dagClient = tezClient.submitDAGApplication(dag, amConf);
+
+    DAGStatus dagStatus = dagClient.getDAGStatus(null);
+    while (!dagStatus.isCompleted()) {
+      LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
+          + dagStatus.getState());
+      Thread.sleep(500l);
+      dagStatus = dagClient.getDAGStatus(null);
+    }
+    dagStatus = dagClient.getDAGStatus(Sets.newHashSet(StatusGetOpts.GET_COUNTERS));
+
+    assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+    assertNotNull(dagStatus.getDAGCounters());
+    assertNotNull(dagStatus.getDAGCounters().getGroup(FileSystemCounter.class.getName()));
+    assertNotNull(dagStatus.getDAGCounters().findCounter(TaskCounter.GC_TIME_MILLIS));
+    ExampleDriver.printDAGStatus(dagClient, new String[] { "SleepVertex" }, true, true);
+
+
+  }
+
+
 }
