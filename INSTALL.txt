@@ -30,6 +30,10 @@ Install/Deploy Instructions
 6) set HADOOP_CLASSPATH to have the following paths in it:
    - TEZ_CONF_DIR - location of tez-site.xml
    - TEZ_JARS and TEZ_JARS/libs - location of the tez jars and dependencies.
+   - The command to set up the classpath should be something like:
+     "export HADOOP_CLASSPATH=${TEZ_CONF_DIR}:${TEZ_JARS}/*:${TEZ_JARS}/lib/*".
+   - Please note the "*" which is an important requirement when setting up classpaths for directories container jar files.
+
 7) Submit a MR job as you normally would using something like:
 
 $HADOOP_PREFIX/bin/hadoop jar hadoop-mapreduce-client-jobclient-2.2.0-tests.jar sleep -mt 1 -rt 1 -m 1 -r 1

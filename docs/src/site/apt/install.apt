@@ -45,6 +45,9 @@ Install/Deploy Instructions
 
     * TEZ_JARS and TEZ_JARS/libs - location of the tez jars and dependencies.
 
+    * The command to set up the classpath should be something like: "export HADOOP_CLASSPATH=$\{TEZ_CONF_DIR\}:$\{TEZ_JARS\}/*:$\{TEZ_JARS\}/lib/*". Please note the "*" which is an important requirement when setting up classpaths for directories containing jar files.
+
+
   [[i]] Submit a MR job as you normally would using something like:
 
 +---+
