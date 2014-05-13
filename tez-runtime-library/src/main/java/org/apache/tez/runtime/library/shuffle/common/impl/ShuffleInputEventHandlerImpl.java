@@ -94,6 +94,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
       throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
     }
     int srcIndex = dme.getSourceIndex();
+    String hostIdentifier = shufflePayload.getHost() + ":" + shufflePayload.getPort();
     LOG.info("Processing DataMovementEvent with srcIndex: "
         + srcIndex + ", targetIndex: " + dme.getTargetIndex()
         + ", attemptNum: " + dme.getVersion() + ", payload: "
@@ -118,7 +119,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
         DataProto dataProto = shufflePayload.getData();
         FetchedInput fetchedInput = inputAllocator.allocate(dataProto.getRawLength(),
             dataProto.getCompressedLength(), srcAttemptIdentifier);
-        moveDataToFetchedInput(dataProto, fetchedInput);
+        moveDataToFetchedInput(dataProto, fetchedInput, hostIdentifier);
         shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);
       } else {
         shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(),
@@ -128,16 +129,18 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   }
   
   private void moveDataToFetchedInput(DataProto dataProto,
-      FetchedInput fetchedInput) throws IOException {
+      FetchedInput fetchedInput, String hostIdentifier) throws IOException {
     switch (fetchedInput.getType()) {
     case DISK:
-      ShuffleUtils.shuffleToDisk((DiskFetchedInput) fetchedInput, dataProto
-          .getData().newInput(), dataProto.getCompressedLength(), LOG);
+      ShuffleUtils.shuffleToDisk(((DiskFetchedInput) fetchedInput).getOutputStream(),
+        hostIdentifier, dataProto.getData().newInput(), dataProto.getCompressedLength(), LOG,
+          fetchedInput.getInputAttemptIdentifier().toString());
       break;
     case MEMORY:
-      ShuffleUtils.shuffleToMemory((MemoryFetchedInput) fetchedInput,
-          dataProto.getData().newInput(), dataProto.getRawLength(),
-          dataProto.getCompressedLength(), codec, ifileReadAhead, ifileReadAheadLength, LOG);
+      ShuffleUtils.shuffleToMemory(((MemoryFetchedInput) fetchedInput).getBytes(),
+        dataProto.getData().newInput(), dataProto.getRawLength(), dataProto.getCompressedLength(),
+        codec, ifileReadAhead, ifileReadAheadLength, LOG,
+        fetchedInput.getInputAttemptIdentifier().toString());
       break;
     case WAIT:
     default:
@@ -163,3 +166,4 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     return sb.toString();
   }
 }
+

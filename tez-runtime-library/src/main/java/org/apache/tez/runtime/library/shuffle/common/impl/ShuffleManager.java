@@ -112,8 +112,6 @@ public class ShuffleManager implements FetcherCallback {
   
   // Parameters required by Fetchers
   private final SecretKey shuffleSecret;
-  private final int connectionTimeout;
-  private final int readTimeout;
   private final CompressionCodec codec;
   
   private final int ifileBufferSize;
@@ -132,6 +130,7 @@ public class ShuffleManager implements FetcherCallback {
   private final TezCounter bytesShuffledToMemCounter;
   
   private volatile Throwable shuffleError;
+  private final Configuration conf;
   
   // TODO More counters - FetchErrors, speed?
   
@@ -175,7 +174,7 @@ public class ShuffleManager implements FetcherCallback {
         new ThreadFactoryBuilder().setDaemon(true)
             .setNameFormat("Fetcher [" + srcNameTrimmed + "] #%d").build());
     this.fetcherExecutor = MoreExecutors.listeningDecorator(fetcherRawExecutor);
-    
+    this.conf = conf;
     
     ExecutorService schedulerRawExecutor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
         .setDaemon(true).setNameFormat("ShuffleRunner [" + srcNameTrimmed + "]").build());
@@ -187,13 +186,6 @@ public class ShuffleManager implements FetcherCallback {
     this.shuffleSecret = ShuffleUtils
         .getJobTokenSecretFromTokenBytes(inputContext
             .getServiceConsumerMetaData(TezConfiguration.TEZ_SHUFFLE_HANDLER_SERVICE_ID));
-    
-    this.connectionTimeout = conf.getInt(
-        TezJobConfig.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT,
-        TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_STALLED_COPY_TIMEOUT);
-    this.readTimeout = conf.getInt(
-        TezJobConfig.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT,
-        TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT);
     
     LOG.info(this.getClass().getSimpleName() + " : numInputs=" + numInputs + ", compressionCodec="
         + (codec == null ? "NoCompressionCodec" : codec.getClass().getName()) + ", numFetchers="
@@ -290,9 +282,9 @@ public class ShuffleManager implements FetcherCallback {
   }
   
   private Fetcher constructFetcherForHost(InputHost inputHost) {
-    FetcherBuilder fetcherBuilder = new FetcherBuilder(ShuffleManager.this, inputManager,
+    FetcherBuilder fetcherBuilder = new FetcherBuilder(ShuffleManager.this,
+      ShuffleUtils.constructHttpShuffleConnectionParams(conf), inputManager,
         inputContext.getApplicationId(), shuffleSecret, srcNameTrimmed);
-    fetcherBuilder.setConnectionParameters(connectionTimeout, readTimeout);
     if (codec != null) {
       fetcherBuilder.setCompressionParameters(codec);
     }
@@ -709,3 +701,4 @@ public class ShuffleManager implements FetcherCallback {
     }
   }
 }
+

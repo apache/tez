@@ -32,6 +32,7 @@ import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -112,20 +113,10 @@ public class ShuffleInputEventHandler {
 
   // TODO NEWTEZ Handle encrypted shuffle
   private URI getBaseURI(String host, int port, int partitionId) {
-    StringBuilder sb = new StringBuilder("http://");
-    sb.append(host);
-    sb.append(":");
-    sb.append(String.valueOf(port));
-    sb.append("/");
-    
-    sb.append("mapOutput?job=");
-    // Required to use the existing ShuffleHandler
-    sb.append(inputContext.getApplicationId().toString().replace("application", "job"));
-    
-    sb.append("&reduce=");
-    sb.append(partitionId);
-    sb.append("&map=");
+    StringBuilder sb = ShuffleUtils.constructBaseURIForShuffleHandler(host, port,
+      partitionId, inputContext.getApplicationId().toString());
     URI u = URI.create(sb.toString());
     return u;
   }
 }
+

@@ -21,11 +21,16 @@ package org.apache.tez.runtime.library.shuffle.common;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.ByteBuffer;
+import java.util.List;
 
 import javax.crypto.SecretKey;
 
 import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IOUtils;
@@ -33,13 +38,17 @@ import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.sort.impl.IFileInputStream;
+import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParams;
+import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParamsBuilder;
 
 public class ShuffleUtils {
 
+  private static final Log LOG = LogFactory.getLog(ShuffleUtils.class);
   public static String SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
 
   public static SecretKey getJobTokenSecretFromTokenBytes(ByteBuffer meta)
@@ -71,12 +80,12 @@ public class ShuffleUtils {
       in.close();
     }
   }
-  
+
   @SuppressWarnings("resource")
-  public static void shuffleToMemory(MemoryFetchedInput fetchedInput,
+  public static void shuffleToMemory(byte[] shuffleData,
       InputStream input, int decompressedLength, int compressedLength,
       CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength,
-      Log LOG) throws IOException {
+      Log LOG, String identifier) throws IOException {
     IFileInputStream checksumIn = new IFileInputStream(input, compressedLength,
         ifileReadAhead, ifileReadAheadLength);
 
@@ -88,14 +97,12 @@ public class ShuffleUtils {
       decompressor.reset();
       input = codec.createInputStream(input, decompressor);
     }
-    // Copy map-output into an in-memory buffer
-    byte[] shuffleData = fetchedInput.getBytes();
 
     try {
       IOUtils.readFully(input, shuffleData, 0, shuffleData.length);
       // metrics.inputBytes(shuffleData.length);
       LOG.info("Read " + shuffleData.length + " bytes from input for "
-          + fetchedInput.getInputAttemptIdentifier());
+          + identifier);
     } catch (IOException ioe) {
       // Close the streams
       IOUtils.cleanup(LOG, input);
@@ -104,11 +111,10 @@ public class ShuffleUtils {
     }
   }
   
-  public static void shuffleToDisk(DiskFetchedInput fetchedInput,
-      InputStream input, long compressedLength, Log LOG)
+  public static void shuffleToDisk(OutputStream output, String hostIdentifier,
+      InputStream input, long compressedLength, Log LOG, String identifier)
       throws IOException {
     // Copy data to local-disk
-    OutputStream output = fetchedInput.getOutputStream();
     long bytesLeft = compressedLength;
     try {
       final int BYTES_TO_READ = 64 * 1024;
@@ -117,7 +123,7 @@ public class ShuffleUtils {
         int n = input.read(buf, 0, (int) Math.min(bytesLeft, BYTES_TO_READ));
         if (n < 0) {
           throw new IOException("read past end of stream reading "
-              + fetchedInput.getInputAttemptIdentifier());
+              + identifier);
         }
         output.write(buf, 0, n);
         bytesLeft -= n;
@@ -125,37 +131,99 @@ public class ShuffleUtils {
       }
 
       LOG.info("Read " + (compressedLength - bytesLeft)
-          + " bytes from input for " + fetchedInput.getInputAttemptIdentifier());
+          + " bytes from input for " + identifier);
 
       output.close();
     } catch (IOException ioe) {
       // Close the streams
       IOUtils.cleanup(LOG, input, output);
-
       // Re-throw
       throw ioe;
     }
 
     // Sanity check
     if (bytesLeft != 0) {
-      throw new IOException("Incomplete input received for "
-          + fetchedInput.getInputAttemptIdentifier() + " ("
-          + bytesLeft + " bytes missing of " + compressedLength + ")");
+      throw new IOException("Incomplete map output received for " +
+          identifier + " from " +
+          hostIdentifier + " (" + 
+          bytesLeft + " bytes missing of " + 
+          compressedLength + ")");
     }
   }
-  
+
   // TODO NEWTEZ handle ssl shuffle
-  public static StringBuilder constructBaseURIForShuffleHandler(String host, int port, int partition, ApplicationId appId) {
+  public static StringBuilder constructBaseURIForShuffleHandler(String host,
+      int port, int partition, String appId) {
+    return constructBaseURIForShuffleHandler(host + ":" + String.valueOf(port),
+      partition, appId);
+  }
+  
+  public static StringBuilder constructBaseURIForShuffleHandler(String hostIdentifier,
+      int partition, String appId) {
     StringBuilder sb = new StringBuilder("http://");
-    sb.append(host);
-    sb.append(":");
-    sb.append(String.valueOf(port));
+    sb.append(hostIdentifier);
     sb.append("/");
     sb.append("mapOutput?job=");
-    sb.append(appId.toString().replace("application", "job"));
+    sb.append(appId.replace("application", "job"));
     sb.append("&reduce=");
     sb.append(String.valueOf(partition));
     sb.append("&map=");
     return sb;
   }
+
+  public static URL constructInputURL(String baseURI, 
+      List<InputAttemptIdentifier> inputs, boolean keepAlive) throws MalformedURLException {
+    StringBuilder url = new StringBuilder(baseURI);
+    boolean first = true;
+    for (InputAttemptIdentifier input : inputs) {
+      if (first) {
+        first = false;
+        url.append(input.getPathComponent());
+      } else {
+        url.append(",").append(input.getPathComponent());
+      }
+    }
+    //It is possible to override keep-alive setting in cluster by adding keepAlive in url.
+    //Refer MAPREDUCE-5787 to enable/disable keep-alive in the cluster.
+    if (keepAlive) {
+      url.append("&keepAlive=true");
+    }
+    return new URL(url.toString());
+  }
+
+  public static HttpConnectionParams constructHttpShuffleConnectionParams(
+      Configuration conf) {
+    HttpConnectionParamsBuilder builder = new HttpConnectionParamsBuilder();
+
+    int connectionTimeout =
+        conf.getInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT,
+          TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_STALLED_COPY_TIMEOUT);
+
+    int readTimeout =
+        conf.getInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT,
+          TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT);
+
+    int bufferSize =
+        conf.getInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE,
+          TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE);
+
+    boolean keepAlive =
+        conf.getBoolean(TezJobConfig.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED,
+          TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED);
+    int keepAliveMaxConnections =
+        conf.getInt(
+          TezJobConfig.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS,
+          TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS);
+    if (keepAlive) {
+      System.setProperty("sun.net.http.errorstream.enableBuffering", "true");
+      System.setProperty("http.maxConnections",
+        String.valueOf(keepAliveMaxConnections));
+      LOG.info("Set keepAlive max connections: " + keepAliveMaxConnections);
+    }
+
+    return builder.setTimeout(connectionTimeout, readTimeout)
+      .setBufferSize(bufferSize)
+      .setKeepAlive(keepAlive, keepAliveMaxConnections).build();
+  }
 }
+

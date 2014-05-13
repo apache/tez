@@ -20,8 +20,6 @@ package org.apache.tez.runtime.library.shuffle.common;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -42,9 +40,9 @@ import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleHeader;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
+import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParams;
 
 import com.google.common.base.Preconditions;
 
@@ -56,13 +54,10 @@ public class Fetcher implements Callable<FetchResult> {
 
   private static final Log LOG = LogFactory.getLog(Fetcher.class);
 
-  private static final int UNIT_CONNECT_TIMEOUT = 60 * 1000;
   private static final AtomicInteger fetcherIdGen = new AtomicInteger(0);
 
   // Configurable fields.
   private CompressionCodec codec;
-  private int connectionTimeout;
-  private int readTimeout;
 
   private boolean ifileReadAhead = TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT;
   private int ifileReadAheadLength = TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT;
@@ -94,12 +89,12 @@ public class Fetcher implements Callable<FetchResult> {
   private LinkedHashSet<InputAttemptIdentifier> remaining;
 
   private URL url;
-  private volatile HttpURLConnection connection;
   private volatile DataInputStream input;
-  private String encHash;
-  private String msgToEncode;
+  
+  private HttpConnection httpConnection;
+  private HttpConnectionParams httpConnectionParams;
 
-  private Fetcher(FetcherCallback fetcherCallback,
+  private Fetcher(FetcherCallback fetcherCallback, HttpConnectionParams params,
       FetchedInputAllocator inputManager, ApplicationId appId, SecretKey shuffleSecret,
       String srcNameTrimmed) {
     this.fetcherCallback = fetcherCallback;
@@ -107,10 +102,11 @@ public class Fetcher implements Callable<FetchResult> {
     this.shuffleSecret = shuffleSecret;
     this.appId = appId;
     this.pathToAttemptMap = new HashMap<String, InputAttemptIdentifier>();
+    this.httpConnectionParams = params;
 
     this.fetcherIdentifier = fetcherIdGen.getAndIncrement();
     this.logIdentifier = "fetcher [" + srcNameTrimmed +"] " + fetcherIdentifier;
-    
+
     // TODO NEWTEZ Ideally, move this out from here into a static initializer block.
     // Re-enable when ssl shuffle support is needed.
 //    synchronized (Fetcher.class) {
@@ -145,7 +141,13 @@ public class Fetcher implements Callable<FetchResult> {
     remaining = new LinkedHashSet<InputAttemptIdentifier>(srcAttempts);
 
     try {
-      connectToShuffleHandler(host, port, partition, srcAttempts);
+      StringBuilder baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host,
+        port, partition, appId.toString());
+      this.url = ShuffleUtils.constructInputURL(baseURI.toString(), srcAttempts,
+        httpConnectionParams.getKeepAlive());
+
+      httpConnection = new HttpConnection(url, httpConnectionParams, logIdentifier, shuffleSecret);
+      httpConnection.connect();
     } catch (IOException e) {
       // ioErrs.increment(1);
       // If connect did not succeed, just mark all the maps as failed,
@@ -168,8 +170,9 @@ public class Fetcher implements Callable<FetchResult> {
     }
 
     try {
-      input = new DataInputStream(connection.getInputStream());
-      validateConnectionResponse(msgToEncode, encHash);
+      input = httpConnection.getInputStream();
+      httpConnection.validate();
+      //validateConnectionResponse(msgToEncode, encHash);
     } catch (IOException e) {
       // ioErrs.increment(1);
       // If we got a read error at this stage, it implies there was a problem
@@ -240,13 +243,8 @@ public class Fetcher implements Callable<FetchResult> {
     // shutdown request to block
     synchronized (isShutDown) {
       try {
-        if (input != null) {
-          LOG.info("Closing input on " + logIdentifier);
-          input.close();
-        }
-        if (connection != null) {
-          LOG.info("Closing connection on " + logIdentifier);
-          connection.disconnect();
+        if (httpConnection != null) {
+          httpConnection.cleanup(false);
         }
       } catch (IOException e) {
         LOG.info("Exception while shutting down fetcher on " + logIdentifier + " : "
@@ -322,12 +320,14 @@ public class Fetcher implements Callable<FetchResult> {
           + fetchedInput.getType());
 
       if (fetchedInput.getType() == Type.MEMORY) {
-        ShuffleUtils.shuffleToMemory((MemoryFetchedInput) fetchedInput,
-            input, (int) decompressedLength, (int) compressedLength, codec,
-            ifileReadAhead, ifileReadAheadLength, LOG);
+        ShuffleUtils.shuffleToMemory(((MemoryFetchedInput) fetchedInput).getBytes(),
+          input, (int) decompressedLength, (int) compressedLength, codec,
+          ifileReadAhead, ifileReadAheadLength, LOG,
+          fetchedInput.getInputAttemptIdentifier().toString());
       } else {
-        ShuffleUtils.shuffleToDisk((DiskFetchedInput) fetchedInput, input,
-            compressedLength, LOG);
+        ShuffleUtils.shuffleToDisk(((DiskFetchedInput) fetchedInput).getOutputStream(),
+          (host +":" +port), input, compressedLength, LOG,
+          fetchedInput.getInputAttemptIdentifier().toString());
       }
 
       // Inform the shuffle scheduler
@@ -417,135 +417,6 @@ public class Fetcher implements Callable<FetchResult> {
     }
   }
 
-  private void connectToShuffleHandler(String host, int port,
-      int partition, List<InputAttemptIdentifier> inputs) throws IOException {
-    try {
-      this.url = constructInputURL(host, port, partition, inputs);
-      this.connection = openConnection(url);
-
-      // generate hash of the url
-      this.msgToEncode = SecureShuffleUtils.buildMsgFrom(url);
-      this.encHash = SecureShuffleUtils.hashFromString(msgToEncode,
-          shuffleSecret);
-
-      // put url hash into http header
-      connection.addRequestProperty(SecureShuffleUtils.HTTP_HEADER_URL_HASH,
-          encHash);
-      // set the read timeout
-      connection.setReadTimeout(readTimeout);
-      // put shuffle version into http header
-      connection.addRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
-          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
-      connection.addRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
-          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
-
-      connect(connectionTimeout);
-    } catch (IOException e) {
-      LOG.warn("Failed to connect to " + host + " with " + srcAttempts.size()
-          + " inputs", e);
-      throw e;
-    }
-  }
-
-  private void validateConnectionResponse(String msgToEncode, String encHash) throws IOException {
-    int rc = connection.getResponseCode();
-    if (rc != HttpURLConnection.HTTP_OK) {
-      throw new IOException("Got invalid response code " + rc + " from " + url
-          + ": " + connection.getResponseMessage());
-    }
-
-    if (!ShuffleHeader.DEFAULT_HTTP_HEADER_NAME.equals(connection
-        .getHeaderField(ShuffleHeader.HTTP_HEADER_NAME))
-        || !ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION.equals(connection
-            .getHeaderField(ShuffleHeader.HTTP_HEADER_VERSION))) {
-      throw new IOException("Incompatible shuffle response version");
-    }
-
-    // get the replyHash which is HMac of the encHash we sent to the server
-    String replyHash = connection
-        .getHeaderField(SecureShuffleUtils.HTTP_HEADER_REPLY_URL_HASH);
-    if (replyHash == null) {
-      throw new IOException("security validation of TT Map output failed");
-    }
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("url=" + msgToEncode + ";encHash=" + encHash + ";replyHash="
-          + replyHash);
-    }
-    // verify that replyHash is HMac of encHash
-    SecureShuffleUtils.verifyReply(replyHash, encHash, shuffleSecret);
-    LOG.info("for url=" + msgToEncode + " sent hash and receievd reply");
-  }
-
-  protected HttpURLConnection openConnection(URL url) throws IOException {
-    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-    return connection;
-  }
-
-  /**
-   * The connection establishment is attempted multiple times and is given up
-   * only on the last failure. Instead of connecting with a timeout of X, we try
-   * connecting with a timeout of x < X but multiple times.
-   */
-  private void connect(int connectionTimeout) throws IOException {
-    int unit = 0;
-    if (connectionTimeout < 0) {
-      throw new IOException("Invalid timeout " + "[timeout = "
-          + connectionTimeout + " ms]");
-    } else if (connectionTimeout > 0) {
-      unit = Math.min(UNIT_CONNECT_TIMEOUT, connectionTimeout);
-    }
-    // set the connect timeout to the unit-connect-timeout
-    connection.setConnectTimeout(unit);
-    while (true) {
-      try {
-        connection.connect();
-        break;
-      } catch (IOException ioe) {
-
-        // Check if already shutdown and abort subsequent connect attempts
-        if (isShutDown.get()) {
-          LOG.info("Fetcher already shutdown. Not attempting to connect again. Last exception was: ["
-              + ioe.getClass().getName() + ", " + ioe.getMessage() + "]");
-          return;
-        }
-        // update the total remaining connect-timeout
-        connectionTimeout -= unit;
-
-        // throw an exception if we have waited for timeout amount of time
-        // note that the updated value if timeout is used here
-        if (connectionTimeout == 0) {
-          throw ioe;
-        }
-
-        // reset the connect timeout for the last try
-        if (connectionTimeout < unit) {
-          unit = connectionTimeout;
-          // reset the connect time out for the final connect
-          connection.setConnectTimeout(unit);
-        }
-      }
-    }
-  }
-
-  private URL constructInputURL(String host, int port, int partition,
-      List<InputAttemptIdentifier> inputs) throws MalformedURLException {
-    StringBuilder url = ShuffleUtils.constructBaseURIForShuffleHandler(host,
-        port, partition, appId);
-    boolean first = true;
-    for (InputAttemptIdentifier input : inputs) {
-      if (first) {
-        first = false;
-        url.append(input.getPathComponent());
-      } else {
-        url.append(",").append(input.getPathComponent());
-      }
-    }
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("InputFetch URL for: " + host + " : " + url.toString());
-    }
-    return new URL(url.toString());
-  }
-
   /**
    * Builder for the construction of Fetchers
    */
@@ -553,11 +424,16 @@ public class Fetcher implements Callable<FetchResult> {
     private Fetcher fetcher;
     private boolean workAssigned = false;
 
-    public FetcherBuilder(FetcherCallback fetcherCallback,
+    public FetcherBuilder(FetcherCallback fetcherCallback, HttpConnectionParams params,
         FetchedInputAllocator inputManager, ApplicationId appId,
         SecretKey shuffleSecret, String srcNameTrimmed) {
-      this.fetcher = new Fetcher(fetcherCallback, inputManager, appId,
+      this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId,
           shuffleSecret, srcNameTrimmed);
+    }
+
+    public FetcherBuilder setHttpConnectionParameters(HttpConnectionParams httpParams) {
+      fetcher.httpConnectionParams = httpParams;
+      return this;
     }
 
     public FetcherBuilder setCompressionParameters(CompressionCodec codec) {
@@ -565,13 +441,6 @@ public class Fetcher implements Callable<FetchResult> {
       return this;
     }
 
-    public FetcherBuilder setConnectionParameters(int connectionTimeout,
-        int readTimeout) {
-      fetcher.connectionTimeout = connectionTimeout;
-      fetcher.readTimeout = readTimeout;
-      return this;
-    }
-    
     public FetcherBuilder setIFileParams(boolean readAhead, int readAheadBytes) {
       fetcher.ifileReadAhead = readAhead;
       fetcher.ifileReadAheadLength = readAheadBytes;
@@ -614,3 +483,4 @@ public class Fetcher implements Callable<FetchResult> {
     return true;
   }
 }
+
