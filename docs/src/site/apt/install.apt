@@ -21,9 +21,13 @@ Install/Deploy Instructions
 
   [[i]] Build tez using "mvn clean install -DskipTests=true -Dmaven.javadoc.skip=true"
 
+    * This assumes that you have already installed JDK6 or later, Maven 3 or later and Protocol Buffers (protoc compiler) 2.2 or later
+
     * If you prefer to run the unit tests, remove skipTests from the command above.
 
     * If you would like to create a tarball of the release, use "mvn clean package -Dtar -DskipTests=true -Dmaven.javadoc.skip=true"
+
+    * If you use Eclipse IDE, you can import the peojects using "Import/Maven/Existing Maven Projects". Eclipse does not automatically generate Java sources or include the generated sources into the projects. Please build using maven as described above and then use Project Properties to include "target/generated-sources/java" as a source directory into the "Java Build Path" for these projects: tez-api, tez-mapreduce, tez-runtime-internals and tez-runtime-library. This needs to be done just once after importing the project.
 
   [[i]] Copy the tez jars and their dependencies into HDFS.
 
