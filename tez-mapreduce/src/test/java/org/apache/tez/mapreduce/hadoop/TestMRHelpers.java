@@ -327,6 +327,7 @@ public class TestMRHelpers {
     conf.set(MRJobConfig.REDUCE_ENV, "foo=red1,bar=red2");
     conf.set(MRJobConfig.MAP_LOG_LEVEL, "TRACE");
     conf.set(MRJobConfig.REDUCE_LOG_LEVEL, "FATAL");
+    conf.set(MRJobConfig.MAPRED_ADMIN_USER_ENV, "LD_LIBRARY_PATH=$TEZ_ADMIN_ENV_TEST/lib/native");
     return conf;
   }
 
@@ -336,7 +337,7 @@ public class TestMRHelpers {
     Assert.assertTrue(env.containsKey(Environment.LD_LIBRARY_PATH.name()));
     Assert.assertTrue(env.containsKey(Environment.SHELL.name()));
     Assert.assertTrue(env.containsKey("HADOOP_ROOT_LOGGER"));
-    Assert.assertEquals("$PWD:$HADOOP_COMMON_HOME/lib/native",
+    Assert.assertEquals("$PWD:$TEZ_ADMIN_ENV_TEST/lib/native",
         env.get(Environment.LD_LIBRARY_PATH.name()));
 
 //    TEZ-273 will reinstate this or similar. 
