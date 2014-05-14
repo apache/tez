@@ -186,14 +186,7 @@ public class MROutput extends AbstractLogicalOutput {
         LOG.debug("using new api for output committer");
       }
 
-      OutputFormat<?, ?> outputFormat = null;
-      try {
-        outputFormat = ReflectionUtils.newInstance(
-            newApiTaskAttemptContext.getOutputFormatClass(), job);
-      } catch (ClassNotFoundException cnfe) {
-        throw new IOException("Unknown OutputFormat", cnfe);
-      }
-      this.committer = outputFormat.getOutputCommitter(
+      this.committer = newOutputFormat.getOutputCommitter(
           newApiTaskAttemptContext);
     } else {
       this.committer = job.getOutputCommitter();
