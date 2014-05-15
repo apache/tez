@@ -583,6 +583,7 @@ public class DagTypeConverters {
     builder.setProcessorDescriptor(
       DagTypeConverters.convertToDAGPlan(
         preWarmContext.getProcessorDescriptor()));
+    builder.setNumTasks(preWarmContext.getNumTasks());
     builder.setMemoryMb(preWarmContext.getResource().getMemory());
     builder.setVirtualCores(preWarmContext.getResource().getVirtualCores());
     if (preWarmContext.getLocalResources() != null) {
