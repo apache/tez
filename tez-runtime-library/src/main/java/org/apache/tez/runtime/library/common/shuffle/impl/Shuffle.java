@@ -52,6 +52,8 @@ import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.combine.Combiner;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.runtime.library.exceptions.InputAlreadyClosedException;
+import org.apache.tez.runtime.library.shuffle.common.HttpConnection;
+import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParams;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 
 import com.google.common.base.Preconditions;
@@ -99,6 +101,7 @@ public class Shuffle implements ExceptionReporter {
   private final String srcNameTrimmed;
   
   private final List<Fetcher> fetchers;
+  private final HttpConnectionParams httpConnectionParams;
   
   private AtomicBoolean isShutDown = new AtomicBoolean(false);
   private AtomicBoolean fetchersClosed = new AtomicBoolean(false);
@@ -109,7 +112,8 @@ public class Shuffle implements ExceptionReporter {
       long initialMemoryAvailable) throws IOException {
     this.inputContext = inputContext;
     this.conf = conf;
-
+    this.httpConnectionParams =
+        ShuffleUtils.constructHttpShuffleConnectionParams(conf);
     this.metrics = new ShuffleClientMetrics(inputContext.getDAGName(),
         inputContext.getTaskVertexName(), inputContext.getTaskIndex(),
         this.conf, UserGroupInformation.getCurrentUser().getShortUserName());
@@ -168,6 +172,8 @@ public class Shuffle implements ExceptionReporter {
         + (codec == null ? "None" : codec.getClass().getName()) + 
         "ifileReadAhead: " + ifileReadAhead);
 
+    boolean sslShuffle = conf.getBoolean(TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
+      TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
     scheduler = new ShuffleScheduler(
           this.inputContext,
           this.conf,
@@ -180,8 +186,9 @@ public class Shuffle implements ExceptionReporter {
           bytesShuffedToDisk,
           bytesShuffedToMem);
     eventHandler= new ShuffleInputEventHandler(
-          inputContext,
-          scheduler);
+      inputContext,
+      scheduler,
+      sslShuffle);
     merger = new MergeManager(
           this.conf,
           localFS,
@@ -302,8 +309,9 @@ public class Shuffle implements ExceptionReporter {
 
       synchronized (this) {
         for (int i = 0; i < numFetchers; ++i) {
-          Fetcher fetcher = new Fetcher(conf, scheduler, merger, metrics, Shuffle.this, jobTokenSecret,
-              ifileReadAhead, ifileReadAheadLength, codec, inputContext);
+          Fetcher fetcher = new Fetcher(httpConnectionParams, scheduler, merger,
+            metrics, Shuffle.this, jobTokenSecret, ifileReadAhead, ifileReadAheadLength,
+            codec, inputContext);
           fetchers.add(fetcher);
           fetcher.start();
         }
@@ -324,7 +332,6 @@ public class Shuffle implements ExceptionReporter {
       
       // stop the scheduler
       cleanupShuffleScheduler(false);
-
 
       // Finish the on-going merges...
       TezRawKeyValueIterator kvIter = null;
@@ -369,6 +376,10 @@ public class Shuffle implements ExceptionReporter {
         }
       }
       fetchers.clear();
+      //All threads are shutdown.  It is safe to shutdown SSL factory
+      if (httpConnectionParams.isSSLShuffleEnabled()) {
+        HttpConnection.cleanupSSLFactory();
+      }
       // throw only the first exception while attempting to shutdown.
       if (ie != null) {
         throw ie;

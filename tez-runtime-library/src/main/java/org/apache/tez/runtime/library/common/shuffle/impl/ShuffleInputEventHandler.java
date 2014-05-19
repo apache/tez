@@ -45,11 +45,13 @@ public class ShuffleInputEventHandler {
   private final TezInputContext inputContext;
 
   private int maxMapRuntime = 0;
-  
+  private final boolean sslShuffle;
+
   public ShuffleInputEventHandler(TezInputContext inputContext,
-      ShuffleScheduler scheduler) {
+      ShuffleScheduler scheduler, boolean sslShuffle) {
     this.inputContext = inputContext;
     this.scheduler = scheduler;
+    this.sslShuffle = sslShuffle;
   }
 
   public void handleEvents(List<Event> events) {
@@ -114,7 +116,7 @@ public class ShuffleInputEventHandler {
   // TODO NEWTEZ Handle encrypted shuffle
   private URI getBaseURI(String host, int port, int partitionId) {
     StringBuilder sb = ShuffleUtils.constructBaseURIForShuffleHandler(host, port,
-      partitionId, inputContext.getApplicationId().toString());
+      partitionId, inputContext.getApplicationId().toString(), sslShuffle);
     URI u = URI.create(sb.toString());
     return u;
   }

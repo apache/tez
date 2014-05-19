@@ -37,6 +37,7 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.Decompressor;
+import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.hadoop.security.token.Token;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -153,14 +154,15 @@ public class ShuffleUtils {
 
   // TODO NEWTEZ handle ssl shuffle
   public static StringBuilder constructBaseURIForShuffleHandler(String host,
-      int port, int partition, String appId) {
+      int port, int partition, String appId, boolean sslShuffle) {
     return constructBaseURIForShuffleHandler(host + ":" + String.valueOf(port),
-      partition, appId);
+      partition, appId, sslShuffle);
   }
   
   public static StringBuilder constructBaseURIForShuffleHandler(String hostIdentifier,
-      int partition, String appId) {
-    StringBuilder sb = new StringBuilder("http://");
+      int partition, String appId, boolean sslShuffle) {
+    final String http_protocol = (sslShuffle) ? "https://" : "http://";
+    StringBuilder sb = new StringBuilder(http_protocol);
     sb.append(hostIdentifier);
     sb.append("/");
     sb.append("mapOutput?job=");
@@ -221,9 +223,15 @@ public class ShuffleUtils {
       LOG.info("Set keepAlive max connections: " + keepAliveMaxConnections);
     }
 
-    return builder.setTimeout(connectionTimeout, readTimeout)
-      .setBufferSize(bufferSize)
-      .setKeepAlive(keepAlive, keepAliveMaxConnections).build();
+    builder.setTimeout(connectionTimeout, readTimeout)
+        .setBufferSize(bufferSize)
+        .setKeepAlive(keepAlive, keepAliveMaxConnections);
+
+    boolean sslShuffle = conf.getBoolean(TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
+      TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
+    builder.setSSL(sslShuffle, conf);
+
+    return builder.build();
   }
 }
 

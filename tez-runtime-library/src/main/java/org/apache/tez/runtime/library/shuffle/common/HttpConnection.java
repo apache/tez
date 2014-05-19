@@ -31,6 +31,7 @@ import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.security.ssl.SSLFactory;
@@ -50,7 +51,9 @@ public class HttpConnection {
   private URL url;
   private final String logIdentifier;
 
-  private SSLFactory sslFactory;
+  //Shared by many threads
+  private static SSLFactory sslFactory;
+
   private HttpURLConnection connection;
   private DataInputStream input;
 
@@ -81,15 +84,6 @@ public class HttpConnection {
     if (LOG.isDebugEnabled()) {
       LOG.debug("MapOutput URL :" + url.toString());
     }
-  }
-
-  /**
-   * Set ssl factory
-   * 
-   * @param factory
-   */
-  public void setSSLFactory(SSLFactory factory) {
-    this.sslFactory = factory;
   }
 
   private void setupConnection() throws IOException {
@@ -225,6 +219,16 @@ public class HttpConnection {
   }
 
   /**
+   * Cleanup ssl factory. Should be called after all threads are shutdown.
+   */
+  public synchronized static void cleanupSSLFactory() {
+    if (sslFactory != null) {
+      sslFactory.destroy();
+      sslFactory = null;
+    }
+  }
+
+  /**
    * Cleanup the connection.
    * 
    * @param disconnect
@@ -283,7 +287,6 @@ public class HttpConnection {
     private int readTimeout;
     private int bufferSize;
     private boolean sslShuffle;
-    private SSLFactory sslFactory;
 
     public boolean getKeepAlive() {
       return keepAlive;
@@ -313,8 +316,15 @@ public class HttpConnection {
       return sslShuffle;
     }
 
-    public SSLFactory getSSLFactory() {
-      return sslFactory;
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      sb.append("keepAlive=").append(keepAlive).append(", ");
+      sb.append("keepAliveMaxConnections=").append(keepAliveMaxConnections).append(", ");
+      sb.append("connectionTimeout=").append(connectionTimeout).append(", ");
+      sb.append("readTimeout=").append(readTimeout).append(", ");
+      sb.append("bufferSize=").append(bufferSize).append(", ");
+      sb.append("sslShuffle=").append(sslShuffle);
+      return sb.toString();
     }
   }
 
@@ -339,10 +349,27 @@ public class HttpConnection {
       return this;
     }
 
-    public HttpConnectionParamsBuilder setSSL(boolean sslEnabled,
-        SSLFactory sslFactory) {
-      params.sslShuffle = true;
-      params.sslFactory = sslFactory;
+    public synchronized HttpConnectionParamsBuilder setSSL(boolean sslEnabled,
+        Configuration conf) {
+      params.sslShuffle = sslEnabled;
+      if(sslEnabled) {
+        //Create sslFactory if it is null or if it was destroyed earlier
+        if (sslFactory == null || sslFactory.getKeystoresFactory()
+            .getTrustManagers() == null) {
+          LOG.info("Initializing SSL factory in HttpConnection");
+          sslFactory = new SSLFactory(SSLFactory.Mode.CLIENT, conf);
+          try {
+            sslFactory.init();
+          } catch (Exception ex) {
+            sslFactory.destroy();
+            sslFactory = null;
+            throw new RuntimeException(ex);
+          }
+        }
+      } else {
+        //Defensive: In case SSL was initied earlier, clean it up.
+        cleanupSSLFactory();
+      }
       return this;
     }
 

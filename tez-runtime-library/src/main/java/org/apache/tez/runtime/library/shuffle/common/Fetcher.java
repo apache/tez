@@ -72,12 +72,8 @@ public class Fetcher implements Callable<FetchResult> {
   
   private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
-  private static boolean sslShuffle = false;
-  private static SSLFactory sslFactory;
-  private static boolean sslFactoryInited;
-
   private final int fetcherIdentifier;
-  
+
   // Parameters to track work.
   private List<InputAttemptIdentifier> srcAttempts;
   private String host;
@@ -106,26 +102,6 @@ public class Fetcher implements Callable<FetchResult> {
 
     this.fetcherIdentifier = fetcherIdGen.getAndIncrement();
     this.logIdentifier = "fetcher [" + srcNameTrimmed +"] " + fetcherIdentifier;
-
-    // TODO NEWTEZ Ideally, move this out from here into a static initializer block.
-    // Re-enable when ssl shuffle support is needed.
-//    synchronized (Fetcher.class) {
-//      if (!sslFactoryInited) {
-//        sslFactoryInited = true;
-//        sslShuffle = conf.getBoolean(
-//            TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
-//            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
-//        if (sslShuffle) {
-//          sslFactory = new SSLFactory(SSLFactory.Mode.CLIENT, conf);
-//          try {
-//            sslFactory.init();
-//          } catch (Exception ex) {
-//            sslFactory.destroy();
-//            throw new RuntimeException(ex);
-//          }
-//        }
-//      }
-//    }
   }
 
   @Override
@@ -142,7 +118,7 @@ public class Fetcher implements Callable<FetchResult> {
 
     try {
       StringBuilder baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host,
-        port, partition, appId.toString());
+        port, partition, appId.toString(), httpConnectionParams.isSSLShuffleEnabled());
       this.url = ShuffleUtils.constructInputURL(baseURI.toString(), srcAttempts,
         httpConnectionParams.getKeepAlive());
 

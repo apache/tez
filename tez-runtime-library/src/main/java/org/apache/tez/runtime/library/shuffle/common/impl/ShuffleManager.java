@@ -60,6 +60,8 @@ import org.apache.tez.runtime.library.shuffle.common.FetchedInput;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInputAllocator;
 import org.apache.tez.runtime.library.shuffle.common.Fetcher;
 import org.apache.tez.runtime.library.shuffle.common.FetcherCallback;
+import org.apache.tez.runtime.library.shuffle.common.HttpConnection;
+import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParams;
 import org.apache.tez.runtime.library.shuffle.common.InputHost;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
@@ -130,7 +132,7 @@ public class ShuffleManager implements FetcherCallback {
   private final TezCounter bytesShuffledToMemCounter;
   
   private volatile Throwable shuffleError;
-  private final Configuration conf;
+  private final HttpConnectionParams httpConnectionParams;
   
   // TODO More counters - FetchErrors, speed?
   
@@ -174,7 +176,6 @@ public class ShuffleManager implements FetcherCallback {
         new ThreadFactoryBuilder().setDaemon(true)
             .setNameFormat("Fetcher [" + srcNameTrimmed + "] #%d").build());
     this.fetcherExecutor = MoreExecutors.listeningDecorator(fetcherRawExecutor);
-    this.conf = conf;
     
     ExecutorService schedulerRawExecutor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
         .setDaemon(true).setNameFormat("ShuffleRunner [" + srcNameTrimmed + "]").build());
@@ -186,11 +187,13 @@ public class ShuffleManager implements FetcherCallback {
     this.shuffleSecret = ShuffleUtils
         .getJobTokenSecretFromTokenBytes(inputContext
             .getServiceConsumerMetaData(TezConfiguration.TEZ_SHUFFLE_HANDLER_SERVICE_ID));
-    
+    httpConnectionParams =
+        ShuffleUtils.constructHttpShuffleConnectionParams(conf);
     LOG.info(this.getClass().getSimpleName() + " : numInputs=" + numInputs + ", compressionCodec="
         + (codec == null ? "NoCompressionCodec" : codec.getClass().getName()) + ", numFetchers="
         + numFetchers + ", ifileBufferSize=" + ifileBufferSize + ", ifileReadAheadEnabled="
-        + ifileReadAhead + ", ifileReadAheadLength=" + ifileReadAheadLength);
+        + ifileReadAhead + ", ifileReadAheadLength=" + ifileReadAheadLength +", "
+        + httpConnectionParams.toString());
   }
 
   public void run() throws IOException {
@@ -283,8 +286,8 @@ public class ShuffleManager implements FetcherCallback {
   
   private Fetcher constructFetcherForHost(InputHost inputHost) {
     FetcherBuilder fetcherBuilder = new FetcherBuilder(ShuffleManager.this,
-      ShuffleUtils.constructHttpShuffleConnectionParams(conf), inputManager,
-        inputContext.getApplicationId(), shuffleSecret, srcNameTrimmed);
+      httpConnectionParams, inputManager, inputContext.getApplicationId(),
+      shuffleSecret, srcNameTrimmed);
     if (codec != null) {
       fetcherBuilder.setCompressionParameters(codec);
     }
@@ -521,6 +524,10 @@ public class ShuffleManager implements FetcherCallback {
       if (this.fetcherExecutor != null && !this.fetcherExecutor.isShutdown()) {
         this.fetcherExecutor.shutdownNow(); // Interrupts all running fetchers.
       }
+    }
+    //All threads are shutdown.  It is safe to shutdown SSL factory
+    if (httpConnectionParams.isSSLShuffleEnabled()) {
+      HttpConnection.cleanupSSLFactory();
     }
   }
 

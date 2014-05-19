@@ -30,10 +30,7 @@ import javax.crypto.SecretKey;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.security.ssl.SSLFactory;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.TezInputContext;
@@ -75,10 +72,6 @@ class Fetcher extends Thread {
   
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
-
-  private static boolean sslShuffle;
-  private static SSLFactory sslFactory;
-  
   private LinkedHashSet<InputAttemptIdentifier> remaining;
 
   volatile HttpURLConnection connection;
@@ -87,7 +80,7 @@ class Fetcher extends Thread {
   HttpConnection httpConnection;
   HttpConnectionParams httpConnectionParams;
   
-  public Fetcher(Configuration job, 
+  public Fetcher(HttpConnectionParams httpConnectionParams,
       ShuffleScheduler scheduler, MergeManager merger,
       ShuffleClientMetrics metrics,
       Shuffle shuffle, SecretKey jobTokenSecret,
@@ -115,8 +108,7 @@ class Fetcher extends Thread {
 
     this.ifileReadAhead = ifileReadAhead;
     this.ifileReadAheadLength = ifileReadAheadLength;
-    this.httpConnectionParams = ShuffleUtils.constructHttpShuffleConnectionParams(job);
-    
+    this.httpConnectionParams = httpConnectionParams;
     if (codec != null) {
       this.codec = codec;
     } else {
@@ -126,20 +118,6 @@ class Fetcher extends Thread {
     this.logIdentifier = "fetcher [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "] #" + id;
     setName(logIdentifier);
     setDaemon(true);
-
-    synchronized (Fetcher.class) {
-      sslShuffle = job.getBoolean(TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
-          TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
-      if (sslShuffle && sslFactory == null) {
-        sslFactory = new SSLFactory(SSLFactory.Mode.CLIENT, job);
-        try {
-          sslFactory.init();
-        } catch (Exception ex) {
-          sslFactory.destroy();
-          throw new RuntimeException(ex);
-        }
-      }
-    }
   }  
 
   public void run() {
@@ -180,9 +158,6 @@ class Fetcher extends Thread {
       join(5000);
     } catch (InterruptedException ie) {
       LOG.warn("Got interrupt while joining " + getName(), ie);
-    }
-    if (sslFactory != null) {
-      sslFactory.destroy();
     }
   }
 
@@ -240,9 +215,6 @@ class Fetcher extends Thread {
         httpConnectionParams.getKeepAlive());
       httpConnection = new HttpConnection(url, httpConnectionParams,
         logIdentifier, jobTokenSecret);
-      if (sslShuffle) {
-        httpConnection.setSSLFactory(sslFactory);
-      }
       connectSucceeded = httpConnection.connect();
       
       if (stopped) {
