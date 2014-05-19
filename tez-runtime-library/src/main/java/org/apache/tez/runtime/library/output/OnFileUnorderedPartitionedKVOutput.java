@@ -62,6 +62,7 @@ public class OnFileUnorderedPartitionedKVOutput implements LogicalOutput {
     this.outputContext = outputContext;
     this.conf = TezUtils.createConfFromUserPayload(outputContext.getUserPayload());
     this.conf.setStrings(TezJobConfig.LOCAL_DIRS, outputContext.getWorkDirs());
+    this.conf.setInt(TezJobConfig.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS, this.numPhysicalOutputs);
     this.memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
     outputContext.requestInitialMemory(
         UnorderedPartitionedKVWriter.getInitialMemoryRequirement(conf,
