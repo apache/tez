@@ -43,7 +43,7 @@ public class InputAttemptIdentifier {
     this.pathComponent = pathComponent;
     if (pathComponent != null && !pathComponent.startsWith(PATH_PREFIX)) {
       throw new TezUncheckedException(
-          "Path component must start with: " + PATH_PREFIX + this);
+          "Path component must start with: " + PATH_PREFIX + " " + this);
     }
   }
   

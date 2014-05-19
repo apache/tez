@@ -112,20 +112,20 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
         shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier);
         return;
       }
+    } 
+    InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dme.getTargetIndex(),
+        dme.getVersion(), shufflePayload.getPathComponent());
+    if (shufflePayload.hasData()) {
+      DataProto dataProto = shufflePayload.getData();
+      FetchedInput fetchedInput = inputAllocator.allocate(dataProto.getRawLength(),
+          dataProto.getCompressedLength(), srcAttemptIdentifier);
+      moveDataToFetchedInput(dataProto, fetchedInput, hostIdentifier);
+      shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);
     } else {
-      InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dme.getTargetIndex(),
-          dme.getVersion(), shufflePayload.getPathComponent());
-      if (shufflePayload.hasData()) {
-        DataProto dataProto = shufflePayload.getData();
-        FetchedInput fetchedInput = inputAllocator.allocate(dataProto.getRawLength(),
-            dataProto.getCompressedLength(), srcAttemptIdentifier);
-        moveDataToFetchedInput(dataProto, fetchedInput, hostIdentifier);
-        shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);
-      } else {
-        shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(),
-            srcAttemptIdentifier, srcIndex);
-      }
+      shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(),
+          srcAttemptIdentifier, srcIndex);
     }
+
   }
   
   private void moveDataToFetchedInput(DataProto dataProto,
