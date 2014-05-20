@@ -20,10 +20,8 @@ package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,8 +33,6 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
@@ -46,6 +42,7 @@ import org.apache.tez.client.TezSession;
 import org.apache.tez.client.TezSessionConfiguration;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -60,35 +57,39 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.committer.MROutputCommitter;
+import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
+import org.apache.tez.mapreduce.examples.IntersectExample.ForwardingProcessor;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
-import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.library.api.KeyValueReader;
-import org.apache.tez.runtime.library.api.KeyValueWriter;
-import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
-import org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput;
+import org.apache.tez.runtime.library.api.KeyValuesReader;
+import org.apache.tez.runtime.library.input.ShuffledMergedInput;
+import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
-public class IntersectExample extends Configured implements Tool {
-
+public class IntersectValidate extends Configured implements Tool {
   private static final Log LOG = LogFactory.getLog(IntersectExample.class);
 
+  private static final String LHS_INPUT_NAME = "lhsfile";
+  private static final String RHS_INPUT_NAME = "rhsfile";
+
+  private static final String COUNTER_GROUP_NAME = "INTERSECT_VALIDATE";
+  private static final String MISSING_KEY_COUNTER_NAME = "MISSING_KEY_EXISTS";
+
   public static void main(String[] args) throws Exception {
-    IntersectExample intersect = new IntersectExample();
-    int status = ToolRunner.run(new Configuration(), intersect, args);
+    IntersectValidate validate = new IntersectValidate();
+    int status = ToolRunner.run(new Configuration(), validate, args);
     System.exit(status);
   }
 
   private static void printUsage() {
-    System.err.println("Usage: " + "intersectlines <file1> <file2> <numPartitions> <outPath>");
+    System.err.println("Usage: " + "intersectvalidate <path1> <path2>");
     ToolRunner.printGenericCommandUsage(System.err);
   }
 
@@ -97,7 +98,7 @@ public class IntersectExample extends Configured implements Tool {
     Configuration conf = getConf();
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
 
-    if (otherArgs.length != 4) {
+    if (otherArgs.length != 3 && otherArgs.length != 2) {
       printUsage();
       return 2;
     }
@@ -105,29 +106,24 @@ public class IntersectExample extends Configured implements Tool {
   }
 
   private int execute(String[] args) throws IOException, TezException, InterruptedException {
-    LOG.info("Running IntersectExample");
+    LOG.info("Running IntersectValidate");
     TezConfiguration tezConf = new TezConfiguration(getConf());
     UserGroupInformation.setConfiguration(tezConf);
 
-    String streamInputDir = args[0];
-    String hashInputDir = args[1];
-    int numPartitions = Integer.parseInt(args[2]);
-    String outputDir = args[3];
-
-    Path streamInputPath = new Path(streamInputDir);
-    Path hashInputPath = new Path(hashInputDir);
-    Path outputPath = new Path(outputDir);
-
-    // Verify output path existence
-    FileSystem fs = FileSystem.get(tezConf);
-    if (fs.exists(outputPath)) {
-      System.err.println("Output directory: " + outputDir + " already exists");
-      return 2;
+    String lhsDir = args[0];
+    String rhsDir = args[1];
+    int numPartitions = 1;
+    if (args.length == 3) {
+      numPartitions = Integer.parseInt(args[2]);
     }
+
     if (numPartitions <= 0) {
       System.err.println("NumPartitions must be > 0");
       return 2;
     }
+
+    Path lhsPath = new Path(lhsDir);
+    Path rhsPath = new Path(rhsDir);
 
     AMConfiguration amConfiguration = new AMConfiguration(null, null, tezConf, null);
     TezSessionConfiguration sessionConfiguration = new TezSessionConfiguration(amConfiguration,
@@ -136,8 +132,8 @@ public class IntersectExample extends Configured implements Tool {
     try {
       tezSession.start();
 
-      DAG dag = createDag(tezConf, streamInputPath, hashInputPath, outputPath, numPartitions);
-      setupURIsForCredentials(dag, streamInputPath, hashInputPath, outputPath);
+      DAG dag = createDag(tezConf, lhsPath, rhsPath, numPartitions);
+      setupURIsForCredentials(dag, lhsPath, rhsPath);
 
       tezSession.waitTillReady();
       DAGClient dagClient = tezSession.submitDAG(dag);
@@ -145,27 +141,42 @@ public class IntersectExample extends Configured implements Tool {
       if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
         LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
         return -1;
+      } else {
+        dagStatus = dagClient.getDAGStatus(Sets.newHashSet(StatusGetOpts.GET_COUNTERS));
+        TezCounter counter = dagStatus.getDAGCounters().findCounter(COUNTER_GROUP_NAME,
+            MISSING_KEY_COUNTER_NAME);
+        if (counter == null) {
+          LOG.info("Unable to determing equality");
+          return -1;
+        } else {
+          if (counter.getValue() != 0) {
+            LOG.info("Validate failed. The two sides are not equivalent");
+            return -1;
+          } else {
+            LOG.info("Vlidation successful. The two sides are equivalent");
+            return 0;
+          }
+        }
       }
-      return 0;
     } finally {
       tezSession.stop();
     }
   }
 
-  private DAG createDag(TezConfiguration tezConf, Path streamPath, Path hashPath, Path outPath,
-      int numPartitions) throws IOException {
-    DAG dag = new DAG("IntersectExample");
+  private DAG createDag(TezConfiguration tezConf, Path lhs, Path rhs, int numPartitions)
+      throws IOException {
+    DAG dag = new DAG("IntersectValidate");
 
     // Configuration for src1
-    Configuration streamInputConf = new Configuration(tezConf);
-    streamInputConf.set(FileInputFormat.INPUT_DIR, streamPath.toUri().toString());
-    byte[] streamInputPayload = MRInput.createUserPayload(streamInputConf,
+    Configuration lhsInputConf = new Configuration(tezConf);
+    lhsInputConf.set(FileInputFormat.INPUT_DIR, lhs.toUri().toString());
+    byte[] streamInputPayload = MRInput.createUserPayload(lhsInputConf,
         TextInputFormat.class.getName(), true, false);
 
     // Configuration for src2
-    Configuration hashInputConf = new Configuration(tezConf);
-    hashInputConf.set(FileInputFormat.INPUT_DIR, hashPath.toUri().toString());
-    byte[] hashInputPayload = MRInput.createUserPayload(hashInputConf,
+    Configuration rhsInputConf = new Configuration(tezConf);
+    rhsInputConf.set(FileInputFormat.INPUT_DIR, rhs.toUri().toString());
+    byte[] hashInputPayload = MRInput.createUserPayload(rhsInputConf,
         TextInputFormat.class.getName(), true, false);
 
     // Configuration for intermediate output - shared by Vertex1 and Vertex2
@@ -187,45 +198,77 @@ public class IntersectExample extends Configured implements Tool {
         NullWritable.class.getName());
     byte[] intermediateInputPayload = TezUtils.createUserPayloadFromConf(intermediateInputConf);
 
-    Configuration finalOutputConf = new Configuration(tezConf);
-    finalOutputConf.set(FileOutputFormat.OUTDIR, outPath.toUri().toString());
-    byte[] finalOutputPayload = MROutput.createUserPayload(finalOutputConf,
-        TextOutputFormat.class.getName(), true);
-
     // Change the way resources are setup - no MRHelpers
-    Vertex streamFileVertex = new Vertex("partitioner1", new ProcessorDescriptor(
+    Vertex lhsVertex = new Vertex(LHS_INPUT_NAME, new ProcessorDescriptor(
         ForwardingProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf)).setJavaOpts(
-        MRHelpers.getMapJavaOpts(tezConf)).addInput("streamfile",
+        MRHelpers.getMapJavaOpts(tezConf)).addInput("lhs",
         new InputDescriptor(MRInput.class.getName()).setUserPayload(streamInputPayload),
         MRInputAMSplitGenerator.class);
 
-    Vertex hashFileVertex = new Vertex("partitioner2", new ProcessorDescriptor(
+    Vertex rhsVertex = new Vertex(RHS_INPUT_NAME, new ProcessorDescriptor(
         ForwardingProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf)).setJavaOpts(
-        MRHelpers.getMapJavaOpts(tezConf)).addInput("hashfile",
+        MRHelpers.getMapJavaOpts(tezConf)).addInput("rhs",
         new InputDescriptor(MRInput.class.getName()).setUserPayload(hashInputPayload),
         MRInputAMSplitGenerator.class);
 
-    Vertex intersectVertex = new Vertex("intersect", new ProcessorDescriptor(
-        IntersectProcessor.class.getName()), numPartitions, MRHelpers.getReduceResource(tezConf))
-        .setJavaOpts(MRHelpers.getReduceJavaOpts(tezConf)).addOutput("finalOutput",
-            new OutputDescriptor(MROutput.class.getName()).setUserPayload(finalOutputPayload),
-            MROutputCommitter.class);
+    Vertex intersectValidateVertex = new Vertex("intersectvalidate", new ProcessorDescriptor(
+        IntersectValidateProcessor.class.getName()), numPartitions,
+        MRHelpers.getReduceResource(tezConf)).setJavaOpts(MRHelpers.getReduceJavaOpts(tezConf));
 
-    Edge e1 = new Edge(streamFileVertex, intersectVertex, new EdgeProperty(
+    Edge e1 = new Edge(lhsVertex, intersectValidateVertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
-        new OutputDescriptor(OnFileUnorderedPartitionedKVOutput.class.getName())
+        new OutputDescriptor(OnFileSortedOutput.class.getName())
             .setUserPayload(intermediateOutputPayload), new InputDescriptor(
-            ShuffledUnorderedKVInput.class.getName()).setUserPayload(intermediateInputPayload)));
+            ShuffledMergedInput.class.getName()).setUserPayload(intermediateInputPayload)));
 
-    Edge e2 = new Edge(hashFileVertex, intersectVertex, new EdgeProperty(
+    Edge e2 = new Edge(rhsVertex, intersectValidateVertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
-        new OutputDescriptor(OnFileUnorderedPartitionedKVOutput.class.getName())
+        new OutputDescriptor(OnFileSortedOutput.class.getName())
             .setUserPayload(intermediateOutputPayload), new InputDescriptor(
-            ShuffledUnorderedKVInput.class.getName()).setUserPayload(intermediateInputPayload)));
+            ShuffledMergedInput.class.getName()).setUserPayload(intermediateInputPayload)));
 
-    dag.addVertex(streamFileVertex).addVertex(hashFileVertex).addVertex(intersectVertex)
-        .addEdge(e1).addEdge(e2);
+    dag.addVertex(lhsVertex).addVertex(rhsVertex).addVertex(intersectValidateVertex).addEdge(e1)
+        .addEdge(e2);
     return dag;
+  }
+
+  public static class IntersectValidateProcessor extends SimpleProcessor {
+
+    private static final Log LOG = LogFactory.getLog(IntersectValidateProcessor.class);
+    
+    @Override
+    public void run() throws Exception {
+      Preconditions.checkState(getInputs().size() == 2);
+      Preconditions.checkState(getOutputs().size() == 0);
+      LogicalInput lhsInput = getInputs().get(LHS_INPUT_NAME);
+      LogicalInput rhsInput = getInputs().get(RHS_INPUT_NAME);
+      Reader lhsReaderRaw = lhsInput.getReader();
+      Reader rhsReaderRaw = rhsInput.getReader();
+      Preconditions.checkState(lhsReaderRaw instanceof KeyValuesReader);
+      Preconditions.checkState(rhsReaderRaw instanceof KeyValuesReader);
+      KeyValuesReader lhsReader = (KeyValuesReader) lhsReaderRaw;
+      KeyValuesReader rhsReader = (KeyValuesReader) rhsReaderRaw;
+
+      TezCounter lhsMissingKeyCounter = getContext().getCounters().findCounter(COUNTER_GROUP_NAME,
+          MISSING_KEY_COUNTER_NAME);
+
+      while (lhsReader.next()) {
+        if (rhsReader.next()) {
+          if (!lhsReader.getCurrentKey().equals(rhsReader.getCurrentKey())) {
+            LOG.info("MismatchedKeys: " + "lhs=" + lhsReader.getCurrentKey() + ", rhs=" + rhsReader.getCurrentKey());
+            lhsMissingKeyCounter.increment(1);
+          }
+        } else {
+          lhsMissingKeyCounter.increment(1);
+          LOG.info("ExtraKey in lhs: " + lhsReader.getClass());
+          break;
+        }
+      }
+      if (rhsReader.next()) {
+        lhsMissingKeyCounter.increment(1);
+        LOG.info("ExtraKey in rhs: " + lhsReader.getClass());
+      }
+    }
   }
 
   private void setupURIsForCredentials(DAG dag, Path... paths) throws IOException {
@@ -236,71 +279,5 @@ public class IntersectExample extends Configured implements Tool {
       uris.add(qPath.toUri());
     }
     dag.addURIsForCredentials(uris);
-  }
-
-  // private void obtainTokens(Credentials credentials, Path... paths) throws IOException {
-  // TokenCache.obtainTokensForNamenodes(credentials, paths, getConf());
-  // }
-
-  /**
-   * Reads key-values from the source and forwards the value as the key for the output
-   */
-  public static class ForwardingProcessor extends SimpleProcessor {
-    @Override
-    public void run() throws Exception {
-      Preconditions.checkState(getInputs().size() == 1);
-      Preconditions.checkState(getOutputs().size() == 1);
-      LogicalInput input = getInputs().values().iterator().next();
-      Reader rawReader = input.getReader();
-      Preconditions.checkState(rawReader instanceof KeyValueReader);
-      LogicalOutput output = getOutputs().values().iterator().next();
-
-      KeyValueReader reader = (KeyValueReader) rawReader;
-      KeyValueWriter writer = (KeyValueWriter) output.getWriter();
-
-      while (reader.next()) {
-        Object val = reader.getCurrentValue();
-        writer.write(val, NullWritable.get());
-      }
-    }
-  }
-
-  public static class IntersectProcessor extends SimpleProcessor {
-
-    @Override
-    public void run() throws Exception {
-      Preconditions.checkState(getInputs().size() == 2);
-      Preconditions.checkState(getOutputs().size() == 1);
-      LogicalInput streamInput = getInputs().get("partitioner1");
-      LogicalInput hashInput = getInputs().get("partitioner2");
-      Reader rawStreamReader = streamInput.getReader();
-      Reader rawHashReader = hashInput.getReader();
-      Preconditions.checkState(rawStreamReader instanceof KeyValueReader);
-      Preconditions.checkState(rawHashReader instanceof KeyValueReader);
-      LogicalOutput lo = getOutputs().values().iterator().next();
-      Preconditions.checkState(lo instanceof MROutput);
-      MROutput output = (MROutput) lo;
-      KeyValueWriter writer = output.getWriter();
-
-      KeyValueReader hashKvReader = (KeyValueReader) rawHashReader;
-      Set<Text> keySet = new HashSet<Text>();
-      while (hashKvReader.next()) {
-        keySet.add(new Text((Text) hashKvReader.getCurrentKey()));
-      }
-
-      KeyValueReader streamKvReader = (KeyValueReader) rawStreamReader;
-      while (streamKvReader.next()) {
-        Text key = (Text) streamKvReader.getCurrentKey();
-        if (keySet.contains(key)) {
-          writer.write(key, NullWritable.get());
-        }
-      }
-
-      LOG.info("Completed Processing. Trying to commit");
-      while (!getContext().canCommit()) {
-        Thread.sleep(100l);
-      }
-      output.commit();
-    }
   }
 }
