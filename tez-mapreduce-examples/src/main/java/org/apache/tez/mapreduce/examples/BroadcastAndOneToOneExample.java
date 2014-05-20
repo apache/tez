@@ -19,8 +19,6 @@
 package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -35,6 +33,9 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.NodeState;
+import org.apache.hadoop.yarn.client.api.YarnClient;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezClientUtils;
@@ -47,6 +48,7 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -59,6 +61,9 @@ import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
+import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
+import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
+import org.apache.tez.runtime.common.objectregistry.ObjectRegistryFactory;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
@@ -78,6 +83,15 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
           .next();
       KeyValueWriter kvWriter = (KeyValueWriter) output.getWriter();
       kvWriter.write(word, new IntWritable(getContext().getTaskIndex()));
+      byte[] userPayload = getContext().getUserPayload();
+      if (userPayload != null) {
+        boolean doLocalityCheck = userPayload[0] > 0 ? true : false;
+        if (doLocalityCheck) {
+          ObjectRegistry objectRegistry = ObjectRegistryFactory.getObjectRegistry();
+          String entry = String.valueOf(getContext().getTaskIndex());
+          objectRegistry.add(ObjectLifeCycle.DAG, entry, entry);
+        }
+      }
     }
   }
 
@@ -97,27 +111,29 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
       while (inputKvReader.next()) {
         sum += ((IntWritable) inputKvReader.getCurrentValue()).get();
       }
-      System.out.println("Index: " + getContext().getTaskIndex() + " sum: " + sum);
-      int taskIndex = getContext().getTaskIndex();
-      switch (taskIndex) {
-      case 0:
-        Preconditions.checkState((sum == 1), "Sum = " + sum);
-        break;
-      case 1:
-        Preconditions.checkState((sum == 2), "Sum = " + sum);
-        break;
-      case 2:
-        Preconditions.checkState((sum == 3), "Sum = " + sum);
-        break;
-      default:
-        throw new TezUncheckedException("Unexpected taskIndex: " + taskIndex);
+      boolean doLocalityCheck = getContext().getUserPayload()[0] > 0 ? true : false;
+      int broadcastSum = getContext().getUserPayload()[1];
+      int expectedSum = broadcastSum + getContext().getTaskIndex();
+      System.out.println("Index: " + getContext().getTaskIndex() + 
+          " sum: " + sum + " expectedSum: " + expectedSum + " broadcastSum: " + broadcastSum);
+      Preconditions.checkState((sum == expectedSum), "Sum = " + sum);      
+      
+      if (doLocalityCheck) {
+        ObjectRegistry objectRegistry = ObjectRegistryFactory.getObjectRegistry();
+        String index = (String) objectRegistry.get(String.valueOf(getContext().getTaskIndex()));
+        if (index == null || Integer.valueOf(index).intValue() != getContext().getTaskIndex()) {
+          String msg = "Did not find expected local producer "
+              + getContext().getTaskIndex() + " in the same JVM";
+          System.out.println(msg);
+          throw new TezUncheckedException(msg);
+        }
       }
     }
 
   }
 
   private DAG createDAG(FileSystem fs, TezConfiguration tezConf,
-      Path stagingDir) throws IOException {
+      Path stagingDir, boolean doLocalityCheck) throws IOException, YarnException {
     Configuration kvInputConf = new JobConf((Configuration)tezConf);
     kvInputConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
         Text.class.getName());
@@ -134,22 +150,39 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     MRHelpers.doJobClientMagic(kvInputConf);
     MRHelpers.doJobClientMagic(kvOneToOneConf);
 
+    int numBroadcastTasks = 2;
+    int numOneToOneTasks = 3;
+    if (doLocalityCheck) {
+      YarnClient yarnClient = YarnClient.createYarnClient();
+      yarnClient.init(tezConf);
+      yarnClient.start();
+      int numNMs = yarnClient.getNodeReports(NodeState.RUNNING).size();
+      yarnClient.stop();
+      // create enough 1-1 tasks to run in parallel
+      numOneToOneTasks = numNMs - numBroadcastTasks - 1;// 1 AM
+      if (numOneToOneTasks < 1) {
+        numOneToOneTasks = 1;
+      }
+    }
+    byte[] procPayload = {(byte) (doLocalityCheck ? 1 : 0), 1};
+
+    System.out.println("Using " + numOneToOneTasks + " 1-1 tasks");
+
     byte[] kvInputPayload = MRHelpers.createUserPayloadFromConf(kvInputConf);
     Vertex broadcastVertex = new Vertex("Broadcast", new ProcessorDescriptor(
         InputProcessor.class.getName()),
-        2, MRHelpers.getMapResource(kvInputConf));
+        numBroadcastTasks, MRHelpers.getMapResource(kvInputConf));
     broadcastVertex.setJavaOpts(MRHelpers.getMapJavaOpts(kvInputConf));
     
-    int numOneToOneTasks = 3;
     Vertex inputVertex = new Vertex("Input", new ProcessorDescriptor(
-        InputProcessor.class.getName()),
+        InputProcessor.class.getName()).setUserPayload(procPayload),
         numOneToOneTasks, MRHelpers.getMapResource(kvInputConf));
     inputVertex.setJavaOpts(MRHelpers.getMapJavaOpts(kvInputConf));
-
+    
     byte[] kvOneToOnePayload = MRHelpers.createUserPayloadFromConf(kvOneToOneConf);
     Vertex oneToOneVertex = new Vertex("OneToOne",
         new ProcessorDescriptor(
-            OneToOneProcessor.class.getName()),
+            OneToOneProcessor.class.getName()).setUserPayload(procPayload),
             numOneToOneTasks, MRHelpers.getReduceResource(kvOneToOneConf));
     oneToOneVertex.setJavaOpts(
         MRHelpers.getReduceJavaOpts(kvOneToOneConf)).setVertexManagerPlugin(
@@ -180,7 +213,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
   
   private Credentials credentials = new Credentials();
   
-  public boolean run(Configuration conf) throws Exception {
+  public boolean run(Configuration conf, boolean doLocalityCheck) throws Exception {
     System.out.println("Running BroadcastAndOneToOneExample");
     // conf and UGI
     TezConfiguration tezConf;
@@ -189,6 +222,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     } else {
       tezConf = new TezConfiguration();
     }
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, true);
     UserGroupInformation.setConfiguration(tezConf);
     String user = UserGroupInformation.getCurrentUser().getShortUserName();
 
@@ -229,7 +263,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     DAGClient dagClient = null;
 
     try {
-        DAG dag = createDAG(fs, tezConf, stagingDir);
+        DAG dag = createDAG(fs, tezConf, stagingDir, doLocalityCheck);
 
         tezSession.waitTillReady();
         dagClient = tezSession.submitDAG(dag);
@@ -249,9 +283,28 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
   
   @Override
   public int run(String[] args) throws Exception {
-    boolean status = run(getConf());
+    boolean doLocalityCheck = true;
+    if (args.length == 1) {
+      if (args[0].equals(skipLocalityCheck)) {
+        doLocalityCheck = false;
+      } else {
+        printUsage();
+        throw new TezException("Invalid command line");
+      }
+    } else if (args.length > 1) {
+      printUsage();
+      throw new TezException("Invalid command line");
+    }
+    boolean status = run(getConf(), doLocalityCheck);
     return status ? 0 : 1;
   }
+  
+  private static void printUsage() {
+    System.err.println("broadcastAndOneToOneExample " + skipLocalityCheck);
+    ToolRunner.printGenericCommandUsage(System.err);
+  }
+  
+  static String skipLocalityCheck = "-skipLocalityCheck";
 
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();

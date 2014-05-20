@@ -128,10 +128,17 @@ public class LocalTaskScheduler extends AbstractService implements TaskScheduler
   public void allocateTask(Object task, Resource capability, String[] hosts,
       String[] racks, Priority priority, Object containerSignature,
       Object clientCookie) {
-
     taskRequestHandler.addAllocateTaskRequest(task, capability, priority, clientCookie);
   }
 
+  @Override
+  public synchronized void allocateTask(Object task, Resource capability,
+      ContainerId containerId, Priority priority, Object containerSignature,
+      Object clientCookie) {
+    // in local mode every task is already container level local
+    taskRequestHandler.addAllocateTaskRequest(task, capability, priority, clientCookie);
+  }
+  
   @Override
   public boolean deallocateTask(Object task, boolean taskSucceeded) {
     return taskRequestHandler.addDeallocateTaskRequest(task);

@@ -698,7 +698,7 @@ public class TestMRRJobsDAGApi {
   public void testBroadcastAndOneToOne() throws Exception {
     LOG.info("Running BroadcastAndOneToOne Test");
     BroadcastAndOneToOneExample job = new BroadcastAndOneToOneExample();
-    if (job.run(mrrTezCluster.getConfig())) {
+    if (job.run(mrrTezCluster.getConfig(), true)) {
       LOG.info("Success BroadcastAndOneToOne Test");
     } else {
       throw new TezUncheckedException("BroadcastAndOneToOne Test Failed");

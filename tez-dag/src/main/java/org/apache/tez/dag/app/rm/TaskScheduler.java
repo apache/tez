@@ -68,6 +68,7 @@ import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /* TODO not yet updating cluster nodes on every allocate response
@@ -140,6 +141,8 @@ public class TaskScheduler extends AbstractService
    */
   Map<ContainerId, Object> containerAssignments =
                   new HashMap<ContainerId, Object>();
+  // Remove inUse depending on resolution of TEZ-1129
+  Set<ContainerId> inUseContainers = Sets.newHashSet(); 
   HashMap<ContainerId, Object> releasedContainers =
                   new HashMap<ContainerId, Object>();
   /**
@@ -147,6 +150,8 @@ public class TaskScheduler extends AbstractService
    */
   Map<ContainerId, HeldContainer> heldContainers =
       new HashMap<ContainerId, HeldContainer>();
+  
+  Set<Priority> priorityHasAffinity = Sets.newHashSet();
   
   Set<NodeId> blacklistedNodes = Collections
       .newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
@@ -199,6 +204,7 @@ public class TaskScheduler extends AbstractService
 
   class CookieContainerRequest extends ContainerRequest {
     CRCookie cookie;
+    ContainerId affinitizedContainerId;
 
     public CookieContainerRequest(
         Resource capability,
@@ -210,8 +216,23 @@ public class TaskScheduler extends AbstractService
       this.cookie = cookie;
     }
 
+    public CookieContainerRequest(
+        Resource capability,
+        ContainerId containerId,
+        String[] hosts,
+        String[] racks,
+        Priority priority,
+        CRCookie cookie) {
+      this(capability, hosts, racks, priority, cookie);
+      this.affinitizedContainerId = containerId;
+    }
+
     CRCookie getCookie() {
       return cookie;
+    }
+    
+    ContainerId getAffinitizedContainer() {
+      return affinitizedContainerId;
     }
   }
 
@@ -836,6 +857,46 @@ public class TaskScheduler extends AbstractService
     CookieContainerRequest request = new CookieContainerRequest(
       capability, hosts, racks, priority, cookie);
 
+    addRequestAndTrigger(task, request, hosts, racks);
+  }
+  
+  @Override
+  public synchronized void allocateTask(
+      Object task,
+      Resource capability,
+      ContainerId containerId,
+      Priority priority,
+      Object containerSignature,
+      Object clientCookie) {
+
+    HeldContainer heldContainer = heldContainers.get(containerId);
+    String[] hosts = null;
+    String[] racks = null;
+    if (heldContainer != null) {
+      Container container = heldContainer.getContainer();
+      if (canFit(capability, container.getResource())) {
+        // just specify node and use YARN's soft locality constraint for the rest
+        hosts = new String[1];
+        hosts[0] = container.getNodeId().getHost();
+        priorityHasAffinity.add(priority);
+      } else {
+        LOG.warn("Matching requested to container: " + containerId +
+            " but requested capability: " + capability + 
+            " does not fit in container resource: "  + container.getResource());
+      }
+    } else {
+      LOG.warn("Matching requested to unknown container: " + containerId);
+    }
+    
+    CRCookie cookie = new CRCookie(task, clientCookie, containerSignature);
+    CookieContainerRequest request = new CookieContainerRequest(
+      capability, containerId, hosts, racks, priority, cookie);
+
+    addRequestAndTrigger(task, request, hosts, racks);
+  }
+  
+  private void addRequestAndTrigger(Object task, CookieContainerRequest request,
+      String[] hosts, String[] racks) {
     addTaskRequest(task, request);
     // See if any of the delayedContainers can be used for this task.
     delayedContainerManager.triggerScheduling(true);
@@ -919,6 +980,18 @@ public class TaskScheduler extends AbstractService
     return null;
   }
 
+  boolean canFit(Resource arg0, Resource arg1) {
+    int mem0 = arg0.getMemory();
+    int mem1 = arg1.getMemory();
+    int cpu0 = arg0.getVirtualCores();
+    int cpu1 = arg1.getVirtualCores();
+    
+    if(mem0 <= mem1 && cpu0 <= cpu1) { 
+      return true;
+    }
+    return false; 
+  }
+  
   void preemptIfNeeded() {
     ContainerId preemptedContainer = null;
     synchronized (this) {
@@ -1084,21 +1157,66 @@ public class TaskScheduler extends AbstractService
 
   private CookieContainerRequest getMatchingRequestWithoutPriority(
       Container container,
-      String location) {
+      String location,
+      boolean considerContainerAffinity) {
     Resource capability = container.getResource();
     List<? extends Collection<CookieContainerRequest>> pRequestsList =
       amRmClient.getMatchingRequestsForTopPriority(location, capability);
+    if (considerContainerAffinity && 
+        !priorityHasAffinity.contains(amRmClient.getTopPriority())) {
+      considerContainerAffinity = false;
+    }
     if (pRequestsList == null || pRequestsList.isEmpty()) {
       return null;
     }
+    CookieContainerRequest firstMatch = null;
     for (Collection<CookieContainerRequest> requests : pRequestsList) {
       for (CookieContainerRequest cookieContainerRequest : requests) {
-        if (canAssignTaskToContainer(cookieContainerRequest, container)) {
-          return cookieContainerRequest;
+        if (firstMatch == null || // we dont have a match. So look for one 
+            // we have a match but are looking for a better container level match.
+            // skip the expensive canAssignTaskToContainer() if the request is 
+            // not affinitized to the container
+            container.getId().equals(cookieContainerRequest.getAffinitizedContainer())
+            ) {
+          if (canAssignTaskToContainer(cookieContainerRequest, container)) {
+            // request matched to container
+            if (!considerContainerAffinity) {
+              return cookieContainerRequest;
+            }
+            ContainerId affCId = cookieContainerRequest.getAffinitizedContainer();
+            boolean canMatchTaskWithAffinity = true;
+            if (affCId == null || 
+                !heldContainers.containsKey(affCId) ||
+                inUseContainers.contains(affCId)) {
+              // affinity not specified
+              // affinitized container is no longer held
+              // affinitized container is in use
+              canMatchTaskWithAffinity = false;
+            }
+            if (canMatchTaskWithAffinity) {
+              if (container.getId().equals(
+                  cookieContainerRequest.getAffinitizedContainer())) {
+                // container level match
+                if (LOG.isDebugEnabled()) {
+                  LOG.debug("Matching with affinity for request: "
+                      + cookieContainerRequest + " container: " + affCId);
+                }
+                return cookieContainerRequest;
+              }
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Skipping request for container " + container.getId()
+                    + " due to affinity. Request: " + cookieContainerRequest
+                    + " affContainer: " + affCId);
+              }
+            } else {
+              firstMatch = cookieContainerRequest;
+            }
+          }
         }
       }
     }
-    return null;
+    
+    return firstMatch;
   }
 
   private boolean canAssignTaskToContainer(
@@ -1162,6 +1280,7 @@ public class TaskScheduler extends AbstractService
 
     Container result = taskAllocations.put(task, container);
     assert result == null;
+    inUseContainers.add(container.getId());
     containerAssignments.put(container.getId(), task);
     HeldContainer heldContainer = heldContainers.get(container.getId()); 
     if (!shouldReuseContainers && heldContainer == null) {
@@ -1232,6 +1351,7 @@ public class TaskScheduler extends AbstractService
     if (container == null) {
       return null;
     }
+    inUseContainers.remove(container.getId());
     return container;
   }
 
@@ -1245,6 +1365,7 @@ public class TaskScheduler extends AbstractService
     }
     Container container = taskAllocations.remove(task);
     assert container != null;
+    inUseContainers.remove(containerId);
     if(releaseIfFound) {
       releaseContainer(containerId);
     }
@@ -1438,7 +1559,7 @@ public class TaskScheduler extends AbstractService
         boolean honorLocality) {
       String location = container.getNodeId().getHost();
       CookieContainerRequest assigned = getMatchingRequestWithoutPriority(
-        container, location);
+        container, location, true);
       doBookKeepingForAssignedContainer(assigned, container, location, true);
       return assigned;
 
@@ -1470,7 +1591,7 @@ public class TaskScheduler extends AbstractService
         String location = RackResolver.resolve(container.getNodeId().getHost())
           .getNetworkLocation();
         CookieContainerRequest assigned = getMatchingRequestWithoutPriority(
-            container, location);
+            container, location, false);
         doBookKeepingForAssignedContainer(assigned, container, location,
             honorLocality);
         return assigned;
@@ -1500,7 +1621,7 @@ public class TaskScheduler extends AbstractService
       if (!honorLocality) {
         String location = ResourceRequest.ANY;
         CookieContainerRequest assigned = getMatchingRequestWithoutPriority(
-          container, location);
+          container, location, false);
         doBookKeepingForAssignedContainer(assigned, container, location,
             honorLocality);
         return assigned;
@@ -1533,7 +1654,7 @@ public class TaskScheduler extends AbstractService
     
     // used for testing only
     @VisibleForTesting
-    AtomicBoolean drainedDelayedContainers = null;
+    volatile AtomicBoolean drainedDelayedContainersForTest = null;
 
     DelayedContainerManager() {
       super.setName("DelayedContainerManager");
@@ -1553,10 +1674,11 @@ public class TaskScheduler extends AbstractService
         // locality at this point.
         if (delayedContainers.peek() == null) {
           try {
-            if (drainedDelayedContainers != null) {
-              drainedDelayedContainers.set(true);
-              synchronized (drainedDelayedContainers) {
-                drainedDelayedContainers.notifyAll();
+            // test only signaling to make TestTaskScheduler work
+            if (drainedDelayedContainersForTest != null) {
+              drainedDelayedContainersForTest.set(true);
+              synchronized (drainedDelayedContainersForTest) {
+                drainedDelayedContainersForTest.notifyAll();
               }
             }
             synchronized(this) {
@@ -1568,6 +1690,14 @@ public class TaskScheduler extends AbstractService
             LOG.info("AllocatedContainerManager Thread interrupted");
           }
         } else {
+          // test only sleep to prevent tight loop cycling that makes tests stall
+          if (drainedDelayedContainersForTest != null) {
+            try {
+              Thread.sleep(100);
+            } catch (InterruptedException e) {
+              e.printStackTrace();
+            }
+          }
           HeldContainer delayedContainer = delayedContainers.peek();
           if (delayedContainer == null) {
             continue;

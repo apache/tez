@@ -40,7 +40,14 @@ public interface TaskSchedulerInterface {
   public abstract void allocateTask(Object task, Resource capability,
       String[] hosts, String[] racks, Priority priority,
       Object containerSignature, Object clientCookie);
-
+  
+  /**
+   * Allocate affinitized to a specific container
+   */
+  public abstract void allocateTask(Object task, Resource capability,
+      ContainerId containerId, Priority priority, Object containerSignature,
+      Object clientCookie);
+  
   public abstract boolean deallocateTask(Object task, boolean taskSucceeded);
 
   public abstract Object deallocateContainer(ContainerId containerId);

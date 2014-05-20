@@ -157,7 +157,7 @@ public class TestContainerReuse {
       taskScheduler.getDrainableAppCallback();
 
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
-    taskScheduler.delayedContainerManager.drainedDelayedContainers = drainNotifier;
+    taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
 
     Resource resource = Resource.newInstance(1024, 1);
     Priority priority = Priority.newInstance(5);
@@ -293,7 +293,7 @@ public class TestContainerReuse {
       taskScheduler.getDrainableAppCallback();
     
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
-    taskScheduler.delayedContainerManager.drainedDelayedContainers = drainNotifier;
+    taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
 
     Resource resource = Resource.newInstance(1024, 1);
     Priority priority = Priority.newInstance(5);
@@ -389,7 +389,7 @@ public class TestContainerReuse {
         .getSpyTaskScheduler();
     TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
-    taskScheduler.delayedContainerManager.drainedDelayedContainers = drainNotifier;
+    taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
 
     Resource resource1 = Resource.newInstance(1024, 1);
     String[] host1 = {"host1"};
@@ -537,7 +537,7 @@ public class TestContainerReuse {
     TaskSchedulerAppCallbackDrainable drainableAppCallback =
       taskScheduler.getDrainableAppCallback();
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
-    taskScheduler.delayedContainerManager.drainedDelayedContainers = drainNotifier;
+    taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
 
     Resource resource1 = Resource.newInstance(1024, 1);
     String [] emptyHosts = new String[0];
@@ -661,7 +661,7 @@ public class TestContainerReuse {
     TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
 
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
-    taskScheduler.delayedContainerManager.drainedDelayedContainers = drainNotifier;
+    taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
 
     Resource resource1 = Resource.newInstance(1024, 1);
     String[] host1 = {"host1"};
@@ -775,7 +775,7 @@ public class TestContainerReuse {
         .getSpyTaskScheduler();
     TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
-    taskScheduler.delayedContainerManager.drainedDelayedContainers = drainNotifier;
+    taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
 
     Resource resource1 = Resource.newInstance(1024, 1);
     String[] host1 = {"host1"};

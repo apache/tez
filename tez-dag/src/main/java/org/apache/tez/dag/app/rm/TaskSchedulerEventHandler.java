@@ -205,35 +205,6 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
   private void handleTAUnsuccessfulEnd(AMSchedulerEventTAEnded event) {
-    /*MRxTaskAttemptID aId = event.getAttemptID();
-    attemptToLaunchRequestMap.remove(aId);
-    // TODO XXX: This remove may need to be deferred. Possible for a SUCCESSFUL taskAttempt to fail,
-    // which means the scheduler needs to remember taskAttempt to container assignments for a longer time.
-    boolean removed = pendingReduces.remove(aId);
-    if (!removed) {
-      removed = scheduledRequests.remove(aId);
-      if (!removed) {
-        // Maybe assigned.
-        ContainerId containerId = assignedRequests.remove(aId);
-        if (containerId != null) {
-          // Ask the container to stop.
-          sendEvent(new AMContainerEvent(containerId,
-              AMContainerEventType.C_STOP_REQUEST));
-          // Inform the Node - the task has asked to be STOPPED / has already
-          // stopped.
-          sendEvent(new AMNodeEventTaskAttemptEnded(containerMap
-              .get(containerId).getContainer().getNodeId(), containerId,
-              event.getAttemptID(), event.getState() == TaskAttemptState.FAILED));
-        } else {
-          LOG.warn("Received a STOP request for absent taskAttempt: "
-              + event.getAttemptID());
-          // This could be generated in case of recovery, with unhealthy nodes/
-          // fetch failures. Can be ignored, since Recovered containers don't
-          // need to be stopped.
-        }
-      }
-    }*/
-
     TaskAttempt attempt = event.getAttempt();
     boolean wasContainerAllocated = taskScheduler.deallocateTask(attempt, false);
     // use stored value of container id in case the scheduler has removed this
@@ -264,23 +235,6 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
   private void handleTASucceeded(AMSchedulerEventTAEnded event) {
-    /*
-    // TODO XXX Remember the assigned containerId even after task success.
-    // Required for TOO_MANY_FETCH_FAILURES
-    attemptToLaunchRequestMap.remove(event.getAttemptID());
-    ContainerId containerId = assignedRequests.remove(event.getAttemptID());
-    if (containerId != null) { // TODO Should not be null. Confirm.
-      sendEvent(new AMContainerTASucceededEvent(containerId,
-          event.getAttemptID()));
-      sendEvent(new AMNodeEventTaskAttemptSucceeded(containerMap
-          .get(containerId).getContainer().getNodeId(), containerId,
-          event.getAttemptID()));
-      containerAvailable(containerId);
-    } else {
-      LOG.warn("Received TaskAttemptSucceededEvent for unmapped TaskAttempt: "
-          + event.getAttemptID() + ". Full event: " + event);
-    }*/
-
     TaskAttempt attempt = event.getAttempt();
     ContainerId usedContainerId = event.getUsedContainerId();
 
@@ -302,46 +256,19 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
   private void handleTaLaunchRequest(AMSchedulerEventTALaunchRequest event) {
-    /**
-         // Add to queue of pending tasks.
-    recalculateReduceSchedule = true;
-    attemptToLaunchRequestMap.put(event.getAttemptID(), event);
-    if (event.getAttemptID().getTaskID().getTaskType() == TaskType.MAP) {
-      mapResourceReqt = maybeComputeNormalizedRequestForType(event,
-          TaskType.MAP, mapResourceReqt);
-      event.getCapability().setMemory(mapResourceReqt);
-      scheduledRequests.addMap(event);
-    } else { // Reduce
-      reduceResourceReqt = maybeComputeNormalizedRequestForType(event,
-          TaskType.REDUCE, reduceResourceReqt);
-      event.getCapability().setMemory(reduceResourceReqt);
-      if (event.isRescheduled()) {
-        pendingReduces.addFirst(new ContainerRequestInfo(new ContainerRequest(
-            event.getCapability(), event.getHosts(), event.getRacks(),
-            PRIORITY_REDUCE), event));
-      } else {
-        pendingReduces.addLast(new ContainerRequestInfo(new ContainerRequest(
-            event.getCapability(), event.getHosts(), event.getRacks(),
-            PRIORITY_REDUCE), event));
-      }
-    }
-     */
-    // TODO resource adjustment needs to move into dag
-    /*Resource mapResourceReqt = maybeComputeNormalizedRequestForType(event,
-        TaskType.MAP, mapResourceReqt);
-    event.getCapability().setMemory(mapResourceReqt);*/
     TaskAttempt taskAttempt = event.getTaskAttempt();
     TaskLocationHint locationHint = event.getLocationHint();
     String hosts[] = null;
     String racks[] = null;
-    // Until TEZ-1039 is done we need to translate container affinity to the node
-    // for that container
     if (locationHint != null) {
       if (locationHint.getAffinitizedContainer() != null) {
-        ContainerId containerId = locationHint.getAffinitizedContainer();
-        AMContainer container = appContext.getAllContainers().get(containerId);
-        hosts = new String[1];
-        hosts[0] = container.getContainer().getNodeId().getHost();
+        taskScheduler.allocateTask(taskAttempt,
+            event.getCapability(),
+            locationHint.getAffinitizedContainer(),
+            event.getPriority(),
+            event.getContainerContext(),
+            event);
+        return;
       } else {
         hosts = (locationHint.getDataLocalHosts() != null) ? locationHint
             .getDataLocalHosts().toArray(

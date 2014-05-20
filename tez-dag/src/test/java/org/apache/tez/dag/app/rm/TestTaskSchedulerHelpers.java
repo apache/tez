@@ -371,8 +371,8 @@ class TestTaskSchedulerHelpers {
 
   static void waitForDelayedDrainNotify(AtomicBoolean drainNotifier)
       throws InterruptedException {
-    while (!drainNotifier.get()) {
-      synchronized (drainNotifier) {
+    synchronized (drainNotifier) {
+      while (!drainNotifier.get()) {
         drainNotifier.wait();
       }
     }

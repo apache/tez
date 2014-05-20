@@ -547,6 +547,7 @@ public class TestTaskScheduler {
     final Priority mockPriority2 = Priority.newInstance(2);
     final Priority mockPriority3 = Priority.newInstance(3);
     final Priority mockPriority4 = Priority.newInstance(4);
+    final Priority mockPriority5 = Priority.newInstance(5);
     Object mockTask2 = mock(Object.class);
     when(mockTask2.toString()).thenReturn("task2");
     Object mockCookie2 = mock(Object.class);
@@ -708,7 +709,7 @@ public class TestTaskScheduler {
         });
     
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
-    scheduler.delayedContainerManager.drainedDelayedContainers = drainNotifier;
+    scheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
     
     scheduler.onContainersAllocated(containers);
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
@@ -865,6 +866,95 @@ public class TestTaskScheduler {
     scheduler.unblacklistNode(badNodeId);
     verify(mockRMClient, times(1)).removeNodeFromBlacklist(badNodeId);
     assertEquals(0, scheduler.blacklistedNodes.size());
+    
+    // verify container level matching
+    // fudge the top level priority to prevent containers from being released
+    // if top level priority is higher than newly allocated containers then 
+    // they will not be released
+    final AtomicBoolean fudgePriority = new AtomicBoolean(true);
+    when(mockRMClient.getTopPriority()).then(        
+        new Answer<Priority>() {
+          @Override
+          public Priority answer(
+              InvocationOnMock invocation) throws Throwable {
+            if (fudgePriority.get()) {
+              return mockPriority4;
+            }
+            return mockPriority5;
+          }
+        });
+    // add a dummy task to prevent release of allocated containers
+    Object mockTask5 = mock(Object.class);
+    when(mockTask5.toString()).thenReturn("task5");
+    Object mockCookie5 = mock(Object.class);
+    scheduler.allocateTask(mockTask5, mockCapability, hosts,
+        racks, mockPriority5, null, mockCookie5);
+    verify(mockRMClient, times(6)).addContainerRequest(requestCaptor.capture());
+    CookieContainerRequest request6 = requestCaptor.getValue();
+    drainableAppCallback.drain();
+    // add containers so that we can reference one of them for container specific
+    // allocation
+    containers.clear();
+    Container mockContainer7 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(mockContainer7.getNodeId().getHost()).thenReturn("host5");
+    ContainerId mockCId7 = mock(ContainerId.class);
+    when(mockContainer7.toString()).thenReturn("container7");
+    when(mockCId7.toString()).thenReturn("container7");
+    when(mockContainer7.getId()).thenReturn(mockCId7);
+    when(mockContainer7.getPriority()).thenReturn(mockPriority5);
+    containers.add(mockContainer7);
+    Container mockContainer8 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(mockContainer8.getNodeId().getHost()).thenReturn("host5");
+    ContainerId mockCId8 = mock(ContainerId.class);
+    when(mockContainer8.toString()).thenReturn("container8");
+    when(mockCId8.toString()).thenReturn("container8");
+    when(mockContainer8.getId()).thenReturn(mockCId8);
+    when(mockContainer8.getPriority()).thenReturn(mockPriority5);
+    containers.add(mockContainer8);
+    drainNotifier.set(false);
+    scheduler.onContainersAllocated(containers);
+    drainableAppCallback.drain();
+    verify(mockRMClient, times(5)).releaseAssignedContainer((ContainerId) any());    
+    Object mockTask6 = mock(Object.class);
+    when(mockTask6.toString()).thenReturn("task6");
+    Object mockCookie6 = mock(Object.class);
+    // allocate request with container affinity
+    scheduler.allocateTask(mockTask6, mockCapability, mockCId7, mockPriority5, null, mockCookie6);
+    drainableAppCallback.drain();
+    verify(mockRMClient, times(7)).addContainerRequest(requestCaptor.capture());
+    CookieContainerRequest request7 = requestCaptor.getValue();
+    hostContainers.clear();
+    hostContainers.add(request6);
+    hostContainers.add(request7);
+    
+    when(
+        mockRMClient.getMatchingRequestsForTopPriority(eq("host5"),
+            (Resource) any())).thenAnswer(
+        new Answer<List<? extends Collection<CookieContainerRequest>>>() {
+          @Override
+          public List<? extends Collection<CookieContainerRequest>> answer(
+              InvocationOnMock invocation) throws Throwable {
+            return hostList;
+          }
+
+        });
+    // stop fudging top priority
+    fudgePriority.set(false);
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
+    drainableAppCallback.drain();
+    verify(mockApp, times(6)).taskAllocated(any(), any(), (Container) any());
+    // container7 allocated to the task with affinity for it
+    verify(mockApp).taskAllocated(mockTask6, mockCookie6, mockContainer7);
+    // deallocate allocated task
+    assertTrue(scheduler.deallocateTask(mockTask5, true));
+    assertTrue(scheduler.deallocateTask(mockTask6, true));
+    drainableAppCallback.drain();
+    verify(mockApp).containerBeingReleased(mockCId7);
+    verify(mockApp).containerBeingReleased(mockCId8);
+    verify(mockRMClient).releaseAssignedContainer(mockCId7);
+    verify(mockRMClient).releaseAssignedContainer(mockCId8);
+    verify(mockRMClient, times(7)).releaseAssignedContainer((ContainerId) any());
+    
 
     float progress = 0.5f;
     when(mockApp.getProgress()).thenReturn(progress);
