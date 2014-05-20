@@ -97,17 +97,62 @@ public class IntersectValidate extends Configured implements Tool {
   public int run(String[] args) throws Exception {
     Configuration conf = getConf();
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+    int result = validateArgs(otherArgs);
+    if (result != 0) {
+      return result;
+    }
+    return execute(otherArgs);
+  }
+  
+  public int run(Configuration conf, String[] args, TezSession tezSession) throws Exception {
+    setConf(conf);
+    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+    int result = validateArgs(otherArgs);
+    if (result != 0) {
+      return result;
+    }
+    return execute(otherArgs, tezSession);
+  } 
 
+  private int validateArgs(String[] otherArgs) {
     if (otherArgs.length != 3 && otherArgs.length != 2) {
       printUsage();
       return 2;
     }
-    return execute(otherArgs);
+    return 0;
   }
 
-  private int execute(String[] args) throws IOException, TezException, InterruptedException {
-    LOG.info("Running IntersectValidate");
+  private int execute(String[] args) throws TezException, IOException, InterruptedException {
     TezConfiguration tezConf = new TezConfiguration(getConf());
+    TezSession tezSession = null;
+    try {
+      tezSession = createTezSession(tezConf);
+      return execute(args, tezConf, tezSession);
+    } finally {
+      if (tezSession != null) {
+        tezSession.stop();
+      }
+    }
+  }
+  
+  private int execute(String[] args, TezSession tezSession) throws IOException, TezException,
+      InterruptedException {
+    TezConfiguration tezConf = new TezConfiguration(getConf());
+    return execute(args, tezConf, tezSession);
+  }
+  
+  private TezSession createTezSession(TezConfiguration tezConf) throws TezException, IOException {
+    AMConfiguration amConfiguration = new AMConfiguration(null, null, tezConf, null);
+    TezSessionConfiguration sessionConfiguration = new TezSessionConfiguration(amConfiguration,
+        tezConf);
+    TezSession tezSession = new TezSession("IntersectValidateSession", sessionConfiguration);
+    tezSession.start();
+    return tezSession;
+  }
+
+  private int execute(String[] args, TezConfiguration tezConf, TezSession tezSession)
+      throws IOException, TezException, InterruptedException {
+    LOG.info("Running IntersectValidate");
     UserGroupInformation.setConfiguration(tezConf);
 
     String lhsDir = args[0];
@@ -119,47 +164,37 @@ public class IntersectValidate extends Configured implements Tool {
 
     if (numPartitions <= 0) {
       System.err.println("NumPartitions must be > 0");
-      return 2;
+      return 4;
     }
 
     Path lhsPath = new Path(lhsDir);
     Path rhsPath = new Path(rhsDir);
 
-    AMConfiguration amConfiguration = new AMConfiguration(null, null, tezConf, null);
-    TezSessionConfiguration sessionConfiguration = new TezSessionConfiguration(amConfiguration,
-        tezConf);
-    TezSession tezSession = new TezSession("IntersectExampleSession", sessionConfiguration);
-    try {
-      tezSession.start();
+    DAG dag = createDag(tezConf, lhsPath, rhsPath, numPartitions);
+    setupURIsForCredentials(dag, lhsPath, rhsPath);
 
-      DAG dag = createDag(tezConf, lhsPath, rhsPath, numPartitions);
-      setupURIsForCredentials(dag, lhsPath, rhsPath);
-
-      tezSession.waitTillReady();
-      DAGClient dagClient = tezSession.submitDAG(dag);
-      DAGStatus dagStatus = dagClient.waitForCompletionWithAllStatusUpdates(null);
-      if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
-        LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
-        return -1;
+    tezSession.waitTillReady();
+    DAGClient dagClient = tezSession.submitDAG(dag);
+    DAGStatus dagStatus = dagClient.waitForCompletionWithAllStatusUpdates(null);
+    if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
+      LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
+      return -1;
+    } else {
+      dagStatus = dagClient.getDAGStatus(Sets.newHashSet(StatusGetOpts.GET_COUNTERS));
+      TezCounter counter = dagStatus.getDAGCounters().findCounter(COUNTER_GROUP_NAME,
+          MISSING_KEY_COUNTER_NAME);
+      if (counter == null) {
+        LOG.info("Unable to determing equality");
+        return -2;
       } else {
-        dagStatus = dagClient.getDAGStatus(Sets.newHashSet(StatusGetOpts.GET_COUNTERS));
-        TezCounter counter = dagStatus.getDAGCounters().findCounter(COUNTER_GROUP_NAME,
-            MISSING_KEY_COUNTER_NAME);
-        if (counter == null) {
-          LOG.info("Unable to determing equality");
-          return -1;
+        if (counter.getValue() != 0) {
+          LOG.info("Validate failed. The two sides are not equivalent");
+          return -3;
         } else {
-          if (counter.getValue() != 0) {
-            LOG.info("Validate failed. The two sides are not equivalent");
-            return -1;
-          } else {
-            LOG.info("Vlidation successful. The two sides are equivalent");
-            return 0;
-          }
+          LOG.info("Vlidation successful. The two sides are equivalent");
+          return 0;
         }
       }
-    } finally {
-      tezSession.stop();
     }
   }
 

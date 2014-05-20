@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.tez.mapreduce.examples;
 
 import java.io.ByteArrayInputStream;
@@ -69,18 +87,63 @@ public class IntersectDataGen extends Configured implements Tool {
   public int run(String[] args) throws Exception {
     Configuration conf = getConf();
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-
+    int result = validateArgs(otherArgs);
+    if (result != 0) {
+      return result;
+    }
+    return execute(otherArgs);
+  }
+  
+  public int run(Configuration conf, String[] args, TezSession tezSession) throws Exception {
+    setConf(conf);
+    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+    int result = validateArgs(otherArgs);
+    if (result != 0) {
+      return result;
+    }
+    return execute(otherArgs, tezSession);
+  }
+  
+  private int validateArgs(String[] otherArgs) {
     if (otherArgs.length != 6) {
       printUsage();
       return 2;
     }
-    return execute(otherArgs);
+    return 0;
   }
 
-  private int execute(String[] args) throws IOException, TezException, InterruptedException {
+  private int execute(String [] args) throws TezException, IOException, InterruptedException {
+    TezConfiguration tezConf = new TezConfiguration(getConf());
+    TezSession tezSession = null;
+    try {
+      tezSession = createTezSession(tezConf);
+      return execute(args, tezConf, tezSession);
+    } finally {
+      if (tezSession != null) {
+        tezSession.stop();
+      }
+    }
+  }
+  
+  private int execute(String[] args, TezSession tezSession) throws IOException, TezException,
+      InterruptedException {
+    TezConfiguration tezConf = new TezConfiguration(getConf());
+    return execute(args, tezConf, tezSession);
+  }
+  
+  private TezSession createTezSession(TezConfiguration tezConf) throws TezException, IOException {
+    AMConfiguration amConfiguration = new AMConfiguration(null, null, tezConf, null);
+    TezSessionConfiguration sessionConfiguration = new TezSessionConfiguration(amConfiguration,
+        tezConf);
+    TezSession tezSession = new TezSession("IntersectDataGenSession", sessionConfiguration);
+    tezSession.start();
+    return tezSession;
+  }
+  
+  private int execute(String[] args, TezConfiguration tezConf, TezSession tezSession)
+      throws IOException, TezException, InterruptedException {
     LOG.info("Running IntersectDataGen");
 
-    TezConfiguration tezConf = new TezConfiguration(getConf());
     UserGroupInformation.setConfiguration(tezConf);
 
     String outDir1 = args[0];
@@ -115,36 +178,27 @@ public class IntersectDataGen extends Configured implements Tool {
     res = checkOutputDirectory(fs, largeOutPath) + checkOutputDirectory(fs, smallOutPath)
         + checkOutputDirectory(fs, expectedOutputPath);
     if (res != 0) {
-      return 2;
+      return 3;
     }
 
     if (numTasks <= 0) {
       System.err.println("NumTasks must be > 0");
-      return 2;
+      return 4;
     }
 
-    AMConfiguration amConfiguration = new AMConfiguration(null, null, tezConf, null);
-    TezSessionConfiguration sessionConfiguration = new TezSessionConfiguration(amConfiguration,
-        tezConf);
-    TezSession tezSession = new TezSession("IntersectDataGenSession", sessionConfiguration);
-    try {
-      tezSession.start();
+    DAG dag = createDag(tezConf, largeOutPath, smallOutPath, expectedOutputPath, numTasks,
+        largeOutSize, smallOutSize);
+    setupURIsForCredentials(dag, largeOutPath, smallOutPath, expectedOutputPath);
 
-      DAG dag = createDag(tezConf, largeOutPath, smallOutPath, expectedOutputPath, numTasks,
-          largeOutSize, smallOutSize);
-      setupURIsForCredentials(dag, largeOutPath, smallOutPath, expectedOutputPath);
-
-      tezSession.waitTillReady();
-      DAGClient dagClient = tezSession.submitDAG(dag);
-      DAGStatus dagStatus = dagClient.waitForCompletionWithAllStatusUpdates(null);
-      if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
-        LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
-        return -1;
-      }
-      return 0;
-    } finally {
-      tezSession.stop();
+    tezSession.waitTillReady();
+    DAGClient dagClient = tezSession.submitDAG(dag);
+    DAGStatus dagStatus = dagClient.waitForCompletionWithAllStatusUpdates(null);
+    if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
+      LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
+      return -1;
     }
+    return 0;
+
   }
 
   private DAG createDag(TezConfiguration tezConf, Path largeOutPath, Path smallOutPath,
@@ -154,7 +208,7 @@ public class IntersectDataGen extends Configured implements Tool {
     long largeOutSizePerTask = largeOutSize / numTasks;
     long smallOutSizePerTask = smallOutSize / numTasks;
 
-    DAG dag = new DAG("IntersectExample");
+    DAG dag = new DAG("IntersectDataGen");
 
     byte[] streamOutputPayload = createPayloadForOutput(largeOutPath, tezConf);
     byte[] hashOutputPayload = createPayloadForOutput(smallOutPath, tezConf);

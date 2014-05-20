@@ -61,7 +61,9 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.mapreduce.examples.ExampleDriver;
+import org.apache.tez.mapreduce.examples.IntersectDataGen;
 import org.apache.tez.mapreduce.examples.IntersectExample;
+import org.apache.tez.mapreduce.examples.IntersectValidate;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
 import org.junit.AfterClass;
@@ -272,6 +274,52 @@ public class TestTezJobs {
     assertEquals(0, expectedResult.size());
   }
 
+  @Test(timeout = 120000)
+  public void testIntersect2() throws Exception {
+
+    Path testDir = new Path("/tmp/testIntersect2");
+    Path stagingDirPath = new Path("/tmp/tez-staging-dir");
+    remoteFs.mkdirs(stagingDirPath);
+    remoteFs.mkdirs(testDir);
+
+    Path dataPath1 = new Path(testDir, "inPath1");
+    Path dataPath2 = new Path(testDir, "inPath2");
+    Path expectedOutputPath = new Path(testDir, "expectedOutputPath");
+    Path outPath = new Path(testDir, "outPath");
+
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+    AMConfiguration amConfiguration = new AMConfiguration(null, null, tezConf, null);
+    TezSessionConfiguration sessionConfiguration = new TezSessionConfiguration(amConfiguration,
+        tezConf);
+    TezSession tezSession = null;
+    try {
+      tezSession = new TezSession("IntersectExampleSession", sessionConfiguration);
+      tezSession.start();
+
+      IntersectDataGen dataGen = new IntersectDataGen();
+      String[] dataGenArgs = new String[] {
+          dataPath1.toString(), "1048576", dataPath2.toString(), "524288",
+          expectedOutputPath.toString(), "2" };
+      assertEquals(0, dataGen.run(tezConf, dataGenArgs, tezSession));
+
+      IntersectExample intersect = new IntersectExample();
+      String[] intersectArgs = new String[] {
+          dataPath1.toString(), dataPath2.toString(), "2", outPath.toString() };
+      assertEquals(0, intersect.run(tezConf, intersectArgs, tezSession));
+
+      IntersectValidate intersectValidate = new IntersectValidate();
+      String[] intersectValidateArgs = new String[] {
+          expectedOutputPath.toString(), outPath.toString(), "3" };
+      assertEquals(0, intersectValidate.run(tezConf, intersectValidateArgs, tezSession));
+
+    } finally {
+      if (tezSession != null) {
+        tezSession.stop();
+      }
+    }
+  }
+  
   @Test
   public void testNonDefaultFSStagingDir() throws Exception {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);

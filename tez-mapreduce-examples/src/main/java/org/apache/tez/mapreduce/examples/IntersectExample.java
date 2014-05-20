@@ -96,17 +96,63 @@ public class IntersectExample extends Configured implements Tool {
   public int run(String[] args) throws Exception {
     Configuration conf = getConf();
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-
+    int result = validateArgs(otherArgs);
+    if (result != 0) {
+      return result;
+    }
+    return execute(otherArgs);
+  }
+  
+  public int run(Configuration conf, String[] args, TezSession tezSession) throws Exception {
+    setConf(conf);
+    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+    int result = validateArgs(otherArgs);
+    if (result != 0) {
+      return result;
+    }
+    return execute(otherArgs, tezSession);
+  }
+  
+  private int validateArgs(String[] otherArgs) {
     if (otherArgs.length != 4) {
       printUsage();
       return 2;
     }
-    return execute(otherArgs);
+    return 0;
   }
 
-  private int execute(String[] args) throws IOException, TezException, InterruptedException {
-    LOG.info("Running IntersectExample");
+  private int execute(String[] args) throws TezException, IOException, InterruptedException {
     TezConfiguration tezConf = new TezConfiguration(getConf());
+    TezSession tezSession = null;
+    try {
+      tezSession = createTezSession(tezConf);
+      return execute(args, tezConf, tezSession);
+    } finally {
+      if (tezSession != null) {
+        tezSession.stop();
+      }
+    }
+  }
+  
+  private int execute(String[] args, TezSession tezSession) throws IOException, TezException,
+      InterruptedException {
+    TezConfiguration tezConf = new TezConfiguration(getConf());
+    return execute(args, tezConf, tezSession);
+  }
+  
+  private TezSession createTezSession(TezConfiguration tezConf) throws TezException, IOException {
+    AMConfiguration amConfiguration = new AMConfiguration(null, null, tezConf, null);
+    TezSessionConfiguration sessionConfiguration = new TezSessionConfiguration(amConfiguration,
+        tezConf);
+    TezSession tezSession = new TezSession("IntersectExampleSession", sessionConfiguration);
+    tezSession.start();
+    return tezSession;
+  }
+  
+  private int execute(String[] args, TezConfiguration tezConf, TezSession tezSession)
+      throws IOException, TezException, InterruptedException {
+    LOG.info("Running IntersectExample");
+
     UserGroupInformation.setConfiguration(tezConf);
 
     String streamInputDir = args[0];
@@ -122,34 +168,25 @@ public class IntersectExample extends Configured implements Tool {
     FileSystem fs = FileSystem.get(tezConf);
     if (fs.exists(outputPath)) {
       System.err.println("Output directory: " + outputDir + " already exists");
-      return 2;
+      return 3;
     }
     if (numPartitions <= 0) {
       System.err.println("NumPartitions must be > 0");
-      return 2;
+      return 4;
     }
 
-    AMConfiguration amConfiguration = new AMConfiguration(null, null, tezConf, null);
-    TezSessionConfiguration sessionConfiguration = new TezSessionConfiguration(amConfiguration,
-        tezConf);
-    TezSession tezSession = new TezSession("IntersectExampleSession", sessionConfiguration);
-    try {
-      tezSession.start();
+    DAG dag = createDag(tezConf, streamInputPath, hashInputPath, outputPath, numPartitions);
+    setupURIsForCredentials(dag, streamInputPath, hashInputPath, outputPath);
 
-      DAG dag = createDag(tezConf, streamInputPath, hashInputPath, outputPath, numPartitions);
-      setupURIsForCredentials(dag, streamInputPath, hashInputPath, outputPath);
-
-      tezSession.waitTillReady();
-      DAGClient dagClient = tezSession.submitDAG(dag);
-      DAGStatus dagStatus = dagClient.waitForCompletionWithAllStatusUpdates(null);
-      if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
-        LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
-        return -1;
-      }
-      return 0;
-    } finally {
-      tezSession.stop();
+    tezSession.waitTillReady();
+    DAGClient dagClient = tezSession.submitDAG(dag);
+    DAGStatus dagStatus = dagClient.waitForCompletionWithAllStatusUpdates(null);
+    if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
+      LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
+      return -1;
     }
+    return 0;
+
   }
 
   private DAG createDag(TezConfiguration tezConf, Path streamPath, Path hashPath, Path outPath,
