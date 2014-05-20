@@ -50,7 +50,9 @@ public class TestSecureShuffle {
   private static FileSystem fs;
   private static Path inputLoc = new Path("/tmp/sample.txt");
   private static Path outputLoc = new Path("/tmp/outPath");
-  private static File keysStoresDir = new File("target/keystores");
+  private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
+      + TestSecureShuffle.class.getName() + "-tmpDir";
+  private static File keysStoresDir = new File(TEST_ROOT_DIR, "keystores");
 
   @BeforeClass
   public static void setup() throws Exception {
@@ -58,6 +60,7 @@ public class TestSecureShuffle {
     System.setProperty("javax.net.debug", "all");
     conf = new Configuration();
     setupKeyStores();
+    conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
 
     miniDFSCluster =
         new MiniDFSCluster.Builder(conf).numDataNodes(3).format(true).build();
