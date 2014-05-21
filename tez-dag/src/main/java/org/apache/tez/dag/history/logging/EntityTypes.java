@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.history.ats;
+package org.apache.tez.dag.history.logging;
 
 public enum EntityTypes {
   TEZ_APPLICATION_ATTEMPT,

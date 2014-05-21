@@ -18,60 +18,36 @@
 
 package org.apache.tez.dag.history.events;
 
-import org.apache.tez.dag.history.HistoryEvent;
-import org.apache.tez.dag.history.HistoryEventType;
-import org.apache.tez.dag.history.ats.EntityTypes;
-import org.apache.tez.dag.history.utils.ATSConstants;
-import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGStartedProto;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
+import org.apache.tez.dag.history.HistoryEvent;
+import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGStartedProto;
 
 public class DAGStartedEvent implements HistoryEvent {
 
   private TezDAGID dagID;
   private long startTime;
+  private String user;
+  private String dagName;
 
   public DAGStartedEvent() {
   }
 
-  public DAGStartedEvent(TezDAGID dagID, long startTime) {
+  public DAGStartedEvent(TezDAGID dagID, long startTime,
+      String user, String dagName) {
     this.dagID = dagID;
     this.startTime = startTime;
+    this.user = user;
+    this.dagName = dagName;
   }
 
   @Override
   public HistoryEventType getEventType() {
     return HistoryEventType.DAG_STARTED;
-  }
-
-  @Override
-  public JSONObject convertToATSJSON() throws JSONException {
-    JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY,
-        dagID.toString());
-    jsonObject.put(ATSConstants.ENTITY_TYPE,
-        EntityTypes.TEZ_DAG_ID.name());
-
-    // Related Entities not needed as should have been done in
-    // dag submission event
-
-    // TODO decide whether this goes into different events,
-    // event info or other info.
-    JSONArray events = new JSONArray();
-    JSONObject startEvent = new JSONObject();
-    startEvent.put(ATSConstants.TIMESTAMP, startTime);
-    startEvent.put(ATSConstants.EVENT_TYPE,
-        HistoryEventType.DAG_STARTED.name());
-    events.put(startEvent);
-    jsonObject.put(ATSConstants.EVENTS, events);
-
-    return jsonObject;
   }
 
   @Override
@@ -120,4 +96,13 @@ public class DAGStartedEvent implements HistoryEvent {
   public TezDAGID getDagID() {
     return dagID;
   }
+
+  public String getUser() {
+    return user;
+  }
+
+  public String getDagName() {
+    return dagName;
+  }
+
 }

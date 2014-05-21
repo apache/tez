@@ -18,6 +18,13 @@
 
 package org.apache.tez.dag.history.events;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -26,15 +33,6 @@ import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.EdgeManagerDescriptorProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexParallelismUpdatedProto;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 
 public class VertexParallelismUpdatedEvent implements HistoryEvent {
 
@@ -58,12 +56,6 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
   @Override
   public HistoryEventType getEventType() {
     return HistoryEventType.VERTEX_PARALLELISM_UPDATED;
-  }
-
-  @Override
-  public JSONObject convertToATSJSON() throws JSONException {
-    throw new UnsupportedOperationException("VertexParallelismUpdatedEvent"
-        + " not a History event");
   }
 
   @Override

@@ -20,6 +20,7 @@ Maven main modules:
         - tez-mapreduce ...............(Tez mapreduce)
         - tez-dag .....................(Tez dag)
         - tez-mapreduce-examples ......(Tez mapreduce examples)
+        - tez-plugins .................(Tez plugins)
         - tez-tests ...................(Tez tests)
         - tez-dist ....................(Tez dist)
 
@@ -37,7 +38,7 @@ Maven build goals:
  * Run clover                : mvn test -Pclover [-Dclover.license=${user.home}/clover.license]
  * Run Rat                   : mvn apache-rat:check
  * Build javadocs            : mvn javadoc:javadoc
- * Build distribution        : mvn package[-Dtar][-Dhadoop.version=2.2.0]
+ * Build distribution        : mvn package[-Dtar][-Dhadoop.version=2.4.0]
  * Visualize state machines  : mvn compile -Pvisualize -DskipTests=true
  
 Build options:
@@ -58,11 +59,18 @@ Tests options:
 ----------------------------------------------------------------------------------
 Building against a specific version of hadoop:
 
-Tez runs on top of Apache Hadoop YARN and requires hadoop version 2.2.0 or higher
-For example to build tez against hadoop 3.0.0-SNAPSHOT 
+Tez runs on top of Apache Hadoop YARN and requires hadoop version 2.2.0 or higher.
+
+By default, it can be compiled against hadoop versions 2.4.0 and higher by just
+specifying the hadoop.version. For example, to build tez against hadoop 3.0.0-SNAPSHOT 
 
  $ mvn package -Dtar -Dhadoop.version=3.0.0-SNAPSHOT
  
+However, to compile against hadoop versions lower than 2.4.0, the hadoop24 profile needs
+to be disabled
+
+ $ mvn package -Dtar -Dhadoop.version=2.2.0 -P\!hadoop24
+
 To skip Tests and java docs
 
  $ mvn package -Dtar -Dhadoop.version=3.0.0-SNAPSHOT -DskipTests -Dmaven.javadoc.skip=true

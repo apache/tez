@@ -29,8 +29,6 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexGroupCommitStartedProto;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 
 public class VertexGroupCommitStartedEvent implements HistoryEvent, SummaryEvent {
 
@@ -51,12 +49,6 @@ public class VertexGroupCommitStartedEvent implements HistoryEvent, SummaryEvent
   @Override
   public HistoryEventType getEventType() {
     return HistoryEventType.VERTEX_GROUP_COMMIT_STARTED;
-  }
-
-  @Override
-  public JSONObject convertToATSJSON() throws JSONException {
-    // TODO
-    return null;
   }
 
   @Override

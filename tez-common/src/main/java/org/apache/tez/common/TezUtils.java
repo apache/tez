@@ -28,6 +28,7 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.DataFormatException;
@@ -41,6 +42,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.log4j.Appender;
 import org.apache.log4j.Logger;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -54,6 +57,7 @@ import com.google.protobuf.ByteString;
 public class TezUtils {
 
   private static final Log LOG = LogFactory.getLog(TezUtils.class);
+  private static final Random RANDOM = new Random();
 
   public static void addUserSpecifiedTezConfiguration(Configuration conf) throws IOException {
     FileInputStream confPBBinaryStream = null;
@@ -329,4 +333,18 @@ public class TezUtils {
     }
     return bytes;
   }
+
+  public static String getContainerLogDir() {
+    String logDirsStr  = System.getenv(Environment.LOG_DIRS.name());
+    if (logDirsStr == null || logDirsStr.isEmpty()) {
+      return null;
+    }
+    String[] logDirs = StringUtils.split(logDirsStr, ',');
+    if (logDirs.length == 0) {
+      return null;
+    }
+    int logIndex = RANDOM.nextInt(logDirs.length);
+    return logDirs[logIndex];
+  }
+
 }

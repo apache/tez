@@ -112,7 +112,7 @@ public class TestHistoryEventsProtoConversion {
     AMLaunchedEvent event = new AMLaunchedEvent(
         ApplicationAttemptId.newInstance(
             ApplicationId.newInstance(0, 1), 1),
-        100, 100);
+        100, 100, null);
     AMLaunchedEvent deserializedEvent = (AMLaunchedEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getApplicationAttemptId(),
@@ -127,7 +127,7 @@ public class TestHistoryEventsProtoConversion {
   private void testAMStartedEvent() throws Exception {
     AMStartedEvent event = new AMStartedEvent(
         ApplicationAttemptId.newInstance(
-            ApplicationId.newInstance(0, 1), 1), 100);
+            ApplicationId.newInstance(0, 1), 1), 100, "");
     AMStartedEvent deserializedEvent = (AMStartedEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getApplicationAttemptId(),
@@ -142,7 +142,7 @@ public class TestHistoryEventsProtoConversion {
         ApplicationId.newInstance(0, 1), 1), 1001l,
         DAGPlan.newBuilder().setName("foo").build(),
         ApplicationAttemptId.newInstance(
-            ApplicationId.newInstance(0, 1), 1), null);
+            ApplicationId.newInstance(0, 1), 1), null, "");
     DAGSubmittedEvent deserializedEvent = (DAGSubmittedEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getApplicationAttemptId(),
@@ -160,7 +160,8 @@ public class TestHistoryEventsProtoConversion {
 
   private void testDAGInitializedEvent() throws Exception {
     DAGInitializedEvent event = new DAGInitializedEvent(
-        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 100334l);
+        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 100334l,
+        "user", "dagName");
     DAGInitializedEvent deserializedEvent = (DAGInitializedEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getDagID(),
@@ -171,7 +172,8 @@ public class TestHistoryEventsProtoConversion {
 
   private void testDAGStartedEvent() throws Exception {
     DAGStartedEvent event = new DAGStartedEvent(
-        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 100334l);
+        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 100334l,
+        "user", "dagName");
     DAGStartedEvent deserializedEvent = (DAGStartedEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getDagID(),
@@ -184,7 +186,7 @@ public class TestHistoryEventsProtoConversion {
     {
       DAGFinishedEvent event = new DAGFinishedEvent(
           TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1000l, 20000l,
-          DAGState.FAILED, null, null);
+          DAGState.FAILED, null, null, "user", "dagName");
       DAGFinishedEvent deserializedEvent = (DAGFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(
@@ -204,7 +206,8 @@ public class TestHistoryEventsProtoConversion {
       tezCounters.getGroup("foo").findCounter("c1").increment(1);
       DAGFinishedEvent event = new DAGFinishedEvent(
           TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1000l, 20000l,
-          DAGState.FAILED, "bad diagnostics", tezCounters);
+          DAGState.FAILED, "bad diagnostics", tezCounters,
+          "user", "dagName");
       DAGFinishedEvent deserializedEvent = (DAGFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(

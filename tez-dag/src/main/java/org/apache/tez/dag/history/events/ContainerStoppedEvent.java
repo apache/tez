@@ -18,23 +18,16 @@
 
 package org.apache.tez.dag.history.events;
 
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.ContainerStatus;
-import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.dag.history.HistoryEvent;
-import org.apache.tez.dag.history.HistoryEventType;
-import org.apache.tez.dag.history.ats.EntityTypes;
-import org.apache.tez.dag.history.utils.ATSConstants;
-import org.apache.tez.dag.recovery.records.RecoveryProtos.ContainerStoppedProto;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.dag.history.HistoryEvent;
+import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.ContainerStoppedProto;
 
 public class ContainerStoppedEvent implements HistoryEvent {
 
@@ -59,51 +52,6 @@ public class ContainerStoppedEvent implements HistoryEvent {
   @Override
   public HistoryEventType getEventType() {
     return HistoryEventType.CONTAINER_STOPPED;
-  }
-
-  @Override
-  public JSONObject convertToATSJSON() throws JSONException {
-    // structure is identical to ContainerLaunchedEvent
-    JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY,
-        "tez_" + containerId.toString());
-    jsonObject.put(ATSConstants.ENTITY_TYPE,
-        EntityTypes.TEZ_CONTAINER_ID.name());
-
-    JSONArray relatedEntities = new JSONArray();
-    JSONObject appAttemptEntity = new JSONObject();
-    appAttemptEntity.put(ATSConstants.ENTITY,
-        applicationAttemptId.toString());
-    appAttemptEntity.put(ATSConstants.ENTITY_TYPE,
-        EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
-
-    JSONObject containerEntity = new JSONObject();
-    containerEntity.put(ATSConstants.ENTITY, containerId.toString());
-    containerEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.CONTAINER_ID);
-
-    relatedEntities.put(appAttemptEntity);
-    relatedEntities.put(containerEntity);
-    jsonObject.put(ATSConstants.RELATED_ENTITIES, relatedEntities);
-
-    // TODO decide whether this goes into different events,
-    // event info or other info.
-    JSONArray events = new JSONArray();
-    JSONObject stopEvent = new JSONObject();
-    stopEvent.put(ATSConstants.TIMESTAMP, stopTime);
-    stopEvent.put(ATSConstants.EVENT_TYPE,
-        HistoryEventType.CONTAINER_STOPPED.name());
-    events.put(stopEvent);
-    jsonObject.put(ATSConstants.EVENTS, events);
-    
-    // TODO add other container info here? or assume AHS will have this?
-    // TODO container logs?
-
-    // Other info
-    JSONObject otherInfo = new JSONObject();
-    otherInfo.put(ATSConstants.EXIT_STATUS, exitStatus);
-    jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
-    
-    return jsonObject;
   }
 
   @Override

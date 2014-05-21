@@ -29,8 +29,6 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexCommitStartedProto;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 
 import com.google.protobuf.ByteString;
 
@@ -50,12 +48,6 @@ public class VertexCommitStartedEvent implements HistoryEvent, SummaryEvent {
   @Override
   public HistoryEventType getEventType() {
     return HistoryEventType.VERTEX_COMMIT_STARTED;
-  }
-
-  @Override
-  public JSONObject convertToATSJSON() throws JSONException {
-    // TODO
-    return null;
   }
 
   @Override

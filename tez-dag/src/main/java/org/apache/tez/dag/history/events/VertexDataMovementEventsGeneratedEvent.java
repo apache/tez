@@ -18,7 +18,12 @@
 
 package org.apache.tez.dag.history.events;
 
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.EnumSet;
+import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.common.ProtoConverters;
@@ -36,14 +41,8 @@ import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.TezEvent;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.EnumSet;
-import java.util.List;
+import com.google.common.collect.Lists;
 
 public class VertexDataMovementEventsGeneratedEvent implements HistoryEvent {
 
@@ -76,11 +75,6 @@ public class VertexDataMovementEventsGeneratedEvent implements HistoryEvent {
   @Override
   public HistoryEventType getEventType() {
     return HistoryEventType.VERTEX_DATA_MOVEMENT_EVENTS_GENERATED;
-  }
-
-  @Override
-  public JSONObject convertToATSJSON() throws JSONException {
-    return null;
   }
 
   @Override

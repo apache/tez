@@ -18,21 +18,16 @@
 
 package org.apache.tez.dag.history.events;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
-import org.apache.tez.dag.history.ats.EntityTypes;
-import org.apache.tez.dag.history.utils.ATSConstants;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.ContainerLaunchedProto;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 public class ContainerLaunchedEvent implements HistoryEvent {
 
@@ -54,45 +49,6 @@ public class ContainerLaunchedEvent implements HistoryEvent {
   @Override
   public HistoryEventType getEventType() {
     return HistoryEventType.CONTAINER_LAUNCHED;
-  }
-
-  @Override
-  public JSONObject convertToATSJSON() throws JSONException {
-    JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY,
-        "tez_" + containerId.toString());
-    jsonObject.put(ATSConstants.ENTITY_TYPE,
-        EntityTypes.TEZ_CONTAINER_ID.name());
-
-    JSONArray relatedEntities = new JSONArray();
-    JSONObject appAttemptEntity = new JSONObject();
-    appAttemptEntity.put(ATSConstants.ENTITY,
-        applicationAttemptId.toString());
-    appAttemptEntity.put(ATSConstants.ENTITY_TYPE,
-        EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
-
-    JSONObject containerEntity = new JSONObject();
-    containerEntity.put(ATSConstants.ENTITY, containerId.toString());
-    containerEntity.put(ATSConstants.ENTITY_TYPE, ATSConstants.CONTAINER_ID);
-
-    relatedEntities.put(appAttemptEntity);
-    relatedEntities.put(containerEntity);
-    jsonObject.put(ATSConstants.RELATED_ENTITIES, relatedEntities);
-
-    // TODO decide whether this goes into different events,
-    // event info or other info.
-    JSONArray events = new JSONArray();
-    JSONObject launchEvent = new JSONObject();
-    launchEvent.put(ATSConstants.TIMESTAMP, launchTime);
-    launchEvent.put(ATSConstants.EVENT_TYPE,
-        HistoryEventType.CONTAINER_LAUNCHED.name());
-    events.put(launchEvent);
-    jsonObject.put(ATSConstants.EVENTS, events);
-
-    // TODO add other container info here? or assume AHS will have this?
-    // TODO container logs?
-
-    return jsonObject;
   }
 
   @Override

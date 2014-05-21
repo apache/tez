@@ -22,14 +22,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-
 public interface HistoryEvent {
 
   public HistoryEventType getEventType();
-
-  public JSONObject convertToATSJSON() throws JSONException;
 
   public boolean isRecoveryEvent();
 
@@ -38,4 +33,5 @@ public interface HistoryEvent {
   public void toProtoStream(OutputStream outputStream) throws IOException;
 
   public void fromProtoStream(InputStream inputStream) throws IOException;
+
 }

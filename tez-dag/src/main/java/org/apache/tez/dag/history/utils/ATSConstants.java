@@ -39,6 +39,7 @@ public class ATSConstants {
   public static final String APPLICATION_ATTEMPT_ID = "applicationAttemptId";
   public static final String CONTAINER_ID = "containerId";
   public static final String NODE_ID = "nodeId";
+  public static final String USER = "user";
 
   /* Keys used in other info */
   public static final String APP_SUBMIT_TIME = "appSubmitTime";

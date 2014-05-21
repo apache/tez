@@ -18,28 +18,27 @@
 
 package org.apache.tez.dag.history;
 
+import java.io.IOException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.CompositeService;
+import org.apache.tez.common.RuntimeUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.history.ats.ATSService;
+import org.apache.tez.dag.history.logging.HistoryLoggingService;
 import org.apache.tez.dag.history.recovery.RecoveryService;
 import org.apache.tez.dag.records.TezDAGID;
-
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HistoryEventHandler extends CompositeService {
 
   private static Log LOG = LogFactory.getLog(HistoryEventHandler.class);
 
   private final AppContext context;
-  private boolean yarnATSEnabled;
-  private ATSService atsService;
   private RecoveryService recoveryService;
   private boolean recoveryEnabled;
+  private HistoryLoggingService historyLoggingService;
 
   public HistoryEventHandler(AppContext context) {
     super(HistoryEventHandler.class.getName());
@@ -49,14 +48,19 @@ public class HistoryEventHandler extends CompositeService {
   @Override
   public void serviceInit(Configuration conf) throws Exception {
     LOG.info("Initializing HistoryEventHandler");
-    this.yarnATSEnabled = context.getAMConf().getBoolean(TezConfiguration.YARN_ATS_ENABLED,
-        TezConfiguration.YARN_ATS_ENABLED_DEFAULT);
+
     this.recoveryEnabled = context.getAMConf().getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
         TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT);
-    if (yarnATSEnabled) {
-      atsService = new ATSService();
-      addService(atsService);
-    }
+
+    String historyServiceClassName = context.getAMConf().get(
+        TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
+        TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS_DEFAULT);
+
+    historyLoggingService =
+        RuntimeUtils.createClazzInstance(historyServiceClassName);
+    historyLoggingService.setAppContext(context);
+    addService(historyLoggingService);
+
     if (recoveryEnabled) {
       recoveryService = new RecoveryService(context);
       addService(recoveryService);
@@ -97,8 +101,8 @@ public class HistoryEventHandler extends CompositeService {
     if (recoveryEnabled && event.getHistoryEvent().isRecoveryEvent()) {
       recoveryService.handle(event);
     }
-    if (yarnATSEnabled && event.getHistoryEvent().isHistoryEvent()) {
-      atsService.handle(event);
+    if (event.getHistoryEvent().isHistoryEvent()) {
+      historyLoggingService.handle(event);
     }
 
     // TODO at some point we should look at removing this once

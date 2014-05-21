@@ -365,9 +365,22 @@ public class TezConfiguration extends Configuration {
   @Private
   public static final String TEZ_PREWARM_DAG_NAME_PREFIX = "TezPreWarmDAG";
 
-  public static final String YARN_ATS_ENABLED =
-      TEZ_PREFIX + "yarn.ats.enabled";
-  public static final boolean YARN_ATS_ENABLED_DEFAULT = false;
+  public static final String TEZ_HISTORY_LOGGING_SERVICE_CLASS =
+      TEZ_PREFIX + "history.logging.service.class";
+
+  public static final String TEZ_HISTORY_LOGGING_SERVICE_CLASS_DEFAULT =
+      "org.apache.tez.dag.history.logging.impl.SimpleHistoryLoggingService";
+
+  public static final String TEZ_SIMPLE_HISTORY_LOGGING_DIR =
+      TEZ_PREFIX + "simple.history.logging.dir";
+  public static final String TEZ_SIMPLE_HISTORY_LOGGING_MAX_ERRORS =
+      TEZ_PREFIX + "simple.history.max.errors";
+  public static final int TEZ_SIMPLE_HISTORY_LOGGING_MAX_ERRORS_DEFAULT = 10;
+
+  public static final String YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS =
+      TEZ_PREFIX + "yarn.ats.event.flush.timeout.millis";
+  public static final long YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS_DEFAULT =
+      3000l;
 
   public static final String DAG_RECOVERY_ENABLED =
       TEZ_PREFIX + "dag.recovery.enabled";

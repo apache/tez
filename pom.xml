@@ -37,7 +37,7 @@
   <properties>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <clover.license>${user.home}/clover.license</clover.license>
-    <hadoop.version>2.2.0</hadoop.version>
+    <hadoop.version>2.4.0</hadoop.version>
     <jetty.version>7.6.10.v20130312</jetty.version>
     <distMgmtSnapshotsId>apache.snapshots.https</distMgmtSnapshotsId>
     <distMgmtSnapshotsName>Apache Development Snapshot Repository</distMgmtSnapshotsName>
@@ -137,6 +137,11 @@
       <dependency>
         <groupId>org.apache.tez</groupId>
         <artifactId>tez-dag</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tez</groupId>
+        <artifactId>tez-plugins</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -326,6 +331,7 @@
     <module>tez-mapreduce-examples</module>
     <module>tez-tests</module>
     <module>tez-dag</module>
+    <module>tez-plugins</module>
     <module>tez-dist</module>
     <module>docs</module>
   </modules>

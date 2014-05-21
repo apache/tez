@@ -18,26 +18,24 @@
 
 package org.apache.tez.dag.history.events;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
-import org.apache.tez.dag.history.ats.EntityTypes;
-import org.apache.tez.dag.history.utils.ATSConstants;
-import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskFinishedProto;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 public class TaskFinishedEvent implements HistoryEvent {
+
+  private static final Log LOG = LogFactory.getLog(TaskFinishedEvent.class);
 
   private TezTaskID taskID;
   private String vertexName;
@@ -65,34 +63,6 @@ public class TaskFinishedEvent implements HistoryEvent {
   @Override
   public HistoryEventType getEventType() {
     return HistoryEventType.TASK_FINISHED;
-  }
-
-  @Override
-  public JSONObject convertToATSJSON() throws JSONException {
-    JSONObject jsonObject = new JSONObject();
-    jsonObject.put(ATSConstants.ENTITY, taskID.toString());
-    jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_TASK_ID.name());
-
-    // Events
-    JSONArray events = new JSONArray();
-    JSONObject finishEvent = new JSONObject();
-    finishEvent.put(ATSConstants.TIMESTAMP, finishTime);
-    finishEvent.put(ATSConstants.EVENT_TYPE,
-        HistoryEventType.TASK_FINISHED.name());
-    events.put(finishEvent);
-    jsonObject.put(ATSConstants.EVENTS, events);
-
-    JSONObject otherInfo = new JSONObject();
-    otherInfo.put(ATSConstants.START_TIME, startTime);
-    otherInfo.put(ATSConstants.FINISH_TIME, finishTime);
-    otherInfo.put(ATSConstants.TIME_TAKEN, (finishTime - startTime));
-    otherInfo.put(ATSConstants.STATUS, state.name());
-    otherInfo.put(ATSConstants.COUNTERS,
-        DAGUtils.convertCountersToJSON(this.tezCounters));
-
-    jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
-
-    return jsonObject;
   }
 
   @Override
@@ -178,4 +148,9 @@ public class TaskFinishedEvent implements HistoryEvent {
   public TezTaskAttemptID getSuccessfulAttemptID() {
     return successfulAttemptID;
   }
+
+  public long getStartTime() {
+    return startTime;
+  }
+
 }

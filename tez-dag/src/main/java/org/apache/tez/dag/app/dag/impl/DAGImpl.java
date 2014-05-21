@@ -895,21 +895,22 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   void logJobHistoryFinishedEvent() throws IOException {
     this.setFinishTime();
     DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
-        finishTime, DAGState.SUCCEEDED, "", getAllCounters());
+        finishTime, DAGState.SUCCEEDED, "", getAllCounters(),
+        this.userName, this.dagName);
     this.appContext.getHistoryHandler().handleCriticalEvent(
         new DAGHistoryEvent(dagId, finishEvt));
   }
 
   void logJobHistoryInitedEvent() {
     DAGInitializedEvent initEvt = new DAGInitializedEvent(this.dagId,
-        this.initTime);
+        this.initTime, this.userName, this.dagName);
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(dagId, initEvt));
   }
 
   void logJobHistoryStartedEvent() {
     DAGStartedEvent startEvt = new DAGStartedEvent(this.dagId,
-        this.startTime);
+        this.startTime, this.userName, this.dagName);
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(dagId, startEvt));
   }
@@ -918,7 +919,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
         clock.getTime(), state,
         StringUtils.join(LINE_SEPARATOR, getDiagnostics()),
-        getAllCounters());
+        getAllCounters(), this.userName, this.dagName);
     this.appContext.getHistoryHandler().handleCriticalEvent(
         new DAGHistoryEvent(dagId, finishEvt));
   }
