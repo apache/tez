@@ -54,8 +54,8 @@ public class Vertex {
 
   private final List<Vertex> inputVertices = new ArrayList<Vertex>();
   private final List<Vertex> outputVertices = new ArrayList<Vertex>();
-  private final List<String> inputEdgeIds = new ArrayList<String>();
-  private final List<String> outputEdgeIds = new ArrayList<String>();
+  private final List<Edge> inputEdges = new ArrayList<Edge>();
+  private final List<Edge> outputEdges = new ArrayList<Edge>();
   private final Map<String, GroupInfo> groupInputs = Maps.newHashMap();
   
   private String javaOpts = "";
@@ -255,12 +255,12 @@ public class Vertex {
 
   void addInputVertex(Vertex inputVertex, Edge edge) {
     inputVertices.add(inputVertex);
-    inputEdgeIds.add(edge.getId());
+    inputEdges.add(edge);
   }
 
   void addOutputVertex(Vertex outputVertex, Edge edge) {
     outputVertices.add(outputVertex);
-    outputEdgeIds.add(edge.getId());
+    outputEdges.add(edge);
   }
   
   public List<Vertex> getInputVertices() {
@@ -271,12 +271,12 @@ public class Vertex {
     return Collections.unmodifiableList(outputVertices);
   }
 
-  List<String> getInputEdgeIds() {
-    return inputEdgeIds;
+  List<Edge> getInputEdges() {
+    return inputEdges;
   }
 
-  List<String> getOutputEdgeIds() {
-    return outputEdgeIds;
+  List<Edge> getOutputEdges() {
+    return outputEdges;
   }
   
   List<RootInputLeafOutput<InputDescriptor>> getInputs() {

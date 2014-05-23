@@ -568,12 +568,12 @@ public class DAG { // FIXME rename to Topology
             .convertToDAGPlan(vertex.getVertexManagerPlugin()));
       }
 
-      for (String inEdgeId : vertex.getInputEdgeIds()) {
-        vertexBuilder.addInEdgeId(inEdgeId);
+      for (Edge inEdge : vertex.getInputEdges()) {
+        vertexBuilder.addInEdgeId(inEdge.getId());
       }
 
-      for (String outEdgeId : vertex.getOutputEdgeIds()) {
-        vertexBuilder.addOutEdgeId(outEdgeId);
+      for (Edge outEdge : vertex.getOutputEdges()) {
+        vertexBuilder.addOutEdgeId(outEdge.getId());
       }
 
       vertexBuilder.setTaskConfig(taskConfigBuilder);
