@@ -348,9 +348,8 @@ public class OrderedWordCount extends Configured implements Tool {
 
     FileSystem fs = FileSystem.get(conf);
 
-    String stagingDirStr = Path.SEPARATOR + "user" + Path.SEPARATOR
-        + user + Path.SEPARATOR+ ".staging" + Path.SEPARATOR
-        + Path.SEPARATOR + appId.toString();
+    String stagingDirStr =  conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
+            TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT) + Path.SEPARATOR + appId.toString();
     Path stagingDir = new Path(stagingDirStr);
     FileSystem pathFs = stagingDir.getFileSystem(tezConf);
     pathFs.mkdirs(new Path(stagingDirStr));
