@@ -45,9 +45,7 @@ public class TaskCounterUpdater {
   
   private final TezCounters tezCounters;
   private final Configuration conf;
-  
-  private long initialCpuCumulativeTime;
-  
+
   /**
    * A Map where Key-> URIScheme and value->FileSystemStatisticUpdater
    */
@@ -148,9 +146,5 @@ public class TaskCounterUpdater {
         System.getenv().get("JVM_PID"), clazz, conf);
 
     LOG.info(" Using ResourceCalculatorProcessTree : " + pTree);
-    if (pTree != null) {
-      pTree.updateProcessTree();
-      initCpuCumulativeTime = pTree.getCumulativeCpuTime();
-    }
   }
 }
