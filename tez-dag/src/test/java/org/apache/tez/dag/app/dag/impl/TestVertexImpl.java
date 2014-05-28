@@ -125,6 +125,7 @@ import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.test.EdgeManagerForTest;
+import org.apache.tez.test.VertexManagerPluginForTest;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.GroupInputSpec;
@@ -280,7 +281,7 @@ public class TestVertexImpl {
     }
 
   }
-
+  
   private class TaskAttemptEventDispatcher implements EventHandler<TaskAttemptEvent> {
     @SuppressWarnings("unchecked")
     @Override
@@ -473,44 +474,56 @@ public class TestVertexImpl {
     return dag;
   }
   
-  private DAGPlan createDAGPlanForOneToOneSplit(String initializerClassName) {
+  private DAGPlan createDAGPlanForOneToOneSplit(String initializerClassName, int numTasks) {
+    VertexPlan.Builder v1Builder = VertexPlan.newBuilder();
+    v1Builder.setName("vertex1")
+    .setType(PlanVertexType.NORMAL)
+    .addOutEdgeId("e1")
+    .addOutEdgeId("e2");
+    if (initializerClassName != null) {
+      numTasks = -1;
+      v1Builder.addInputs(
+          RootInputLeafOutputProto.newBuilder()
+          .setInitializerClassName(initializerClassName)
+          .setName("input1")
+          .setEntityDescriptor(
+              TezEntityDescriptorProto.newBuilder()
+                  .setClassName("InputClazz")
+                  .build()
+          ).build()
+      ).setTaskConfig(
+          PlanTaskConfiguration.newBuilder()
+          .setNumTasks(-1)
+          .setVirtualCores(4)
+          .setMemoryMb(1024)
+          .setJavaOpts("")
+          .setTaskModule("x1.y1")
+          .build()
+      );
+    } else {
+      v1Builder.setTaskConfig(
+          PlanTaskConfiguration.newBuilder()
+          .setNumTasks(numTasks)
+          .setVirtualCores(4)
+          .setMemoryMb(1024)
+          .setJavaOpts("")
+          .setTaskModule("x1.y1")
+          .build()
+      );
+    }
+    VertexPlan v1Plan = v1Builder.build();
+    
     LOG.info("Setting up one to one dag plan");
     DAGPlan dag = DAGPlan.newBuilder()
         .setName("testVertexOneToOneSplit")
-        .addVertex(
-            VertexPlan.newBuilder()
-                .setName("vertex1")
-                .setType(PlanVertexType.NORMAL)
-                .addInputs(
-                    RootInputLeafOutputProto.newBuilder()
-                    .setInitializerClassName(initializerClassName)
-                    .setName("input1")
-                    .setEntityDescriptor(
-                        TezEntityDescriptorProto.newBuilder()
-                            .setClassName("InputClazz")
-                            .build()
-                    ).build()
-                )
-                .setTaskConfig(
-                    PlanTaskConfiguration.newBuilder()
-                    .setNumTasks(-1)
-                    .setVirtualCores(4)
-                    .setMemoryMb(1024)
-                    .setJavaOpts("")
-                    .setTaskModule("x1.y1")
-                    .build()
-                )
-                .addOutEdgeId("e1")
-                .addOutEdgeId("e2")
-            .build()
-        )
+        .addVertex(v1Plan)
         .addVertex(
             VertexPlan.newBuilder()
                 .setName("vertex2")
                 .setType(PlanVertexType.NORMAL)
                 .setTaskConfig(
                     PlanTaskConfiguration.newBuilder()
-                    .setNumTasks(-1)
+                    .setNumTasks(numTasks)
                     .setVirtualCores(4)
                     .setMemoryMb(1024)
                     .setJavaOpts("")
@@ -527,7 +540,7 @@ public class TestVertexImpl {
                 .setType(PlanVertexType.NORMAL)
                 .setTaskConfig(
                     PlanTaskConfiguration.newBuilder()
-                    .setNumTasks(-1)
+                    .setNumTasks(numTasks)
                     .setVirtualCores(4)
                     .setMemoryMb(1024)
                     .setJavaOpts("")
@@ -544,7 +557,7 @@ public class TestVertexImpl {
                 .setType(PlanVertexType.NORMAL)
                 .setTaskConfig(
                     PlanTaskConfiguration.newBuilder()
-                    .setNumTasks(-1)
+                    .setNumTasks(numTasks)
                     .setVirtualCores(4)
                     .setMemoryMb(1024)
                     .setJavaOpts("")
@@ -2164,7 +2177,7 @@ public class TestVertexImpl {
     // vertex with 2 incoming splits from the same source should split once
     useCustomInitializer = true;
     setupPreDagCreation();
-    dagPlan = createDAGPlanForOneToOneSplit("TestInputInitializer");
+    dagPlan = createDAGPlanForOneToOneSplit("TestInputInitializer", -1);
     setupPostDagCreation();
     initAllVertices(VertexState.INITIALIZING);
     
@@ -2193,6 +2206,42 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITED, vertices.get("vertex4").getState());
     
     startVertex(v1);
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex1").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex2").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex3").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex4").getState());
+  }
+  
+  @Test(timeout = 5000)
+  public void testVertexWithOneToOneSplitWhileRunning() {
+    int numTasks = 5;
+    // create a diamond shaped dag with 1-1 edges. 
+    setupPreDagCreation();
+    dagPlan = createDAGPlanForOneToOneSplit(null, numTasks);
+    setupPostDagCreation();
+    VertexImpl v1 = vertices.get("vertex1");
+    initAllVertices(VertexState.INITED);
+    
+    // fudge vertex manager so that tasks dont start running
+    v1.vertexManager = new VertexManager(new VertexManagerPluginForTest(),
+        v1, appContext);
+    startVertex(v1);
+    
+    Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
+    Assert.assertEquals(numTasks, vertices.get("vertex3").getTotalTasks());
+    Assert.assertEquals(numTasks, vertices.get("vertex4").getTotalTasks());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex1").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex2").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex3").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex4").getState());
+    System.out.println("xxx");
+    // change parallelism
+    int newNumTasks = 3;
+    v1.setParallelism(newNumTasks, null, null);
+    dispatcher.await();
+    Assert.assertEquals(newNumTasks, vertices.get("vertex2").getTotalTasks());
+    Assert.assertEquals(newNumTasks, vertices.get("vertex3").getTotalTasks());
+    Assert.assertEquals(newNumTasks, vertices.get("vertex4").getTotalTasks());
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex1").getState());
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex2").getState());
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex3").getState());

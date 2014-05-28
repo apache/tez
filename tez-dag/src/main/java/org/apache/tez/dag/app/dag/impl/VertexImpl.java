@@ -362,6 +362,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexState.ERROR),
               VertexEventType.V_TASK_COMPLETED,
               new TaskCompletedTransition())
+          .addTransition(VertexState.RUNNING, 
+              EnumSet.of(VertexState.RUNNING),
+              VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
+              new OneToOneSourceSplitTransition())
           .addTransition(VertexState.RUNNING, VertexState.TERMINATING,
               VertexEventType.V_TERMINATE,
               new VertexKilledTransition())
@@ -539,7 +543,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private RootInputInitializerRunner rootInputInitializer;
 
-  private VertexManager vertexManager;
+  VertexManager vertexManager;
   
   private final UserGroupInformation dagUgi;
 
@@ -1155,8 +1159,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           edge.startEventBuffering();
         }
   
-        LOG.info("Vertex " + getVertexId() + 
-            " parallelism set to " + parallelism + " from " + numTasks);
         // assign to local variable of LinkedHashMap to make sure that changing
         // type of task causes compile error. We depend on LinkedHashMap for order
         LinkedHashMap<TezTaskID, Task> currentTasks = this.tasks;
@@ -1179,6 +1181,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           LOG.info("Removing task: " + entry.getKey());
           iter.remove();
         }
+        LOG.info("Vertex " + logIdentifier + 
+            " parallelism set to " + parallelism + " from " + numTasks);
         this.numTasks = parallelism;
         assert tasks.size() == numTasks;
   
@@ -2587,8 +2591,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       VertexEventOneToOneSourceSplit splitEvent = 
           (VertexEventOneToOneSourceSplit)event;
       TezVertexID originalSplitSource = splitEvent.getOriginalSplitSource();
+      
       if (vertex.originalOneToOneSplitSource != null) {
-        Preconditions.checkState(vertex.getState() == VertexState.INITED, 
+        VertexState state = vertex.getState();
+        Preconditions.checkState((state == VertexState.INITED || state == VertexState.RUNNING), 
             " Unexpected 1-1 split for vertex " + vertex.getVertexId() + 
             " in state " + vertex.getState() + 
             " . Split in vertex " + originalSplitSource + 
@@ -2601,27 +2607,31 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               " because of split in vertex " + originalSplitSource + 
               " sent by vertex " + splitEvent.getSenderVertex() +
               " numTasks " + splitEvent.getNumTasks());
-          return VertexState.INITED;
+          return state;
         }
         // cannot split from multiple sources
         throw new TezUncheckedException("Vertex: " + vertex.getVertexId() + 
             " asked to split by: " + originalSplitSource + 
             " but was already split by:" + vertex.originalOneToOneSplitSource);
       }
-      Preconditions.checkState(vertex.getState() == VertexState.INITIALIZING,
-          " Unexpected 1-1 split for vertex " + vertex.getVertexId() +
-              " in state " + vertex.getState() +
-              " . Split in vertex " + originalSplitSource +
-              " sent by vertex " + splitEvent.getSenderVertex() +
-              " numTasks " + splitEvent.getNumTasks());
+      
       LOG.info("Splitting vertex " + vertex.getVertexId() + 
           " because of split in vertex " + originalSplitSource + 
           " sent by vertex " + splitEvent.getSenderVertex() +
           " numTasks " + splitEvent.getNumTasks());
       vertex.originalOneToOneSplitSource = originalSplitSource;
-      // ZZZ Can this be handled ?
       vertex.setParallelism(splitEvent.getNumTasks(), null, null);
-      return vertex.initializeVertexInInitializingState();
+      if (vertex.getState() == VertexState.RUNNING) {
+        return VertexState.RUNNING;
+      } else {
+        Preconditions.checkState(vertex.getState() == VertexState.INITIALIZING,
+            " Unexpected 1-1 split for vertex " + vertex.getVertexId() +
+                " in state " + vertex.getState() +
+                " . Split in vertex " + originalSplitSource +
+                " sent by vertex " + splitEvent.getSenderVertex() +
+                " numTasks " + splitEvent.getNumTasks());
+        return vertex.initializeVertexInInitializingState();        
+      }
     }
   }
 
