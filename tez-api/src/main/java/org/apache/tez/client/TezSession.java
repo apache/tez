@@ -129,6 +129,14 @@ public class TezSession {
               sessionConfig.getTezConfiguration(), applicationId,
               null, sessionName, sessionConfig.getAMConfiguration(),
               tezJarResources, sessionCredentials);
+
+      // Set Tez Sessions to not retry on AM crashes if recovery is disabled
+      if (!sessionConfig.getAMConfiguration().getAMConf().getBoolean(
+          TezConfiguration.DAG_RECOVERY_ENABLED,
+          TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT)) {
+        appContext.setMaxAppAttempts(1);
+      }
+
       yarnClient.submitApplication(appContext);
     } catch (YarnException e) {
       throw new TezException(e);

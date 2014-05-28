@@ -32,7 +32,6 @@ import org.apache.tez.client.TezSession;
 import org.apache.tez.client.TezSessionConfiguration;
 import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.dag.api.DAG;
-import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -40,8 +39,6 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatus.State;
 import org.apache.tez.test.dag.MultiAttemptDAG;
-import org.apache.tez.test.dag.MultiAttemptDAG.FailingInputInitializer;
-import org.apache.tez.test.dag.MultiAttemptDAG.NoOpInput;
 import org.apache.tez.test.dag.SimpleVTestDAG;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -117,12 +114,7 @@ public class TestDAGRecovery2 {
     }
   }
 
-  @Before
-  public void setup()  throws Exception {
-    Path remoteStagingDir = remoteFs.makeQualified(new Path(TEST_ROOT_DIR, String
-        .valueOf(new Random().nextInt(100000))));
-    TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
-
+  private TezConfiguration createSessionConfig(Path remoteStagingDir) {
     TezConfiguration tezConf = new TezConfiguration(miniTezCluster.getConfig());
     tezConf.setInt(TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS, 10);
     tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "DEBUG");
@@ -132,6 +124,16 @@ public class TestDAGRecovery2 {
     tezConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 4);
     tezConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, 500);
     tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS, " -Xmx256m");
+    return tezConf;
+  }
+
+  @Before
+  public void setup()  throws Exception {
+    Path remoteStagingDir = remoteFs.makeQualified(new Path(TEST_ROOT_DIR, String
+        .valueOf(new Random().nextInt(100000))));
+    TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
+
+    TezConfiguration tezConf = createSessionConfig(remoteStagingDir);
 
     AMConfiguration amConfig = new AMConfiguration(
         new HashMap<String, String>(), new HashMap<String, LocalResource>(),
@@ -157,16 +159,21 @@ public class TestDAGRecovery2 {
   }
 
   void runDAGAndVerify(DAG dag, DAGStatus.State finalState) throws Exception {
-    TezSessionStatus status = tezSession.getSessionStatus();
+    runDAGAndVerify(dag, finalState, tezSession);
+  }
+
+  void runDAGAndVerify(DAG dag, DAGStatus.State finalState,
+                       TezSession session) throws Exception {
+    TezSessionStatus status = session.getSessionStatus();
     while (status != TezSessionStatus.READY && status != TezSessionStatus.SHUTDOWN) {
       LOG.info("Waiting for session to be ready. Current: " + status);
       Thread.sleep(100);
-      status = tezSession.getSessionStatus();
+      status = session.getSessionStatus();
     }
     if (status == TezSessionStatus.SHUTDOWN) {
       throw new TezUncheckedException("Unexpected Session shutdown");
     }
-    DAGClient dagClient = tezSession.submitDAG(dag);
+    DAGClient dagClient = session.submitDAG(dag);
     DAGStatus dagStatus = dagClient.getDAGStatus(null);
     while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for dag to complete. Sleeping for 500ms."
@@ -192,5 +199,27 @@ public class TestDAGRecovery2 {
         MultiAttemptDAG.FailingOutputCommitter.class);
     runDAGAndVerify(dag, State.FAILED);
   }
+
+  @Test(timeout=120000)
+  public void testSessionDisableMultiAttempts() throws Exception {
+    tezSession.stop();
+    Path remoteStagingDir = remoteFs.makeQualified(new Path(TEST_ROOT_DIR, String
+        .valueOf(new Random().nextInt(100000))));
+    TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
+    TezConfiguration tezConf = createSessionConfig(remoteStagingDir);
+    tezConf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, false);
+    AMConfiguration amConfig = new AMConfiguration(
+        new HashMap<String, String>(), new HashMap<String, LocalResource>(),
+        tezConf, null);
+    TezSessionConfiguration tezSessionConfig =
+        new TezSessionConfiguration(amConfig, tezConf);
+    TezSession session = new TezSession("TestDAGRecovery2SingleAttemptOnly", tezSessionConfig);
+    session.start();
+
+    // DAG should fail as it never completes on the first attempt
+    DAG dag = MultiAttemptDAG.createDAG("TestSingleAttemptDAG", null);
+    runDAGAndVerify(dag, State.FAILED, session);
+  }
+
 
 }
