@@ -236,7 +236,59 @@ public class DAG { // FIXME rename to Topology
       }
     }
   }
-
+  
+  void checkAndInferOneToOneParallelism() {
+    // infer all 1-1 via dependencies
+    // collect all 1-1 edges where the source parallelism is set
+    Set<Vertex> newKnownTasksVertices = Sets.newHashSet();
+    for (Vertex vertex : vertices.values()) {
+      if (vertex.getParallelism() > -1) {
+        newKnownTasksVertices.add(vertex);
+      }
+    }
+    
+    // walk through all known source 1-1 edges and infer parallelism
+    // add newly inferred vertices for consideration as known sources
+    // the outer loop will run for every new level of inferring the parallelism
+    // however, the entire logic will process each vertex only once
+    while(!newKnownTasksVertices.isEmpty()) {
+      Set<Vertex> knownTasksVertices = Sets.newHashSet(newKnownTasksVertices);
+      newKnownTasksVertices.clear();
+      for (Vertex v : knownTasksVertices) {
+        for (Edge e : v.getOutputEdges()) {
+          if (e.getEdgeProperty().getDataMovementType() == DataMovementType.ONE_TO_ONE) {
+            Vertex outVertex = e.getOutputVertex();
+            if (outVertex.getParallelism() == -1) {
+              LOG.info("Inferring parallelism for vertex: "
+                  + outVertex.getVertexName() + " to be " + v.getParallelism()
+                  + " from 1-1 connection with vertex " + v.getVertexName());
+              outVertex.setParallelism(v.getParallelism());
+              newKnownTasksVertices.add(outVertex);
+            }
+          }
+        }
+      }
+    }
+    
+    // check for inconsistency and errors
+    for (Edge e : edges) {
+      Vertex inputVertex = e.getInputVertex();
+      Vertex outputVertex = e.getOutputVertex();
+      
+      if (e.getEdgeProperty().getDataMovementType() == DataMovementType.ONE_TO_ONE) {
+        if (inputVertex.getParallelism() != outputVertex.getParallelism()) {
+          // both should be equal or equal to -1.
+          if (outputVertex.getParallelism() != -1) {
+            throw new TezUncheckedException(
+                "1-1 Edge. Destination vertex parallelism must match source vertex. "
+                + "Vertex: " + inputVertex.getVertexName() + " does not match vertex: " 
+                + outputVertex.getVertexName());
+          }
+        }
+      }
+    }
+  }
+  
   // AnnotatedVertex is used by verify()
   private static class AnnotatedVertex {
     Vertex v;
@@ -300,7 +352,7 @@ public class DAG { // FIXME rename to Topology
     for (Edge e : edges) {
       // Construct structure for cycle detection
       Vertex inputVertex = e.getInputVertex();
-      Vertex outputVertex = e.getOutputVertex();
+      Vertex outputVertex = e.getOutputVertex();      
       List<Edge> edgeList = edgeMap.get(inputVertex);
       if (edgeList == null) {
         edgeList = new ArrayList<Edge>();
@@ -378,6 +430,8 @@ public class DAG { // FIXME rename to Topology
     // within the addInput / addOutput call itself.
 
     detectCycles(edgeMap, vertexMap);
+    
+    checkAndInferOneToOneParallelism();
 
     if (restricted) {
       for (Edge e : edges) {

@@ -183,7 +183,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     Vertex oneToOneVertex = new Vertex("OneToOne",
         new ProcessorDescriptor(
             OneToOneProcessor.class.getName()).setUserPayload(procPayload),
-            numOneToOneTasks, MRHelpers.getReduceResource(kvOneToOneConf));
+            -1, MRHelpers.getReduceResource(kvOneToOneConf));
     oneToOneVertex.setJavaOpts(
         MRHelpers.getReduceJavaOpts(kvOneToOneConf)).setVertexManagerPlugin(
             new VertexManagerPluginDescriptor(InputReadyVertexManager.class.getName()));

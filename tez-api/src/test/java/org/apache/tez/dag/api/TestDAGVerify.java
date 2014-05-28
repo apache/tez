@@ -97,6 +97,179 @@ public class TestDAGVerify {
     dag.verify();
   }
   
+  @Test
+  // v1 (known) -> v2 (-1) -> v3 (-1)
+  public void testVerifyOneToOneInferParallelism() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor"),
+        -1, dummyTaskResource);
+    Vertex v3 = new Vertex("v3",
+        new ProcessorDescriptor("MapProcessor"),
+        -1, dummyTaskResource);
+    Edge e1 = new Edge(v1, v2,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    Edge e2 = new Edge(v2, v3,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addVertex(v3);
+    dag.addEdge(e1);
+    dag.addEdge(e2);
+    dag.verify();
+    Assert.assertEquals(dummyTaskCount, v2.getParallelism());
+    Assert.assertEquals(dummyTaskCount, v3.getParallelism());
+  }
+  
+  @Test
+  // v1 (known) -> v2 (-1) -> v3 (-1)
+  // The test checks resiliency to ordering of the vertices/edges
+  public void testVerifyOneToOneInferParallelismReverseOrder() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor"),
+        -1, dummyTaskResource);
+    Vertex v3 = new Vertex("v3",
+        new ProcessorDescriptor("MapProcessor"),
+        -1, dummyTaskResource);
+    Edge e1 = new Edge(v1, v2,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    Edge e2 = new Edge(v2, v3,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v3);
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addEdge(e2);
+    dag.addEdge(e1);
+    dag.verify();
+    Assert.assertEquals(dummyTaskCount, v2.getParallelism());
+    Assert.assertEquals(dummyTaskCount, v3.getParallelism());
+  }
+  
+  @Test  
+  public void testVerifyOneToOneNoInferParallelism() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        -1, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("MapProcessor"),
+        -1, dummyTaskResource);
+    Edge e1 = new Edge(v1, v2,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addEdge(e1);
+    dag.verify();
+    Assert.assertEquals(-1, v2.getParallelism());
+  }
+  
+  @Test  
+  // v1 (-1) -> v2 (known) -> v3 (-1)
+  public void testVerifyOneToOneIncorrectParallelism1() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        -1, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v3 = new Vertex("v3",
+        new ProcessorDescriptor("MapProcessor"),
+        -1, dummyTaskResource);
+    Edge e1 = new Edge(v1, v3,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    Edge e2 = new Edge(v2, v3,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addVertex(v3);
+    dag.addEdge(e1);
+    dag.addEdge(e2);
+    try {
+      dag.verify();
+      Assert.assertTrue(false);
+    } catch (TezUncheckedException e) {
+      Assert.assertTrue(e.getMessage().contains(
+          "1-1 Edge. Destination vertex parallelism must match source vertex"));
+    }
+  }
+
+  @Test
+  // v1 (-1) -> v3 (-1), v2 (known) -> v3 (-1)
+  // order of edges should not matter
+  public void testVerifyOneToOneIncorrectParallelism2() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        -1, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v3 = new Vertex("v3",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        -1, dummyTaskResource);
+    Vertex v4 = new Vertex("v4",
+        new ProcessorDescriptor(dummyProcessorClassName),
+        -1, dummyTaskResource);
+    Edge e1 = new Edge(v1, v4,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    Edge e2 = new Edge(v2, v4,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    Edge e3 = new Edge(v3, v4,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            new OutputDescriptor(dummyOutputClassName),
+            new InputDescriptor(dummyInputClassName)));
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addVertex(v3);
+    dag.addVertex(v4);
+    dag.addEdge(e1);
+    dag.addEdge(e2);
+    dag.addEdge(e3);
+    try {
+      dag.verify();
+      Assert.assertTrue(false);
+    } catch (TezUncheckedException e) {
+      Assert.assertTrue(e.getMessage().contains(
+          "1-1 Edge. Destination vertex parallelism must match source vertex"));
+    }
+  }
+  
   @Test  
   public void testVerifyBroadcast() {
     Vertex v1 = new Vertex("v1",
@@ -543,6 +716,57 @@ public class TestDAGVerify {
     Assert.assertEquals(1, v5.getGroupInputs().size());
     Assert.assertTrue(v5.getGroupInputs().containsKey(groupName2));
     Assert.assertEquals(2, dag.vertexGroups.size());
+  }
+  
+  @Test
+  public void testVertexGroupOneToOne() {
+    Vertex v1 = new Vertex("v1",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = new Vertex("v2",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v3 = new Vertex("v3",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v4 = new Vertex("v4",
+        new ProcessorDescriptor("Processor"),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v5 = new Vertex("v5",
+        new ProcessorDescriptor("Processor"),
+        -1, dummyTaskResource);
+    
+    DAG dag = new DAG("testDag");
+    String groupName1 = "uv12";
+    VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
+    OutputDescriptor outDesc = new OutputDescriptor();
+    uv12.addOutput("uvOut", outDesc, null);
+    
+    String groupName2 = "uv23";
+    VertexGroup uv23 = dag.createVertexGroup(groupName2, v2, v3);
+    
+    GroupInputEdge e1 = new GroupInputEdge(uv12, v4,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")),
+            new InputDescriptor("dummy input class"));
+    GroupInputEdge e2 = new GroupInputEdge(uv23, v5,
+        new EdgeProperty(DataMovementType.ONE_TO_ONE, 
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            new OutputDescriptor("dummy output class"),
+            new InputDescriptor("dummy input class")),
+            new InputDescriptor("dummy input class"));
+    
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addVertex(v3);
+    dag.addVertex(v4);
+    dag.addVertex(v5);
+    dag.addEdge(e1);
+    dag.addEdge(e2);
+    dag.verify();
+    Assert.assertEquals(dummyTaskCount, v5.getParallelism());
   }
 
   //   v1

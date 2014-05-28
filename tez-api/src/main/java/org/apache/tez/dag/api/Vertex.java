@@ -41,7 +41,7 @@ public class Vertex {
   private final String vertexName;
   private final ProcessorDescriptor processorDescriptor;
 
-  private final int parallelism;
+  private int parallelism;
   private VertexLocationHint taskLocationsHint;
   private final Resource taskResource;
   private Map<String, LocalResource> taskLocalResources = new HashMap<String, LocalResource>();
@@ -88,6 +88,10 @@ public class Vertex {
 
   public int getParallelism() {
     return parallelism;
+  }
+  
+  void setParallelism(int parallelism) {
+    this.parallelism = parallelism;
   }
 
   public Resource getTaskResource() {
