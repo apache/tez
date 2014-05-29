@@ -27,7 +27,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nullable;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.TezJobConfig;
@@ -182,21 +181,10 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     return Runtime.getRuntime().maxMemory();
   }
   
-  protected void signalFatalError(Throwable t, String message,
-      EventMetaData sourceInfo) {
+  protected void signalFatalError(Throwable t, String message, EventMetaData sourceInfo) {
+    runtimeTask.setFrameworkCounters();
     runtimeTask.setFatalError(t, message);
-    String diagnostics;
-    if (t != null && message != null) {
-      diagnostics = "exceptionThrown=" + StringUtils.stringifyException(t)
-          + ", errorMessage=" + message;
-    } else if (t == null && message == null) {
-      diagnostics = "Unknown error";
-    } else {
-      diagnostics = t != null ?
-          "exceptionThrown=" + StringUtils.stringifyException(t)
-          : " errorMessage=" + message;
-    }
-    tezUmbilical.signalFatalError(taskAttemptID, diagnostics, sourceInfo);
+    tezUmbilical.signalFatalError(taskAttemptID, t, message, sourceInfo);
   }
 
   private int generateId() {

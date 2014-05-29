@@ -605,8 +605,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
           e.getDestinationInfo().getEventGenerator(),
           taskSpec.getVertexName(), e.getDestinationInfo().getEdgeVertexName(),
           getTaskAttemptID());
+      setFrameworkCounters();
       tezUmbilical.signalFatalError(getTaskAttemptID(),
-          StringUtils.stringifyException(t), sourceInfo);
+          t, StringUtils.stringifyException(t), sourceInfo);
       return false;
     }
     return true;

@@ -23,10 +23,10 @@ import java.util.List;
 import java.util.Vector;
 
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapred.YarnTezDagChild;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.tez.runtime.task.TezChild;
 
 public class TezRuntimeChildJVM {
 
@@ -90,7 +90,7 @@ public class TezRuntimeChildJVM {
     }
 
     // Add main class and its arguments
-    vargs.add(YarnTezDagChild.class.getName());  // main of Child
+    vargs.add(TezChild.class.getName());  // main of Child
 
     // pass TaskAttemptListener's address
     vargs.add(taskAttemptListenerAddr.getAddress().getHostAddress());

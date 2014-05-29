@@ -27,8 +27,7 @@ public interface TezUmbilical {
 
   public void addEvents(Collection<TezEvent> events);
 
-  public void signalFatalError(TezTaskAttemptID taskAttemptID,
-      String diagnostics,
+  public void signalFatalError(TezTaskAttemptID taskAttemptID, Throwable t, String message,
       EventMetaData sourceInfo);
 
   public boolean canCommit(TezTaskAttemptID taskAttemptID) throws IOException;

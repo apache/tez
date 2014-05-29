@@ -71,6 +71,10 @@ public abstract class RuntimeTask {
     this.fatalError = t;
     this.fatalErrorMessage = message;
   }
+  
+  public synchronized Throwable getFatalError() {
+    return fatalError;
+  }
 
   public boolean hadFatalError() {
     return hasFatalError.get();
