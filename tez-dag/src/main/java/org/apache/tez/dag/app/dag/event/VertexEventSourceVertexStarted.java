@@ -22,15 +22,22 @@ import org.apache.tez.dag.records.TezVertexID;
 
 public class VertexEventSourceVertexStarted extends VertexEvent {
 
-  int sourceDistanceFromRoot;
+  final int sourceDistanceFromRoot;
+  final TezVertexID sourceVertexId;
   
-  public VertexEventSourceVertexStarted(TezVertexID vertexId, 
+  public VertexEventSourceVertexStarted(TezVertexID vertexId,
+                                         TezVertexID sourceVertexId,
                                          int distanceFromRoot) {
     super(vertexId, VertexEventType.V_SOURCE_VERTEX_STARTED);
     this.sourceDistanceFromRoot = distanceFromRoot;
+    this.sourceVertexId = sourceVertexId;
   }
   
   public int getSourceDistanceFromRoot() {
     return sourceDistanceFromRoot;
+  }
+  
+  public TezVertexID getSourceVertexId() {
+    return sourceVertexId;
   }
 }

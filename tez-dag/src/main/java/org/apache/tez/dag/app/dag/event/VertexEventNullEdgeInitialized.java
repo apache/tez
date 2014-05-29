@@ -18,52 +18,25 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-/**
- * Event types handled by Task.
- */
-public enum VertexEventType {
+import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.impl.Edge;
+import org.apache.tez.dag.records.TezVertexID;
 
-  //Producer:Client, Job
-  V_TERMINATE,
-
-  //Producer:Job
-  V_INIT,
+public class VertexEventNullEdgeInitialized extends VertexEvent {
+  final Edge edge;
+  final Vertex vertex;
   
-  //Producer:Vertex
-  V_COMPLETED,
-  V_START,
-  V_SOURCE_TASK_ATTEMPT_COMPLETED,
-  V_SOURCE_VERTEX_STARTED,
+  public VertexEventNullEdgeInitialized(TezVertexID vertexId, Edge edge, Vertex vertex) {
+    super(vertexId, VertexEventType.V_NULL_EDGE_INITIALIZED);
+    this.edge = edge;
+    this.vertex = vertex;
+  }
   
-  //Producer:Task
-  V_TASK_COMPLETED,
-  V_TASK_RESCHEDULED,
-  V_TASK_ATTEMPT_COMPLETED,
-
-  V_TASK_LAUNCHED,
-  V_TASK_OUTPUT_CONSUMABLE,
-  V_TASK_FAILED,
-  V_TASK_SUCCEEDED,
-  V_ATTEMPT_KILLED,
+  public Edge getEdge() {
+    return edge;
+  }
   
-  //Producer:Any component
-  V_INTERNAL_ERROR,
-  V_COUNTER_UPDATE,
-  
-  V_ROUTE_EVENT,
-  V_ONE_TO_ONE_SOURCE_SPLIT,
-  
-  //Producer: VertexInputInitializer
-  V_ROOT_INPUT_INITIALIZED,
-  V_ROOT_INPUT_FAILED,
-
-  // Recover Event, Producer:DAG
-  V_RECOVER,
-
-  // Recover Event, Producer:Vertex
-  V_SOURCE_VERTEX_RECOVERED,
-  
-  // Producer: Edge
-  V_NULL_EDGE_INITIALIZED
-
+  public Vertex getVertex() {
+    return vertex;
+  }
 }

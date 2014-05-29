@@ -54,9 +54,7 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -1228,18 +1226,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     for (EdgePlan edgePlan : dag.getJobPlan().getEdgeList()) {
       EdgeProperty edgeProperty = DagTypeConverters
           .createEdgePropertyMapFromDAGPlan(edgePlan);
-
-      // If CUSTOM without an edge manager, setup a fake edge manager. Avoid
-      // referencing the fake edge manager within the API module.
-      if (edgeProperty.getDataMovementType() == DataMovementType.CUSTOM
-          && edgeProperty.getEdgeManagerDescriptor() == null) {
-        EdgeManagerDescriptor edgeDesc = new EdgeManagerDescriptor(
-            NullEdgeManager.class.getName());
-        EdgeProperty ep = new EdgeProperty(edgeDesc, edgeProperty.getDataSourceType(),
-            edgeProperty.getSchedulingType(), edgeProperty.getEdgeSource(),
-            edgeProperty.getEdgeDestination());
-        edgeProperty = ep;
-      }
 
       // edge manager may be also set via API when using custom edge type
       dag.edges.put(edgePlan.getId(),
