@@ -2621,8 +2621,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           " numTasks " + splitEvent.getNumTasks());
       vertex.originalOneToOneSplitSource = originalSplitSource;
       vertex.setParallelism(splitEvent.getNumTasks(), null, null);
-      if (vertex.getState() == VertexState.RUNNING) {
-        return VertexState.RUNNING;
+      if (vertex.getState() == VertexState.RUNNING || 
+          vertex.getState() == VertexState.INITED) {
+        return vertex.getState();
       } else {
         Preconditions.checkState(vertex.getState() == VertexState.INITIALIZING,
             " Unexpected 1-1 split for vertex " + vertex.getVertexId() +

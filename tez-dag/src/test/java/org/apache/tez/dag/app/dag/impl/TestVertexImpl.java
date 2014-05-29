@@ -2234,7 +2234,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex2").getState());
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex3").getState());
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex4").getState());
-    System.out.println("xxx");
     // change parallelism
     int newNumTasks = 3;
     v1.setParallelism(newNumTasks, null, null);
@@ -2242,6 +2241,44 @@ public class TestVertexImpl {
     Assert.assertEquals(newNumTasks, vertices.get("vertex2").getTotalTasks());
     Assert.assertEquals(newNumTasks, vertices.get("vertex3").getTotalTasks());
     Assert.assertEquals(newNumTasks, vertices.get("vertex4").getTotalTasks());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex1").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex2").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex3").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex4").getState());
+  }
+  
+  @Test(timeout = 5000)
+  public void testVertexWithOneToOneSplitWhileInited() {
+    int numTasks = 5;
+    // create a diamond shaped dag with 1-1 edges. 
+    setupPreDagCreation();
+    dagPlan = createDAGPlanForOneToOneSplit(null, numTasks);
+    setupPostDagCreation();
+    VertexImpl v1 = vertices.get("vertex1");
+    initAllVertices(VertexState.INITED);
+    
+    // fudge vertex manager so that tasks dont start running
+    v1.vertexManager = new VertexManager(new VertexManagerPluginForTest(),
+        v1, appContext);
+    
+    Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
+    Assert.assertEquals(numTasks, vertices.get("vertex3").getTotalTasks());
+    Assert.assertEquals(numTasks, vertices.get("vertex4").getTotalTasks());
+    // change parallelism
+    int newNumTasks = 3;
+    v1.setParallelism(newNumTasks, null, null);
+    dispatcher.await();
+    Assert.assertEquals(newNumTasks, vertices.get("vertex2").getTotalTasks());
+    Assert.assertEquals(newNumTasks, vertices.get("vertex3").getTotalTasks());
+    Assert.assertEquals(newNumTasks, vertices.get("vertex4").getTotalTasks());
+    Assert.assertEquals(VertexState.INITED, vertices.get("vertex1").getState());
+    Assert.assertEquals(VertexState.INITED, vertices.get("vertex2").getState());
+    Assert.assertEquals(VertexState.INITED, vertices.get("vertex3").getState());
+    Assert.assertEquals(VertexState.INITED, vertices.get("vertex4").getState());
+
+    startVertex(v1);
+    dispatcher.await();
+
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex1").getState());
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex2").getState());
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex3").getState());
