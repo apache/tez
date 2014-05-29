@@ -87,6 +87,9 @@ public class DAGInitializedEvent implements HistoryEvent {
   public void fromProtoStream(InputStream inputStream) throws IOException {
     RecoveryProtos.DAGInitializedProto proto =
         RecoveryProtos.DAGInitializedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 

@@ -190,6 +190,9 @@ public class VertexDataMovementEventsGeneratedEvent implements HistoryEvent {
   public void fromProtoStream(InputStream inputStream) throws IOException {
     VertexDataMovementEventsGeneratedProto proto =
         VertexDataMovementEventsGeneratedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 

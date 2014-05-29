@@ -90,6 +90,9 @@ public class ContainerStoppedEvent implements HistoryEvent {
   public void fromProtoStream(InputStream inputStream) throws IOException {
     ContainerStoppedProto proto =
         ContainerStoppedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 

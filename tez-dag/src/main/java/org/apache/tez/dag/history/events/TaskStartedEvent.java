@@ -82,6 +82,9 @@ public class TaskStartedEvent implements HistoryEvent {
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
     TaskStartedProto proto = TaskStartedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 

@@ -114,6 +114,9 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
     DAGSubmittedProto proto = DAGSubmittedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 

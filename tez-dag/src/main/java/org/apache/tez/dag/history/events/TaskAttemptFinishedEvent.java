@@ -115,6 +115,9 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
   public void fromProtoStream(InputStream inputStream) throws IOException {
     TaskAttemptFinishedProto proto =
         TaskAttemptFinishedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 

@@ -85,6 +85,9 @@ public class ContainerLaunchedEvent implements HistoryEvent {
   public void fromProtoStream(InputStream inputStream) throws IOException {
     ContainerLaunchedProto proto =
         ContainerLaunchedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 

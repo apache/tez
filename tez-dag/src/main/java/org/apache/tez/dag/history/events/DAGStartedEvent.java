@@ -80,6 +80,9 @@ public class DAGStartedEvent implements HistoryEvent {
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
     DAGStartedProto proto = DAGStartedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 

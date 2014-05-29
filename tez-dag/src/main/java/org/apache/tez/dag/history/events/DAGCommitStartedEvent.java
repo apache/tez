@@ -76,6 +76,9 @@ public class DAGCommitStartedEvent implements HistoryEvent, SummaryEvent {
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
     DAGCommitStartedProto proto = DAGCommitStartedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 

@@ -120,6 +120,9 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
     VertexParallelismUpdatedProto proto = VertexParallelismUpdatedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 
