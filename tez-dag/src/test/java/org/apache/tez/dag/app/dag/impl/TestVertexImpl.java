@@ -1106,11 +1106,56 @@ public class TestVertexImpl {
 
     return dag;
   }
+  
+  private DAGPlan createDAGWithCustomVertexManager() {
+    LOG.info("Setting up custom vertex manager dag plan");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("TestCustomVMDAG")
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("v1")
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("A.class"))
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(-1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("A.class")
+                        .build()
+                )
+                .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
+                    .setClassName(VertexManagerPluginForTest.class.getName()))
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("v2")
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("A.class"))
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(-1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("A.class")
+                        .build()
+                )
+                .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
+                    .setClassName(VertexManagerPluginForTest.class.getName()))
+                .build()
+
+        ).build();
+    
+    return dag;
+  }
 
   // Create a plan with 3 vertices: A, B, C
   // A -> C, B -> C
   private DAGPlan createSamplerDAGPlan2() {
-    LOG.info("Setting up dag plan");
+    LOG.info("Setting up sampler 2 dag plan");
     DAGPlan dag = DAGPlan.newBuilder()
         .setName("TestSamplerDAG")
         .addVertex(
@@ -2192,6 +2237,45 @@ public class TestVertexImpl {
     Assert.assertEquals(0, committer.abortCounter);
     Assert.assertEquals(1, committer.initCounter);
     Assert.assertEquals(1, committer.setupCounter);
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test//(timeout = 5000)
+  public void testVertexInitWithCustomVertexManager() {
+    setupPreDagCreation();
+    dagPlan = createDAGWithCustomVertexManager();
+    setupPostDagCreation();
+    
+    int numTasks = 3;
+    VertexImpl v1 = vertices.get("v1");
+    VertexImpl v2 = vertices.get("v2");
+    initVertex(v1);
+    initVertex(v2);
+    dispatcher.await();
+    // vertex should be in initializing state since parallelism is not set
+    Assert.assertEquals(-1, v1.getTotalTasks());
+    Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
+    Assert.assertEquals(-1, v2.getTotalTasks());
+    Assert.assertEquals(VertexState.INITIALIZING, v2.getState());
+    // vertex should not start since parallelism is not set
+    dispatcher.getEventHandler().handle(new VertexEvent(v1.getVertexId(), VertexEventType.V_START));
+    dispatcher.await();
+    Assert.assertEquals(-1, v1.getTotalTasks());
+    Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
+    // set the parallelism
+    v1.setParallelism(numTasks, null, null);
+    v2.setParallelism(numTasks, null, null);
+    dispatcher.await();
+    // parallelism set and vertex starts with pending start event
+    Assert.assertEquals(numTasks, v1.getTotalTasks());
+    Assert.assertEquals(VertexState.RUNNING, v1.getState());
+    // parallelism set and vertex inited
+    Assert.assertEquals(numTasks, v2.getTotalTasks());
+    Assert.assertEquals(VertexState.INITED, v2.getState());
+    // send start and vertex should run
+    dispatcher.getEventHandler().handle(new VertexEvent(v2.getVertexId(), VertexEventType.V_START));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, v2.getState());
   }
 
   @Test(timeout = 5000)

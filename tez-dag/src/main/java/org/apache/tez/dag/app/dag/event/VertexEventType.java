@@ -59,6 +59,9 @@ public enum VertexEventType {
 
   // Recover Event, Producer:DAG
   V_RECOVER,
+  
+  // Producer: Vertex
+  V_PARALLELISM_INITIALIZED,
 
   // Recover Event, Producer:Vertex
   V_SOURCE_VERTEX_RECOVERED,
