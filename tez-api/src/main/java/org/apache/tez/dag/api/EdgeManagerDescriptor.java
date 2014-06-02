@@ -26,7 +26,7 @@ public class EdgeManagerDescriptor extends TezEntityDescriptor {
 
   @Override
   public EdgeManagerDescriptor setUserPayload(byte[] userPayload) {
-    this.userPayload = userPayload;
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     return this;
   }
 }

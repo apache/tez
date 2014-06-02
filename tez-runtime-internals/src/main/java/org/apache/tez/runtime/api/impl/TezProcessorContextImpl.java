@@ -31,7 +31,9 @@ import javax.annotation.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.InputReadyTracker;
@@ -46,7 +48,7 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements TezPr
 
   private static final Log LOG = LogFactory.getLog(TezProcessorContextImpl.class);
   
-  private final byte[] userPayload;
+  private final TezUserPayload userPayload;
   private final EventMetaData sourceInfo;
   private final InputReadyTracker inputReadyTracker;
 
@@ -61,7 +63,7 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements TezPr
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, processorDescriptor);
     checkNotNull(inputReadyTracker, "inputReadyTracker is null");
-    this.userPayload = userPayload;
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.PROCESSOR,
         taskVertexName, "", taskAttemptID);
     this.inputReadyTracker = inputReadyTracker;
@@ -81,7 +83,7 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements TezPr
   @Nullable
   @Override
   public byte[] getUserPayload() {
-    return userPayload;
+    return userPayload.getPayload();
   }
 
   @Override

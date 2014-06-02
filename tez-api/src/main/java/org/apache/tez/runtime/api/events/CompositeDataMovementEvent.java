@@ -20,6 +20,8 @@ package org.apache.tez.runtime.api.events;
 
 import java.util.Iterator;
 
+import org.apache.tez.common.TezUserPayload;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.runtime.api.Event;
 
 /**
@@ -40,7 +42,7 @@ public class CompositeDataMovementEvent extends Event {
   protected final int sourceIndexEnd;
   protected int version;
 
-  protected final byte[] userPayload;
+  protected final TezUserPayload userPayload;
 
   /**
    * @param srcIndexStart
@@ -55,7 +57,7 @@ public class CompositeDataMovementEvent extends Event {
   public CompositeDataMovementEvent(int srcIndexStart, int srcIndexEnd, byte[] userPayload) {
     this.sourceIndexStart = srcIndexStart;
     this.sourceIndexEnd = srcIndexEnd;
-    this.userPayload = userPayload;
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
   }
 
   public int getSourceIndexStart() {
@@ -67,7 +69,7 @@ public class CompositeDataMovementEvent extends Event {
   }
 
   public byte[] getUserPayload() {
-    return userPayload;
+    return userPayload.getPayload();
   }
 
   public void setVersion(int version) {
@@ -95,7 +97,7 @@ public class CompositeDataMovementEvent extends Event {
 
           @Override
           public DataMovementEvent next() {
-            DataMovementEvent dmEvent = new DataMovementEvent(currentPos, userPayload);
+            DataMovementEvent dmEvent = new DataMovementEvent(currentPos, userPayload.getPayload());
             currentPos++;
             dmEvent.setVersion(version);
             return dmEvent;

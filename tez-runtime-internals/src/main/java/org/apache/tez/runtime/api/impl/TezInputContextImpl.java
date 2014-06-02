@@ -28,7 +28,9 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -43,7 +45,7 @@ import org.apache.tez.runtime.common.resources.MemoryDistributor;
 public class TezInputContextImpl extends TezTaskContextImpl
     implements TezInputContext {
 
-  private final byte[] userPayload;
+  private final TezUserPayload userPayload;
   private final String sourceVertexName;
   private final EventMetaData sourceInfo;
   private final int inputIndex;
@@ -66,7 +68,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
     checkNotNull(sourceVertexName, "sourceVertexName is null");
     checkNotNull(input, "input is null");
     checkNotNull(inputReadyTracker, "inputReadyTracker is null");
-    this.userPayload = userPayload;
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     this.inputIndex = inputIndex;
     this.sourceVertexName = sourceVertexName;
     this.sourceInfo = new EventMetaData(
@@ -100,7 +102,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
   @Nullable
   @Override
   public byte[] getUserPayload() {
-    return userPayload;
+    return userPayload.getPayload();
   }
   
   @Override

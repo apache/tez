@@ -31,7 +31,9 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.RuntimeUtils;
+import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -65,7 +67,7 @@ public class VertexManager {
   VertexManagerPlugin plugin;
   Vertex managedVertex;
   VertexManagerPluginContextImpl pluginContext;
-  byte[] payload = null;
+  TezUserPayload payload = null;
   AppContext appContext;
   
   private static final Log LOG = LogFactory.getLog(VertexManager.class);
@@ -125,7 +127,7 @@ public class VertexManager {
     @Nullable
     @Override
     public byte[] getUserPayload() {
-      return payload;
+      return payload == null ? null: payload.getPayload();
     }
 
     @SuppressWarnings("unchecked")
@@ -229,13 +231,14 @@ public class VertexManager {
     pluginContext = new VertexManagerPluginContextImpl();
     if (pluginDesc != null) {
       plugin = RuntimeUtils.createClazzInstance(pluginDesc.getClassName());
-      payload = pluginDesc.getUserPayload();
+      payload = DagTypeConverters.convertToTezUserPayload(pluginDesc.getUserPayload());
     }
-    if (payload == null) {
+    if (payload == null || payload.getPayload() == null) {
       // Ease of use. If no payload present then give the common configuration
       // TODO TEZ-744 Don't do this - AMConf should not be used to configure vertexManagers.
       try {
-        payload = TezUtils.createUserPayloadFromConf(appContext.getAMConf());
+        payload = DagTypeConverters.convertToTezUserPayload(
+            TezUtils.createUserPayloadFromConf(appContext.getAMConf()));
       } catch (IOException e) {
         throw new TezUncheckedException(e);
       }

@@ -18,6 +18,8 @@
 
 package org.apache.tez.runtime.api.events;
 
+import org.apache.tez.common.TezUserPayload;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.runtime.api.Event;
 
 import com.google.common.base.Preconditions;
@@ -37,7 +39,7 @@ public class VertexManagerEvent extends Event {
   /**
    * User payload to be sent
    */
-  private final byte[] userPayload;
+  private final TezUserPayload userPayload;
   
   /**
    * Create a new VertexManagerEvent
@@ -48,7 +50,7 @@ public class VertexManagerEvent extends Event {
     Preconditions.checkArgument(vertexName != null);
     Preconditions.checkArgument(userPayload != null);
     this.targetVertexName = vertexName;
-    this.userPayload = userPayload;
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
   }
   
   public String getTargetVertexName() {
@@ -56,6 +58,6 @@ public class VertexManagerEvent extends Event {
   }
   
   public byte[] getUserPayload() {
-    return userPayload;
+    return userPayload.getPayload();
   }
 }

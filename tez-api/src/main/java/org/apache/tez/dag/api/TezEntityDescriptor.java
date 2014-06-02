@@ -25,10 +25,11 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
+import org.apache.tez.common.TezUserPayload;
 
 public abstract class TezEntityDescriptor implements Writable {
 
-  protected byte[] userPayload;
+  protected TezUserPayload userPayload;
   private String className;
 
   @Private // for Writable
@@ -40,11 +41,11 @@ public abstract class TezEntityDescriptor implements Writable {
   }
 
   public byte[] getUserPayload() {
-    return this.userPayload;
+    return (userPayload == null) ? null : userPayload.getPayload();
   }
 
   public TezEntityDescriptor setUserPayload(byte[] userPayload) {
-    this.userPayload = userPayload;
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     return this;
   }
 
@@ -55,11 +56,13 @@ public abstract class TezEntityDescriptor implements Writable {
   @Override
   public void write(DataOutput out) throws IOException {
     Text.writeString(out, className);
-    if (userPayload == null) {
+    // TODO: TEZ-305 - using protobuf serde instead of Writable serde.
+    byte[] bb = DagTypeConverters.convertFromTezUserPayload(userPayload);
+    if (bb == null) {
       out.writeInt(-1);
     } else {
-      out.writeInt(userPayload.length);
-      out.write(userPayload);
+      out.writeInt(bb.length);
+      out.write(bb);
     }
   }
 
@@ -68,8 +71,9 @@ public abstract class TezEntityDescriptor implements Writable {
     this.className = Text.readString(in);
     int payloadLength = in.readInt();
     if (payloadLength != -1) {
-      userPayload = new byte[payloadLength];
-      in.readFully(userPayload);
+      byte[] bb = new byte[payloadLength];
+      in.readFully(bb);
+      this.userPayload = DagTypeConverters.convertToTezUserPayload(bb);
     }
   }
 }

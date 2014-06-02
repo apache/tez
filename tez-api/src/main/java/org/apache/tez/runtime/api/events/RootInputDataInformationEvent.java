@@ -18,6 +18,8 @@
 
 package org.apache.tez.runtime.api.events;
 
+import org.apache.tez.common.TezUserPayload;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
@@ -41,7 +43,7 @@ public final class RootInputDataInformationEvent extends Event {
 
   private final int sourceIndex;
   private int targetIndex; // TODO Likely to be multiple at a later point.
-  private final byte[] userPayload;
+  private final TezUserPayload userPayload;
   private final Object userPayloadObject;
   
   /**
@@ -51,14 +53,14 @@ public final class RootInputDataInformationEvent extends Event {
    */
   public RootInputDataInformationEvent(int srcIndex, byte[] userPayload) {
     this.sourceIndex = srcIndex;
-    this.userPayload = userPayload;
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     this.userPayloadObject = null;
   }
   
   public RootInputDataInformationEvent(int srcIndex, Object userPayloadDeserialized) {
     this.sourceIndex = srcIndex;
     this.userPayloadObject = userPayloadDeserialized;
-    this.userPayload = null;
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(null);
   }
 
   public int getSourceIndex() {
@@ -74,7 +76,7 @@ public final class RootInputDataInformationEvent extends Event {
   }
   
   public byte[] getUserPayload() {
-    return this.userPayload;
+    return userPayload.getPayload();
   }
   
   public Object getDeserializedUserPayload() {

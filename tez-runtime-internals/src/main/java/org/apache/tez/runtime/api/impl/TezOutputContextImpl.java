@@ -28,7 +28,9 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -41,7 +43,7 @@ import org.apache.tez.runtime.common.resources.MemoryDistributor;
 public class TezOutputContextImpl extends TezTaskContextImpl
     implements TezOutputContext {
 
-  private final byte[] userPayload;
+  private final TezUserPayload userPayload;
   private final String destinationVertexName;
   private final EventMetaData sourceInfo;
   private final int outputIndex;
@@ -62,7 +64,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
         auxServiceEnv, memDist, outputDescriptor);
     checkNotNull(outputIndex, "outputIndex is null");
     checkNotNull(destinationVertexName, "destinationVertexName is null");
-    this.userPayload = userPayload;
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     this.outputIndex = outputIndex;
     this.destinationVertexName = destinationVertexName;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.OUTPUT,
@@ -93,7 +95,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   @Nullable
   @Override
   public byte[] getUserPayload() {
-    return userPayload;
+    return userPayload.getPayload();
   }
 
   @Override

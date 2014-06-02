@@ -33,7 +33,7 @@ public class VertexManagerPluginDescriptor extends TezEntityDescriptor {
 
   @Override
   public VertexManagerPluginDescriptor setUserPayload(byte[] userPayload) {
-    this.userPayload = userPayload;
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     return this;
   }
 }

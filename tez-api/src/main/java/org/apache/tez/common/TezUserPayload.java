@@ -16,29 +16,21 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.api.events;
+package org.apache.tez.common;
 
-import org.apache.tez.common.TezUserPayload;
-import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
+import com.google.common.base.Preconditions;
 
 /**
- * Events used by {@link TezRootInputInitializer} implementations to update the
- * shared user payload for the Input that is being initialized. </p>
- *
- * This event is specific to an Input, and should only be sent once - ideally
- * before {@link RootInputDataInformationEvent}s
+ * Helper class to hold user payload.
  */
-public class RootInputUpdatePayloadEvent extends Event {
+public class TezUserPayload {
+  private final byte[] payload;
 
-  private final TezUserPayload userPayload;
-
-  public RootInputUpdatePayloadEvent(byte[] userPayload) {
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
+  public TezUserPayload(byte[] payload) {
+    this.payload = payload;
   }
 
-  public byte[] getUserPayload() {
-    return userPayload.getPayload();
+  public byte[] getPayload() {
+    return payload;
   }
 }

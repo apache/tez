@@ -21,6 +21,8 @@ package org.apache.tez.dag.app.dag.impl;
 import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nullable;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.TezUserPayload;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 
 public class OutputCommitterContextImpl implements OutputCommitterContext {
@@ -30,7 +32,7 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
   private final String dagName;
   private final String vertexName;
   private final String outputName;
-  private final byte[] userPayload;
+  private final TezUserPayload userPayload;
   private final int vertexIdx;
 
   public OutputCommitterContextImpl(ApplicationId applicationId,
@@ -49,7 +51,7 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
     this.dagName = dagName;
     this.vertexName = vertexName;
     this.outputName = outputName;
-    this.userPayload = userPayload;
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     this.vertexIdx = vertexIdx;
   }
 
@@ -80,7 +82,7 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
 
   @Override
   public byte[] getUserPayload() {
-    return userPayload;
+    return userPayload.getPayload();
   }
 
   @Override

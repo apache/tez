@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.annotation.Nullable;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.security.Credentials;
@@ -40,6 +41,7 @@ import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.client.TezSessionStatus;
+import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
@@ -638,6 +640,18 @@ public class DagTypeConverters {
       context.setJavaOpts(proto.getJavaOpts());
     }
     return context;
+  }
+
+  public static TezUserPayload convertToTezUserPayload(@Nullable byte[] payload) {
+    return new TezUserPayload(payload);
+  }
+
+  @Nullable
+  public static byte[] convertFromTezUserPayload(@Nullable TezUserPayload payload) {
+    if (payload == null) {
+      return null;
+    }
+    return payload.getPayload();
   }
 
 }

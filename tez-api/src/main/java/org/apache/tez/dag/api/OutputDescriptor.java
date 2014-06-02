@@ -33,7 +33,7 @@ public class OutputDescriptor extends TezEntityDescriptor {
 
   @Override
   public OutputDescriptor setUserPayload(byte[] userPayload) {
-    this.userPayload = userPayload;
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     return this;
   }
 }
