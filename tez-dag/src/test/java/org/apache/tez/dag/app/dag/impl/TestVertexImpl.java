@@ -124,6 +124,7 @@ import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.test.EdgeManagerForTest;
 import org.apache.tez.test.VertexManagerPluginForTest;
 import org.apache.tez.runtime.api.impl.EventMetaData;
@@ -2541,6 +2542,8 @@ public class TestVertexImpl {
 
     Assert.assertEquals(VertexState.INITED, v1.getState());
     Assert.assertEquals(5, v1.getTotalTasks());
+    // task events get buffered
+    Assert.assertEquals(5, v1.pendingTaskEvents.size());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v1
         .getVertexManager().getPlugin().getClass().getName());
     for (int i=0; i < v1Hints.size(); ++i) {
@@ -2550,12 +2553,31 @@ public class TestVertexImpl {
     
     VertexImplWithCustomInitializer v2 = (VertexImplWithCustomInitializer) vertices.get("vertex2");
     Assert.assertEquals(VertexState.INITIALIZING, v2.getState());
+    
+    // non-task events dont get buffered
+    List<TezEvent> events = Lists.newLinkedList();
+    TezTaskID t0_v1 = TezTaskID.getInstance(v1.getVertexId(), 0);
+    TezTaskAttemptID ta0_t0_v1 = TezTaskAttemptID.getInstance(t0_v1, 0);
+    events.add(new TezEvent(
+        new VertexManagerEvent("vertex2", new byte[0]), new EventMetaData(
+            EventProducerConsumerType.PROCESSOR, "vertex1", "vertex2",
+            ta0_t0_v1)));
+    events.add(new TezEvent(new RootInputDataInformationEvent(0, new byte[0]),
+        new EventMetaData(EventProducerConsumerType.INPUT, "vertex2",
+            "NULL_VERTEX", null)));
+    dispatcher.getEventHandler().handle(
+        new VertexEventRouteEvent(v2.getVertexId(), events));
+    dispatcher.await();
+    Assert.assertEquals(1, v2.pendingTaskEvents.size());
+    
     RootInputInitializerRunnerControlled runner2 = v2.getRootInputInitializerRunner();
     List<TaskLocationHint> v2Hints = createTaskLocationHints(10);
     runner2.completeInputInitialization(10, v2Hints);
     
     Assert.assertEquals(VertexState.INITED, v2.getState());
     Assert.assertEquals(10, v2.getTotalTasks());
+    // task events get buffered
+    Assert.assertEquals(11, v2.pendingTaskEvents.size());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v2
         .getVertexManager().getPlugin().getClass().getName());
     for (int i=0; i < v2Hints.size(); ++i) {

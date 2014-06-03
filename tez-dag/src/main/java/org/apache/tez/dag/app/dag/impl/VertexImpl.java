@@ -319,7 +319,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
           .addTransition(VertexState.INITIALIZING, VertexState.INITIALIZING,
               VertexEventType.V_ROUTE_EVENT,
-              new RouteEventsWhileInitializingTransition())
+              ROUTE_EVENT_TRANSITION)
           .addTransition(VertexState.INITIALIZING, VertexState.KILLED,
               VertexEventType.V_TERMINATE,
               new TerminateInitingVertexTransition())
@@ -2618,12 +2618,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       return false;
     }
 
-    // Vertex will be moving to INITED state, safe to process pending route events.
-    if (!pendingRouteEvents.isEmpty()) {
-      VertexImpl.ROUTE_EVENT_TRANSITION.transition(this,
-          new VertexEventRouteEvent(getVertexId(), pendingRouteEvents));
-      pendingRouteEvents.clear();
-    }
+//    // Vertex will be moving to INITED state, safe to process pending route events.
+//    if (!pendingRouteEvents.isEmpty()) {
+//      VertexImpl.ROUTE_EVENT_TRANSITION.transition(this,
+//          new VertexEventRouteEvent(getVertexId(), pendingRouteEvents));
+//      pendingRouteEvents.clear();
+//    }
     return true;
   }
 
@@ -3208,17 +3208,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
 
-  private static class RouteEventsWhileInitializingTransition implements
-      SingleArcTransition<VertexImpl, VertexEvent> {
-
-    @Override
-    public void transition(VertexImpl vertex, VertexEvent event) {
-      VertexEventRouteEvent re = (VertexEventRouteEvent) event;
-      // Store the events for post-init routing, since INIT state is when
-      // initial task parallelism will be set
-      vertex.pendingRouteEvents.addAll(re.getEvents());
-    }
-  }
+//  private static class RouteEventsWhileInitializingTransition implements
+//      SingleArcTransition<VertexImpl, VertexEvent> {
+//
+//    @Override
+//    public void transition(VertexImpl vertex, VertexEvent event) {
+//      VertexEventRouteEvent re = (VertexEventRouteEvent) event;
+//      // Store the events for post-init routing, since INIT state is when
+//      // initial task parallelism will be set
+//      vertex.pendingRouteEvents.addAll(re.getEvents());
+//    }
+//  }
 
   private static class RouteEventTransition  implements
   SingleArcTransition<VertexImpl, VertexEvent> {
@@ -3301,12 +3301,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           }
           break;
         case ROOT_INPUT_DATA_INFORMATION_EVENT:
-          checkEventSourceMetadata(vertex, sourceMeta);
-          RootInputDataInformationEvent riEvent = (RootInputDataInformationEvent) tezEvent
-              .getEvent();
-          TezTaskID targetTaskID = TezTaskID.getInstance(vertex.getVertexId(),
-              riEvent.getTargetIndex());
-          vertex.eventHandler.handle(new TaskEventAddTezEvent(targetTaskID, tezEvent));          
+          if (vertex.tasksNotYetScheduled) {
+            vertex.pendingTaskEvents.add(tezEvent);
+          } else {
+            checkEventSourceMetadata(vertex, sourceMeta);
+            RootInputDataInformationEvent riEvent = (RootInputDataInformationEvent) tezEvent
+                .getEvent();
+            TezTaskID targetTaskID = TezTaskID.getInstance(vertex.getVertexId(),
+                riEvent.getTargetIndex());
+            vertex.eventHandler.handle(new TaskEventAddTezEvent(targetTaskID, tezEvent));
+          }
           break;
         case VERTEX_MANAGER_EVENT:
         {
