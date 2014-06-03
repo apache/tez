@@ -1145,8 +1145,39 @@ public class TestVertexImpl {
                 )
                 .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
                     .setClassName(VertexManagerPluginForTest.class.getName()))
+                .addOutEdgeId("2_3")
                 .build()
-
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("v3")
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("A.class"))
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(-1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("A.class")
+                        .build()
+                )
+                .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
+                    .setClassName(VertexManagerPluginForTest.class.getName()))
+                .addInEdgeId("2_3")
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("2_3"))
+                .setInputVertexName("v2")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("2_3.class"))
+                .setOutputVertexName("v3")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("2_3")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
         ).build();
     
     return dag;
@@ -2240,7 +2271,7 @@ public class TestVertexImpl {
   }
   
   @SuppressWarnings("unchecked")
-  @Test//(timeout = 5000)
+  @Test(timeout = 5000)
   public void testVertexInitWithCustomVertexManager() {
     setupPreDagCreation();
     dagPlan = createDAGWithCustomVertexManager();
@@ -2249,6 +2280,7 @@ public class TestVertexImpl {
     int numTasks = 3;
     VertexImpl v1 = vertices.get("v1");
     VertexImpl v2 = vertices.get("v2");
+    VertexImpl v3 = vertices.get("v3");
     initVertex(v1);
     initVertex(v2);
     dispatcher.await();
@@ -2257,6 +2289,8 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
     Assert.assertEquals(-1, v2.getTotalTasks());
     Assert.assertEquals(VertexState.INITIALIZING, v2.getState());
+    Assert.assertEquals(-1, v3.getTotalTasks());
+    Assert.assertEquals(VertexState.INITIALIZING, v3.getState());
     // vertex should not start since parallelism is not set
     dispatcher.getEventHandler().handle(new VertexEvent(v1.getVertexId(), VertexEventType.V_START));
     dispatcher.await();
@@ -2276,6 +2310,13 @@ public class TestVertexImpl {
     dispatcher.getEventHandler().handle(new VertexEvent(v2.getVertexId(), VertexEventType.V_START));
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v2.getState());
+    // v3 still initializing with source vertex started. So should start running
+    // once num tasks is defined
+    Assert.assertEquals(VertexState.INITIALIZING, v3.getState());
+    v3.setParallelism(numTasks, null, null);
+    dispatcher.await();
+    Assert.assertEquals(numTasks, v3.getTotalTasks());
+    Assert.assertEquals(VertexState.RUNNING, v3.getState());
   }
 
   @Test(timeout = 5000)

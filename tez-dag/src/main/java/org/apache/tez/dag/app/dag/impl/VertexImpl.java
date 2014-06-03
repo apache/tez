@@ -2750,19 +2750,31 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       vertex.numStartedSourceVertices++;
       LOG.info("Source vertex started: " + startEvent.getSourceVertexId() +
           " for vertex: " + vertex.getVertexId() + " numStartedSources: " + 
-          vertex.numStartedSourceVertices);
+          vertex.numStartedSourceVertices + " numSources: " + vertex.sourceVertices.size());
       vertex.startIfPossible();
     }
   }
 
+  boolean hasSourceVertexDependency() {
+    return (sourceVertices != null && sourceVertices.size() > 0);
+  }
+  
   boolean canStartVertex() {
-    if (getState() != VertexState.INITED) {
-      LOG.info("Cannot start vertex. Not in inited state. " + logIdentifier + 
-          " . VertesState: " + getState());
-      return false;
-    }
     if ((sourceVertices == null || numStartedSourceVertices == sourceVertices.size())
         && uninitializedEdges.isEmpty()) {
+      // vertex meets external start dependency conditions
+      if (hasSourceVertexDependency()) {
+        // this vertex is not going to receive a direct external start event from DAG
+        startSignalPending = true;
+      }
+      if (getState() != VertexState.INITED) {
+        // vertex itself is not ready to start. External dependencies have already
+        // notified us. So save that notification so that we can start when we 
+        // ourselves are ready internally.
+        LOG.info("Cannot start vertex. Not in inited state. " + logIdentifier + 
+            " . VertesState: " + getState() + " numTasks: " + numTasks);
+        return false;
+      }
       // vertex is inited and all dependencies are ready. Inited vertex means 
       // parallelism must be set already
       Preconditions
@@ -2782,11 +2794,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     if (canStartVertex()) {
       Preconditions.checkState(getState() == VertexState.INITED, 
           "Vertex must be inited " + logIdentifier);
-      LOG.info("Starting vertex: " + getVertexId() +
-               " with name: " + getName() +
-               " with distanceFromRoot: " + distanceFromRoot );
-      eventHandler.handle(new VertexEvent(vertexId,
-          VertexEventType.V_START));
+      if (startSignalPending) {
+        LOG.info("Starting vertex: " + getVertexId() +
+                 " with name: " + getName() +
+                 " with distanceFromRoot: " + distanceFromRoot );
+        eventHandler.handle(new VertexEvent(vertexId,
+            VertexEventType.V_START));
+      }
     }
   }
 
@@ -2821,6 +2835,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       // this is to handle the initial vertices who are directly sent a V_START
       // from the DAG. They may have uninitialized edges that may be initialized
       // when the downstream vertices initialize
+      LOG.info("Received START event. Saving notification so that we can start " +
+      		"when other requirements are met for vertex: " + logIdentifier);
+      startSignalPending = true;
       return VertexState.INITED;
     }
 
