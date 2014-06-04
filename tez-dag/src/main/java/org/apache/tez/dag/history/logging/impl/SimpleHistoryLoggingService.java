@@ -43,7 +43,7 @@ public class SimpleHistoryLoggingService extends HistoryLoggingService {
   private FSDataOutputStream outputStream;
   private LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
       new LinkedBlockingQueue<DAGHistoryEvent>();
-  public static final String RECORD_SEPARATOR = System.getProperty("line.separator") + "\u0001";
+  public static final String RECORD_SEPARATOR = "\u0001" + System.getProperty("line.separator");
   public static final String LOG_FILE_NAME_PREFIX = "history.txt";
 
   private Thread eventHandlingThread;
