@@ -82,9 +82,11 @@ public class ShuffleUtils {
 
     input = checksumIn;
 
+    Decompressor decompressor = null;
+    
     // Are map-outputs compressed?
     if (codec != null) {
-      Decompressor decompressor = CodecPool.getDecompressor(codec);
+      decompressor = CodecPool.getDecompressor(codec);
       decompressor.reset();
       input = codec.createInputStream(input, decompressor);
     }
@@ -101,6 +103,11 @@ public class ShuffleUtils {
       IOUtils.cleanup(LOG, input);
       // Re-throw
       throw ioe;
+    } finally {
+      if(decompressor != null) {
+        decompressor.reset();
+        CodecPool.returnDecompressor(decompressor);
+      }
     }
   }
   
