@@ -157,6 +157,18 @@
            Hortonworks
         </organization>
       </developer>
+      <developer>
+        <id>tassapola</id>
+        <name>Tassapol Athiapinya</name>
+        <email>tassapola@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+           <role>Committer</role>
+        </roles>
+        <organization>
+           Hortonworks
+        </organization>
+      </developer>
     </developers>
 
     <organization>
