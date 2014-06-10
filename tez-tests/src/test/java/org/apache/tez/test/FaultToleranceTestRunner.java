@@ -38,7 +38,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-
+import org.apache.hadoop.util.GenericOptionsParser;
 /**
  * Run a DAG on a cluster with the given configuration. Starts a TezSession
  * using default cluster configuration from installation. Then uses reflection
@@ -51,13 +51,17 @@ import org.apache.tez.dag.api.client.DAGStatus;
 public class FaultToleranceTestRunner {
   
   static String TEST_ROOT_DIR = "tmp";
-  
+  Configuration conf = null;
   TezSession tezSession = null;
   Resource defaultResource = Resource.newInstance(100, 0);
   
-  
   void setup() throws Exception {
-    TezConfiguration tezConf = new TezConfiguration(new YarnConfiguration());
+    TezConfiguration tezConf = null;
+    if (conf == null ) {
+      tezConf = new TezConfiguration(new YarnConfiguration());
+    }else {
+       tezConf = new TezConfiguration(new YarnConfiguration(this.conf));
+    }
     FileSystem defaultFs = FileSystem.get(tezConf);
     
     Path remoteStagingDir = defaultFs.makeQualified(new Path(TEST_ROOT_DIR, String
@@ -97,7 +101,8 @@ public class FaultToleranceTestRunner {
     return dag;
   }
   
-  boolean run(String className, String confFilePath) throws Exception {
+  boolean run(Configuration conf, String className, String confFilePath) throws Exception {
+    this.conf = conf;
     setup();
     
     try {
@@ -137,24 +142,27 @@ public class FaultToleranceTestRunner {
   
   static void printUsage() {
     System.err.println(
-        "Usage: " + " FaultToleranceTestRunner <dag-class-name> <test-conf-path>");
+        "Usage: " + " FaultToleranceTestRunner [generic options] <dag-class-name> <test-conf-path>");
+    GenericOptionsParser.printGenericCommandUsage(System.err);
   }
   
   public static void main(String[] args) throws Exception {
+    Configuration conf = new Configuration();
+    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
     String className = null;
     String confFilePath = null;
-    if (args.length == 1) {
-      className = args[0];
-    } else if (args.length == 2) {
-      className = args[0];
-      confFilePath = args[1];
+    if (otherArgs.length == 1) {
+      className = otherArgs[0];
+    } else if (otherArgs.length == 2) {
+      className = otherArgs[0];
+      confFilePath = otherArgs[1];
     } else {
       printUsage();
       System.exit(1);
     }
     
     FaultToleranceTestRunner job = new FaultToleranceTestRunner();
-    if (job.run(className, confFilePath)) {
+    if (job.run(conf, className, confFilePath)) {
       System.out.println("Succeeded.");
     } else {
       System.out.println("Failed.");
