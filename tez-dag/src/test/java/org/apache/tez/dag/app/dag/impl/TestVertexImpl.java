@@ -35,10 +35,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import com.google.protobuf.ByteString;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -66,6 +68,8 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.VertexManagerPlugin;
+import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.oldrecords.TaskState;
@@ -120,6 +124,7 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
+import org.apache.tez.runtime.api.RootInputSpecUpdate;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
@@ -130,6 +135,7 @@ import org.apache.tez.test.VertexManagerPluginForTest;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.GroupInputSpec;
+import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.After;
 import org.junit.Assert;
@@ -457,6 +463,64 @@ public class TestVertexImpl {
                         .build()
                 )
                 .addInEdgeId("e1")
+              .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex3")
+                .setType(PlanVertexType.NORMAL)
+                .addInputs(
+                    RootInputLeafOutputProto.newBuilder()
+                        .setInitializerClassName(initializerClassName)
+                        .setName("input3")
+                        .setEntityDescriptor(
+                            TezEntityDescriptorProto.newBuilder()
+                              .setClassName("InputClazz")
+                              .build()
+                        )
+                        .build()
+                    )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(-1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x3.y3")
+                        .build()
+                )
+                .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
+                    .setClassName(RootInputSpecUpdaterVertexManager.class.getName())
+                    .setUserPayload(ByteString.copyFrom(new byte[] {0})))
+              .build()
+        )
+                .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex4")
+                .setType(PlanVertexType.NORMAL)
+                .addInputs(
+                    RootInputLeafOutputProto.newBuilder()
+                        .setInitializerClassName(initializerClassName)
+                        .setName("input4")
+                        .setEntityDescriptor(
+                            TezEntityDescriptorProto.newBuilder()
+                              .setClassName("InputClazz")
+                              .build()
+                        )
+                        .build()
+                    )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(-1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x3.y3")
+                        .build()
+                )
+                .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
+                    .setClassName(RootInputSpecUpdaterVertexManager.class.getName())
+                    .setUserPayload(ByteString.copyFrom(new byte[] {1})))
               .build()
         )
         .addEdge(
@@ -1594,7 +1658,7 @@ public class TestVertexImpl {
     Map<String, EdgeManagerDescriptor> edgeManagerDescriptors =
         Collections.singletonMap(
        v1.getName(), mockEdgeManagerDescriptor);
-    Assert.assertTrue(v3.setParallelism(1, null, edgeManagerDescriptors));
+    Assert.assertTrue(v3.setParallelism(1, null, edgeManagerDescriptors, null));
     Assert.assertTrue(v3.sourceVertices.get(v1).getEdgeManager() instanceof
         EdgeManagerForTest);
     Assert.assertEquals(1, v3.getTotalTasks());
@@ -1662,7 +1726,7 @@ public class TestVertexImpl {
     Map<String, EdgeManagerDescriptor> edgeManagerDescriptors =
         Collections.singletonMap(v3.getName(), edgeManagerDescriptor);
     Assert.assertTrue(v5.setParallelism(v5.getTotalTasks() - 1, null,
-        edgeManagerDescriptors)); // Must decrease.
+        edgeManagerDescriptors, null)); // Must decrease.
 
     VertexImpl v5Impl = (VertexImpl) v5;
 
@@ -2298,8 +2362,8 @@ public class TestVertexImpl {
     Assert.assertEquals(-1, v1.getTotalTasks());
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
     // set the parallelism
-    v1.setParallelism(numTasks, null, null);
-    v2.setParallelism(numTasks, null, null);
+    v1.setParallelism(numTasks, null, null, null);
+    v2.setParallelism(numTasks, null, null, null);
     dispatcher.await();
     // parallelism set and vertex starts with pending start event
     Assert.assertEquals(numTasks, v1.getTotalTasks());
@@ -2314,7 +2378,7 @@ public class TestVertexImpl {
     // v3 still initializing with source vertex started. So should start running
     // once num tasks is defined
     Assert.assertEquals(VertexState.INITIALIZING, v3.getState());
-    v3.setParallelism(numTasks, null, null);
+    v3.setParallelism(numTasks, null, null, null);
     dispatcher.await();
     Assert.assertEquals(numTasks, v3.getTotalTasks());
     Assert.assertEquals(VertexState.RUNNING, v3.getState());
@@ -2423,7 +2487,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex4").getState());
     // change parallelism
     int newNumTasks = 3;
-    v1.setParallelism(newNumTasks, null, null);
+    v1.setParallelism(newNumTasks, null, null, null);
     dispatcher.await();
     Assert.assertEquals(newNumTasks, vertices.get("vertex2").getTotalTasks());
     Assert.assertEquals(newNumTasks, vertices.get("vertex3").getTotalTasks());
@@ -2453,7 +2517,7 @@ public class TestVertexImpl {
     Assert.assertEquals(numTasks, vertices.get("vertex4").getTotalTasks());
     // change parallelism
     int newNumTasks = 3;
-    v1.setParallelism(newNumTasks, null, null);
+    v1.setParallelism(newNumTasks, null, null, null);
     dispatcher.await();
     Assert.assertEquals(newNumTasks, vertices.get("vertex2").getTotalTasks());
     Assert.assertEquals(newNumTasks, vertices.get("vertex3").getTotalTasks());
@@ -2550,6 +2614,11 @@ public class TestVertexImpl {
       Assert.assertEquals(v1Hints.get(i), v1.getTaskLocationHints()[i]);
     }
     Assert.assertEquals(true, runner1.hasShutDown);
+    for (int i = 0; i < 5; i++) {
+      List<InputSpec> inputSpecs = v1.getInputSpecList(i);
+      Assert.assertEquals(1, inputSpecs.size());
+      Assert.assertEquals(1, inputSpecs.get(0).getPhysicalEdgeCount());
+    }
     
     VertexImplWithCustomInitializer v2 = (VertexImplWithCustomInitializer) vertices.get("vertex2");
     Assert.assertEquals(VertexState.INITIALIZING, v2.getState());
@@ -2584,6 +2653,73 @@ public class TestVertexImpl {
       Assert.assertEquals(v2Hints.get(i), v2.getTaskLocationHints()[i]);
     }
     Assert.assertEquals(true, runner2.hasShutDown);
+    for (int i = 0; i < 10; i++) {
+      List<InputSpec> inputSpecs = v1.getInputSpecList(i);
+      Assert.assertEquals(1, inputSpecs.size());
+      Assert.assertEquals(1, inputSpecs.get(0).getPhysicalEdgeCount());
+    }
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testVertexRootInputSpecUpdateAll() {
+    useCustomInitializer = true;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
+    setupPostDagCreation();
+
+    int expectedNumTasks = RootInputSpecUpdaterVertexManager.NUM_TASKS;
+    VertexImplWithCustomInitializer v3 = (VertexImplWithCustomInitializer) vertices
+        .get("vertex3");
+    dispatcher.getEventHandler().handle(
+        new VertexEvent(v3.getVertexId(), VertexEventType.V_INIT));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.INITIALIZING, v3.getState());
+    RootInputInitializerRunnerControlled runner1 = v3.getRootInputInitializerRunner();
+    runner1.completeInputInitialization();
+
+    Assert.assertEquals(VertexState.INITED, v3.getState());
+    Assert.assertEquals(expectedNumTasks, v3.getTotalTasks());
+    Assert.assertEquals(RootInputSpecUpdaterVertexManager.class.getName(), v3.getVertexManager()
+        .getPlugin().getClass().getName());
+    Assert.assertEquals(true, runner1.hasShutDown);
+    
+    for (int i = 0; i < expectedNumTasks; i++) {
+      List<InputSpec> inputSpecs = v3.getInputSpecList(i);
+      Assert.assertEquals(1, inputSpecs.size());
+      Assert.assertEquals(4, inputSpecs.get(0).getPhysicalEdgeCount());
+    }
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testVertexRootInputSpecUpdatePerTask() {
+    useCustomInitializer = true;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
+    setupPostDagCreation();
+
+    int expectedNumTasks = RootInputSpecUpdaterVertexManager.NUM_TASKS;
+    VertexImplWithCustomInitializer v4 = (VertexImplWithCustomInitializer) vertices
+        .get("vertex4");
+    dispatcher.getEventHandler().handle(
+        new VertexEvent(v4.getVertexId(), VertexEventType.V_INIT));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.INITIALIZING, v4.getState());
+    RootInputInitializerRunnerControlled runner1 = v4.getRootInputInitializerRunner();
+    runner1.completeInputInitialization();
+
+    Assert.assertEquals(VertexState.INITED, v4.getState());
+    Assert.assertEquals(expectedNumTasks, v4.getTotalTasks());
+    Assert.assertEquals(RootInputSpecUpdaterVertexManager.class.getName(), v4.getVertexManager()
+        .getPlugin().getClass().getName());
+    Assert.assertEquals(true, runner1.hasShutDown);
+    
+    for (int i = 0; i < expectedNumTasks; i++) {
+      List<InputSpec> inputSpecs = v4.getInputSpecList(i);
+      Assert.assertEquals(1, inputSpecs.size());
+      Assert.assertEquals(i + 1, inputSpecs.get(0).getPhysicalEdgeCount());
+    }
   }
   
   private List<TaskLocationHint> createTaskLocationHints(int numTasks) {
@@ -2700,11 +2836,17 @@ public class TestVertexImpl {
       dispatcher.await();
     }
 
+    public void completeInputInitialization() {
+      eventHandler.handle(new VertexEventRootInputInitialized(vertexID, inputs.get(0)
+          .getEntityName(), null));
+      dispatcher.await();
+    }
+    
     public void completeInputInitialization(int targetTasks, List<TaskLocationHint> locationHints) {
       List<Event> events = Lists.newArrayListWithCapacity(targetTasks + 1);
 
       RootInputConfigureVertexTasksEvent configEvent = new RootInputConfigureVertexTasksEvent(
-          targetTasks, locationHints);
+          targetTasks, locationHints, null);
       events.add(configEvent);
       for (int i = 0; i < targetTasks; i++) {
         RootInputDataInformationEvent diEvent = new RootInputDataInformationEvent(
@@ -2839,5 +2981,44 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, vA.getState());
     Assert.assertEquals(VertexState.RUNNING, vB.getState());
     Assert.assertEquals(VertexState.RUNNING, vC.getState());
+  }
+  
+  public static class RootInputSpecUpdaterVertexManager implements VertexManagerPlugin {
+
+    private VertexManagerPluginContext context;
+    private static final int NUM_TASKS = 5;
+
+    @Override
+    public void initialize(VertexManagerPluginContext context) {
+      this.context = context;
+    }
+
+    @Override
+    public void onVertexStarted(Map<String, List<Integer>> completions) {
+    }
+
+    @Override
+    public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
+    }
+
+    @Override
+    public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
+    }
+
+    @Override
+    public void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor,
+        List<Event> events) {
+      Map<String, RootInputSpecUpdate> map = new HashMap<String, RootInputSpecUpdate>();
+      if (context.getUserPayload()[0] == 0) {
+        map.put("input3", RootInputSpecUpdate.createAllTaskRootInputSpecUpdate(4));
+      } else {
+        List<Integer> pInputList = new LinkedList<Integer>();
+        for (int i = 1; i <= NUM_TASKS; i++) {
+          pInputList.add(i);
+        }
+        map.put("input4", RootInputSpecUpdate.createPerTaskRootInputSpecUpdate(pInputList));
+      }
+      context.setVertexParallelism(NUM_TASKS, null, null, map);
+    }
   }
 }

@@ -98,11 +98,18 @@ message EdgeManagerDescriptorProto {
   optional TezEntityDescriptorProto entity_descriptor = 2;
 }
 
+message RootInputSpecUpdateProto {
+  optional string input_name = 1;
+  optional bool for_all_work_units = 2;
+  repeated int32 num_physical_inputs = 3;
+}
+
 message VertexParallelismUpdatedProto {
   optional string vertex_id = 1;
   optional int32 num_tasks = 2;
   optional VertexLocationHintProto vertex_location_hint = 3;
   repeated EdgeManagerDescriptorProto edge_manager_descriptors = 4;
+  repeated RootInputSpecUpdateProto root_input_spec_updates = 5;
 }
 
 message VertexCommitStartedProto {

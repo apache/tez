@@ -32,7 +32,11 @@ import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.EdgeManagerDescriptorProto;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.RootInputSpecUpdateProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexParallelismUpdatedProto;
+import org.apache.tez.runtime.api.RootInputSpecUpdate;
+
+import com.google.common.collect.Maps;
 
 public class VertexParallelismUpdatedEvent implements HistoryEvent {
 
@@ -40,17 +44,20 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
   private int numTasks;
   private VertexLocationHint vertexLocationHint;
   private Map<String, EdgeManagerDescriptor> sourceEdgeManagers;
+  private Map<String, RootInputSpecUpdate> rootInputSpecUpdates;
 
   public VertexParallelismUpdatedEvent() {
   }
 
   public VertexParallelismUpdatedEvent(TezVertexID vertexID,
       int numTasks, VertexLocationHint vertexLocationHint,
-      Map<String, EdgeManagerDescriptor> sourceEdgeManagers) {
+      Map<String, EdgeManagerDescriptor> sourceEdgeManagers,
+      Map<String, RootInputSpecUpdate> rootInputSpecUpdates) {
     this.vertexID = vertexID;
     this.numTasks = numTasks;
     this.vertexLocationHint = vertexLocationHint;
     this.sourceEdgeManagers = sourceEdgeManagers;
+    this.rootInputSpecUpdates = rootInputSpecUpdates;
   }
 
   @Override
@@ -88,6 +95,17 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
         builder.addEdgeManagerDescriptors(edgeMgrBuilder.build());
       }
     }
+    if (rootInputSpecUpdates != null) {
+      for (Entry<String, RootInputSpecUpdate> entry : rootInputSpecUpdates.entrySet()) {
+        RootInputSpecUpdateProto.Builder rootInputSpecUpdateBuilder = RootInputSpecUpdateProto
+            .newBuilder();
+        rootInputSpecUpdateBuilder.setInputName(entry.getKey());
+        rootInputSpecUpdateBuilder.setForAllWorkUnits(entry.getValue().isForAllWorkUnits());
+        rootInputSpecUpdateBuilder.addAllNumPhysicalInputs(entry.getValue()
+            .getAllNumPhysicalInputs());
+        builder.addRootInputSpecUpdates(rootInputSpecUpdateBuilder.build());
+      }
+    }
     return builder.build();
   }
 
@@ -108,6 +126,20 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
                 edgeManagerProto.getEntityDescriptor());
         sourceEdgeManagers.put(edgeManagerProto.getEdgeName(),
             edgeManagerDescriptor);
+      }
+    }
+    if (proto.getRootInputSpecUpdatesCount() > 0) {
+      this.rootInputSpecUpdates = Maps.newHashMap();
+      for (RootInputSpecUpdateProto rootInputSpecUpdateProto : proto.getRootInputSpecUpdatesList()) {
+        RootInputSpecUpdate specUpdate;
+        if (rootInputSpecUpdateProto.getForAllWorkUnits()) {
+          specUpdate = RootInputSpecUpdate
+              .createAllTaskRootInputSpecUpdate(rootInputSpecUpdateProto.getNumPhysicalInputs(0));
+        } else {
+          specUpdate = RootInputSpecUpdate
+              .createPerTaskRootInputSpecUpdate(rootInputSpecUpdateProto.getNumPhysicalInputsList());
+        }
+        this.rootInputSpecUpdates.put(rootInputSpecUpdateProto.getInputName(), specUpdate);
       }
     }
   }
@@ -133,7 +165,9 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
         + ", vertexLocationHint=" +
         (vertexLocationHint == null? "null" : vertexLocationHint)
         + ", edgeManagersCount=" +
-        (sourceEdgeManagers == null? "null" : sourceEdgeManagers.size());
+        (sourceEdgeManagers == null? "null" : sourceEdgeManagers.size()
+        + ", rootInputSpecUpdateCount="
+        + (rootInputSpecUpdates == null ? "null" : rootInputSpecUpdates.size()));
   }
 
   public TezVertexID getVertexID() {
@@ -150,5 +184,9 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
 
   public Map<String, EdgeManagerDescriptor> getSourceEdgeManagers() {
     return sourceEdgeManagers;
+  }
+  
+  public Map<String, RootInputSpecUpdate> getRootInputSpecUpdates() {
+    return rootInputSpecUpdates;
   }
 }

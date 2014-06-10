@@ -44,6 +44,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
+import org.apache.tez.runtime.api.RootInputSpecUpdate;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
@@ -51,10 +52,13 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -261,11 +265,18 @@ public class TestHistoryEventsProtoConversion {
 
   private void testVertexParallelismUpdatedEvent() throws Exception {
     {
+      RootInputSpecUpdate rootInputSpecUpdateBulk = RootInputSpecUpdate
+          .createAllTaskRootInputSpecUpdate(2);
+      RootInputSpecUpdate rootInputSpecUpdatePerTask = RootInputSpecUpdate
+          .createPerTaskRootInputSpecUpdate(Lists.newArrayList(1, 2, 3));
+      Map<String, RootInputSpecUpdate> rootInputSpecUpdates = new HashMap<String, RootInputSpecUpdate>();
+      rootInputSpecUpdates.put("input1", rootInputSpecUpdateBulk);
+      rootInputSpecUpdates.put("input2", rootInputSpecUpdatePerTask);
       VertexParallelismUpdatedEvent event =
           new VertexParallelismUpdatedEvent(
               TezVertexID.getInstance(
                   TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111),
-              100, null, null);
+              100, null, null, rootInputSpecUpdates);
       VertexParallelismUpdatedEvent deserializedEvent = (VertexParallelismUpdatedEvent)
           testProtoConversion(event);
       Assert.assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
@@ -274,6 +285,18 @@ public class TestHistoryEventsProtoConversion {
           deserializedEvent.getSourceEdgeManagers());
       Assert.assertEquals(event.getVertexLocationHint(),
           deserializedEvent.getVertexLocationHint());
+      Assert.assertEquals(event.getRootInputSpecUpdates().size(), deserializedEvent
+          .getRootInputSpecUpdates().size());
+      RootInputSpecUpdate deserializedBulk = deserializedEvent.getRootInputSpecUpdates().get("input1");
+      RootInputSpecUpdate deserializedPerTask = deserializedEvent.getRootInputSpecUpdates().get("input2");
+      Assert.assertEquals(rootInputSpecUpdateBulk.isForAllWorkUnits(),
+          deserializedBulk.isForAllWorkUnits());
+      Assert.assertEquals(rootInputSpecUpdateBulk.getAllNumPhysicalInputs(),
+          deserializedBulk.getAllNumPhysicalInputs());
+      Assert.assertEquals(rootInputSpecUpdatePerTask.isForAllWorkUnits(),
+          deserializedPerTask.isForAllWorkUnits());
+      Assert.assertEquals(rootInputSpecUpdatePerTask.getAllNumPhysicalInputs(),
+          deserializedPerTask.getAllNumPhysicalInputs());
       logEvents(event, deserializedEvent);
     }
     {
@@ -289,7 +312,7 @@ public class TestHistoryEventsProtoConversion {
               100, new VertexLocationHint(Arrays.asList(new TaskLocationHint(
                   new HashSet<String>(Arrays.asList("h1")),
               new HashSet<String>(Arrays.asList("r1"))))),
-              sourceEdgeManagers);
+              sourceEdgeManagers, null);
 
       VertexParallelismUpdatedEvent deserializedEvent = (VertexParallelismUpdatedEvent)
           testProtoConversion(event);

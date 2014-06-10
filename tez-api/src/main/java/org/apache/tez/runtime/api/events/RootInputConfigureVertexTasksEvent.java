@@ -22,15 +22,19 @@ import java.util.List;
 
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.RootInputSpecUpdate;
 
 public class RootInputConfigureVertexTasksEvent extends Event {
 
   private final int numTasks;
   private final List<TaskLocationHint> taskLocationHints;
-  
-  public RootInputConfigureVertexTasksEvent(int numTasks, List<TaskLocationHint> locationHints) {
+  private final RootInputSpecUpdate rootInputSpecUpdate;
+
+  public RootInputConfigureVertexTasksEvent(int numTasks, List<TaskLocationHint> locationHints,
+      RootInputSpecUpdate rootInputSpecUpdate) {
     this.numTasks = numTasks;
     this.taskLocationHints = locationHints;
+    this.rootInputSpecUpdate = rootInputSpecUpdate;
   }
 
   public int getNumTasks() {
@@ -41,5 +45,8 @@ public class RootInputConfigureVertexTasksEvent extends Event {
     return taskLocationHints;
   }
 
-  
+  public RootInputSpecUpdate getRootInputSpecUpdate() {
+    return this.rootInputSpecUpdate;
+  }
+
 }

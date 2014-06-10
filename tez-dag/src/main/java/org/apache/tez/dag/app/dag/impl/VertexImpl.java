@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -36,6 +37,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.Nullable;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -132,6 +134,7 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
+import org.apache.tez.runtime.api.RootInputSpecUpdate;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
@@ -546,10 +549,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private Map<Vertex, Edge> targetVertices;
   Set<Edge> uninitializedEdges = Sets.newHashSet();
 
-  private Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> additionalInputs;
+  private Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> rootInputDescriptors;
   private Map<String, RootInputLeafOutputDescriptor<OutputDescriptor>> additionalOutputs;
   private Map<String, OutputCommitter> outputCommitters;
-  private final List<InputSpec> additionalInputSpecs = new ArrayList<InputSpec>();
+  private Map<String, RootInputSpecUpdate> rootInputSpecs = new HashMap<String, RootInputSpecUpdate>();
+  private static final RootInputSpecUpdate DEFAULT_ROOT_INPUT_SPECS = RootInputSpecUpdate
+      .getDefaultSinglePhysicalInputSpecUpdate(); 
   private final List<OutputSpec> additionalOutputSpecs = new ArrayList<OutputSpec>();
   private Set<String> inputsWithInitializers;
   private int numInitializedInputs;
@@ -588,6 +593,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private boolean hasCommitter = false;
   private boolean vertexCompleteSeen = false;
   private Map<String,EdgeManagerDescriptor> recoveredSourceEdgeManagers = null;
+  private Map<String, RootInputSpecUpdate> recoveredRootInputSpecUpdates = null;
 
   // Recovery related flags
   boolean recoveryInitEventSeen = false;
@@ -950,21 +956,22 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   private void handleParallelismUpdate(int newParallelism,
-      Map<String, EdgeManagerDescriptor> sourceEdgeManagers) {
+      Map<String, EdgeManagerDescriptor> sourceEdgeManagers,
+      Map<String, RootInputSpecUpdate> rootInputSpecUpdates) {
     LinkedHashMap<TezTaskID, Task> currentTasks = this.tasks;
     Iterator<Map.Entry<TezTaskID, Task>> iter = currentTasks.entrySet()
         .iterator();
     int i = 0;
     while (iter.hasNext()) {
       i++;
-      Map.Entry<TezTaskID, Task> entry = iter.next();
+      iter.next();
       if (i <= newParallelism) {
         continue;
       }
       iter.remove();
     }
-    this.recoveredSourceEdgeManagers =
-        sourceEdgeManagers;
+    this.recoveredSourceEdgeManagers = sourceEdgeManagers;
+    this.recoveredRootInputSpecUpdates = rootInputSpecUpdates;
   }
 
   @Override
@@ -1003,7 +1010,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           setTaskLocationHints(updatedEvent.getVertexLocationHint());
         }
         numTasks = updatedEvent.getNumTasks();
-        handleParallelismUpdate(numTasks, updatedEvent.getSourceEdgeManagers());
+        handleParallelismUpdate(numTasks, updatedEvent.getSourceEdgeManagers(),
+          updatedEvent.getRootInputSpecUpdates());
         if (LOG.isDebugEnabled()) {
           LOG.debug("Recovered state for vertex after parallelism updated event"
               + ", vertex=" + logIdentifier
@@ -1086,12 +1094,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
-      Map<String, EdgeManagerDescriptor> sourceEdgeManagers) {
-    return setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers, false);
+      Map<String, EdgeManagerDescriptor> sourceEdgeManagers,
+      Map<String, RootInputSpecUpdate> rootInputSpecUpdates) {
+    return setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates,
+        false);
   }
 
   private boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerDescriptor> sourceEdgeManagers,
+      Map<String, RootInputSpecUpdate> rootInputSpecUpdates,
       boolean recovering) {
     if (recovering) {
       writeLock.lock();
@@ -1113,6 +1124,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               return false;
             }
           }
+        }
+        
+        // Restore any rootInputSpecUpdates which may have been registered during a parallelism
+        // update.
+        if (rootInputSpecUpdates != null) {
+          LOG.info("Got updated RootInputsSpecs during recovery: " + rootInputSpecUpdates.toString());
+          this.rootInputSpecs.putAll(rootInputSpecUpdates);
         }
         return true;
       } finally {
@@ -1156,6 +1174,21 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             }
           }
         }
+        if (rootInputSpecUpdates != null) {
+          LOG.info("Got updated RootInputsSpecs: " + rootInputSpecUpdates.toString());
+          // Sanity check for correct number of updates.
+          for (Entry<String, RootInputSpecUpdate> rootInputSpecUpdateEntry : rootInputSpecUpdates
+              .entrySet()) {
+            Preconditions
+                .checkState(
+                    rootInputSpecUpdateEntry.getValue().isForAllWorkUnits()
+                        || (rootInputSpecUpdateEntry.getValue().getAllNumPhysicalInputs() != null && rootInputSpecUpdateEntry
+                            .getValue().getAllNumPhysicalInputs().size() == parallelism),
+                    "Not enough input spec updates for root input named "
+                        + rootInputSpecUpdateEntry.getKey());
+          }
+          this.rootInputSpecs.putAll(rootInputSpecUpdates);
+        }
         this.numTasks = parallelism;
         this.createTasks();
         LOG.info("Vertex " + getVertexId() + 
@@ -1164,6 +1197,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           getEventHandler().handle(new VertexEventParallelismInitialized(getVertexId()));
         }
       } else {
+        // This is an artificial restriction since there's no way of knowing whether a VertexManager
+        // will attempt to update root input specs. When parallelism has not been initialized, the
+        // Vertex will not be in started state so it's safe to update the specifications.
+        // TODO TEZ-937 - add e mechanism to query vertex managers, or for VMs to indicate readines
+        // for a vertex to start.
+        Preconditions.checkState(rootInputSpecUpdates == null,
+            "Root Input specs can only be updated when the vertex is configured with -1 tasks");
         if (parallelism >= numTasks) {
           // not that hard to support perhaps. but checking right now since there
           // is no use case for it and checking may catch other bugs.
@@ -1174,15 +1214,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         if (parallelism == numTasks) {
           LOG.info("setParallelism same as current value: " + parallelism + 
               " for vertex: " + logIdentifier);
-          Preconditions
-          .checkArgument(sourceEdgeManagers != null,
-              "Source edge managers must be set when not changing parallelism");
+          Preconditions.checkArgument(sourceEdgeManagers != null,
+              "Source edge managers or RootInputSpecs must be set when not changing parallelism");
         } else {
           LOG.info(
               "Resetting vertex location hints due to change in parallelism for vertex: " + logIdentifier);
           vertexLocationHint = null;
         }
-  
+
         // start buffering incoming events so that we can re-route existing events
         for (Edge edge : sourceVertices.values()) {
           edge.startEventBuffering();
@@ -1237,7 +1276,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         VertexParallelismUpdatedEvent parallelismUpdatedEvent =
             new VertexParallelismUpdatedEvent(vertexId, numTasks,
                 vertexLocationHint,
-                sourceEdgeManagers);
+                sourceEdgeManagers, rootInputSpecUpdates);
         appContext.getHistoryHandler().handle(new DAGHistoryEvent(getDAGId(),
             parallelismUpdatedEvent));
 
@@ -1738,22 +1777,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     // Check if any inputs need initializers
     if (event != null) {
-      this.additionalInputs = event.getAdditionalInputs();
-      if (additionalInputs != null) {
-      // FIXME References to descriptor kept in both objects
-        for (InputSpec inputSpec : this.additionalInputSpecs) {
-          if (additionalInputs.containsKey(inputSpec.getSourceVertexName())
-                && additionalInputs.get(inputSpec.getSourceVertexName()).getDescriptor() != null) {
-            inputSpec.setInputDescriptor(
-                additionalInputs.get(inputSpec.getSourceVertexName()).getDescriptor());
-          }
-        }
-      }
+      this.rootInputDescriptors = event.getAdditionalInputs();
     } else {
-      if (additionalInputs != null) {
+      if (rootInputDescriptors != null) {
         LOG.info("Root Inputs exist for Vertex: " + getName() + " : "
-            + additionalInputs);
-        for (RootInputLeafOutputDescriptor<InputDescriptor> input : additionalInputs.values()) {
+            + rootInputDescriptors);
+        for (RootInputLeafOutputDescriptor<InputDescriptor> input : rootInputDescriptors.values()) {
           if (input.getInitializerClassName() != null) {
             if (inputsWithInitializers == null) {
               inputsWithInitializers = Sets.newHashSet();
@@ -2314,7 +2343,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             break;
           }
           if (!vertex.setParallelism(0,
-              null, vertex.recoveredSourceEdgeManagers, true)) {
+              null, vertex.recoveredSourceEdgeManagers, vertex.recoveredRootInputSpecUpdates, true)) {
             LOG.info("Failed to recover edge managers, vertex="
                 + vertex.logIdentifier);
             vertex.finished(VertexState.FAILED,
@@ -2363,7 +2392,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             endState = VertexState.FAILED;
             break;
           }
-          if (!vertex.setParallelism(0, null, vertex.recoveredSourceEdgeManagers, true)) {
+          if (!vertex.setParallelism(0, null, vertex.recoveredSourceEdgeManagers,
+            vertex.recoveredRootInputSpecUpdates, true)) {
             LOG.info("Failed to recover edge managers");
             vertex.finished(VertexState.FAILED,
                 VertexTerminationCause.INIT_FAILURE);
@@ -2537,7 +2567,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           List<RootInputLeafOutputDescriptor<InputDescriptor>> inputList = Lists
               .newArrayListWithCapacity(vertex.inputsWithInitializers.size());
           for (String inputName : vertex.inputsWithInitializers) {
-            inputList.add(vertex.additionalInputs.get(inputName));
+            inputList.add(vertex.rootInputDescriptors.get(inputName));
           }
           LOG.info("Vertex will initialize via inputInitializers "
               + vertex.logIdentifier + ". Starting root input initializers: "
@@ -2581,7 +2611,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           List<RootInputLeafOutputDescriptor<InputDescriptor>> inputList = Lists
               .newArrayListWithCapacity(vertex.inputsWithInitializers.size());
           for (String inputName : vertex.inputsWithInitializers) {
-            inputList.add(vertex.additionalInputs.get(inputName));
+            inputList.add(vertex.rootInputDescriptors.get(inputName));
           }
           LOG.info("Starting root input initializers: "
               + vertex.inputsWithInitializers.size());
@@ -2718,7 +2748,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           " sent by vertex " + splitEvent.getSenderVertex() +
           " numTasks " + splitEvent.getNumTasks());
       vertex.originalOneToOneSplitSource = originalSplitSource;
-      vertex.setParallelism(splitEvent.getNumTasks(), null, null);
+      vertex.setParallelism(splitEvent.getNumTasks(), null, null, null);
       if (vertex.getState() == VertexState.RUNNING || 
           vertex.getState() == VertexState.INITED) {
         return vertex.getState();
@@ -3397,20 +3427,18 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public void setAdditionalInputs(List<RootInputLeafOutputProto> inputs) {
     Preconditions.checkArgument(inputs.size() < 2,
         "For now, only a single root input can be specified on a Vertex");
-    this.additionalInputs = Maps.newHashMapWithExpectedSize(inputs.size());
+    this.rootInputDescriptors = Maps.newHashMapWithExpectedSize(inputs.size());
     for (RootInputLeafOutputProto input : inputs) {
 
       InputDescriptor id = DagTypeConverters
           .convertInputDescriptorFromDAGPlan(input.getEntityDescriptor());
 
-      this.additionalInputs.put(input.getName(),
+      this.rootInputDescriptors.put(input.getName(),
           new RootInputLeafOutputDescriptor<InputDescriptor>(input.getName(), id,
               input.hasInitializerClassName() ? input.getInitializerClassName()
                   : null));
-      InputSpec inputSpec = new InputSpec(input.getName(), id, 0);
-      additionalInputSpecs.add(inputSpec);
+      this.rootInputSpecs.put(input.getName(), DEFAULT_ROOT_INPUT_SPECS);
     }
-
   }
 
   @Nullable
@@ -3451,7 +3479,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @Nullable
   @Override
   public Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> getAdditionalInputs() {
-    return this.additionalInputs;
+    return this.rootInputDescriptors;
   }
 
   @Nullable
@@ -3547,9 +3575,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   // TODO Eventually remove synchronization.
   @Override
   public synchronized List<InputSpec> getInputSpecList(int taskIndex) {
-    inputSpecList = new ArrayList<InputSpec>(
-        this.getInputVerticesCount() + additionalInputSpecs.size());
-    inputSpecList.addAll(additionalInputSpecs);
+    inputSpecList = new ArrayList<InputSpec>(this.getInputVerticesCount()
+        + (rootInputDescriptors == null ? 0 : rootInputDescriptors.size()));
+    if (rootInputDescriptors != null) {
+      for (Entry<String, RootInputLeafOutputDescriptor<InputDescriptor>> rootInputDescriptorEntry : rootInputDescriptors
+          .entrySet()) {
+        inputSpecList.add(new InputSpec(rootInputDescriptorEntry.getKey(),
+            rootInputDescriptorEntry.getValue().getDescriptor(), rootInputSpecs.get(
+                rootInputDescriptorEntry.getKey()).getNumPhysicalInputsForWorkUnit(taskIndex)));
+      }
+    }
     for (Entry<Vertex, Edge> entry : this.getInputVertices().entrySet()) {
       InputSpec inputSpec = entry.getValue().getDestinationSpec(taskIndex);
       if (LOG.isDebugEnabled()) {

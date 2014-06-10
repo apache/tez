@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +28,7 @@ import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.RootInputSpecUpdate;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.runtime.api.events.RootInputUpdatePayloadEvent;
@@ -75,8 +77,13 @@ public class RootInputVertexManager implements VertexManagerPlugin {
             .checkState(context.getVertexNumTasks(context.getVertexName()) == -1,
                 "Parallelism for the vertex should be set to -1 if the InputInitializer is setting parallelism");
         RootInputConfigureVertexTasksEvent cEvent = (RootInputConfigureVertexTasksEvent) event;
+        Map<String, RootInputSpecUpdate> rootInputSpecUpdate = new HashMap<String, RootInputSpecUpdate>();
+        rootInputSpecUpdate.put(
+            inputName,
+            cEvent.getRootInputSpecUpdate() == null ? RootInputSpecUpdate
+                .getDefaultSinglePhysicalInputSpecUpdate() : cEvent.getRootInputSpecUpdate());
         context.setVertexParallelism(cEvent.getNumTasks(),
-            new VertexLocationHint(cEvent.getTaskLocationHints()), null);
+            new VertexLocationHint(cEvent.getTaskLocationHints()), null, rootInputSpecUpdate);
       }
       if (event instanceof RootInputUpdatePayloadEvent) {
         // No tasks should have been started yet. Checked by initial state check.

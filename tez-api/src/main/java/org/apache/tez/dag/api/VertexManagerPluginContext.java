@@ -22,13 +22,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.Container;
-import javax.annotation.Nullable;
+
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.runtime.api.RootInputSpecUpdate;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 
 import com.google.common.base.Preconditions;
@@ -111,19 +113,22 @@ public interface VertexManagerPluginContext {
   int getNumClusterNodes();
   
   /**
-   * Set the new parallelism (number of tasks) of this vertex.
+   * Set the new parallelism (number of tasks) of this vertex,
    * Map of source (input) vertices and edge managers to change the event routing
-   * between the source tasks and the new destination tasks.
+   * between the source tasks and the new destination tasks and the number of physical inputs for root inputs.
    * This API can change the parallelism only once. Subsequent attempts will be 
    * disallowed
    * @param parallelism New number of tasks in the vertex
    * @param locationHint the placement policy for tasks.
    * @param sourceEdgeManagers Edge Managers to be updated
+   * @param rootInputSpecUpdate Updated Root Input specifications, if any.
+   *        If none specified, a default of 1 physical input is used
    * @return true if the operation was allowed.
    */
   public boolean setVertexParallelism(int parallelism,
       @Nullable VertexLocationHint locationHint,
-      @Nullable Map<String, EdgeManagerDescriptor> sourceEdgeManagers);
+      @Nullable Map<String, EdgeManagerDescriptor> sourceEdgeManagers,
+      @Nullable Map<String, RootInputSpecUpdate> rootInputSpecUpdate);
   
   /**
    * Allows a VertexManagerPlugin to assign Events for Root Inputs

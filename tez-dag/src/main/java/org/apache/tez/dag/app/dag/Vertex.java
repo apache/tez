@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nullable;
+
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
@@ -44,6 +45,7 @@ import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.OutputCommitter;
+import org.apache.tez.runtime.api.RootInputSpecUpdate;
 import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
@@ -83,7 +85,8 @@ public interface Vertex extends Comparable<Vertex> {
   TaskLocationHint getTaskLocationHint(TezTaskID taskID);
 
   boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
-      Map<String, EdgeManagerDescriptor> sourceEdgeManagers);
+      Map<String, EdgeManagerDescriptor> sourceEdgeManagers,
+      Map<String, RootInputSpecUpdate> rootInputSpecUpdate);
   void setVertexLocationHint(VertexLocationHint vertexLocationHint);
 
   // CHANGE THESE TO LISTS AND MAINTAIN ORDER?

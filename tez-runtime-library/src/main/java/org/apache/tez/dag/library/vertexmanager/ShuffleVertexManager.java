@@ -427,7 +427,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
         edgeManagers.put(vertex, edgeManagerDescriptor);
       }
       
-      context.setVertexParallelism(finalTaskParallelism, null, edgeManagers);
+      context.setVertexParallelism(finalTaskParallelism, null, edgeManagers, null);
       updatePendingTasks();      
     }
   }

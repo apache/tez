@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nullable;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -50,6 +52,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.RootInputSpecUpdate;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
@@ -103,8 +106,10 @@ public class VertexManager {
 
     @Override
     public boolean setVertexParallelism(int parallelism, VertexLocationHint vertexLocationHint,
-        Map<String, EdgeManagerDescriptor> sourceEdgeManagers) {
-      return managedVertex.setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers);
+        Map<String, EdgeManagerDescriptor> sourceEdgeManagers,
+        Map<String, RootInputSpecUpdate> rootInputSpecUpdate) {
+      return managedVertex.setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers,
+          rootInputSpecUpdate);
     }
 
     @Override
