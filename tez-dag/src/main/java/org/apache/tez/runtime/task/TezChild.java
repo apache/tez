@@ -160,7 +160,7 @@ public class TezChild {
       }
     });
   }
-
+  
   void run() throws IOException, InterruptedException, TezException {
 
     ContainerContext containerContext = new ContainerContext(containerIdString);
@@ -172,7 +172,7 @@ public class TezChild {
 
     UserGroupInformation childUGI = null;
 
-    while (true) {
+    while (!executor.isTerminated()) {
       if (taskCount > 0) {
         TezUtils.updateLoggers("");
       }
@@ -193,6 +193,7 @@ public class TezChild {
       if (containerTask.shouldDie()) {
         LOG.info("ContainerTask returned shouldDie=true, Exiting");
         shutdown();
+        return;
       } else {
         String loggerAddend = containerTask.getTaskSpec().getTaskAttemptID().toString();
         taskCount++;
@@ -213,6 +214,7 @@ public class TezChild {
           if (shouldDie) {
             LOG.info("Got a shouldDie notification via hearbeats. Shutting down");
             shutdown();
+            return;
           }
         } catch (IOException e) {
           handleError(e);
