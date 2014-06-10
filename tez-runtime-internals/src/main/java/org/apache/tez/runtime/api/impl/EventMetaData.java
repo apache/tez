@@ -66,11 +66,10 @@ public class EventMetaData implements Writable {
   }
 
   public EventMetaData(EventProducerConsumerType generator,
-      String taskVertexName, String edgeVertexName,
+      String taskVertexName, @Nullable String edgeVertexName,
       @Nullable TezTaskAttemptID taskAttemptID) {
     checkNotNull(generator, "generator is null");
     checkNotNull(taskVertexName, "taskVertexName is null");
-    checkNotNull(edgeVertexName, "edgeVertexName is null");
     this.producerConsumerType = generator;
     this.taskVertexName = StringInterner.weakIntern(taskVertexName);
     this.edgeVertexName = StringInterner.weakIntern(edgeVertexName);
