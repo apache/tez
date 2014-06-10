@@ -95,7 +95,7 @@ public class TezChild {
   private final int maxEventsToGet;
 
   private final ListeningExecutorService executor;
-  private final ObjectRegistryImpl objectRegistry = new ObjectRegistryImpl();
+  private final ObjectRegistryImpl objectRegistry;
   private final Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
 
   private Multimap<String, String> startedInputsMap = HashMultimap.create();
@@ -106,8 +106,8 @@ public class TezChild {
   private TezVertexID lastVertexID;
 
   public TezChild(Configuration conf, String host, int port, String containerIdentifier,
-      String tokenIdentifier, int appAttemptNumber, String[] localDirs) throws IOException,
-      InterruptedException {
+      String tokenIdentifier, int appAttemptNumber, String[] localDirs,
+      ObjectRegistryImpl objectRegistry) throws IOException, InterruptedException {
     this.defaultConf = conf;
     this.containerIdString = containerIdentifier;
     this.appAttemptNumber = appAttemptNumber;
@@ -132,6 +132,8 @@ public class TezChild {
     ExecutorService executor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
         .setDaemon(true).setNameFormat("TezChild").build());
     this.executor = MoreExecutors.listeningDecorator(executor);
+
+    this.objectRegistry = objectRegistry;
 
     // Security framework already loaded the tokens into current ugi
     Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
@@ -354,7 +356,7 @@ public class TezChild {
     Injector injector = Guice.createInjector(new ObjectRegistryModule(objectRegistry));
 
     TezChild tezChild = new TezChild(defaultConf, host, port, containerIdentifier, tokenIdentifier,
-        attemptNumber, localDirs);
+        attemptNumber, localDirs, objectRegistry);
 
     tezChild.run();
   }
