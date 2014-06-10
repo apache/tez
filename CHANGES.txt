@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1025. Rename tez.am.max.task.attempts to tez.am.task.max.failed.attempts 
   TEZ-1018. VertexManagerPluginContext should enable assigning locality to
   scheduled tasks
+  TEZ-1169. Allow numPhysicalInputs to be specified for RootInputs.
 
 Release 0.4.0-incubating: 2014-04-05
 
