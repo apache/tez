@@ -85,6 +85,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.utils.JavaProfilerOptions;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -479,6 +480,192 @@ public class TestContainerReuse {
     eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
     eventHandler.reset();
 
+    taskScheduler.close();
+    taskSchedulerEventHandler.close();
+  }
+
+  @Test(timeout = 10000l)
+  public void testReuseWithProfilerOption() throws IOException, InterruptedException, ExecutionException {
+    Configuration tezConf = new Configuration(new YarnConfiguration());
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, true);
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED, true);
+    tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 0);
+    tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_SESSION_DELAY_ALLOCATION_MILLIS, 0);
+    //Profile 3 tasks
+    tezConf.set(TezConfiguration.TEZ_PROFILE_TASK_LIST, "v1[1,3,4]");
+    tezConf.set(TezConfiguration.TEZ_PROFILE_JVM_OPTS, "dir=/tmp/__VERTEX_NAME__/__TASK_INDEX__");
+    JavaProfilerOptions profilerOptions =  new JavaProfilerOptions(tezConf);
+
+    RackResolver.init(tezConf);
+    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
+
+    CapturingEventHandler eventHandler = new CapturingEventHandler();
+    TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
+
+    AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
+    TezAMRMClientAsync<CookieContainerRequest> rmClient = spy(new AMRMClientAsyncForTest(rmClientCore, 100));
+    String appUrl = "url";
+    String appMsg = "success";
+    AppFinalStatus finalStatus =
+        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
+
+    doReturn(finalStatus).when(mockApp).getFinalAppStatus();
+
+    AppContext appContext = mock(AppContext.class);
+    AMContainerMap amContainerMap = new AMContainerMap(mock(ContainerHeartbeatHandler.class),
+        mock(TaskAttemptListener.class), new ContainerContextMatcher(), appContext);
+    AMNodeMap amNodeMap = new AMNodeMap(eventHandler, appContext);
+    doReturn(amContainerMap).when(appContext).getAllContainers();
+    doReturn(amNodeMap).when(appContext).getAllNodes();
+    doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
+    doReturn(dagID).when(appContext).getCurrentDAGID();
+    doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
+
+    //Use ContainerContextMatcher here.  Otherwise it would not match the JVM options
+    TaskSchedulerEventHandler taskSchedulerEventHandlerReal =
+        new TaskSchedulerEventHandlerForTest(appContext, eventHandler, rmClient, new ContainerContextMatcher());
+    TaskSchedulerEventHandler taskSchedulerEventHandler = spy(taskSchedulerEventHandlerReal);
+    taskSchedulerEventHandler.init(tezConf);
+    taskSchedulerEventHandler.start();
+
+    TaskSchedulerWithDrainableAppCallback taskScheduler =
+        (TaskSchedulerWithDrainableAppCallback) ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
+          .getSpyTaskScheduler();
+    TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
+    AtomicBoolean drainNotifier = new AtomicBoolean(false);
+    taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
+
+    Resource resource1 = Resource.newInstance(1024, 1);
+    String[] host1 = {"host1"};
+    String[] host2 = {"host2"};
+    String[] host3 = {"host3"};
+
+    String []racks = {"/default-rack"};
+    Priority priority1 = Priority.newInstance(1);
+
+    TezVertexID vertexID1 = TezVertexID.getInstance(dagID, 1);
+    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+    String jvmOpts = profilerOptions.getProfilerOptions("", "v1", 1);
+
+    /**
+     * Schedule 2 tasks (1 with profiler option and another in normal mode).
+     * Container should not be reused in this case.
+     */
+    //Vertex 1, Task 1, Attempt 1, host1
+    TezTaskAttemptID taID11 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID1, 1), 1);
+    TaskAttempt ta11 = mock(TaskAttempt.class);
+    AMSchedulerEventTALaunchRequest lrEvent1 =
+        createLaunchRequestEvent(taID11, ta11, resource1, host1, racks,
+          priority1, localResources, jvmOpts);
+
+    //Vertex 1, Task 2, Attempt 1, host1
+    TezTaskAttemptID taID12 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID1, 2), 1);
+    TaskAttempt ta12 = mock(TaskAttempt.class);
+    AMSchedulerEventTALaunchRequest lrEvent2 =
+        createLaunchRequestEvent(taID12, ta12, resource1, host1, racks, priority1);
+
+    taskSchedulerEventHandler.handleEvent(lrEvent1);
+    taskSchedulerEventHandler.handleEvent(lrEvent2);
+
+    Container container1 = createContainer(1, "host1", resource1, priority1);
+
+    // One container allocated.
+    drainNotifier.set(false);
+    taskScheduler.onContainersAllocated(Collections.singletonList(container1));
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
+    drainableAppCallback.drain();
+    verify(taskSchedulerEventHandler).taskAllocated(eq(ta11), any(Object.class), eq(container1));
+
+    // First task had profiling on. This container can not be reused further.
+    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta11, container1.getId(), TaskAttemptState.SUCCEEDED));
+    drainableAppCallback.drain();
+    verify(taskScheduler).deallocateTask(eq(ta11), eq(true));
+    verify(taskSchedulerEventHandler, times(0)).taskAllocated(eq(ta12), any(Object.class), eq(container1));
+    verify(rmClient, times(1)).releaseAssignedContainer(eq(container1.getId()));
+    eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
+    eventHandler.reset();
+
+    /**
+     * Schedule 2 tasks (both having different profiler option).
+     * Container should not be reused.
+     */
+    //Vertex 1, Task 3, Attempt 1, host2
+    jvmOpts = profilerOptions.getProfilerOptions("", "v1", 3);
+    TezTaskAttemptID taID13 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID1, 3), 1);
+    TaskAttempt ta13 = mock(TaskAttempt.class);
+    AMSchedulerEventTALaunchRequest lrEvent3 =
+        createLaunchRequestEvent(taID13, ta13, resource1, host2, racks,
+          priority1, localResources, jvmOpts);
+
+    //Vertex 1, Task 4, Attempt 1, host2
+    jvmOpts = profilerOptions.getProfilerOptions("", "v1", 4);
+    TezTaskAttemptID taID14 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID1, 4), 1);
+    TaskAttempt ta14 = mock(TaskAttempt.class);
+    AMSchedulerEventTALaunchRequest lrEvent4 =
+        createLaunchRequestEvent(taID14, ta14, resource1, host2, racks,
+          priority1, localResources, jvmOpts);
+
+    Container container2 = createContainer(2, "host2", resource1, priority1);
+    taskSchedulerEventHandler.handleEvent(lrEvent3);
+    taskSchedulerEventHandler.handleEvent(lrEvent4);
+
+    // Container started
+    drainNotifier.set(false);
+    taskScheduler.onContainersAllocated(Collections.singletonList(container2));
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
+    drainableAppCallback.drain();
+    verify(taskSchedulerEventHandler).taskAllocated(eq(ta13), any(Object.class), eq(container2));
+
+    // Verify that the container can not be reused when profiling option is turned on
+    // Even for 2 tasks having same profiling option can have container reusability.
+    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta13, container2.getId(), TaskAttemptState.SUCCEEDED));
+    drainableAppCallback.drain();
+    verify(taskScheduler).deallocateTask(eq(ta13), eq(true));
+    verify(taskSchedulerEventHandler, times(0)).taskAllocated(eq(ta14), any(Object.class), eq(container2));
+    verify(rmClient, times(1)).releaseAssignedContainer(eq(container2.getId()));
+    eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
+    eventHandler.reset();
+
+    /**
+     * Schedule 2 tasks with same jvm profiling option.
+     * Container should be reused.
+     */
+    tezConf.set(TezConfiguration.TEZ_PROFILE_TASK_LIST, "v1[1,2,3,5,6]");
+    tezConf.set(TezConfiguration.TEZ_PROFILE_JVM_OPTS, "dummyOpts");
+    profilerOptions =  new JavaProfilerOptions(tezConf);
+
+    //Vertex 1, Task 5, Attempt 1, host3
+    TezTaskAttemptID taID15 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID1, 3), 1);
+    TaskAttempt ta15 = mock(TaskAttempt.class);
+    AMSchedulerEventTALaunchRequest lrEvent5 =
+        createLaunchRequestEvent(taID15, ta15, resource1, host3, racks,
+          priority1, localResources, profilerOptions. getProfilerOptions("", "v1", 5));
+
+    //Vertex 1, Task 6, Attempt 1, host3
+    jvmOpts = profilerOptions.getProfilerOptions("", "v1", 4);
+    TezTaskAttemptID taID16 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID1, 4), 1);
+    TaskAttempt ta16 = mock(TaskAttempt.class);
+    AMSchedulerEventTALaunchRequest lrEvent6 =
+        createLaunchRequestEvent(taID16, ta16, resource1, host3, racks,
+          priority1, localResources, profilerOptions. getProfilerOptions("", "v1", 6));
+
+    // Container started
+    Container container3 = createContainer(2, "host3", resource1, priority1);
+    taskSchedulerEventHandler.handleEvent(lrEvent5);
+    taskSchedulerEventHandler.handleEvent(lrEvent6);
+
+    drainNotifier.set(false);
+    taskScheduler.onContainersAllocated(Collections.singletonList(container3));
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
+    drainableAppCallback.drain();
+    verify(taskSchedulerEventHandler).taskAllocated(eq(ta15), any(Object.class), eq(container3));
+
+    //Ensure task 6 (of vertex 1) is allocated to same container
+    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta15, container3.getId(), TaskAttemptState.SUCCEEDED));
+    drainableAppCallback.drain();
+    verify(taskScheduler).deallocateTask(eq(ta15), eq(true));
+    verify(taskSchedulerEventHandler).taskAllocated(eq(ta16), any(Object.class), eq(container3));
+    eventHandler.reset();
 
     taskScheduler.close();
     taskSchedulerEventHandler.close();
@@ -930,7 +1117,14 @@ public class TestContainerReuse {
       TaskAttempt ta, Resource capability, String[] hosts, String[] racks, Priority priority,
       Map<String, LocalResource> localResources) {
     return createLaunchRequestEvent(taID, ta, capability, hosts, racks, priority,
-        new ContainerContext(localResources, new Credentials(), new HashMap<String, String>(), ""));
+        localResources, "");
+  }
+
+  private AMSchedulerEventTALaunchRequest createLaunchRequestEvent(TezTaskAttemptID taID,
+      TaskAttempt ta, Resource capability, String[] hosts, String[] racks, Priority priority,
+      Map<String, LocalResource> localResources, String jvmOpts) {
+    return createLaunchRequestEvent(taID, ta, capability, hosts, racks, priority,
+        new ContainerContext(localResources, new Credentials(), new HashMap<String, String>(), jvmOpts));
   }
 
   private static class ChangingDAGIDAnswer implements Answer<TezDAGID> {

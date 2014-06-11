@@ -132,6 +132,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.utils.JavaProfilerOptions;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.RootInputSpecUpdate;
@@ -600,12 +601,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   boolean recoveryStartEventSeen = false;
   private VertexStats vertexStats = null;
 
+  private final JavaProfilerOptions profilerOpts;
+
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
       String vertexName, Configuration conf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener, Clock clock,
-      TaskHeartbeatHandler thh, boolean commitVertexOutputs, 
-      AppContext appContext, VertexLocationHint vertexLocationHint, 
-      Map<String, VertexGroupInfo> dagVertexGroups) {
+      TaskHeartbeatHandler thh, boolean commitVertexOutputs,
+      AppContext appContext, VertexLocationHint vertexLocationHint,
+      Map<String, VertexGroupInfo> dagVertexGroups, JavaProfilerOptions profilerOpts) {
     this.vertexId = vertexId;
     this.vertexPlan = vertexPlan;
     this.vertexName = StringInterner.weakIntern(vertexName);
@@ -642,7 +645,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             .getEnvironmentSettingList());
     this.javaOpts = vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan
         .getTaskConfig().getJavaOpts() : null;
-
+    this.profilerOpts = profilerOpts;
     this.containerContext = new ContainerContext(this.localResources,
         appContext.getCurrentDAG().getCredentials(), this.environment, this.javaOpts, this);
 
@@ -652,11 +655,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     if (vertexPlan.getOutputsCount() > 0) {
       setAdditionalOutputs(vertexPlan.getOutputsList());
     }
-    
+
     // Setup the initial parallelism early. This may be changed after
     // initialization or on a setParallelism call.
     this.numTasks = vertexPlan.getTaskConfig().getNumTasks();
-    
+
     this.dagVertexGroups = dagVertexGroups;
 
     logIdentifier =  this.getVertexId() + " [" + this.getName() + "]";
@@ -1720,9 +1723,20 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     // no code, for now
   }
 
+  private ContainerContext getContainerContext(int taskIdx) {
+    if (profilerOpts.shouldProfileJVM(vertexName, taskIdx)) {
+      String jvmOpts = profilerOpts.getProfilerOptions(javaOpts, vertexName, taskIdx);
+      ContainerContext context = new ContainerContext(this.localResources,
+          appContext.getCurrentDAG().getCredentials(), this.environment, jvmOpts);
+      return context;
+    } else {
+      return this.containerContext;
+    }
+  }
+
   private void createTasks() {
-    Configuration conf = this.conf;
     for (int i=0; i < this.numTasks; ++i) {
+      ContainerContext conContext = getContainerContext(i);
       TaskImpl task =
           new TaskImpl(this.getVertexId(), i,
               this.eventHandler,
@@ -1734,10 +1748,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               (this.targetVertices != null ?
                 this.targetVertices.isEmpty() : true),
               this.taskResource,
-              this.containerContext);
+              conContext);
       this.addTask(task);
       if(LOG.isDebugEnabled()) {
-        LOG.debug("Created task for vertex " + this.getVertexId() + ": " +
+        LOG.debug("Created task for vertex " + logIdentifier + ": " +
             task.getTaskId());
       }
     }

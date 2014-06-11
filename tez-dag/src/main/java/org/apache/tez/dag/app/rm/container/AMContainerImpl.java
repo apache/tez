@@ -82,10 +82,6 @@ public class AMContainerImpl implements AMContainer {
   private final TaskAttemptListener taskAttemptListener;
   protected final EventHandler eventHandler;
   private final ContainerSignatureMatcher signatureMatcher;
-  @VisibleForTesting
-  final boolean shouldProfile;
-  @VisibleForTesting
-  final String profileJavaOpts;
 
   private final List<TezTaskAttemptID> completedAttempts =
       new LinkedList<TezTaskAttemptID>();
@@ -339,7 +335,7 @@ public class AMContainerImpl implements AMContainer {
   // additional change - JvmID, YarnChild, etc depend on TaskType.
   public AMContainerImpl(Container container, ContainerHeartbeatHandler chh,
       TaskAttemptListener tal, ContainerSignatureMatcher signatureMatcher,
-      boolean shouldProfile, String profileJavaOpts, AppContext appContext) {
+      AppContext appContext) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
@@ -351,9 +347,6 @@ public class AMContainerImpl implements AMContainer {
     this.containerHeartbeatHandler = chh;
     this.taskAttemptListener = tal;
     this.failedAssignments = new LinkedList<TezTaskAttemptID>();
-    this.shouldProfile = shouldProfile;
-    this.profileJavaOpts = profileJavaOpts;
-
     this.noAllocationContainerTask = WAIT_TASK;
     this.stateMachine = stateMachineFactory.make(this);
   }
@@ -511,7 +504,7 @@ public class AMContainerImpl implements AMContainer {
           containerContext.getEnvironment(),
           containerContext.getJavaOpts(),
           container.taskAttemptListener.getAddress(), containerContext.getCredentials(),
-          container.shouldProfile, container.profileJavaOpts, container.appContext);
+          container.appContext);
 
       // Registering now, so that in case of delayed NM response, the child
       // task is not told to die since the TAL does not know about the container.

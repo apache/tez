@@ -343,14 +343,24 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_GENERATE_DAG_VIZ =
       TEZ_PREFIX + "generate.dag.viz";
   public static final boolean TEZ_GENERATE_DAG_VIZ_DEFAULT = true;
-  
+
   /**
-   * Comma separated list of containers which should be profiled.
+   * Set of tasks that should be profiled.
+   * Format: "vertexName[csv of task ids];vertexName[csv of task ids].."
+   * Valid e.g:
+   * v[0,1,2]  - Profile tasks 0,1,2 of vertex v
+   * v[1,2,3];v2[5,6,7] - Profile specified tasks of vertices v and v2.
+   * v[1:5,20,30];v2[2:5,60,7] - Profile 1,2,3,4,5,20,30 of vertex v; 2,3,4,5,60,7 of vertex v2
+   * Partial ranges like :5, 1: are not supported.
+   * v[] - Profile all tasks in vertex v
    */
-  public static final String TEZ_PROFILE_CONTAINER_LIST = TEZ_PREFIX + "profile.container.list";
-  
+  public static final String TEZ_PROFILE_TASK_LIST = TEZ_PREFIX + "profile.task.list";
+
   /**
-   * The string to be added to the JVM command line for containers being profiled.
+   * Additional string to be added to the JVM options for tasks being profiled.
+   * __VERTEX_NAME__ and __TASK_INDEX__ can be specified, which would be replaced at
+   * runtime by vertex name and task index being profiled.
+   * e.g tez.profiler.jvm.opts=--agentpath:libpagent.so,dir=/tmp/__VERTEX_NAME__/__TASK_INDEX__"
    */
   public static final String TEZ_PROFILE_JVM_OPTS = TEZ_PREFIX + "profile.jvm.opts";
 

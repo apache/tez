@@ -43,50 +43,6 @@ import org.junit.Test;
 
 public class TestAMContainerMap {
 
-  @Test
-  public void testAMContainerMap() throws IOException {
-    ContainerHeartbeatHandler chh = mockContainerHeartBeatHandler();
-    TaskAttemptListener tal = mockTaskAttemptListener();
-    AppContext context = mockAppContext();
-    AMContainerMap amContainerMap = new AMContainerMap(chh, tal, new ContainerContextMatcher(),
-        context);
-
-    Configuration conf = new Configuration();
-    conf.set(TezConfiguration.TEZ_PROFILE_CONTAINER_LIST, "2, 4");
-    conf.set(TezConfiguration.TEZ_PROFILE_JVM_OPTS, "testJvmOpts");
-
-    amContainerMap.init(conf);
-    amContainerMap.start();
-
-    ContainerId cId1 = mockContainerId(1);
-    ContainerId cId2 = mockContainerId(2);
-    ContainerId cId3 = mockContainerId(3);
-    ContainerId cId4 = mockContainerId(4);
-
-    amContainerMap.addContainerIfNew(mockContainer(cId1));
-    amContainerMap.addContainerIfNew(mockContainer(cId2));
-    amContainerMap.addContainerIfNew(mockContainer(cId3));
-    amContainerMap.addContainerIfNew(mockContainer(cId4));
-
-    AMContainerImpl amContainer = (AMContainerImpl) amContainerMap.get(cId1);
-    assertFalse(amContainer.shouldProfile);
-    assertNull(amContainer.profileJavaOpts);
-
-    amContainer = (AMContainerImpl) amContainerMap.get(cId2);
-    assertTrue(amContainer.shouldProfile);
-    assertEquals("testJvmOpts", amContainer.profileJavaOpts);
-
-    amContainer = (AMContainerImpl) amContainerMap.get(cId3);
-    assertFalse(amContainer.shouldProfile);
-    assertNull(amContainer.profileJavaOpts);
-
-    amContainer = (AMContainerImpl) amContainerMap.get(cId4);
-    assertTrue(amContainer.shouldProfile);
-    assertEquals("testJvmOpts", amContainer.profileJavaOpts);
-
-    amContainerMap.close();
-  }
-
   private ContainerHeartbeatHandler mockContainerHeartBeatHandler() {
     return mock(ContainerHeartbeatHandler.class);
   }

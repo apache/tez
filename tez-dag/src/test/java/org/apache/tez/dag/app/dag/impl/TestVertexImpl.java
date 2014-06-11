@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -121,6 +122,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.utils.JavaProfilerOptions;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
@@ -178,6 +180,7 @@ public class TestVertexImpl {
   private VertexEventDispatcher vertexEventDispatcher;
   private DagEventDispatcher dagEventDispatcher;
   private HistoryEventHandler historyEventHandler;
+  private static JavaProfilerOptions javaProfilerOptions;
 
   public static class CountingOutputCommitter extends
       OutputCommitter {
@@ -1372,7 +1375,7 @@ public class TestVertexImpl {
       } else {
         v = new VertexImpl(vertexId, vPlan, vPlan.getName(), conf,
             dispatcher.getEventHandler(), taskAttemptListener,
-            clock, thh, true, appContext, locationHint, vertexGroups);
+            clock, thh, true, appContext, locationHint, vertexGroups, javaProfilerOptions);
       }
       vertices.put(vName, v);
       vertexIdMap.put(vertexId, v);
@@ -1428,6 +1431,8 @@ public class TestVertexImpl {
     appAttemptId = ApplicationAttemptId.newInstance(
         ApplicationId.newInstance(100, 1), 1);
     dagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 1);
+    javaProfilerOptions = mock(JavaProfilerOptions.class);
+    doReturn(false).when(javaProfilerOptions).shouldProfileJVM(any(String.class), anyInt());
   }
 
   public void setupPostDagCreation() {
@@ -2743,7 +2748,7 @@ public class TestVertexImpl {
       VertexPlan vPlan = invalidDagPlan.getVertex(0);
       VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
           dispatcher.getEventHandler(), taskAttemptListener,
-          clock, thh, true, appContext, vertexLocationHint, null);
+          clock, thh, true, appContext, vertexLocationHint, null, javaProfilerOptions);
       vertexIdMap.put(vId, v);
       vertices.put(v.getName(), v);
       v.handle(new VertexEvent(vId, VertexEventType.V_INIT));
@@ -2772,7 +2777,7 @@ public class TestVertexImpl {
         AppContext appContext, VertexLocationHint vertexLocationHint, DrainDispatcher dispatcher) {
       super(vertexId, vertexPlan, vertexName, conf, eventHandler,
           taskAttemptListener, clock, thh, true,
-          appContext, vertexLocationHint, null);
+          appContext, vertexLocationHint, null, javaProfilerOptions);
       this.dispatcher = dispatcher;
     }
 

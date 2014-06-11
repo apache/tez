@@ -69,8 +69,6 @@ public class TezRuntimeChildJVM {
       String containerIdentifier,
       String tokenIdentifier,
       int applicationAttemptNumber,
-      boolean shouldProfile,
-      String profileOpts,
       String javaOpts) {
 
     Vector<String> vargs = new Vector<String>(9);
@@ -83,11 +81,6 @@ public class TezRuntimeChildJVM {
     Path childTmpDir = new Path(Environment.PWD.$(),
         YarnConfiguration.DEFAULT_CONTAINER_TEMP_DIR);
     vargs.add("-Djava.io.tmpdir=" + childTmpDir);
-
-    // FIXME Setup the log4j properties
-    if (shouldProfile && profileOpts != null) {
-      vargs.add(profileOpts);
-    }
 
     // Add main class and its arguments
     vargs.add(TezChild.class.getName());  // main of Child
@@ -112,5 +105,4 @@ public class TezRuntimeChildJVM {
     vargsFinal.add(mergedCommand.toString());
     return vargsFinal;
   }
-
 }

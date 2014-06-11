@@ -981,20 +981,6 @@ public class TestAMContainer {
     assertNull(fetchedTask.getCredentials());
     wc.taskAttemptSucceeded(attempt32);
   }
-  
-  @SuppressWarnings("rawtypes")
-  @Test
-  public void testContainerProfiling() {
-    WrappedContainer wc = new WrappedContainer(true, "profileString");
-    wc.launchContainer();
-    List<Event> events = wc.verifyCountAndGetOutgoingEvents(1);
-    Event event = events.get(0);
-    assertTrue(event instanceof NMCommunicatorLaunchRequestEvent);
-    NMCommunicatorLaunchRequestEvent lrEvent = (NMCommunicatorLaunchRequestEvent) event;
-    ContainerLaunchContext clc = lrEvent.getContainerLaunchContext();
-    assertNotNull(clc);
-    assertTrue(clc.getCommands().get(0).contains("profileString"));
-  }
 
   // TODO Verify diagnostics in most of the tests.
 
@@ -1067,13 +1053,13 @@ public class TestAMContainer {
       doReturn(taskAttemptID).when(taskSpec).getTaskAttemptID();
 
       amContainer = new AMContainerImpl(container, chh, tal,
-          new ContainerContextMatcher(), shouldProfile, profileString, appContext);
+          new ContainerContextMatcher(), appContext);
     }
-    
+
     public WrappedContainer() {
       this(false, null);
     }
-    
+
     protected void mockDAGID() {
       doReturn(dagID).when(appContext).getCurrentDAGID();
     }

@@ -44,8 +44,6 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
   private final AppContext context;
   private final ContainerSignatureMatcher containerSignatureMatcher;
   private final ConcurrentHashMap<ContainerId, AMContainer> containerMap;
-  private Set<Integer> profileContainerSet;
-  private String commonProfileJavaOpts;
 
   public AMContainerMap(ContainerHeartbeatHandler chh, TaskAttemptListener tal,
       ContainerSignatureMatcher containerSignatureMatcher, AppContext context) {
@@ -55,27 +53,6 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
     this.context = context;
     this.containerSignatureMatcher = containerSignatureMatcher;
     this.containerMap = new ConcurrentHashMap<ContainerId, AMContainer>();
-  }
-
-  @Override
-  public synchronized void serviceInit(Configuration conf) {
-    Collection<String> profileContainers = getConfig().getTrimmedStringCollection(
-        TezConfiguration.TEZ_PROFILE_CONTAINER_LIST);
-    if (profileContainers != null && !profileContainers.isEmpty()) {
-      profileContainerSet = new HashSet<Integer>();
-      for (String containerNum : profileContainers) {
-        profileContainerSet.add(Integer.parseInt(containerNum));
-      }
-      commonProfileJavaOpts = conf.get(TezConfiguration.TEZ_PROFILE_JVM_OPTS);
-      if (!profileContainerSet.isEmpty()
-          && (commonProfileJavaOpts == null || commonProfileJavaOpts.isEmpty())) {
-        LOG.warn("Profiling specified for " + profileContainerSet.size()
-            + " containers, but no profiling string specified. "
-            + TezConfiguration.TEZ_PROFILE_JVM_OPTS + " needs to be set");
-      }
-      LOG.info("Containers to be profile: " + profileContainerSet );
-    }
-    
   }
 
   @Override
@@ -89,10 +66,8 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
   }
 
   public boolean addContainerIfNew(Container container) {
-    boolean shouldProfile = profileContainerSet == null ? false : profileContainerSet
-        .contains(container.getId().getId());
-    AMContainer amc = new AMContainerImpl(container, chh, tal, containerSignatureMatcher,
-        shouldProfile, shouldProfile ? commonProfileJavaOpts : null, context);
+    AMContainer amc = new AMContainerImpl(container, chh, tal,
+      containerSignatureMatcher, context);
     return (containerMap.putIfAbsent(container.getId(), amc) == null);
   }
 

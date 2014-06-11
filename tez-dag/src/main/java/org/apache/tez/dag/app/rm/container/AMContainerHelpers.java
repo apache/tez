@@ -145,7 +145,7 @@ public class AMContainerHelpers {
       Map<String, String> vertexEnv,
       String javaOpts,
       InetSocketAddress taskAttemptListenerAddress, Credentials credentials,
-      boolean shouldProfile, String profileOpts, AppContext appContext) {
+      AppContext appContext) {
 
     ContainerLaunchContext commonContainerSpec = null;
     synchronized (commonContainerSpecLock) {
@@ -183,8 +183,7 @@ public class AMContainerHelpers {
     List<String> commands = TezRuntimeChildJVM.getVMCommand(
         taskAttemptListenerAddress, containerId.toString(),
         appContext.getApplicationID().toString(),
-        appContext.getApplicationAttemptId().getAttemptId(),
-        shouldProfile, profileOpts, javaOpts);
+        appContext.getApplicationAttemptId().getAttemptId(), javaOpts);
 
     // Duplicate the ByteBuffers for access by multiple containers.
     Map<String, ByteBuffer> myServiceData = new HashMap<String, ByteBuffer>();
