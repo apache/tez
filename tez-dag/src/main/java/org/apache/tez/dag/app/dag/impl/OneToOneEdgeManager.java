@@ -29,37 +29,35 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
 public class OneToOneEdgeManager implements EdgeManager {
 
+  List<Integer> destinationInputIndices = 
+      Collections.unmodifiableList(Collections.singletonList(0)); 
+
   @Override
   public void initialize(EdgeManagerContext edgeManagerContext) {
     // Nothing to do.
   }
 
   @Override
-  public int getNumDestinationTaskPhysicalInputs(int numDestinationTasks, 
-      int destinationTaskIndex) {
+  public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
     return 1;
   }
   
   @Override
-  public int getNumSourceTaskPhysicalOutputs(int numDestinationTasks, 
-      int sourceTaskIndex) {
+  public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
     return 1;
   }
   
   @Override
   public void routeDataMovementEventToDestination(DataMovementEvent event,
-      int sourceTaskIndex, int numDestinationTasks, 
-      Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
-    inputIndicesToTaskIndices.put(new Integer(0), 
-        Collections.singletonList(new Integer(sourceTaskIndex)));
+      int sourceTaskIndex, int sourceOutputIndex, 
+      Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+    destinationTaskAndInputIndices.put(sourceTaskIndex, destinationInputIndices);
   }
   
   @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
-      int numDestinationTasks,
-      Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
-    inputIndicesToTaskIndices.put(new Integer(0), 
-        Collections.singletonList(new Integer(sourceTaskIndex)));
+      Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+    destinationTaskAndInputIndices.put(sourceTaskIndex, destinationInputIndices);
   }
 
   @Override
@@ -69,7 +67,7 @@ public class OneToOneEdgeManager implements EdgeManager {
   }
   
   @Override
-  public int getNumDestinationConsumerTasks(int sourceTaskIndex, int numDestTasks) {
+  public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
     return 1;
   }
 

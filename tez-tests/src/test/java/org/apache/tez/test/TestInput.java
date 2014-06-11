@@ -280,8 +280,7 @@ public class TestInput extends AbstractLogicalInput {
       } else if (event instanceof InputFailedEvent) {
         InputFailedEvent ifEvent = (InputFailedEvent) event;
         numCompletedInputs--;
-        LOG.info("Received InputFailed event sourceId : " + ifEvent.getSourceIndex() + 
-            " targetId: " + ifEvent.getTargetIndex() +
+        LOG.info("Received InputFailed event targetId: " + ifEvent.getTargetIndex() +
             " version: " + ifEvent.getVersion() +
             " numInputs: " + numPhysicalInputs +
             " numCompletedInputs: " + numCompletedInputs);

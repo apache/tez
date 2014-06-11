@@ -34,12 +34,22 @@ public interface EdgeManagerContext {
    * Returns the source vertex name 
    * @return the source vertex name
    */
-  public String getSrcVertexName();
+  public String getSourceVertexName();
   
   /**
    * Returns the destination vertex name
    * @return the destination vertex name
    */
-  public String getDestVertexName();
+  public String getDestinationVertexName();
+
+  /**
+   * Returns the number of tasks in the source vertex
+   */
+  public int getSourceVertexNumTasks();
+
+  /**
+   * Returns the number of tasks in the destination vertex
+   */
+  public int getDestinationVertexNumTasks();
 
 }

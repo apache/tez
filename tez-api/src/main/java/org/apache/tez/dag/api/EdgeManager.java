@@ -52,69 +52,63 @@ public interface EdgeManager {
   
   /**
    * Get the number of physical inputs on the destination task
-   * @param numSourceTasks Total number of source tasks
    * @param destinationTaskIndex Index of destination task for which number of 
    * inputs is needed
    * @return Number of physical inputs on the destination task
    */
-  public int getNumDestinationTaskPhysicalInputs(int numSourceTasks, 
-      int destinationTaskIndex);
+  public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex);
 
   /**
    * Get the number of physical outputs on the source task
-   * @param numDestinationTasks Total number of destination tasks
    * @param sourceTaskIndex Index of the source task for which number of outputs 
    * is needed
    * @return Number of physical outputs on the source task
    */
-  public int getNumSourceTaskPhysicalOutputs(int numDestinationTasks, 
-      int sourceTaskIndex);
+  public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex);
   
   /**
    * Return the routing information to inform consumers about the source task
-   * output that is now available. The return Map has the routing information.
-   * Key is the destination task physical input index and the value is the list
-   * of destination task indices for which the key input index will receive the
-   * data movement event.
+   * output that is now available. The return map has the routing information.
+   * The event will be routed to every destination task index in the key of the
+   * map. Every physical input in the value for that task key will receive the
+   * input.
+   * 
    * @param event
-   *          Data movement event
+   *          Data movement event that contains the output information
    * @param sourceTaskIndex
-   *          Source task
-   * @param numDestinationTasks
-   *          Total number of destination tasks
-   * @param inputIndicesToTaskIndices
+   *          Source task that produced the event
+   * @param sourceOutputIndex
+   *          Index of the physical output on the source task that produced the
+   *          event
+   * @param destinationTaskAndInputIndices
    *          Map via which the routing information is returned
    */
   public void routeDataMovementEventToDestination(DataMovementEvent event,
-      int sourceTaskIndex, int numDestinationTasks,
-      Map<Integer, List<Integer>> inputIndicesToTaskIndices);
+      int sourceTaskIndex, int sourceOutputIndex,
+      Map<Integer, List<Integer>> destinationTaskAndInputIndices);
   
   /**
    * Return the routing information to inform consumers about the failure of a
-   * source task whose outputs have been potentially lost. The return Map has
-   * the routing information. Key is the destination task physical input index
-   * and the value is the list of destination task indices for which the key
-   * input index will receive the input failure notification. This method will
+   * source task whose outputs have been potentially lost. The return map has
+   * the routing information. The failure notification event will be sent to
+   * every task index in the key of the map. Every physical input in the value
+   * for that task key will receive the failure notification. This method will
    * be called once for every source task failure and information for all
    * affected destinations must be provided in that invocation.
    * 
    * @param sourceTaskIndex
    *          Source task
-   * @param numDestinationTasks
-   *          Total number of destination tasks
-   * @param inputIndicesToTaskIndices
+   * @param destinationTaskAndInputIndices
    *          Map via which the routing information is returned
    */
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
-      int numDestinationTasks,
-      Map<Integer, List<Integer>> inputIndicesToTaskIndices);
+      Map<Integer, List<Integer>> destinationTaskAndInputIndices);
 
   /**
    * Get the number of destination tasks that consume data from the source task
    * @param sourceTaskIndex Source task index
-   * @param numDestinationTasks Total number of destination tasks
    */
-  public int getNumDestinationConsumerTasks(int sourceTaskIndex, int numDestinationTasks);
+  public int getNumDestinationConsumerTasks(int sourceTaskIndex);
   
   /**
    * Return the source task index to which to send the input error event

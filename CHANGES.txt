@@ -10,6 +10,7 @@ INCOMPATIBLE CHANGES
   TEZ-1018. VertexManagerPluginContext should enable assigning locality to
   scheduled tasks
   TEZ-1169. Allow numPhysicalInputs to be specified for RootInputs.
+  TEZ-1131. Simplify EdgeManager APIs
 
 Release 0.4.0-incubating: 2014-04-05
 

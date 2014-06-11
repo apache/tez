@@ -131,6 +131,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
     int numDestinationTasks;
     int basePartitionRange;
     int remainderRangeForLastShuffler;
+    int numSourceTasks;
 
     public CustomShuffleEdgeManager() {
     }
@@ -155,11 +156,11 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
       this.numDestinationTasks = config.numDestinationTasks;
       this.basePartitionRange = config.basePartitionRange;
       this.remainderRangeForLastShuffler = config.remainderRangeForLastShuffler;
+      this.numSourceTasks = config.numSourceTasks;
     }
 
     @Override
-    public int getNumDestinationTaskPhysicalInputs(int numSourceTasks, 
-        int destinationTaskIndex) {
+    public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
       int partitionRange = 1;
       if(destinationTaskIndex < numDestinationTasks-1) {
         partitionRange = basePartitionRange;
@@ -170,14 +171,14 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
     }
 
     @Override
-    public int getNumSourceTaskPhysicalOutputs(int numDestinationTasks, 
-        int sourceTaskIndex) {
+    public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
       return numSourceTaskOutputs;
     }
     
     @Override
     public void routeDataMovementEventToDestination(DataMovementEvent event,
-        int sourceTaskIndex, int numDestinationTasks, Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
+        int sourceTaskIndex, int sourceOutputIndex, 
+        Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
       int sourceIndex = event.getSourceIndex();
       int destinationTaskIndex = sourceIndex/basePartitionRange;
       int partitionRange = 1;
@@ -192,39 +193,42 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
           sourceTaskIndex * partitionRange 
           + sourceIndex % partitionRange;
       
-      inputIndicesToTaskIndices.put(new Integer(targetIndex),
-          Collections.singletonList(new Integer(destinationTaskIndex)));
+      destinationTaskAndInputIndices.put(new Integer(destinationTaskIndex),
+          Collections.singletonList(new Integer(targetIndex)));
     }
     
     @Override
     public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex, 
-        int numDestinationTasks, 
-        Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
+        Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
       if (remainderRangeForLastShuffler < basePartitionRange) {
-        List<Integer> lastTask = Collections.singletonList(
-            new Integer(numDestinationTasks-1));
-        List<Integer> otherTasks = Lists.newArrayListWithCapacity(numDestinationTasks-1);
+        int startOffset = sourceTaskIndex * basePartitionRange;
+        List<Integer> allIndices = Lists.newArrayListWithCapacity(basePartitionRange);
+        for (int i=0; i<basePartitionRange; ++i) {
+          allIndices.add(startOffset + i);
+        }
+        List<Integer> inputIndices = Collections.unmodifiableList(allIndices);
         for (int i=0; i<numDestinationTasks-1; ++i) {
-          otherTasks.add(new Integer(i));
+          destinationTaskAndInputIndices.put(i, inputIndices);
         }
         
-        int startOffset = sourceTaskIndex * basePartitionRange;
-        for (int i=0; i<basePartitionRange; ++i) {
-          inputIndicesToTaskIndices.put(new Integer(startOffset+i), otherTasks);
-        }
+        
         startOffset = sourceTaskIndex * remainderRangeForLastShuffler;
+        allIndices = Lists.newArrayListWithCapacity(remainderRangeForLastShuffler);
         for (int i=0; i<remainderRangeForLastShuffler; ++i) {
-          inputIndicesToTaskIndices.put(new Integer(startOffset+i), lastTask);
+          allIndices.add(startOffset+i);
         }
+        inputIndices = Collections.unmodifiableList(allIndices);
+        destinationTaskAndInputIndices.put(numDestinationTasks-1, inputIndices);
       } else {
         // all tasks have same pattern
-        List<Integer> allTasks = Lists.newArrayListWithCapacity(numDestinationTasks);
-        for (int i=0; i<numDestinationTasks; ++i) {
-          allTasks.add(new Integer(i));
-        }
-        int startOffset = sourceTaskIndex * basePartitionRange;
+        int startOffset = sourceTaskIndex * basePartitionRange;        
+        List<Integer> allIndices = Lists.newArrayListWithCapacity(basePartitionRange);
         for (int i=0; i<basePartitionRange; ++i) {
-          inputIndicesToTaskIndices.put(new Integer(startOffset+i), allTasks);
+          allIndices.add(startOffset + i);
+        }
+        List<Integer> inputIndices = Collections.unmodifiableList(allIndices);
+        for (int i=0; i<numDestinationTasks; ++i) {
+          destinationTaskAndInputIndices.put(i, inputIndices);
         }
       }
     }
@@ -242,9 +246,8 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
     }
 
     @Override
-    public int getNumDestinationConsumerTasks(int sourceTaskIndex,
-        int numDestTasks) {
-      return numDestTasks;
+    public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
+      return numDestinationTasks;
     }
    }
 
@@ -253,15 +256,18 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
     int numDestinationTasks;
     int basePartitionRange;
     int remainderRangeForLastShuffler;
+    int numSourceTasks;
 
     private CustomShuffleEdgeManagerConfig(int numSourceTaskOutputs,
         int numDestinationTasks,
+        int numSourceTasks,
         int basePartitionRange,
         int remainderRangeForLastShuffler) {
       this.numSourceTaskOutputs = numSourceTaskOutputs;
       this.numDestinationTasks = numDestinationTasks;
       this.basePartitionRange = basePartitionRange;
       this.remainderRangeForLastShuffler = remainderRangeForLastShuffler;
+      this.numSourceTasks = numSourceTasks;
     }
 
     public byte[] toUserPayload() {
@@ -270,6 +276,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
           .setNumDestinationTasks(numDestinationTasks)
           .setBasePartitionRange(basePartitionRange)
           .setRemainderRangeForLastShuffler(remainderRangeForLastShuffler)
+          .setNumSourceTasks(numSourceTasks)
           .build().toByteArray();
     }
 
@@ -280,6 +287,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
       return new CustomShuffleEdgeManagerConfig(
           proto.getNumSourceTaskOutputs(),
           proto.getNumDestinationTasks(),
+          proto.getNumSourceTasks(),
           proto.getBasePartitionRange(),
           proto.getRemainderRangeForLastShuffler());
 
@@ -418,7 +426,8 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
         // for the source tasks
         CustomShuffleEdgeManagerConfig edgeManagerConfig =
             new CustomShuffleEdgeManagerConfig(
-                currentParallelism, finalTaskParallelism, basePartitionRange,
+                currentParallelism, finalTaskParallelism, 
+                numSourceTasks, basePartitionRange,
                 ((remainderRangeForLastShuffler > 0) ?
                     remainderRangeForLastShuffler : basePartitionRange));
         EdgeManagerDescriptor edgeManagerDescriptor =

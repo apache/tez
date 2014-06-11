@@ -30,12 +30,6 @@ import org.apache.tez.runtime.api.Event;
 public class InputFailedEvent extends Event{
 
   /**
-   * Index(i) of the i-th (physical) Input or Output that generated the data.
-   * For a Processor-generated event, this is ignored.
-   */
-  private int sourceIndex;
-
-  /**
    * Index(i) of the i-th (physical) Input or Output that is meant to receive
    * this Event. For a Processor event, this is ignored.
    */
@@ -51,22 +45,9 @@ public class InputFailedEvent extends Event{
   }
   
   @Private
-  public InputFailedEvent(int sourceIndex,
-      int targetIndex,
-      int version) {
-    this.sourceIndex = sourceIndex;
-    this.targetIndex = targetIndex;
-    this.version = version;
-  }
-  
-  @Private
   public InputFailedEvent(int targetIndex, int version) {
     this.targetIndex = targetIndex;
     this.version = version;
-  }
-
-  public int getSourceIndex() {
-    return sourceIndex;
   }
 
   public int getTargetIndex() {

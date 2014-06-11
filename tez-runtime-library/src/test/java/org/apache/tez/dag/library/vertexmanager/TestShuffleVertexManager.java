@@ -135,13 +135,23 @@ public class TestShuffleVertexManager {
               }
 
               @Override
-              public String getSrcVertexName() {
+              public String getSourceVertexName() {
                 return null;
               }
 
               @Override
-              public String getDestVertexName() {
+              public String getDestinationVertexName() {
                 return null;
+              }
+
+              @Override
+              public int getSourceVertexNumTasks() {
+                return 0;
+              }
+
+              @Override
+              public int getDestinationVertexNumTasks() {
+                return 0;
               }
             });
             newEdgeManagers.put(entry.getKey(), edgeManager);
@@ -231,28 +241,28 @@ public class TestShuffleVertexManager {
     EdgeManager edgeManager = newEdgeManagers.values().iterator().next();
     Map<Integer, List<Integer>> targets = Maps.newHashMap();
     DataMovementEvent dmEvent = new DataMovementEvent(1, new byte[0]);
-    edgeManager.routeDataMovementEventToDestination(dmEvent, 1, 2, targets);
+    edgeManager.routeDataMovementEventToDestination(dmEvent, 1, dmEvent.getSourceIndex(), targets);
     Assert.assertEquals(1, targets.size());
     Map.Entry<Integer, List<Integer>> e = targets.entrySet().iterator().next();
-    Assert.assertEquals(3, e.getKey().intValue());
+    Assert.assertEquals(0, e.getKey().intValue());
+    Assert.assertEquals(1, e.getValue().size());
+    Assert.assertEquals(3, e.getValue().get(0).intValue());
+    targets.clear();
+    dmEvent = new DataMovementEvent(2, new byte[0]);
+    edgeManager.routeDataMovementEventToDestination(dmEvent, 0, dmEvent.getSourceIndex(), targets);
+    Assert.assertEquals(1, targets.size());
+    e = targets.entrySet().iterator().next();
+    Assert.assertEquals(1, e.getKey().intValue());
     Assert.assertEquals(1, e.getValue().size());
     Assert.assertEquals(0, e.getValue().get(0).intValue());
     targets.clear();
-    dmEvent = new DataMovementEvent(2, new byte[0]);
-    edgeManager.routeDataMovementEventToDestination(dmEvent, 0, 2, targets);
-    Assert.assertEquals(1, targets.size());
-    e = targets.entrySet().iterator().next();
-    Assert.assertEquals(0, e.getKey().intValue());
-    Assert.assertEquals(1, e.getValue().size());
-    Assert.assertEquals(1, e.getValue().get(0).intValue());
-    targets.clear();
-    edgeManager.routeInputSourceTaskFailedEventToDestination(2, 2, targets);
+    edgeManager.routeInputSourceTaskFailedEventToDestination(2, targets);
     Assert.assertEquals(2, targets.size());
     for (Map.Entry<Integer, List<Integer>> entry : targets.entrySet()) {
-      Assert.assertTrue(entry.getKey().intValue() == 4 || entry.getKey().intValue() == 5);
+      Assert.assertTrue(entry.getKey().intValue() == 0 || entry.getKey().intValue() == 1);
       Assert.assertEquals(2, entry.getValue().size());
-      Assert.assertEquals(0, entry.getValue().get(0).intValue());
-      Assert.assertEquals(1, entry.getValue().get(1).intValue());
+      Assert.assertEquals(4, entry.getValue().get(0).intValue());
+      Assert.assertEquals(5, entry.getValue().get(1).intValue());
     }
   }
   

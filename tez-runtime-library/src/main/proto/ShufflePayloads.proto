@@ -46,6 +46,7 @@ message VertexManagerEventPayloadProto {
 message ShuffleEdgeManagerConfigPayloadProto {
   optional int32 num_source_task_outputs = 1;
   optional int32 num_destination_tasks = 2;
-  optional int32 base_partition_range = 3;
-  optional int32 remainder_range_for_last_shuffler = 4;
+  optional int32 num_source_tasks = 3;
+  optional int32 base_partition_range = 4;
+  optional int32 remainder_range_for_last_shuffler = 5;
 }

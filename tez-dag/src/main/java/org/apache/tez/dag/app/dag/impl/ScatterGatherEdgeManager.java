@@ -27,40 +27,38 @@ import org.apache.tez.dag.api.EdgeManagerContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
-import com.google.common.collect.Lists;
-
 public class ScatterGatherEdgeManager implements EdgeManager {
 
+  EdgeManagerContext context;
   @Override
   public void initialize(EdgeManagerContext edgeManagerContext) {
-    // Nothing to do.
+    this.context = edgeManagerContext;
   }
 
   @Override
-  public int getNumDestinationTaskPhysicalInputs(int numSourceTasks,
-      int destinationTaskIndex) {
-    return numSourceTasks;
+  public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
+    return context.getSourceVertexNumTasks();
   }
   
   @Override
-  public int getNumSourceTaskPhysicalOutputs(int numDestinationTasks, int sourceTaskIndex) {
-    return numDestinationTasks;
+  public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
+    return context.getDestinationVertexNumTasks();
   }
 
   @Override
   public void routeDataMovementEventToDestination(DataMovementEvent event,
-      int sourceTaskIndex, int numDestinationTasks, Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
-    inputIndicesToTaskIndices.put(new Integer(sourceTaskIndex), 
-        Collections.singletonList(new Integer(event.getSourceIndex())));
+      int sourceTaskIndex, int sourceOutputIndex, Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+    // the i-th source output goes to the i-th destination task
+    // the n-th source task becomes the n-th physical input on the task
+    destinationTaskAndInputIndices.put(sourceOutputIndex, Collections.singletonList(sourceTaskIndex));
   }
 
   @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
-      int numDestinationTasks,
-      Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
-    List<Integer> taskIndices = Lists.newArrayListWithCapacity(numDestinationTasks);
-    addAllDestinationTaskIndices(numDestinationTasks, taskIndices);
-    inputIndicesToTaskIndices.put(new Integer(sourceTaskIndex), taskIndices);
+      Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+    for (int i=0; i<context.getDestinationVertexNumTasks(); ++i) {
+      destinationTaskAndInputIndices.put(i, Collections.singletonList(sourceTaskIndex));
+    }
   }
 
   @Override
@@ -70,14 +68,8 @@ public class ScatterGatherEdgeManager implements EdgeManager {
   }
 
   @Override
-  public int getNumDestinationConsumerTasks(int sourceTaskIndex, int numDestTasks) {
-    return numDestTasks;
-  }
-  
-  void addAllDestinationTaskIndices(int numDestinationTasks, List<Integer> taskIndices) {
-    for(int i=0; i<numDestinationTasks; ++i) {
-      taskIndices.add(new Integer(i));
-    }    
+  public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
+    return context.getDestinationVertexNumTasks();
   }
 
 }

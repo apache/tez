@@ -56,22 +56,22 @@ public class EdgeManagerForTest implements EdgeManager {
   }
 
   @Override
-  public int getNumDestinationTaskPhysicalInputs(int numSourceTasks, int destinationTaskIndex) {
+  public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
     return 0;
   }
 
   @Override
-  public int getNumSourceTaskPhysicalOutputs(int numDestinationTasks, int sourceTaskIndex) {
+  public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
     return 0;
   }
 
   @Override
   public void routeDataMovementEventToDestination(DataMovementEvent event, int sourceTaskIndex,
-      int numDestinationTasks, Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
+      int sourceOutputIndex, Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
   }
 
   @Override
-  public int getNumDestinationConsumerTasks(int sourceTaskIndex, int numDestinationTasks) {
+  public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
     return 0;
   }
 
@@ -82,8 +82,7 @@ public class EdgeManagerForTest implements EdgeManager {
 
   @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
-      int numDestinationTasks,
-      Map<Integer, List<Integer>> inputIndicesToTaskIndices) { 
+      Map<Integer, List<Integer>> destinationTaskAndInputIndices) { 
   }
   
   // End of overridden methods

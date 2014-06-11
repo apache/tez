@@ -34,9 +34,8 @@ message InputReadErrorEventProto {
 }
 
 message InputFailedEventProto {
-  optional int32 source_index = 1;
-  optional int32 target_index = 2;
-  optional int32 version = 4;
+  optional int32 target_index = 1;
+  optional int32 version = 2;
 }
 
 message VertexManagerEventProto {

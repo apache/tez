@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -26,42 +27,45 @@ import org.apache.tez.dag.api.EdgeManagerContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
-import com.google.common.collect.Lists;
-
 public class BroadcastEdgeManager implements EdgeManager {
 
+  EdgeManagerContext context;
   @Override
   public void initialize(EdgeManagerContext edgeManagerContext) {
-    // Nothing to do.
+    this.context = edgeManagerContext;
   }
   
   @Override
-  public int getNumDestinationTaskPhysicalInputs(int numSourceTasks, 
-      int destinationTaskIndex) {
-    return numSourceTasks;
+  public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
+    return context.getSourceVertexNumTasks();
   }
   
   @Override
-  public int getNumSourceTaskPhysicalOutputs(int numDestinationTasks,
-      int sourceTaskIndex) {
+  public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
     return 1;
   }
   
   @Override
   public void routeDataMovementEventToDestination(DataMovementEvent event,
-      int sourceTaskIndex, int numDestinationTasks, Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
-    List<Integer> taskIndices = Lists.newArrayListWithCapacity(numDestinationTasks);
-    addAllDestinationTaskIndices(numDestinationTasks, taskIndices);
-    inputIndicesToTaskIndices.put(new Integer(sourceTaskIndex), taskIndices);
+      int sourceTaskIndex, int sourceOutputIndex, 
+      Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+    List<Integer> inputIndices = 
+        Collections.unmodifiableList(Collections.singletonList(sourceTaskIndex));
+    // for each task make the i-th source task as the i-th physical input
+    for (int i=0; i<context.getDestinationVertexNumTasks(); ++i) {
+      destinationTaskAndInputIndices.put(i, inputIndices);
+    }
   }
   
   @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
-      int numDestinationTasks,
-      Map<Integer, List<Integer>> inputIndicesToTaskIndices) {
-    List<Integer> taskIndices = Lists.newArrayListWithCapacity(numDestinationTasks);
-    addAllDestinationTaskIndices(numDestinationTasks, taskIndices);
-    inputIndicesToTaskIndices.put(new Integer(sourceTaskIndex), taskIndices);
+      Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+    List<Integer> inputIndices = 
+        Collections.unmodifiableList(Collections.singletonList(sourceTaskIndex));
+    // for each task make the i-th source task as the i-th physical input
+    for (int i=0; i<context.getDestinationVertexNumTasks(); ++i) {
+      destinationTaskAndInputIndices.put(i, inputIndices);
+    }
   }
 
   @Override
@@ -70,16 +74,9 @@ public class BroadcastEdgeManager implements EdgeManager {
     return event.getIndex();
   }
   
-  void addAllDestinationTaskIndices(int numDestinationTasks, List<Integer> taskIndices) {
-    for(int i=0; i<numDestinationTasks; ++i) {
-      taskIndices.add(new Integer(i));
-    }    
-  }
-
   @Override
-  public int getNumDestinationConsumerTasks(int sourceTaskIndex,
-      int numDestTasks) {
-    return numDestTasks;
+  public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
+    return context.getDestinationVertexNumTasks();
   }
 
 }
