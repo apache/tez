@@ -21,6 +21,7 @@ package org.apache.tez.dag.api;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 
 public class TezConfiguration extends Configuration {
 
@@ -263,6 +264,12 @@ public class TezConfiguration extends Configuration {
 
   /** The location of the Tez libraries which will be localized for DAGs */
   public static final String TEZ_LIB_URIS = TEZ_PREFIX + "lib.uris";
+  /** 
+   * Allows to ignore 'tez.lib.uris'. Useful during development as well as 
+   * raw Tez application where classpath is propagated with application
+   * via {@link LocalResource}s
+   */
+  public static final String TEZ_IGNORE_LIB_URIS = TEZ_PREFIX + "ignore.lib.uris";
 
   public static final String TEZ_APPLICATION_TYPE = "TEZ";
 
