@@ -327,6 +327,7 @@ public class Edge {
               " srcTaskIndex = " + srcTaskIndex +
               " destVertex=" + destinationVertex.getVertexId() +
               " destTaskIndex=" + destTaskIndex + 
+              " destNumTasks=" + destinationVertex.getTotalTasks() + 
               " edgeManager=" + edgeManager.getClass().getName());
         }
         TezTaskID destTaskId = destTask.getTaskId();

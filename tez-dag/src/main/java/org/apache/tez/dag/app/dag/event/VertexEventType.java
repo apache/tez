@@ -61,7 +61,7 @@ public enum VertexEventType {
   V_RECOVER,
   
   // Producer: Vertex
-  V_PARALLELISM_INITIALIZED,
+  V_READY_TO_INIT,
 
   // Recover Event, Producer:Vertex
   V_SOURCE_VERTEX_RECOVERED,

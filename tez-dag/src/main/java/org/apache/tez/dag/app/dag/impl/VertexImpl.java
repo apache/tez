@@ -104,7 +104,6 @@ import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventNullEdgeInitialized;
 import org.apache.tez.dag.app.dag.event.VertexEventOneToOneSourceSplit;
-import org.apache.tez.dag.app.dag.event.VertexEventParallelismInitialized;
 import org.apache.tez.dag.app.dag.event.VertexEventRecoverVertex;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputFailed;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputInitialized;
@@ -241,7 +240,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                       VertexState.INITIALIZING, VertexState.FAILED),
                   VertexEventType.V_INIT,
                   new InitTransition())
-          .addTransition(VertexState.NEW, VertexState.NEW,
+          .addTransition(VertexState.NEW, 
+                EnumSet.of(VertexState.NEW),
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
                   new NullEdgeInitializedTransition())
           .addTransition
@@ -291,9 +291,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               (VertexState.RECOVERING, VertexState.RECOVERING,
                   VertexEventType.V_TERMINATE,
                   new TerminateDuringRecoverTransition())
-          .addTransition(VertexState.RECOVERING, VertexState.RECOVERING,
-                  VertexEventType.V_NULL_EDGE_INITIALIZED,
-                  new NullEdgeInitializedTransition())
 
           // Transitions from INITIALIZING state
           .addTransition(VertexState.INITIALIZING,
@@ -302,13 +299,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexEventType.V_ROOT_INPUT_INITIALIZED,
               new RootInputInitializedTransition())
           .addTransition(VertexState.INITIALIZING,
-              EnumSet.of(VertexState.FAILED, VertexState.INITED),
+              EnumSet.of(VertexState.INITIALIZING),
               VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
               new OneToOneSourceSplitTransition())
           .addTransition(VertexState.INITIALIZING,
               EnumSet.of(VertexState.INITED, VertexState.FAILED),
-              VertexEventType.V_PARALLELISM_INITIALIZED,
-              new VertexParallelismInitializedTransition())
+              VertexEventType.V_READY_TO_INIT,
+              new VertexInitializedTransition())
           .addTransition(VertexState.INITIALIZING, VertexState.FAILED,
               VertexEventType.V_ROOT_INPUT_FAILED,
               new RootInputInitFailedTransition())
@@ -330,7 +327,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.INITIALIZING, VertexState.ERROR,
               VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
-          .addTransition(VertexState.INITIALIZING, VertexState.INITIALIZING,
+          .addTransition(VertexState.INITIALIZING, 
+              EnumSet.of(VertexState.INITIALIZING, VertexState.INITED,
+                  VertexState.FAILED),
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
                   new NullEdgeInitializedTransition())
 
@@ -365,9 +364,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.INITED, VertexState.ERROR,
               VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
-          .addTransition(VertexState.INITED, VertexState.INITED,
-              VertexEventType.V_NULL_EDGE_INITIALIZED,
-              new NullEdgeInitializedTransition())
 
           // Transitions from RUNNING state
           .addTransition(VertexState.RUNNING, VertexState.RUNNING,
@@ -413,6 +409,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               EnumSet.of(VertexState.TERMINATING, VertexState.KILLED, VertexState.FAILED),
               VertexEventType.V_TASK_COMPLETED,
               new TaskCompletedTransition())
+          .addTransition(VertexState.TERMINATING,
+              EnumSet.of(VertexState.TERMINATING),
+              VertexEventType.V_ROOT_INPUT_INITIALIZED,
+              new RootInputInitializedTransition())
           .addTransition(
               VertexState.TERMINATING,
               VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
@@ -421,6 +421,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.TERMINATING, VertexState.TERMINATING,
               EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
+                  VertexEventType.V_NULL_EDGE_INITIALIZED,
                   VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
@@ -464,6 +465,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexState.FAILED,
               VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
+          .addTransition(VertexState.FAILED,
+              EnumSet.of(VertexState.FAILED),
+              VertexEventType.V_ROOT_INPUT_INITIALIZED,
+              new RootInputInitializedTransition())
           // Ignore-able events
           .addTransition(VertexState.FAILED, VertexState.FAILED,
               EnumSet.of(VertexEventType.V_TERMINATE,
@@ -474,8 +479,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED,
                   VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
-                  VertexEventType.V_ROOT_INPUT_INITIALIZED,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
+                  VertexEventType.V_NULL_EDGE_INITIALIZED,
                   VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_RECOVERED))
 
@@ -484,6 +489,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexState.KILLED,
               VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
+          .addTransition(VertexState.KILLED,
+              EnumSet.of(VertexState.KILLED),
+              VertexEventType.V_ROOT_INPUT_INITIALIZED,
+              new RootInputInitializedTransition())
           // Ignore-able events
           .addTransition(VertexState.KILLED, VertexState.KILLED,
               EnumSet.of(VertexEventType.V_TERMINATE,
@@ -496,11 +505,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED,
-                  VertexEventType.V_ROOT_INPUT_INITIALIZED,
+                  VertexEventType.V_NULL_EDGE_INITIALIZED,
                   VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_RECOVERED))
 
           // No transitions from INTERNAL_ERROR state. Ignore all.
+          .addTransition(VertexState.ERROR,
+              EnumSet.of(VertexState.ERROR),
+              VertexEventType.V_ROOT_INPUT_INITIALIZED,
+              new RootInputInitializedTransition())
           .addTransition(
               VertexState.ERROR,
               VertexState.ERROR,
@@ -515,7 +528,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_RESCHEDULED,
                   VertexEventType.V_INTERNAL_ERROR,
-                  VertexEventType.V_ROOT_INPUT_INITIALIZED,
+                  VertexEventType.V_NULL_EDGE_INITIALIZED,
                   VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_RECOVERED))
           // create the topology tables
@@ -540,7 +553,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private final TezVertexID vertexId;  //runtime assigned id.
   private final VertexPlan vertexPlan;
-  private boolean sendEventWhenParallelismInitialized = false;
+  private boolean initWaitsForRootInitializers = false;
 
   private final String vertexName;
   private final ProcessorDescriptor processorDescriptor;
@@ -1070,6 +1083,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     try {
       tasksNotYetScheduled = false;
       if (!pendingTaskEvents.isEmpty()) {
+        LOG.info("Routing pending task events for vertex: " + logIdentifier);
         VertexImpl.ROUTE_EVENT_TRANSITION.transition(this,
             new VertexEventRouteEvent(getVertexId(), pendingTaskEvents));
         pendingTaskEvents.clear();
@@ -1196,8 +1210,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         this.createTasks();
         LOG.info("Vertex " + getVertexId() + 
             " parallelism set to " + parallelism);
-        if (sendEventWhenParallelismInitialized) {
-          getEventHandler().handle(new VertexEventParallelismInitialized(getVertexId()));
+        if (canInitVertex()) {
+          getEventHandler().handle(new VertexEvent(getVertexId(), VertexEventType.V_READY_TO_INIT));
         }
       } else {
         // This is an artificial restriction since there's no way of knowing whether a VertexManager
@@ -1674,28 +1688,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   private boolean initializeVertex() {
-    if (targetVertices != null) {
-      for (Edge e : targetVertices.values()) {
-        if (e.getEdgeManager() == null) {
-          Preconditions
-              .checkState(
-                  e.getEdgeProperty().getDataMovementType() == DataMovementType.CUSTOM,
-                  "Null edge manager allowed only for custom edge. " + logIdentifier);
-          uninitializedEdges.add(e);
-        }
-      }
-    }
-    if (sourceVertices != null) {
-      for (Edge e : sourceVertices.values()) {
-        if (e.getEdgeManager() == null) {
-          Preconditions
-              .checkState(
-                  e.getEdgeProperty().getDataMovementType() == DataMovementType.CUSTOM,
-                  "Null edge manager allowed only for custom edge. " + logIdentifier);
-          uninitializedEdges.add(e);
-        }
-      }
-    }
     try {
       initializeCommitters();
     } catch (Exception e) {
@@ -2210,13 +2202,18 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   public static class NullEdgeInitializedTransition implements
-      SingleArcTransition<VertexImpl, VertexEvent> {
+      MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
 
     @Override
-    public void transition(VertexImpl vertex, VertexEvent vertexEvent) {
+    public VertexState transition(VertexImpl vertex, VertexEvent vertexEvent) {
       VertexEventNullEdgeInitialized event = (VertexEventNullEdgeInitialized) vertexEvent;
       Edge edge = event.getEdge();
       Vertex otherVertex = event.getVertex();
+      Preconditions.checkState(
+          vertex.getState() == VertexState.NEW
+              || vertex.getState() == VertexState.INITIALIZING,
+          "Unexpected state " + vertex.getState() + " for vertex: "
+              + vertex.logIdentifier);
       Preconditions.checkState(
           (vertex.sourceVertices == null || vertex.sourceVertices.containsKey(otherVertex) ||
           vertex.targetVertices == null || vertex.targetVertices.containsKey(otherVertex)),
@@ -2224,9 +2221,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       LOG.info("Edge initialized for connection to vertex " + otherVertex.getName() + 
           " at vertex : " + vertex.logIdentifier);
       vertex.uninitializedEdges.remove(edge);
-      vertex.startIfPossible();
+      if(vertex.getState() == VertexState.INITIALIZING && vertex.canInitVertex()) {
+        // Vertex in Initialing state and can init. Do init.
+        return VertexInitializedTransition.doTransition(vertex);
+      }
+      // Vertex is either New (waiting for sources to init) or its not ready to init (failed)
+      return vertex.getState();
     }
-
   }
 
   public static class BufferDataRecoverTransition implements
@@ -2564,7 +2565,30 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       if (state.equals(VertexState.FAILED)) {
         return state;
       }
-
+      // TODO move before to handle NEW state 
+      if (vertex.targetVertices != null) {
+        for (Edge e : vertex.targetVertices.values()) {
+          if (e.getEdgeManager() == null) {
+            Preconditions
+                .checkState(
+                    e.getEdgeProperty().getDataMovementType() == DataMovementType.CUSTOM,
+                    "Null edge manager allowed only for custom edge. " + vertex.logIdentifier);
+            vertex.uninitializedEdges.add(e);
+          }
+        }
+      }
+      if (vertex.sourceVertices != null) {
+        for (Edge e : vertex.sourceVertices.values()) {
+          if (e.getEdgeManager() == null) {
+            Preconditions
+                .checkState(
+                    e.getEdgeProperty().getDataMovementType() == DataMovementType.CUSTOM,
+                    "Null edge manager allowed only for custom edge. " + vertex.logIdentifier);
+            vertex.uninitializedEdges.add(e);
+          }
+        }
+      }
+      
       // Create tasks based on initial configuration, but don't start them yet.
       if (vertex.numTasks == -1) {
         LOG.info("Num tasks is -1. Expecting VertexManager/InputInitializers/1-1 split"
@@ -2605,16 +2629,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           }
           if (vertex.vertexPlan.hasVertexManagerPlugin()) {
             LOG.info("Vertex will initialize via custom vertex manager. " + vertex.logIdentifier);
-            // set flag to send event after parallelism is set so that we can 
-            // move out of INITIALIZING state
-            vertex.sendEventWhenParallelismInitialized = true;
             return VertexState.INITIALIZING;
           }
           throw new TezUncheckedException(vertex.getVertexId() + 
           " has -1 tasks but does not have input initializers, " +
           "1-1 uninited sources or custom vertex manager to set it at runtime");
-        }                
+        }
       } else {
+        LOG.info("Creating " + vertex.numTasks + " for vertex: " + vertex.logIdentifier);
+        vertex.createTasks();
         if (vertex.inputsWithInitializers != null) {
           vertex.rootInputInitializer = vertex.createRootInputInitializerRunner(
               vertex.getDAG().getName(), vertex.getName(), vertex.getVertexId(),
@@ -2629,17 +2652,22 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           }
           LOG.info("Starting root input initializers: "
               + vertex.inputsWithInitializers.size());
+          // special case when numTasks>0 and still we want to stay in initializing 
+          // state. This is handled in RootInputInitializedTransition specially.
+          vertex.initWaitsForRootInitializers = true;
           vertex.rootInputInitializer.runInputInitializers(inputList);
-          vertex.createTasks();
           return VertexState.INITIALIZING;
+        }
+        if (!vertex.uninitializedEdges.isEmpty()) {
+          LOG.info("Vertex has uninitialized edges. " + vertex.logIdentifier);
+          return VertexState.INITIALIZING;
+        }
+        LOG.info("Directly initializing vertex: " + vertex.logIdentifier);
+        boolean isInitialized = vertex.initializeVertex();
+        if (isInitialized) {
+          return VertexState.INITED;
         } else {
-          vertex.createTasks();
-          boolean isInitialized = vertex.initializeVertex();
-          if (isInitialized) {
-            return VertexState.INITED;
-          } else {
-            return VertexState.FAILED;
-          }
+          return VertexState.FAILED;
         }
       }
     }
@@ -2662,32 +2690,31 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       return false;
     }
 
-//    // Vertex will be moving to INITED state, safe to process pending route events.
-//    if (!pendingRouteEvents.isEmpty()) {
-//      VertexImpl.ROUTE_EVENT_TRANSITION.transition(this,
-//          new VertexEventRouteEvent(getVertexId(), pendingRouteEvents));
-//      pendingRouteEvents.clear();
-//    }
     return true;
   }
+  
+  void startIfPossible() {
+    if (startSignalPending) {
+      // Trigger a start event to ensure route events are seen before
+      // a start event.
+      LOG.info("Triggering start event for vertex: " + logIdentifier +
+          " with distanceFromRoot: " + distanceFromRoot );
+      eventHandler.handle(new VertexEvent(vertexId,
+          VertexEventType.V_START));
+    }
+  }
 
-  public static class VertexParallelismInitializedTransition implements
+  public static class VertexInitializedTransition implements
       MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
     
     static VertexState doTransition(VertexImpl vertex) {
+      Preconditions.checkState(vertex.canInitVertex(), "Vertex: " + vertex.logIdentifier);
       boolean isInitialized = vertex.initializeVertexInInitializingState();
       if (!isInitialized) {
         return VertexState.FAILED;
       }
 
-      if (vertex.startSignalPending) {
-        // Trigger a start event to ensure route events are seen before
-        // a start event.
-        LOG.info("Triggering start event for vertex: " + vertex.logIdentifier +
-            " with distanceFromRoot: " + vertex.distanceFromRoot );
-        vertex.eventHandler.handle(new VertexEvent(vertex.vertexId,
-            VertexEventType.V_START));
-      }
+      vertex.startIfPossible();
       return VertexState.INITED;      
     }
     
@@ -2697,31 +2724,40 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
   
+  // present in most transitions so that the initializer thread can be shutdown properly
   public static class RootInputInitializedTransition implements
       MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
 
     @Override
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
       VertexEventRootInputInitialized liInitEvent = (VertexEventRootInputInitialized) event;
-
-      vertex.vertexManager.onRootVertexInitialized(
-          liInitEvent.getInputName(),
-          vertex.getAdditionalInputs().get(liInitEvent.getInputName())
-              .getDescriptor(), liInitEvent.getEvents());
+      VertexState state = vertex.getState();
+      if (state == VertexState.INITIALIZING) {
+        vertex.vertexManager.onRootVertexInitialized(
+            liInitEvent.getInputName(),
+            vertex.getAdditionalInputs().get(liInitEvent.getInputName())
+                .getDescriptor(), liInitEvent.getEvents());
+      }
 
       vertex.numInitializedInputs++;
       if (vertex.numInitializedInputs == vertex.inputsWithInitializers.size()) {
         // All inputs initialized, shutdown the initializer.
         vertex.rootInputInitializer.shutdown();
-
-        // If RootInputs are determining parallelism, it should have been set by
-        // this point, so it's safe to checkTaskLimits and createTasks
-        Preconditions.checkState(vertex.numTasks >= 0, 
-            "Parallelism should have been set by now for vertex: " + vertex.logIdentifier);
-        return VertexParallelismInitializedTransition.doTransition(vertex);
-      } else {
-        return VertexState.INITIALIZING;
       }
+      
+      // done. check if we need to do the initialization
+      if (vertex.getState() == VertexState.INITIALIZING && 
+          vertex.initWaitsForRootInitializers) {
+        // set the wait flag to false
+        vertex.initWaitsForRootInitializers = false;
+        // initialize vertex if possible and needed
+        if (vertex.canInitVertex()) {
+          Preconditions.checkState(vertex.numTasks >= 0, 
+              "Parallelism should have been set by now for vertex: " + vertex.logIdentifier);
+          return VertexInitializedTransition.doTransition(vertex);
+        }
+      }
+      return vertex.getState();
     }
   }
 
@@ -2736,12 +2772,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       
       if (vertex.originalOneToOneSplitSource != null) {
         VertexState state = vertex.getState();
-        Preconditions.checkState((state == VertexState.INITED || state == VertexState.RUNNING), 
-            " Unexpected 1-1 split for vertex " + vertex.getVertexId() + 
-            " in state " + vertex.getState() + 
-            " . Split in vertex " + originalSplitSource + 
-            " sent by vertex " + splitEvent.getSenderVertex() +
-            " numTasks " + splitEvent.getNumTasks());
+        Preconditions
+            .checkState(
+                (state == VertexState.INITIALIZING
+                    || state == VertexState.INITED || state == VertexState.RUNNING),
+                " Unexpected 1-1 split for vertex " + vertex.getVertexId()
+                    + " in state " + vertex.getState() + " . Split in vertex "
+                    + originalSplitSource + " sent by vertex "
+                    + splitEvent.getSenderVertex() + " numTasks "
+                    + splitEvent.getNumTasks());
         if (vertex.originalOneToOneSplitSource.equals(originalSplitSource)) {
           // ignore another split event that may have come from a different
           // path in the DAG. We have already split because of that source
@@ -2773,7 +2812,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                 " . Split in vertex " + originalSplitSource +
                 " sent by vertex " + splitEvent.getSenderVertex() +
                 " numTasks " + splitEvent.getNumTasks());
-        return VertexParallelismInitializedTransition.doTransition(vertex);
+        return vertex.getState();
       }
     }
   }
@@ -2795,64 +2834,61 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       LOG.info("Source vertex started: " + startEvent.getSourceVertexId() +
           " for vertex: " + vertex.getVertexId() + " numStartedSources: " + 
           vertex.numStartedSourceVertices + " numSources: " + vertex.sourceVertices.size());
+      
+      if (vertex.numStartedSourceVertices < vertex.sourceVertices.size()) {
+        LOG.info("Cannot start vertex: " + vertex.logIdentifier + " numStartedSources: "
+            + vertex.numStartedSourceVertices + " numSources: " + vertex.sourceVertices.size());
+        return;
+      }
+      
+      // vertex meets external start dependency conditions. Save this signal in 
+      // case we are not ready to start now and need to start later
+      vertex.startSignalPending = true;
+      
+      if (vertex.getState() != VertexState.INITED) {
+        // vertex itself is not ready to start. External dependencies have already
+        // notified us.
+        LOG.info("Cannot start vertex. Not in inited state. "
+            + vertex.logIdentifier + " . VertesState: " + vertex.getState()
+            + " numTasks: " + vertex.numTasks + " Num uninitialized edges: "
+            + vertex.uninitializedEdges.size());
+        return;
+      }
+      
+      // vertex is inited and all dependencies are ready. Inited vertex means
+      // parallelism must be set already and edges defined
+      Preconditions.checkState(
+          (vertex.numTasks >= 0 && vertex.uninitializedEdges.isEmpty()),
+          "Cannot start vertex that is not completely defined. Vertex: "
+              + vertex.logIdentifier + " numTasks: " + vertex.numTasks);
+      
       vertex.startIfPossible();
     }
   }
 
-  boolean hasSourceVertexDependency() {
-    return (sourceVertices != null && sourceVertices.size() > 0);
-  }
-  
-  boolean canStartVertex() {
-    if ((sourceVertices == null || numStartedSourceVertices == sourceVertices.size())
-        && uninitializedEdges.isEmpty()) {
-      // vertex meets external start dependency conditions
-      if (hasSourceVertexDependency()) {
-        // this vertex is not going to receive a direct external start event from DAG
-        startSignalPending = true;
-      }
-      if (getState() != VertexState.INITED) {
-        // vertex itself is not ready to start. External dependencies have already
-        // notified us. So save that notification so that we can start when we 
-        // ourselves are ready internally.
-        LOG.info("Cannot start vertex. Not in inited state. " + logIdentifier + 
-            " . VertesState: " + getState() + " numTasks: " + numTasks);
-        return false;
-      }
-      // vertex is inited and all dependencies are ready. Inited vertex means 
-      // parallelism must be set already
-      Preconditions
-          .checkState(numTasks >= 0,
-              "Cannot start vertex without parallelism being set. "
-                  + logIdentifier);
+  boolean canInitVertex() {
+    if (numTasks >= 0 && uninitializedEdges.isEmpty() && !initWaitsForRootInitializers) {
+      // vertex fully defined
       return true;
     }
-    LOG.info("Cannot start vertex: " + logIdentifier + " numStartedSources: "
-        + numStartedSourceVertices + " numSources: "
-        + ((sourceVertices == null) ? 0 : sourceVertices.size())
-        + " numUnitializedEdges: " + uninitializedEdges.size());
+    LOG.info("Cannot init vertex: " + logIdentifier + " numTasks: " + numTasks
+        + " numUnitializedEdges: " + uninitializedEdges.size()
+        + " numInitializedInputs: " + numInitializedInputs
+        + " initWaitsForRootInitializers: " + initWaitsForRootInitializers);
     return false;
   }
   
-  void startIfPossible() {
-    if (canStartVertex()) {
-      Preconditions.checkState(getState() == VertexState.INITED, 
-          "Vertex must be inited " + logIdentifier);
-      if (startSignalPending) {
-        LOG.info("Starting vertex: " + getVertexId() +
-                 " with name: " + getName() +
-                 " with distanceFromRoot: " + distanceFromRoot );
-        eventHandler.handle(new VertexEvent(vertexId,
-            VertexEventType.V_START));
-      }
-    }
-  }
-
   public static class StartWhileInitializingTransition implements 
     SingleArcTransition<VertexImpl, VertexEvent> {
 
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
+      // vertex state machine does not start itself in the initializing state
+      // this start event can only come directly from the DAG. That means this 
+      // is a top level vertex of the dag
+      Preconditions.checkState(
+          (vertex.sourceVertices == null || vertex.sourceVertices.isEmpty()),
+          "Vertex: " + vertex.logIdentifier + " got invalid start event");
       vertex.startTimeRequested = vertex.clock.getTime();
       vertex.startSignalPending = true;
     }
@@ -2874,16 +2910,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private VertexState startVertex() {
     Preconditions.checkState(getState() == VertexState.INITED, 
         "Vertex must be inited " + logIdentifier);
-
-    if (!canStartVertex()) {
-      // this is to handle the initial vertices who are directly sent a V_START
-      // from the DAG. They may have uninitialized edges that may be initialized
-      // when the downstream vertices initialize
-      LOG.info("Received START event. Saving notification so that we can start " +
-      		"when other requirements are met for vertex: " + logIdentifier);
-      startSignalPending = true;
-      return VertexState.INITED;
-    }
 
     startedTime = clock.getTime();
     vertexManager.onVertexStarted(pendingReportedSrcCompletions);
