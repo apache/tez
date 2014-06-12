@@ -3465,8 +3465,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public void setAdditionalInputs(List<RootInputLeafOutputProto> inputs) {
-    Preconditions.checkArgument(inputs.size() < 2,
-        "For now, only a single root input can be specified on a Vertex");
     this.rootInputDescriptors = Maps.newHashMapWithExpectedSize(inputs.size());
     for (RootInputLeafOutputProto input : inputs) {
 

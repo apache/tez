@@ -377,7 +377,7 @@ public class DAG { // FIXME rename to Topology
       outboundSet.add(outputVertex.getVertexName());
     }
 
-    // check input and output names dont collide with vertex names
+    // check input and output names don't collide with vertex names
     for (Vertex vertex : vertices.values()) {
       for (RootInputLeafOutput<InputDescriptor> input : vertex.getInputs()) {
         if (vertexMap.containsKey(input.getName())) {

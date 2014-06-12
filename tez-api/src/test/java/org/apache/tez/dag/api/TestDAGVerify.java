@@ -36,7 +36,7 @@ public class TestDAGVerify {
   //    v1
   //    |
   //    v2
-  @Test
+  @Test(timeout = 5000)
   public void testVerifyScatterGather() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor(dummyProcessorClassName),
@@ -56,7 +56,7 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testVerifyCustomEdge() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor(dummyProcessorClassName),
@@ -77,7 +77,7 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test  
+  @Test(timeout = 5000)
   public void testVerifyOneToOne() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor(dummyProcessorClassName),
@@ -97,7 +97,7 @@ public class TestDAGVerify {
     dag.verify();
   }
   
-  @Test
+  @Test(timeout = 5000)
   // v1 (known) -> v2 (-1) -> v3 (-1)
   public void testVerifyOneToOneInferParallelism() {
     Vertex v1 = new Vertex("v1",
@@ -130,7 +130,7 @@ public class TestDAGVerify {
     Assert.assertEquals(dummyTaskCount, v3.getParallelism());
   }
   
-  @Test
+  @Test(timeout = 5000)
   // v1 (known) -> v2 (-1) -> v3 (-1)
   // The test checks resiliency to ordering of the vertices/edges
   public void testVerifyOneToOneInferParallelismReverseOrder() {
@@ -164,7 +164,7 @@ public class TestDAGVerify {
     Assert.assertEquals(dummyTaskCount, v3.getParallelism());
   }
   
-  @Test  
+  @Test(timeout = 5000)
   public void testVerifyOneToOneNoInferParallelism() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor(dummyProcessorClassName),
@@ -185,7 +185,7 @@ public class TestDAGVerify {
     Assert.assertEquals(-1, v2.getParallelism());
   }
   
-  @Test  
+  @Test(timeout = 5000)
   // v1 (-1) -> v2 (known) -> v3 (-1)
   public void testVerifyOneToOneIncorrectParallelism1() {
     Vertex v1 = new Vertex("v1",
@@ -222,7 +222,7 @@ public class TestDAGVerify {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   // v1 (-1) -> v3 (-1), v2 (known) -> v3 (-1)
   // order of edges should not matter
   public void testVerifyOneToOneIncorrectParallelism2() {
@@ -270,7 +270,7 @@ public class TestDAGVerify {
     }
   }
   
-  @Test  
+  @Test(timeout = 5000)
   public void testVerifyBroadcast() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor(dummyProcessorClassName),
@@ -290,7 +290,7 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test(expected = IllegalStateException.class)  
+  @Test(expected = IllegalStateException.class, timeout = 5000)  
   public void testVerify3() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor(dummyProcessorClassName),
@@ -310,7 +310,7 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test(expected = IllegalStateException.class)  
+  @Test(expected = IllegalStateException.class, timeout = 5000)  
   public void testVerify4() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor(dummyProcessorClassName),
@@ -335,7 +335,7 @@ public class TestDAGVerify {
   //       v2   ^
   //      |  |  ^
   //    v3    v4
-  @Test
+  @Test(timeout = 5000)
   public void testCycle1() {
     IllegalStateException ex=null;
     Vertex v1 = new Vertex("v1",
@@ -395,7 +395,7 @@ public class TestDAGVerify {
   //    -> v2
   //    ^  | |
   //    v3    v4
-  @Test
+  @Test(timeout = 5000)
   public void testCycle2() {
     IllegalStateException ex=null;
     Vertex v1 = new Vertex("v1",
@@ -450,7 +450,7 @@ public class TestDAGVerify {
     Assert.assertTrue(ex.getMessage().startsWith("DAG contains a cycle"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void repeatedVertexName() {
     IllegalStateException ex=null;
     Vertex v1 = new Vertex("v1",
@@ -473,7 +473,7 @@ public class TestDAGVerify {
     Assert.assertTrue(ex.getMessage().startsWith("Vertex v1 already defined"));
   }
   
-  @Test (expected = IllegalStateException.class)
+  @Test(expected = IllegalStateException.class, timeout = 5000)
   public void testInputAndInputVertexNameCollision() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor("MapProcessor"),
@@ -497,7 +497,7 @@ public class TestDAGVerify {
     dag.verify();
   }
   
-  @Test (expected = IllegalStateException.class)
+  @Test(expected = IllegalStateException.class, timeout = 5000)
   public void testOutputAndOutputVertexNameCollision() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor("MapProcessor"),
@@ -521,7 +521,7 @@ public class TestDAGVerify {
     dag.verify();
   }
   
-  @Test (expected = IllegalStateException.class)
+  @Test(expected = IllegalStateException.class, timeout = 5000)
   public void testOutputAndVertexNameCollision() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor("MapProcessor"),
@@ -538,7 +538,7 @@ public class TestDAGVerify {
     dag.verify();
   }
   
-  @Test (expected = IllegalStateException.class)
+  @Test(expected = IllegalStateException.class, timeout = 5000)
   public void testInputAndVertexNameCollision() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor("MapProcessor"),
@@ -558,7 +558,7 @@ public class TestDAGVerify {
   //  v1  v2
   //   |  |
   //    v3
-  @Test
+  @Test(timeout = 5000)
   public void BinaryInputAllowed() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor("MapProcessor"),
@@ -588,7 +588,7 @@ public class TestDAGVerify {
     dag.verify();
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testVertexGroupWithMultipleOutputEdges() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor("Processor"),
@@ -638,7 +638,7 @@ public class TestDAGVerify {
     Assert.assertTrue(v2.getOutputVertices().contains(v4));
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testVertexGroup() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor("Processor"),
@@ -718,7 +718,7 @@ public class TestDAGVerify {
     Assert.assertEquals(2, dag.vertexGroups.size());
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testVertexGroupOneToOne() {
     Vertex v1 = new Vertex("v1",
         new ProcessorDescriptor("Processor"),
@@ -772,7 +772,7 @@ public class TestDAGVerify {
   //   v1
   //  |  |
   //  v2  v3
-  @Test
+  @Test(timeout = 5000)
   public void BinaryOutput() {
     IllegalStateException ex = null;
     try {
@@ -809,7 +809,7 @@ public class TestDAGVerify {
     Assert.assertNull(ex);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testDagWithNoVertices() {
     IllegalStateException ex=null;
     try {
@@ -826,7 +826,7 @@ public class TestDAGVerify {
   }
 
   @SuppressWarnings("unused")
-  @Test
+  @Test(timeout = 5000)
   public void testInvalidVertexConstruction() {
     {
       Vertex v1 = new Vertex("v1",
@@ -856,6 +856,28 @@ public class TestDAGVerify {
     } catch (IllegalArgumentException e) {
       Assert.assertTrue(e.getMessage().startsWith("Resource cannot be null"));
     }
+  }
+
+  @Test(timeout = 5000)
+  public void testMultipleRootInputsAllowed() {
+    DAG dag = new DAG("testDag");
+    ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1")
+        .setUserPayload("processor1Bytes".getBytes());
+    Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
+    VertexManagerPluginDescriptor vertexManagerPluginDescriptor = new VertexManagerPluginDescriptor(
+        "TestVertexManager");
+    v1.setVertexManagerPlugin(vertexManagerPluginDescriptor);
+
+    InputDescriptor inputDescriptor1 = new InputDescriptor("input1").setUserPayload("inputBytes"
+        .getBytes());
+    InputDescriptor inputDescriptor2 = new InputDescriptor("input2").setUserPayload("inputBytes"
+        .getBytes());
+    v1.addInput("input1", inputDescriptor1, null);
+    v1.addInput("input2", inputDescriptor2, null);
+
+    dag.addVertex(v1);
+
+    dag.createDag(new TezConfiguration());
   }
 
 }

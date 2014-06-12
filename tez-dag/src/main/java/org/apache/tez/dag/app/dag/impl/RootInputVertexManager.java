@@ -40,6 +40,7 @@ import com.google.common.collect.Lists;
 public class RootInputVertexManager implements VertexManagerPlugin {
 
   VertexManagerPluginContext context;
+  private String configuredInputName;
 
   @Override
   public void initialize(VertexManagerPluginContext context) {
@@ -73,9 +74,14 @@ public class RootInputVertexManager implements VertexManagerPlugin {
       if (event instanceof RootInputConfigureVertexTasksEvent) {
         // No tasks should have been started yet. Checked by initial state check.
         Preconditions.checkState(dataInformationEventSeen == false);
-        Preconditions
-            .checkState(context.getVertexNumTasks(context.getVertexName()) == -1,
-                "Parallelism for the vertex should be set to -1 if the InputInitializer is setting parallelism");
+        Preconditions.checkState(context.getVertexNumTasks(context.getVertexName()) == -1,
+            "Parallelism for the vertex should be set to -1 if the InputInitializer is setting parallelism"
+                + ", VertexName: " + context.getVertexName());
+        Preconditions.checkState(configuredInputName == null,
+            "RootInputVertexManager cannot configure multiple inputs. Use a custom VertexManager"
+                + ", VertexName: " + context.getVertexName() + ", ConfiguredInput: "
+                + configuredInputName + ", CurrentInput: " + inputName);
+        configuredInputName = inputName;
         RootInputConfigureVertexTasksEvent cEvent = (RootInputConfigureVertexTasksEvent) event;
         Map<String, RootInputSpecUpdate> rootInputSpecUpdate = new HashMap<String, RootInputSpecUpdate>();
         rootInputSpecUpdate.put(
@@ -94,6 +100,12 @@ public class RootInputVertexManager implements VertexManagerPlugin {
         dataInformationEventSeen = true;
         // # Tasks should have been set by this point.
         Preconditions.checkState(context.getVertexNumTasks(context.getVertexName()) != 0);
+        Preconditions.checkState(
+            configuredInputName == null || configuredInputName.equals(inputName),
+            "RootInputVertexManager cannot configure multiple inputs. Use a custom VertexManager"
+                + ", VertexName:" + context.getVertexName() + ", ConfiguredInput: "
+                + configuredInputName + ", CurrentInput: " + inputName);
+        configuredInputName = inputName;
         
         RootInputDataInformationEvent rEvent = (RootInputDataInformationEvent)event;
         rEvent.setTargetIndex(rEvent.getSourceIndex()); // 1:1 routing

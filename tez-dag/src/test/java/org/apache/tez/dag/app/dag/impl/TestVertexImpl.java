@@ -48,6 +48,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.service.Service.STATE;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -1576,7 +1577,6 @@ public class TestVertexImpl {
     for (PlanVertexGroupInfo groupInfo : dagPlan.getVertexGroupsList()) {
       vertexGroups.put(groupInfo.getGroupName(), new VertexGroupInfo(groupInfo));
     }
-    
     setupVertices();
     when(dag.getVertex(any(TezVertexID.class))).thenAnswer(new Answer<Vertex>() {
       @Override
@@ -1638,8 +1638,10 @@ public class TestVertexImpl {
 
   @After
   public void teardown() {
-    dispatcher.await();
-    dispatcher.stop();
+    if (dispatcher.isInState(STATE.STARTED)) {
+      dispatcher.await();
+      dispatcher.stop();
+    }
     dispatcher = null;
     vertexEventDispatcher = null;
     dagEventDispatcher = null;
@@ -2550,7 +2552,7 @@ public class TestVertexImpl {
     
     RootInputInitializerRunnerControlled runner1 = v1.getRootInputInitializerRunner();
     List<TaskLocationHint> v1Hints = createTaskLocationHints(numTasks);
-    runner1.completeInputInitialization(numTasks, v1Hints);
+    runner1.completeInputInitialization(0, numTasks, v1Hints);
 
     Assert.assertEquals(VertexState.INITED, v1.getState());
     Assert.assertEquals(numTasks, v1.getTotalTasks());
@@ -2729,7 +2731,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
     RootInputInitializerRunnerControlled runner1 = v1.getRootInputInitializerRunner();
     List<TaskLocationHint> v1Hints = createTaskLocationHints(5);
-    runner1.completeInputInitialization(5, v1Hints);
+    runner1.completeInputInitialization(0, 5, v1Hints);
 
     Assert.assertEquals(VertexState.INITED, v1.getState());
     Assert.assertEquals(5, v1.getTotalTasks());
@@ -2768,7 +2770,7 @@ public class TestVertexImpl {
     
     RootInputInitializerRunnerControlled runner2 = v2.getRootInputInitializerRunner();
     List<TaskLocationHint> v2Hints = createTaskLocationHints(10);
-    runner2.completeInputInitialization(10, v2Hints);
+    runner2.completeInputInitialization(0, 10, v2Hints);
     
     Assert.assertEquals(VertexState.INITED, v2.getState());
     Assert.assertEquals(10, v2.getTotalTasks());
@@ -2882,7 +2884,7 @@ public class TestVertexImpl {
       Assert.assertEquals(i + 1, inputSpecs.get(0).getPhysicalEdgeCount());
     }
   }
-  
+
   private List<TaskLocationHint> createTaskLocationHints(int numTasks) {
     List<TaskLocationHint> locationHints = Lists
         .newArrayListWithCapacity(numTasks);
@@ -3012,7 +3014,8 @@ public class TestVertexImpl {
       dispatcher.await();
     }
     
-    public void completeInputInitialization(int targetTasks, List<TaskLocationHint> locationHints) {
+    public void completeInputInitialization(int initializerIndex, int targetTasks,
+        List<TaskLocationHint> locationHints) {
       List<Event> events = Lists.newArrayListWithCapacity(targetTasks + 1);
 
       RootInputConfigureVertexTasksEvent configEvent = new RootInputConfigureVertexTasksEvent(
@@ -3024,7 +3027,7 @@ public class TestVertexImpl {
         events.add(diEvent);
       }
       eventHandler.handle(new VertexEventRootInputInitialized(vertexID, inputs
-          .get(0).getEntityName(), events));
+          .get(initializerIndex).getEntityName(), events));
       dispatcher.await();
     }
   }
