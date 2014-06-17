@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.GeneralSecurityException;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
 import javax.net.ssl.HttpsURLConnection;
@@ -37,6 +38,8 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleHeader;
+
+import com.google.common.base.Stopwatch;
 
 /**
  * HttpConnection which can be used for Unordered / Ordered shuffle.
@@ -65,6 +68,7 @@ public class HttpConnection {
   private String msgToEncode;
 
   private final HttpConnectionParams httpConnParams;
+  private final Stopwatch stopWatch;
 
   /**
    * HttpConnection
@@ -81,6 +85,7 @@ public class HttpConnection {
     this.jobTokenSecret = jobTokenSecret;
     this.httpConnParams = connParams;
     this.url = url;
+    this.stopWatch = new Stopwatch();
     if (LOG.isDebugEnabled()) {
       LOG.debug("MapOutput URL :" + url.toString());
     }
@@ -132,6 +137,7 @@ public class HttpConnection {
    * @throws IOException
    */
   public boolean connect(int connectionTimeout) throws IOException {
+    stopWatch.reset().start();
     if (connection == null) {
       setupConnection();
     }
@@ -144,6 +150,7 @@ public class HttpConnection {
     }
     // set the connect timeout to the unit-connect-timeout
     connection.setConnectTimeout(unit);
+    int connectionFailures = 0;
     while (true) {
       try {
         connection.connect();
@@ -170,12 +177,18 @@ public class HttpConnection {
           // reset the connect time out for the final connect
           connection.setConnectTimeout(unit);
         }
+        connectionFailures++;
       }
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Time taken to connect to " + url.toString() +
+        " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms; connectionFailures="+ connectionFailures);
     }
     return true;
   }
 
   public void validate() throws IOException {
+    stopWatch.reset().start();
     int rc = connection.getResponseCode();
     if (rc != HttpURLConnection.HTTP_OK) {
       throw new IOException("Got invalid response code " + rc + " from " + url
@@ -199,7 +212,8 @@ public class HttpConnection {
         + replyHash);
     // verify that replyHash is HMac of encHash
     SecureShuffleUtils.verifyReply(replyHash, encHash, jobTokenSecret);
-    LOG.info("for url=" + msgToEncode + " sent hash and receievd reply");
+    LOG.info("for url=" + msgToEncode +
+      " sent hash and receievd reply " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
   }
 
   /**
@@ -209,11 +223,16 @@ public class HttpConnection {
    * @throws IOException
    */
   public DataInputStream getInputStream() throws IOException {
+    stopWatch.reset().start();
     DataInputStream input = null;
     if (connectionSucceeed) {
       input =
           new DataInputStream(new BufferedInputStream(
             connection.getInputStream(), httpConnParams.bufferSize));
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Time taken to getInputStream (connect) " + url +
+        " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
     }
     return input;
   }
@@ -237,6 +256,7 @@ public class HttpConnection {
    */
   public void cleanup(boolean disconnect) throws IOException {
     cleanup = true;
+    stopWatch.reset().start();
     try {
       if (input != null) {
         LOG.info("Closing input on " + logIdentifier);
@@ -258,6 +278,10 @@ public class HttpConnection {
         LOG.info("Exception while shutting down fetcher " + logIdentifier
             + ": " + e.getMessage());
       }
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Time taken to cleanup connection to " + url +
+        " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
     }
   }
 
