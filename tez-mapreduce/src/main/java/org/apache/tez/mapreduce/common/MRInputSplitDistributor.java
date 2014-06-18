@@ -27,7 +27,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.input.MRInput;
+import org.apache.tez.mapreduce.lib.MRInputUtils;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
@@ -95,12 +95,12 @@ public class MRInputSplitDistributor implements TezRootInputInitializer {
         diEvent = new RootInputDataInformationEvent(count++, mrSplit.toByteArray());
       } else {
         if (useNewApi) {
-          org.apache.hadoop.mapreduce.InputSplit newInputSplit = MRInput
+          org.apache.hadoop.mapreduce.InputSplit newInputSplit = MRInputUtils
               .getNewSplitDetailsFromEvent(mrSplit, conf);
           diEvent = new RootInputDataInformationEvent(count++, newInputSplit);
         } else {
-          org.apache.hadoop.mapred.InputSplit oldInputSplit = MRInput.getOldSplitDetailsFromEvent(
-              mrSplit, conf);
+          org.apache.hadoop.mapred.InputSplit oldInputSplit = MRInputUtils
+              .getOldSplitDetailsFromEvent(mrSplit, conf);
           diEvent = new RootInputDataInformationEvent(count++, oldInputSplit);
         }
       }

@@ -35,7 +35,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.input.MRInput;
+import org.apache.tez.mapreduce.lib.MRInputUtils;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
@@ -87,12 +87,12 @@ public class TestMRInputSplitDistributor {
     assertNotNull(diEvent2.getUserPayload());
 
     MRSplitProto event1Proto = MRSplitProto.parseFrom(diEvent1.getUserPayload());
-    InputSplit is1 = MRInput.getOldSplitDetailsFromEvent(event1Proto, new Configuration());
+    InputSplit is1 = MRInputUtils.getOldSplitDetailsFromEvent(event1Proto, new Configuration());
     assertTrue(is1 instanceof InputSplitForTest);
     assertEquals(1, ((InputSplitForTest) is1).identifier);
 
     MRSplitProto event2Proto = MRSplitProto.parseFrom(diEvent2.getUserPayload());
-    InputSplit is2 = MRInput.getOldSplitDetailsFromEvent(event2Proto, new Configuration());
+    InputSplit is2 = MRInputUtils.getOldSplitDetailsFromEvent(event2Proto, new Configuration());
     assertTrue(is2 instanceof InputSplitForTest);
     assertEquals(2, ((InputSplitForTest) is2).identifier);
   }

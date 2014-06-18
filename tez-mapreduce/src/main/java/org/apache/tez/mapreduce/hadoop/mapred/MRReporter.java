@@ -21,27 +21,22 @@ package org.apache.tez.mapreduce.hadoop.mapred;
 import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.mapreduce.common.Utils;
-import org.apache.tez.runtime.api.TezProcessorContext;
-import org.apache.tez.runtime.api.TezTaskContext;
 
 public class MRReporter implements Reporter {
 
-  private TezTaskContext tezTaskContext;
+  private TezCounters tezCounters;
   private InputSplit split;
   private float progress = 0f;
-  private boolean isProcessorContext = false;
   
-  public MRReporter(TezProcessorContext tezProcContext) {
-    this(tezProcContext, null);
-    isProcessorContext = true;
-  }
-  public MRReporter(TezTaskContext tezTaskContext) {
-    this(tezTaskContext, null);
+  
+  public MRReporter(TezCounters tezCounters) {
+    this(tezCounters, null);
   }
 
-  public MRReporter(TezTaskContext tezTaskContext, InputSplit split) {
-    this.tezTaskContext = tezTaskContext;
+  public MRReporter(TezCounters tezCounters, InputSplit split) {
+    this.tezCounters = tezCounters;
     this.split = split;
   }
   
@@ -58,12 +53,12 @@ public class MRReporter implements Reporter {
 
   @Override
   public Counter getCounter(Enum<?> name) {
-    return Utils.getMRCounter(tezTaskContext.getCounters().findCounter(name));
+    return Utils.getMRCounter(tezCounters.findCounter(name));
   }
 
   @Override
   public Counter getCounter(String group, String name) {
-    return Utils.getMRCounter(tezTaskContext.getCounters().findCounter(group,
+    return Utils.getMRCounter(tezCounters.findCounter(group,
         name));
   }
 

@@ -88,7 +88,7 @@ public class IntersectExample extends Configured implements Tool {
   }
 
   private static void printUsage() {
-    System.err.println("Usage: " + "intersectlines <file1> <file2> <numPartitions> <outPath>");
+    System.err.println("Usage: " + "intersect <file1> <file2> <numPartitions> <outPath>");
     ToolRunner.printGenericCommandUsage(System.err);
   }
 

@@ -25,11 +25,11 @@ import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.mapreduce.common.Utils;
-import org.apache.tez.runtime.api.TezTaskContext;
 
 // NOTE: NEWTEZ: This is a copy of org.apache.tez.mapreduce.hadoop.mapred (not mapreduce). mapred likely does not need it's own copy of this class.
 // Meant for use by the "mapreduce" API
@@ -39,18 +39,16 @@ import org.apache.tez.runtime.api.TezTaskContext;
 public class TaskAttemptContextImpl
        extends org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl {
 
-  private final TezTaskContext taskContext;
+  private final TezCounters tezCounters;
   private final Reporter reporter;
   
   public static org.apache.hadoop.mapred.TaskAttemptID createMockTaskAttemptID(
-      TezTaskContext taskContext, boolean isMap) {
+      long clusterId, int vertexIndex, int appId, int taskIndex, int taskAttemptNumber, boolean isMap) {
     return new org.apache.hadoop.mapred.TaskAttemptID(
-        new org.apache.hadoop.mapred.TaskID(String.valueOf(taskContext
-            .getApplicationId().getClusterTimestamp())
-            + String.valueOf(taskContext.getTaskVertexIndex()), taskContext
-            .getApplicationId().getId(),
-            isMap ? TaskType.MAP : TaskType.REDUCE, taskContext.getTaskIndex()),
-        taskContext.getTaskAttemptNumber());
+        new org.apache.hadoop.mapred.TaskID(String.valueOf(clusterId)
+            + String.valueOf(vertexIndex), appId,
+            isMap ? TaskType.MAP : TaskType.REDUCE, taskIndex),
+        taskAttemptNumber);
   }
   
   public static org.apache.hadoop.mapred.TaskAttemptID 
@@ -74,22 +72,24 @@ public class TaskAttemptContextImpl
   }
 
   // FIXME we need to use DAG Id but we are using App Id
-  public TaskAttemptContextImpl(Configuration conf, 
-      TezTaskContext taskContext, boolean isMap, Reporter reporter) {
+  public TaskAttemptContextImpl(Configuration conf, TezCounters tezCounters, long clusterId,
+      int vertexIndex, int appId, int taskIndex, int taskAttemptNumber, boolean isMap,
+      Reporter reporter) {
     // TODO NEWTEZ Can the jt Identifier string be taskContext.getUniqueId ?
-    this(conf, createMockTaskAttemptID(taskContext, isMap), taskContext, reporter);
+    this(conf, createMockTaskAttemptID(clusterId, vertexIndex, appId, taskIndex, taskAttemptNumber,
+        isMap), tezCounters, reporter);
   }
 
   //FIXME we need to use DAG Id but we are using App Id
    public TaskAttemptContextImpl(Configuration conf, TaskAttemptID attemptId, 
-       TezTaskContext taskContext, boolean isMap, Reporter reporter) {
+       TezCounters tezCounters, boolean isMap, Reporter reporter) {
      // TODO NEWTEZ Can the jt Identifier string be taskContext.getUniqueId ?
-     this(conf, attemptId, taskContext, reporter);
+     this(conf, attemptId, tezCounters, reporter);
    }
  
-  public TaskAttemptContextImpl(Configuration conf, TaskAttemptID taId, TezTaskContext context, Reporter reporter) {
+  public TaskAttemptContextImpl(Configuration conf, TaskAttemptID taId, TezCounters tezCounters, Reporter reporter) {
     super(conf, taId);
-    this.taskContext = context;
+    this.tezCounters = tezCounters;
     this.reporter = reporter;
   }
 
@@ -101,12 +101,12 @@ public class TaskAttemptContextImpl
 
   @Override
   public Counter getCounter(Enum<?> counterName) {
-    return Utils.getMRCounter(taskContext.getCounters().findCounter(counterName));
+    return Utils.getMRCounter(tezCounters.findCounter(counterName));
   }
 
   @Override
   public Counter getCounter(String groupName, String counterName) {
-    return Utils.getMRCounter(taskContext.getCounters().findCounter(groupName, counterName));
+    return Utils.getMRCounter(tezCounters.findCounter(groupName, counterName));
   }
 
   /**

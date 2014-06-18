@@ -20,46 +20,28 @@ package org.apache.tez.mapreduce.input;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.serializer.Deserializer;
-import org.apache.hadoop.io.serializer.SerializationFactory;
-import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputFormat;
-import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.JobContext;
-import org.apache.hadoop.mapred.RecordReader;
-import org.apache.hadoop.mapred.TaskAttemptID;
-import org.apache.hadoop.mapred.TaskID;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
-import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.counters.TaskCounter;
-import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
-import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
-import org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl;
-import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
+import org.apache.tez.mapreduce.input.base.MRInputBase;
+import org.apache.tez.mapreduce.lib.MRInputUtils;
+import org.apache.tez.mapreduce.lib.MRReader;
+import org.apache.tez.mapreduce.lib.MRReaderMapReduce;
+import org.apache.tez.mapreduce.lib.MRReaderMapred;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
-import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
@@ -77,38 +59,21 @@ import com.google.common.base.Preconditions;
  * This class is not meant to be extended by external projects.
  */
 
-public class MRInput extends AbstractLogicalInput {
+public class MRInput extends MRInputBase {
 
   private static final Log LOG = LogFactory.getLog(MRInput.class);
   
-  private final Lock rrLock = new ReentrantLock();
-  private Condition rrInited = rrLock.newCondition();
+  private final ReentrantLock rrLock = new ReentrantLock();
+  private final Condition rrInited = rrLock.newCondition();
   
   private volatile boolean eventReceived = false;
-  
-  private JobConf jobConf;
-  private Configuration incrementalConf;
+
   private boolean readerCreated = false;
-  
-  boolean useNewApi;
-  
-  org.apache.hadoop.mapreduce.TaskAttemptContext taskAttemptContext;
 
-  @SuppressWarnings("rawtypes")
-  private org.apache.hadoop.mapreduce.InputFormat newInputFormat;
-  @SuppressWarnings("rawtypes")
-  protected org.apache.hadoop.mapreduce.RecordReader newRecordReader;
-  protected org.apache.hadoop.mapreduce.InputSplit newInputSplit;
-
-  @SuppressWarnings("rawtypes")
-  private InputFormat oldInputFormat;
-  @SuppressWarnings("rawtypes")
-  protected RecordReader oldRecordReader;
-  protected InputSplit oldInputSplit;
+  protected MRReader mrReader;
 
   protected TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
-  
-  private TezCounter inputRecordCounter;
+
   // Potential counters - #splits, #totalSize, #actualyBytesRead
   
   @Private
@@ -162,48 +127,19 @@ public class MRInput extends AbstractLogicalInput {
   
   @Override
   public List<Event> initialize() throws IOException {
-    getContext().requestInitialMemory(0l, null); //mandatory call
+    super.initialize();
     getContext().inputIsReady();
-    MRInputUserPayloadProto mrUserPayload =
-      MRHelpers.parseMRInputPayload(getContext().getUserPayload());
-    Preconditions.checkArgument(mrUserPayload.hasSplits() == false,
-        "Split information not expected in MRInput");
-    Configuration conf =
-      MRHelpers.createConfFromByteString(mrUserPayload.getConfigurationBytes());
-    this.jobConf = new JobConf(conf);
-    // Add tokens to the jobConf - in case they are accessed within the RR / IF
-    jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
-
-    TaskAttemptID taskAttemptId = new TaskAttemptID(
-      new TaskID(
-        Long.toString(getContext().getApplicationId().getClusterTimestamp()),
-        getContext().getApplicationId().getId(), TaskType.MAP,
-        getContext().getTaskIndex()),
-        getContext().getTaskAttemptNumber());
-
-    jobConf.set(MRJobConfig.TASK_ATTEMPT_ID,
-      taskAttemptId.toString());
-    jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
-        getContext().getDAGAttemptNumber());
-
-    // TODO NEWTEZ Rename this to be specific to MRInput. This Input, in
-    // theory, can be used by the MapProcessor, ReduceProcessor or a custom
-    // processor. (The processor could provide the counter though)
-
-    this.inputRecordCounter = getContext().getCounters().findCounter(TaskCounter.INPUT_RECORDS_PROCESSED);
-
-    useNewApi = this.jobConf.getUseNewMapper();
     this.splitInfoViaEvents = jobConf.getBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS,
         MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS_DEFAULT);
     LOG.info("Using New mapreduce API: " + useNewApi
         + ", split information via event: " + splitInfoViaEvents);
-
     initializeInternal();
     return null;
   }
 
   @Override
   public void start() {
+    Preconditions.checkState(getNumPhysicalInputs() == 1, "Expecting only 1 physical input for MRInput");
   }
 
   @Private
@@ -211,67 +147,40 @@ public class MRInput extends AbstractLogicalInput {
     // Primarily for visibility
     rrLock.lock();
     try {
+      
       if (splitInfoViaEvents) {
         if (useNewApi) {
-          setupNewInputFormat();
+          mrReader = new MRReaderMapReduce(jobConf, getContext().getCounters(), inputRecordCounter,
+              getContext().getApplicationId().getClusterTimestamp(), getContext()
+                  .getTaskVertexIndex(), getContext().getApplicationId().getId(), getContext()
+                  .getTaskIndex(), getContext().getTaskAttemptNumber());
         } else {
-          setupOldInputFormat();
+          mrReader = new MRReaderMapred(jobConf, getContext().getCounters(), inputRecordCounter);
         }
       } else {
-        // Read split information.
-        TaskSplitMetaInfo[] allMetaInfo = readSplits(jobConf);
-        TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[getContext()
-            .getTaskIndex()];
-        this.splitMetaInfo = new TaskSplitIndex(
-            thisTaskMetaInfo.getSplitLocation(),
+        TaskSplitMetaInfo[] allMetaInfo = MRInputUtils.readSplits(jobConf);
+        TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[getContext().getTaskIndex()];
+        TaskSplitIndex splitMetaInfo = new TaskSplitIndex(thisTaskMetaInfo.getSplitLocation(),
             thisTaskMetaInfo.getStartOffset());
         if (useNewApi) {
-          setupNewInputFormat();
-          newInputSplit = getNewSplitDetailsFromDisk(splitMetaInfo);
-          setupNewRecordReader();
+          org.apache.hadoop.mapreduce.InputSplit newInputSplit = MRInputUtils
+              .getNewSplitDetailsFromDisk(splitMetaInfo, jobConf, getContext().getCounters()
+                  .findCounter(TaskCounter.SPLIT_RAW_BYTES));
+          mrReader = new MRReaderMapReduce(jobConf, newInputSplit, getContext().getCounters(),
+              inputRecordCounter, getContext().getApplicationId().getClusterTimestamp(),
+              getContext().getTaskVertexIndex(), getContext().getApplicationId().getId(),
+              getContext().getTaskIndex(), getContext().getTaskAttemptNumber());
         } else {
-          setupOldInputFormat();
-          oldInputSplit = getOldSplitDetailsFromDisk(splitMetaInfo);
-          setupOldRecordReader();
+          org.apache.hadoop.mapred.InputSplit oldInputSplit = MRInputUtils
+              .getOldSplitDetailsFromDisk(splitMetaInfo, jobConf, getContext().getCounters()
+                  .findCounter(TaskCounter.SPLIT_RAW_BYTES));
+          mrReader = new MRReaderMapred(jobConf, oldInputSplit, getContext().getCounters(), inputRecordCounter);
         }
       }
     } finally {
       rrLock.unlock();
     }
     LOG.info("Initialzed MRInput: " + getContext().getSourceVertexName());
-  }
-
-  private void setupOldInputFormat() {
-    oldInputFormat = this.jobConf.getInputFormat();
-  }
-  
-  private void setupOldRecordReader() throws IOException {
-    Preconditions.checkNotNull(oldInputSplit, "Input split hasn't yet been setup");
-    oldRecordReader = oldInputFormat.getRecordReader(oldInputSplit,
-        this.jobConf, new MRReporter(getContext(), oldInputSplit));
-    setIncrementalConfigParams(oldInputSplit);
-  }
-  
-  private void setupNewInputFormat() throws IOException {
-    taskAttemptContext = createTaskAttemptContext();
-    Class<? extends org.apache.hadoop.mapreduce.InputFormat<?, ?>> inputFormatClazz;
-    try {
-      inputFormatClazz = taskAttemptContext.getInputFormatClass();
-    } catch (ClassNotFoundException e) {
-      throw new IOException("Unable to instantiate InputFormat class", e);
-    }
-
-    newInputFormat = ReflectionUtils.newInstance(inputFormatClazz, this.jobConf);
-  }
-  
-  private void setupNewRecordReader() throws IOException {
-    Preconditions.checkNotNull(newInputSplit, "Input split hasn't yet been setup");    
-    try {
-      newRecordReader = newInputFormat.createRecordReader(newInputSplit, taskAttemptContext);
-      newRecordReader.initialize(newInputSplit, taskAttemptContext);
-    } catch (InterruptedException e) {
-      throw new IOException("Interrupted while creating record reader", e);
-    }
   }
 
   @Override
@@ -282,15 +191,13 @@ public class MRInput extends AbstractLogicalInput {
     readerCreated = true;
     rrLock.lock();
     try {
-      if (newRecordReader == null && oldRecordReader == null)
+      if (!mrReader.isSetup())
         checkAndAwaitRecordReaderInitialization();
     } finally {
       rrLock.unlock();
     }
 
-    LOG.info("Creating reader for MRInput: "
-        + getContext().getSourceVertexName());
-    return new MRInputKVReader();
+    return mrReader;
   }
 
   @Override
@@ -312,11 +219,7 @@ public class MRInput extends AbstractLogicalInput {
 
   @Override
   public List<Event> close() throws IOException {
-    if (useNewApi) {
-      newRecordReader.close();
-    } else {
-      oldRecordReader.close();
-    }
+    mrReader.close();
     return null;
   }
 
@@ -328,27 +231,17 @@ public class MRInput extends AbstractLogicalInput {
    * @return the additional fields set by {@link MRInput}
    */
   public Configuration getConfigUpdates() {
-    if (incrementalConf != null) {
-      return new Configuration(incrementalConf);
+    if (!useNewApi) {
+      return ((MRReaderMapred) mrReader).getConfigUpdates();
+    } else {
+      return null;
     }
-    return null;
   }
-  
-  
 
   public float getProgress() throws IOException, InterruptedException {
-    if (useNewApi) {
-      return newRecordReader.getProgress();
-    } else {
-      return oldRecordReader.getProgress();
-    }
+    return mrReader.getProgress();
   }
 
-  
-  private TaskAttemptContext createTaskAttemptContext() {
-    return new TaskAttemptContextImpl(this.jobConf, getContext(), true, null);
-  }
-  
   void processSplitEvent(RootInputDataInformationEvent event)
       throws IOException {
     rrLock.lock();
@@ -362,12 +255,16 @@ public class MRInput extends AbstractLogicalInput {
   }
   
   void checkAndAwaitRecordReaderInitialization() throws IOException {
+    assert rrLock.getHoldCount() == 1;
+    rrLock.lock();
     try {
       LOG.info("Awaiting RecordReader initialization");
       rrInited.await();
     } catch (Exception e) {
       throw new IOException(
           "Interrupted waiting for RecordReader initiailization");
+    } finally {
+      rrLock.unlock();
     }
   }
 
@@ -382,203 +279,22 @@ public class MRInput extends AbstractLogicalInput {
     }
   }
   
-  private void initFromEventInternal(RootInputDataInformationEvent initEvent)
-      throws IOException {
+  private void initFromEventInternal(RootInputDataInformationEvent initEvent) throws IOException {
     LOG.info("Initializing RecordReader from event");
     Preconditions.checkState(initEvent != null, "InitEvent must be specified");
-    MRSplitProto splitProto = MRSplitProto
-        .parseFrom(initEvent.getUserPayload());
+    MRSplitProto splitProto = MRSplitProto.parseFrom(initEvent.getUserPayload());
+    Object split = null;
     if (useNewApi) {
-      newInputSplit = getNewSplitDetailsFromEvent(splitProto, jobConf);
-      LOG.info("Split Details -> SplitClass: "
-          + newInputSplit.getClass().getName() + ", NewSplit: " + newInputSplit);
-      setupNewRecordReader();
+      split = MRInputUtils.getNewSplitDetailsFromEvent(splitProto, jobConf);
+      LOG.info("Split Details -> SplitClass: " + split.getClass().getName() + ", NewSplit: "
+          + split);
+
     } else {
-      oldInputSplit = getOldSplitDetailsFromEvent(splitProto, jobConf);
-      LOG.info("Split Details -> SplitClass: "
-          + oldInputSplit.getClass().getName() + ", OldSplit: " + oldInputSplit);
-      setupOldRecordReader();
+      split = MRInputUtils.getOldSplitDetailsFromEvent(splitProto, jobConf);
+      LOG.info("Split Details -> SplitClass: " + split.getClass().getName() + ", OldSplit: "
+          + split);
     }
+    mrReader.setSplit(split);
     LOG.info("Initialized RecordReader from event");
   }
-
-  @Private
-  public static InputSplit getOldSplitDetailsFromEvent(MRSplitProto splitProto, Configuration conf)
-      throws IOException {
-    SerializationFactory serializationFactory = new SerializationFactory(conf);
-    return MRHelpers.createOldFormatSplitFromUserPayload(splitProto, serializationFactory);
-  }
-  
-  @SuppressWarnings("unchecked")
-  private InputSplit getOldSplitDetailsFromDisk(TaskSplitIndex splitMetaInfo)
-      throws IOException {
-    Path file = new Path(splitMetaInfo.getSplitLocation());
-    FileSystem fs = FileSystem.getLocal(jobConf);
-    file = fs.makeQualified(file);
-    LOG.info("Reading input split file from : " + file);
-    long offset = splitMetaInfo.getStartOffset();
-    
-    FSDataInputStream inFile = fs.open(file);
-    inFile.seek(offset);
-    String className = Text.readString(inFile);
-    Class<org.apache.hadoop.mapred.InputSplit> cls;
-    try {
-      cls = 
-          (Class<org.apache.hadoop.mapred.InputSplit>) 
-          jobConf.getClassByName(className);
-    } catch (ClassNotFoundException ce) {
-      IOException wrap = new IOException("Split class " + className + 
-          " not found");
-      wrap.initCause(ce);
-      throw wrap;
-    }
-    SerializationFactory factory = new SerializationFactory(jobConf);
-    Deserializer<org.apache.hadoop.mapred.InputSplit> deserializer = 
-        (Deserializer<org.apache.hadoop.mapred.InputSplit>) 
-        factory.getDeserializer(cls);
-    deserializer.open(inFile);
-    org.apache.hadoop.mapred.InputSplit split = deserializer.deserialize(null);
-    long pos = inFile.getPos();
-    getContext().getCounters().findCounter(TaskCounter.SPLIT_RAW_BYTES)
-        .increment(pos - offset);
-    inFile.close();
-    return split;
-  }
-
-  @Private
-  public static org.apache.hadoop.mapreduce.InputSplit getNewSplitDetailsFromEvent(
-      MRSplitProto splitProto, Configuration conf) throws IOException {
-    SerializationFactory serializationFactory = new SerializationFactory(conf);
-    return MRHelpers.createNewFormatSplitFromUserPayload(
-        splitProto, serializationFactory);
-  }
-  
-  @SuppressWarnings("unchecked")
-  private org.apache.hadoop.mapreduce.InputSplit getNewSplitDetailsFromDisk(
-      TaskSplitIndex splitMetaInfo) throws IOException {
-    Path file = new Path(splitMetaInfo.getSplitLocation());
-    long offset = splitMetaInfo.getStartOffset();
-    
-    // Split information read from local filesystem.
-    FileSystem fs = FileSystem.getLocal(jobConf);
-    file = fs.makeQualified(file);
-    LOG.info("Reading input split file from : " + file);
-    FSDataInputStream inFile = fs.open(file);
-    inFile.seek(offset);
-    String className = Text.readString(inFile);
-    Class<org.apache.hadoop.mapreduce.InputSplit> cls;
-    try {
-      cls = 
-          (Class<org.apache.hadoop.mapreduce.InputSplit>) 
-          jobConf.getClassByName(className);
-    } catch (ClassNotFoundException ce) {
-      IOException wrap = new IOException("Split class " + className + 
-          " not found");
-      wrap.initCause(ce);
-      throw wrap;
-    }
-    SerializationFactory factory = new SerializationFactory(jobConf);
-    Deserializer<org.apache.hadoop.mapreduce.InputSplit> deserializer = 
-        (Deserializer<org.apache.hadoop.mapreduce.InputSplit>) 
-        factory.getDeserializer(cls);
-    deserializer.open(inFile);
-    org.apache.hadoop.mapreduce.InputSplit split = 
-        deserializer.deserialize(null);
-    long pos = inFile.getPos();
-    getContext().getCounters().findCounter(TaskCounter.SPLIT_RAW_BYTES)
-        .increment(pos - offset);
-    inFile.close();
-    return split;
-  }
-
-  private void setIncrementalConfigParams(InputSplit inputSplit) {
-    if (inputSplit instanceof FileSplit) {
-      FileSplit fileSplit = (FileSplit) inputSplit;
-      this.incrementalConf = new Configuration(false);
-
-      this.incrementalConf.set(JobContext.MAP_INPUT_FILE, fileSplit.getPath()
-          .toString());
-      this.incrementalConf.setLong(JobContext.MAP_INPUT_START,
-          fileSplit.getStart());
-      this.incrementalConf.setLong(JobContext.MAP_INPUT_PATH,
-          fileSplit.getLength());
-    }
-    LOG.info("Processing split: " + inputSplit);
-  }
-
-  protected TaskSplitMetaInfo[] readSplits(Configuration conf)
-      throws IOException {
-    TaskSplitMetaInfo[] allTaskSplitMetaInfo;
-    allTaskSplitMetaInfo = SplitMetaInfoReaderTez.readSplitMetaInfo(conf,
-        FileSystem.getLocal(conf));
-    return allTaskSplitMetaInfo;
-  }
-  
-  private class MRInputKVReader implements KeyValueReader {
-    
-    Object key;
-    Object value;
-
-    private final boolean localNewApi;
-    
-    MRInputKVReader() {
-      localNewApi = useNewApi;
-      if (!localNewApi) {
-        key = oldRecordReader.createKey();
-        value =oldRecordReader.createValue();
-      }
-    }
-    
-    // Setup the values iterator once, and set value on the same object each time
-    // to prevent lots of objects being created.
-
-    
-    @SuppressWarnings("unchecked")
-    @Override
-    public boolean next() throws IOException {
-      boolean hasNext = false;
-      if (localNewApi) {
-        try {
-          hasNext = newRecordReader.nextKeyValue();
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new IOException("Interrupted while checking for next key-value", e);
-        }
-      } else {
-        hasNext = oldRecordReader.next(key, value);
-      }
-      if (hasNext) {
-        inputRecordCounter.increment(1);
-      }
-      
-      return hasNext;
-    }
-
-    @Override
-    public Object getCurrentKey() throws IOException {
-      if (localNewApi) {
-        try {
-          return newRecordReader.getCurrentKey();
-        } catch (InterruptedException e) {
-          throw new IOException("Interrupted while fetching next key", e);
-        }
-      } else {
-        return key;
-      }
-    }
-
-    @Override
-    public Object getCurrentValue() throws IOException {
-      if (localNewApi) {
-        try {
-          return newRecordReader.getCurrentValue();
-        } catch (InterruptedException e) {
-          throw new IOException("Interrupted while fetching next value", e);
-        }
-      } else {
-        return value;
-      }
-    }
-  }
-
 }

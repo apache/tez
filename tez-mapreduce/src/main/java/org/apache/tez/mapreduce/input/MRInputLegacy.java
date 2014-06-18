@@ -48,18 +48,18 @@ public class MRInputLegacy extends MRInput {
   
   @Private
   public org.apache.hadoop.mapreduce.InputSplit getNewInputSplit() {
-    return this.newInputSplit;
+    return (org.apache.hadoop.mapreduce.InputSplit) mrReader.getSplit();
   }  
 
   @SuppressWarnings("rawtypes")
   @Unstable
   public org.apache.hadoop.mapreduce.RecordReader getNewRecordReader() {
-    return this.newRecordReader;
+    return (org.apache.hadoop.mapreduce.RecordReader) mrReader.getRecordReader();
   }
 
   @Private
   public InputSplit getOldInputSplit() {
-    return this.oldInputSplit;
+    return (InputSplit) mrReader.getSplit();
   }
 
   @Unstable
@@ -70,7 +70,7 @@ public class MRInputLegacy extends MRInput {
   @SuppressWarnings("rawtypes")
   @Private
   public RecordReader getOldRecordReader() {
-    return this.oldRecordReader;
+    return (RecordReader) mrReader.getRecordReader();
   }
   
   @LimitedPrivate("hive")

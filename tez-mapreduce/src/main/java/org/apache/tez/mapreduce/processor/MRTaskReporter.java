@@ -45,19 +45,19 @@ public class MRTaskReporter
 
   public MRTaskReporter(TezProcessorContext context) {
     this.context = context;
-    this.reporter = new MRReporter(context);
+    this.reporter = new MRReporter(context.getCounters());
     this.isProcessorContext = true;
   }
 
   public MRTaskReporter(TezOutputContext context) {
     this.context = context;
-    this.reporter = new MRReporter(context);
+    this.reporter = new MRReporter(context.getCounters());
     this.isProcessorContext = false;
   }
   
   public MRTaskReporter(TezInputContext context) {
     this.context= context;
-    this.reporter = new MRReporter(context);
+    this.reporter = new MRReporter(context.getCounters());
     this.isProcessorContext = false;
   }
 

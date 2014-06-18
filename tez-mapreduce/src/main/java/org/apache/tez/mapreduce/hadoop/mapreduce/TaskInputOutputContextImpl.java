@@ -52,7 +52,7 @@ public abstract class TaskInputOutputContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT>
                                     RecordWriter<KEYOUT,VALUEOUT> output,
                                     OutputCommitter committer,
                                     TezTaskContext context, Reporter reporter) {
-    super(conf, taskid, context, reporter);
+    super(conf, taskid, context.getCounters(), reporter);
     this.output = output;
     this.committer = committer;
   }

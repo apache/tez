@@ -34,7 +34,6 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapreduce.OutputCommitter;
-import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -120,7 +119,9 @@ public class MROutput extends AbstractLogicalOutput {
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         getContext().getDAGAttemptNumber());
     TaskAttemptID taskAttemptId = org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl
-        .createMockTaskAttemptID(getContext(), isMapperOutput);
+        .createMockTaskAttemptID(getContext().getApplicationId().getClusterTimestamp(),
+            getContext().getTaskVertexIndex(), getContext().getApplicationId().getId(),
+            getContext().getTaskIndex(), getContext().getTaskAttemptNumber(), isMapperOutput);
     jobConf.set(JobContext.TASK_ATTEMPT_ID, taskAttemptId.toString());
     jobConf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString());
     jobConf.setBoolean(JobContext.TASK_ISMAP, isMapperOutput);
@@ -165,7 +166,7 @@ public class MROutput extends AbstractLogicalOutput {
 
       oldRecordWriter =
           oldOutputFormat.getRecordWriter(
-              fs, jobConf, finalName, new MRReporter(getContext()));
+              fs, jobConf, finalName, new MRReporter(getContext().getCounters()));
     }
     initCommitter(jobConf, useNewApi);
 
@@ -218,7 +219,7 @@ public class MROutput extends AbstractLogicalOutput {
   }
 
   private TaskAttemptContext createTaskAttemptContext(TaskAttemptID attemptId) {
-    return new TaskAttemptContextImpl(this.jobConf, attemptId, getContext(),
+    return new TaskAttemptContextImpl(this.jobConf, attemptId, getContext().getCounters(),
         isMapperOutput, null);
   }
 
