@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -70,19 +71,7 @@ public class AMConfiguration {
     }
 
     this.localResources = localResources;
-    String stagingDirStr = amConf.get(TezConfiguration.TEZ_AM_STAGING_DIR);
-    if (stagingDirStr == null || stagingDirStr.isEmpty()) {
-      throw new TezUncheckedException("Staging directory for AM resources"
-          + " not specified in config"
-          + ", property=" + TezConfiguration.TEZ_AM_STAGING_DIR);
-    }
-    try {
-      Path p = new Path(stagingDirStr);
-      FileSystem fs = p.getFileSystem(amConf);
-      this.stagingDir = fs.resolvePath(p);
-    } catch (IOException e) {
-      throw new TezUncheckedException(e);
-    }
+    this.stagingDir = TezCommonUtils.getTezBaseStagingPath(amConf);
     this.credentials = credentials;
   }
 

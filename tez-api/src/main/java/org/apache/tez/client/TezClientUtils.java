@@ -48,7 +48,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
-import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
@@ -75,6 +74,7 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Level;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.common.impl.LogUtils;
@@ -104,12 +104,6 @@ import com.google.common.collect.Lists;
 public class TezClientUtils {
 
   private static Log LOG = LogFactory.getLog(TezClientUtils.class);
-
-  public static final FsPermission TEZ_AM_DIR_PERMISSION =
-      FsPermission.createImmutable((short) 0700); // rwx--------
-  public static final FsPermission TEZ_AM_FILE_PERMISSION =
-      FsPermission.createImmutable((short) 0644); // rw-r--r--
-
   private static final int UTF8_CHUNK_SIZE = 16 * 1024;
 
   /**
@@ -238,15 +232,15 @@ public class TezClientUtils {
             + ". The directory must " + "be owned by the submitter "
             + currentUser + " or " + "by " + realUser);
       }
-      if (!fsStatus.getPermission().equals(TEZ_AM_DIR_PERMISSION)) {
+      if (!fsStatus.getPermission().equals(TezCommonUtils.TEZ_AM_DIR_PERMISSION)) {
         LOG.info("Permissions on staging directory " + stagingArea + " are "
             + "incorrect: " + fsStatus.getPermission()
             + ". Fixing permissions " + "to correct value "
-            + TEZ_AM_DIR_PERMISSION);
-        fs.setPermission(stagingArea, TEZ_AM_DIR_PERMISSION);
+            + TezCommonUtils.TEZ_AM_DIR_PERMISSION);
+        fs.setPermission(stagingArea, TezCommonUtils.TEZ_AM_DIR_PERMISSION);
       }
     } else {
-      fs.mkdirs(stagingArea, new FsPermission(TEZ_AM_DIR_PERMISSION));
+      TezCommonUtils.mkDirForAM(fs, stagingArea);
     }
     return fs;
   }
@@ -335,8 +329,9 @@ public class TezClientUtils {
     
     FileSystem fs = TezClientUtils.ensureStagingDirExists(conf,
         amConfig.getStagingDir());
-    Path binaryConfPath =  new Path(amConfig.getStagingDir(),
-        TezConfiguration.TEZ_PB_BINARY_CONF_NAME + "." + appId.toString());
+    String strAppId = appId.toString();
+    Path tezSysStagingPath = TezCommonUtils.createTezSystemStagingPath(conf, strAppId);
+    Path binaryConfPath = TezCommonUtils.getTezConfStagingPath(tezSysStagingPath);
     binaryConfPath = fs.makeQualified(binaryConfPath);
 
     // Setup resource requirements
@@ -454,8 +449,7 @@ public class TezClientUtils {
         confProtoBuilder.addConfKeyValues(kvp);
       }
       //binary output
-      amConfPBOutBinaryStream = FileSystem.create(fs, binaryConfPath,
-          new FsPermission(TEZ_AM_FILE_PERMISSION));
+      amConfPBOutBinaryStream = TezCommonUtils.createFileForAM(fs, binaryConfPath);
       confProtoBuilder.build().writeTo(amConfPBOutBinaryStream);
     } finally {
       if(amConfPBOutBinaryStream != null){
@@ -471,9 +465,7 @@ public class TezClientUtils {
         binaryConfLRsrc);
 
     // Create Session Jars definition to be sent to AM as a local resource
-    Path sessionJarsPath = new Path(amConfig.getStagingDir(),
-      TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME + "."
-      + appId.toString());
+    Path sessionJarsPath = TezCommonUtils.getTezSessionJarStagingPath(tezSysStagingPath);
     FSDataOutputStream sessionJarsPBOutStream = null;
     try {
       Map<String, LocalResource> sessionJars =
@@ -483,8 +475,7 @@ public class TezClientUtils {
         binaryConfLRsrc);
       DAGProtos.PlanLocalResourcesProto proto =
         DagTypeConverters.convertFromLocalResources(sessionJars);
-      sessionJarsPBOutStream = FileSystem.create(fs, sessionJarsPath,
-        new FsPermission(TEZ_AM_FILE_PERMISSION));
+      sessionJarsPBOutStream = TezCommonUtils.createFileForAM(fs, sessionJarsPath);
       proto.writeDelimitedTo(sessionJarsPBOutStream);
       
       // Write out the initial list of resources which will be available in the AM
@@ -529,8 +520,12 @@ public class TezClientUtils {
       }
 
       // emit protobuf DAG file style
-      Path binaryPath =  new Path(amConfig.getStagingDir(),
-          TezConfiguration.TEZ_PB_PLAN_BINARY_NAME + "." + appId.toString());
+      Path binaryPath = TezCommonUtils.getTezBinPlanStagingPath(tezSysStagingPath);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Stage directory information for AppId :" + appId + " tezSysStagingPath :"
+            + tezSysStagingPath + " binaryConfPath :" + binaryConfPath + " sessionJarsPath :"
+            + sessionJarsPath + " binaryPlanPath :" + binaryPath);
+      }
       amConfig.getAMConf().set(TezConfiguration.TEZ_AM_PLAN_REMOTE_PATH,
           binaryPath.toUri().toString());
 
@@ -540,8 +535,7 @@ public class TezClientUtils {
 
       try {
         //binary output
-        dagPBOutBinaryStream = FileSystem.create(fs, binaryPath,
-            new FsPermission(TEZ_AM_FILE_PERMISSION));
+        dagPBOutBinaryStream = TezCommonUtils.createFileForAM(fs, binaryPath);
         dagPB.writeTo(dagPBOutBinaryStream);
       } finally {
         if(dagPBOutBinaryStream != null){
@@ -555,15 +549,13 @@ public class TezClientUtils {
           LocalResourceVisibility.APPLICATION));
 
       if (Level.DEBUG.isGreaterOrEqual(Level.toLevel(amLogLevel))) {
-        Path textPath = localizeDagPlanAsText(dagPB, fs,
-            amConfig.getStagingDir(), appId);
+        Path textPath = localizeDagPlanAsText(dagPB, fs, amConfig, strAppId, tezSysStagingPath);
         localResources.put(TezConfiguration.TEZ_PB_PLAN_TEXT_NAME,
             TezClientUtils.createLocalResource(fs,
                 textPath, LocalResourceType.FILE,
                 LocalResourceVisibility.APPLICATION));
       }
     }
-
     Map<ApplicationAccessType, String> acls
         = new HashMap<ApplicationAccessType, String>();
 
@@ -690,14 +682,12 @@ public class TezClientUtils {
     return rsrc;
   }
 
-  private static Path localizeDagPlanAsText(DAGPlan dagPB, FileSystem fs,
-      Path appStagingDir, ApplicationId appId) throws IOException {
-    Path textPath = new Path(appStagingDir,
-        TezConfiguration.TEZ_PB_PLAN_TEXT_NAME + "." + appId.toString());
+  private static Path localizeDagPlanAsText(DAGPlan dagPB, FileSystem fs, AMConfiguration amConfig,
+      String strAppId, Path tezSysStagingPath) throws IOException {
+    Path textPath = TezCommonUtils.getTezTextPlanStagingPath(tezSysStagingPath);
     FSDataOutputStream dagPBOutTextStream = null;
     try {
-      dagPBOutTextStream = FileSystem.create(fs, textPath, new FsPermission(
-          TEZ_AM_FILE_PERMISSION));
+      dagPBOutTextStream = TezCommonUtils.createFileForAM(fs, textPath);
       String dagPBStr = dagPB.toString();
       int dagPBStrLen = dagPBStr.length();
       if (dagPBStrLen <= UTF8_CHUNK_SIZE) {
@@ -796,6 +786,5 @@ public class TezClientUtils {
     sessionToken.setService(identifier.getJobId());
     TokenCache.setSessionToken(sessionToken, credentials);
   }
-
 
 }

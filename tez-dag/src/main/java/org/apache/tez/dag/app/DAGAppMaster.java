@@ -88,6 +88,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.client.TezSessionStatus;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.Limits;
@@ -238,6 +239,7 @@ public class DAGAppMaster extends AbstractService {
   private boolean recoveryEnabled;
   private Path recoveryDataDir;
   private Path currentRecoveryDataDir;
+  private Path tezSystemStagingDir;
   private FileSystem recoveryFS;
   /**
    * set of already executed dag names.
@@ -377,18 +379,17 @@ public class DAGAppMaster extends AbstractService {
     this.sessionTimeoutInterval = 1000 * amConf.getInt(
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT);
-
-    Path recoveryPath = new Path(
-        conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
-            TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT),
-        this.appAttemptID.getApplicationId().toString() +
-            Path.SEPARATOR + TezConfiguration.DAG_RECOVERY_DATA_DIR_NAME);
-
-    recoveryFS = recoveryPath.getFileSystem(conf);
-    recoveryDataDir = recoveryFS.makeQualified(recoveryPath);
-    currentRecoveryDataDir = new Path(recoveryDataDir,
-        Integer.toString(this.appAttemptID.getAttemptId()));
-
+    String strAppId = this.appAttemptID.getApplicationId().toString();
+    this.tezSystemStagingDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
+    recoveryDataDir = TezCommonUtils.getRecoveryPath(tezSystemStagingDir, conf);
+    recoveryFS = recoveryDataDir.getFileSystem(conf);
+    currentRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,
+        appAttemptID.getAttemptId());
+    if (LOG.isDebugEnabled()) {
+      LOG.info("Stage directory information for AppAttemptId :" + this.appAttemptID
+          + " tezSystemStagingDir :" + tezSystemStagingDir + " recoveryDataDir :" + recoveryDataDir
+          + " recoveryAttemptDir :" + currentRecoveryDataDir);
+    }
     if (isSession) {
       FileInputStream sessionResourcesStream = null;
       try {

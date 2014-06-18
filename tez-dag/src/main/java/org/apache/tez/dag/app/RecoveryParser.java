@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Task;
@@ -90,12 +91,11 @@ public class RecoveryParser {
     this.recoveryFS = recoveryFS;
     this.recoveryDataDir = recoveryDataDir;
     this.currentAttemptId = currentAttemptId;
-    this.currentAttemptRecoveryDataDir =
-        getAttemptRecoveryDataDir(recoveryDataDir, currentAttemptId);
+    this.currentAttemptRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,
+        currentAttemptId);
     recoveryBufferSize = dagAppMaster.getConfig().getInt(
         TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE,
         TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE_DEFAULT);
-
     this.recoveryFS.mkdirs(currentAttemptRecoveryDataDir);
   }
 
@@ -246,11 +246,6 @@ public class RecoveryParser {
     }
   }
 
-  private Path getAttemptRecoveryDataDir(Path recoveryDataDir,
-      int attemptId) {
-    return new Path(recoveryDataDir, Integer.toString(attemptId));
-  }
-
   public static void main(String argv[]) throws IOException {
     // TODO clean up with better usage and error handling
     Configuration conf = new Configuration();
@@ -270,10 +265,8 @@ public class RecoveryParser {
     }
   }
 
-  private Path getSummaryPath(Path recoveryDataDir) {
-    return new Path(recoveryDataDir,
-        dagAppMaster.getAttemptID().getApplicationId().toString()
-        + TezConfiguration.DAG_RECOVERY_SUMMARY_FILE_SUFFIX);
+  private Path getSummaryPath(Path attemptRrecoveryDataDir) {
+    return TezCommonUtils.getSummaryRecoveryPath(attemptRrecoveryDataDir);
   }
 
   private FSDataOutputStream getSummaryOutputStream(Path summaryPath)
@@ -339,7 +332,7 @@ public class RecoveryParser {
     LOG.info("Looking for the correct attempt directory to recover from");
     int foundPreviousAttempt = -1;
     for (int i = currentAttemptId - 1; i > 0; --i) {
-      Path attemptPath = getAttemptRecoveryDataDir(recoveryDataDir, i);
+      Path attemptPath = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir, i);
       LOG.info("Looking at attempt directory, path=" + attemptPath);
       Path fatalErrorOccurred = new Path(attemptPath,
           RecoveryService.RECOVERY_FATAL_OCCURRED_DIR);
@@ -371,7 +364,7 @@ public class RecoveryParser {
       LOG.info("Did not find any attempt dir that had data recovered file."
           + " Looking for oldest summary file");
       for (int i = 1; i < currentAttemptId; ++i) {
-        Path attemptPath = getAttemptRecoveryDataDir(recoveryDataDir, i);
+        Path attemptPath = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir, i);
         Path summaryPath = getSummaryPath(attemptPath);
         if (recoveryFS.exists(summaryPath)) {
           LOG.info("Found summary file in attempt directory"
@@ -391,7 +384,7 @@ public class RecoveryParser {
       foundPreviousAttempt = 1;
     }
 
-    return getAttemptRecoveryDataDir(recoveryDataDir, foundPreviousAttempt);
+    return TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir, foundPreviousAttempt);
   }
 
   private static class DAGSummaryData {

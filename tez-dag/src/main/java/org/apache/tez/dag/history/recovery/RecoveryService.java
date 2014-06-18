@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.history.DAGHistoryEvent;
@@ -292,9 +293,10 @@ public class RecoveryService extends AbstractService {
           + ", eventType=" + eventType);
     }
     if (summaryStream == null) {
-      Path summaryPath = new Path(recoveryPath,
-          appContext.getApplicationID()
-              + TezConfiguration.DAG_RECOVERY_SUMMARY_FILE_SUFFIX);
+      Path summaryPath = TezCommonUtils.getSummaryRecoveryPath(recoveryPath);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("AppId :" + appContext.getApplicationID() + " summaryPath " + summaryPath);
+      }
       if (!recoveryDirFS.exists(summaryPath)) {
         summaryStream = recoveryDirFS.create(summaryPath, false,
             bufferSize);
@@ -331,8 +333,7 @@ public class RecoveryService extends AbstractService {
     }
 
     if (!outputStreamMap.containsKey(dagID)) {
-      Path dagFilePath = new Path(recoveryPath,
-          dagID.toString() + TezConfiguration.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
+      Path dagFilePath = TezCommonUtils.getDAGRecoveryPath(recoveryPath, dagID.toString());
       FSDataOutputStream outputStream;
       if (recoveryDirFS.exists(dagFilePath)) {
         if (LOG.isDebugEnabled()) {

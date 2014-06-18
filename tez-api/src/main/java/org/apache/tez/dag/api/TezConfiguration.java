@@ -320,7 +320,7 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "session.";
 
   public static final String TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME =
-    TEZ_SESSION_PREFIX + "local-resources.pb.file-name";
+    TEZ_SESSION_PREFIX + "local-resources.pb";
 
   /**
    * Time (in seconds) to wait for AM to come up when trying to submit a DAG
@@ -416,7 +416,7 @@ public class TezConfiguration extends Configuration {
   public static final int DAG_RECOVERY_FLUSH_INTERVAL_SECS_DEFAULT = 30;
 
   public static final String DAG_RECOVERY_DATA_DIR_NAME = "recovery";
-  public static final String DAG_RECOVERY_SUMMARY_FILE_SUFFIX = ".summary";
+  public static final String DAG_RECOVERY_SUMMARY_FILE_SUFFIX = "summary";
   public static final String DAG_RECOVERY_RECOVER_FILE_SUFFIX = ".recovery";
   
   /**
