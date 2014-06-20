@@ -176,6 +176,9 @@ public class VertexInitializedEvent implements HistoryEvent {
   public void fromProtoStream(InputStream inputStream) throws IOException {
     RecoveryProtos.VertexInitializedProto proto =
         RecoveryProtos.VertexInitializedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 

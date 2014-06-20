@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -109,9 +110,13 @@ public class RecoveryParser {
 
   private static void parseSummaryFile(FSDataInputStream inputStream)
       throws IOException {
-    while (inputStream.available() > 0) {
+    while (true) {
       RecoveryProtos.SummaryEventProto proto =
           RecoveryProtos.SummaryEventProto.parseDelimitedFrom(inputStream);
+      if (proto == null) {
+        LOG.info("Reached end of summary stream");
+        break;
+      }
       LOG.info("[SUMMARY]"
           + " dagId=" + proto.getDagId()
           + ", timestamp=" + proto.getTimestamp()
@@ -121,7 +126,12 @@ public class RecoveryParser {
 
   private static HistoryEvent getNextEvent(FSDataInputStream inputStream)
       throws IOException {
-    int eventTypeOrdinal = inputStream.readInt();
+    int eventTypeOrdinal = -1;
+    try {
+      eventTypeOrdinal = inputStream.readInt();
+    } catch (EOFException eof) {
+      return null;
+    }
     if (eventTypeOrdinal < 0 || eventTypeOrdinal >=
         HistoryEventType.values().length) {
       // Corrupt data
@@ -201,7 +211,11 @@ public class RecoveryParser {
       LOG.debug("Parsing event from input stream"
           + ", eventType=" + eventType);
     }
-    event.fromProtoStream(inputStream);
+    try {
+      event.fromProtoStream(inputStream);
+    } catch (EOFException eof) {
+      return null;
+    }
     if (LOG.isDebugEnabled()) {
       LOG.debug("Parsed event from input stream"
           + ", eventType=" + eventType
@@ -216,8 +230,12 @@ public class RecoveryParser {
 
   private static void parseDAGRecoveryFile(FSDataInputStream inputStream)
       throws IOException {
-    while (inputStream.available() > 0) {
+    while (true) {
       HistoryEvent historyEvent = getNextEvent(inputStream);
+      if (historyEvent == null) {
+        LOG.info("Reached end of stream");
+        break;
+      }
       LOG.info("Parsed event from recovery stream"
           + ", eventType=" + historyEvent.getEventType()
           + ", event=" + historyEvent);
@@ -392,12 +410,6 @@ public class RecoveryParser {
     void handleSummaryEvent(SummaryEventProto proto) throws IOException {
       HistoryEventType eventType =
           HistoryEventType.values()[proto.getEventType()];
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("[RECOVERY SUMMARY]"
-            + " dagId=" + proto.getDagId()
-            + ", timestamp=" + proto.getTimestamp()
-            + ", event=" + eventType);
-      }
       switch (eventType) {
         case DAG_SUBMITTED:
           completed = false;
@@ -534,9 +546,18 @@ public class RecoveryParser {
     int dagCounter = 0;
     Map<TezDAGID, DAGSummaryData> dagSummaryDataMap =
         new HashMap<TezDAGID, DAGSummaryData>();
-    while (summaryStream.available() > 0) {
-      RecoveryProtos.SummaryEventProto proto =
-          RecoveryProtos.SummaryEventProto.parseDelimitedFrom(summaryStream);
+    while (true) {
+      RecoveryProtos.SummaryEventProto proto;
+      try {
+        proto = RecoveryProtos.SummaryEventProto.parseDelimitedFrom(summaryStream);
+        if (proto == null) {
+          LOG.info("Reached end of summary stream");
+          break;
+        }
+      } catch (EOFException eof) {
+        LOG.info("Reached end of summary stream");
+        break;
+      }
       HistoryEventType eventType =
           HistoryEventType.values()[proto.getEventType()];
       if (LOG.isDebugEnabled()) {
@@ -612,17 +633,23 @@ public class RecoveryParser {
         getDAGRecoveryOutputStream(currentAttemptRecoveryDataDir, lastInProgressDAG);
 
     boolean skipAllOtherEvents = false;
-    while (dagRecoveryStream.available() > 0) {
+    while (true) {
       HistoryEvent event;
       try {
         event = getNextEvent(dagRecoveryStream);
+        if (event == null) {
+          LOG.info("Reached end of dag recovery stream");
+          break;
+        }
+      } catch (EOFException eof) {
+        LOG.info("Reached end of dag recovery stream");
+        break;
       } catch (IOException ioe) {
         LOG.warn("Corrupt data found when trying to read next event", ioe);
         break;
       }
       if (event == null || skipAllOtherEvents) {
         // reached end of data
-        event = null;
         break;
       }
       HistoryEventType eventType = event.getEventType();

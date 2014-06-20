@@ -89,6 +89,9 @@ public class VertexGroupCommitFinishedEvent implements HistoryEvent, SummaryEven
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
     VertexGroupCommitFinishedProto proto = VertexGroupCommitFinishedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 

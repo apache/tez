@@ -156,6 +156,9 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
   @Override
   public void fromProtoStream(InputStream inputStream) throws IOException {
     VertexFinishedProto proto = VertexFinishedProto.parseDelimitedFrom(inputStream);
+    if (proto == null) {
+      throw new IOException("No data found in stream");
+    }
     fromProto(proto);
   }
 
