@@ -77,8 +77,9 @@ public class AMConfiguration {
           + ", property=" + TezConfiguration.TEZ_AM_STAGING_DIR);
     }
     try {
-      FileSystem fs = FileSystem.get(amConf);
-      this.stagingDir = fs.resolvePath(new Path(stagingDirStr));
+      Path p = new Path(stagingDirStr);
+      FileSystem fs = p.getFileSystem(amConf);
+      this.stagingDir = fs.resolvePath(p);
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }

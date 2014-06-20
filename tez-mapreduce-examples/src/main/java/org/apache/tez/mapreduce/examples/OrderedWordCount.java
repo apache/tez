@@ -347,8 +347,11 @@ public class OrderedWordCount {
         + user + Path.SEPARATOR+ ".staging" + Path.SEPARATOR
         + Path.SEPARATOR + appId.toString();
     Path stagingDir = new Path(stagingDirStr);
+    FileSystem pathFs = stagingDir.getFileSystem(tezConf);
+    pathFs.mkdirs(new Path(stagingDirStr));
+
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
-    stagingDir = fs.makeQualified(stagingDir);
+    stagingDir = pathFs.makeQualified(new Path(stagingDirStr));
     
     TokenCache.obtainTokensForNamenodes(instance.credentials, new Path[] {stagingDir}, conf);
     TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
@@ -514,7 +517,7 @@ public class OrderedWordCount {
       throw e;
     } finally {
       if (!retainStagingDir) {
-        fs.delete(stagingDir, true);
+        pathFs.delete(stagingDir, true);
       }
       if (useTezSession) {
         LOG.info("Shutting down session");

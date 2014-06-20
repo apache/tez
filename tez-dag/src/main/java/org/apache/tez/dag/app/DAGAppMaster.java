@@ -371,14 +371,16 @@ public class DAGAppMaster extends AbstractService {
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT);
 
-    recoveryDataDir = FileSystem.get(conf).makeQualified(new Path(
+    Path recoveryPath = new Path(
         conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
             TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT),
-              this.appAttemptID.getApplicationId().toString() +
-                  File.separator + TezConfiguration.DAG_RECOVERY_DATA_DIR_NAME));
+        this.appAttemptID.getApplicationId().toString() +
+            Path.SEPARATOR + TezConfiguration.DAG_RECOVERY_DATA_DIR_NAME);
+
+    recoveryFS = recoveryPath.getFileSystem(conf);
+    recoveryDataDir = recoveryFS.makeQualified(recoveryPath);
     currentRecoveryDataDir = new Path(recoveryDataDir,
         Integer.toString(this.appAttemptID.getAttemptId()));
-    recoveryFS = FileSystem.get(recoveryDataDir.toUri(), conf);
 
     if (isSession) {
       FileInputStream sessionResourcesStream = null;
