@@ -103,10 +103,10 @@ public class PipelinedSorter extends ExternalSorter {
     final float spillper =
       this.conf.getFloat(
           TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT, 
-          TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_SPILL_PERCENT);
+          TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT_DEFAULT);
     final int sortmb = this.availableMemoryMb;
     indexCacheMemoryLimit = this.conf.getInt(TezJobConfig.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES,
-                                       TezJobConfig.DEFAULT_TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
+                                       TezJobConfig.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES_DEFAULT);
     if (spillper > (float)1.0 || spillper <= (float)0.0) {
       throw new IOException("Invalid \"" + TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT +
           "\": " + spillper);
@@ -127,7 +127,7 @@ public class PipelinedSorter extends ExternalSorter {
     final int sortThreads = 
             this.conf.getInt(
                 TezJobConfig.TEZ_RUNTIME_SORT_THREADS, 
-                TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_THREADS);
+                TezJobConfig.TEZ_RUNTIME_SORT_THREADS_DEFAULT);
     sortmaster = Executors.newFixedThreadPool(sortThreads,
         new ThreadFactoryBuilder().setDaemon(true)
         .setNameFormat("Sorter [" + TezUtils.cleanVertexName(outputContext.getDestinationVertexName()) + "] #%d")
@@ -365,7 +365,7 @@ public class PipelinedSorter extends ExternalSorter {
 
       int mergeFactor = 
               this.conf.getInt(TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR, 
-                  TezJobConfig.DEFAULT_TEZ_RUNTIME_IO_SORT_FACTOR);
+                  TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR_DEFAULT);
       // sort the segments only if there are intermediate merges
       boolean sortSegments = segmentList.size() > mergeFactor;
       //merge
@@ -385,7 +385,7 @@ public class PipelinedSorter extends ExternalSorter {
                            spilledRecordsCounter, null);
       writer.setRLE(merger.needsRLE());
       if (combiner == null || numSpills < minSpillsForCombine) {
-        TezMerger.writeFile(kvIter, writer, nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
+        TezMerger.writeFile(kvIter, writer, nullProgressable, TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
       } else {
         runCombineProcessor(kvIter, writer);
       }

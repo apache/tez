@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalOutput;
@@ -61,8 +61,8 @@ public class OnFileUnorderedPartitionedKVOutput implements LogicalOutput {
   public synchronized List<Event> initialize(TezOutputContext outputContext) throws Exception {
     this.outputContext = outputContext;
     this.conf = TezUtils.createConfFromUserPayload(outputContext.getUserPayload());
-    this.conf.setStrings(TezJobConfig.LOCAL_DIRS, outputContext.getWorkDirs());
-    this.conf.setInt(TezJobConfig.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS, this.numPhysicalOutputs);
+    this.conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, outputContext.getWorkDirs());
+    this.conf.setInt(TezRuntimeFrameworkConfigs.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS, this.numPhysicalOutputs);
     this.memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
     outputContext.requestInitialMemory(
         UnorderedPartitionedKVWriter.getInitialMemoryRequirement(conf,

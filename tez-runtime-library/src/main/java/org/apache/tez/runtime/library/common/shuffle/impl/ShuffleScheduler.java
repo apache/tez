@@ -133,15 +133,15 @@ class ShuffleScheduler {
     referee.start();
     this.maxFetchFailuresBeforeReporting = 
         conf.getInt(
-            TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES, 
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT);
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT,
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT_DEFAULT);
     this.reportReadErrorImmediately = 
         conf.getBoolean(
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR, 
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR);
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR_DEFAULT);
     this.maxTaskOutputAtOnce = Math.max(1, conf.getInt(
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE,
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE));
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE_DEFAULT));
     
     this.skippedInputCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_SKIPPED_INPUTS);
     

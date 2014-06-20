@@ -84,7 +84,7 @@ public class TestDeprecatedKeys {
     jobConf.setInt(TezJobConfig.TEZ_RUNTIME_COMBINE_MIN_SPILLS, 20);
     jobConf.setInt(Constants.TEZ_RUNTIME_TASK_MEMORY, 10);
     jobConf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES, 10);
-    jobConf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES, 10);
+    jobConf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT, 10);
     jobConf.setBoolean(TezJobConfig.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR, true);
     jobConf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT, 10);
     jobConf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 10);
@@ -114,7 +114,7 @@ public class TestDeprecatedKeys {
     assertEquals(20, jobConf.getInt(TezJobConfig.TEZ_RUNTIME_COMBINE_MIN_SPILLS, 0));
     assertEquals(10, jobConf.getInt(Constants.TEZ_RUNTIME_TASK_MEMORY, 0));
     assertEquals(10, jobConf.getInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES, 0));
-    assertEquals(10, jobConf.getInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES, 0));
+    assertEquals(10, jobConf.getInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT, 0));
     assertEquals(true, jobConf.getBoolean(TezJobConfig.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR, false));
     assertEquals(10, jobConf.getInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT, 0));
     assertEquals(10, jobConf.getInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 0));

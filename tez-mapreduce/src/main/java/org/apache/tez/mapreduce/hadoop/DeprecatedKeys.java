@@ -129,13 +129,13 @@ public class DeprecatedKeys {
     // Framework counters, like FILESYSTEM will likely be incompatible since
     // they enum key belongs to a different package.
     mrParamToDAGParamMap.put(MRJobConfig.COUNTERS_MAX_KEY,
-      TezJobConfig.COUNTERS_MAX_KEY);
+      TezJobConfig.TEZ_RUNTIME_COUNTERS_MAX_KEY);
     mrParamToDAGParamMap.put(MRJobConfig.COUNTER_GROUP_NAME_MAX_KEY,
-      TezJobConfig.COUNTER_GROUP_NAME_MAX_KEY);
+      TezJobConfig.TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_KEY);
     mrParamToDAGParamMap.put(MRJobConfig.COUNTER_GROUP_NAME_MAX_KEY,
-      TezJobConfig.COUNTER_NAME_MAX_KEY);
+      TezJobConfig.TEZ_RUNTIME_COUNTER_NAME_MAX_KEY);
     mrParamToDAGParamMap.put(MRJobConfig.COUNTER_GROUPS_MAX_KEY,
-      TezJobConfig.COUNTER_GROUPS_MAX_KEY);
+      TezJobConfig.TEZ_RUNTIME_COUNTER_GROUPS_MAX_KEY);
   }
 
   // TODO TEZAM4 Sometime, make sure this gets loaded by default. Insteaf of the current initialization in MRAppMaster, TezChild.
@@ -149,8 +149,8 @@ public class DeprecatedKeys {
     registerMRToRuntimeKeyTranslation(MRConfig.MAPRED_IFILE_READAHEAD, TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD);
 
     registerMRToRuntimeKeyTranslation(MRConfig.MAPRED_IFILE_READAHEAD_BYTES, TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
-    
-    registerMRToRuntimeKeyTranslation(MRJobConfig.RECORDS_BEFORE_PROGRESS, TezJobConfig.RECORDS_BEFORE_PROGRESS);
+
+    registerMRToRuntimeKeyTranslation(MRJobConfig.RECORDS_BEFORE_PROGRESS, TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS);
 
     registerMRToRuntimeKeyTranslation(MRJobConfig.IO_SORT_FACTOR, TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR);
     
@@ -166,7 +166,7 @@ public class DeprecatedKeys {
     
     registerMRToRuntimeKeyTranslation(MRJobConfig.SHUFFLE_PARALLEL_COPIES, TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES);
     
-    registerMRToRuntimeKeyTranslation(MRJobConfig.SHUFFLE_FETCH_FAILURES, TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES);
+    registerMRToRuntimeKeyTranslation(MRJobConfig.SHUFFLE_FETCH_FAILURES, TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT);
     
     registerMRToRuntimeKeyTranslation(MRJobConfig.SHUFFLE_NOTIFY_READERROR, TezJobConfig.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR);
     

@@ -117,7 +117,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     // sanity checks
     final float spillper = this.conf.getFloat(
         TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT,
-        TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_SPILL_PERCENT);
+        TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT_DEFAULT);
     final int sortmb = this.availableMemoryMb;
     if (spillper > (float) 1.0 || spillper <= (float) 0.0) {
       throw new IOException("Invalid \""
@@ -129,7 +129,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     }
 
     indexCacheMemoryLimit = this.conf.getInt(TezJobConfig.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES,
-                                       TezJobConfig.DEFAULT_TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
+                                       TezJobConfig.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES_DEFAULT);
 
     // buffers and accounting
     int maxMemUsage = sortmb << 20;
@@ -1071,7 +1071,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
 
         int mergeFactor =
             this.conf.getInt(TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR,
-                TezJobConfig.DEFAULT_TEZ_RUNTIME_IO_SORT_FACTOR);
+                TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR_DEFAULT);
         // sort the segments only if there are intermediate merges
         boolean sortSegments = segmentList.size() > mergeFactor;
         //merge
@@ -1091,7 +1091,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
                 spilledRecordsCounter, null);
         if (combiner == null || numSpills < minSpillsForCombine) {
           TezMerger.writeFile(kvIter, writer,
-              nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
+              nullProgressable, TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
         } else {
           runCombineProcessor(kvIter, writer);
         }

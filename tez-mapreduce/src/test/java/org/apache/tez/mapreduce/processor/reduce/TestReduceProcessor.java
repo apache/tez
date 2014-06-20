@@ -37,7 +37,9 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.security.token.Token;
+import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -51,7 +53,6 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
-import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.MapUtils;
@@ -96,7 +97,7 @@ public class TestReduceProcessor {
   }
 
   public void setUpJobConf(JobConf job) {
-    job.set(TezJobConfig.LOCAL_DIRS, workDir.toString());
+    job.set(TezRuntimeFrameworkConfigs.LOCAL_DIRS, workDir.toString());
     job.set(MRConfig.LOCAL_DIR, workDir.toString());
     job.setClass(
         Constants.TEZ_RUNTIME_TASK_OUTPUT_MANAGER,
@@ -128,7 +129,7 @@ public class TestReduceProcessor {
     
     JobConf mapConf = new JobConf(mapStageConf);
     
-    mapConf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
+    mapConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
     mapConf.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
     
@@ -158,7 +159,7 @@ public class TestReduceProcessor {
         reduceVertexName);
     JobConf reduceConf = new JobConf(reduceStageConf);
     reduceConf.setOutputFormat(SequenceFileOutputFormat.class);
-    reduceConf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
+    reduceConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
     FileOutputFormat.setOutputPath(reduceConf, new Path(workDir, "output"));
     ProcessorDescriptor reduceProcessorDesc = new ProcessorDescriptor(
@@ -186,6 +187,7 @@ public class TestReduceProcessor {
         taskSpec,
         0,
         reduceConf,
+        new String[] {workDir.toString()},
         new TestUmbilical(),
         serviceConsumerMetadata,
         HashMultimap.<String, String>create());

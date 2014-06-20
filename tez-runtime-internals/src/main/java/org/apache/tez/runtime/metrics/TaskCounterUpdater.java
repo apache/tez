@@ -139,7 +139,7 @@ public class TaskCounterUpdater {
   
   private void initResourceCalculatorPlugin() {
     Class<? extends ResourceCalculatorProcessTree> clazz = this.conf.getClass(
-        TezJobConfig.TEZ_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS, null,
+        TezJobConfig.TEZ_RUNTIME_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS, null,
         ResourceCalculatorProcessTree.class); 
 
     pTree = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(

@@ -40,6 +40,7 @@ import org.apache.hadoop.util.PriorityQueue;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.Progressable;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader;
@@ -60,7 +61,7 @@ public class TezMerger {
   
   // Local directories
   private static LocalDirAllocator lDirAlloc = 
-    new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
+    new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
 
   public static
   TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
@@ -374,7 +375,7 @@ public class TezMerger {
     boolean ifileReadAhead = TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT;
     int ifileReadAheadLength = TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT;
     int ifileBufferSize = TezJobConfig.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT;
-    long recordsBeforeProgress = TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS;
+    long recordsBeforeProgress = TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT;
     
     List<Segment> segments = new ArrayList<Segment>();
     
@@ -416,8 +417,8 @@ public class TezMerger {
     throws IOException {
       this.conf = conf;
       // this.recordsBeforeProgress =
-      // conf.getLong(TezJobConfig.RECORDS_BEFORE_PROGRESS,
-      // TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
+      // conf.getLong(TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS,
+      // TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
       this.fs = fs;
       this.codec = codec;
       this.comparator = comparator;

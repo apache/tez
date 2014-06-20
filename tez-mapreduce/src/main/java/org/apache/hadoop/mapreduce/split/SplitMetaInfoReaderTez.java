@@ -33,7 +33,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 /**
@@ -59,7 +59,7 @@ public class SplitMetaInfoReaderTez {
         MRJobConfig.DEFAULT_SPLIT_METAINFO_MAXSIZE);
 
     // TODO NEWTEZ Figure out how this can be improved. i.e. access from context instead of setting in conf ?
-    String basePath = conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, ".");
+    String basePath = conf.get(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, ".");
     LOG.info("Attempting to find splits in dir: " + basePath);
     
     Path metaSplitFile = new Path(

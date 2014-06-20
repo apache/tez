@@ -26,7 +26,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
@@ -46,7 +46,7 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
   }
 
   private LocalDirAllocator lDirAlloc =
-    new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
+    new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
 
 
   /**
@@ -235,7 +235,7 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
   }
 
   private String[] getLocalDirs() throws IOException {
-    return conf.getStrings(TezJobConfig.LOCAL_DIRS);
+    return conf.getStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
   }
 
   @SuppressWarnings("deprecation")

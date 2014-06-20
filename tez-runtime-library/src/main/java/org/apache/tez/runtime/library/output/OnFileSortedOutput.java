@@ -30,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
@@ -74,7 +75,7 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
     // Initializing this parametr in this conf since it is used in multiple
     // places (wherever LocalDirAllocator is used) - TezTaskOutputFiles,
     // TezMerger, etc.
-    this.conf.setStrings(TezJobConfig.LOCAL_DIRS, getContext().getWorkDirs());
+    this.conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, getContext().getWorkDirs());
     this.memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
     getContext().requestInitialMemory(
         ExternalSorter.getInitialMemoryRequirement(conf,
@@ -91,7 +92,7 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
     if (!isStarted.get()) {
       memoryUpdateCallbackHandler.validateUpdateReceived();
       if (this.conf.getInt(TezJobConfig.TEZ_RUNTIME_SORT_THREADS,
-          TezJobConfig.DEFAULT_TEZ_RUNTIME_SORT_THREADS) > 1) {
+          TezJobConfig.TEZ_RUNTIME_SORT_THREADS_DEFAULT) > 1) {
         sorter = new PipelinedSorter(getContext(), conf, getNumPhysicalOutputs(),
             memoryUpdateCallbackHandler.getMemoryAssigned());
       } else {

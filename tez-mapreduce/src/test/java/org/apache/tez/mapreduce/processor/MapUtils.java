@@ -48,7 +48,8 @@ import org.apache.hadoop.mapreduce.split.JobSplit.SplitMetaInfo;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.MRFrameworkConfigs;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -74,15 +75,15 @@ public class MapUtils {
     String[] localSysDirs = new String[1];
     localSysDirs[0] = localDir;
 
-    conf.setStrings(TezJobConfig.LOCAL_DIRS, localSysDirs);
-    conf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, localDir);
+    conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localSysDirs);
+    conf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, localDir);
 
-    LOG.info(TezJobConfig.LOCAL_DIRS + " for child: "
-        + conf.get(TezJobConfig.LOCAL_DIRS));
-    LOG.info(TezJobConfig.TASK_LOCAL_RESOURCE_DIR + " for child: "
-        + conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR));
+    LOG.info(TezRuntimeFrameworkConfigs.LOCAL_DIRS + " for child: "
+        + conf.get(TezRuntimeFrameworkConfigs.LOCAL_DIRS));
+    LOG.info(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR + " for child: "
+        + conf.get(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR));
 
-    LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
+    LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
     Path workDir = null;
     // First, try to find the JOB_LOCAL_DIR on this host.
     try {
@@ -110,7 +111,7 @@ public class MapUtils {
         throw new IOException("Mkdirs failed to create " + workDir.toString());
       }
     }
-    conf.set(TezJobConfig.JOB_LOCAL_DIR, workDir.toString());
+    conf.set(MRFrameworkConfigs.JOB_LOCAL_DIR, workDir.toString());
   }
   
   private static InputSplit 
@@ -156,8 +157,8 @@ public class MapUtils {
   
   private static void writeSplitFiles(FileSystem fs, JobConf conf,
       InputSplit split) throws IOException {
-    Path jobSplitFile = new Path(conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR,
-        TezJobConfig.DEFAULT_TASK_LOCAL_RESOURCE_DIR), MRJobConfig.JOB_SPLIT);
+    Path jobSplitFile = new Path(conf.get(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR,
+        MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR_DEFAULT), MRJobConfig.JOB_SPLIT);
     LOG.info("Writing split to: " + jobSplitFile);
     FSDataOutputStream out = FileSystem.create(fs, jobSplitFile,
         new FsPermission(JOB_FILE_PERMISSION));
@@ -173,7 +174,7 @@ public class MapUtils {
     info = new JobSplit.SplitMetaInfo(locations, offset, split.getLength());
 
     Path jobSplitMetaInfoFile = new Path(
-        conf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR),
+        conf.get(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR),
         MRJobConfig.JOB_SPLIT_METAINFO);
 
     FSDataOutputStream outMeta = FileSystem.create(fs, jobSplitMetaInfoFile,
@@ -218,6 +219,7 @@ public class MapUtils {
         taskSpec,
         0,
         jobConf,
+        new String[] {workDir.toString()},
         umbilical,
         serviceConsumerMetadata,
         HashMultimap.<String, String>create());

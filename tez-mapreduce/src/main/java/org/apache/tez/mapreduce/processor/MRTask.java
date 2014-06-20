@@ -61,7 +61,8 @@ import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.MRFrameworkConfigs;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezTaskStatus.State;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounters;
@@ -210,14 +211,14 @@ public abstract class MRTask {
 
   private void configureLocalDirs() throws IOException {
     // TODO NEWTEZ Is most of this functionality required ?
-    jobConf.setStrings(TezJobConfig.LOCAL_DIRS, processorContext.getWorkDirs());
-    if (jobConf.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR) == null) {
-      jobConf.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, System.getenv(Environment.PWD.name()));
+    jobConf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, processorContext.getWorkDirs());
+    if (jobConf.get(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR) == null) {
+      jobConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, System.getenv(Environment.PWD.name()));
     }
 
     jobConf.setStrings(MRConfig.LOCAL_DIR, processorContext.getWorkDirs());
 
-    LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
+    LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
     Path workDir = null;
     // First, try to find the JOB_LOCAL_DIR on this host.
     try {
@@ -247,7 +248,7 @@ public abstract class MRTask {
       }
     }
     // TODO NEWTEZ Is this required ?
-    jobConf.set(TezJobConfig.JOB_LOCAL_DIR, workDir.toString());
+    jobConf.set(MRFrameworkConfigs.JOB_LOCAL_DIR, workDir.toString());
     jobConf.set(MRJobConfig.JOB_LOCAL_DIR, workDir.toString());
   }
 
@@ -262,7 +263,7 @@ public abstract class MRTask {
   private static void setupDistributedCacheConfig(final JobConf job)
       throws IOException {
 
-    String localWorkDir = (job.get(TezJobConfig.TASK_LOCAL_RESOURCE_DIR));
+    String localWorkDir = (job.get(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR));
     // ^ ^ all symlinks are created in the current work-dir
 
     // Update the configuration object with localized archives.

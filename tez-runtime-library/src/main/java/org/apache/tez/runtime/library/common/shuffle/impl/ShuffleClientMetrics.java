@@ -23,6 +23,7 @@ import org.apache.hadoop.metrics.MetricsRecord;
 import org.apache.hadoop.metrics.MetricsUtil;
 import org.apache.hadoop.metrics.Updater;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 
@@ -40,7 +41,7 @@ class ShuffleClientMetrics implements Updater {
     this.numCopiers = 
         conf.getInt(
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES, 
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES);
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES_DEFAULT);
 
     MetricsContext metricsContext = MetricsUtil.getContext(Constants.TEZ);
     this.shuffleMetrics = 
@@ -50,8 +51,8 @@ class ShuffleClientMetrics implements Updater {
     this.shuffleMetrics.setTag("taskId", TezRuntimeUtils.getTaskIdentifier(vertexName, taskIndex));
     this.shuffleMetrics.setTag("sessionId", 
         conf.get(
-            TezJobConfig.TEZ_RUNTIME_METRICS_SESSION_ID, 
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_METRICS_SESSION_ID));
+            TezRuntimeFrameworkConfigs.TEZ_RUNTIME_METRICS_SESSION_ID,
+            TezRuntimeFrameworkConfigs.TEZ_RUNTIME_METRICS_SESSION_ID_DEFAULT));
     metricsContext.registerUpdater(this);
   }
   public synchronized void inputBytes(long numBytes) {

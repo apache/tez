@@ -75,7 +75,7 @@ public class LocalShuffle {
     this.sortFactor =
         conf.getInt(
             TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR, 
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_IO_SORT_FACTOR);
+            TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR_DEFAULT);
     
     this.rfs = FileSystem.getLocal(conf).getRaw();
 

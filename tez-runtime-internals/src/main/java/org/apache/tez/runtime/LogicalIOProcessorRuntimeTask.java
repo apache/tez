@@ -84,6 +84,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private static final Log LOG = LogFactory
       .getLog(LogicalIOProcessorRuntimeTask.class);
 
+  private final String[] localDirs;
   /** Responsible for maintaining order of Inputs */
   private final List<InputSpec> inputSpecs;
   private final ConcurrentHashMap<String, LogicalInput> inputsMap;
@@ -121,7 +122,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final InputReadyTracker inputReadyTracker;
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
-      Configuration tezConf, TezUmbilical tezUmbilical,
+      Configuration tezConf, String[] localDirs, TezUmbilical tezUmbilical,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Multimap<String, String> startedInputsMap) throws IOException {
     // TODO Remove jobToken from here post TEZ-421
@@ -130,6 +131,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         + taskSpec);
     int numInputs = taskSpec.getInputs().size();
     int numOutputs = taskSpec.getOutputs().size();
+    this.localDirs = localDirs;
     this.inputSpecs = taskSpec.getInputs();
     this.inputsMap = new ConcurrentHashMap<String, LogicalInput>(numInputs);
     this.inputContextMap = new ConcurrentHashMap<String, TezInputContext>(numInputs);
@@ -461,7 +463,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private TezInputContext createInputContext(Input input, InputSpec inputSpec, int inputIndex) {
-    TezInputContext inputContext = new TezInputContextImpl(tezConf,
+    TezInputContext inputContext = new TezInputContextImpl(tezConf, localDirs,
         appAttemptNumber, tezUmbilical,
         taskSpec.getDAGName(), taskSpec.getVertexName(),
         inputSpec.getSourceVertexName(), taskSpec.getTaskAttemptID(),
@@ -475,7 +477,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private TezOutputContext createOutputContext(OutputSpec outputSpec, int outputIndex) {
-    TezOutputContext outputContext = new TezOutputContextImpl(tezConf,
+    TezOutputContext outputContext = new TezOutputContextImpl(tezConf, localDirs,
         appAttemptNumber, tezUmbilical,
         taskSpec.getDAGName(), taskSpec.getVertexName(),
         outputSpec.getDestinationVertexName(), taskSpec.getTaskAttemptID(),
@@ -489,7 +491,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private TezProcessorContext createProcessorContext() {
-    TezProcessorContext processorContext = new TezProcessorContextImpl(tezConf,
+    TezProcessorContext processorContext = new TezProcessorContextImpl(tezConf, localDirs,
         appAttemptNumber, tezUmbilical,
         taskSpec.getDAGName(), taskSpec.getVertexName(),
         taskSpec.getTaskAttemptID(),

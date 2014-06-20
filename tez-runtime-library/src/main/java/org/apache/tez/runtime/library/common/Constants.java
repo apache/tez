@@ -32,7 +32,9 @@ public class Constants {
 
   public static final int MAP_OUTPUT_INDEX_RECORD_LENGTH = 24;
   public static String MERGED_OUTPUT_PREFIX = ".merged";
-  
+
+  public static final long DEFAULT_COMBINE_RECORDS_BEFORE_PROGRESS = 10000;
+
   // TODO NEWTEZ Remove this constant once the old code is removed.
   public static final String TEZ_RUNTIME_TASK_ATTEMPT_ID = 
       "tez.runtime.task.attempt.id";

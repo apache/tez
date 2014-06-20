@@ -49,7 +49,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   private final int outputIndex;
 
   @Private
-  public TezOutputContextImpl(Configuration conf, int appAttemptNumber,
+  public TezOutputContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
       TezUmbilical tezUmbilical, String dagName,
       String taskVertexName,
       String destinationVertexName,
@@ -58,7 +58,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       OutputDescriptor outputDescriptor) {
-    super(conf, appAttemptNumber, dagName, taskVertexName, taskAttemptID,
+    super(conf, workDirs, appAttemptNumber, dagName, taskVertexName, taskAttemptID,
         wrapCounters(counters, taskVertexName, destinationVertexName, conf),
         runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, outputDescriptor);

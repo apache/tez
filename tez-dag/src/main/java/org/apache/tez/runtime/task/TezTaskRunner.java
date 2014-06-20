@@ -34,7 +34,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -73,10 +73,9 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
       TaskReporter taskReporter, ListeningExecutorService executor) throws IOException {
     this.tezConf = tezConf;
     this.ugi = ugi;
-    this.tezConf.setStrings(TezJobConfig.LOCAL_DIRS, localDirs);
     this.taskReporter = taskReporter;
     this.executor = executor;
-    task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, tezConf, this,
+    task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, tezConf, localDirs, this,
         serviceConsumerMetadata, startedInputsMap);
     taskReporter.registerTask(task, this);
     taskRunning = new AtomicBoolean(true);

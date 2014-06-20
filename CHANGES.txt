@@ -4,6 +4,8 @@ Apache Tez Change Log
 Release 0.5.0-incubating: Unreleased
 
 INCOMPATIBLE CHANGES
+  TEZ-1213. Fix parameter naming in TezJobConfig.
+    - Details at https://issues.apache.org/jira/browse/TEZ-1213?focusedCommentId=14039381&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-14039381
   TEZ-960. VertexManagerPluginContext::getTotalAVailableResource() changed to
   VertexManagerPluginContext::getTotalAvailableResource()
   TEZ-1025. Rename tez.am.max.task.attempts to tez.am.task.max.failed.attempts 

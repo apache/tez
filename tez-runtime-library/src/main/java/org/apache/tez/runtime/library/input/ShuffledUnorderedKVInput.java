@@ -33,6 +33,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -88,7 +89,7 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
       this.getContext().requestInitialMemory(initalMemReq, memoryUpdateCallbackHandler);
     }
 
-    this.conf.setStrings(TezJobConfig.LOCAL_DIRS, getContext().getWorkDirs());
+    this.conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, getContext().getWorkDirs());
     this.inputRecordCounter = getContext().getCounters().findCounter(
         TaskCounter.INPUT_RECORDS_PROCESSED);
     return Collections.emptyList();

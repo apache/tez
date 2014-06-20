@@ -178,7 +178,7 @@ public class MergeManager {
     final float maxInMemCopyUse =
       conf.getFloat(
           TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, 
-          TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT);
+          TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT_DEFAULT);
     if (maxInMemCopyUse > 1.0 || maxInMemCopyUse < 0.0) {
       throw new IllegalArgumentException("Invalid value for " +
           TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT + ": " +
@@ -190,7 +190,7 @@ public class MergeManager {
         Math.min(inputContext.getTotalMemoryAvailableToTask(), Integer.MAX_VALUE)) * maxInMemCopyUse);
 
     float maxRedPer = conf.getFloat(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT,
-        TezJobConfig.DEFAULT_TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
+        TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT_DEFAULT);
     if (maxRedPer > 1.0 || maxRedPer < 0.0) {
       throw new TezUncheckedException(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT + maxRedPer);
     }
@@ -218,12 +218,12 @@ public class MergeManager {
     this.ioSortFactor = 
         conf.getInt(
             TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR, 
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_IO_SORT_FACTOR);
+            TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR_DEFAULT);
     
     final float singleShuffleMemoryLimitPercent =
         conf.getFloat(
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT,
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT);
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT_DEFAULT);
     if (singleShuffleMemoryLimitPercent <= 0.0f
         || singleShuffleMemoryLimitPercent > 1.0f) {
       throw new IllegalArgumentException("Invalid value for "
@@ -241,7 +241,7 @@ public class MergeManager {
         (long)(this.memoryLimit * 
                conf.getFloat(
                    TezJobConfig.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 
-                   TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT));
+                   TezJobConfig.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT_DEFAULT));
     LOG.info("MergerManager: memoryLimit=" + memoryLimit + ", " +
              "maxSingleShuffleLimit=" + maxSingleShuffleLimit + ", " +
              "mergeThreshold=" + mergeThreshold + ", " + 
@@ -258,7 +258,7 @@ public class MergeManager {
     boolean allowMemToMemMerge = 
         conf.getBoolean(
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM, 
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM);
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM_DEFAULT);
       if (allowMemToMemMerge) {
         this.memToMemMerger = 
           new IntermediateMemoryToMemoryMerger(this,
@@ -289,7 +289,7 @@ public class MergeManager {
     final float maxInMemCopyUse =
         conf.getFloat(
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, 
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT);
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT_DEFAULT);
       if (maxInMemCopyUse > 1.0 || maxInMemCopyUse < 0.0) {
         throw new IllegalArgumentException("Invalid value for " +
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT + ": " +
@@ -303,7 +303,7 @@ public class MergeManager {
       LOG.info("Initial Shuffle Memory Required: " + memLimit + ", based on INPUT_BUFFER_factor: " + maxInMemCopyUse);
 
       float maxRedPer = conf.getFloat(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT,
-          TezJobConfig.DEFAULT_TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
+          TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT_DEFAULT);
       if (maxRedPer > 1.0 || maxRedPer < 0.0) {
         throw new TezUncheckedException(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT + maxRedPer);
       }
@@ -517,7 +517,7 @@ public class MergeManager {
                        new Path(inputContext.getUniqueIdentifier()),
                        (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
                        nullProgressable, null, null, null, null); 
-      TezMerger.writeFile(rIter, writer, nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
+      TezMerger.writeFile(rIter, writer, nullProgressable, TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
       writer.close();
 
       LOG.info(inputContext.getUniqueIdentifier() +  
@@ -597,7 +597,7 @@ public class MergeManager {
         // what will be written to disk.
 
         if (null == combiner) {
-          TezMerger.writeFile(rIter, writer, nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
+          TezMerger.writeFile(rIter, writer, nullProgressable, TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
         } else {
           // TODO Counters for Combine
           runCombineProcessor(rIter, writer);
@@ -688,7 +688,7 @@ public class MergeManager {
         // TODO Maybe differentiate between data written because of Merges and
         // the finalMerge (i.e. final mem available may be different from
         // initial merge mem)
-        TezMerger.writeFile(iter, writer, nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
+        TezMerger.writeFile(iter, writer, nullProgressable, TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
         writer.close();
         additionalBytesWritten.increment(writer.getCompressedLength());
       } catch (IOException e) {
@@ -822,7 +822,7 @@ public class MergeManager {
         final Writer writer = new Writer(job, fs, outputPath,
             keyClass, valueClass, codec, null, null);
         try {
-          TezMerger.writeFile(rIter, writer, nullProgressable, TezJobConfig.DEFAULT_RECORDS_BEFORE_PROGRESS);
+          TezMerger.writeFile(rIter, writer, nullProgressable, TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
           // add to list of final disk outputs.
           onDiskMapOutputs.add(outputPath);
         } catch (IOException e) {

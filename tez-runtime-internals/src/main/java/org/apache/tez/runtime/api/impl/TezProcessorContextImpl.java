@@ -52,14 +52,14 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements TezPr
   private final EventMetaData sourceInfo;
   private final InputReadyTracker inputReadyTracker;
 
-  public TezProcessorContextImpl(Configuration conf, int appAttemptNumber,
+  public TezProcessorContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
       TezUmbilical tezUmbilical, String dagName, String vertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters,
       @Nullable byte[] userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       ProcessorDescriptor processorDescriptor, InputReadyTracker inputReadyTracker) {
-    super(conf, appAttemptNumber, dagName, vertexName, taskAttemptID,
+    super(conf, workDirs, appAttemptNumber, dagName, vertexName, taskAttemptID,
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, processorDescriptor);
     checkNotNull(inputReadyTracker, "inputReadyTracker is null");

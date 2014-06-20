@@ -41,6 +41,7 @@ import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -146,7 +147,7 @@ public class Shuffle implements ExceptionReporter {
     
     FileSystem localFS = FileSystem.getLocal(this.conf);
     LocalDirAllocator localDirAllocator = 
-        new LocalDirAllocator(TezJobConfig.LOCAL_DIRS);
+        new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
 
     // TODO TEZ Get rid of Map / Reduce references.
     TezCounter shuffledInputsCounter = 
@@ -173,7 +174,7 @@ public class Shuffle implements ExceptionReporter {
         "ifileReadAhead: " + ifileReadAhead);
 
     boolean sslShuffle = conf.getBoolean(TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
-      TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
+      TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT);
     scheduler = new ShuffleScheduler(
           this.inputContext,
           this.conf,
@@ -210,7 +211,7 @@ public class Shuffle implements ExceptionReporter {
     int configuredNumFetchers = 
         conf.getInt(
             TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES, 
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES);
+            TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES_DEFAULT);
     numFetchers = Math.min(configuredNumFetchers, numInputs);
     LOG.info("Num fetchers being started: " + numFetchers);
     fetchers = Lists.newArrayListWithCapacity(numFetchers);

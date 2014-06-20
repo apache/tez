@@ -44,17 +44,17 @@ public class Limits {
       conf = new Configuration();
     }
     GROUP_NAME_MAX =
-        conf.getInt(TezJobConfig.COUNTER_GROUP_NAME_MAX_KEY,
-            TezJobConfig.COUNTER_GROUP_NAME_MAX_DEFAULT);
+        conf.getInt(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_KEY,
+            TezJobConfig.TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_DEFAULT);
     COUNTER_NAME_MAX =
-        conf.getInt(TezJobConfig.COUNTER_NAME_MAX_KEY,
-            TezJobConfig.COUNTER_NAME_MAX_DEFAULT);
+        conf.getInt(TezJobConfig.TEZ_RUNTIME_COUNTER_NAME_MAX_KEY,
+            TezJobConfig.TEZ_RUNTIME_COUNTER_NAME_MAX_DEFAULT);
     GROUPS_MAX =
-        conf.getInt(TezJobConfig.COUNTER_GROUPS_MAX_KEY,
-            TezJobConfig.COUNTER_GROUPS_MAX_DEFAULT);
+        conf.getInt(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUPS_MAX_KEY,
+            TezJobConfig.TEZ_RUNTIME_COUNTER_GROUPS_MAX_DEFAULT);
     COUNTERS_MAX =
-        conf.getInt(TezJobConfig.COUNTERS_MAX_KEY, TezJobConfig.
-            COUNTERS_MAX_DEFAULT);
+        conf.getInt(TezJobConfig.TEZ_RUNTIME_COUNTERS_MAX_KEY, TezJobConfig.
+            TEZ_RUNTIME_COUNTERS_MAX_DEFAULT);
     initialized = true;
     LOG.info("Counter limits initialized with parameters: " + " GROUP_NAME_MAX=" + GROUP_NAME_MAX
         + ", MAX_GROUPS=" + GROUPS_MAX + ", COUNTER_NAME_MAX=" + COUNTER_NAME_MAX

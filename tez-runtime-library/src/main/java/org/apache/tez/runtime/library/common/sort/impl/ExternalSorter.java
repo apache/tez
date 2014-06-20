@@ -40,6 +40,7 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.QuickSort;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.TezOutputContext;
@@ -190,7 +191,7 @@ public abstract class ExternalSorter {
     mapOutputFile = TezRuntimeUtils.instantiateTaskOutputManager(conf, outputContext);
     
     LOG.info("Instantiating Partitioner: [" + conf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS) + "]");
-    this.conf.setInt(TezJobConfig.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS, this.partitions);
+    this.conf.setInt(TezRuntimeFrameworkConfigs.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS, this.partitions);
     this.partitioner = TezRuntimeUtils.instantiatePartitioner(this.conf);
     this.combiner = TezRuntimeUtils.instantiateCombiner(this.conf, outputContext);
   }
@@ -253,7 +254,7 @@ public abstract class ExternalSorter {
     int initialMemRequestMb = 
         conf.getInt(
             TezJobConfig.TEZ_RUNTIME_IO_SORT_MB, 
-            TezJobConfig.DEFAULT_TEZ_RUNTIME_IO_SORT_MB);
+            TezJobConfig.TEZ_RUNTIME_IO_SORT_MB_DEFAULT);
     Preconditions.checkArgument(initialMemRequestMb != 0, "io.sort.mb should be larger than 0");
     long reqBytes = initialMemRequestMb << 20;
     LOG.info("Requested SortBufferSize (io.sort.mb): " + initialMemRequestMb);

@@ -29,7 +29,6 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezEntityDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -60,7 +59,7 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   private final String dagName;
 
   @Private
-  public TezTaskContextImpl(Configuration conf, int appAttemptNumber,
+  public TezTaskContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
       String dagName, String taskVertexName, TezTaskAttemptID taskAttemptID,
       TezCounters counters, RuntimeTask runtimeTask,
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
@@ -82,7 +81,7 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
     this.counters = counters;
     // TODO Maybe change this to be task id specific at some point. For now
     // Shuffle code relies on this being a path specified by YARN
-    this.workDirs = this.conf.getStrings(TezJobConfig.LOCAL_DIRS);
+    this.workDirs = workDirs;
     this.runtimeTask = runtimeTask;
     this.tezUmbilical = tezUmbilical;
     this.serviceConsumerMetadata = serviceConsumerMetadata;

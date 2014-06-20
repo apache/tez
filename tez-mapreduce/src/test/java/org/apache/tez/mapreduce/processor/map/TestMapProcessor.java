@@ -31,7 +31,9 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.MRConfig;
+import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.mapreduce.TestUmbilical;
@@ -83,7 +85,7 @@ public class TestMapProcessor {
   
 
   public void setUpJobConf(JobConf job) {
-    job.set(TezJobConfig.LOCAL_DIRS, workDir.toString());
+    job.set(TezRuntimeFrameworkConfigs.LOCAL_DIRS, workDir.toString());
     job.set(MRConfig.LOCAL_DIR, workDir.toString());
     job.setClass(
         Constants.TEZ_RUNTIME_TASK_OUTPUT_MANAGER,
@@ -115,7 +117,7 @@ public class TestMapProcessor {
     JobConf job = new JobConf(stageConf);
     job.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
 
-    job.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
+    job.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
     
     Path mapInput = new Path(workDir, "map0");

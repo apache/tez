@@ -53,7 +53,7 @@ public class ScalingAllocator implements InitialMemoryAllocator {
     }
 
     // Take a certain amount of memory away for general usage.
-    double reserveFraction = conf.getDouble(TezJobConfig.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION,
+    double reserveFraction = conf.getDouble(TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_RESERVE_FRACTION,
         DEFAULT_RESERVE_FRACTION);
     Preconditions.checkState(reserveFraction >= 0.0d && reserveFraction <= 1.0d);
     availableForAllocation = (long) (availableForAllocation - (reserveFraction * availableForAllocation));

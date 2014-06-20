@@ -29,6 +29,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
@@ -64,7 +65,7 @@ public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
       throws Exception {
     this.conf = TezUtils.createConfFromUserPayload(getContext()
         .getUserPayload());
-    this.conf.setStrings(TezJobConfig.LOCAL_DIRS,
+    this.conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS,
         getContext().getWorkDirs());
 
     getContext().requestInitialMemory(0l, null); // mandatory call
