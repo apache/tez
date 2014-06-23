@@ -87,14 +87,14 @@
     <developers>
       <developer>
         <id>acmurthy</id>
-        <name>Arun C Murthy</name>
+        <name>Arun C. Murthy</name>
         <email>acmurthy@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-           <role>PMC</role>
+          <role>PMC</role>
         </roles>
         <organization>
-           Hortonworks
+          Hortonworks
         </organization>
       </developer>
       <developer>
@@ -103,10 +103,94 @@
         <email>bikas@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-           <role>PMC</role>
+          <role>PMC</role>
         </roles>
         <organization>
-           Hortonworks
+          Hortonworks
+        </organization>
+      </developer>
+      <developer>
+        <id>billgraham</id>
+        <name>Bill Graham</name>
+        <email>billgraham@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Twitter
+        </organization>
+      </developer>
+      <developer>
+        <id>bobby</id>
+        <name>Robert Evans</name>
+        <email>bobby@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Yahoo!
+        </organization>
+      </developer>
+      <developer>
+        <id>cdouglas</id>
+        <name>Chris Douglas</name>
+        <email>cdouglas@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Microsoft
+        </organization>
+      </developer>
+      <developer>
+        <id>daryn</id>
+        <name>Daryn Sharp</name>
+        <email>daryn@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Yahoo!
+        </organization>
+      </developer>
+      <developer>
+        <id>ddas</id>
+        <name>Devaraj Das</name>
+        <email>ddas@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Hortonworks
+        </organization>
+      </developer>
+      <developer>
+        <id>gates</id>
+        <name>Alan Gates</name>
+        <email>gates@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Hortonworks
+        </organization>
+      </developer>
+      <developer>
+        <id>gopalv</id>
+        <name>Gopal Vijayaraghavan</name>
+        <email>gopalv@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Hortonworks
         </organization>
       </developer>
       <developer>
@@ -115,10 +199,22 @@
         <email>gunther@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-           <role>PMC</role>
+          <role>PMC</role>
         </roles>
         <organization>
-           Hortonworks
+          Hortonworks
+        </organization>
+      </developer>
+      <developer>
+        <id>hashutosh</id>
+        <name>Ashutosh Chauhan</name>
+        <email>hashutosh@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Hortonworks
         </organization>
       </developer>
       <developer>
@@ -127,10 +223,94 @@
         <email>hitesh@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-           <role>PMC</role>
+          <role>PMC</role>
         </roles>
         <organization>
-           Hortonworks
+          Hortonworks
+        </organization>
+      </developer>
+      <developer>
+        <id>jghoman</id>
+        <name>Jakob Homan</name>
+        <email>jghoman@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          LinkedIn
+        </organization>
+      </developer>
+      <developer>
+        <id>jitendra</id>
+        <name>Jitendra Pandey</name>
+        <email>jitendra@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Hortonworks
+        </organization>
+      </developer>
+      <developer>
+        <id>jlowe</id>
+        <name>Jason Lowe</name>
+        <email>jlowe@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Yahoo!
+        </organization>
+      </developer>
+      <developer>
+        <id>julien</id>
+        <name>Julien Le Dem</name>
+        <email>julien@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Twitter
+        </organization>
+      </developer>
+      <developer>
+        <id>kamrul</id>
+        <name>Mohammad Kamrul Islam</name>
+        <email>kamrul@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          LinkedIn
+        </organization>
+      </developer>
+      <developer>
+        <id>kevinwilfong</id>
+        <name>Kevin Wilfong</name>
+        <email>kevinwilfong@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Facebook
+        </organization>
+      </developer>
+      <developer>
+        <id>mattmann</id>
+        <name>Chris Mattmann</name>
+        <email>mattmann@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          NASA JPL
         </organization>
       </developer>
       <developer>
@@ -139,10 +319,58 @@
         <email>mliddell@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-           <role>PMC</role>
+          <role>PMC</role>
         </roles>
         <organization>
-           Microsoft
+          Microsoft
+        </organization>
+      </developer>
+      <developer>
+        <id>namit</id>
+        <name>Namit Jain</name>
+        <email>namit@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Facebook
+        </organization>
+      </developer>
+      <developer>
+        <id>nroberts</id>
+        <name>Nathan Roberts</name>
+        <email>nroberts@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Yahoo!
+        </organization>
+      </developer>
+      <developer>
+        <id>omalley</id>
+        <name>Owen O’Malley</name>
+        <email>omalley@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Hortonworks
+        </organization>
+      </developer>
+      <developer>
+        <id>rbalamohan</id>
+        <name>Rajesh Balamohan</name>
+        <email>rbalamohan@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Hortonworks
         </organization>
       </developer>
       <developer>
@@ -151,10 +379,10 @@
         <email>rohini@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-           <role>Committer</role>
+          <role>PMC</role>
         </roles>
         <organization>
-           Yahoo!
+          Yahoo!
         </organization>
       </developer>
       <developer>
@@ -163,10 +391,10 @@
         <email>sseth@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-           <role>PMC</role>
+          <role>PMC</role>
         </roles>
         <organization>
-           Hortonworks
+          Hortonworks
         </organization>
       </developer>
       <developer>
@@ -175,10 +403,58 @@
         <email>tassapola@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-           <role>Committer</role>
+          <role>PMC</role>
         </roles>
         <organization>
-           Hortonworks
+          Hortonworks
+        </organization>
+      </developer>
+      <developer>
+        <id>tgraves</id>
+        <name>Thomas Graves</name>
+        <email>tgraves@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Yahoo!
+        </organization>
+      </developer>
+      <developer>
+        <id>tomwhite</id>
+        <name>Tom White</name>
+        <email>tomwhite@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Cloudera
+        </organization>
+      </developer>
+      <developer>
+        <id>vikram</id>
+        <name>Vikram Dixit</name>
+        <email>vikram@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Hortonworks
+        </organization>
+      </developer>
+      <developer>
+        <id>vinodkv</id>
+        <name>Vinod Kumar Vavilapalli</name>
+        <email>vinodkv@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>PMC</role>
+        </roles>
+        <organization>
+          Hortonworks
         </organization>
       </developer>
     </developers>
