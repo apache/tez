@@ -365,7 +365,7 @@
         <id>rbalamohan</id>
         <name>Rajesh Balamohan</name>
         <email>rbalamohan@apache.org</email>
-        <timezone>-8</timezone>
+        <timezone>+5:30</timezone>
         <roles>
           <role>Committer</role>
         </roles>
