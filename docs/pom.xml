@@ -283,7 +283,7 @@
         <email>kamrul@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-          <role>PMC</role>
+          <role>Committer</role>
         </roles>
         <organization>
           LinkedIn
@@ -367,7 +367,7 @@
         <email>rbalamohan@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-          <role>PMC</role>
+          <role>Committer</role>
         </roles>
         <organization>
           Hortonworks
@@ -379,7 +379,7 @@
         <email>rohini@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-          <role>PMC</role>
+          <role>Committer</role>
         </roles>
         <organization>
           Yahoo!
@@ -403,7 +403,7 @@
         <email>tassapola@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-          <role>PMC</role>
+          <role>Committer</role>
         </roles>
         <organization>
           Hortonworks
