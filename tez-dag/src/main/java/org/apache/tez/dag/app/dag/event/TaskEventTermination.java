@@ -21,17 +21,24 @@ package org.apache.tez.dag.app.dag.event;
 import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.records.TezTaskID;
 
-public class TaskEventTermination extends TaskEvent {
+public class TaskEventTermination extends TaskEvent implements DiagnosableEvent{
 
   private TaskTerminationCause terminationCause;
-
+  private String diagnostics;
+  
   public TaskEventTermination(TezTaskID taskID, TaskTerminationCause terminationCause) {
     super(taskID, TaskEventType.T_TERMINATE);
     this.terminationCause = terminationCause;
+    this.diagnostics = "Task is terminated due to:" + terminationCause.name();
   }
 
   public TaskTerminationCause getTerminationCause() {
     return terminationCause;
+  }
+
+  @Override
+  public String getDiagnosticInfo() {
+    return diagnostics;
   }
 
 }

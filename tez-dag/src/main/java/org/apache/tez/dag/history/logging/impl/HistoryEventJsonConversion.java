@@ -496,6 +496,7 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.FINISH_TIME, event.getFinishTime());
     otherInfo.put(ATSConstants.TIME_TAKEN, (event.getFinishTime() - event.getStartTime()));
     otherInfo.put(ATSConstants.STATUS, event.getState().name());
+    otherInfo.put(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getTezCounters()));
 

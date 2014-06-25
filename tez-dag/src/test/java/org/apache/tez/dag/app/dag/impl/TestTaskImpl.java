@@ -56,8 +56,12 @@ import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.TaskStateInternal;
 import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
+import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
@@ -510,6 +514,38 @@ public class TestTaskImpl {
     Assert.assertEquals(VertexEventType.V_TASK_RESCHEDULED, event.getType());
   }
 
+  @Test
+  public void testDiagnostics_TAUpdate(){
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(), TaskEventType.T_ATTEMPT_KILLED));
+    assertEquals(1, mockTask.getDiagnostics().size());
+    assertEquals("TaskAttempt 0 killed", mockTask.getDiagnostics().get(0));
+    
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    mockTask.getLastAttempt().handle(new TaskAttemptEventDiagnosticsUpdate(mockTask.getLastAttempt().getID(), "diagnostics of test"));
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(), TaskEventType.T_ATTEMPT_FAILED));
+    assertEquals(2, mockTask.getDiagnostics().size());
+    assertEquals("TaskAttempt 1 failed, info=[diagnostics of test]", mockTask.getDiagnostics().get(1));
+  }
+  
+  @Test
+  public void testDiagnostics_KillNew(){
+    TezTaskID taskId = getNewTaskID();
+    mockTask.handle(new TaskEventTermination(taskId, TaskTerminationCause.DAG_KILL));
+    assertEquals(1, mockTask.getDiagnostics().size());
+    assertTrue(mockTask.getDiagnostics().get(0).contains(TaskTerminationCause.DAG_KILL.name()));
+  }
+  
+  @Test
+  public void testDiagnostics_Kill(){
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    mockTask.handle(new TaskEventTermination(taskId, TaskTerminationCause.OTHER_TASK_FAILURE));
+    assertEquals(1, mockTask.getDiagnostics().size());
+    assertTrue(mockTask.getDiagnostics().get(0).contains(TaskTerminationCause.OTHER_TASK_FAILURE.name()));
+  }
+  
   // TODO Add test to validate the correct commit attempt.
 
   @SuppressWarnings("rawtypes")

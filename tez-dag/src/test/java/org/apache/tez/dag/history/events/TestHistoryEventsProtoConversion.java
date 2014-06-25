@@ -389,7 +389,7 @@ public class TestHistoryEventsProtoConversion {
       TaskFinishedEvent event = new TaskFinishedEvent(
           TezTaskID.getInstance(TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1),
-          "vertex1", 11000l, 1000000l, null, TaskState.FAILED, null);
+          "vertex1", 11000l, 1000000l, null, TaskState.FAILED, null, null);
       TaskFinishedEvent deserializedEvent = (TaskFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(event.getTaskID(), deserializedEvent.getTaskID());
@@ -401,6 +401,7 @@ public class TestHistoryEventsProtoConversion {
           deserializedEvent.getTezCounters());
       Assert.assertEquals(event.getSuccessfulAttemptID(),
           deserializedEvent.getSuccessfulAttemptID());
+      Assert.assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());
       logEvents(event, deserializedEvent);
     }
     {
@@ -410,7 +411,7 @@ public class TestHistoryEventsProtoConversion {
           "vertex1", 11000l, 1000000l,
           TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 1),
-          TaskState.FAILED, new TezCounters());
+          TaskState.FAILED, "task_diagnostics", new TezCounters());
       TaskFinishedEvent deserializedEvent = (TaskFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(event.getTaskID(), deserializedEvent.getTaskID());
@@ -422,6 +423,7 @@ public class TestHistoryEventsProtoConversion {
           deserializedEvent.getTezCounters());
       Assert.assertEquals(event.getSuccessfulAttemptID(),
           deserializedEvent.getSuccessfulAttemptID());
+      Assert.assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());
       logEvents(event, deserializedEvent);
     }
   }

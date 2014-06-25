@@ -44,16 +44,18 @@ public class TaskFinishedEvent implements HistoryEvent {
   private TaskState state;
   private TezCounters tezCounters;
   private TezTaskAttemptID successfulAttemptID;
-
+  private String diagnostics;
+  
   public TaskFinishedEvent(TezTaskID taskID,
       String vertexName, long startTime, long finishTime,
       TezTaskAttemptID successfulAttemptID,
-      TaskState state, TezCounters counters) {
+      TaskState state, String diagnostics, TezCounters counters) {
     this.vertexName = vertexName;
     this.taskID = taskID;
     this.startTime = startTime;
     this.finishTime = finishTime;
     this.state = state;
+    this.diagnostics = diagnostics;
     this.tezCounters = counters;
   }
 
@@ -80,6 +82,9 @@ public class TaskFinishedEvent implements HistoryEvent {
     builder.setTaskId(taskID.toString())
         .setState(state.ordinal())
         .setFinishTime(finishTime);
+    if (diagnostics != null) {
+      builder.setDiagnostics(diagnostics);
+    }
     if (tezCounters != null) {
       builder.setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters));
     }
@@ -93,6 +98,9 @@ public class TaskFinishedEvent implements HistoryEvent {
     this.taskID = TezTaskID.fromString(proto.getTaskId());
     this.finishTime = proto.getFinishTime();
     this.state = TaskState.values()[proto.getState()];
+    if (proto.hasDiagnostics()) {
+      this.diagnostics = proto.getDiagnostics();
+    }
     if (proto.hasCounters()) {
       this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
           proto.getCounters());
@@ -127,6 +135,7 @@ public class TaskFinishedEvent implements HistoryEvent {
         + ", status=" + state.name()
         + ", successfulAttemptID=" + (successfulAttemptID == null ? "null" :
             successfulAttemptID.toString())
+        + ", diagnostics=" + diagnostics
         + ", counters=" + ( tezCounters == null ? "null" :
           tezCounters.toString()
             .replaceAll("\\n", ", ").replaceAll("\\s+", " "));
@@ -156,4 +165,7 @@ public class TaskFinishedEvent implements HistoryEvent {
     return startTime;
   }
 
+  public String getDiagnostics() {
+    return diagnostics;
+  }
 }

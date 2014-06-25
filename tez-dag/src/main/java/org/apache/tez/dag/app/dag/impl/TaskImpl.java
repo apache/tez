@@ -69,6 +69,7 @@ import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
+import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
@@ -110,6 +111,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   protected final Clock clock;
   private final Lock readLock;
   private final Lock writeLock;
+  private final List<String> diagnostics = new ArrayList<String>();
   // TODO Metrics
   //private final MRAppMetrics metrics;
   protected final AppContext appContext;
@@ -489,18 +491,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   @Override
   public List<String> getDiagnostics() {
-    List<String> diagnostics = new ArrayList<String>(attempts.size());
     readLock.lock();
     try {
-      for (TaskAttempt att : attempts.values()) {
-        String prefix = "AttemptID:" + att.getID() + " Info:";
-        diagnostics.add(prefix
-          + StringUtils.join(LINE_SEPARATOR, att.getDiagnostics()));
-      }
+      return this.diagnostics;
     } finally {
       readLock.unlock();
     }
-    return diagnostics;
   }
 
   private TaskAttempt createRecoveredEvent(TezTaskAttemptID tezTaskAttemptID) {
@@ -950,7 +946,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     TaskFinishedEvent finishEvt = new TaskFinishedEvent(taskId,
         getVertex().getName(), getLaunchTime(), clock.getTime(),
         successfulAttempt,
-        TaskState.SUCCEEDED, getCounters());
+        TaskState.SUCCEEDED, "", getCounters());
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(taskId.getVertexID().getDAGId(), finishEvt));
   }
@@ -958,11 +954,19 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   protected void logJobHistoryTaskFailedEvent(TaskState finalState) {
     TaskFinishedEvent finishEvt = new TaskFinishedEvent(taskId,
         getVertex().getName(), getLaunchTime(), clock.getTime(), null,
-        finalState, getCounters());
+        finalState, 
+        StringUtils.join(LINE_SEPARATOR, getDiagnostics()),
+        getCounters());
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(taskId.getVertexID().getDAGId(), finishEvt));
   }
 
+  private void addDiagnosticInfo(String diag) {
+    if (diag != null && !diag.equals("")) {
+      diagnostics.add(diag);
+    }
+  }
+  
   private static class InitialScheduleTransition
     implements SingleArcTransition<TaskImpl, TaskEvent> {
 
@@ -1028,7 +1032,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     @Override
     public void transition(TaskImpl task, TaskEvent event) {
       TezTaskAttemptID successTaId = ((TaskEventTAUpdate) event).getTaskAttemptID();
-
       if (task.commitAttempt != null &&
           !task.commitAttempt.equals(successTaId)) {
         // The succeeded attempt is not the one that was selected to commit
@@ -1075,6 +1078,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     @Override
     public void transition(TaskImpl task, TaskEvent event) {
       TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
+      task.addDiagnosticInfo("TaskAttempt " + castEvent.getTaskAttemptID().getId() + " killed");
       if (task.commitAttempt !=null &&
           castEvent.getTaskAttemptID().equals(task.commitAttempt)) {
         task.commitAttempt = null;
@@ -1258,6 +1262,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
       task.failedAttempts++;
       TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
+      task.addDiagnosticInfo("TaskAttempt " + castEvent.getTaskAttemptID().getId() + " failed,"
+          + " info=" + task.getAttempt(castEvent.getTaskAttemptID()).getDiagnostics());
       if (task.commitAttempt != null &&
           castEvent.getTaskAttemptID().equals(task.commitAttempt)) {
         task.commitAttempt = null;
@@ -1410,7 +1416,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     implements SingleArcTransition<TaskImpl, TaskEvent> {
     @Override
     public void transition(TaskImpl task, TaskEvent event) {
-
+      TaskEventTermination terminateEvent = (TaskEventTermination)event;
+      task.addDiagnosticInfo(terminateEvent.getDiagnosticInfo());
       if (task.historyTaskStartGenerated) {
         task.logJobHistoryTaskFailedEvent(TaskState.KILLED);
       } else {
@@ -1449,13 +1456,15 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     implements SingleArcTransition<TaskImpl, TaskEvent> {
     @Override
     public void transition(TaskImpl task, TaskEvent event) {
+      TaskEventTermination terminateEvent = (TaskEventTermination)event;
+      task.addDiagnosticInfo(terminateEvent.getDiagnosticInfo());
       // issue kill to all non finished attempts
       for (TaskAttempt attempt : task.attempts.values()) {
         task.killUnfinishedAttempt
             (attempt, "Task KILL is received. Killing attempt!");
       }
-
       task.numberUncompletedAttempts = 0;
+      
     }
   }
 
