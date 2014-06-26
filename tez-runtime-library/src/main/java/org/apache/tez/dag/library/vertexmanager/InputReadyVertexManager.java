@@ -38,7 +38,7 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-public class InputReadyVertexManager implements VertexManagerPlugin {
+public class InputReadyVertexManager extends VertexManagerPlugin {
   private static final Log LOG = 
       LogFactory.getLog(InputReadyVertexManager.class);
 

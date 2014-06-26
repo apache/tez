@@ -27,7 +27,8 @@ import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
-public class VertexManagerPluginForTest implements VertexManagerPlugin {
+public class VertexManagerPluginForTest extends VertexManagerPlugin {
+
   @Override
   public void initialize(VertexManagerPluginContext context) {}
 

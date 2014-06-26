@@ -30,32 +30,32 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
  * The plugin will be notified of interesting events in the vertex execution life
  * cycle and can respond to them by via the context object
  */
-public interface VertexManagerPlugin {
+public abstract class VertexManagerPlugin {
   /**
    * Initialize the plugin. Called when the vertex is initializing. This happens 
    * after all source vertices and inputs have initialized
    * @param context
    */
-  public void initialize(VertexManagerPluginContext context);
+  public abstract void initialize(VertexManagerPluginContext context);
 
   /**
    * Notification that the vertex is ready to start running tasks
    * @param completions Source vertices and all their tasks that have already completed
    */
-  public void onVertexStarted(Map<String, List<Integer>> completions);
+  public abstract void onVertexStarted(Map<String, List<Integer>> completions);
 
   /**
    * Notification of a source vertex completion.
    * @param srcVertexName
    * @param taskId Index of the task that completed
    */
-  public void onSourceTaskCompleted(String srcVertexName, Integer taskId);
+  public abstract void onSourceTaskCompleted(String srcVertexName, Integer taskId);
 
   /**
    * Notification of an event directly sent to this vertex manager
    * @param vmEvent
    */
-  public void onVertexManagerEventReceived(VertexManagerEvent vmEvent);
+  public abstract void onVertexManagerEventReceived(VertexManagerEvent vmEvent);
 
   /**
    * Notification that the inputs of this vertex have initialized
@@ -63,6 +63,6 @@ public interface VertexManagerPlugin {
    * @param inputDescriptor
    * @param events
    */
-  public void onRootVertexInitialized(String inputName,
+  public abstract void onRootVertexInitialized(String inputName,
       InputDescriptor inputDescriptor, List<Event> events);
  }

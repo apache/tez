@@ -56,7 +56,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * <code>slowStartMinSrcCompletionFraction</code> and schedules all tasks 
  *  when <code>slowStartMaxSrcCompletionFraction</code> is reached
  */
-public class ShuffleVertexManager implements VertexManagerPlugin {
+public class ShuffleVertexManager extends VertexManagerPlugin {
   
   private static final String TEZ_AM_PREFIX = "tez.am.";
   
@@ -126,7 +126,7 @@ public class ShuffleVertexManager implements VertexManagerPlugin {
   }
   
   
-  public static class CustomShuffleEdgeManager implements EdgeManager {
+  public static class CustomShuffleEdgeManager extends EdgeManager {
     int numSourceTaskOutputs;
     int numDestinationTasks;
     int basePartitionRange;

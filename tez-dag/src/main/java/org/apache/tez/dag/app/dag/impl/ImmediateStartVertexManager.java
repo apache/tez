@@ -33,7 +33,7 @@ import com.google.common.collect.Lists;
 /**
  * Starts all tasks immediately on vertex start
  */
-public class ImmediateStartVertexManager implements VertexManagerPlugin {
+public class ImmediateStartVertexManager extends VertexManagerPlugin {
   
   private VertexManagerPluginContext context;
   

@@ -3159,7 +3159,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, vC.getState());
   }
   
-  public static class RootInputSpecUpdaterVertexManager implements VertexManagerPlugin {
+  public static class RootInputSpecUpdaterVertexManager extends VertexManagerPlugin {
 
     private VertexManagerPluginContext context;
     private static final int NUM_TASKS = 5;

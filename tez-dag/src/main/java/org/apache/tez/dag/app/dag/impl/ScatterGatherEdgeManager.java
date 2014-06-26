@@ -27,7 +27,7 @@ import org.apache.tez.dag.api.EdgeManagerContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
-public class ScatterGatherEdgeManager implements EdgeManager {
+public class ScatterGatherEdgeManager extends EdgeManager {
 
   EdgeManagerContext context;
   @Override

@@ -74,8 +74,7 @@ public class MultiAttemptDAG {
       "tez.multi-attempt-dag.use-failing-committer";
   public static boolean MULTI_ATTEMPT_DAG_USE_FAILING_COMMITTER_DEFAULT = false;
 
-  public static class FailOnAttemptVertexManagerPlugin
-      implements VertexManagerPlugin {
+  public static class FailOnAttemptVertexManagerPlugin extends VertexManagerPlugin {
     private int numSourceTasks = 0;
     private AtomicInteger numCompletions = new AtomicInteger();
     private VertexManagerPluginContext context;

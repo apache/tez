@@ -26,7 +26,7 @@ import org.apache.tez.dag.api.EdgeManagerContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
-public class EdgeManagerForTest implements EdgeManager {
+public class EdgeManagerForTest extends EdgeManager {
 
   private EdgeManagerContext edgeManagerContext = null;
   private byte[] userPayload;

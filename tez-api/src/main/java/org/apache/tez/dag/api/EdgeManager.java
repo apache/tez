@@ -33,7 +33,7 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
  * Implementations must provide a 0 argument public constructor.
  */
 @Evolving
-public interface EdgeManager {
+public abstract class EdgeManager {
   
   /**
    * Initializes the EdgeManager. This method is called in the following
@@ -48,7 +48,7 @@ public interface EdgeManager {
    *          information like configuration which the user may have specified
    *          while setting up the edge.
    */
-  public void initialize(EdgeManagerContext edgeManagerContext);
+  public abstract void initialize(EdgeManagerContext edgeManagerContext);
   
   /**
    * Get the number of physical inputs on the destination task
@@ -56,7 +56,7 @@ public interface EdgeManager {
    * inputs is needed
    * @return Number of physical inputs on the destination task
    */
-  public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex);
+  public abstract int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex);
 
   /**
    * Get the number of physical outputs on the source task
@@ -64,7 +64,7 @@ public interface EdgeManager {
    * is needed
    * @return Number of physical outputs on the source task
    */
-  public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex);
+  public abstract int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex);
   
   /**
    * Return the routing information to inform consumers about the source task
@@ -83,7 +83,7 @@ public interface EdgeManager {
    * @param destinationTaskAndInputIndices
    *          Map via which the routing information is returned
    */
-  public void routeDataMovementEventToDestination(DataMovementEvent event,
+  public abstract void routeDataMovementEventToDestination(DataMovementEvent event,
       int sourceTaskIndex, int sourceOutputIndex,
       Map<Integer, List<Integer>> destinationTaskAndInputIndices);
   
@@ -101,14 +101,14 @@ public interface EdgeManager {
    * @param destinationTaskAndInputIndices
    *          Map via which the routing information is returned
    */
-  public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
+  public abstract void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
       Map<Integer, List<Integer>> destinationTaskAndInputIndices);
 
   /**
    * Get the number of destination tasks that consume data from the source task
    * @param sourceTaskIndex Source task index
    */
-  public int getNumDestinationConsumerTasks(int sourceTaskIndex);
+  public abstract int getNumDestinationConsumerTasks(int sourceTaskIndex);
   
   /**
    * Return the source task index to which to send the input error event
@@ -116,7 +116,7 @@ public interface EdgeManager {
    * @param destinationTaskIndex Destination task that reported the error
    * @return Index of the source task that created the unavailable input
    */
-  public int routeInputErrorEventToSource(InputReadErrorEvent event,
+  public abstract int routeInputErrorEventToSource(InputReadErrorEvent event,
       int destinationTaskIndex);
   
 }

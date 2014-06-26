@@ -27,7 +27,7 @@ import org.apache.tez.dag.api.EdgeManagerContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
-public class OneToOneEdgeManager implements EdgeManager {
+public class OneToOneEdgeManager extends EdgeManager {
 
   List<Integer> destinationInputIndices = 
       Collections.unmodifiableList(Collections.singletonList(0)); 

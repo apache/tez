@@ -37,7 +37,7 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-public class RootInputVertexManager implements VertexManagerPlugin {
+public class RootInputVertexManager extends VertexManagerPlugin {
 
   VertexManagerPluginContext context;
   private String configuredInputName;
