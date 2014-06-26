@@ -1,6 +1,36 @@
 Apache Tez Change Log
 =====================
 
+Release 0.4.1-incubating: 2014-06-30
+
+ALL CHANGES
+
+  TEZ-1162. Fix CodecPool leaks in Shuffle (gopalv)
+  TEZ-1159. Fix handling of corrupt or empty files in recovery data. (hitesh)
+  TEZ-1158. Disable multiple AM attempts if recovery is disabled. (hitesh)
+  TEZ-1135. Fix ShuffledUnorderedKVInput handling of empty partitions. (sseth)
+  TEZ-1125. Pre-warm broken (bikas)
+  TEZ-1097. Tez assumes that the scratch directory has to be same as the default filesystem. (hitesh)
+  TEZ-1048. Fix an NPE which can occur when the source task generates no data for a partition, and runs multiple attempts. (sseth)
+  TEZ-1045. TezMiniCluster tests can fail intermittently (bikas)
+  TEZ-1040. Fix a bug which could cause the Merger to hang. (sseth)
+  TEZ-1034. Shuffling can sometimes hang with duplicate inputs for the same index. (Bikas Saha via hitesh)
+  TEZ-1033. AM hangs during recovery with Tasks awaiting init event. (hitesh)
+  TEZ-1028. Handle killed tasks and attempts when handling recovery data. (hitesh)
+  TEZ-1029. Fetcher can fail to report input failed event upon connection error (bikas)
+  TEZ-1021. TezClient cannot connect to AM in a secure cluster when launched via Oozie. (hitesh)
+  TEZ-1020. VertexImpl handling of task failed in SUCCEEDED state is incorrect. (bikas)
+  TEZ-1015. Dag failed with Invalid event: V_ROUTE_EVENT at RECOVERING. (hitesh)
+  TEZ-1014. Add a log message to indicate last AM attempt. (hitesh)
+  TEZ-1004. AM relocalization doesn't handle conflicting resources correctly. (Sergey Shelukhin via hitesh)
+  TEZ-1005. AM relocalization adds resources to the wrong classloader. (Sergey Shelukhin via hitesh)
+  TEZ-1011. TestDAGRecovery timing out on jenkins builds. (hitesh)
+  TEZ-1010. TestAMNodeMap.testSelfBlacklist fails intermittently (bikas)
+  TEZ-997. Internal Errror in am logs during dag shutdown. (hitesh)
+  TEZ-1009. Fixes in log file roll-over (bikas)
+  TEZ-998. InvalidStateTransitonException: Invalid event: V_INIT at INITED. (hitesh)
+
+
 Release 0.4.0-incubating: 2014-04-05
 
 ALL CHANGES
