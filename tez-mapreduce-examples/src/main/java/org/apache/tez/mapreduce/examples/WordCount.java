@@ -139,14 +139,11 @@ public class WordCount extends Configured implements Tool {
     
     Vertex tokenizerVertex = new Vertex("tokenizer", new ProcessorDescriptor(
         TokenProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf));
-    tokenizerVertex.setJavaOpts(MRHelpers.getMapJavaOpts(tezConf));
     tokenizerVertex.addInput("MRInput", id, MRInputAMSplitGenerator.class);
 
     Vertex summerVertex = new Vertex("summer",
         new ProcessorDescriptor(
             SumProcessor.class.getName()), 1, MRHelpers.getReduceResource(tezConf));
-    summerVertex.setJavaOpts(
-        MRHelpers.getReduceJavaOpts(tezConf));
     summerVertex.addOutput("MROutput", od, MROutputCommitter.class);
     
     DAG dag = new DAG("WordCount");
@@ -197,9 +194,6 @@ public class WordCount extends Configured implements Tool {
     // security
     TokenCache.obtainTokensForNamenodes(credentials, new Path[] {stagingDir}, tezConf);
     TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
-
-    tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
-        MRHelpers.getMRAMJavaOpts(tezConf));
 
     // No need to add jar containing this class as assumed to be part of
     // the tez jars.

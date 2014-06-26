@@ -123,7 +123,7 @@ public class TestDAGRecovery2 {
     tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
     tezConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 4);
     tezConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, 500);
-    tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS, " -Xmx256m");
+    tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS, " -Xmx256m");
     return tezConf;
   }
 

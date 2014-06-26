@@ -51,24 +51,51 @@ public class TezConfiguration extends Configuration {
       "org.apache.tez.dag.app.DAGAppMaster";
 
   /** Root Logging level passed to the Tez app master.*/
-  public static final String TEZ_AM_LOG_LEVEL = TEZ_AM_PREFIX+"log.level";
+  public static final String TEZ_AM_LOG_LEVEL = TEZ_AM_PREFIX + "log.level";
   public static final String TEZ_AM_LOG_LEVEL_DEFAULT = "INFO";
+
+  /** Root Logging level passed to the Tez app master.*/
+  public static final String TEZ_TASK_LOG_LEVEL = TEZ_TASK_PREFIX + "log.level";
+  public static final String TEZ_TASK_LOG_LEVEL_DEFAULT = "INFO";
 
   public static final String TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS =
       TEZ_AM_PREFIX + "commit-all-outputs-on-dag-success";
   public static final boolean TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT = true;
 
-  /** Java options for the Tez AppMaster process. */
-  public static final String TEZ_AM_JAVA_OPTS = TEZ_AM_PREFIX
-      + "java.opts";
-  public static final String TEZ_AM_JAVA_OPTS_DEFAULT = " -Xmx1024m ";
+  /** Command line options for the Tez AppMaster process. */
+  public static final String TEZ_AM_LAUNCH_CMD_OPTS = TEZ_AM_PREFIX +  "java.opts";
+  public static final String TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT = 
+      "-Djava.net.preferIPv4Stack=true " +
+      "-Dhadoop.metrics.log.level=WARN " + 
+      "-Xmx1024m"; // Remove after TEZ-699
 
-  /** User-provided env for the Tez AM. Any env provided in AMConfiguration
-   * overrides env defined by this config property
+  /** Command line options for the Tez Task processes. */
+  public static final String TEZ_TASK_LAUNCH_CMD_OPTS = TEZ_TASK_PREFIX
+      + "launch.cmd-opts";
+  public static final String TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT = 
+      "-Djava.net.preferIPv4Stack=true " +
+      "-Dhadoop.metrics.log.level=WARN " + 
+      "-Xmx200m"; // Remove after TEZ-699
+
+  /** Env settings for the Tez AppMaster process.
    * Should be specified as a comma-separated of key-value pairs where each pair
    * is defined as KEY=VAL
+   * e.g. "LD_LIBRARY_PATH=.,USERNAME=foo"
+   * These take least precedence compared to other methods of setting env
+  */
+  public static final String TEZ_AM_LAUNCH_ENV = TEZ_AM_PREFIX
+      + "launch.env";
+  public static final String TEZ_AM_LAUNCH_ENV_DEFAULT = "";
+  
+  /** Env settings for the Tez Task processes.
+   * Should be specified as a comma-separated of key-value pairs where each pair
+   * is defined as KEY=VAL
+   * e.g. "LD_LIBRARY_PATH=.,USERNAME=foo"
+   * These take least precedence compared to other methods of setting env
    */
-  public static final String TEZ_AM_ENV = TEZ_AM_PREFIX + "env";
+  public static final String TEZ_TASK_LAUNCH_ENV = TEZ_TASK_PREFIX
+      + "launch.env";
+  public static final String TEZ_TASK_LAUNCH_ENV_DEFAULT = "";
 
   public static final String TEZ_AM_CANCEL_DELEGATION_TOKEN = TEZ_AM_PREFIX +
       "am.complete.cancel.delegation.tokens";

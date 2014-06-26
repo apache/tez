@@ -230,23 +230,23 @@ public class IntersectExample extends Configured implements Tool {
         TextOutputFormat.class.getName(), true);
 
     // Change the way resources are setup - no MRHelpers
-    Vertex streamFileVertex = new Vertex("partitioner1", new ProcessorDescriptor(
-        ForwardingProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf)).setJavaOpts(
-        MRHelpers.getMapJavaOpts(tezConf)).addInput("streamfile",
-        new InputDescriptor(MRInput.class.getName()).setUserPayload(streamInputPayload),
-        MRInputAMSplitGenerator.class);
+    Vertex streamFileVertex = new Vertex("partitioner1",
+        new ProcessorDescriptor(ForwardingProcessor.class.getName()), -1,
+        MRHelpers.getMapResource(tezConf)).addInput("streamfile",
+        new InputDescriptor(MRInput.class.getName())
+            .setUserPayload(streamInputPayload), MRInputAMSplitGenerator.class);
 
     Vertex hashFileVertex = new Vertex("partitioner2", new ProcessorDescriptor(
-        ForwardingProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf)).setJavaOpts(
-        MRHelpers.getMapJavaOpts(tezConf)).addInput("hashfile",
-        new InputDescriptor(MRInput.class.getName()).setUserPayload(hashInputPayload),
-        MRInputAMSplitGenerator.class);
+        ForwardingProcessor.class.getName()), -1,
+        MRHelpers.getMapResource(tezConf)).addInput("hashfile",
+        new InputDescriptor(MRInput.class.getName())
+            .setUserPayload(hashInputPayload), MRInputAMSplitGenerator.class);
 
     Vertex intersectVertex = new Vertex("intersect", new ProcessorDescriptor(
-        IntersectProcessor.class.getName()), numPartitions, MRHelpers.getReduceResource(tezConf))
-        .setJavaOpts(MRHelpers.getReduceJavaOpts(tezConf)).addOutput("finalOutput",
-            new OutputDescriptor(MROutput.class.getName()).setUserPayload(finalOutputPayload),
-            MROutputCommitter.class);
+        IntersectProcessor.class.getName()), numPartitions,
+        MRHelpers.getReduceResource(tezConf)).addOutput("finalOutput",
+        new OutputDescriptor(MROutput.class.getName())
+            .setUserPayload(finalOutputPayload), MROutputCommitter.class);
 
     Edge e1 = new Edge(streamFileVertex, intersectVertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,

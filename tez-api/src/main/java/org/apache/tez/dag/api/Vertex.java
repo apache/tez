@@ -127,12 +127,8 @@ public class Vertex {
   }
 
   public Vertex setTaskEnvironment(Map<String, String> environment) {
-    if (environment == null) {
-      this.taskEnvironment = new HashMap<String, String>();
-    }
-    else {
-      this.taskEnvironment = environment;
-    }
+    Preconditions.checkArgument(environment != null);
+    this.taskEnvironment.putAll(environment);
     return this;
   }
 

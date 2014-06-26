@@ -13,6 +13,8 @@ INCOMPATIBLE CHANGES
   scheduled tasks
   TEZ-1169. Allow numPhysicalInputs to be specified for RootInputs.
   TEZ-1131. Simplify EdgeManager APIs
+  TEZ-1127. Add TEZ_TASK_JAVA_OPTS and TEZ_ENV configs to specify values from
+  config
 
 Release 0.4.0-incubating: 2014-04-05
 

@@ -228,7 +228,6 @@ public class OrderedWordCount extends Configured implements Tool {
     Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(mapPayload),
         numMaps, MRHelpers.getMapResource(mapStageConf));
-    mapVertex.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
     if (generateSplitsInClient) {
       mapVertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
       Map<String, LocalResource> mapLocalResources =
@@ -241,9 +240,6 @@ public class OrderedWordCount extends Configured implements Tool {
       mapVertex.setTaskLocalResources(commonLocalResources);
     }
 
-    Map<String, String> mapEnv = new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRTasks(mapStageConf, mapEnv, true);
-    mapVertex.setTaskEnvironment(mapEnv);
     Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
         : MRInputAMSplitGenerator.class;
     MRHelpers.addMRInput(mapVertex, mapInputPayload, initializerClazz);
@@ -254,11 +250,7 @@ public class OrderedWordCount extends Configured implements Tool {
         setUserPayload(MRHelpers.createUserPayloadFromConf(iReduceStageConf)),
         2,
         MRHelpers.getReduceResource(iReduceStageConf));
-    ivertex.setJavaOpts(MRHelpers.getReduceJavaOpts(iReduceStageConf));
     ivertex.setTaskLocalResources(commonLocalResources);
-    Map<String, String> ireduceEnv = new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRTasks(iReduceStageConf, ireduceEnv, false);
-    ivertex.setTaskEnvironment(ireduceEnv);
     vertices.add(ivertex);
 
     byte[] finalReducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
@@ -266,12 +258,7 @@ public class OrderedWordCount extends Configured implements Tool {
         new ProcessorDescriptor(
             ReduceProcessor.class.getName()).setUserPayload(finalReducePayload),
                 1, MRHelpers.getReduceResource(finalReduceConf));
-    finalReduceVertex.setJavaOpts(
-        MRHelpers.getReduceJavaOpts(finalReduceConf));
     finalReduceVertex.setTaskLocalResources(commonLocalResources);
-    Map<String, String> reduceEnv = new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRTasks(finalReduceConf, reduceEnv, false);
-    finalReduceVertex.setTaskEnvironment(reduceEnv);
     MRHelpers.addMROutputLegacy(finalReduceVertex, finalReducePayload);
     vertices.add(finalReduceVertex);
 
@@ -359,9 +346,6 @@ public class OrderedWordCount extends Configured implements Tool {
     
     TokenCache.obtainTokensForNamenodes(instance.credentials, new Path[] {stagingDir}, conf);
     TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
-
-    tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
-        MRHelpers.getMRAMJavaOpts(conf));
 
     // No need to add jar containing this class as assumed to be part of
     // the tez jars.

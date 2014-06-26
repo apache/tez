@@ -211,14 +211,13 @@ public class TezSession {
     // Obtain DAG specific credentials.
     TezClientUtils.setupDAGCredentials(dag, sessionCredentials, sessionConfig.getTezConfiguration());
 
+    // TODO TEZ-1229 - fix jar resources
     // setup env
-    String classpath = TezClientUtils
-        .getFrameworkClasspath(sessionConfig.getYarnConfiguration());
     for (Vertex v : dag.getVertices()) {
       Map<String, String> taskEnv = v.getTaskEnvironment();
-      TezYARNUtils.addToEnvironment(taskEnv,
-          ApplicationConstants.Environment.CLASSPATH.name(),
-          classpath, File.pathSeparator);
+      TezYARNUtils.setupDefaultEnv(taskEnv, sessionConfig.getTezConfiguration(),
+          TezConfiguration.TEZ_TASK_LAUNCH_ENV, TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT);
+      TezClientUtils.setDefaultLaunchCmdOpts(v, sessionConfig.getTezConfiguration());
     }
     
     DAGPlan dagPlan = dag.createDag(sessionConfig.getTezConfiguration());
@@ -362,7 +361,7 @@ public class TezSession {
             + " timeout interval, timeoutSecs=" + clientTimeout);
       }
 
-      String classpath = TezClientUtils
+      String classpath = TezYARNUtils
         .getFrameworkClasspath(sessionConfig.getYarnConfiguration());
       Map<String, String> contextEnv = context.getEnvironment();
       TezYARNUtils.addToEnvironment(contextEnv,

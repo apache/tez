@@ -375,13 +375,18 @@ public class TezClientUtils {
     List<String> vargs = new ArrayList<String>(8);
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
 
+    String amOpts = amConfig.getAMConf().get(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
+        TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT);
+    if (amOpts != null && !amOpts.isEmpty()) {
+      vargs.add(amOpts);
+    }
+
     String amLogLevel = amConfig.getAMConf().get(
         TezConfiguration.TEZ_AM_LOG_LEVEL,
         TezConfiguration.TEZ_AM_LOG_LEVEL_DEFAULT);
-    addLog4jSystemProperties(amLogLevel, vargs);
 
-    vargs.add(amConfig.getAMConf().get(TezConfiguration.TEZ_AM_JAVA_OPTS,
-        TezConfiguration.TEZ_AM_JAVA_OPTS_DEFAULT));
+    maybeAddDefaultLoggingJavaOpts(amLogLevel, vargs);
+
     // FIX sun bug mentioned in TEZ-327
     vargs.add("-Dsun.nio.ch.bugLevel=''");
 
@@ -409,13 +414,11 @@ public class TezClientUtils {
           + mergedCommand);
     }
 
-    // Setup the CLASSPATH in environment
-    // i.e. add { Hadoop jars, job jar, CWD } to classpath.
-    String classpath = getFrameworkClasspath(conf);
-
     Map<String, String> environment = new TreeMap<String, String>();
-    environment.put(Environment.CLASSPATH.name(), classpath);
-
+    TezYARNUtils.setupDefaultEnv(environment, conf, TezConfiguration.TEZ_AM_LAUNCH_ENV,
+        TezConfiguration.TEZ_AM_LAUNCH_ENV_DEFAULT);
+    
+    // finally apply env set in the code. This could potentially be removed in TEZ-692
     if (amConfig.getEnv() != null) {
       for (Map.Entry<String, String> entry : amConfig.getEnv().entrySet()) {
         TezYARNUtils.addToEnvironment(environment, entry.getKey(), entry.getValue(),
@@ -510,13 +513,11 @@ public class TezClientUtils {
             binaryConfLRsrc);
 
         Map<String, String> taskEnv = v.getTaskEnvironment();
-        for (Map.Entry<String, String> entry : environment.entrySet()) {
-          String key = entry.getKey();
-          String value = entry.getValue();
-          if (!taskEnv.containsKey(key)) {
-            taskEnv.put(key, value);
-          }
-        }
+        TezYARNUtils.setupDefaultEnv(taskEnv, conf,
+            TezConfiguration.TEZ_TASK_LAUNCH_ENV,
+            TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT);
+
+        TezClientUtils.setDefaultLaunchCmdOpts(v, amConfig.getAMConf());
       }
 
       // emit protobuf DAG file style
@@ -588,27 +589,44 @@ public class TezClientUtils {
 
   }
   
-  static String getFrameworkClasspath(Configuration conf) {
-    Map<String, String> environment = new HashMap<String, String>();
-
-    TezYARNUtils.addToEnvironment(environment,
-        Environment.CLASSPATH.name(),
-        Environment.PWD.$(),
-        File.pathSeparator);
-
-    TezYARNUtils.addToEnvironment(environment,
-        Environment.CLASSPATH.name(),
-        Environment.PWD.$() + File.separator + "*",
-        File.pathSeparator);
-
-    // Add YARN/COMMON/HDFS jars and conf locations to path
-    for (String c : conf.getStrings(
-        YarnConfiguration.YARN_APPLICATION_CLASSPATH,
-        YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
-      TezYARNUtils.addToEnvironment(environment, Environment.CLASSPATH.name(),
-          c.trim(), File.pathSeparator);
+  
+  static void maybeAddDefaultLoggingJavaOpts(String logLevel, List<String> vargs) {
+    if (vargs != null && !vargs.isEmpty()) {
+      for (String arg : vargs) {
+        if (arg.contains(TezConfiguration.TEZ_ROOT_LOGGER_NAME)) {
+          return ;
+        }
+      }
     }
-    return environment.get(Environment.CLASSPATH.name());
+    TezClientUtils.addLog4jSystemProperties(logLevel, vargs);
+  }
+  
+  static String maybeAddDefaultLoggingJavaOpts(String logLevel, String javaOpts) {
+    List<String> vargs = new ArrayList<String>(5);
+    if (javaOpts != null) {
+      vargs.add(javaOpts);
+    } else {
+      vargs.add("");
+    }
+    maybeAddDefaultLoggingJavaOpts(logLevel, vargs);
+    if (vargs.size() == 1) {
+      return vargs.get(0);
+    }
+    return StringUtils.join(vargs, " ").trim();
+  }
+  
+  static void setDefaultLaunchCmdOpts(Vertex v, TezConfiguration conf) {
+    String vOpts = v.getJavaOpts();
+    String vConfigOpts = conf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS,
+        TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT);
+    if (vConfigOpts != null && vConfigOpts.length() > 0) {
+      vOpts += (" " + vConfigOpts);
+    }
+    
+    vOpts = maybeAddDefaultLoggingJavaOpts(conf.get(
+        TezConfiguration.TEZ_TASK_LOG_LEVEL,
+        TezConfiguration.TEZ_TASK_LOG_LEVEL_DEFAULT), vOpts);
+    v.setJavaOpts(vOpts);
   }
 
   @Private

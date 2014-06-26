@@ -235,20 +235,20 @@ public class IntersectValidate extends Configured implements Tool {
 
     // Change the way resources are setup - no MRHelpers
     Vertex lhsVertex = new Vertex(LHS_INPUT_NAME, new ProcessorDescriptor(
-        ForwardingProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf)).setJavaOpts(
-        MRHelpers.getMapJavaOpts(tezConf)).addInput("lhs",
-        new InputDescriptor(MRInput.class.getName()).setUserPayload(streamInputPayload),
+        ForwardingProcessor.class.getName()), -1,
+        MRHelpers.getMapResource(tezConf)).addInput("lhs", new InputDescriptor(
+        MRInput.class.getName()).setUserPayload(streamInputPayload),
         MRInputAMSplitGenerator.class);
 
     Vertex rhsVertex = new Vertex(RHS_INPUT_NAME, new ProcessorDescriptor(
-        ForwardingProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf)).setJavaOpts(
-        MRHelpers.getMapJavaOpts(tezConf)).addInput("rhs",
-        new InputDescriptor(MRInput.class.getName()).setUserPayload(hashInputPayload),
+        ForwardingProcessor.class.getName()), -1,
+        MRHelpers.getMapResource(tezConf)).addInput("rhs", new InputDescriptor(
+        MRInput.class.getName()).setUserPayload(hashInputPayload),
         MRInputAMSplitGenerator.class);
 
-    Vertex intersectValidateVertex = new Vertex("intersectvalidate", new ProcessorDescriptor(
-        IntersectValidateProcessor.class.getName()), numPartitions,
-        MRHelpers.getReduceResource(tezConf)).setJavaOpts(MRHelpers.getReduceJavaOpts(tezConf));
+    Vertex intersectValidateVertex = new Vertex("intersectvalidate",
+        new ProcessorDescriptor(IntersectValidateProcessor.class.getName()),
+        numPartitions, MRHelpers.getReduceResource(tezConf));
 
     Edge e1 = new Edge(lhsVertex, intersectValidateVertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,

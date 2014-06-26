@@ -871,7 +871,7 @@ public class MRHelpers {
         Environment.PWD.$(), File.pathSeparator);
 
     // Add the env variables passed by the admin
-    TezYARNUtils.setEnvFromInputString(environment, conf.get(
+    TezYARNUtils.appendToEnvFromInputString(environment, conf.get(
         MRJobConfig.MAPRED_ADMIN_USER_ENV,
         MRJobConfig.DEFAULT_MAPRED_ADMIN_USER_ENV),
         File.pathSeparator);
@@ -880,7 +880,7 @@ public class MRHelpers {
     String mapredChildEnv = (isMap ?
         conf.get(MRJobConfig.MAP_ENV, "")
         : conf.get(MRJobConfig.REDUCE_ENV, ""));
-    TezYARNUtils.setEnvFromInputString(environment, mapredChildEnv, File.pathSeparator);
+    TezYARNUtils.appendToEnvFromInputString(environment, mapredChildEnv, File.pathSeparator);
 
     // Set logging level in the environment.
     environment.put(
@@ -919,9 +919,9 @@ public class MRHelpers {
    * @param environment Environment map to update
    */
   public static void updateEnvironmentForMRAM(Configuration conf, Map<String, String> environment) {
-    TezYARNUtils.setEnvFromInputString(environment, conf.get(MRJobConfig.MR_AM_ADMIN_USER_ENV),
+    TezYARNUtils.appendToEnvFromInputString(environment, conf.get(MRJobConfig.MR_AM_ADMIN_USER_ENV),
         File.pathSeparator);
-    TezYARNUtils.setEnvFromInputString(environment, conf.get(MRJobConfig.MR_AM_ENV),
+    TezYARNUtils.appendToEnvFromInputString(environment, conf.get(MRJobConfig.MR_AM_ENV),
         File.pathSeparator);
   }
 

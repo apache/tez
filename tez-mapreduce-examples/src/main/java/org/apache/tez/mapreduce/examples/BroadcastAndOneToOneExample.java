@@ -172,20 +172,17 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     Vertex broadcastVertex = new Vertex("Broadcast", new ProcessorDescriptor(
         InputProcessor.class.getName()),
         numBroadcastTasks, MRHelpers.getMapResource(kvInputConf));
-    broadcastVertex.setJavaOpts(MRHelpers.getMapJavaOpts(kvInputConf));
     
     Vertex inputVertex = new Vertex("Input", new ProcessorDescriptor(
         InputProcessor.class.getName()).setUserPayload(procPayload),
         numOneToOneTasks, MRHelpers.getMapResource(kvInputConf));
-    inputVertex.setJavaOpts(MRHelpers.getMapJavaOpts(kvInputConf));
     
     byte[] kvOneToOnePayload = MRHelpers.createUserPayloadFromConf(kvOneToOneConf);
     Vertex oneToOneVertex = new Vertex("OneToOne",
         new ProcessorDescriptor(
             OneToOneProcessor.class.getName()).setUserPayload(procPayload),
             -1, MRHelpers.getReduceResource(kvOneToOneConf));
-    oneToOneVertex.setJavaOpts(
-        MRHelpers.getReduceJavaOpts(kvOneToOneConf)).setVertexManagerPlugin(
+    oneToOneVertex.setVertexManagerPlugin(
             new VertexManagerPluginDescriptor(InputReadyVertexManager.class.getName()));
     
     DAG dag = new DAG("BroadcastAndOneToOneExample");
@@ -241,9 +238,6 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     // security
     TokenCache.obtainTokensForNamenodes(credentials, new Path[] {stagingDir}, tezConf);
     TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
-
-    tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
-        MRHelpers.getMRAMJavaOpts(tezConf));
 
     // No need to add jar containing this class as assumed to be part of
     // the tez jars.

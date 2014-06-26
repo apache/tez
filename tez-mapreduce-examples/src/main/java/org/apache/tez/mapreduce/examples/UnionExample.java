@@ -190,27 +190,22 @@ public class UnionExample {
     Vertex mapVertex1 = new Vertex("map1", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
         numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex1.setJavaOpts(MRHelpers.getMapJavaOpts(tezConf));
     mapVertex1.addInput("MRInput", id, MRInputAMSplitGenerator.class);
 
     Vertex mapVertex2 = new Vertex("map2", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
         numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex2.setJavaOpts(MRHelpers.getMapJavaOpts(tezConf));
     mapVertex2.addInput("MRInput", id, MRInputAMSplitGenerator.class);
 
     Vertex mapVertex3 = new Vertex("map3", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
         numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex3.setJavaOpts(MRHelpers.getMapJavaOpts(tezConf));
     mapVertex3.addInput("MRInput", id, MRInputAMSplitGenerator.class);
 
     Vertex checkerVertex = new Vertex("checker",
         new ProcessorDescriptor(
             UnionProcessor.class.getName()),
                 1, MRHelpers.getReduceResource(tezConf));
-    checkerVertex.setJavaOpts(
-        MRHelpers.getReduceJavaOpts(tezConf));
 
     Configuration outputConf = new Configuration(tezConf);
     outputConf.set(FileOutputFormat.OUTDIR, outputPath);
@@ -300,9 +295,6 @@ public class UnionExample {
     // security
     TokenCache.obtainTokensForNamenodes(credentials, new Path[] {stagingDir}, tezConf);
     TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
- 
-    tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
-        MRHelpers.getMRAMJavaOpts(tezConf));
 
     // No need to add jar containing this class as assumed to be part of
     // the tez jars.

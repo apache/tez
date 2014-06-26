@@ -590,7 +590,6 @@ public class MRRSleepJob extends Configured implements Tool {
     Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(mapUserPayload),
         numTasks, MRHelpers.getMapResource(mapStageConf));
-    mapVertex.setJavaOpts(MRHelpers.getMapJavaOpts(mapStageConf));
     if (!generateSplitsInAM) {
       mapVertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
     }
@@ -605,9 +604,6 @@ public class MRRSleepJob extends Configured implements Tool {
       mapVertex.setTaskLocalResources(commonLocalResources);
     }
 
-    Map<String, String> mapEnv = new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRTasks(mapStageConf, mapEnv, true);
-    mapVertex.setTaskEnvironment(mapEnv);
     if (generateSplitsInAM) {
       MRHelpers.addMRInput(mapVertex, mapInputPayload, MRInputAMSplitGenerator.class);
     } else {
@@ -629,11 +625,7 @@ public class MRRSleepJob extends Configured implements Tool {
                 new ProcessorDescriptor(ReduceProcessor.class.getName()).
                 setUserPayload(iReduceUserPayload), numIReducer,
                 MRHelpers.getReduceResource(iconf));
-        ivertex.setJavaOpts(MRHelpers.getReduceJavaOpts(iconf));
         ivertex.setTaskLocalResources(commonLocalResources);
-        Map<String, String> reduceEnv = new HashMap<String, String>();
-        MRHelpers.updateEnvironmentForMRTasks(iconf, reduceEnv, false);
-        ivertex.setTaskEnvironment(reduceEnv);
         vertices.add(ivertex);
       }
     }
@@ -644,12 +636,7 @@ public class MRRSleepJob extends Configured implements Tool {
       finalReduceVertex = new Vertex("reduce", new ProcessorDescriptor(
           ReduceProcessor.class.getName()).setUserPayload(reducePayload),
           numReducer, MRHelpers.getReduceResource(finalReduceConf));
-      finalReduceVertex.setJavaOpts(
-          MRHelpers.getReduceJavaOpts(finalReduceConf));
       finalReduceVertex.setTaskLocalResources(commonLocalResources);
-      Map<String, String> reduceEnv = new HashMap<String, String>();
-      MRHelpers.updateEnvironmentForMRTasks(finalReduceConf, reduceEnv, false);
-      finalReduceVertex.setTaskEnvironment(reduceEnv);
       MRHelpers.addMROutputLegacy(finalReduceVertex, reducePayload);
       vertices.add(finalReduceVertex);
     } else {
@@ -832,9 +819,6 @@ public class MRRSleepJob extends Configured implements Tool {
         numMapper, numReducer, iReduceStagesCount, numIReducer,
         mapSleepTime, mapSleepCount, reduceSleepTime, reduceSleepCount,
         iReduceSleepTime, iReduceSleepCount, writeSplitsToDfs, generateSplitsInAM);
-
-    conf.set(TezConfiguration.TEZ_AM_JAVA_OPTS,
-        MRHelpers.getMRAMJavaOpts(conf));
 
     AMConfiguration amConfig = new AMConfiguration(null,
         null, conf, this.credentials);

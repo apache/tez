@@ -587,7 +587,7 @@ public class YARNRunner implements ClientProtocol {
     MRHelpers.updateEnvironmentForMRAM(conf, environment);
 
     TezConfiguration dagAMConf = getDAGAMConfFromMRConf();
-    dagAMConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS, javaOpts.toString());
+    dagAMConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS, javaOpts.toString());
 
     // Submit to ResourceManager
     try {

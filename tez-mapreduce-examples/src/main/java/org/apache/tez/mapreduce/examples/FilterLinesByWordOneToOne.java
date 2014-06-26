@@ -135,8 +135,6 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir.toString());
     TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
 
-    tezConf.set(TezConfiguration.TEZ_AM_JAVA_OPTS, MRHelpers.getMRAMJavaOpts(tezConf));
-
     String jarPath = ClassUtil.findContainingJar(FilterLinesByWordOneToOne.class);
     if (jarPath == null) {
       throw new TezUncheckedException("Could not find any jar containing"
@@ -192,7 +190,6 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     Vertex stage1Vertex = new Vertex("stage1", new ProcessorDescriptor(
         FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload),
         stage1NumTasks, MRHelpers.getMapResource(stage1Conf));
-    stage1Vertex.setJavaOpts(MRHelpers.getMapJavaOpts(stage1Conf));
     if (generateSplitsInClient) {
       stage1Vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
       Map<String, LocalResource> stage1LocalResources = new HashMap<String, LocalResource>();
@@ -202,9 +199,6 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     } else {
       stage1Vertex.setTaskLocalResources(commonLocalResources);
     }
-    Map<String, String> stage1Env = new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRTasks(stage1Conf, stage1Env, true);
-    stage1Vertex.setTaskEnvironment(stage1Env);
 
     // Configure the Input for stage1
     Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
@@ -219,10 +213,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
         FilterByWordOutputProcessor.class.getName()).setUserPayload(MRHelpers
         .createUserPayloadFromConf(stage2Conf)), stage1NumTasks,
         MRHelpers.getMapResource(stage2Conf));
-    stage2Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage2Conf)).setTaskLocalResources(commonLocalResources);
-    Map<String, String> stage2Env = new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRTasks(stage2Conf, stage2Env, false);
-    stage2Vertex.setTaskEnvironment(stage2Env);
+    stage2Vertex.setTaskLocalResources(commonLocalResources);
 
     // Configure the Output for stage2
     stage2Vertex.addOutput("MROutput",

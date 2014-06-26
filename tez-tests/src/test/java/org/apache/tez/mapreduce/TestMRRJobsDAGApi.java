@@ -532,18 +532,10 @@ public class TestMRRJobsDAGApi {
       stage1Vertex.setTaskLocalResources(commonLocalResources);
     }
 
-    stage1Vertex.setJavaOpts(MRHelpers.getMapJavaOpts(stage1Conf));
-    stage1Vertex.setTaskEnvironment(commonEnv);
-
     // TODO env, resources
 
-    stage2Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage2Conf));
     stage2Vertex.setTaskLocalResources(commonLocalResources);
-    stage2Vertex.setTaskEnvironment(commonEnv);
-
-    stage3Vertex.setJavaOpts(MRHelpers.getReduceJavaOpts(stage3Conf));
     stage3Vertex.setTaskLocalResources(commonLocalResources);
-    stage3Vertex.setTaskEnvironment(commonEnv);
 
     dag.addVertex(stage1Vertex);
     dag.addVertex(stage2Vertex);

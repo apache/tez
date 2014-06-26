@@ -63,9 +63,6 @@ public class AMConfiguration {
     this.queueName = this.amConf.get(TezConfiguration.TEZ_QUEUE_NAME);
 
     this.env = new HashMap<String, String>();
-    TezYARNUtils.setEnvFromInputString(this.env,
-        this.amConf.get(TezConfiguration.TEZ_AM_ENV),
-        File.pathSeparator);
     if (env != null) {
       this.env.putAll(env);
     }
