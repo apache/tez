@@ -64,10 +64,10 @@ import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMasterState;
-import org.apache.tez.dag.app.rm.TaskScheduler.CookieContainerRequest;
-import org.apache.tez.dag.app.rm.TaskScheduler.HeldContainer;
-import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
-import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback.AppFinalStatus;
+import org.apache.tez.dag.app.rm.YarnTaskSchedulerService.CookieContainerRequest;
+import org.apache.tez.dag.app.rm.YarnTaskSchedulerService.HeldContainer;
+import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback;
+import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback.AppFinalStatus;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerAppCallbackDrainable;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerWithDrainableAppCallback;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AlwaysMatchesContainerMatcher;
@@ -1311,9 +1311,9 @@ public class TestTaskScheduler {
     matchingMap.put(hostsTask1[0], host1List);
     matchingMap.put(defaultRack[0], defaultRackList);
 
-    List<CookieContainerRequest> nonAllocatedHostList = new ArrayList<TaskScheduler.CookieContainerRequest>();
+    List<CookieContainerRequest> nonAllocatedHostList = new ArrayList<YarnTaskSchedulerService.CookieContainerRequest>();
     nonAllocatedHostList.add(mockCookie2);
-    List<CookieContainerRequest> otherRackList = new ArrayList<TaskScheduler.CookieContainerRequest>();
+    List<CookieContainerRequest> otherRackList = new ArrayList<YarnTaskSchedulerService.CookieContainerRequest>();
     otherRackList.add(mockCookie2);
     taskScheduler.allocateTask(mockTask2, resource, hostsTask2, otherRack,
         priority, null, mockCookie2);
@@ -1321,7 +1321,7 @@ public class TestTaskScheduler {
     matchingMap.put(hostsTask2[0], nonAllocatedHostList);
     matchingMap.put(otherRack[0], otherRackList);
 
-    List<CookieContainerRequest> anyList = new LinkedList<TaskScheduler.CookieContainerRequest>();
+    List<CookieContainerRequest> anyList = new LinkedList<YarnTaskSchedulerService.CookieContainerRequest>();
     anyList.add(mockCookie1);
     anyList.add(mockCookie2);
 

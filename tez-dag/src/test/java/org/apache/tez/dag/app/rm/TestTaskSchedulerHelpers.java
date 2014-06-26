@@ -55,8 +55,8 @@ import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.rm.TaskScheduler.CookieContainerRequest;
-import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
+import org.apache.tez.dag.app.rm.YarnTaskSchedulerService.CookieContainerRequest;
+import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 
 import com.google.common.base.Preconditions;
@@ -133,20 +133,20 @@ class TestTaskSchedulerHelpers {
     }
 
     @Override
-    public TaskSchedulerInterface createTaskScheduler(String host, int port,
+    public TaskSchedulerService createTaskScheduler(String host, int port,
         String trackingUrl, AppContext appContext) {
       return new TaskSchedulerWithDrainableAppCallback(this,
           containerSignatureMatcher, host, port, trackingUrl, amrmClientAsync,
           appContext);
     }
 
-    public TaskSchedulerInterface getSpyTaskScheduler() {
+    public TaskSchedulerService getSpyTaskScheduler() {
       return this.taskScheduler;
     }
 
     @Override
     public void serviceStart() {
-      TaskSchedulerInterface taskSchedulerReal = createTaskScheduler("host", 0, "",
+      TaskSchedulerService taskSchedulerReal = createTaskScheduler("host", 0, "",
         appContext);
       // Init the service so that reuse configuration is picked up.
       ((AbstractService)taskSchedulerReal).init(getConfig());
@@ -190,7 +190,7 @@ class TestTaskSchedulerHelpers {
     }
   }
 
-  static class TaskSchedulerWithDrainableAppCallback extends TaskScheduler {
+  static class TaskSchedulerWithDrainableAppCallback extends YarnTaskSchedulerService {
 
     private TaskSchedulerAppCallbackDrainable drainableAppCallback;
 

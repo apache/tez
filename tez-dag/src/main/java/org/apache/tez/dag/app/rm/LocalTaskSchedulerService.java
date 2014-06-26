@@ -31,7 +31,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -41,14 +40,13 @@ import org.apache.hadoop.yarn.api.records.Resource;
 
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-public class LocalTaskScheduler extends AbstractService implements TaskSchedulerInterface {
+public class LocalTaskSchedulerService extends TaskSchedulerService {
 
-  private static final Log LOG = LogFactory.getLog(LocalTaskScheduler.class);
+  private static final Log LOG = LogFactory.getLog(LocalTaskSchedulerService.class);
 
   final TaskSchedulerAppCallback realAppClient;
   final TaskSchedulerAppCallback appClientDelegate;
@@ -64,10 +62,10 @@ public class LocalTaskScheduler extends AbstractService implements TaskScheduler
   final String appTrackingUrl;
   final AppContext appContext;
 
-  public LocalTaskScheduler(TaskSchedulerAppCallback appClient,
+  public LocalTaskSchedulerService(TaskSchedulerAppCallback appClient,
       ContainerSignatureMatcher containerSignatureMatcher, String appHostName,
       int appHostPort, String appTrackingUrl, AppContext appContext) {
-    super(LocalTaskScheduler.class.getName());
+    super(LocalTaskSchedulerService.class.getName());
     this.realAppClient = appClient;
     this.appCallbackExecutor = createAppCallbackExecutorService();
     this.containerSignatureMatcher = containerSignatureMatcher;

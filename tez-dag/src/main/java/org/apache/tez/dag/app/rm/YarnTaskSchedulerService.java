@@ -62,7 +62,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMasterState;
-import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback.AppFinalStatus;
+import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback.AppFinalStatus;
 import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -80,45 +80,11 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
       eventHandler.handle(new AMNodeEventNodeCountUpdated(clusterNmCount));
     }
  */
-public class TaskScheduler extends AbstractService
-                             implements AMRMClientAsync.CallbackHandler, TaskSchedulerInterface {
-  private static final Log LOG = LogFactory.getLog(TaskScheduler.class);
+public class YarnTaskSchedulerService extends TaskSchedulerService
+                             implements AMRMClientAsync.CallbackHandler {
+  private static final Log LOG = LogFactory.getLog(YarnTaskSchedulerService.class);
 
-  public interface TaskSchedulerAppCallback {
-    public class AppFinalStatus {
-      public final FinalApplicationStatus exitStatus;
-      public final String exitMessage;
-      public final String postCompletionTrackingUrl;
-      public AppFinalStatus(FinalApplicationStatus exitStatus,
-                             String exitMessage,
-                             String posCompletionTrackingUrl) {
-        this.exitStatus = exitStatus;
-        this.exitMessage = exitMessage;
-        this.postCompletionTrackingUrl = posCompletionTrackingUrl;
-      }
-    }
-    // upcall to app must be outside locks
-    public void taskAllocated(Object task,
-                               Object appCookie,
-                               Container container);
-    // this may end up being called for a task+container pair that the app
-    // has not heard about. this can happen because of a race between
-    // taskAllocated() upcall and deallocateTask() downcall
-    public void containerCompleted(Object taskLastAllocated,
-                                    ContainerStatus containerStatus);
-    public void containerBeingReleased(ContainerId containerId);
-    public void nodesUpdated(List<NodeReport> updatedNodes);
-    public void appShutdownRequested();
-    public void setApplicationRegistrationData(
-                                Resource maxContainerCapability,
-                                Map<ApplicationAccessType, String> appAcls,
-                                ByteBuffer clientAMSecretKey
-                                );
-    public void onError(Throwable t);
-    public float getProgress();
-    public void preemptContainer(ContainerId containerId);
-    public AppFinalStatus getFinalAppStatus();
-  }
+
 
   final TezAMRMClientAsync<CookieContainerRequest> amRmClient;
   final TaskSchedulerAppCallback realAppClient;
@@ -236,13 +202,13 @@ public class TaskScheduler extends AbstractService
     }
   }
 
-  public TaskScheduler(TaskSchedulerAppCallback appClient,
+  public YarnTaskSchedulerService(TaskSchedulerAppCallback appClient,
                         ContainerSignatureMatcher containerSignatureMatcher,
                         String appHostName,
                         int appHostPort,
                         String appTrackingUrl,
                         AppContext appContext) {
-    super(TaskScheduler.class.getName());
+    super(YarnTaskSchedulerService.class.getName());
     this.realAppClient = appClient;
     this.appCallbackExecutor = createAppCallbackExecutorService();
     this.containerSignatureMatcher = containerSignatureMatcher;
@@ -256,14 +222,14 @@ public class TaskScheduler extends AbstractService
 
   @Private
   @VisibleForTesting
-  TaskScheduler(TaskSchedulerAppCallback appClient,
+  YarnTaskSchedulerService(TaskSchedulerAppCallback appClient,
       ContainerSignatureMatcher containerSignatureMatcher,
       String appHostName,
       int appHostPort,
       String appTrackingUrl,
       TezAMRMClientAsync<CookieContainerRequest> client,
       AppContext appContext) {
-    super(TaskScheduler.class.getName());
+    super(YarnTaskSchedulerService.class.getName());
     this.realAppClient = appClient;
     this.appCallbackExecutor = createAppCallbackExecutorService();
     this.containerSignatureMatcher = containerSignatureMatcher;
@@ -1717,7 +1683,7 @@ public class TaskScheduler extends AbstractService
               continue;
             }
             Map<CookieContainerRequest, Container> assignedContainers = null;
-            synchronized(TaskScheduler.this) {
+            synchronized(YarnTaskSchedulerService.this) {
               if (null !=
                   heldContainers.get(delayedContainer.getContainer().getId())) {
                 assignedContainers = assignDelayedContainer(delayedContainer);
@@ -1764,7 +1730,7 @@ public class TaskScheduler extends AbstractService
       }
 
       Map<CookieContainerRequest, Container> assignedContainers;
-      synchronized(TaskScheduler.this) {
+      synchronized(YarnTaskSchedulerService.this) {
         // honor reuse-locality flags (container not timed out yet), Don't queue
         // (already in queue), don't release (release happens when containers
         // time-out)

@@ -51,7 +51,7 @@ import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
-import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
+import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.container.AMContainer;
 import org.apache.tez.dag.app.rm.container.AMContainerEventAssignTA;
 import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
@@ -75,7 +75,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   protected final AppContext appContext;
   @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
-  protected TaskSchedulerInterface taskScheduler;
+  protected TaskSchedulerService taskScheduler;
   private DAGAppMaster dagAppMaster;
   private Map<ApplicationAccessType, String> appAcls = null;
   private Thread eventHandlingThread;
@@ -288,16 +288,16 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
 
-  protected TaskSchedulerInterface createTaskScheduler(String host, int port,
+  protected TaskSchedulerService createTaskScheduler(String host, int port,
       String trackingUrl, AppContext appContext) {
     boolean isLocal = getConfig().getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
     if (isLocal) {
-      return new LocalTaskScheduler(this, this.containerSignatureMatcher,
+      return new LocalTaskSchedulerService(this, this.containerSignatureMatcher,
           host, port, trackingUrl, appContext);
     }
     else {
-      return new TaskScheduler(this, this.containerSignatureMatcher,
+      return new YarnTaskSchedulerService(this, this.containerSignatureMatcher,
           host, port, trackingUrl, appContext);
     }
   }
@@ -308,8 +308,8 @@ public class TaskSchedulerEventHandler extends AbstractService
     dagAppMaster = appContext.getAppMaster();
     taskScheduler = createTaskScheduler(serviceAddr.getHostName(),
         serviceAddr.getPort(), "", appContext);
-    ((AbstractService)taskScheduler).init(getConfig());
-    ((AbstractService)taskScheduler).start();
+    taskScheduler.init(getConfig());
+    taskScheduler.start();
     if (shouldUnregisterFlag.get()) {
       // Flag may have been set earlier when task scheduler was not initialized
       taskScheduler.setShouldUnregister();

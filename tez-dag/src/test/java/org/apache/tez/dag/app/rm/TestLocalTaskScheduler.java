@@ -34,10 +34,10 @@ import org.apache.hadoop.yarn.api.records.Priority;
 
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.rm.LocalTaskScheduler.AsyncDelegateRequestHandler;
-import org.apache.tez.dag.app.rm.LocalTaskScheduler.LocalContainerFactory;
-import org.apache.tez.dag.app.rm.LocalTaskScheduler.TaskRequest;
-import org.apache.tez.dag.app.rm.TaskScheduler.TaskSchedulerAppCallback;
+import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.AsyncDelegateRequestHandler;
+import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.LocalContainerFactory;
+import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.TaskRequest;
+import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback;
 
 public class TestLocalTaskScheduler {
 
