@@ -39,7 +39,6 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPBServerImpl;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.DAGClientAMProtocol;
-import org.apache.tez.dag.app.DAGAppMaster.DAGClientHandler;
 import org.apache.tez.dag.app.security.authorize.TezAMPolicyProvider;
 
 import com.google.protobuf.BlockingService;

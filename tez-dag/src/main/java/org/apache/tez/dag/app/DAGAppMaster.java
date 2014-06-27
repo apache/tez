@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app;
 
 import com.google.common.base.Preconditions;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.File;
@@ -87,7 +88,6 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.PreWarmContext;
-import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.TezUtils;
@@ -101,10 +101,8 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.client.DAGClientHandler;
 import org.apache.tez.dag.api.client.DAGClientServer;
-import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.dag.api.client.StatusGetOpts;
-import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
@@ -304,7 +302,7 @@ public class DAGAppMaster extends AbstractService {
     dispatcher = createDispatcher();
     context = new RunningAppContext(conf);
 
-    clientHandler = new DAGClientHandler();
+    clientHandler = new DAGClientHandler(this);
 
     addIfService(dispatcher, false);
 
@@ -914,7 +912,7 @@ public class DAGAppMaster extends AbstractService {
         + oldState + " new state: " + state);
   }
 
-  synchronized void shutdownTezAM() {
+  public synchronized void shutdownTezAM() {
     sessionStopped.set(true);
     this.taskSchedulerEventHandler.setShouldUnregisterFlag();
     if (currentDAG != null
@@ -932,7 +930,7 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  synchronized String submitDAGToAppMaster(DAGPlan dagPlan,
+  public synchronized String submitDAGToAppMaster(DAGPlan dagPlan,
       Map<String, LocalResource> additionalResources) throws TezException {
     if(currentDAG != null
         && !state.equals(DAGAppMasterState.IDLE)) {
@@ -971,7 +969,7 @@ public class DAGAppMaster extends AbstractService {
     return currentDAG.getID().toString();
   }
 
-  synchronized void startPreWarmContainers(PreWarmContext preWarmContext)
+  public synchronized void startPreWarmContainers(PreWarmContext preWarmContext)
       throws TezException {
     // Check if there is a running DAG
     if(currentDAG != null
@@ -1016,98 +1014,11 @@ public class DAGAppMaster extends AbstractService {
     startDAG(dag.createDag(amConf), null);
   }
 
-  public class DAGClientHandler {
-
-    public List<String> getAllDAGs() throws TezException {
-      return Collections.singletonList(currentDAG.getID().toString());
-    }
-
-    public DAGStatus getDAGStatus(String dagIdStr,
-                                  Set<StatusGetOpts> statusOptions)
-        throws TezException {
-      return getDAG(dagIdStr).getDAGStatus(statusOptions);
-    }
-
-    public VertexStatus getVertexStatus(String dagIdStr, String vertexName,
-        Set<StatusGetOpts> statusOptions)
-        throws TezException{
-      VertexStatus status = getDAG(dagIdStr)
-          .getVertexStatus(vertexName, statusOptions);
-      if(status == null) {
-        throw new TezException("Unknown vertexName: " + vertexName);
-      }
-
-      return status;
-    }
-
-    DAG getDAG(String dagIdStr) throws TezException {
-      TezDAGID dagId = TezDAGID.fromString(dagIdStr);
-      if(dagId == null) {
-        throw new TezException("Bad dagId: " + dagIdStr);
-      }
-
-      if(currentDAG == null) {
-        throw new TezException("No running dag at present");
-      }
-      if(!dagId.equals(currentDAG.getID())) {
-        LOG.warn("Current DAGID : "
-            + (currentDAG.getID() == null ? "NULL" : currentDAG.getID())
-            + ", Looking for string (not found): " + dagIdStr + ", dagIdObj: "
-            + dagId);
-        throw new TezException("Unknown dagId: " + dagIdStr);
-      }
-
-      return currentDAG;
-    }
-
-    public void tryKillDAG(String dagIdStr)
-        throws TezException {
-      DAG dag = getDAG(dagIdStr);
-      LOG.info("Sending client kill to dag: " + dagIdStr);
-      //send a DAG_KILL message
-      sendEvent(new DAGEvent(dag.getID(), DAGEventType.DAG_KILL));
-    }
-
-    public synchronized String submitDAG(DAGPlan dagPlan,
-        Map<String, LocalResource> additionalAmResources) throws TezException {
-      return submitDAGToAppMaster(dagPlan, additionalAmResources);
-    }
-
-    public synchronized void shutdownAM() {
-      LOG.info("Received message to shutdown AM");
-      shutdownTezAM();
-    }
-
-    public synchronized TezSessionStatus getSessionStatus() throws TezException {
-      if (!isSession) {
-        throw new TezException("Unsupported operation as AM not running in"
-            + " session mode");
-      }
-      switch (state) {
-      case NEW:
-      case INITED:
-        return TezSessionStatus.INITIALIZING;
-      case IDLE:
-        return TezSessionStatus.READY;
-      case RECOVERING:
-      case RUNNING:
-        return TezSessionStatus.RUNNING;
-      case ERROR:
-      case FAILED:
-      case SUCCEEDED:
-      case KILLED:
-        return TezSessionStatus.SHUTDOWN;
-      }
-      return TezSessionStatus.INITIALIZING;
-    }
-
-    public synchronized void preWarmContainers(PreWarmContext preWarmContext)
-        throws TezException {
-      startPreWarmContainers(preWarmContext);
-    }
-
+  @SuppressWarnings("unchecked")
+  public void tryKillDAG(DAG dag){
+    dispatcher.getEventHandler().handle(new DAGEvent(dag.getID(), DAGEventType.DAG_KILL));
   }
-
+  
   private Map<String, LocalResource> getAdditionalLocalResourceDiff(
       DAG dag, Map<String, LocalResource> additionalResources) throws TezException {
     if (additionalResources == null) {
