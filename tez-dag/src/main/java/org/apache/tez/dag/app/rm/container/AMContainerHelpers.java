@@ -29,6 +29,7 @@ import java.util.TreeMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -41,8 +42,10 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -98,8 +101,6 @@ public class AMContainerHelpers {
     // Service data
     Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
 
-
-
     // Tokens
     
     // Setup up task credentials buffer
@@ -145,7 +146,8 @@ public class AMContainerHelpers {
       Map<String, String> vertexEnv,
       String javaOpts,
       InetSocketAddress taskAttemptListenerAddress, Credentials credentials,
-      AppContext appContext) {
+      AppContext appContext, Resource containerResource,
+      Configuration conf) {
 
     ContainerLaunchContext commonContainerSpec = null;
     synchronized (commonContainerSpecLock) {
@@ -180,10 +182,22 @@ public class AMContainerHelpers {
     myEnv.putAll(env);
     myEnv.putAll(vertexEnv);
 
+    String modifiedJavaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(javaOpts,
+        containerResource, conf.getDouble(TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION,
+            TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_DEFAULT));
+    if (LOG.isDebugEnabled()) {
+      if (!modifiedJavaOpts.equals(javaOpts)) {
+        LOG.debug("Modified java opts for container"
+          + ", containerId=" + containerId
+          + ", originalJavaOpts=" + javaOpts
+          + ", modifiedJavaOpts=" + modifiedJavaOpts);
+      }
+    }
+
     List<String> commands = TezRuntimeChildJVM.getVMCommand(
         taskAttemptListenerAddress, containerId.toString(),
         appContext.getApplicationID().toString(),
-        appContext.getApplicationAttemptId().getAttemptId(), javaOpts);
+        appContext.getApplicationAttemptId().getAttemptId(), modifiedJavaOpts);
 
     // Duplicate the ByteBuffers for access by multiple containers.
     Map<String, ByteBuffer> myServiceData = new HashMap<String, ByteBuffer>();

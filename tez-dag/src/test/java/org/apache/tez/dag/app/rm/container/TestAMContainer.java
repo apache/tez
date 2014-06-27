@@ -39,6 +39,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.jobhistory.HistoryEvent;
 import org.apache.hadoop.security.Credentials;
@@ -1039,6 +1040,7 @@ public class TestAMContainer {
       eventHandler = mock(EventHandler.class);
       historyEventHandler = mock(HistoryEventHandler.class);
 
+      Configuration conf = new Configuration(false);
       appContext = mock(AppContext.class);
       doReturn(new HashMap<ApplicationAccessType, String>()).when(appContext)
       .getApplicationACLs();
@@ -1047,6 +1049,7 @@ public class TestAMContainer {
       doReturn(applicationID).when(appContext).getApplicationID();
       doReturn(new SystemClock()).when(appContext).getClock();
       doReturn(historyEventHandler).when(appContext).getHistoryHandler();
+      doReturn(conf).when(appContext).getAMConf();
       mockDAGID();
 
       taskSpec = mock(TaskSpec.class);

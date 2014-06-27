@@ -62,7 +62,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class DAG { // FIXME rename to Topology
+public class DAG {
   
   private static final Log LOG = LogFactory.getLog(DAG.class);
   
@@ -498,9 +498,9 @@ public class DAG { // FIXME rename to Topology
         // there was something on the stack other than this "av".
         // this indicates there is a scc/cycle. It comprises all nodes from top of stack to "av"
         StringBuilder message = new StringBuilder();
-        message.append(av.v.getVertexName() + " <- ");
+        message.append(av.v.getVertexName()).append(" <- ");
         for (; pop != av; pop = stack.pop()) {
-          message.append(pop.v.getVertexName() + " <- ");
+          message.append(pop.v.getVertexName()).append(" <- ");
           pop.onstack = false;
         }
         message.append(av.v.getVertexName());

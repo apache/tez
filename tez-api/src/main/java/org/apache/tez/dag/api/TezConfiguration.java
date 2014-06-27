@@ -66,16 +66,22 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_LAUNCH_CMD_OPTS = TEZ_AM_PREFIX +  "java.opts";
   public static final String TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT = 
       "-Djava.net.preferIPv4Stack=true " +
-      "-Dhadoop.metrics.log.level=WARN " + 
-      "-Xmx1024m"; // Remove after TEZ-699
+      "-Dhadoop.metrics.log.level=WARN ";
 
   /** Command line options for the Tez Task processes. */
   public static final String TEZ_TASK_LAUNCH_CMD_OPTS = TEZ_TASK_PREFIX
       + "launch.cmd-opts";
   public static final String TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT = 
       "-Djava.net.preferIPv4Stack=true " +
-      "-Dhadoop.metrics.log.level=WARN " + 
-      "-Xmx200m"; // Remove after TEZ-699
+      "-Dhadoop.metrics.log.level=WARN ";
+
+  /**
+   * Factor to size Xmx based on container memory size. Value should be greater than 0 and
+   * less than 1.
+   */
+  public static final String TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION =
+      TEZ_PREFIX + "container.max.java.heap.fraction";
+  public static final double TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_DEFAULT = 0.8;
 
   /** Env settings for the Tez AppMaster process.
    * Should be specified as a comma-separated of key-value pairs where each pair
@@ -478,4 +484,5 @@ public class TezConfiguration extends Configuration {
    * The maximium number of tasks running in parallel in inline mode. Not valid till Tez-684 get checked-in
    */
   public static final int TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT = 1;
+
 }

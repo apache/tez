@@ -19,6 +19,7 @@ package org.apache.tez.client;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -31,6 +32,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.junit.Assert;
@@ -61,6 +63,7 @@ public class TestTezClientUtils {
   @Test (timeout=5000)
   public void validateSetTezJarLocalResourcesDefinedButEmpty() throws Exception {
     File emptyDir = new File(TEST_ROOT_DIR, "emptyDir");
+    emptyDir.deleteOnExit();
     Assert.assertTrue(emptyDir.mkdirs());
     Path emptyDirPath = new Path(emptyDir.getAbsolutePath());
     TezConfiguration conf = new TezConfiguration();
@@ -159,4 +162,60 @@ public class TestTezClientUtils {
     Map<String, LocalResource> localizedMap = TezClientUtils.setupTezJarsLocalResources(conf, credentials);
     assertFalse(localizedMap.isEmpty());
   }
+
+
+  @Test (timeout=5000)
+  public void testDefaultMemoryJavaOpts() {
+    final double factor = 0.8;
+    String origJavaOpts = "-Xmx";
+    String javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
+        Resource.newInstance(1000, 1), factor);
+    Assert.assertEquals(origJavaOpts, javaOpts);
+
+    origJavaOpts = "";
+    javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
+        Resource.newInstance(1000, 1), factor);
+    Assert.assertTrue(javaOpts.contains("-Xmx800m"));
+
+    origJavaOpts = "";
+    javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
+        Resource.newInstance(1, 1), factor);
+    Assert.assertTrue(javaOpts.contains("-Xmx1m"));
+
+    origJavaOpts = "";
+    javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
+        Resource.newInstance(-1, 1), factor);
+    Assert.assertEquals(origJavaOpts, javaOpts);
+
+    origJavaOpts = "";
+    javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
+        Resource.newInstance(355, 1), factor);
+    Assert.assertTrue(javaOpts.contains("-Xmx284m"));
+
+    origJavaOpts = " -Xms100m ";
+    javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
+        Resource.newInstance(355, 1), factor);
+    Assert.assertFalse(javaOpts.contains("-Xmx284m"));
+    Assert.assertTrue(javaOpts.contains("-Xms100m"));
+
+    origJavaOpts = "";
+    javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
+        Resource.newInstance(355, 1), 0);
+    Assert.assertEquals(origJavaOpts, javaOpts);
+
+    origJavaOpts = "";
+    javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
+        Resource.newInstance(355, 1), 100);
+    Assert.assertEquals(origJavaOpts, javaOpts);
+  }
+
+  @Test (timeout=5000)
+  public void testDefaultLoggingJavaOpts() {
+    String origJavaOpts = null;
+    String javaOpts = TezClientUtils.maybeAddDefaultLoggingJavaOpts("FOOBAR", origJavaOpts);
+    Assert.assertNotNull(javaOpts);
+    Assert.assertTrue(javaOpts.contains("-D" + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=FOOBAR")
+        && javaOpts.contains(TezConfiguration.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE));
+  }
+
 }

@@ -314,7 +314,7 @@ public class TezClientUtils {
    * @param amName Name for the application
    * @param amConfig AM Configuration
    * @param tezJarResources Resources to be used by the AM
-   * @param sessionCredentials the credential object which will be populated with session specific
+   * @param sessionCreds the credential object which will be populated with session specific
    * @return an ApplicationSubmissionContext to launch a Tez AM
    * @throws IOException
    * @throws YarnException
@@ -377,14 +377,14 @@ public class TezClientUtils {
 
     String amOpts = amConfig.getAMConf().get(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
         TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT);
-    if (amOpts != null && !amOpts.isEmpty()) {
-      vargs.add(amOpts);
-    }
+    amOpts = maybeAddDefaultMemoryJavaOpts(amOpts, capability,
+        amConfig.getAMConf().getDouble(TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION,
+            TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_DEFAULT));
+    vargs.add(amOpts);
 
     String amLogLevel = amConfig.getAMConf().get(
         TezConfiguration.TEZ_AM_LOG_LEVEL,
         TezConfiguration.TEZ_AM_LOG_LEVEL_DEFAULT);
-
     maybeAddDefaultLoggingJavaOpts(amLogLevel, vargs);
 
     // FIX sun bug mentioned in TEZ-327
@@ -803,6 +803,30 @@ public class TezClientUtils {
         jobTokenSecretManager);
     sessionToken.setService(identifier.getJobId());
     TokenCache.setSessionToken(sessionToken, credentials);
+  }
+
+  /**
+   * Add computed Xmx value to java opts if both -Xms and -Xmx are not specified
+   * @param javaOpts Current java opts
+   * @param resource Resource capability based on which java opts will be computed
+   * @param maxHeapFactor Factor to size Xmx ( valid range is 0.0 < x < 1.0)
+   * @return Modified java opts with computed Xmx value
+   */
+  public static String maybeAddDefaultMemoryJavaOpts(String javaOpts, Resource resource,
+      double maxHeapFactor) {
+    if ((javaOpts != null && !javaOpts.isEmpty()
+          && (javaOpts.contains("-Xmx") || javaOpts.contains("-Xms")))
+        || (resource.getMemory() <= 0)) {
+      return javaOpts;
+    }
+    if (maxHeapFactor <= 0 || maxHeapFactor >= 1) {
+      return javaOpts;
+    }
+    int maxMemory = (int)(resource.getMemory() * maxHeapFactor);
+    maxMemory = maxMemory <= 0 ? 1 : maxMemory;
+
+    return " -Xmx" + maxMemory + "m "
+        + ( javaOpts != null ? javaOpts : "");
   }
 
 }

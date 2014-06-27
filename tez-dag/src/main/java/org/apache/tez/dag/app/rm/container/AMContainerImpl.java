@@ -504,7 +504,8 @@ public class AMContainerImpl implements AMContainer {
           containerContext.getEnvironment(),
           containerContext.getJavaOpts(),
           container.taskAttemptListener.getAddress(), containerContext.getCredentials(),
-          container.appContext);
+          container.appContext, container.container.getResource(),
+          container.appContext.getAMConf());
 
       // Registering now, so that in case of delayed NM response, the child
       // task is not told to die since the TAL does not know about the container.
