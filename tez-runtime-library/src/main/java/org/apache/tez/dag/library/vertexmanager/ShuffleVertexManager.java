@@ -561,10 +561,10 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         .getLong(
             ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
             ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT);
-    minTaskParallelism = conf
+    minTaskParallelism = Math.max(1, conf
         .getInt(
             ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM,
-            ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT);
+            ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT));
     LOG.info("Shuffle Vertex Manager: settings" + " minFrac:"
         + slowStartMinSrcCompletionFraction + " maxFrac:"
         + slowStartMaxSrcCompletionFraction + " auto:" + enableAutoParallelism
