@@ -18,86 +18,85 @@
 
 package org.apache.tez.client;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.common.TezCommonUtils;
-import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezUncheckedException;
 
-public class AMConfiguration {
+import com.google.common.collect.Maps;
 
-  private final Path stagingDir;
-  private final String queueName;
-  private final Map<String, String> env;
-  private final Map<String, LocalResource> localResources;
-  private final TezConfiguration amConf;
-  private final Credentials credentials;
+@Private
+class AMConfiguration {
 
-  /**
-   * @param env
-   *          environment for the AM
-   * @param localResources
-   *          localResources which are required to run the AM
-   * @param conf
-   * @param credentials
-   *          credentials which will be needed in the AM. This includes
-   *          credentials which will be required to localize the specified
-   *          localResources.
-   */
-  public AMConfiguration(Map<String, String> env,
-      Map<String, LocalResource> localResources,
-      TezConfiguration conf, Credentials credentials) {
-    if (conf != null) {
-      this.amConf = conf;
-    } else {
-      this.amConf = new TezConfiguration();
+  private Map<String, LocalResource> localResources;
+  private TezConfiguration tezConf;
+  private Credentials credentials;
+  private YarnConfiguration yarnConfig;
+  private Map<String, String> env;
+
+  AMConfiguration(TezConfiguration tezConf, Map<String, LocalResource> localResources,
+      Credentials credentials) {
+    this.localResources = Maps.newHashMap();
+    this.tezConf = tezConf;
+    if (localResources != null) {
+      addLocalResources(localResources);
     }
-    this.queueName = this.amConf.get(TezConfiguration.TEZ_QUEUE_NAME);
-
-    this.env = new HashMap<String, String>();
-    if (env != null) {
-      this.env.putAll(env);
+    if (credentials != null) {
+      setCredentials(credentials);
     }
 
-    this.localResources = localResources;
-    this.stagingDir = TezCommonUtils.getTezBaseStagingPath(amConf);
+  }
+
+  void addLocalResources(Map<String, LocalResource> localResources) {
+    this.localResources.putAll(localResources);
+  }
+  
+  void clearLocalResources() {
+    this.localResources.clear();
+  }
+  
+  void setCredentials(Credentials credentials) {
     this.credentials = credentials;
   }
-
-  public Path getStagingDir() {
-    return stagingDir;
+  
+  void setTezConfiguration(TezConfiguration tezConf) {
+    this.tezConf = tezConf;
+  }
+  
+  void setYarnConfiguration(YarnConfiguration yarnConf) {
+    this.yarnConfig = yarnConf;
   }
 
-  public String getQueueName() {
-    return queueName;
+  Path getStagingDir() {
+    return TezCommonUtils.getTezBaseStagingPath(tezConf);
   }
 
-  public Map<String, String> getEnv() {
-    return env;
+  String getQueueName() {
+    return this.tezConf.get(TezConfiguration.TEZ_QUEUE_NAME);
   }
 
-  public Map<String, LocalResource> getLocalResources() {
+  Map<String, LocalResource> getLocalResources() {
     return localResources;
   }
 
-  public TezConfiguration getAMConf() {
-    return amConf;
+  TezConfiguration getTezConfiguration() {
+    return tezConf;
   }
 
-  public Credentials getCredentials() {
+  YarnConfiguration getYarnConfiguration() {
+    return yarnConfig;
+  }
+  
+  Credentials getCredentials() {
     return credentials;
   }
-
-  public void isCompatible(AMConfiguration other) {
-    // TODO implement
+  
+  Map<String, String> getEnv() {
+    return env;
   }
-
 }

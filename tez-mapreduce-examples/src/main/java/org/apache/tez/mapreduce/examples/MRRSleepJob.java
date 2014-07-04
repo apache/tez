@@ -56,15 +56,13 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.util.ClassUtil;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.client.AMConfiguration;
-import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezClientUtils;
+import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -421,8 +419,7 @@ public class MRRSleepJob extends Configured implements Tool {
   
   private Credentials credentials = new Credentials();
 
-  public DAG createDAG(FileSystem remoteFs, Configuration conf,
-      ApplicationId appId, Path remoteStagingDir,
+  public DAG createDAG(FileSystem remoteFs, Configuration conf, Path remoteStagingDir,
       int numMapper, int numReducer, int iReduceStagesCount,
       int numIReducer, long mapSleepTime, int mapSleepCount,
       long reduceSleepTime, int reduceSleepCount,
@@ -799,32 +796,26 @@ public class MRRSleepJob extends Configured implements Tool {
     TezConfiguration conf = new TezConfiguration(getConf());
     FileSystem remoteFs = FileSystem.get(conf);
 
-    TezClient tezClient = new TezClient(conf);
-    ApplicationId appId =
-        tezClient.createApplication();
-
     conf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         conf.get(
             TezConfiguration.TEZ_AM_STAGING_DIR,
             TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT));
-
+    
     Path remoteStagingDir =
         remoteFs.makeQualified(new Path(conf.get(
             TezConfiguration.TEZ_AM_STAGING_DIR,
             TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT),
-            appId.toString()));
+            Long.toString(System.currentTimeMillis())));
     TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
 
-    DAG dag = createDAG(remoteFs, conf, appId, remoteStagingDir,
+    DAG dag = createDAG(remoteFs, conf, remoteStagingDir,
         numMapper, numReducer, iReduceStagesCount, numIReducer,
         mapSleepTime, mapSleepCount, reduceSleepTime, reduceSleepCount,
         iReduceSleepTime, iReduceSleepCount, writeSplitsToDfs, generateSplitsInAM);
 
-    AMConfiguration amConfig = new AMConfiguration(null,
-        null, conf, this.credentials);
-
-    DAGClient dagClient =
-        tezClient.submitDAGApplication(appId, dag, amConfig);
+    TezClient tezSession = new TezClient("MRRSleep", conf, false, null, credentials);
+    tezSession.start();
+    DAGClient dagClient = tezSession.submitDAG(dag);
 
     while (true) {
       DAGStatus status = dagClient.getDAGStatus(null);
@@ -838,6 +829,7 @@ public class MRRSleepJob extends Configured implements Tool {
         // do nothing
       }
     }
+    tezSession.stop();
 
     return dagClient.getDAGStatus(null).getState().equals(DAGStatus.State.SUCCEEDED) ? 0 : 1;
   }

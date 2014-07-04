@@ -34,16 +34,9 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.mapreduce.security.TokenCache;
-import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
-import org.apache.tez.client.TezClientUtils;
-import org.apache.tez.client.TezSession;
-import org.apache.tez.client.TezSessionConfiguration;
 import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.VertexGroup;
 import org.apache.tez.dag.api.DAG;
@@ -266,8 +259,6 @@ public class UnionExample {
     System.err.println("Usage: " + " unionexample <in1> <out1>");
   }
 
-  private Credentials credentials = new Credentials();
-  
   public boolean run(String inputPath, String outputPath, Configuration conf) throws Exception {
     System.out.println("Running UnionExample");
     // conf and UGI
@@ -280,21 +271,15 @@ public class UnionExample {
     UserGroupInformation.setConfiguration(tezConf);
     String user = UserGroupInformation.getCurrentUser().getShortUserName();
 
-    TezClient tezClient = new TezClient(tezConf);
-    ApplicationId appId = tezClient.createApplication();
-    
     // staging dir
     FileSystem fs = FileSystem.get(tezConf);
     String stagingDirStr = Path.SEPARATOR + "user" + Path.SEPARATOR
         + user + Path.SEPARATOR+ ".staging" + Path.SEPARATOR
-        + Path.SEPARATOR + appId.toString();    
+        + Path.SEPARATOR + Long.toString(System.currentTimeMillis());    
     Path stagingDir = new Path(stagingDirStr);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
     stagingDir = fs.makeQualified(stagingDir);
     
-    // security
-    TokenCache.obtainTokensForNamenodes(credentials, new Path[] {stagingDir}, tezConf);
-    TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
 
     // No need to add jar containing this class as assumed to be part of
     // the tez jars.
@@ -302,14 +287,7 @@ public class UnionExample {
     // TEZ-674 Obtain tokens based on the Input / Output paths. For now assuming staging dir
     // is the same filesystem as the one used for Input/Output.
     
-    TezSession tezSession = null;
-    AMConfiguration amConfig = new AMConfiguration(null,
-        null, tezConf, credentials);
-    
-    TezSessionConfiguration sessionConfig =
-        new TezSessionConfiguration(amConfig, tezConf);
-    tezSession = new TezSession("UnionExampleSession", appId,
-        sessionConfig);
+    TezClient tezSession = new TezClient("UnionExampleSession", tezConf);
     tezSession.start();
 
     DAGClient dagClient = null;

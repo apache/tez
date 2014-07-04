@@ -64,12 +64,9 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.client.AMConfiguration;
-import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezClientUtils;
-import org.apache.tez.client.TezSession;
-import org.apache.tez.client.TezSessionConfiguration;
-import org.apache.tez.client.TezSessionStatus;
+import org.apache.tez.client.TezClient;
+import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.common.RuntimeUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
@@ -113,6 +110,8 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.google.common.base.Preconditions;
 
 public class TestMRRJobsDAGApi {
 
@@ -204,7 +203,7 @@ public class TestMRRJobsDAGApi {
     if (remoteFs.exists(relocPath)) {
       remoteFs.delete(relocPath, true);
     }
-    TezSession tezSession = createTezSession();
+    TezClient tezSession = createTezSession();
 
     State finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, true, MRInputAMSplitGeneratorRelocalizationTest.class, null);
@@ -229,24 +228,24 @@ public class TestMRRJobsDAGApi {
     additionalResources.put("test.jar", createLrObjFromPath(relocFilePath));
     additionalResources.put("TezAppJar.jar", createLrObjFromPath(tezAppJarRemote));
 
-    Assert.assertEquals(TezSessionStatus.READY,
-        tezSession.getSessionStatus());
+    Assert.assertEquals(TezAppMasterStatus.READY,
+        tezSession.getAppMasterStatus());
     finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, true, MRInputAMSplitGeneratorRelocalizationTest.class, additionalResources);
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
-    Assert.assertEquals(TezSessionStatus.READY,
-        tezSession.getSessionStatus());
+    Assert.assertEquals(TezAppMasterStatus.READY,
+        tezSession.getAppMasterStatus());
     Assert.assertTrue(remoteFs.exists(new Path("/tmp/relocalizationfilefound")));
 
     stopAndVerifyYarnApp(tezSession);
   }
 
-  private void stopAndVerifyYarnApp(TezSession tezSession) throws TezException,
+  private void stopAndVerifyYarnApp(TezClient tezSession) throws TezException,
       IOException, YarnException {
-    ApplicationId appId = tezSession.getApplicationId();
+    ApplicationId appId = tezSession.getAppMasterApplicationId();
     tezSession.stop();
-    Assert.assertEquals(TezSessionStatus.SHUTDOWN,
-        tezSession.getSessionStatus());
+    Assert.assertEquals(TezAppMasterStatus.SHUTDOWN,
+        tezSession.getAppMasterStatus());
 
     YarnClient yarnClient = YarnClient.createYarnClient();
     yarnClient.init(mrrTezCluster.getConfig());
@@ -280,7 +279,7 @@ public class TestMRRJobsDAGApi {
     }
 
     // Run a DAG w/o a file.
-    TezSession tezSession = createTezSession();
+    TezClient tezSession = createTezSession();
     State finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, true, MRInputAMSplitGeneratorRelocalizationTest.class, null);
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
@@ -312,21 +311,16 @@ public class TestMRRJobsDAGApi {
         LocalResourceType.FILE, LocalResourceVisibility.PRIVATE, 0, 0);
   }
 
-  private TezSession createTezSession() throws IOException, TezException {
-    Map<String, String> commonEnv = createCommonEnv();
+  private TezClient createTezSession() throws IOException, TezException {
     Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String
         .valueOf(new Random().nextInt(100000))));
     remoteFs.mkdirs(remoteStagingDir);
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
 
-    Map<String, LocalResource> amLocalResources = new HashMap<String, LocalResource>();
-
-    AMConfiguration amConfig = new AMConfiguration(commonEnv, amLocalResources, tezConf, null);
-    TezSessionConfiguration tezSessionConfig = new TezSessionConfiguration(amConfig, tezConf);
-    TezSession tezSession = new TezSession("testrelocalizationsession", tezSessionConfig);
+    TezClient tezSession = new TezClient("testrelocalizationsession", tezConf, true);
     tezSession.start();
-    Assert.assertEquals(TezSessionStatus.INITIALIZING, tezSession.getSessionStatus());
+    Assert.assertEquals(TezAppMasterStatus.INITIALIZING, tezSession.getAppMasterStatus());
     return tezSession;
   }
 
@@ -334,7 +328,6 @@ public class TestMRRJobsDAGApi {
   @Test(timeout = 120000)
   public void testMultipleMRRSleepJobViaSession() throws IOException,
   InterruptedException, TezException, ClassNotFoundException, YarnException {
-    Map<String, String> commonEnv = createCommonEnv();
     Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String
         .valueOf(new Random().nextInt(100000))));
     remoteFs.mkdirs(remoteStagingDir);
@@ -343,29 +336,21 @@ public class TestMRRJobsDAGApi {
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         remoteStagingDir.toString());
 
-    Map<String, LocalResource> amLocalResources =
-        new HashMap<String, LocalResource>();
-
-    AMConfiguration amConfig = new AMConfiguration(
-        commonEnv, amLocalResources,
-        tezConf, null);
-    TezSessionConfiguration tezSessionConfig =
-        new TezSessionConfiguration(amConfig, tezConf);
-    TezSession tezSession = new TezSession("testsession", tezSessionConfig);
+    TezClient tezSession = new TezClient("testsession", tezConf, true);
     tezSession.start();
-    Assert.assertEquals(TezSessionStatus.INITIALIZING,
-        tezSession.getSessionStatus());
+    Assert.assertEquals(TezAppMasterStatus.INITIALIZING,
+        tezSession.getAppMasterStatus());
 
     State finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, false, null, null);
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
-    Assert.assertEquals(TezSessionStatus.READY,
-        tezSession.getSessionStatus());
+    Assert.assertEquals(TezAppMasterStatus.READY,
+        tezSession.getAppMasterStatus());
     finalState = testMRRSleepJobDagSubmitCore(true, false, false,
         tezSession, false, null, null);
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
-    Assert.assertEquals(TezSessionStatus.READY,
-        tezSession.getSessionStatus());
+    Assert.assertEquals(TezAppMasterStatus.READY,
+        tezSession.getAppMasterStatus());
 
     stopAndVerifyYarnApp(tezSession);
   }
@@ -405,16 +390,11 @@ public class TestMRRJobsDAGApi {
         closeSessionBeforeSubmit, null, genSplitsInAM, null, null);
   }
 
-  private Map<String, String> createCommonEnv() {
-    Map<String, String> commonEnv = new HashMap<String, String>();
-    return commonEnv;
-  }
-
   public State testMRRSleepJobDagSubmitCore(
       boolean dagViaRPC,
       boolean killDagWhileRunning,
       boolean closeSessionBeforeSubmit,
-      TezSession reUseTezSession,
+      TezClient reUseTezSession,
       boolean genSplitsInAM,
       Class<? extends TezRootInputInitializer> initializerClass,
       Map<String, LocalResource> additionalLocalResources) throws IOException,
@@ -510,9 +490,6 @@ public class TestMRRJobsDAGApi {
         1, Resource.newInstance(256, 1));
     MRHelpers.addMROutputLegacy(stage3Vertex, stage3Payload);
 
-    Map<String, LocalResource> commonLocalResources = new HashMap<String, LocalResource>();
-    Map<String, String> commonEnv = createCommonEnv();
-
     if (!genSplitsInAM) {
       // TODO Use utility method post TEZ-205.
       Map<String, LocalResource> stage1LocalResources = new HashMap<String, LocalResource>();
@@ -524,18 +501,12 @@ public class TestMRRJobsDAGApi {
           inputSplitInfo.getSplitsMetaInfoFile().getName(),
           createLocalResource(remoteFs, inputSplitInfo.getSplitsMetaInfoFile(),
               LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
-      stage1LocalResources.putAll(commonLocalResources);
 
       stage1Vertex.setTaskLocalResources(stage1LocalResources);
       stage1Vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
-    } else {
-      stage1Vertex.setTaskLocalResources(commonLocalResources);
     }
-
+    
     // TODO env, resources
-
-    stage2Vertex.setTaskLocalResources(commonLocalResources);
-    stage3Vertex.setTaskLocalResources(commonLocalResources);
 
     dag.addVertex(stage1Vertex);
     dag.addVertex(stage2Vertex);
@@ -555,34 +526,32 @@ public class TestMRRJobsDAGApi {
     dag.addEdge(edge1);
     dag.addEdge(edge2);
 
-    Map<String, LocalResource> amLocalResources =
-        new HashMap<String, LocalResource>();
-    amLocalResources.putAll(commonLocalResources);
-
     TezConfiguration tezConf = new TezConfiguration(
             mrrTezCluster.getConfig());
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         remoteStagingDir.toString());
 
-    TezClient tezClient = new TezClient(tezConf);
     DAGClient dagClient = null;
-    TezSession tezSession = null;
     boolean reuseSession = reUseTezSession != null;
-    TezSessionConfiguration tezSessionConfig;
-    AMConfiguration amConfig = new AMConfiguration(
-        commonEnv, amLocalResources,
-        tezConf, null);
+    TezClient tezSession = null;
+    if (!dagViaRPC) {
+      Preconditions.checkArgument(reuseSession == false);
+    }
+    if (!reuseSession) {
+      TezConfiguration tempTezconf = new TezConfiguration(tezConf);
+      if (!dagViaRPC) {
+        tempTezconf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, false);
+      } else {
+        tempTezconf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
+      }
+      tezSession = new TezClient("testsession", tempTezconf);
+      tezSession.start();
+    } else {
+      tezSession = reUseTezSession;
+    }
     if(!dagViaRPC) {
       // TODO Use utility method post TEZ-205 to figure out AM arguments etc.
-      dagClient = tezClient.submitDAGApplication(dag, amConfig);
-    } else {
-      if (reuseSession) {
-        tezSession = reUseTezSession;
-      } else {
-        tezSessionConfig = new TezSessionConfiguration(amConfig, tezConf);
-        tezSession = new TezSession("testsession", tezSessionConfig);
-        tezSession.start();
-      }
+      dagClient = tezSession.submitDAG(dag);
     }
 
     if (dagViaRPC && closeSessionBeforeSubmit) {
@@ -593,7 +562,7 @@ public class TestMRRJobsDAGApi {
       while(true) {
         Thread.sleep(500l);
         ApplicationReport appReport =
-            yarnClient.getApplicationReport(tezSession.getApplicationId());
+            yarnClient.getApplicationReport(tezSession.getAppMasterApplicationId());
         if (appReport == null) {
           continue;
         }
@@ -623,11 +592,14 @@ public class TestMRRJobsDAGApi {
     }
 
     if(dagViaRPC) {
-      LOG.info("Submitting dag to tez session with appId=" + tezSession.getApplicationId()
+      LOG.info("Submitting dag to tez session with appId=" + tezSession.getAppMasterApplicationId()
           + " and Dag Name=" + dag.getName());
-      dagClient = tezSession.submitDAG(dag, additionalLocalResources);
-      Assert.assertEquals(TezSessionStatus.RUNNING,
-          tezSession.getSessionStatus());
+      if (additionalLocalResources != null) {
+        tezSession.addAppMasterLocalResources(additionalLocalResources);
+      }
+      dagClient = tezSession.submitDAG(dag);
+      Assert.assertEquals(TezAppMasterStatus.RUNNING,
+          tezSession.getAppMasterStatus());
     }
     DAGStatus dagStatus = dagClient.getDAGStatus(null);
     while (!dagStatus.isCompleted()) {
@@ -645,7 +617,7 @@ public class TestMRRJobsDAGApi {
       }
       dagStatus = dagClient.getDAGStatus(null);
     }
-    if (dagViaRPC && !reuseSession) {
+    if (!reuseSession) {
       tezSession.stop();
     }
     return dagStatus.getState();

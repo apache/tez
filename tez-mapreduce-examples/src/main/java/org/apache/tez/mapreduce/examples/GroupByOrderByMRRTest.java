@@ -195,13 +195,11 @@ public class GroupByOrderByMRRTest extends Configured implements Tool {
     FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
     FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
 
-    TezClient tezClient = new TezClient(new TezConfiguration(conf));
-
     job.submit();
     JobID jobId = job.getJobID();
     ApplicationId appId = TypeConverter.toYarn(jobId).getAppId();
 
-    DAGClient dagClient = tezClient.getDAGClient(appId);
+    DAGClient dagClient = TezClient.getDAGClient(appId, new TezConfiguration(conf));
     DAGStatus dagStatus;
     String[] vNames = { "initialmap" , "ireduce1" , "finalreduce" };
     while (true) {

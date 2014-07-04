@@ -12,7 +12,7 @@ import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.client.PreWarmContext;
-import org.apache.tez.client.TezSessionStatus;
+import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.AppContext;
@@ -91,9 +91,9 @@ public class TestDAGClientHandler {
     }
     when(mockDagAM.isSession()).thenReturn(true);
     when(mockDagAM.getState()).thenReturn(DAGAppMasterState.INITED);
-    assertEquals(TezSessionStatus.INITIALIZING, dagClientHandler.getSessionStatus());
+    assertEquals(TezAppMasterStatus.INITIALIZING, dagClientHandler.getSessionStatus());
     when(mockDagAM.getState()).thenReturn(DAGAppMasterState.ERROR);
-    assertEquals(TezSessionStatus.SHUTDOWN, dagClientHandler.getSessionStatus());
+    assertEquals(TezAppMasterStatus.SHUTDOWN, dagClientHandler.getSessionStatus());
     
     
     // startPreWarmContainers

@@ -77,7 +77,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
-import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
@@ -126,7 +125,7 @@ public class YARNRunner implements ClientProtocol {
   final public static int UTF8_CHUNK_SIZE = 16 * 1024;
 
   private final TezConfiguration tezConf;
-  private final TezClient tezClient;
+  private TezClient tezSession;
   private DAGClient dagClient;
 
   /**
@@ -161,7 +160,6 @@ public class YARNRunner implements ClientProtocol {
     this.tezConf = new TezConfiguration(conf);
     try {
       this.resMgrDelegate = resMgrDelegate;
-      this.tezClient = new TezClient(tezConf);
       this.clientCache = clientCache;
       this.defaultFileContext = FileContext.getFileContext(this.conf);
 
@@ -585,9 +583,26 @@ public class YARNRunner implements ClientProtocol {
 
     // Setup the environment variables for AM
     MRHelpers.updateEnvironmentForMRAM(conf, environment);
+    StringBuilder envStrBuilder = new StringBuilder();
+    boolean first = true;
+    for (Entry<String, String> entry : environment.entrySet()) {
+      if (!first) {
+        envStrBuilder.append(",");
+      } else {
+        first = false;
+      }
+      envStrBuilder.append(entry.getKey()).append("=").append(entry.getValue());
+    }
+    String envStr = envStrBuilder.toString();
 
     TezConfiguration dagAMConf = getDAGAMConfFromMRConf();
     dagAMConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS, javaOpts.toString());
+    if (envStr.length() > 0) {
+      dagAMConf.set(TezConfiguration.TEZ_AM_LAUNCH_ENV, envStr);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Setting MR AM env to : " + envStr);
+      }
+    }
 
     // Submit to ResourceManager
     try {
@@ -607,10 +622,10 @@ public class YARNRunner implements ClientProtocol {
       dagAMConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 
           jobConf.getInt(MRJobConfig.MR_AM_MAX_ATTEMPTS, MRJobConfig.DEFAULT_MR_AM_MAX_ATTEMPTS));
       
-      AMConfiguration amConfig = new AMConfiguration(
-          environment,
-          jobLocalResources, dagAMConf, ts);
-      tezClient.submitDAGApplication(appId, dag, amConfig);
+      tezSession = new TezClient("MapReduce", dagAMConf, false, jobLocalResources, ts);
+      tezSession.start();
+      tezSession.submitDAGApplication(appId, dag);
+      tezSession.stop();
     } catch (TezException e) {
       throw new IOException(e);
     }
@@ -668,7 +683,7 @@ public class YARNRunner implements ClientProtocol {
     DAGStatus dagStatus;
     try {
       if(dagClient == null) {
-        dagClient = tezClient.getDAGClient(TypeConverter.toYarn(jobID).getAppId());
+        dagClient = TezClient.getDAGClient(TypeConverter.toYarn(jobID).getAppId(), tezConf);
       }
       dagStatus = dagClient.getDAGStatus(null);
       return new DAGJobStatus(dagClient.getApplicationReport(), dagStatus, jobFile);

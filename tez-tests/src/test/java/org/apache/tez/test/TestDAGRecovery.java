@@ -24,17 +24,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClientUtils;
-import org.apache.tez.client.TezSession;
-import org.apache.tez.client.TezSessionConfiguration;
-import org.apache.tez.client.TezSessionStatus;
+import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatus.State;
@@ -50,7 +45,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Random;
 
 public class TestDAGRecovery {
@@ -62,7 +56,7 @@ public class TestDAGRecovery {
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestDAGRecovery.class.getName() + "-tmpDir";
   private static MiniDFSCluster dfsCluster = null;
-  private static TezSession tezSession = null;
+  private static TezClient tezSession = null;
   private static FileSystem remoteFs = null;
 
   @BeforeClass
@@ -132,13 +126,9 @@ public class TestDAGRecovery {
     tezConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 4);
     tezConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, 500);
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS, " -Xmx256m");
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
 
-    AMConfiguration amConfig = new AMConfiguration(
-        new HashMap<String, String>(), new HashMap<String, LocalResource>(),
-        tezConf, null);
-    TezSessionConfiguration tezSessionConfig =
-        new TezSessionConfiguration(amConfig, tezConf);
-    tezSession = new TezSession("TestDAGRecovery", tezSessionConfig);
+    tezSession = new TezClient("TestDAGRecovery", tezConf);
     tezSession.start();
   }
 
@@ -157,15 +147,7 @@ public class TestDAGRecovery {
   }
 
   void runDAGAndVerify(DAG dag, DAGStatus.State finalState) throws Exception {
-    TezSessionStatus status = tezSession.getSessionStatus();
-    while (status != TezSessionStatus.READY && status != TezSessionStatus.SHUTDOWN) {
-      LOG.info("Waiting for session to be ready. Current: " + status);
-      Thread.sleep(100);
-      status = tezSession.getSessionStatus();
-    }
-    if (status == TezSessionStatus.SHUTDOWN) {
-      throw new TezUncheckedException("Unexpected Session shutdown");
-    }
+    tezSession.waitTillReady();
     DAGClient dagClient = tezSession.submitDAG(dag);
     DAGStatus dagStatus = dagClient.getDAGStatus(null);
     while (!dagStatus.isCompleted()) {

@@ -43,10 +43,8 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClientUtils;
-import org.apache.tez.client.TezSession;
-import org.apache.tez.client.TezSessionConfiguration;
+import org.apache.tez.client.TezClient;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
@@ -154,9 +152,8 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
 
 
 
-    AMConfiguration amConf = new AMConfiguration(null, commonLocalResources, tezConf, null);
-    TezSessionConfiguration sessionConf = new TezSessionConfiguration(amConf, tezConf);
-    TezSession tezSession = new TezSession("FilterLinesByWordSession", sessionConf);
+    TezClient tezSession = new TezClient("FilterLinesByWordSession", tezConf,
+        commonLocalResources, null);
     tezSession.start(); // Why do I need to start the TezSession.
 
     Configuration stage1Conf = new JobConf(conf);

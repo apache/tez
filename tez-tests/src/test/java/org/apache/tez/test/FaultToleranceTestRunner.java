@@ -19,23 +19,17 @@
 package org.apache.tez.test;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClientUtils;
-import org.apache.tez.client.TezSession;
-import org.apache.tez.client.TezSessionConfiguration;
-import org.apache.tez.client.TezSessionStatus;
+import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.hadoop.util.GenericOptionsParser;
@@ -52,7 +46,7 @@ public class FaultToleranceTestRunner {
   
   static String TEST_ROOT_DIR = "tmp";
   Configuration conf = null;
-  TezSession tezSession = null;
+  TezClient tezSession = null;
   Resource defaultResource = Resource.newInstance(100, 0);
   
   void setup() throws Exception {
@@ -71,12 +65,7 @@ public class FaultToleranceTestRunner {
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         remoteStagingDir.toString());
 
-    AMConfiguration amConfig = new AMConfiguration(
-        new HashMap<String, String>(), new HashMap<String, LocalResource>(),
-        tezConf, null);
-    TezSessionConfiguration tezSessionConfig =
-        new TezSessionConfiguration(amConfig, tezConf);
-    tezSession = new TezSession("FaultToleranceTestRunner", tezSessionConfig);
+    tezSession = new TezClient("FaultToleranceTestRunner", tezConf);
     tezSession.start();
   }
   
@@ -106,15 +95,7 @@ public class FaultToleranceTestRunner {
     setup();
     
     try {
-      TezSessionStatus status = tezSession.getSessionStatus();
-      while (status != TezSessionStatus.READY && status != TezSessionStatus.SHUTDOWN) {
-        System.out.println("Waiting for session to be ready. Current: " + status);
-        Thread.sleep(500);
-        status = tezSession.getSessionStatus();
-      }
-      if (status == TezSessionStatus.SHUTDOWN) {
-        throw new TezUncheckedException("Unexpected Session shutdown");
-      }
+      tezSession.waitTillReady();
       
       DAG dag = getDAG(className, confFilePath);
       

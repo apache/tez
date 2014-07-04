@@ -49,6 +49,10 @@ public class TezConfiguration extends Configuration {
 
   public static final String TEZ_APPLICATION_MASTER_CLASS =
       "org.apache.tez.dag.app.DAGAppMaster";
+  
+  /** Execution mode for submitting DAG's to the AM */
+  public static final String TEZ_AM_SESSION_MODE = TEZ_AM_PREFIX + "mode.session";
+  public static boolean TEZ_AM_SESSION_MODE_DEFAULT = false;
 
   /** Root Logging level passed to the Tez app master.*/
   public static final String TEZ_AM_LOG_LEVEL = TEZ_AM_PREFIX + "log.level";

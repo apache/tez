@@ -41,9 +41,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.tez.client.AMConfiguration;
-import org.apache.tez.client.TezSession;
-import org.apache.tez.client.TezSessionConfiguration;
+import org.apache.tez.client.TezClient;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
@@ -103,7 +101,7 @@ public class IntersectExample extends Configured implements Tool {
     return execute(otherArgs);
   }
   
-  public int run(Configuration conf, String[] args, TezSession tezSession) throws Exception {
+  public int run(Configuration conf, String[] args, TezClient tezSession) throws Exception {
     setConf(conf);
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
     int result = validateArgs(otherArgs);
@@ -123,7 +121,7 @@ public class IntersectExample extends Configured implements Tool {
 
   private int execute(String[] args) throws TezException, IOException, InterruptedException {
     TezConfiguration tezConf = new TezConfiguration(getConf());
-    TezSession tezSession = null;
+    TezClient tezSession = null;
     try {
       tezSession = createTezSession(tezConf);
       return execute(args, tezConf, tezSession);
@@ -134,22 +132,19 @@ public class IntersectExample extends Configured implements Tool {
     }
   }
   
-  private int execute(String[] args, TezSession tezSession) throws IOException, TezException,
+  private int execute(String[] args, TezClient tezSession) throws IOException, TezException,
       InterruptedException {
     TezConfiguration tezConf = new TezConfiguration(getConf());
     return execute(args, tezConf, tezSession);
   }
   
-  private TezSession createTezSession(TezConfiguration tezConf) throws TezException, IOException {
-    AMConfiguration amConfiguration = new AMConfiguration(null, null, tezConf, null);
-    TezSessionConfiguration sessionConfiguration = new TezSessionConfiguration(amConfiguration,
-        tezConf);
-    TezSession tezSession = new TezSession("IntersectExampleSession", sessionConfiguration);
+  private TezClient createTezSession(TezConfiguration tezConf) throws TezException, IOException {
+    TezClient tezSession = new TezClient("IntersectExampleSession", tezConf);
     tezSession.start();
     return tezSession;
   }
   
-  private int execute(String[] args, TezConfiguration tezConf, TezSession tezSession)
+  private int execute(String[] args, TezConfiguration tezConf, TezClient tezSession)
       throws IOException, TezException, InterruptedException {
     LOG.info("Running IntersectExample");
 

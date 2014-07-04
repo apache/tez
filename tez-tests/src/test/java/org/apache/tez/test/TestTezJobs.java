@@ -28,7 +28,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
@@ -43,14 +42,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
-import org.apache.tez.client.TezSession;
-import org.apache.tez.client.TezSessionConfiguration;
 import org.apache.tez.common.counters.FileSystemCounter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.DAG;
@@ -143,11 +137,10 @@ public class TestTezJobs {
     remoteFs.mkdirs(remoteStagingDir);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
 
-    TezClient tezClient = new TezClient(tezConf);
-    AMConfiguration amConf = new AMConfiguration(new HashMap<String, String>(),
-        new HashMap<String, LocalResource>(), tezConf, null);
+    TezClient tezSession = new TezClient("TezSleepProcessor", tezConf, false);
+    tezSession.start();
 
-    DAGClient dagClient = tezClient.submitDAGApplication(dag, amConf);
+    DAGClient dagClient = tezSession.submitDAG(dag);
 
     DAGStatus dagStatus = dagClient.getDAGStatus(null);
     while (!dagStatus.isCompleted()) {
@@ -163,25 +156,20 @@ public class TestTezJobs {
     assertNotNull(dagStatus.getDAGCounters().getGroup(FileSystemCounter.class.getName()));
     assertNotNull(dagStatus.getDAGCounters().findCounter(TaskCounter.GC_TIME_MILLIS));
     ExampleDriver.printDAGStatus(dagClient, new String[] { "SleepVertex" }, true, true);
+    tezSession.stop();
   }
 
   @Test(timeout = 100000)
   public void testMultipleDAGsWithDuplicateName() throws TezException, IOException,
       InterruptedException {
-    TezSession tezSession = null;
+    TezClient tezSession = null;
     try {
       TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
       Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String.valueOf(random
           .nextInt(100000))));
       remoteFs.mkdirs(remoteStagingDir);
       tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
-      AMConfiguration amConf = new AMConfiguration(new HashMap<String, String>(),
-          new HashMap<String, LocalResource>(), tezConf, null);
-      TezSessionConfiguration sessionConfig = new TezSessionConfiguration(amConf, tezConf);
-
-      TezClient tezClient = new TezClient(tezConf);
-      ApplicationId appId = tezClient.createApplication();
-      tezSession = new TezSession("OrderedWordCountSession", appId, sessionConfig);
+      tezSession = new TezClient("OrderedWordCountSession", tezConf, true);
       tezSession.start();
 
       SleepProcessorConfig spConf = new SleepProcessorConfig(1);
@@ -292,12 +280,9 @@ public class TestTezJobs {
 
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
-    AMConfiguration amConfiguration = new AMConfiguration(null, null, tezConf, null);
-    TezSessionConfiguration sessionConfiguration = new TezSessionConfiguration(amConfiguration,
-        tezConf);
-    TezSession tezSession = null;
+    TezClient tezSession = null;
     try {
-      tezSession = new TezSession("IntersectExampleSession", sessionConfiguration);
+      tezSession = new TezClient("IntersectExampleSession", tezConf);
       tezSession.start();
 
       IntersectDataGen dataGen = new IntersectDataGen();
@@ -341,11 +326,10 @@ public class TestTezJobs {
     localFs.mkdirs(stagingDir);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir.toString());
 
-    TezClient tezClient = new TezClient(tezConf);
-    AMConfiguration amConf = new AMConfiguration(new HashMap<String, String>(),
-        new HashMap<String, LocalResource>(), tezConf, null);
+    TezClient tezSession = new TezClient("TezSleepProcessor", tezConf, false);
+    tezSession.start();
 
-    DAGClient dagClient = tezClient.submitDAGApplication(dag, amConf);
+    DAGClient dagClient = tezSession.submitDAG(dag);
 
     DAGStatus dagStatus = dagClient.getDAGStatus(null);
     while (!dagStatus.isCompleted()) {
@@ -361,8 +345,7 @@ public class TestTezJobs {
     assertNotNull(dagStatus.getDAGCounters().getGroup(FileSystemCounter.class.getName()));
     assertNotNull(dagStatus.getDAGCounters().findCounter(TaskCounter.GC_TIME_MILLIS));
     ExampleDriver.printDAGStatus(dagClient, new String[] { "SleepVertex" }, true, true);
-
-
+    tezSession.stop();
   }
 
   // Submits a simple 5 stage sleep job using tez session. Then kills it.
@@ -390,11 +373,11 @@ public class TestTezJobs {
     tezConf.set(TezConfiguration.TEZ_SIMPLE_HISTORY_LOGGING_DIR,
         localFs.makeQualified(historyLogDir).toString());
 
-    TezClient tezClient = new TezClient(tezConf);
-    AMConfiguration amConf = new AMConfiguration(new HashMap<String, String>(),
-        new HashMap<String, LocalResource>(), tezConf, null);
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, false);
+    TezClient tezSession = new TezClient("TezSleepProcessorHistoryLogging", tezConf);
+    tezSession.start();
 
-    DAGClient dagClient = tezClient.submitDAGApplication(dag, amConf);
+    DAGClient dagClient = tezSession.submitDAG(dag);
 
     DAGStatus dagStatus = dagClient.getDAGStatus(null);
     while (!dagStatus.isCompleted()) {
@@ -418,6 +401,7 @@ public class TestTezJobs {
     }
     Assert.assertNotNull(historyLogFileStatus);
     Assert.assertTrue(historyLogFileStatus.getLen() > 0);
+    tezSession.stop();
   }
 
 }

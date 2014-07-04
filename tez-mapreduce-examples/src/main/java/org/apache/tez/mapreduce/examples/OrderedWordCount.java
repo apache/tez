@@ -52,15 +52,10 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.PreWarmContext;
-import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezClientUtils;
-import org.apache.tez.client.TezSession;
-import org.apache.tez.client.TezSessionConfiguration;
-import org.apache.tez.client.TezSessionStatus;
+import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -326,17 +321,15 @@ public class OrderedWordCount extends Configured implements Tool {
     }
 
     UserGroupInformation.setConfiguration(conf);
-    String user = UserGroupInformation.getCurrentUser().getShortUserName();
 
     TezConfiguration tezConf = new TezConfiguration(conf);
-    TezClient tezClient = new TezClient(tezConf);
-    ApplicationId appId = tezClient.createApplication();
     OrderedWordCount instance = new OrderedWordCount();
 
     FileSystem fs = FileSystem.get(conf);
 
     String stagingDirStr =  conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
-            TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT) + Path.SEPARATOR + appId.toString();
+            TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT) + Path.SEPARATOR + 
+            Long.toString(System.currentTimeMillis());
     Path stagingDir = new Path(stagingDirStr);
     FileSystem pathFs = stagingDir.getFileSystem(tezConf);
     pathFs.mkdirs(new Path(stagingDirStr));
@@ -353,18 +346,15 @@ public class OrderedWordCount extends Configured implements Tool {
     // TEZ-674 Obtain tokens based on the Input / Output paths. For now assuming staging dir
     // is the same filesystem as the one used for Input/Output.
     
-    TezSession tezSession = null;
-    AMConfiguration amConfig = new AMConfiguration(null,
-        null, tezConf, instance.credentials);
     if (useTezSession) {
       LOG.info("Creating Tez Session");
-      TezSessionConfiguration sessionConfig =
-          new TezSessionConfiguration(amConfig, tezConf);
-      tezSession = new TezSession("OrderedWordCountSession", appId,
-          sessionConfig);
-      tezSession.start();
-      LOG.info("Created Tez Session");
+      tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
+    } else {
+      tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, false);
     }
+    TezClient tezSession = new TezClient("OrderedWordCountSession", tezConf,
+        null, instance.credentials);
+    tezSession.start();
 
     DAGStatus dagStatus = null;
     DAGClient dagClient = null;
@@ -452,7 +442,7 @@ public class OrderedWordCount extends Configured implements Tool {
           LOG.info("Submitted DAG to Tez Session, dagIndex=" + dagIndex);
         } else {
           LOG.info("Submitting DAG as a new Tez Application");
-          dagClient = tezClient.submitDAGApplication(dag, amConfig);
+          dagClient = tezSession.submitDAG(dag);
         }
 
         while (true) {
@@ -507,10 +497,8 @@ public class OrderedWordCount extends Configured implements Tool {
       if (!retainStagingDir) {
         pathFs.delete(stagingDir, true);
       }
-      if (useTezSession) {
-        LOG.info("Shutting down session");
-        tezSession.stop();
-      }
+      LOG.info("Shutting down session");
+      tezSession.stop();
     }
 
     if (!useTezSession) {
@@ -521,23 +509,9 @@ public class OrderedWordCount extends Configured implements Tool {
     return 0;
   }
 
-  private static void waitForTezSessionReady(TezSession tezSession)
+  private static void waitForTezSessionReady(TezClient tezSession)
     throws IOException, TezException {
-    while (true) {
-      TezSessionStatus status = tezSession.getSessionStatus();
-      if (status.equals(TezSessionStatus.SHUTDOWN)) {
-        throw new RuntimeException("TezSession has already shutdown");
-      }
-      if (status.equals(TezSessionStatus.READY)) {
-        return;
-      }
-      try {
-        Thread.sleep(100);
-      } catch (InterruptedException e) {
-        LOG.info("Interrupted while trying to check session status");
-        return;
-      }
-    }
+    tezSession.waitTillReady();
   }
 
   public static void main(String[] args) throws Exception {

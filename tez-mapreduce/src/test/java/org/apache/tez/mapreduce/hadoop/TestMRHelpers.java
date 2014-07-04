@@ -385,6 +385,7 @@ public class TestMRHelpers {
     Assert.assertEquals("-Dadminfoobar -Duserfoo", opts);
   }
 
+  @Test
   public void testMRAMEnvironmentSetup() {
     Configuration conf = new Configuration();
     conf.set(MRJobConfig.MR_AM_ADMIN_USER_ENV, "foo=bar,admin1=foo1");
@@ -394,6 +395,6 @@ public class TestMRHelpers {
     MRHelpers.updateEnvironmentForMRAM(conf, env);
     Assert.assertEquals("foo1", env.get("admin1"));
     Assert.assertEquals("foo2", env.get("user"));
-    Assert.assertEquals("bar2", env.get("foo"));
+    Assert.assertEquals(("bar" + File.pathSeparator + "bar2"), env.get("foo"));
   }
 }

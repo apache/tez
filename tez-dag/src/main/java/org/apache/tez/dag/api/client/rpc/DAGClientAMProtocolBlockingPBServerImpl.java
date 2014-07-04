@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.tez.client.TezSessionStatus;
+import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClientHandler;
@@ -150,7 +150,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   public GetAMStatusResponseProto getAMStatus(RpcController controller,
       GetAMStatusRequestProto request) throws ServiceException {
     try {
-      TezSessionStatus sessionStatus = real.getSessionStatus();
+      TezAppMasterStatus sessionStatus = real.getSessionStatus();
       return GetAMStatusResponseProto.newBuilder().setStatus(
           DagTypeConverters.convertTezSessionStatusToProto(sessionStatus))
           .build();

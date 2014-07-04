@@ -27,20 +27,13 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapreduce.security.TokenCache;
-import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.NodeState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
-import org.apache.tez.client.TezClientUtils;
-import org.apache.tez.client.TezSession;
-import org.apache.tez.client.TezSessionConfiguration;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -208,8 +201,6 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     return dag;
   }
   
-  private Credentials credentials = new Credentials();
-  
   public boolean run(Configuration conf, boolean doLocalityCheck) throws Exception {
     System.out.println("Running BroadcastAndOneToOneExample");
     // conf and UGI
@@ -223,35 +214,23 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     UserGroupInformation.setConfiguration(tezConf);
     String user = UserGroupInformation.getCurrentUser().getShortUserName();
 
-    TezClient tezClient = new TezClient(tezConf);
-    ApplicationId appId = tezClient.createApplication();
-    
     // staging dir
     FileSystem fs = FileSystem.get(tezConf);
     String stagingDirStr = Path.SEPARATOR + "user" + Path.SEPARATOR
         + user + Path.SEPARATOR+ ".staging" + Path.SEPARATOR
-        + Path.SEPARATOR + appId.toString();    
+        + Path.SEPARATOR + Long.toString(System.currentTimeMillis());    
     Path stagingDir = new Path(stagingDirStr);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
     stagingDir = fs.makeQualified(stagingDir);
     
-    // security
-    TokenCache.obtainTokensForNamenodes(credentials, new Path[] {stagingDir}, tezConf);
-    TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
-
     // No need to add jar containing this class as assumed to be part of
     // the tez jars.
 
     // TEZ-674 Obtain tokens based on the Input / Output paths. For now assuming staging dir
     // is the same filesystem as the one used for Input/Output.
-    TezSession tezSession = null;
-    AMConfiguration amConfig = new AMConfiguration(null,
-        null, tezConf, credentials);
-    
-    TezSessionConfiguration sessionConfig =
-        new TezSessionConfiguration(amConfig, tezConf);
-    tezSession = new TezSession("WordCountSession", appId,
-        sessionConfig);
+    TezClient tezSession = null;
+    // needs session or else TaskScheduler does not hold onto containers
+    tezSession = new TezClient("broadcastAndOneToOneExample", tezConf, true);
     tezSession.start();
 
     DAGClient dagClient = null;

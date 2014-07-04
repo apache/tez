@@ -18,13 +18,13 @@
 
 package org.apache.tez.client;
 
-public enum TezSessionStatus {
-  /** Session is initializing itself */
+public enum TezAppMasterStatus {
+  /** App Master initializing itself */
   INITIALIZING,
-  /** Session ready to receive DAG submissions */
+  /** App Master ready to run DAG */
   READY,
-  /** Session is running a DAG */
+  /** App Master is running a DAG */
   RUNNING,
-  /** Session has shut down or is in the process of shutting down. */
+  /** App Master has shut down or is in the process of shutting down. */
   SHUTDOWN
 }

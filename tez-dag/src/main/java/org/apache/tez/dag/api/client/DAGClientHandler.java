@@ -10,7 +10,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.tez.client.PreWarmContext;
-import org.apache.tez.client.TezSessionStatus;
+import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.DAGAppMaster;
@@ -92,7 +92,7 @@ public class DAGClientHandler {
     }
   }
 
-  public synchronized TezSessionStatus getSessionStatus() throws TezException {
+  public synchronized TezAppMasterStatus getSessionStatus() throws TezException {
     if (!dagAppMaster.isSession()) {
       throw new TezException("Unsupported operation as AM not running in"
           + " session mode");
@@ -100,19 +100,19 @@ public class DAGClientHandler {
     switch (dagAppMaster.getState()) {
     case NEW:
     case INITED:
-      return TezSessionStatus.INITIALIZING;
+      return TezAppMasterStatus.INITIALIZING;
     case IDLE:
-      return TezSessionStatus.READY;
+      return TezAppMasterStatus.READY;
     case RECOVERING:
     case RUNNING:
-      return TezSessionStatus.RUNNING;
+      return TezAppMasterStatus.RUNNING;
     case ERROR:
     case FAILED:
     case SUCCEEDED:
     case KILLED:
-      return TezSessionStatus.SHUTDOWN;
+      return TezAppMasterStatus.SHUTDOWN;
     }
-    return TezSessionStatus.INITIALIZING;
+    return TezAppMasterStatus.INITIALIZING;
   }
 
   public synchronized void preWarmContainers(PreWarmContext preWarmContext)

@@ -337,10 +337,10 @@ public class TezClientUtils {
     // Setup resource requirements
     Resource capability = Records.newRecord(Resource.class);
     capability.setMemory(
-        amConfig.getAMConf().getInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB,
+        amConfig.getTezConfiguration().getInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB,
             TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB_DEFAULT));
     capability.setVirtualCores(
-        amConfig.getAMConf().getInt(TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES,
+        amConfig.getTezConfiguration().getInt(TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES,
             TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES_DEFAULT));
     if (LOG.isDebugEnabled()) {
       LOG.debug("AppMaster capability = " + capability);
@@ -375,14 +375,15 @@ public class TezClientUtils {
     List<String> vargs = new ArrayList<String>(8);
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
 
-    String amOpts = amConfig.getAMConf().get(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
+    String amOpts = amConfig.getTezConfiguration().get(
+        TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
         TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT);
     amOpts = maybeAddDefaultMemoryJavaOpts(amOpts, capability,
-        amConfig.getAMConf().getDouble(TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION,
+        amConfig.getTezConfiguration().getDouble(TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION,
             TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_DEFAULT));
     vargs.add(amOpts);
 
-    String amLogLevel = amConfig.getAMConf().get(
+    String amLogLevel = amConfig.getTezConfiguration().get(
         TezConfiguration.TEZ_AM_LOG_LEVEL,
         TezConfiguration.TEZ_AM_LOG_LEVEL_DEFAULT);
     maybeAddDefaultLoggingJavaOpts(amLogLevel, vargs);
@@ -418,14 +419,15 @@ public class TezClientUtils {
     TezYARNUtils.setupDefaultEnv(environment, conf, TezConfiguration.TEZ_AM_LAUNCH_ENV,
         TezConfiguration.TEZ_AM_LAUNCH_ENV_DEFAULT);
     
-    // finally apply env set in the code. This could potentially be removed in TEZ-692
+    // finally apply env set in the code. This could potentially be removed in
+    // TEZ-692
     if (amConfig.getEnv() != null) {
       for (Map.Entry<String, String> entry : amConfig.getEnv().entrySet()) {
-        TezYARNUtils.addToEnvironment(environment, entry.getKey(), entry.getValue(),
-            File.pathSeparator);
+        TezYARNUtils.addToEnvironment(environment, entry.getKey(),
+            entry.getValue(), File.pathSeparator);
       }
     }
-
+    
     Map<String, LocalResource> localResources =
         new TreeMap<String, LocalResource>();
 
@@ -437,7 +439,7 @@ public class TezClientUtils {
 
     // emit conf as PB file
     Configuration finalTezConf = createFinalTezConfForApp(conf,
-      amConfig.getAMConf());
+      amConfig.getTezConfiguration());
     
     FSDataOutputStream amConfPBOutBinaryStream = null;
     try {
@@ -517,7 +519,7 @@ public class TezClientUtils {
             TezConfiguration.TEZ_TASK_LAUNCH_ENV,
             TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT);
 
-        TezClientUtils.setDefaultLaunchCmdOpts(v, amConfig.getAMConf());
+        TezClientUtils.setDefaultLaunchCmdOpts(v, amConfig.getTezConfiguration());
       }
 
       // emit protobuf DAG file style
@@ -527,7 +529,7 @@ public class TezClientUtils {
             + tezSysStagingPath + " binaryConfPath :" + binaryConfPath + " sessionJarsPath :"
             + sessionJarsPath + " binaryPlanPath :" + binaryPath);
       }
-      amConfig.getAMConf().set(TezConfiguration.TEZ_AM_PLAN_REMOTE_PATH,
+      amConfig.getTezConfiguration().set(TezConfiguration.TEZ_AM_PLAN_REMOTE_PATH,
           binaryPath.toUri().toString());
 
       DAGPlan dagPB = dag.createDag(null);
@@ -576,7 +578,7 @@ public class TezClientUtils {
       appContext.setQueue(amConfig.getQueueName());
     }
     appContext.setApplicationName(amName);
-    appContext.setCancelTokensWhenComplete(amConfig.getAMConf().getBoolean(
+    appContext.setCancelTokensWhenComplete(amConfig.getTezConfiguration().getBoolean(
         TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN,
         TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN_DEFAULT));
     appContext.setAMContainerSpec(amContainer);

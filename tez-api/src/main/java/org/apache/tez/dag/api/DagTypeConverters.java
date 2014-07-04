@@ -40,7 +40,7 @@ import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.PreWarmContext;
-import org.apache.tez.client.TezSessionStatus;
+import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
@@ -342,24 +342,24 @@ public class DagTypeConverters {
     return new ProcessorDescriptor(className).setUserPayload(bb);
   }
 
-  public static TezSessionStatus convertTezSessionStatusFromProto(
+  public static TezAppMasterStatus convertTezSessionStatusFromProto(
       TezSessionStatusProto proto) {
     switch (proto) {
     case INITIALIZING:
-      return TezSessionStatus.INITIALIZING;
+      return TezAppMasterStatus.INITIALIZING;
     case READY:
-      return TezSessionStatus.READY;
+      return TezAppMasterStatus.READY;
     case RUNNING:
-      return TezSessionStatus.RUNNING;
+      return TezAppMasterStatus.RUNNING;
     case SHUTDOWN:
-      return TezSessionStatus.SHUTDOWN;
+      return TezAppMasterStatus.SHUTDOWN;
     }
     throw new TezUncheckedException("Could not convert to TezSessionStatus from"
         + " proto");
   }
 
   public static TezSessionStatusProto convertTezSessionStatusToProto(
-      TezSessionStatus status) {
+      TezAppMasterStatus status) {
     switch (status) {
     case INITIALIZING:
       return TezSessionStatusProto.INITIALIZING;
