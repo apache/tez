@@ -409,10 +409,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               EnumSet.of(VertexState.TERMINATING, VertexState.KILLED, VertexState.FAILED),
               VertexEventType.V_TASK_COMPLETED,
               new TaskCompletedTransition())
-          .addTransition(VertexState.TERMINATING,
-              EnumSet.of(VertexState.TERMINATING),
-              VertexEventType.V_ROOT_INPUT_INITIALIZED,
-              new RootInputInitializedTransition())
           .addTransition(
               VertexState.TERMINATING,
               VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
@@ -421,6 +417,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.TERMINATING, VertexState.TERMINATING,
               EnumSet.of(VertexEventType.V_TERMINATE,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
+                  VertexEventType.V_ROOT_INPUT_INITIALIZED,
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
                   VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
@@ -465,10 +462,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexState.FAILED,
               VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
-          .addTransition(VertexState.FAILED,
-              EnumSet.of(VertexState.FAILED),
-              VertexEventType.V_ROOT_INPUT_INITIALIZED,
-              new RootInputInitializedTransition())
           // Ignore-able events
           .addTransition(VertexState.FAILED, VertexState.FAILED,
               EnumSet.of(VertexEventType.V_TERMINATE,
@@ -479,6 +472,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED,
                   VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
+                  VertexEventType.V_ROOT_INPUT_INITIALIZED,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
                   VertexEventType.V_ROOT_INPUT_FAILED,
@@ -489,10 +483,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexState.KILLED,
               VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
-          .addTransition(VertexState.KILLED,
-              EnumSet.of(VertexState.KILLED),
-              VertexEventType.V_ROOT_INPUT_INITIALIZED,
-              new RootInputInitializedTransition())
           // Ignore-able events
           .addTransition(VertexState.KILLED, VertexState.KILLED,
               EnumSet.of(VertexEventType.V_TERMINATE,
@@ -505,15 +495,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED,
+                  VertexEventType.V_ROOT_INPUT_INITIALIZED,
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
                   VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_RECOVERED))
 
           // No transitions from INTERNAL_ERROR state. Ignore all.
-          .addTransition(VertexState.ERROR,
-              EnumSet.of(VertexState.ERROR),
-              VertexEventType.V_ROOT_INPUT_INITIALIZED,
-              new RootInputInitializedTransition())
           .addTransition(
               VertexState.ERROR,
               VertexState.ERROR,
@@ -528,6 +515,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_RESCHEDULED,
                   VertexEventType.V_INTERNAL_ERROR,
+                  VertexEventType.V_ROOT_INPUT_INITIALIZED,
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
                   VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_RECOVERED))
