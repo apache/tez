@@ -18,15 +18,14 @@
 package org.apache.tez.runtime.library.input;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.tez.common.TezJobConfig;
@@ -72,7 +71,7 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
 
   private TezCounter inputKeyCounter;
   private TezCounter inputValueCounter;
-  
+
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
   @Override
@@ -87,7 +86,7 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
           + getContext().getSourceVertexName());
       return Collections.emptyList();
     }
-    
+
     long initialMemoryRequest = Shuffle.getInitialMemoryRequirement(conf,
         getContext().getTotalMemoryAvailableToTask());
     this.memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
@@ -100,7 +99,7 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
 
     return Collections.emptyList();
   }
-  
+
   @Override
   public synchronized void start() throws IOException {
     if (!isStarted.get()) {
@@ -128,8 +127,8 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
    * @return true if the input is ready for consumption, or if an error occurred
    *         processing fetching the input. false if the shuffle and merge are
    *         still in progress
-   * @throws InterruptedException 
-   * @throws IOException 
+   * @throws InterruptedException
+   * @throws IOException
    */
   public synchronized boolean isInputReady() throws IOException, InterruptedException {
     Preconditions.checkState(isStarted.get(), "Must start input before invoking this method");
@@ -154,7 +153,7 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
       }
       localShuffleCopy = shuffle;
     }
-    
+
     TezRawKeyValueIterator localRawIter = localShuffleCopy.waitForInput();
     synchronized(this) {
       rawIter = localRawIter;
@@ -284,4 +283,52 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
       return valuesIter.getValues();
     }
   };
+
+
+  private static final Set<String> confKeys = new HashSet<String>();
+
+  static {
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COMBINE_MIN_SPILLS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTERS_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_NAME_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUPS_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS);
+  }
+
+  // TODO Maybe add helper methods to extract keys
+  // TODO Maybe add constants or an Enum to access the keys
+
+  @InterfaceAudience.Private
+  public static Set<String> getConfigurationKeySet() {
+    return Collections.unmodifiableSet(confKeys);
+  }
+
 }

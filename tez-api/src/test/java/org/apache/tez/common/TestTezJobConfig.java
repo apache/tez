@@ -42,7 +42,7 @@ public class TestTezJobConfig {
       }
     }
 
-    Set<String> actualKeySet = TezJobConfig.getKeySet();
+    Set<String> actualKeySet = TezJobConfig.getRuntimeConfigKeySet();
     for (String key : actualKeySet) {
       if (!expectedKeys.remove(key)) {
         fail("Found unexpected key: " + key + " in key set");

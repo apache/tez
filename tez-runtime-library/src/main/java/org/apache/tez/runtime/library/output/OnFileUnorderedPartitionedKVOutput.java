@@ -19,12 +19,17 @@
 package org.apache.tez.runtime.library.output;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.base.Preconditions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.api.Event;
@@ -34,17 +39,10 @@ import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.writers.UnorderedPartitionedKVWriter;
 
-import com.google.common.base.Preconditions;
-
 /**
  * <code>OnFileUnorderedPartitionedKVOutput</code> is a {@link LogicalOutput} which can be used to
  * write Key-Value pairs. The key-value pairs are written to the correct partition based on the
  * configured Partitioner.
- * 
- * This currently acts as a usable placeholder for writing unordered output (the data is sorted,
- * which should be functionally correct since there's no guarantees on order without a sort).
- * TEZ-661 to add a proper implementation.
- * 
  */
 public class OnFileUnorderedPartitionedKVOutput implements LogicalOutput {
 
@@ -62,7 +60,8 @@ public class OnFileUnorderedPartitionedKVOutput implements LogicalOutput {
     this.outputContext = outputContext;
     this.conf = TezUtils.createConfFromUserPayload(outputContext.getUserPayload());
     this.conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, outputContext.getWorkDirs());
-    this.conf.setInt(TezRuntimeFrameworkConfigs.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS, this.numPhysicalOutputs);
+    this.conf.setInt(TezRuntimeFrameworkConfigs.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS,
+        this.numPhysicalOutputs);
     this.memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
     outputContext.requestInitialMemory(
         UnorderedPartitionedKVWriter.getInitialMemoryRequirement(conf,
@@ -102,5 +101,34 @@ public class OnFileUnorderedPartitionedKVOutput implements LogicalOutput {
   @Override
   public synchronized void setNumPhysicalOutputs(int numOutputs) {
     this.numPhysicalOutputs = numOutputs;
+  }
+
+  private static final Set<String> confKeys = new HashSet<String>();
+
+  static {
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTERS_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_NAME_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUPS_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED);
+  }
+
+  // TODO Maybe add helper methods to extract keys
+  // TODO Maybe add constants or an Enum to access the keys
+
+  @InterfaceAudience.Private
+  public static Set<String> getConfigurationKeySet() {
+    return Collections.unmodifiableSet(confKeys);
   }
 }

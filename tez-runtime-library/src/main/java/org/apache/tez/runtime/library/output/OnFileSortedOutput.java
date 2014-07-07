@@ -21,11 +21,17 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -47,10 +53,6 @@ import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.protobuf.ByteString;
 
 /**
  * <code>OnFileSortedOutput</code> is an {@link AbstractLogicalOutput} which sorts key/value pairs 
@@ -186,5 +188,41 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
     events.add(csdme);
 
     return events;
+  }
+
+
+  private static final Set<String> confKeys = new HashSet<String>();
+
+  static {
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_SORT_MB);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COMBINE_MIN_SPILLS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SORT_THREADS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTERS_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_NAME_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUPS_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERNAL_SORTER_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED);
+  }
+
+  // TODO Maybe add helper methods to extract keys
+  // TODO Maybe add constants or an Enum to access the keys
+
+  @InterfaceAudience.Private
+  public static Set<String> getConfigurationKeySet() {
+    return Collections.unmodifiableSet(confKeys);
   }
 }

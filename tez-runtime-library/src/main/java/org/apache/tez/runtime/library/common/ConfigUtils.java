@@ -18,6 +18,14 @@
 
 package org.apache.tez.runtime.library.common;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import com.google.common.base.Preconditions;
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableComparable;
@@ -28,7 +36,10 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
+@InterfaceAudience.Private
 public class ConfigUtils {
+
+
 
   public static Class<? extends CompressionCodec> getIntermediateOutputCompressorClass(
       Configuration conf, Class<DefaultCodec> defaultValue) {
@@ -145,4 +156,96 @@ public class ConfigUtils {
     return conf.getBoolean("mapred.mapper.new-api", false);
   }
 
+  @InterfaceAudience.Private
+  public static Map<String, String> extractConfigurationMap(Map<String, String> confMap, Set<String> allowedKeys) {
+    Preconditions.checkArgument(confMap != null, "ConfMap cannot be null");
+    Preconditions.checkArgument(allowedKeys != null, "Valid key set cannot be empty");
+    Map<String, String> map = new HashMap<String, String>();
+    for (Map.Entry<String, String> entry : confMap.entrySet()) {
+      if (allowedKeys.contains(entry.getKey())) {
+        map.put(entry.getKey(), entry.getValue());
+      }
+    }
+    return map;
+  }
+
+  @InterfaceAudience.Private
+  public static void addConfigMapToConfiguration(Configuration conf, Map<String, String> confMap) {
+    Preconditions.checkArgument(conf != null, "Configuration cannot be null");
+    Preconditions.checkArgument(confMap != null, "Configuration map cannot be null");
+    for (Map.Entry<String, String> entry : confMap.entrySet()) {
+      conf.set(entry.getKey(), entry.getValue());
+    }
+  }
+
+  @InterfaceAudience.Private
+  public static Map<String, String> extractConfigurationMap(Map<String, String> confMap,
+                                                            List<Set<String>> validKeySets,
+                                                            List<String> allowedPrefixes) {
+    Preconditions.checkArgument(confMap != null, "ConfMap cannot be null");
+    Preconditions.checkArgument(validKeySets != null, "Valid key set cannot be empty");
+    Preconditions.checkArgument(allowedPrefixes != null, "Allowed prefixes cannot be null");
+
+    return extractConfigurationMapInternal(confMap.entrySet(), validKeySets, allowedPrefixes);
+  }
+
+  @InterfaceAudience.Private
+  public static Map<String, String> extractConfigurationMap(Configuration conf,
+                                                            List<Set<String>> validKeySets,
+                                                            List<String> allowedPrefixes) {
+    Preconditions.checkArgument(conf != null, "conf cannot be null");
+    Preconditions.checkArgument(validKeySets != null, "Valid key set cannot be empty");
+    Preconditions.checkArgument(allowedPrefixes != null, "Allowed prefixes cannot be null");
+    return extractConfigurationMapInternal(conf, validKeySets, allowedPrefixes);
+  }
+
+  @InterfaceAudience.Private
+  public static boolean doesKeyQualify(String key, List<Set<String>> validKeySets, List<String> allowedPrefixes) {
+    Preconditions.checkArgument(key != null, "key cannot be null");
+    Preconditions.checkArgument(validKeySets != null, "Valid key set cannot be empty");
+    Preconditions.checkArgument(allowedPrefixes != null, "Allowed prefixes cannot be null");
+    for (Set<String> set : validKeySets) {
+      if (set.contains(key)) {
+        return true;
+      }
+    }
+    for (String prefix : allowedPrefixes) {
+      if (key.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @InterfaceAudience.Private
+  public static void mergeConfsWithExclusions(Configuration destConf, Configuration srcConf, Set<String> excludedKeySet) {
+    Preconditions.checkState(destConf != null, "Destination conf cannot be null");
+    Preconditions.checkState(srcConf != null, "Source conf cannot be null");
+    for (Map.Entry<String, String> entry : srcConf) {
+      if (!excludedKeySet.contains(entry.getKey())) {
+        destConf.set(entry.getKey(), entry.getValue());
+      }
+    }
+  }
+
+  private static Map<String, String> extractConfigurationMapInternal(
+      Iterable<Map.Entry<String, String>> iterable, List<Set<String>> validKeySets, List<String> allowedPrefixes) {
+    Set<String> validKeys = new HashSet<String>();
+    for (Set<String> set : validKeySets) {
+      validKeys.addAll(set);
+    }
+    Map<String, String> localConfMap = new HashMap<String, String>();
+    for (Map.Entry<String, String> entry : iterable) {
+      if (validKeys.contains(entry.getKey())) {
+        localConfMap.put(entry.getKey(), entry.getValue());
+      } else {
+        for (String prefix : allowedPrefixes) {
+          if (entry.getKey().startsWith(prefix)) {
+            localConfMap.put(entry.getKey(), entry.getValue());
+          }
+        }
+      }
+    }
+    return localConfMap;
+  }
 }

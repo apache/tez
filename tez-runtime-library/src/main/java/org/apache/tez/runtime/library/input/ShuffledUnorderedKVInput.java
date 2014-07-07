@@ -19,15 +19,14 @@ git diff * Licensed to the Apache Software Foundation (ASF) under one
 package org.apache.tez.runtime.library.input;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
@@ -53,7 +52,7 @@ import com.google.common.base.Preconditions;
 public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
 
   private static final Log LOG = LogFactory.getLog(ShuffledUnorderedKVInput.class);
-  
+
   private Configuration conf;
   private ShuffleManager shuffleManager;
   private final BlockingQueue<Event> pendingEvents = new LinkedBlockingQueue<Event>();
@@ -61,10 +60,10 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
   private MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;
   @SuppressWarnings("rawtypes")
   private ShuffledUnorderedKVReader kvReader;
-  
+
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
   private TezCounter inputRecordCounter;
-  
+
   private SimpleFetchedInputAllocator inputManager;
   private ShuffleEventHandler inputEventHandler;
 
@@ -203,14 +202,53 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
     return SimpleFetchedInputAllocator.getInitialMemoryReq(conf,
         getContext().getTotalMemoryAvailableToTask());
   }
-  
-  
+
+
   @SuppressWarnings("rawtypes")
   private ShuffledUnorderedKVReader createReader(TezCounter inputRecordCounter, CompressionCodec codec,
       int ifileBufferSize, boolean ifileReadAheadEnabled, int ifileReadAheadLength)
       throws IOException {
     return new ShuffledUnorderedKVReader(shuffleManager, conf, codec, ifileReadAheadEnabled,
         ifileReadAheadLength, ifileBufferSize, inputRecordCounter);
+  }
+
+  private static final Set<String> confKeys = new HashSet<String>();
+
+  static {
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTERS_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_NAME_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUPS_MAX_KEY);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC);
+  }
+
+  // TODO Maybe add helper methods to extract keys
+  // TODO Maybe add constants or an Enum to access the keys
+
+  @InterfaceAudience.Private
+  public static Set<String> getConfigurationKeySet() {
+    return Collections.unmodifiableSet(confKeys);
   }
 
 }

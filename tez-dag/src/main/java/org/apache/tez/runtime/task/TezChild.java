@@ -329,6 +329,8 @@ public class TezChild {
 
     final Configuration defaultConf = new Configuration();
     // Pull in configuration specified for the session.
+    // TODO TEZ-1233. This needs to be moved over the wire rather than localizing the file
+    // for each and every task, and reading it back from disk. Also needs to be per vertex.
     TezUtils.addUserSpecifiedTezConfiguration(defaultConf);
     UserGroupInformation.setConfiguration(defaultConf);
     Limits.setConfiguration(defaultConf);
