@@ -104,6 +104,20 @@ public class VertexStatus {
     countersInitialized.set(true);
     return vertexCounters;
   }
+  
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof VertexStatus){
+      VertexStatus other = (VertexStatus)obj;
+      return getState().equals(other.getState())
+          && getDiagnostics().equals(getDiagnostics())
+          && getProgress().equals(getProgress())
+          && 
+          ((getVertexCounters() == null && other.getVertexCounters() == null) 
+              || getVertexCounters().equals(other.getVertexCounters()));
+    }
+    return false;
+  }
 
   @Override
   public String toString() {

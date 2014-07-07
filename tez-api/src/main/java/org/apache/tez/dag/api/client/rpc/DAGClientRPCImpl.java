@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
+
 import javax.annotation.Nullable;
 
 import org.apache.commons.logging.Log;
@@ -54,6 +55,7 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGReques
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ServiceException;
 
 public class DAGClientRPCImpl implements DAGClient {
@@ -64,9 +66,11 @@ public class DAGClientRPCImpl implements DAGClient {
   private final ApplicationId appId;
   private final String dagId;
   private final TezConfiguration conf;
-  private ApplicationReport appReport;
+  @VisibleForTesting
+  ApplicationReport appReport;
   private YarnClient yarnClient;
-  private DAGClientAMProtocolBlockingPB proxy = null;
+  @VisibleForTesting
+  DAGClientAMProtocolBlockingPB proxy = null;
 
   public DAGClientRPCImpl(ApplicationId appId, String dagId,
       TezConfiguration conf) {

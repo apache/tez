@@ -49,6 +49,19 @@ public class Progress {
   }
   
   @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof Progress){
+      Progress other = (Progress)obj;
+      return getTotalTaskCount() == other.getTotalTaskCount() 
+          && getSucceededTaskCount() == other.getSucceededTaskCount()
+          && getRunningTaskCount() == other.getRunningTaskCount()
+          && getFailedTaskCount() == other.getFailedTaskCount()
+          && getKilledTaskCount() == other.getKilledTaskCount();
+    }
+    return false;
+  }
+  
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("TotalTasks: ");

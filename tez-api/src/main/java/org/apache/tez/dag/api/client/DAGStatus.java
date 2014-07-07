@@ -141,6 +141,21 @@ public class DAGStatus {
   }
 
   @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof DAGStatus){
+      DAGStatus other = (DAGStatus)obj;
+      return getState() == other.getState()
+          && getDiagnostics().equals(other.getDiagnostics())
+          && getDAGProgress().equals(getDAGProgress())
+          && getVertexProgress().equals(getVertexProgress())
+          && 
+          ((getDAGCounters() == null && other.getDAGCounters() == null) 
+            || getDAGCounters().equals(other.getDAGCounters()));
+    }
+    return false;
+  }
+  
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("status=" + getState()
