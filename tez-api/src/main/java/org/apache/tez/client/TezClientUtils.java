@@ -326,9 +326,9 @@ public class TezClientUtils {
           throws IOException, YarnException{
 
     Preconditions.checkNotNull(sessionCreds);
-    
+
     FileSystem fs = TezClientUtils.ensureStagingDirExists(conf,
-        amConfig.getStagingDir());
+        TezCommonUtils.getTezBaseStagingPath(conf));
     String strAppId = appId.toString();
     Path tezSysStagingPath = TezCommonUtils.createTezSystemStagingPath(conf, strAppId);
     Path binaryConfPath = TezCommonUtils.getTezConfStagingPath(tezSysStagingPath);

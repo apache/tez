@@ -72,10 +72,6 @@ class AMConfiguration {
     this.yarnConfig = yarnConf;
   }
 
-  Path getStagingDir() {
-    return TezCommonUtils.getTezBaseStagingPath(tezConf);
-  }
-
   String getQueueName() {
     return this.tezConf.get(TezConfiguration.TEZ_QUEUE_NAME);
   }
