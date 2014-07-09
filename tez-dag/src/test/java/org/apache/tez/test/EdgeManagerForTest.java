@@ -76,7 +76,7 @@ public class EdgeManagerForTest extends EdgeManager {
   }
 
   @Override
-  public int routeInputErrorEventToSource(InputReadErrorEvent event, int destinationTaskIndex) {
+  public int routeInputErrorEventToSource(InputReadErrorEvent event, int destinationTaskIndex, int destinationFailedInputIndex) {
     return 0;
   }
 

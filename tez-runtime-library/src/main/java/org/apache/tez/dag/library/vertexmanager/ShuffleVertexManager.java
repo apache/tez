@@ -235,14 +235,14 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
     @Override
     public int routeInputErrorEventToSource(InputReadErrorEvent event,
-        int destinationTaskIndex) {
+        int destinationTaskIndex, int destinationFailedInputIndex) {
       int partitionRange = 1;
       if(destinationTaskIndex < numDestinationTasks-1) {
         partitionRange = basePartitionRange;
       } else {
         partitionRange = remainderRangeForLastShuffler;
       }
-      return event.getIndex()/partitionRange;
+      return destinationFailedInputIndex/partitionRange;
     }
 
     @Override

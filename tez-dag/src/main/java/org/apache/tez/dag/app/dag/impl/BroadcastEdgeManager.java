@@ -70,8 +70,8 @@ public class BroadcastEdgeManager extends EdgeManager {
 
   @Override
   public int routeInputErrorEventToSource(InputReadErrorEvent event,
-      int destinationTaskIndex) {
-    return event.getIndex();
+      int destinationTaskIndex, int destinationFailedInputIndex) {
+    return destinationFailedInputIndex;
   }
   
   @Override

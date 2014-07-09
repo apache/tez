@@ -62,7 +62,7 @@ public class OneToOneEdgeManager extends EdgeManager {
 
   @Override
   public int routeInputErrorEventToSource(InputReadErrorEvent event,
-      int destinationTaskIndex) {
+      int destinationTaskIndex, int destinationFailedInputIndex) {
     return destinationTaskIndex;
   }
   

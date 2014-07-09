@@ -239,7 +239,7 @@ public class Edge {
             .getTaskAttemptID();
         int destTaskIndex = destAttemptId.getTaskID().getId();
         int srcTaskIndex = edgeManager.routeInputErrorEventToSource(event,
-            destTaskIndex);
+            destTaskIndex, event.getIndex());
         int numConsumers = edgeManager.getNumDestinationConsumerTasks(
             srcTaskIndex);
         Task srcTask = sourceVertex.getTask(srcTaskIndex);

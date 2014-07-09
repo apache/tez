@@ -112,11 +112,17 @@ public abstract class EdgeManager {
   
   /**
    * Return the source task index to which to send the input error event
-   * @param event Input read error event. Has more information about the error
-   * @param destinationTaskIndex Destination task that reported the error
+   * 
+   * @param event
+   *          Input read error event. Has more information about the error
+   * @param destinationTaskIndex
+   *          Destination task that reported the error
+   * @param destinationFailedInputIndex
+   *          Index of the physical input on the destination task that reported 
+   *          the error
    * @return Index of the source task that created the unavailable input
    */
   public abstract int routeInputErrorEventToSource(InputReadErrorEvent event,
-      int destinationTaskIndex);
+      int destinationTaskIndex, int destinationFailedInputIndex);
   
 }
