@@ -179,7 +179,7 @@ public class TestShuffleVertexManager {
     manager = createManager(conf, mockContext, 0.1f, 0.1f);
     manager.onVertexStarted(null);
     Assert.assertTrue(manager.pendingTasks.size() == 4); // no tasks scheduled
-    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.totalNumSourceTasks == 4);
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(0));
     // managedVertex tasks reduced
@@ -199,11 +199,11 @@ public class TestShuffleVertexManager {
     manager = createManager(conf, mockContext, 0.5f, 0.5f);
     manager.onVertexStarted(null);
     Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
-    Assert.assertEquals(4, manager.numSourceTasks);
+    Assert.assertEquals(4, manager.totalNumSourceTasks);
     // task completion from non-bipartite stage does nothing
     manager.onSourceTaskCompleted(mockSrcVertexId3, new Integer(0));
     Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
-    Assert.assertEquals(4, manager.numSourceTasks);
+    Assert.assertEquals(4, manager.totalNumSourceTasks);
     Assert.assertEquals(0, manager.numSourceTasksCompleted);
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(0));
@@ -241,6 +241,10 @@ public class TestShuffleVertexManager {
     EdgeManager edgeManager = newEdgeManagers.values().iterator().next();
     Map<Integer, List<Integer>> targets = Maps.newHashMap();
     DataMovementEvent dmEvent = new DataMovementEvent(1, new byte[0]);
+    // 4 source task outputs - same as original number of partitions
+    Assert.assertEquals(4, edgeManager.getNumSourceTaskPhysicalOutputs(0));
+    // 4 destination task inputs - 2 source tasks + 2 merged partitions
+    Assert.assertEquals(4, edgeManager.getNumDestinationTaskPhysicalInputs(0));
     edgeManager.routeDataMovementEventToDestination(dmEvent, 1, dmEvent.getSourceIndex(), targets);
     Assert.assertEquals(1, targets.size());
     Map.Entry<Integer, List<Integer>> e = targets.entrySet().iterator().next();
@@ -364,7 +368,7 @@ public class TestShuffleVertexManager {
     // source vertex have some tasks. min, max == 0
     manager = createManager(conf, mockContext, 0, 0);
     manager.onVertexStarted(null);
-    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.totalNumSourceTasks == 4);
     Assert.assertTrue(manager.totalTasksToSchedule == 3);
     Assert.assertTrue(manager.numSourceTasksCompleted == 0);
     Assert.assertTrue(manager.pendingTasks.isEmpty());
@@ -374,11 +378,11 @@ public class TestShuffleVertexManager {
     manager = createManager(conf, mockContext, 0.25f, 0.25f);
     manager.onVertexStarted(null);
     Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.totalNumSourceTasks == 4);
     // task completion from non-bipartite stage does nothing
     manager.onSourceTaskCompleted(mockSrcVertexId3, new Integer(0));
     Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.totalNumSourceTasks == 4);
     Assert.assertTrue(manager.numSourceTasksCompleted == 0);
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(0));
     Assert.assertTrue(manager.pendingTasks.isEmpty());
@@ -389,11 +393,11 @@ public class TestShuffleVertexManager {
     manager = createManager(conf, mockContext, 1.0f, 1.0f);
     manager.onVertexStarted(null);
     Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.totalNumSourceTasks == 4);
     // task completion from non-bipartite stage does nothing
     manager.onSourceTaskCompleted(mockSrcVertexId3, new Integer(0));
     Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.totalNumSourceTasks == 4);
     Assert.assertTrue(manager.numSourceTasksCompleted == 0);
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(0));
     Assert.assertTrue(manager.pendingTasks.size() == 3);
@@ -413,11 +417,11 @@ public class TestShuffleVertexManager {
     manager = createManager(conf, mockContext, 1.0f, 1.0f);
     manager.onVertexStarted(null);
     Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.totalNumSourceTasks == 4);
     // task completion from non-bipartite stage does nothing
     manager.onSourceTaskCompleted(mockSrcVertexId3, new Integer(0));
     Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.totalNumSourceTasks == 4);
     Assert.assertTrue(manager.numSourceTasksCompleted == 0);
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(0));
     Assert.assertTrue(manager.pendingTasks.size() == 3);
@@ -437,7 +441,7 @@ public class TestShuffleVertexManager {
     manager = createManager(conf, mockContext, 0.25f, 0.75f);
     manager.onVertexStarted(null);
     Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.totalNumSourceTasks == 4);
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(0));
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(1));
     Assert.assertTrue(manager.pendingTasks.size() == 2);
@@ -462,7 +466,7 @@ public class TestShuffleVertexManager {
     manager = createManager(conf, mockContext, 0.25f, 1.0f);
     manager.onVertexStarted(null);
     Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
-    Assert.assertTrue(manager.numSourceTasks == 4);
+    Assert.assertTrue(manager.totalNumSourceTasks == 4);
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(0));
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(1));
     Assert.assertTrue(manager.pendingTasks.size() == 2);
