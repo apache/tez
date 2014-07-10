@@ -660,7 +660,7 @@ public class TestTaskAttempt {
             expectedEventsAfterTerminating), AMSchedulerEventTAEnded.class, 1);
 
     taImpl.handle(new TaskAttemptEvent(taskAttemptID,
-        TaskAttemptEventType.TA_CONTAINER_PREEMPTED));
+        TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM));
     int expectedEventAfterTerminated = expectedEventsAfterTerminating + 0;
     arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEventAfterTerminated)).handle(arg.capture());

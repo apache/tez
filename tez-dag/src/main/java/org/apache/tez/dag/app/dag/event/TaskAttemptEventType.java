@@ -53,7 +53,7 @@ public enum TaskAttemptEventType {
   TA_CONTAINER_TERMINATED,
 
   // Container has either been preempted or will be preempted
-  TA_CONTAINER_PREEMPTED,
+  TA_CONTAINER_TERMINATED_BY_SYSTEM,
 
   // The node running the task attempt failed.
   TA_NODE_FAILED,

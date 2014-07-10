@@ -18,30 +18,35 @@
 
 package org.apache.tez.dag.app.rm.container;
 
-import org.apache.hadoop.yarn.api.records.ContainerStatus;
+import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 
 public class AMContainerEventCompleted extends AMContainerEvent {
 
-  private final ContainerStatus containerStatus;
-  private final boolean isPreempted;
+  private final int exitStatus;
+  private final String diagnostics;
 
-  public AMContainerEventCompleted(ContainerStatus containerStatus) {
-    this(containerStatus, false);
-  }
-  
-  public AMContainerEventCompleted(ContainerStatus containerStatus, 
-      boolean isPreempted) {
-    super(containerStatus.getContainerId(), AMContainerEventType.C_COMPLETED);
-    this.containerStatus = containerStatus;
-    this.isPreempted = isPreempted;
+  public AMContainerEventCompleted(ContainerId containerId, 
+      int exitStatus, String diagnostics) {
+    super(containerId, AMContainerEventType.C_COMPLETED);
+    this.exitStatus = exitStatus;
+    this.diagnostics = diagnostics;
   }
 
-  public ContainerStatus getContainerStatus() {
-    return this.containerStatus;
-  }
-  
   public boolean isPreempted() {
-    return isPreempted;
+    return (exitStatus == ContainerExitStatus.PREEMPTED);
+  }
+  
+  public boolean isDiskFailed() {
+    return (exitStatus == ContainerExitStatus.DISKS_FAILED);
+  }
+  
+  public String getDiagnostics() {
+    return diagnostics;
+  }
+  
+  public int getContainerExitStatus() {
+    return exitStatus;
   }
 
 }

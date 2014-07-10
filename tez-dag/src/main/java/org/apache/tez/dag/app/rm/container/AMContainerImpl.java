@@ -49,7 +49,7 @@ import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerPreempted;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminatedBySystem;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminating;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventNodeFailed;
@@ -540,7 +540,7 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventCompleted event = (AMContainerEventCompleted)cEvent;
-      String diag = event.getContainerStatus().getDiagnostics();
+      String diag = event.getDiagnostics();
       if (!(diag == null || diag.equals(""))) {
         LOG.info("Container " + container.getContainerId()
             + " exited with diagnostics set to " + diag);
@@ -653,8 +653,8 @@ public class AMContainerImpl implements AMContainer {
       AMContainerEventCompleted event = (AMContainerEventCompleted) cEvent;
       if (container.pendingAttempt != null) {
         String errorMessage = getMessage(container, event);
-        if (event.isPreempted()) {
-          container.sendPreemptedToTaskAttempt(container.pendingAttempt,
+        if (event.isPreempted() || event.isDiskFailed()) {
+          container.sendContainerTerminatedBySystemToTaskAttempt(container.pendingAttempt,
               errorMessage);
         } else {
           container.sendTerminatedToTaskAttempt(container.pendingAttempt,
@@ -667,22 +667,19 @@ public class AMContainerImpl implements AMContainer {
       container.containerLocalResources = null;
       container.additionalLocalResources = null;
       container.unregisterFromTAListener();
-      String diag = event.getContainerStatus().getDiagnostics();
+      String diag = event.getDiagnostics();
       if (!(diag == null || diag.equals(""))) {
         LOG.info("Container " + container.getContainerId()
             + " exited with diagnostics set to " + diag);
       }
-      container.logStopped(event.isPreempted() ?
-            ContainerExitStatus.PREEMPTED
-          : ContainerExitStatus.SUCCESS);
+      container.logStopped(event.getContainerExitStatus());
     }
 
     public String getMessage(AMContainerImpl container,
         AMContainerEventCompleted event) {
       return "Container" + container.getContainerId()
-          + (event.isPreempted() ? " PREEMPTED" : " COMPLETED")
-          + " while trying to launch. Diagnostics: ["
-          + event.getContainerStatus().getDiagnostics() +"]";
+          + " finished while trying to launch. Diagnostics: ["
+          + event.getDiagnostics() +"]";
     }
   }
 
@@ -835,9 +832,8 @@ public class AMContainerImpl implements AMContainer {
     public String getMessage(
         AMContainerImpl container, AMContainerEventCompleted event) {
       return "Container " + container.getContainerId()
-          + (event.isPreempted() ? " PREEMPTED" : " COMPLETED")
-          + " with diagnostics set to ["
-          + event.getContainerStatus().getDiagnostics() + "]";
+          + " finished with diagnostics set to ["
+          + event.getDiagnostics() + "]";
     }
   }
 
@@ -907,8 +903,8 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventCompleted event = (AMContainerEventCompleted) cEvent;
-      if (event.isPreempted()) {
-        container.sendPreemptedToTaskAttempt(container.runningAttempt,
+      if (event.isPreempted() || event.isDiskFailed()) {
+        container.sendContainerTerminatedBySystemToTaskAttempt(container.runningAttempt,
             getMessage(container, event));
       } else {
         container.sendTerminatedToTaskAttempt(container.runningAttempt,
@@ -997,7 +993,7 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventCompleted event = (AMContainerEventCompleted) cEvent;
-      String diag = event.getContainerStatus().getDiagnostics();
+      String diag = event.getDiagnostics();
       for (TezTaskAttemptID taId : container.failedAssignments) {
         container.sendTerminatedToTaskAttempt(taId, diag);
       }
@@ -1124,9 +1120,9 @@ public class AMContainerImpl implements AMContainer {
     sendEvent(new TaskAttemptEventContainerTerminated(taId, message));
   }
   
-  protected void sendPreemptedToTaskAttempt(
+  protected void sendContainerTerminatedBySystemToTaskAttempt(
     TezTaskAttemptID taId, String message) {
-      sendEvent(new TaskAttemptEventContainerPreempted(taId, message));
+      sendEvent(new TaskAttemptEventContainerTerminatedBySystem(taId, message));
   }
 
   protected void sendTerminatingToTaskAttempt(TezTaskAttemptID taId,

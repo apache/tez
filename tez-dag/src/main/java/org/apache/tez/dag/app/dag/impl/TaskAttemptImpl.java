@@ -231,7 +231,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           new ContainerCompletedBeforeRunningTransition())
       .addTransition(TaskAttemptStateInternal.START_WAIT,
           TaskAttemptStateInternal.KILLED,
-          TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
           new ContainerCompletedBeforeRunningTransition(KILLED_HELPER))
 
       .addTransition(TaskAttemptStateInternal.RUNNING,
@@ -279,7 +279,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           new ContainerCompletedWhileRunningTransition())
       .addTransition(TaskAttemptStateInternal.RUNNING,
           TaskAttemptStateInternal.KILLED,
-          TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
           new ContainerCompletedWhileRunningTransition(KILLED_HELPER))
       .addTransition(
           TaskAttemptStateInternal.RUNNING,
@@ -334,7 +334,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           new ContainerCompletedBeforeRunningTransition())
       .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
           TaskAttemptStateInternal.KILLED,
-          TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
           new ContainerCompletedBeforeRunningTransition(KILLED_HELPER))
       .addTransition(
           TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
@@ -355,7 +355,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptStateInternal.KILL_IN_PROGRESS,
           TaskAttemptStateInternal.KILL_IN_PROGRESS,
           EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY,
-              TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+              TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
               TaskAttemptEventType.TA_STATUS_UPDATE,
               TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
               TaskAttemptEventType.TA_COMMIT_PENDING,
@@ -379,7 +379,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptStateInternal.FAIL_IN_PROGRESS,
           TaskAttemptStateInternal.FAIL_IN_PROGRESS,
           EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY,
-              TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+              TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
               TaskAttemptEventType.TA_STATUS_UPDATE,
               TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
               TaskAttemptEventType.TA_COMMIT_PENDING,
@@ -400,7 +400,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptStateInternal.KILLED,
           EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY,
               TaskAttemptEventType.TA_SCHEDULE,
-              TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+              TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
               TaskAttemptEventType.TA_STATUS_UPDATE,
               TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
               TaskAttemptEventType.TA_COMMIT_PENDING,
@@ -422,7 +422,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptStateInternal.FAILED,
           EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY,
               TaskAttemptEventType.TA_SCHEDULE,
-              TaskAttemptEventType.TA_CONTAINER_PREEMPTED,
+              TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
               TaskAttemptEventType.TA_STATUS_UPDATE,
               TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
               TaskAttemptEventType.TA_COMMIT_PENDING,
@@ -467,7 +467,7 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskAttemptEventType.TA_FAIL_REQUEST,
               TaskAttemptEventType.TA_CONTAINER_TERMINATING,
               TaskAttemptEventType.TA_CONTAINER_TERMINATED,
-              TaskAttemptEventType.TA_CONTAINER_PREEMPTED))
+              TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM))
 
         .installTopology();
 
