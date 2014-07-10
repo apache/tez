@@ -22,89 +22,77 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.runtime.api.TezRootInputInitializerContext;
 
 public class TezRootInputInitializerContextImpl implements
     TezRootInputInitializerContext {
 
-  private final TezVertexID vertexID;
-  private final String dagName;
-  private final String inputName;
-  private final InputDescriptor inputDescriptor;
-  private final int numTasks;
-  private final Resource vertexTaskResource;
-  private final Resource totalResource;
-  private final int numClusterNodes;
-  private final int dagAttemptNumber;
+  private RootInputLeafOutputDescriptor<InputDescriptor> input;
+  private final Vertex vertex;
+  private final AppContext appContext;
 
   // TODO Add support for counters - merged with the Vertex counters.
-  
-  public TezRootInputInitializerContextImpl(TezVertexID vertexID,
-      String dagName, String vertexName, String inputName,
-      InputDescriptor inputDescriptor, int numTasks, int numClusterNodes,
-      Resource vertexTaskResource, Resource totalResource,
-      int dagAttemptNumber) {
-    checkNotNull(vertexID, "vertexID is null");
-    checkNotNull(dagName, "dagName is null");
-    checkNotNull(inputName, "inputName is null");
-    checkNotNull(inputDescriptor, "inputDescriptor is null");
-    checkNotNull(vertexTaskResource, "numTasks is null");
-    checkNotNull(totalResource, "totalResource is null");
-    this.vertexID = vertexID;
-    this.dagName = dagName;
-    this.inputName = inputName;
-    this.inputDescriptor = inputDescriptor;
-    this.numTasks = numTasks;
-    this.vertexTaskResource = vertexTaskResource;
-    this.totalResource = totalResource;
-    this.numClusterNodes = numClusterNodes;
-    this.dagAttemptNumber = dagAttemptNumber;
+
+  public TezRootInputInitializerContextImpl(RootInputLeafOutputDescriptor<InputDescriptor> input, Vertex vertex,
+                                            AppContext appContext) {
+    checkNotNull(input, "input is null");
+    checkNotNull(vertex, "vertex is null");
+    checkNotNull(appContext, "appContext is null");
+    this.input = input;
+    this.vertex = vertex;
+    this.appContext = appContext;
   }
 
   @Override
   public ApplicationId getApplicationId() {
-    return vertexID.getDAGId().getApplicationId();
+    return vertex.getVertexId().getDAGId().getApplicationId();
   }
 
   @Override
   public String getDAGName() {
-    return this.dagName;
+    return vertex.getDAG().getName();
   }
 
   @Override
   public String getInputName() {
-    return this.inputName;
+    return this.input.getEntityName();
   }
 
   @Override
   public byte[] getUserPayload() {
-    return inputDescriptor.getUserPayload();
+    return this.input.getDescriptor().getUserPayload();
   }
   
   @Override 
   public int getNumTasks() {
-    return numTasks;
+    return vertex.getTotalTasks();
   }
 
   @Override
   public Resource getVertexTaskResource() {
-    return vertexTaskResource;
+    return vertex.getTaskResource();
   }
 
   @Override
   public Resource getTotalAvailableResource() {
-    return totalResource;
+    return appContext.getTaskScheduler().getTotalResources();
   }
 
   @Override
   public int getNumClusterNodes() {
-    return numClusterNodes;
+    return appContext.getTaskScheduler().getNumClusterNodes();
   }
 
   @Override
   public int getDAGAttemptNumber() {
-    return dagAttemptNumber;
+    return appContext.getApplicationAttemptId().getAttemptId();
+  }
+
+  @Override
+  public int getVertexNumTasks(String vertexName) {
+    return appContext.getCurrentDAG().getVertex(vertexName).getTotalTasks();
   }
 
 }

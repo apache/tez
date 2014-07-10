@@ -79,4 +79,11 @@ public interface TezRootInputInitializerContext {
    */
   int getDAGAttemptNumber();
 
+  /**
+   * Get the number of tasks in the given vertex
+   * @param vertexName
+   * @return Total number of tasks in this vertex
+   */
+  public int getVertexNumTasks(String vertexName);
+
 }

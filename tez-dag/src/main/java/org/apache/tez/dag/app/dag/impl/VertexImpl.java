@@ -80,7 +80,7 @@ import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.dag.RootInputInitializerRunner;
+import org.apache.tez.dag.app.dag.RootInputInitializerManager;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.TaskTerminationCause;
@@ -139,6 +139,7 @@ import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
@@ -567,7 +568,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   List<TezEvent> pendingRouteEvents = new LinkedList<TezEvent>();
   List<TezTaskAttemptID> pendingReportedSrcCompletions = Lists.newLinkedList();
 
-  private RootInputInitializerRunner rootInputInitializer;
+
+  private RootInputInitializerManager rootInputInitializerManager;
 
   VertexManager vertexManager;
   
@@ -1055,7 +1057,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     }
   }
-  
+
+  @Override
+  public String getLogIdentifier() {
+    return this.logIdentifier;
+  }
+
   private void setTaskLocationHints(VertexLocationHint vertexLocationHint) {
     if (vertexLocationHint != null && 
         vertexLocationHint.getTaskLocationHints() != null && 
@@ -2584,11 +2591,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
         if (vertex.inputsWithInitializers != null) {
           // Use DAGScheduler to arbitrate resources among vertices later
-          vertex.rootInputInitializer = vertex.createRootInputInitializerRunner(
+          vertex.rootInputInitializerManager = vertex.createRootInputInitializerManager(
               vertex.getDAG().getName(), vertex.getName(), vertex.getVertexId(),
-              vertex.eventHandler, -1, 
+              vertex.eventHandler, -1,
               vertex.appContext.getTaskScheduler().getNumClusterNodes(),
-              vertex.getTaskResource(), 
+              vertex.getTaskResource(),
               vertex.appContext.getTaskScheduler().getTotalResources());
           List<RootInputLeafOutputDescriptor<InputDescriptor>> inputList = Lists
               .newArrayListWithCapacity(vertex.inputsWithInitializers.size());
@@ -2598,7 +2605,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           LOG.info("Vertex will initialize via inputInitializers "
               + vertex.logIdentifier + ". Starting root input initializers: "
               + vertex.inputsWithInitializers.size());
-          vertex.rootInputInitializer.runInputInitializers(inputList);
+          vertex.rootInputInitializerManager.runInputInitializers(inputList);
           return VertexState.INITIALIZING;
         } else {
           boolean hasOneToOneUninitedSource = false;
@@ -2627,11 +2634,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info("Creating " + vertex.numTasks + " for vertex: " + vertex.logIdentifier);
         vertex.createTasks();
         if (vertex.inputsWithInitializers != null) {
-          vertex.rootInputInitializer = vertex.createRootInputInitializerRunner(
+          vertex.rootInputInitializerManager = vertex.createRootInputInitializerManager(
               vertex.getDAG().getName(), vertex.getName(), vertex.getVertexId(),
-              vertex.eventHandler, vertex.getTotalTasks(), 
+              vertex.eventHandler, vertex.getTotalTasks(),
               vertex.appContext.getTaskScheduler().getNumClusterNodes(),
-              vertex.getTaskResource(), 
+              vertex.getTaskResource(),
               vertex.appContext.getTaskScheduler().getTotalResources());
           List<RootInputLeafOutputDescriptor<InputDescriptor>> inputList = Lists
               .newArrayListWithCapacity(vertex.inputsWithInitializers.size());
@@ -2643,7 +2650,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // special case when numTasks>0 and still we want to stay in initializing 
           // state. This is handled in RootInputInitializedTransition specially.
           vertex.initWaitsForRootInitializers = true;
-          vertex.rootInputInitializer.runInputInitializers(inputList);
+          vertex.rootInputInitializerManager.runInputInitializers(inputList);
           return VertexState.INITIALIZING;
         }
         if (!vertex.uninitializedEdges.isEmpty()) {
@@ -2662,13 +2669,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   } // end of InitTransition
 
   @VisibleForTesting
-  protected RootInputInitializerRunner createRootInputInitializerRunner(
+  protected RootInputInitializerManager createRootInputInitializerManager(
       String dagName, String vertexName, TezVertexID vertexID,
-      EventHandler eventHandler, int numTasks, int numNodes, 
+      EventHandler eventHandler, int numTasks, int numNodes,
       Resource vertexTaskResource, Resource totalResource) {
-    return new RootInputInitializerRunner(dagName, vertexName, vertexID,
-        eventHandler, dagUgi, vertexTaskResource, totalResource, numTasks, numNodes,
-        appContext.getApplicationAttemptId().getAttemptId());
+    return new RootInputInitializerManager(this, appContext, this.dagUgi);
   }
   
   private boolean initializeVertexInInitializingState() {
@@ -2730,7 +2735,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       vertex.numInitializedInputs++;
       if (vertex.numInitializedInputs == vertex.inputsWithInitializers.size()) {
         // All inputs initialized, shutdown the initializer.
-        vertex.rootInputInitializer.shutdown();
+        vertex.rootInputInitializerManager.shutdown();
       }
       
       // done. check if we need to do the initialization
@@ -2998,8 +3003,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           vertex.addDiagnostic(fe.getError().getMessage());
         }
       }
-      if (vertex.rootInputInitializer != null) {
-        vertex.rootInputInitializer.shutdown();
+      if (vertex.rootInputInitializerManager != null) {
+        vertex.rootInputInitializerManager.shutdown();
       }
       vertex.finished(VertexState.FAILED,
           VertexTerminationCause.ROOT_INPUT_INIT_FAILURE);
@@ -3036,8 +3041,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
       super.transition(vertex, event);
-      if (vertex.rootInputInitializer != null) {
-        vertex.rootInputInitializer.shutdown();
+      if (vertex.rootInputInitializerManager != null) {
+        vertex.rootInputInitializerManager.shutdown();
       }
     }
   }
@@ -3259,11 +3264,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private static void checkEventSourceMetadata(Vertex vertex,
       EventMetaData sourceMeta) {
-    if (!isEventFromVertex(vertex, sourceMeta)) {
-        throw new TezUncheckedException("Bad routing of event"
-            + ", Event-vertex=" + sourceMeta.getTaskVertexName()
-            + ", Expected=" + vertex.getName());
-    }
+    assert isEventFromVertex(vertex, sourceMeta);
   }
 
 //  private static class RouteEventsWhileInitializingTransition implements
@@ -3374,11 +3375,29 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         {
           VertexManagerEvent vmEvent = (VertexManagerEvent) tezEvent.getEvent();
           Vertex target = vertex.getDAG().getVertex(vmEvent.getTargetVertexName());
+          Preconditions.checkArgument(target != null,
+              "Event sent to unkown vertex: " + vmEvent.getTargetVertexName());
           if (target == vertex) {
             vertex.vertexManager.onVertexManagerEventReceived(vmEvent);
           } else {
+            checkEventSourceMetadata(vertex, sourceMeta);
             vertex.eventHandler.handle(new VertexEventRouteEvent(target
                 .getVertexId(), Collections.singletonList(tezEvent)));
+          }
+        }
+          break;
+        case ROOT_INPUT_INITIALIZER_EVENT:
+        {
+          RootInputInitializerEvent riEvent = (RootInputInitializerEvent) tezEvent.getEvent();
+          Vertex target = vertex.getDAG().getVertex(riEvent.getTargetVertexName());
+          Preconditions.checkArgument(target != null,
+              "Event sent to unkown vertex: " + riEvent.getTargetVertexName());
+          if (target == vertex) {
+            vertex.rootInputInitializerManager.handleInitializerEvent(riEvent);
+          } else {
+            checkEventSourceMetadata(vertex, sourceMeta);
+            vertex.eventHandler.handle(new VertexEventRouteEvent(target.getVertexId(),
+                Collections.singletonList(tezEvent)));
           }
         }
           break;
@@ -3587,12 +3606,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   String getJavaOpts() {
     return this.javaOpts;
   }
-  
-  @VisibleForTesting
-  RootInputInitializerRunner getRootInputInitializerRunner() {
-    return this.rootInputInitializer;
-  }
-  
+
   @VisibleForTesting
   TaskLocationHint[] getTaskLocationHints() {
     return taskLocationHints;

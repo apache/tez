@@ -54,3 +54,10 @@ message CompositeEventProto {
   optional int32 end_index = 2;
   optional bytes user_payload = 3;
 }
+
+message RootInputInitializerEventProto {
+  optional string target_vertex_name = 1;
+  optional string target_input_name = 2;
+  optional int32 version = 3;
+  optional bytes user_payload = 4;
+}

@@ -46,6 +46,7 @@ import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
+import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
 
 public class MRInputAMSplitGenerator implements TezRootInputInitializer {
 
@@ -199,6 +200,11 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
     }
     
     return events;
+  }
+
+  @Override
+  public void handleInputInitializerEvent(List<RootInputInitializerEvent> events) throws Exception {
+    throw new UnsupportedOperationException("Not expecting to handle any events");
   }
 
 }

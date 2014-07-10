@@ -23,6 +23,7 @@ import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.EventProtos;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
 
 public class ProtoConverters {
 
@@ -87,6 +88,28 @@ public class ProtoConverters {
             .toByteArray() : null);
     diEvent.setTargetIndex(proto.getTargetIndex());
     return diEvent;
+  }
+
+  public static EventProtos.RootInputInitializerEventProto convertRootInputInitializerEventToProto(
+      RootInputInitializerEvent event) {
+    EventProtos.RootInputInitializerEventProto.Builder builder =
+        EventProtos.RootInputInitializerEventProto.newBuilder();
+    builder.setTargetVertexName(event.getTargetVertexName());
+    builder.setTargetInputName(event.getTargetInputName());
+    builder.setVersion(event.getVersion());
+    if (event.getUserPayload() != null) {
+      builder.setUserPayload(ByteString.copyFrom(event.getUserPayload()));
+    }
+    return builder.build();
+  }
+
+  public static RootInputInitializerEvent convertRootInputInitializerEventFromProto(
+      EventProtos.RootInputInitializerEventProto proto) {
+    RootInputInitializerEvent event =
+        new RootInputInitializerEvent(proto.getTargetVertexName(), proto.getTargetInputName(),
+            (proto.hasUserPayload() ? proto.getUserPayload().toByteArray() : null),
+            proto.getVersion());
+    return event;
   }
 
 }

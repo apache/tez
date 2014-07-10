@@ -197,6 +197,11 @@ public class TestMRInputSplitDistributor {
       return 1;
     }
 
+    @Override
+    public int getVertexNumTasks(String vertexName) {
+      throw new UnsupportedOperationException("getVertexNumTasks not implemented in this mock");
+    }
+
   }
 
   @Private

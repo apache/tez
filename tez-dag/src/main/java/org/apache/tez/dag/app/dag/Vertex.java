@@ -129,4 +129,6 @@ public interface Vertex extends Comparable<Vertex> {
 
   VertexState restoreFromEvent(HistoryEvent event);
 
+  String getLogIdentifier();
+
 }
