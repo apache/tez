@@ -36,30 +36,22 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryFactory;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
-import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
+import org.apache.tez.runtime.library.conf.UnorderedUnpartitionedKVEdgeConfiguration;
 import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
@@ -127,21 +119,8 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
 
   private DAG createDAG(FileSystem fs, TezConfiguration tezConf,
       Path stagingDir, boolean doLocalityCheck) throws IOException, YarnException {
-    Configuration kvInputConf = new JobConf((Configuration)tezConf);
-    kvInputConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
-        Text.class.getName());
-    kvInputConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
-        IntWritable.class.getName());
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(kvInputConf,
-        null);
 
-    Configuration kvOneToOneConf = new JobConf((Configuration)tezConf);
-
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(kvOneToOneConf,
-        kvInputConf);
-
-    MRHelpers.doJobClientMagic(kvInputConf);
-    MRHelpers.doJobClientMagic(kvOneToOneConf);
+    JobConf mrConf = new JobConf(tezConf);
 
     int numBroadcastTasks = 2;
     int numOneToOneTasks = 3;
@@ -161,43 +140,33 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
 
     System.out.println("Using " + numOneToOneTasks + " 1-1 tasks");
 
-    byte[] kvInputPayload = MRHelpers.createUserPayloadFromConf(kvInputConf);
     Vertex broadcastVertex = new Vertex("Broadcast", new ProcessorDescriptor(
         InputProcessor.class.getName()),
-        numBroadcastTasks, MRHelpers.getMapResource(kvInputConf));
+        numBroadcastTasks, MRHelpers.getMapResource(mrConf));
     
     Vertex inputVertex = new Vertex("Input", new ProcessorDescriptor(
         InputProcessor.class.getName()).setUserPayload(procPayload),
-        numOneToOneTasks, MRHelpers.getMapResource(kvInputConf));
-    
-    byte[] kvOneToOnePayload = MRHelpers.createUserPayloadFromConf(kvOneToOneConf);
+        numOneToOneTasks, MRHelpers.getMapResource(mrConf));
+
     Vertex oneToOneVertex = new Vertex("OneToOne",
         new ProcessorDescriptor(
             OneToOneProcessor.class.getName()).setUserPayload(procPayload),
-            -1, MRHelpers.getReduceResource(kvOneToOneConf));
+            -1, MRHelpers.getReduceResource(mrConf));
     oneToOneVertex.setVertexManagerPlugin(
             new VertexManagerPluginDescriptor(InputReadyVertexManager.class.getName()));
-    
+
+    UnorderedUnpartitionedKVEdgeConfiguration edgeConf = UnorderedUnpartitionedKVEdgeConfiguration
+        .newBuilder(Text.class.getName(), IntWritable.class.getName()).build();
+
     DAG dag = new DAG("BroadcastAndOneToOneExample");
     dag.addVertex(inputVertex)
         .addVertex(broadcastVertex)
         .addVertex(oneToOneVertex)
         .addEdge(
-            new Edge(inputVertex, oneToOneVertex, new EdgeProperty(
-                DataMovementType.ONE_TO_ONE, DataSourceType.PERSISTED,
-                SchedulingType.SEQUENTIAL, 
-                new OutputDescriptor(OnFileUnorderedKVOutput.class.getName())
-                        .setUserPayload(kvInputPayload), 
-                new InputDescriptor(ShuffledUnorderedKVInput.class.getName())
-                        .setUserPayload(kvOneToOnePayload))))
+            new Edge(inputVertex, oneToOneVertex, edgeConf.createDefaultOneToOneEdgeProperty()))
         .addEdge(
-            new Edge(broadcastVertex, oneToOneVertex, new EdgeProperty(
-                DataMovementType.BROADCAST, DataSourceType.PERSISTED,
-                SchedulingType.SEQUENTIAL, 
-                new OutputDescriptor(OnFileUnorderedKVOutput.class.getName())
-                        .setUserPayload(kvInputPayload), 
-                new InputDescriptor(ShuffledUnorderedKVInput.class.getName())
-                        .setUserPayload(kvOneToOnePayload))));
+            new Edge(broadcastVertex, oneToOneVertex,
+                edgeConf.createDefaultBroadcastEdgeProperty()));
     return dag;
   }
   

@@ -52,14 +52,9 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -75,14 +70,12 @@ import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.examples.helpers.SplitsInClientOptionParser;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.processor.FilterByWordInputProcessor;
 import org.apache.tez.processor.FilterByWordOutputProcessor;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
-import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
-import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
+import org.apache.tez.runtime.library.conf.UnorderedUnpartitionedKVEdgeConfiguration;
 
 import com.google.common.collect.Sets;
 
@@ -171,8 +164,6 @@ public class FilterLinesByWord extends Configured implements Tool {
     Configuration stage1Conf = new JobConf(conf);
     stage1Conf.set(FileInputFormat.INPUT_DIR, inputPath);
     stage1Conf.setBoolean("mapred.mapper.new-api", false);
-    stage1Conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, Text.class.getName());
-    stage1Conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, TextLongPair.class.getName());
     stage1Conf.set(FILTER_PARAM_NAME, filterWord);
 
     InputSplitInfo inputSplitInfo = null;
@@ -182,19 +173,10 @@ public class FilterLinesByWord extends Configured implements Tool {
         credentials.addAll(inputSplitInfo.getCredentials());
       }
     }
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage1Conf, null);
-
-
 
     Configuration stage2Conf = new JobConf(conf);
-    stage2Conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS, Text.class.getName());
-    stage2Conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS, TextLongPair.class.getName());
     stage2Conf.set(FileOutputFormat.OUTDIR, outputPath);
     stage2Conf.setBoolean("mapred.mapper.new-api", false);
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage2Conf, stage1Conf);
-
-    MRHelpers.doJobClientMagic(stage1Conf);
-    MRHelpers.doJobClientMagic(stage2Conf);
 
     byte[] stage1Payload = MRHelpers.createUserPayloadFromConf(stage1Conf);
     // Setup stage1 Vertex
@@ -232,12 +214,11 @@ public class FilterLinesByWord extends Configured implements Tool {
         .setUserPayload(MRHelpers.createUserPayloadFromConf(stage2Conf));
     stage2Vertex.addOutput("MROutput", od, MROutputCommitter.class);
 
+    UnorderedUnpartitionedKVEdgeConfiguration edgeConf = UnorderedUnpartitionedKVEdgeConfiguration
+        .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();
+
     DAG dag = new DAG("FilterLinesByWord");
-    Edge edge = new Edge(stage1Vertex, stage2Vertex, new EdgeProperty(
-        DataMovementType.BROADCAST, DataSourceType.PERSISTED,
-        SchedulingType.SEQUENTIAL, new OutputDescriptor(
-            OnFileUnorderedKVOutput.class.getName()), new InputDescriptor(
-            ShuffledUnorderedKVInput.class.getName())));
+    Edge edge = new Edge(stage1Vertex, stage2Vertex, edgeConf.createDefaultBroadcastEdgeProperty());
     dag.addVertex(stage1Vertex).addVertex(stage2Vertex).addEdge(edge);
 
     LOG.info("Submitting DAG to Tez Session");

@@ -148,57 +148,6 @@ public class MRHelpers {
     }
   }
 
-  /**
-   * Create the user payload to be set on intermediate edge Input/Output classes
-   * that use MapReduce Key-Value data types. If the input and output have
-   * different configurations then this method may be called separately for both
-   * to get different payloads. If the input and output have no special
-   * configuration then this method may be called once to get the common payload
-   * for both input and output.
-   * 
-   * @param conf
-   *          Configuration for the class
-   * @param keyClassName
-   *          Class name of the Key
-   * @param valueClassName
-   *          Class name of the Value
-   * @param useNewApi
-   *          use new mapreduce API or old mapred API
-   * @param keyComparatorClassName
-   *          Optional key comparator class name
-   * @param compressionCodecClassName
-   *          Optional compression codec
-   * @return
-   * @throws IOException
-   */
-  public static byte[] createMRIntermediateDataPayload(Configuration conf,
-      String keyClassName, String valueClassName, boolean useNewApi,
-      @Nullable String keyComparatorClassName,
-      @Nullable String compressionCodecClassName) throws IOException {
-    Preconditions.checkNotNull(conf);
-    Preconditions.checkNotNull(keyClassName);
-    Preconditions.checkNotNull(valueClassName);
-    Configuration intermediateDataConf = new JobConf(conf);
-    intermediateDataConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS, keyClassName);
-    intermediateDataConf
-        .set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS, valueClassName);
-    if (keyComparatorClassName != null) {
-      intermediateDataConf.set(MRJobConfig.KEY_COMPARATOR,
-          keyComparatorClassName);
-    }
-    if (compressionCodecClassName != null) {
-      intermediateDataConf.setBoolean(MRJobConfig.MAP_OUTPUT_COMPRESS, true);
-      intermediateDataConf.set(MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC,
-          compressionCodecClassName);
-    }
-    intermediateDataConf.setBoolean("mapred.mapper.new-api", useNewApi);
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(
-        intermediateDataConf, intermediateDataConf);
-    MRHelpers.doJobClientMagic(intermediateDataConf);
-
-    return TezUtils.createUserPayloadFromConf(intermediateDataConf);
-  }
-
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @Private
   public static org.apache.hadoop.mapreduce.InputSplit[] generateNewSplits(

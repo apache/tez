@@ -58,12 +58,6 @@ import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -81,8 +75,8 @@ import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
-import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfiguration;
+import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 
 /**
@@ -158,10 +152,6 @@ public class OrderedWordCount extends Configured implements Tool {
     Configuration mapStageConf = new JobConf(conf);
     mapStageConf.set(MRJobConfig.MAP_CLASS_ATTR,
         TokenizerMapper.class.getName());
-    mapStageConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
-        Text.class.getName());
-    mapStageConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
-        IntWritable.class.getName());
     if (generateSplitsInClient) {
       mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
           TextInputFormat.class.getName());
@@ -198,10 +188,6 @@ public class OrderedWordCount extends Configured implements Tool {
     finalReduceConf.setInt(MRJobConfig.NUM_REDUCES, 1);
     finalReduceConf.set(MRJobConfig.REDUCE_CLASS_ATTR,
         MyOrderByNoOpReducer.class.getName());
-    finalReduceConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
-        Text.class.getName());
-    finalReduceConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
-        IntWritable.class.getName());
     finalReduceConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
         TextOutputFormat.class.getName());
     finalReduceConf.set(FileOutputFormat.OUTDIR, outputPath);
@@ -257,18 +243,16 @@ public class OrderedWordCount extends Configured implements Tool {
     MRHelpers.addMROutputLegacy(finalReduceVertex, finalReducePayload);
     vertices.add(finalReduceVertex);
 
+    OrderedPartitionedKVEdgeConfiguration edgeConf = OrderedPartitionedKVEdgeConfiguration
+        .newBuilder(IntWritable.class.getName(), Text.class.getName()).configureOutput(
+            HashPartitioner.class.getName(), null).done().build();
+
     DAG dag = new DAG("OrderedWordCount" + dagIndex);
     for (int i = 0; i < vertices.size(); ++i) {
       dag.addVertex(vertices.get(i));
       if (i != 0) {
-        dag.addEdge(new Edge(vertices.get(i-1),
-            vertices.get(i), new EdgeProperty(
-                DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
-                SchedulingType.SEQUENTIAL,
-                new OutputDescriptor(
-                    OnFileSortedOutput.class.getName()),
-                new InputDescriptor(
-                    ShuffledMergedInputLegacy.class.getName()))));
+        dag.addEdge(new Edge(vertices.get(i - 1),
+            vertices.get(i), edgeConf.createDefaultEdgeProperty()));
       }
     }
     return dag;

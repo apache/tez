@@ -41,15 +41,11 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
@@ -58,13 +54,14 @@ import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
+import org.apache.tez.runtime.api.Output;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfiguration;
 
 import com.google.common.base.Preconditions;
+import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 
 
 public class WordCount extends Configured implements Tool {
@@ -78,7 +75,7 @@ public class WordCount extends Configured implements Tool {
       Preconditions.checkArgument(getOutputs().size() == 1);
       MRInput input = (MRInput) getInputs().values().iterator().next();
       KeyValueReader kvReader = input.getReader();
-      OnFileSortedOutput output = (OnFileSortedOutput) getOutputs().values().iterator().next();
+      Output output = getOutputs().values().iterator().next();
       KeyValueWriter kvWriter = (KeyValueWriter) output.getWriter();
       while (kvReader.next()) {
         StringTokenizer itr = new StringTokenizer(kvReader.getCurrentValue().toString());
@@ -125,11 +122,7 @@ public class WordCount extends Configured implements Tool {
     OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
       .setUserPayload(MROutput.createUserPayload(
           outputConf, TextOutputFormat.class.getName(), true));
-    
-    byte[] intermediateDataPayload = 
-        MRHelpers.createMRIntermediateDataPayload(tezConf, Text.class.getName(), 
-            IntWritable.class.getName(), true, null, null);
-    
+
     Vertex tokenizerVertex = new Vertex("tokenizer", new ProcessorDescriptor(
         TokenProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf));
     tokenizerVertex.addInput("MRInput", id, MRInputAMSplitGenerator.class);
@@ -138,18 +131,16 @@ public class WordCount extends Configured implements Tool {
         new ProcessorDescriptor(
             SumProcessor.class.getName()), 1, MRHelpers.getReduceResource(tezConf));
     summerVertex.addOutput("MROutput", od, MROutputCommitter.class);
-    
+
+    OrderedPartitionedKVEdgeConfiguration edgeConf = OrderedPartitionedKVEdgeConfiguration
+        .newBuilder(Text.class.getName(), IntWritable.class.getName()).configureOutput(
+            HashPartitioner.class.getName(), null).done().build();
+
     DAG dag = new DAG("WordCount");
     dag.addVertex(tokenizerVertex)
         .addVertex(summerVertex)
         .addEdge(
-            new Edge(tokenizerVertex, summerVertex, new EdgeProperty(
-                DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
-                SchedulingType.SEQUENTIAL, 
-                new OutputDescriptor(OnFileSortedOutput.class.getName())
-                        .setUserPayload(intermediateDataPayload), 
-                new InputDescriptor(ShuffledMergedInput.class.getName())
-                        .setUserPayload(intermediateDataPayload))));
+            new Edge(tokenizerVertex, summerVertex, edgeConf.createDefaultEdgeProperty()));
     return dag;  
   }
 

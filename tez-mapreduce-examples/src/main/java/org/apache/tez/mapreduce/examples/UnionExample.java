@@ -41,16 +41,12 @@ import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.VertexGroup;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -61,12 +57,13 @@ import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
+import org.apache.tez.runtime.api.Output;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfiguration;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValuesInput;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import com.google.common.base.Preconditions;
@@ -89,8 +86,8 @@ public class UnionExample {
       Preconditions.checkArgument(getOutputs().containsKey("checker"));
       MRInput input = (MRInput) getInputs().values().iterator().next();
       KeyValueReader kvReader = input.getReader();
-      OnFileSortedOutput output = (OnFileSortedOutput) getOutputs().get("checker");
-      KeyValueWriter kvWriter = output.getWriter();
+      Output output =  getOutputs().get("checker");
+      KeyValueWriter kvWriter = (KeyValueWriter) output.getWriter();
       MROutput parts = null;
       KeyValueWriter partsWriter = null;
       if (inUnion) {
@@ -222,34 +219,19 @@ public class UnionExample {
       .setUserPayload(MROutput.createUserPayload(
           partsConf, TextOutputFormat.class.getName(), true));
     unionVertex.addOutput("parts", od1, MROutputCommitter.class);
-    
-    byte[] intermediateDataPayloadIn = 
-        MRHelpers.createMRIntermediateDataPayload(tezConf, Text.class.getName(), 
-            IntWritable.class.getName(), true, null, null);
-    byte[] intermediateDataPayloadOut = 
-        MRHelpers.createMRIntermediateDataPayload(tezConf, Text.class.getName(), 
-            IntWritable.class.getName(), true, null, null);
+
+    OrderedPartitionedKVEdgeConfiguration edgeConf = OrderedPartitionedKVEdgeConfiguration
+        .newBuilder(Text.class.getName(), IntWritable.class.getName()).configureOutput(
+            HashPartitioner.class.getName(), null).done().build();
 
     dag.addVertex(mapVertex1)
         .addVertex(mapVertex2)
         .addVertex(mapVertex3)
         .addVertex(checkerVertex)
         .addEdge(
-            new Edge(mapVertex3, checkerVertex, new EdgeProperty(
-                DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
-                SchedulingType.SEQUENTIAL, 
-                new OutputDescriptor(OnFileSortedOutput.class.getName())
-                        .setUserPayload(intermediateDataPayloadIn), 
-                new InputDescriptor(ShuffledMergedInput.class.getName())
-                        .setUserPayload(intermediateDataPayloadOut))))
+            new Edge(mapVertex3, checkerVertex, edgeConf.createDefaultEdgeProperty()))
         .addEdge(
-            new GroupInputEdge(unionVertex, checkerVertex, new EdgeProperty(
-                DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
-                SchedulingType.SEQUENTIAL,
-                new OutputDescriptor(OnFileSortedOutput.class.getName())
-                    .setUserPayload(intermediateDataPayloadIn), 
-                new InputDescriptor(ShuffledMergedInput.class.getName())
-                    .setUserPayload(intermediateDataPayloadOut)),
+            new GroupInputEdge(unionVertex, checkerVertex, edgeConf.createDefaultEdgeProperty(),
                 new InputDescriptor(
                     ConcatenatedMergedKeyValuesInput.class.getName())));
     return dag;  

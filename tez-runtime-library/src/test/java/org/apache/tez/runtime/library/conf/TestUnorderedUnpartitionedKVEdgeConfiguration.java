@@ -32,37 +32,19 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
 import org.junit.Test;
 
-public class TestUnorderedPartitionedEdgeConfiguration {
-  @Test
-  public void testIncompleteParameters() {
-    UnorderedPartitionedKVEdgeConfiguration.Builder builder =
-        UnorderedPartitionedKVEdgeConfiguration.newBuilder("KEY", "VALUE");
-    try {
-      builder.build();
-      fail("Should have failed since the partitioner has not been specified");
-    } catch (Exception e) {
-      assertTrue(e.getMessage().contains("Output must be configured - partitioner"));
-    }
-  }
+public class TestUnorderedUnpartitionedKVEdgeConfiguration {
 
   @Test
   public void testNullParams() {
     try {
-      UnorderedPartitionedKVEdgeConfiguration.newBuilder(null, "VALUE");
+      UnorderedUnpartitionedKVEdgeConfiguration.newBuilder(null, "VALUE");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      UnorderedPartitionedKVEdgeConfiguration.newBuilder("KEY", null);
-      fail("Expecting a null parameter list to fail");
-    } catch (NullPointerException npe) {
-      assertTrue(npe.getMessage().contains("cannot be null"));
-    }
-
-    try {
-      UnorderedPartitionedKVEdgeConfiguration.newBuilder("KEY", "VALUE").configureOutput(null, null);
+      UnorderedUnpartitionedKVEdgeConfiguration.newBuilder("KEY", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
@@ -71,17 +53,16 @@ public class TestUnorderedPartitionedEdgeConfiguration {
 
   @Test
   public void testDefaultConfigsUsed() {
-    UnorderedPartitionedKVEdgeConfiguration.Builder builder =
-        UnorderedPartitionedKVEdgeConfiguration.newBuilder("KEY", "VALUE")
-            .configureOutput("PARTITIONER", null).done();
+    UnorderedUnpartitionedKVEdgeConfiguration.Builder builder =
+        UnorderedUnpartitionedKVEdgeConfiguration.newBuilder("KEY", "VALUE");
 
-    UnorderedPartitionedKVEdgeConfiguration configuration = builder.build();
+    UnorderedUnpartitionedKVEdgeConfiguration configuration = builder.build();
 
     byte[] outputBytes = configuration.getOutputPayload();
     byte[] inputBytes = configuration.getInputPayload();
 
-    OnFileUnorderedPartitionedKVOutputConfiguration rebuiltOutput =
-        new OnFileUnorderedPartitionedKVOutputConfiguration();
+    OnFileUnorderedKVOutputConfiguration rebuiltOutput =
+        new OnFileUnorderedKVOutputConfiguration();
     rebuiltOutput.fromByteArray(outputBytes);
     ShuffledUnorderedKVInputConfiguration rebuiltInput =
         new ShuffledUnorderedKVInputConfiguration();
@@ -103,17 +84,16 @@ public class TestUnorderedPartitionedEdgeConfiguration {
   @Test
   public void testSpecificIOConfs() {
     // Ensures that Output and Input confs are not mixed.
-    UnorderedPartitionedKVEdgeConfiguration.Builder builder =
-        UnorderedPartitionedKVEdgeConfiguration.newBuilder("KEY", "VALUE")
-            .configureOutput("PARTITIONER", null).done();
+    UnorderedUnpartitionedKVEdgeConfiguration.Builder builder =
+        UnorderedUnpartitionedKVEdgeConfiguration.newBuilder("KEY", "VALUE");
 
-    UnorderedPartitionedKVEdgeConfiguration configuration = builder.build();
+    UnorderedUnpartitionedKVEdgeConfiguration configuration = builder.build();
 
     byte[] outputBytes = configuration.getOutputPayload();
     byte[] inputBytes = configuration.getInputPayload();
 
-    OnFileUnorderedPartitionedKVOutputConfiguration rebuiltOutput =
-        new OnFileUnorderedPartitionedKVOutputConfiguration();
+    OnFileUnorderedKVOutputConfiguration rebuiltOutput =
+        new OnFileUnorderedKVOutputConfiguration();
     rebuiltOutput.fromByteArray(outputBytes);
     ShuffledUnorderedKVInputConfiguration rebuiltInput =
         new ShuffledUnorderedKVInputConfiguration();
@@ -135,20 +115,16 @@ public class TestUnorderedPartitionedEdgeConfiguration {
     fromConf.set("test.conf.key.1", "confkey1");
     fromConf.setBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD, false);
     fromConf.setFloat(TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, 0.11f);
-    fromConf.setInt(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB, 123);
     fromConf.set("io.shouldExist", "io");
     Map<String, String> additionalConfs = new HashMap<String, String>();
     additionalConfs.put("test.key.2", "key2");
     additionalConfs.put(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, "1111");
     additionalConfs.put(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, "0.22f");
-    additionalConfs
-        .put(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, "2222");
     additionalConfs.put("file.shouldExist", "file");
 
-    UnorderedPartitionedKVEdgeConfiguration.Builder builder = UnorderedPartitionedKVEdgeConfiguration
+    UnorderedUnpartitionedKVEdgeConfiguration.Builder builder = UnorderedUnpartitionedKVEdgeConfiguration
         .newBuilder("KEY",
             "VALUE")
-        .configureOutput("PARTITIONER", null).done()
         .setAdditionalConfiguration("fs.shouldExist", "fs")
         .setAdditionalConfiguration("test.key.1", "key1")
         .setAdditionalConfiguration(TezJobConfig.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE, "3333")
@@ -156,13 +132,13 @@ public class TestUnorderedPartitionedEdgeConfiguration {
         .setAdditionalConfiguration(additionalConfs)
         .setFromConfiguration(fromConf);
 
-    UnorderedPartitionedKVEdgeConfiguration configuration = builder.build();
+    UnorderedUnpartitionedKVEdgeConfiguration configuration = builder.build();
 
     byte[] outputBytes = configuration.getOutputPayload();
     byte[] inputBytes = configuration.getInputPayload();
 
-    OnFileUnorderedPartitionedKVOutputConfiguration rebuiltOutput =
-        new OnFileUnorderedPartitionedKVOutputConfiguration();
+    OnFileUnorderedKVOutputConfiguration rebuiltOutput =
+        new OnFileUnorderedKVOutputConfiguration();
     rebuiltOutput.fromByteArray(outputBytes);
     ShuffledUnorderedKVInputConfiguration rebuiltInput =
         new ShuffledUnorderedKVInputConfiguration();
@@ -177,10 +153,6 @@ public class TestUnorderedPartitionedEdgeConfiguration {
     assertNull(outputConf.get(TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT));
     assertNull(outputConf.get(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT));
     assertNull(outputConf.get(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT));
-    assertEquals(123,
-        outputConf.getInt(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB, 0));
-    assertEquals(2222,
-        outputConf.getInt(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, 0));
     assertEquals("io", outputConf.get("io.shouldExist"));
     assertEquals("file", outputConf.get("file.shouldExist"));
     assertEquals("fs", outputConf.get("fs.shouldExist"));
@@ -195,8 +167,6 @@ public class TestUnorderedPartitionedEdgeConfiguration {
         inputConf.getFloat(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, 0.0f), 0.001f);
     assertEquals(0.33f, inputConf.getFloat(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 0.0f),
         0.001f);
-    assertNull(inputConf.get(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB));
-    assertNull(inputConf.get(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES));
     assertEquals("io", inputConf.get("io.shouldExist"));
     assertEquals("file", inputConf.get("file.shouldExist"));
     assertEquals("fs", inputConf.get("fs.shouldExist"));

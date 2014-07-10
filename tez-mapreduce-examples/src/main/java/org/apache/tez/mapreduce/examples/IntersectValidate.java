@@ -38,17 +38,10 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
-import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -63,8 +56,7 @@ import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfiguration;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
@@ -212,21 +204,9 @@ public class IntersectValidate extends Configured implements Tool {
     // Configuration for intermediate output - shared by Vertex1 and Vertex2
     // This should only be setting selective keys from the underlying conf. Fix after there's a
     // better mechanism to configure the IOs.
-    Configuration intermediateOutputConf = new Configuration(tezConf);
-    intermediateOutputConf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS,
-        Text.class.getName());
-    intermediateOutputConf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS,
-        NullWritable.class.getName());
-    intermediateOutputConf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS,
-        HashPartitioner.class.getName());
-    byte[] intermediateOutputPayload = TezUtils.createUserPayloadFromConf(intermediateOutputConf);
-
-    Configuration intermediateInputConf = new Configuration(tezConf);
-    intermediateInputConf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
-        Text.class.getName());
-    intermediateInputConf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS,
-        NullWritable.class.getName());
-    byte[] intermediateInputPayload = TezUtils.createUserPayloadFromConf(intermediateInputConf);
+    OrderedPartitionedKVEdgeConfiguration edgeConf = OrderedPartitionedKVEdgeConfiguration
+        .newBuilder(Text.class.getName(), NullWritable.class.getName()).configureOutput(
+            HashPartitioner.class.getName(), null).done().build();
 
     // Change the way resources are setup - no MRHelpers
     Vertex lhsVertex = new Vertex(LHS_INPUT_NAME, new ProcessorDescriptor(
@@ -245,17 +225,8 @@ public class IntersectValidate extends Configured implements Tool {
         new ProcessorDescriptor(IntersectValidateProcessor.class.getName()),
         numPartitions, MRHelpers.getReduceResource(tezConf));
 
-    Edge e1 = new Edge(lhsVertex, intersectValidateVertex, new EdgeProperty(
-        DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
-        new OutputDescriptor(OnFileSortedOutput.class.getName())
-            .setUserPayload(intermediateOutputPayload), new InputDescriptor(
-            ShuffledMergedInput.class.getName()).setUserPayload(intermediateInputPayload)));
-
-    Edge e2 = new Edge(rhsVertex, intersectValidateVertex, new EdgeProperty(
-        DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
-        new OutputDescriptor(OnFileSortedOutput.class.getName())
-            .setUserPayload(intermediateOutputPayload), new InputDescriptor(
-            ShuffledMergedInput.class.getName()).setUserPayload(intermediateInputPayload)));
+    Edge e1 = new Edge(lhsVertex, intersectValidateVertex, edgeConf.createDefaultEdgeProperty());
+    Edge e2 = new Edge(rhsVertex, intersectValidateVertex, edgeConf.createDefaultEdgeProperty());
 
     dag.addVertex(lhsVertex).addVertex(rhsVertex).addVertex(intersectValidateVertex).addEdge(e1)
         .addEdge(e2);

@@ -32,7 +32,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
 import org.junit.Test;
 
-public class TestOrderedPartitionedEdgeConfiguration {
+public class TestOrderedPartitionedKVEdgeConfiguration {
 
   @Test
   public void testIncompleteParameters() {

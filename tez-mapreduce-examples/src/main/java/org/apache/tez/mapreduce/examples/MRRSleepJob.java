@@ -65,16 +65,10 @@ import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
@@ -83,13 +77,13 @@ import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
+import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryFactory;
-import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfiguration;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -439,14 +433,8 @@ public class MRRSleepJob extends Configured implements Tool {
     mapStageConf.setInt(IREDUCE_STAGES_COUNT, iReduceStagesCount);
     mapStageConf.setInt(IREDUCE_TASKS_COUNT, numIReducer);
     mapStageConf.set(MRJobConfig.MAP_CLASS_ATTR, SleepMapper.class.getName());
-    mapStageConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
-        IntWritable.class.getName());
-    mapStageConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
-        IntWritable.class.getName());
     mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
         SleepInputFormat.class.getName());
-    mapStageConf.set(MRJobConfig.PARTITIONER_CLASS_ATTR,
-        MRRSleepJobPartitioner.class.getName());
     if (numIReducer == 0 && numReducer == 0) {
       mapStageConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
           NullOutputFormat.class.getName());
@@ -641,17 +629,18 @@ public class MRRSleepJob extends Configured implements Tool {
       MRHelpers.addMROutputLegacy(mapVertex, mapUserPayload);
     }
 
+
+    Configuration partitionerConf = new Configuration(false);
+    partitionerConf.set(MRJobConfig.PARTITIONER_CLASS_ATTR, MRRSleepJobPartitioner.class.getName());
+    OrderedPartitionedKVEdgeConfiguration edgeConf = OrderedPartitionedKVEdgeConfiguration
+        .newBuilder(IntWritable.class.getName(), IntWritable.class.getName()).configureOutput(
+            MRPartitioner.class.getName(), partitionerConf).done().build();
+
     for (int i = 0; i < vertices.size(); ++i) {
       dag.addVertex(vertices.get(i));
       if (i != 0) {
         dag.addEdge(new Edge(vertices.get(i-1),
-            vertices.get(i), new EdgeProperty(
-                DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
-                SchedulingType.SEQUENTIAL, 
-                new OutputDescriptor(
-                    OnFileSortedOutput.class.getName()),
-                new InputDescriptor(
-                    ShuffledMergedInputLegacy.class.getName()))));
+            vertices.get(i), edgeConf.createDefaultEdgeProperty()));
       }
     }
 
