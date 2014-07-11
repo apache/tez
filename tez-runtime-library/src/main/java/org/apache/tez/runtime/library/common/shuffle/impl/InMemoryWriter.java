@@ -25,21 +25,20 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
-import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.common.sort.impl.IFileOutputStream;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
+
+import static org.apache.tez.runtime.library.common.sort.impl.IFile.*;
 
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class InMemoryWriter extends Writer {
   private static final Log LOG = LogFactory.getLog(InMemoryWriter.class);
 
-  private DataOutputStream out;
-
   // TODO Verify and fix counters if required.
-  
+
   public InMemoryWriter(BoundedByteArrayOutputStream arrayStream) {
     super(null, null);
     this.out =
@@ -49,44 +48,6 @@ public class InMemoryWriter extends Writer {
   public void append(Object key, Object value) throws IOException {
     throw new UnsupportedOperationException
     ("InMemoryWriter.append(K key, V value");
-  }
-
-  public void append(DataInputBuffer key, DataInputBuffer value)
-  throws IOException {
-    int keyLength = key.getLength() - key.getPosition();
-    if (keyLength < 0) {
-      throw new IOException("Negative key-length not allowed: " + keyLength +
-                            " for " + key);
-    }
-
-    boolean sameKey = (key == IFile.REPEAT_KEY);
-
-    int valueLength = value.getLength() - value.getPosition();
-    if (valueLength < 0) {
-      throw new IOException("Negative value-length not allowed: " +
-                            valueLength + " for " + value);
-    }
-
-    if(sameKey) {
-      WritableUtils.writeVInt(out, IFile.RLE_MARKER);
-      WritableUtils.writeVInt(out, valueLength);
-      out.write(value.getData(), value.getPosition(), valueLength);
-    } else {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("InMemWriter.append" +
-            " key.data=" + key.getData() +
-            " key.pos=" + key.getPosition() +
-            " key.len=" +key.getLength() +
-            " val.data=" + value.getData() +
-            " val.pos=" + value.getPosition() +
-            " val.len=" + value.getLength());
-      }
-      WritableUtils.writeVInt(out, keyLength);
-      WritableUtils.writeVInt(out, valueLength);
-      out.write(key.getData(), key.getPosition(), keyLength);
-      out.write(value.getData(), value.getPosition(), valueLength);
-    }
-
   }
 
   public void close() throws IOException {

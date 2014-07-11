@@ -62,7 +62,7 @@ public class IFileInputStream extends InputStream {
   public static final Log LOG = LogFactory.getLog(IFileInputStream.class);
 
   private boolean disableChecksumValidation = false;
-  
+
   /**
    * Create a checksum input stream that reads without readAhead.
    * @param in
@@ -71,7 +71,7 @@ public class IFileInputStream extends InputStream {
   public IFileInputStream(InputStream in, long len) {
     this(in, len, false, 0);
   }
-  
+
   /**
    * Create a checksum input stream that reads
    * @param in The input stream to be verified for checksum.
@@ -81,7 +81,7 @@ public class IFileInputStream extends InputStream {
    */
   public IFileInputStream(InputStream in, long len, boolean readAhead, int readAheadLength) {
     this.in = in;
-    sum = DataChecksum.newDataChecksum(DataChecksum.Type.CRC32, 
+    sum = DataChecksum.newDataChecksum(DataChecksum.Type.CRC32,
         Integer.MAX_VALUE);
     checksumSize = sum.getChecksumSize();
     buffer = new byte[4096];

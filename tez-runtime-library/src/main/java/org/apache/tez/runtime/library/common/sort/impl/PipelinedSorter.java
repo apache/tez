@@ -273,8 +273,7 @@ public class PipelinedSorter extends ExternalSorter {
         long segmentStart = out.getPos();
         Writer writer =
           new Writer(conf, out, keyClass, valClass, codec,
-              spilledRecordsCounter, null);
-        writer.setRLE(merger.needsRLE());
+              spilledRecordsCounter, null, merger.needsRLE());
         if (combiner == null) {
           while(kvIter.next()) {
             writer.append(kvIter.getKey(), kvIter.getValue());
@@ -382,8 +381,7 @@ public class PipelinedSorter extends ExternalSorter {
       long segmentStart = finalOut.getPos();
       Writer writer =
           new Writer(conf, finalOut, keyClass, valClass, codec,
-                           spilledRecordsCounter, null);
-      writer.setRLE(merger.needsRLE());
+                           spilledRecordsCounter, null, merger.needsRLE());
       if (combiner == null || numSpills < minSpillsForCombine) {
         TezMerger.writeFile(kvIter, writer, nullProgressable, TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
       } else {

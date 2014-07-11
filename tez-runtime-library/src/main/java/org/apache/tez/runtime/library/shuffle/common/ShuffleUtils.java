@@ -36,13 +36,12 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.security.token.Token;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.sort.impl.IFileInputStream;
+import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParams;
 import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParamsBuilder;
 
@@ -86,22 +85,9 @@ public class ShuffleUtils {
       InputStream input, int decompressedLength, int compressedLength,
       CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength,
       Log LOG, String identifier) throws IOException {
-    IFileInputStream checksumIn = new IFileInputStream(input, compressedLength,
-        ifileReadAhead, ifileReadAheadLength);
-
-    input = checksumIn;
-
-    Decompressor decompressor = null;
-    
-    // Are map-outputs compressed?
-    if (codec != null) {
-      decompressor = CodecPool.getDecompressor(codec);
-      decompressor.reset();
-      input = codec.createInputStream(input, decompressor);
-    }
-
     try {
-      IOUtils.readFully(input, shuffleData, 0, shuffleData.length);
+      IFile.Reader.readToMemory(shuffleData, input, compressedLength, codec,
+        ifileReadAhead, ifileReadAheadLength);
       // metrics.inputBytes(shuffleData.length);
       LOG.info("Read " + shuffleData.length + " bytes from input for "
           + identifier);
@@ -110,11 +96,6 @@ public class ShuffleUtils {
       IOUtils.cleanup(LOG, input);
       // Re-throw
       throw ioe;
-    } finally {
-      if(decompressor != null) {
-        decompressor.reset();
-        CodecPool.returnDecompressor(decompressor);
-      }
     }
   }
   

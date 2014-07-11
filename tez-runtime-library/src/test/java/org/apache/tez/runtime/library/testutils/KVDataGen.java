@@ -20,25 +20,43 @@ package org.apache.tez.runtime.library.testutils;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 
 public class KVDataGen {
 
-  public static List<KVPair> generateTestData(boolean repeat) {
+  static Random rnd = new Random();
+
+  public static List<KVPair> generateTestData(boolean repeatKeys) {
+    return generateTestData(true, rnd.nextInt(100));
+  }
+
+  /**
+   * Generate key value pair
+   *
+   * @param sorted whether data should be sorted by key
+   * @param repeatCount number of keys to be repeated
+   * @return
+   */
+  public static List<KVPair> generateTestData(boolean sorted, int repeatCount) {
     List<KVPair> data = new LinkedList<KVPair>();
-    int repeatCount = 0;
+    Random rnd = new Random();
     for (int i = 0; i < 5; i++) {
-      Text key = new Text("key" + i);
+      String keyStr = (sorted) ? ("key" + i) : (rnd.nextLong() + "key" + i);
+      Text key = new Text(keyStr);
       IntWritable value = new IntWritable(i + repeatCount);
       KVPair kvp = new KVPair(key, value);
       data.add(kvp);
-      if (repeat && i == 2) { // Repeat this key
-        repeatCount++;
-        value.set(i + repeatCount);
-        kvp = new KVPair(key, value);
-        data.add(kvp);
+      if ((repeatCount > 0) && (i % 2 == 0)) { // Repeat this key for random number of times
+        int count = rnd.nextInt(5);
+        for(int j = 0; j < count; j++) {
+          repeatCount++;
+          value.set(i + rnd.nextInt());
+          kvp = new KVPair(key, value);
+          data.add(kvp);
+        }
       }
     }
     return data;

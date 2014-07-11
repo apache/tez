@@ -18,32 +18,41 @@
 
 package org.apache.tez.runtime.library.common.sort.impl;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BoundedByteArrayOutputStream;
+import org.apache.hadoop.io.BufferUtils;
 import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.impl.InMemoryReader;
+import org.apache.tez.runtime.library.common.shuffle.impl.InMemoryWriter;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.testutils.KVDataGen;
 import org.apache.tez.runtime.library.testutils.KVDataGen.KVPair;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 public class TestIFile {
 
@@ -52,6 +61,12 @@ public class TestIFile {
   private static Configuration defaultConf = new Configuration();
   private static FileSystem localFs = null;
   private static Path workDir = null;
+  private static CompressionCodec codec;
+  private Random rnd = new Random();
+  private String outputFileName = "ifile.out";
+  private Path outputPath;
+  private DataOutputBuffer k = new DataOutputBuffer();
+  private DataOutputBuffer v = new DataOutputBuffer();
 
   static {
     defaultConf.set("fs.defaultFS", "file:///");
@@ -67,90 +82,366 @@ public class TestIFile {
   }
 
   @Before
+  public void setUp() throws Exception {
+    CompressionCodecFactory codecFactory = new CompressionCodecFactory(new
+        Configuration());
+    codec = codecFactory.getCodecByClassName("org.apache.hadoop.io.compress.DefaultCodec");
+    outputPath = new Path(workDir, outputFileName);
+  }
+
+  @Before
   @After
   public void cleanup() throws Exception {
     localFs.delete(workDir, true);
   }
 
   @Test
-  public void testRepeatedKeysInMemReaderNoRLE() throws IOException {
-    String outputFileName = "ifile.out";
-    Path outputPath = new Path(workDir, outputFileName);
-    List<KVPair> data = KVDataGen.generateTestData(true);
-    Writer writer = writeTestFile(outputPath, false, data);
-
-    FSDataInputStream inStream =  localFs.open(outputPath);
-    byte[] bytes = new byte[(int)writer.getRawLength()];
-
-    readDataToMem(inStream, bytes);
-    inStream.close();
-
-    InMemoryReader inMemReader = new InMemoryReader(null, new InputAttemptIdentifier(0, 0), bytes, 0, bytes.length);
-    readAndVerify(inMemReader, data);
+  //empty IFile
+  public void testWithEmptyIFile() throws IOException {
+    testWriterAndReader(new LinkedList<KVPair>());
+    testWithDataBuffer(new LinkedList<KVPair>());
   }
 
   @Test
-  public void testRepeatedKeysFileReaderNoRLE() throws IOException {
-    String outputFileName = "ifile.out";
-    Path outputPath = new Path(workDir, outputFileName);
-    List<KVPair> data = KVDataGen.generateTestData(true);
-    writeTestFile(outputPath, false, data);
+  //Write empty key value pairs
+  public void testWritingEmptyKeyValues() throws IOException {
+    DataInputBuffer key = new DataInputBuffer();
+    DataInputBuffer value = new DataInputBuffer();
+    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath, null, null, null,
+        null, null);
+    writer.append(key, value);
+    writer.append(key, value);
+    writer.append(key, value);
+    writer.append(key, value);
+    writer.close();
 
-    IFile.Reader reader = new IFile.Reader(localFs, outputPath, null, null, null, false, 0, -1);
-
-    readAndVerify(reader, data);
-    reader.close();
-  }
-
-  @Ignore // TEZ-500
-  @Test
-  public void testRepeatedKeysInMemReaderRLE() throws IOException {
-    String outputFileName = "ifile.out";
-    Path outputPath = new Path(workDir, outputFileName);
-    List<KVPair> data = KVDataGen.generateTestData(true);
-    Writer writer = writeTestFile(outputPath, true, data);
-
-    FSDataInputStream inStream =  localFs.open(outputPath);
-    byte[] bytes = new byte[(int)writer.getRawLength()];
-
-    readDataToMem(inStream, bytes);
-    inStream.close();
-
-
-    InMemoryReader inMemReader = new InMemoryReader(null, new InputAttemptIdentifier(0, 0), bytes, 0, bytes.length);
-    readAndVerify(inMemReader, data);
-  }
-
-  @Ignore // TEZ-500
-  @Test
-  public void testRepeatedKeysFileReaderRLE() throws IOException {
-    String outputFileName = "ifile.out";
-    Path outputPath = new Path(workDir, outputFileName);
-    List<KVPair> data = KVDataGen.generateTestData(true);
-    writeTestFile(outputPath, true, data);
-
-    IFile.Reader reader = new IFile.Reader(localFs, outputPath, null, null, null, false, 0, -1);
-
-    readAndVerify(reader, data);
-    reader.close();
-  }
-
-  private void readDataToMem(FSDataInputStream inStream, byte[] bytes) throws IOException {
-    int toRead = bytes.length;
-    int offset = 0;
-    while (toRead > 0) {
-      int ret = inStream.read(bytes, offset, toRead);
-      if (ret < 0) {
-        throw new IOException("Premature EOF from inputStream");
-      }
-      toRead -= ret;
-      offset += ret;
+    IFile.Reader reader = new Reader(localFs, outputPath, null, null, null, false, -1, 1024);
+    DataInputBuffer keyIn = new DataInputBuffer();
+    DataInputBuffer valIn = new DataInputBuffer();
+    int records = 0;
+    while (reader.nextRawKey(keyIn)) {
+      reader.nextRawValue(valIn);
+      records++;
+      assert(keyIn.getLength() == 0);
+      assert(valIn.getLength() == 0);
     }
-    LOG.info("Read: " + bytes.length + " bytes");
+    assertTrue("Number of records read does not match", (records == 4));
+    reader.close();
   }
 
-  private void readAndVerify(Reader reader, List<KVPair> data)
+  @Test
+  //test with unsorted data and repeat keys
+  public void testWithUnsortedData() throws IOException {
+    List<KVPair> unsortedData = KVDataGen.generateTestData(false, rnd.nextInt(100));
+    testWriterAndReader(unsortedData);
+    testWithDataBuffer(unsortedData);
+  }
+
+  @Test
+  //test with sorted data and repeat keys
+  public void testWithSortedData() throws IOException {
+    List<KVPair> sortedData = KVDataGen.generateTestData(true, rnd.nextInt(100));
+    testWriterAndReader(sortedData);
+    testWithDataBuffer(sortedData);
+  }
+
+
+  @Test
+  //test with sorted data and repeat keys
+  public void testWithRLEMarker() throws IOException {
+    //keys would be repeated exactly 2 times
+    //e.g (k1,v1), (k1,v2), (k3, v3), (k4, v4), (k4, v5)...
+    //This should trigger RLE marker in IFile.
+    List<KVPair> sortedData = KVDataGen.generateTestData(true, 1);
+    testWriterAndReader(sortedData);
+    testWithDataBuffer(sortedData);
+
+    List<KVPair> unsortedData = KVDataGen.generateTestData(false, 1);
+    testWriterAndReader(sortedData);
+    testWithDataBuffer(sortedData);
+  }
+
+  @Test
+  //test with unique keys
+  public void testWithUniqueKeys() throws IOException {
+    //all keys are unique
+    List<KVPair> sortedData = KVDataGen.generateTestData(true, 0);
+    testWriterAndReader(sortedData);
+    testWithDataBuffer(sortedData);
+  }
+
+  @Test
+  //Test InMemoryWriter
+  public void testInMemoryWriter() throws IOException {
+    InMemoryWriter writer = null;
+    BoundedByteArrayOutputStream bout = new BoundedByteArrayOutputStream(1024 * 1024);
+
+    List<KVPair> data = KVDataGen.generateTestData(true, 0);
+
+    //No RLE, No RepeatKeys, no compression
+    writer = new InMemoryWriter(bout);
+    writeTestFileUsingDataBuffer(writer, false, false, data, null);
+    readUsingInMemoryReader(bout.getBuffer(), data);
+
+    //No RLE, RepeatKeys, no compression
+    bout.reset();
+    writer = new InMemoryWriter(bout);
+    writeTestFileUsingDataBuffer(writer, false, true, data, null);
+    readUsingInMemoryReader(bout.getBuffer(), data);
+
+    //RLE, No RepeatKeys, no compression
+    bout.reset();
+    writer = new InMemoryWriter(bout);
+    writeTestFileUsingDataBuffer(writer, true, false, data, null);
+    readUsingInMemoryReader(bout.getBuffer(), data);
+
+    //RLE, RepeatKeys, no compression
+    bout.reset();
+    writer = new InMemoryWriter(bout);
+    writeTestFileUsingDataBuffer(writer, true, true, data, null);
+    readUsingInMemoryReader(bout.getBuffer(), data);
+  }
+
+  @Test
+  //Test appendValue feature
+  public void testAppendValue() throws IOException {
+    List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
+    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
+        Text.class, IntWritable.class, codec, null, null);
+
+    Text previousKey = null;
+    for (KVPair kvp : data) {
+      if ((previousKey != null && previousKey.compareTo(kvp.getKey()) == 0)) {
+        writer.appendValue(kvp.getvalue());
+      } else {
+        writer.append(kvp.getKey(), kvp.getvalue());
+      }
+      previousKey = kvp.getKey();
+    }
+
+    writer.close();
+
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+  }
+
+  @Test
+  //Test appendValues feature
+  public void testAppendValues() throws IOException {
+    List<KVPair> data = new ArrayList<KVPair>();
+    List<IntWritable> values = new ArrayList<IntWritable>();
+
+    Text key = new Text("key");
+    IntWritable val = new IntWritable(1);
+    for(int i = 0; i < 5; i++) {
+      data.add(new KVPair(key, val));
+      values.add(val);
+    }
+
+    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
+        Text.class, IntWritable.class, codec, null, null);
+    writer.append(data.get(0).getKey(), data.get(0).getvalue()); //write first KV pair
+    writer.appendValues(values.subList(1, values.size()).iterator()); //add the rest here
+
+    Text lastKey = new Text("key3");
+    IntWritable lastVal = new IntWritable(10);
+    data.add(new KVPair(lastKey, lastVal));
+
+    writer.append(lastKey, lastVal);
+    writer.close();
+
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+  }
+
+  @Test
+  //Test appendKeyValues feature
+  public void testAppendKeyValues() throws IOException {
+    List<KVPair> data = new ArrayList<KVPair>();
+    List<IntWritable> values = new ArrayList<IntWritable>();
+
+    Text key = new Text("key");
+    IntWritable val = new IntWritable(1);
+    for(int i = 0; i < 5; i++) {
+      data.add(new KVPair(key, val));
+      values.add(val);
+    }
+
+    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
+        Text.class, IntWritable.class, codec, null, null);
+    writer.appendKeyValues(data.get(0).getKey(), values.iterator());
+
+    Text lastKey = new Text("key3");
+    IntWritable lastVal = new IntWritable(10);
+    data.add(new KVPair(lastKey, lastVal));
+
+    writer.append(lastKey, lastVal);
+    writer.close();
+
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+  }
+
+  @Test
+  //Test appendValue with DataInputBuffer
+  public void testAppendValueWithDataInputBuffer() throws IOException {
+    List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
+    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
+        Text.class, IntWritable.class, codec, null, null);
+
+    final DataInputBuffer previousKey = new DataInputBuffer();
+    DataInputBuffer key = new DataInputBuffer();
+    DataInputBuffer value = new DataInputBuffer();
+    for (KVPair kvp : data) {
+      populateData(kvp, key, value);
+
+      if ((previousKey != null && BufferUtils.compare(key, previousKey) == 0)) {
+        writer.appendValue(value);
+      } else {
+        writer.append(key, value);
+      }
+      previousKey.reset(k.getData(), 0, k.getLength());
+    }
+
+    writer.close();
+
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+  }
+
+
+  /**
+   * Test different options (RLE, repeat keys, compression) on reader/writer
+   *
+   * @param data
+   * @throws IOException
+   */
+  private void testWriterAndReader(List<KVPair> data) throws IOException {
+    Writer writer = null;
+    //No RLE, No RepeatKeys
+    writer = writeTestFile(false, false, data, null);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, null);
+
+    writer = writeTestFile(false, false, data, codec);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+
+    //No RLE, RepeatKeys
+    writer = writeTestFile(false, true, data, null);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, null);
+
+    writer = writeTestFile(false, true, data, codec);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+
+    //RLE, No RepeatKeys
+    writer = writeTestFile(true, false, data, null);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, null);
+
+    writer = writeTestFile(true, false, data, codec);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+
+    //RLE, RepeatKeys
+    writer = writeTestFile(true, true, data, null);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, null);
+
+    writer = writeTestFile(true, true, data, codec);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+  }
+
+  /**
+   * Test different options (RLE, repeat keys, compression) on reader/writer
+   *
+   * @param data
+   * @throws IOException
+   */
+  private void testWithDataBuffer(List<KVPair> data) throws
+      IOException {
+    Writer writer = null;
+    //No RLE, No RepeatKeys
+    writer = writeTestFileUsingDataBuffer(false, false, data, null);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, null);
+
+    writer = writeTestFileUsingDataBuffer(false, false, data, codec);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+
+    //No RLE, RepeatKeys
+    writer = writeTestFileUsingDataBuffer(false, true, data, null);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, null);
+
+    writer = writeTestFileUsingDataBuffer(false, true, data, codec);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+
+    //RLE, No RepeatKeys
+    writer = writeTestFileUsingDataBuffer(true, false, data, null);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, null);
+
+    writer = writeTestFileUsingDataBuffer(true, false, data, codec);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+
+    //RLE, RepeatKeys
+    writer = writeTestFileUsingDataBuffer(true, true, data, null);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, null);
+
+    writer = writeTestFileUsingDataBuffer(true, true, data, codec);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+  }
+
+  private void readAndVerifyData(long rawLength, long compressedLength,
+      List<KVPair> originalData, CompressionCodec codec) throws
+      IOException {
+    readFileUsingInMemoryReader(rawLength, compressedLength, originalData);
+    readUsingIFileReader(originalData, codec);
+  }
+
+  /**
+   * Read data using in memory reader
+   *
+   * @param rawLength
+   * @param compressedLength
+   * @param originalData
+   * @throws IOException
+   */
+  private void readFileUsingInMemoryReader(long rawLength, long compressedLength,
+      List<KVPair> originalData) throws IOException {
+    LOG.info("Read using in memory reader");
+    FSDataInputStream inStream = localFs.open(outputPath);
+    byte[] bytes = new byte[(int) rawLength];
+
+    IFile.Reader.readToMemory(bytes, inStream,
+        (int) compressedLength, codec, false, -1);
+    inStream.close();
+
+    readUsingInMemoryReader(bytes, originalData);
+  }
+
+  private void readUsingInMemoryReader(byte[] bytes, List<KVPair> originalData)
       throws IOException {
+    InMemoryReader inMemReader = new InMemoryReader(null,
+        new InputAttemptIdentifier(0, 0), bytes, 0, bytes.length);
+    verifyData(inMemReader, originalData);
+  }
+
+  /**
+   * Read data using IFile Reader
+   *
+   * @param originalData
+   * @param codec
+   * @throws IOException
+   */
+  private void readUsingIFileReader(List<KVPair> originalData,
+      CompressionCodec codec) throws IOException {
+    LOG.info("Read using IFile reader");
+    IFile.Reader reader = new IFile.Reader(localFs, outputPath,
+        codec, null, null, false, 0, -1);
+    verifyData(reader, originalData);
+    reader.close();
+  }
+
+  /**
+   * Data verification
+   *
+   * @param reader
+   * @param data
+   * @throws IOException
+   */
+  private void verifyData(Reader reader, List<KVPair> data)
+      throws IOException {
+    LOG.info("Data verification");
     Text readKey = new Text();
     IntWritable readValue = new IntWritable();
     DataInputBuffer keyIn = new DataInputBuffer();
@@ -184,15 +475,29 @@ public class TestIFile {
     LOG.info("Found: " + numRecordsRead + " records");
   }
 
-  private Writer writeTestFile(Path outputPath, boolean useRle, List<KVPair> data)
-      throws IOException {
+  private Writer writeTestFile(boolean rle, boolean repeatKeys,
+      List<KVPair> data, CompressionCodec codec) throws IOException {
+    FSDataOutputStream out = localFs.create(outputPath);
+    IFile.Writer writer = new IFile.Writer(defaultConf, out,
+        Text.class, IntWritable.class, codec, null, null, rle);
+    writeTestFile(writer, rle, repeatKeys, data, codec);
+    out.close();
+    return  writer;
+  }
 
-    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
-        Text.class, IntWritable.class, null, null, null);
-    writer.setRLE(useRle);
+  private Writer writeTestFile(IFile.Writer writer, boolean rle, boolean repeatKeys,
+      List<KVPair> data, CompressionCodec codec) throws IOException {
+    assertNotNull(writer);
 
+    Text previousKey = null;
     for (KVPair kvp : data) {
-      writer.append(kvp.getKey(), kvp.getvalue());
+      if (repeatKeys && (previousKey != null && previousKey.compareTo(kvp.getKey()) == 0)) {
+        //RLE is enabled in IFile when IFile.REPEAT_KEY is set
+        writer.append(IFile.REPEAT_KEY, kvp.getvalue());
+      } else {
+        writer.append(kvp.getKey(), kvp.getvalue());
+      }
+      previousKey = kvp.getKey();
     }
 
     writer.close();
@@ -201,5 +506,49 @@ public class TestIFile {
     LOG.info("CompressedSize: " + writer.getCompressedLength());
 
     return writer;
+  }
+
+  private Writer writeTestFileUsingDataBuffer(boolean rle, boolean repeatKeys,
+      List<KVPair> data, CompressionCodec codec) throws IOException {
+    FSDataOutputStream out = localFs.create(outputPath);
+    IFile.Writer writer = new IFile.Writer(defaultConf, out,
+        Text.class, IntWritable.class, codec, null, null, rle);
+    writeTestFileUsingDataBuffer(writer, rle, repeatKeys, data, codec);
+    out.close();
+    return writer;
+  }
+
+  private Writer writeTestFileUsingDataBuffer(IFile.Writer writer, boolean rle, boolean repeatKeys,
+      List<KVPair> data, CompressionCodec codec) throws IOException {
+    DataInputBuffer previousKey = new DataInputBuffer();
+    DataInputBuffer key = new DataInputBuffer();
+    DataInputBuffer value = new DataInputBuffer();
+    for (KVPair kvp : data) {
+      populateData(kvp, key, value);
+
+      if (repeatKeys && (previousKey != null && BufferUtils.compare(key, previousKey) == 0)) {
+        writer.append(IFile.REPEAT_KEY, value);
+      } else {
+        writer.append(key, value);
+      }
+      previousKey.reset(k.getData(), 0, k.getLength());
+    }
+
+    writer.close();
+
+    LOG.info("Uncompressed: " + writer.getRawLength());
+    LOG.info("CompressedSize: " + writer.getCompressedLength());
+
+    return writer;
+  }
+
+  private void populateData(KVPair kvp, DataInputBuffer key, DataInputBuffer value)
+      throws  IOException {
+    DataOutputBuffer k = new DataOutputBuffer();
+    DataOutputBuffer v = new DataOutputBuffer();
+    kvp.getKey().write(k);
+    kvp.getvalue().write(v);
+    key.reset(k.getData(), 0, k.getLength());
+    value.reset(v.getData(), 0, v.getLength());
   }
 }
