@@ -502,7 +502,7 @@ public class TestMRRJobsDAGApi {
           createLocalResource(remoteFs, inputSplitInfo.getSplitsMetaInfoFile(),
               LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
 
-      stage1Vertex.setTaskLocalResources(stage1LocalResources);
+      stage1Vertex.setTaskLocalFiles(stage1LocalResources);
       stage1Vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
     }
     

@@ -336,7 +336,7 @@ public class DAGClientRPCImpl implements DAGClient {
     Set<String> vertexNames = new HashSet<String>();
     if (vertices != null) {
       for (Vertex vertex : vertices) {
-        vertexNames.add(vertex.getVertexName());
+        vertexNames.add(vertex.getName());
       }
     }
     return _waitForCompletionWithStatusUpdates(vertexNames, statusGetOpts);

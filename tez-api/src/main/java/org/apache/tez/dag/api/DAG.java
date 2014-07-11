@@ -80,11 +80,11 @@ public class DAG {
   }
 
   public synchronized DAG addVertex(Vertex vertex) {
-    if (vertices.containsKey(vertex.getVertexName())) {
+    if (vertices.containsKey(vertex.getName())) {
       throw new IllegalStateException(
-        "Vertex " + vertex.getVertexName() + " already defined!");
+        "Vertex " + vertex.getName() + " already defined!");
     }
-    vertices.put(vertex.getVertexName(), vertex);
+    vertices.put(vertex.getName(), vertex);
     return this;
   }
 
@@ -260,8 +260,8 @@ public class DAG {
             Vertex outVertex = e.getOutputVertex();
             if (outVertex.getParallelism() == -1) {
               LOG.info("Inferring parallelism for vertex: "
-                  + outVertex.getVertexName() + " to be " + v.getParallelism()
-                  + " from 1-1 connection with vertex " + v.getVertexName());
+                  + outVertex.getName() + " to be " + v.getParallelism()
+                  + " from 1-1 connection with vertex " + v.getName());
               outVertex.setParallelism(v.getParallelism());
               newKnownTasksVertices.add(outVertex);
             }
@@ -281,8 +281,8 @@ public class DAG {
           if (outputVertex.getParallelism() != -1) {
             throw new TezUncheckedException(
                 "1-1 Edge. Destination vertex parallelism must match source vertex. "
-                + "Vertex: " + inputVertex.getVertexName() + " does not match vertex: " 
-                + outputVertex.getVertexName());
+                + "Vertex: " + inputVertex.getName() + " does not match vertex: " 
+                + outputVertex.getName());
           }
         }
       }
@@ -341,11 +341,11 @@ public class DAG {
     Map<Vertex, Set<String>> inboundVertexMap = new HashMap<Vertex, Set<String>>();
     Map<Vertex, Set<String>> outboundVertexMap = new HashMap<Vertex, Set<String>>();
     for (Vertex v : vertices.values()) {
-      if (vertexMap.containsKey(v.getVertexName())) {
+      if (vertexMap.containsKey(v.getName())) {
         throw new IllegalStateException("DAG contains multiple vertices"
-          + " with name: " + v.getVertexName());
+          + " with name: " + v.getName());
       }
-      vertexMap.put(v.getVertexName(), new AnnotatedVertex(v));
+      vertexMap.put(v.getName(), new AnnotatedVertex(v));
     }
 
     Map<Vertex, List<Edge>> edgeMap = new HashMap<Vertex, List<Edge>>();
@@ -366,7 +366,7 @@ public class DAG {
         inboundSet = new HashSet<String>();
         inboundVertexMap.put(outputVertex, inboundSet);
       }
-      inboundSet.add(inputVertex.getVertexName());
+      inboundSet.add(inputVertex.getName());
       
       // Construct map for Output name verification
       Set<String> outboundSet = outboundVertexMap.get(inputVertex);
@@ -374,7 +374,7 @@ public class DAG {
         outboundSet = new HashSet<String>();
         outboundVertexMap.put(inputVertex, outboundSet);
       }
-      outboundSet.add(outputVertex.getVertexName());
+      outboundSet.add(outputVertex.getName());
     }
 
     // check input and output names don't collide with vertex names
@@ -382,7 +382,7 @@ public class DAG {
       for (RootInputLeafOutput<InputDescriptor> input : vertex.getInputs()) {
         if (vertexMap.containsKey(input.getName())) {
           throw new IllegalStateException("Vertex: "
-              + vertex.getVertexName()
+              + vertex.getName()
               + " contains an Input with the same name as vertex: "
               + input.getName());
         }
@@ -390,7 +390,7 @@ public class DAG {
       for (RootInputLeafOutput<OutputDescriptor> output : vertex.getOutputs()) {
         if (vertexMap.containsKey(output.getName())) {
           throw new IllegalStateException("Vertex: "
-              + vertex.getVertexName()
+              + vertex.getName()
               + " contains an Output with the same name as vertex: "
               + output.getName());
         }
@@ -403,7 +403,7 @@ public class DAG {
       for (RootInputLeafOutput<InputDescriptor> input : vertex.getInputs()) {
         if (entry.getValue().contains(input.getName())) {
           throw new IllegalStateException("Vertex: "
-              + vertex.getVertexName()
+              + vertex.getName()
               + " contains an incoming vertex and Input with the same name: "
               + input.getName());
         }
@@ -416,7 +416,7 @@ public class DAG {
       for (RootInputLeafOutput<OutputDescriptor> output : vertex.getOutputs()) {
         if (entry.getValue().contains(output.getName())) {
           throw new IllegalStateException("Vertex: "
-              + vertex.getVertexName()
+              + vertex.getName()
               + " contains an outgoing vertex and Output with the same name: "
               + output.getName());
         }
@@ -479,7 +479,7 @@ public class DAG {
     List<Edge> edges = edgeMap.get(av.v);
     if (edges != null) {
       for (Edge e : edgeMap.get(av.v)) {
-        AnnotatedVertex outVertex = vertexMap.get(e.getOutputVertex().getVertexName());
+        AnnotatedVertex outVertex = vertexMap.get(e.getOutputVertex().getName());
         if (outVertex.index == -1) {
           strongConnect(outVertex, vertexMap, edgeMap, stack, nextIndex);
           av.lowlink = Math.min(av.lowlink, outVertex.lowlink);
@@ -498,12 +498,12 @@ public class DAG {
         // there was something on the stack other than this "av".
         // this indicates there is a scc/cycle. It comprises all nodes from top of stack to "av"
         StringBuilder message = new StringBuilder();
-        message.append(av.v.getVertexName()).append(" <- ");
+        message.append(av.v.getName()).append(" <- ");
         for (; pop != av; pop = stack.pop()) {
-          message.append(pop.v.getVertexName()).append(" <- ");
+          message.append(pop.v.getName()).append(" <- ");
           pop.onstack = false;
         }
-        message.append(av.v.getVertexName());
+        message.append(av.v.getName());
         throw new IllegalStateException("DAG contains a cycle: " + message);
       }
     }
@@ -525,7 +525,7 @@ public class DAG {
         PlanVertexGroupInfo.Builder groupBuilder = PlanVertexGroupInfo.newBuilder();
         groupBuilder.setGroupName(groupInfo.getGroupName());
         for (Vertex v : groupInfo.getMembers()) {
-          groupBuilder.addGroupMembers(v.getVertexName());
+          groupBuilder.addGroupMembers(v.getName());
         }
         groupBuilder.addAllOutputs(groupInfo.outputs);
         for (Map.Entry<String, InputDescriptor> entry : 
@@ -540,7 +540,7 @@ public class DAG {
 
     for (Vertex vertex : vertices.values()) {
       VertexPlan.Builder vertexBuilder = VertexPlan.newBuilder();
-      vertexBuilder.setName(vertex.getVertexName());
+      vertexBuilder.setName(vertex.getName());
       vertexBuilder.setType(PlanVertexType.NORMAL); // vertex type is implicitly NORMAL until  TEZ-46.
       vertexBuilder.setProcessorDescriptor(DagTypeConverters
         .convertToDAGPlan(vertex.getProcessorDescriptor()));
@@ -561,13 +561,13 @@ public class DAG {
       taskConfigBuilder.setNumTasks(vertex.getParallelism());
       taskConfigBuilder.setMemoryMb(resource.getMemory());
       taskConfigBuilder.setVirtualCores(resource.getVirtualCores());
-      taskConfigBuilder.setJavaOpts(vertex.getJavaOpts());
+      taskConfigBuilder.setJavaOpts(vertex.getTaskLaunchCmdOpts());
 
-      taskConfigBuilder.setTaskModule(vertex.getVertexName());
+      taskConfigBuilder.setTaskModule(vertex.getName());
       PlanLocalResource.Builder localResourcesBuilder = PlanLocalResource.newBuilder();
       localResourcesBuilder.clear();
       for (Entry<String, LocalResource> entry :
-             vertex.getTaskLocalResources().entrySet()) {
+             vertex.getTaskLocalFiles().entrySet()) {
         String key = entry.getKey();
         LocalResource lr = entry.getValue();
         localResourcesBuilder.setName(key);
@@ -637,8 +637,8 @@ public class DAG {
     for (Edge edge : edges) {
       EdgePlan.Builder edgeBuilder = EdgePlan.newBuilder();
       edgeBuilder.setId(edge.getId());
-      edgeBuilder.setInputVertexName(edge.getInputVertex().getVertexName());
-      edgeBuilder.setOutputVertexName(edge.getOutputVertex().getVertexName());
+      edgeBuilder.setInputVertexName(edge.getInputVertex().getName());
+      edgeBuilder.setOutputVertexName(edge.getOutputVertex().getName());
       edgeBuilder.setDataMovementType(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getDataMovementType()));
       edgeBuilder.setDataSourceType(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getDataSourceType()));
       edgeBuilder.setSchedulingType(DagTypeConverters.convertToDAGPlan(edge.getEdgeProperty().getSchedulingType()));

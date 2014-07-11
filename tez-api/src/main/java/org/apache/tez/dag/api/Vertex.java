@@ -58,8 +58,24 @@ public class Vertex {
   private final List<Edge> outputEdges = new ArrayList<Edge>();
   private final Map<String, GroupInfo> groupInputs = Maps.newHashMap();
   
-  private String javaOpts = "";
+  private String taskLaunchCmdOpts = "";
 
+  /**
+   * Create a new vertex with the given name.
+   * 
+   * @param vertexName
+   *          Name of the vertex
+   * @param processorDescriptor
+   *          Description of the processor that is executed in every task of
+   *          this vertex
+   * @param parallelism
+   *          Number of tasks in this vertex. Set to -1 if this is going to be
+   *          decided at runtime. Parallelism may change at runtime due to graph
+   *          reconfigurations.
+   * @param taskResource
+   *          Physical resources like memory/cpu thats used by each task of this
+   *          vertex
+   */
   public Vertex(String vertexName,
       ProcessorDescriptor processorDescriptor,
       int parallelism,
@@ -78,14 +94,28 @@ public class Vertex {
     }
   }
 
-  public String getVertexName() { // FIXME rename to getName()
+  /**
+   * Get the vertex name
+   * @return vertex name
+   */
+  public String getName() {
     return vertexName;
   }
 
+  /**
+   * Get the vertex task processor descriptor
+   * @return
+   */
   public ProcessorDescriptor getProcessorDescriptor() {
     return this.processorDescriptor;
   }
 
+  /**
+   * Get the specified number of tasks specified to run in this vertex. It may 
+   * be -1 if the parallelism is defined at runtime. Parallelism may change at 
+   * runtime
+   * @return vertex parallelism
+   */
   public int getParallelism() {
     return parallelism;
   }
@@ -94,10 +124,20 @@ public class Vertex {
     this.parallelism = parallelism;
   }
 
+  /**
+   * Get the resources for the vertex
+   * @return the physical resources like pcu/memory of each vertex task
+   */
   public Resource getTaskResource() {
     return taskResource;
   }
 
+  /**
+   * Specify location hints for the tasks of this vertex. Hints must be specified 
+   * for all tasks as defined by the parallelism
+   * @param locations list of locations for each task in the vertex
+   * @return this Vertex
+   */
   public Vertex setTaskLocationsHint(List<TaskLocationHint> locations) {
     if (locations == null) {
       return this;
@@ -113,31 +153,61 @@ public class Vertex {
     return taskLocationsHint;
   }
 
-  public Vertex setTaskLocalResources(Map<String, LocalResource> localResources) {
-    if (localResources == null) {
+  /**
+   * Set the files etc that must be provided to the tasks of this vertex
+   * @param localFiles
+   *          files that must be available locally for each task. These files
+   *          may be regular files, archives etc. as specified by the value
+   *          elements of the map.
+   * @return this Vertex
+   */
+  public Vertex setTaskLocalFiles(Map<String, LocalResource> localFiles) {
+    if (localFiles == null) {
       this.taskLocalResources = new HashMap<String, LocalResource>();
     } else {
-      this.taskLocalResources = localResources;
+      this.taskLocalResources = localFiles;
     }
     return this;
   }
 
-  public Map<String, LocalResource> getTaskLocalResources() {
+  /**
+   * Get the files etc that must be provided by the tasks of this vertex
+   * @return local files of the vertex. Key is the file name.
+   */
+  public Map<String, LocalResource> getTaskLocalFiles() {
     return taskLocalResources;
   }
 
+  /**
+   * Set the Key-Value pairs of environment variables for tasks of this vertex.
+   * This method should be used if different vertices need different env. Else,
+   * set environment for all vertices via Tezconfiguration#TEZ_TASK_LAUNCH_ENV
+   * @param environment
+   * @return this Vertex
+   */
   public Vertex setTaskEnvironment(Map<String, String> environment) {
     Preconditions.checkArgument(environment != null);
     this.taskEnvironment.putAll(environment);
     return this;
   }
 
+  /**
+   * Get the environment variables of the tasks
+   * @return environment variable map
+   */
   public Map<String, String> getTaskEnvironment() {
     return taskEnvironment;
   }
 
-  public Vertex setJavaOpts(String javaOpts){
-     this. javaOpts = javaOpts;
+  /**
+   * Set the command opts for tasks of this vertex. This method should be used 
+   * when different vertices have different opts. Else, set the launch opts for '
+   * all vertices via Tezconfiguration#TEZ_TASK_LAUNCH_CMD_OPTS
+   * @param cmdOpts
+   * @return this Vertex
+   */
+  public Vertex setTaskLaunchCmdOpts(String cmdOpts){
+     this.taskLaunchCmdOpts = cmdOpts;
      return this;
   }
   
@@ -211,6 +281,23 @@ public class Vertex {
     return this;
   }
 
+  /**
+   * Specifies an Output for a Vertex. This is meant to be used when a Vertex
+   * writes Output directly to an external destination. </p>
+   * 
+   * If an output of the vertex is meant to be consumed by another Vertex in the
+   * DAG - use the {@link DAG addEdge} method.
+   * 
+   * If a vertex needs generate data to an external source as well as for
+   * another Vertex in the DAG, a combination of this API and the DAG.addEdge
+   * API can be used.
+   * 
+   * @param outputName
+   *          the name of the output. This will be used when accessing the
+   *          output in the {@link LogicalIOProcessor}
+   * @param outputDescriptor
+   * @return this Vertex
+   */
   public Vertex addOutput(String outputName, OutputDescriptor outputDescriptor) {
     return addOutput(outputName, outputDescriptor, null);
   }
@@ -229,8 +316,12 @@ public class Vertex {
     return this;
   }
 
-  public String getJavaOpts(){
-	  return javaOpts;
+  /**
+   * Get the launch command opts for tasks in this vertex
+   * @return launch command opts
+   */
+  public String getTaskLaunchCmdOpts(){
+	  return taskLaunchCmdOpts;
   }
 
   @Override
@@ -249,7 +340,7 @@ public class Vertex {
   void addGroupInput(String groupName, GroupInfo groupInputInfo) {
     if (groupInputs.put(groupName, groupInputInfo) != null) {
       throw new IllegalStateException(
-          "Vertex: " + getVertexName() + 
+          "Vertex: " + getName() + 
           " already has group input with name:" + groupName);
     }
   }
@@ -287,5 +378,4 @@ public class Vertex {
   List<RootInputLeafOutput<OutputDescriptor>> getOutputs() {
     return additionalOutputs;
   }
-  // FIXME how do we support profiling? Can't profile all tasks.
 }

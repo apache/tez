@@ -584,9 +584,9 @@ public class MRRSleepJob extends Configured implements Tool {
       mapLocalResources.putAll(commonLocalResources);
       MRHelpers.updateLocalResourcesForInputSplits(remoteFs, inputSplitInfo,
           mapLocalResources);
-      mapVertex.setTaskLocalResources(mapLocalResources);
+      mapVertex.setTaskLocalFiles(mapLocalResources);
     } else {
-      mapVertex.setTaskLocalResources(commonLocalResources);
+      mapVertex.setTaskLocalFiles(commonLocalResources);
     }
 
     if (generateSplitsInAM) {
@@ -610,7 +610,7 @@ public class MRRSleepJob extends Configured implements Tool {
                 new ProcessorDescriptor(ReduceProcessor.class.getName()).
                 setUserPayload(iReduceUserPayload), numIReducer,
                 MRHelpers.getReduceResource(iconf));
-        ivertex.setTaskLocalResources(commonLocalResources);
+        ivertex.setTaskLocalFiles(commonLocalResources);
         vertices.add(ivertex);
       }
     }
@@ -621,7 +621,7 @@ public class MRRSleepJob extends Configured implements Tool {
       finalReduceVertex = new Vertex("reduce", new ProcessorDescriptor(
           ReduceProcessor.class.getName()).setUserPayload(reducePayload),
           numReducer, MRHelpers.getReduceResource(finalReduceConf));
-      finalReduceVertex.setTaskLocalResources(commonLocalResources);
+      finalReduceVertex.setTaskLocalFiles(commonLocalResources);
       MRHelpers.addMROutputLegacy(finalReduceVertex, reducePayload);
       vertices.add(finalReduceVertex);
     } else {

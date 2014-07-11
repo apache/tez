@@ -216,9 +216,9 @@ public class OrderedWordCount extends Configured implements Tool {
       mapLocalResources.putAll(commonLocalResources);
       MRHelpers.updateLocalResourcesForInputSplits(fs, inputSplitInfo,
           mapLocalResources);
-      mapVertex.setTaskLocalResources(mapLocalResources);
+      mapVertex.setTaskLocalFiles(mapLocalResources);
     } else {
-      mapVertex.setTaskLocalResources(commonLocalResources);
+      mapVertex.setTaskLocalFiles(commonLocalResources);
     }
 
     Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
@@ -231,7 +231,7 @@ public class OrderedWordCount extends Configured implements Tool {
         setUserPayload(MRHelpers.createUserPayloadFromConf(iReduceStageConf)),
         2,
         MRHelpers.getReduceResource(iReduceStageConf));
-    ivertex.setTaskLocalResources(commonLocalResources);
+    ivertex.setTaskLocalFiles(commonLocalResources);
     vertices.add(ivertex);
 
     byte[] finalReducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
@@ -239,7 +239,7 @@ public class OrderedWordCount extends Configured implements Tool {
         new ProcessorDescriptor(
             ReduceProcessor.class.getName()).setUserPayload(finalReducePayload),
                 1, MRHelpers.getReduceResource(finalReduceConf));
-    finalReduceVertex.setTaskLocalResources(commonLocalResources);
+    finalReduceVertex.setTaskLocalFiles(commonLocalResources);
     MRHelpers.addMROutputLegacy(finalReduceVertex, finalReducePayload);
     vertices.add(finalReduceVertex);
 
@@ -405,11 +405,11 @@ public class OrderedWordCount extends Configured implements Tool {
           Map<String, LocalResource> contextLocalRsrcs =
             new TreeMap<String, LocalResource>();
           contextLocalRsrcs.putAll(
-            dag.getVertex("initialmap").getTaskLocalResources());
+            dag.getVertex("initialmap").getTaskLocalFiles());
           Map<String, String> contextEnv = new TreeMap<String, String>();
           contextEnv.putAll(dag.getVertex("initialmap").getTaskEnvironment());
           String contextJavaOpts =
-            dag.getVertex("initialmap").getJavaOpts();
+            dag.getVertex("initialmap").getTaskLaunchCmdOpts();
           context
             .setLocalResources(contextLocalRsrcs)
             .setJavaOpts(contextJavaOpts)

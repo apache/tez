@@ -120,7 +120,7 @@ public class VertexGroup {
   }
   
   void addOutputVertex(Vertex outputVertex, GroupInputEdge edge) {
-    this.groupInfo.edgeMergedInputs.put(outputVertex.getVertexName(), edge.getMergedInput());
+    this.groupInfo.edgeMergedInputs.put(outputVertex.getName(), edge.getMergedInput());
   }
   
 }

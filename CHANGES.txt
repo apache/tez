@@ -16,6 +16,7 @@ INCOMPATIBLE CHANGES
   TEZ-1127. Add TEZ_TASK_JAVA_OPTS and TEZ_ENV configs to specify values from
   config
   TEZ-692. Unify job submission in either TezClient or TezSession
+  TEZ-1130. Replace confusing names on Vertex API
 
 Release 0.4.0-incubating: 2014-04-05
 

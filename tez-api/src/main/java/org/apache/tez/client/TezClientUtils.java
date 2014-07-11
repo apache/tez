@@ -293,7 +293,7 @@ public class TezClientUtils {
     try {
       Set<Path> lrPaths = new HashSet<Path>();
       for (Vertex v: dag.getVertices()) {
-        for (LocalResource lr: v.getTaskLocalResources().values()) {
+        for (LocalResource lr: v.getTaskLocalFiles().values()) {
           lrPaths.add(ConverterUtils.getPathFromYarnURL(lr.getResource()));
         }
       }
@@ -509,9 +509,9 @@ public class TezClientUtils {
 
       for (Vertex v : dag.getVertices()) {
         if (tezJarResources != null) {
-          v.getTaskLocalResources().putAll(tezJarResources);
+          v.getTaskLocalFiles().putAll(tezJarResources);
         }
-        v.getTaskLocalResources().put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
+        v.getTaskLocalFiles().put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
             binaryConfLRsrc);
 
         Map<String, String> taskEnv = v.getTaskEnvironment();
@@ -618,7 +618,7 @@ public class TezClientUtils {
   }
   
   static void setDefaultLaunchCmdOpts(Vertex v, TezConfiguration conf) {
-    String vOpts = v.getJavaOpts();
+    String vOpts = v.getTaskLaunchCmdOpts();
     String vConfigOpts = conf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS,
         TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT);
     if (vConfigOpts != null && vConfigOpts.length() > 0) {
@@ -628,7 +628,7 @@ public class TezClientUtils {
     vOpts = maybeAddDefaultLoggingJavaOpts(conf.get(
         TezConfiguration.TEZ_TASK_LOG_LEVEL,
         TezConfiguration.TEZ_TASK_LOG_LEVEL_DEFAULT), vOpts);
-    v.setJavaOpts(vOpts);
+    v.setTaskLaunchCmdOpts(vOpts);
   }
 
   @Private

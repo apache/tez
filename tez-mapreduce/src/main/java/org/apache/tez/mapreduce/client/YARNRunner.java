@@ -428,9 +428,9 @@ public class YARNRunner implements ClientProtocol {
         : MRHelpers.getReduceJavaOpts(stageConf);
 
     vertex.setTaskEnvironment(taskEnv)
-        .setTaskLocalResources(taskLocalResources)
+        .setTaskLocalFiles(taskLocalResources)
         .setTaskLocationsHint(locations)
-        .setJavaOpts(taskJavaOpts);
+        .setTaskLaunchCmdOpts(taskJavaOpts);
     
     if (!isMap) {
       vertex.setVertexManagerPlugin(new VertexManagerPluginDescriptor(
@@ -439,9 +439,9 @@ public class YARNRunner implements ClientProtocol {
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Adding vertex to DAG" + ", vertexName="
-          + vertex.getVertexName() + ", processor="
+          + vertex.getName() + ", processor="
           + vertex.getProcessorDescriptor().getClassName() + ", parallelism="
-          + vertex.getParallelism() + ", javaOpts=" + vertex.getJavaOpts()
+          + vertex.getParallelism() + ", javaOpts=" + vertex.getTaskLaunchCmdOpts()
           + ", resources=" + vertex.getTaskResource()
       // TODO Add localResources and Environment
       );

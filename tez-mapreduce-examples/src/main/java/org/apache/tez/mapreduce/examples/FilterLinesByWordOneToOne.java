@@ -175,9 +175,9 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
       Map<String, LocalResource> stage1LocalResources = new HashMap<String, LocalResource>();
       stage1LocalResources.putAll(commonLocalResources);
       MRHelpers.updateLocalResourcesForInputSplits(fs, inputSplitInfo, stage1LocalResources);
-      stage1Vertex.setTaskLocalResources(stage1LocalResources);
+      stage1Vertex.setTaskLocalFiles(stage1LocalResources);
     } else {
-      stage1Vertex.setTaskLocalResources(commonLocalResources);
+      stage1Vertex.setTaskLocalFiles(commonLocalResources);
     }
 
     // Configure the Input for stage1
@@ -193,7 +193,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
         FilterByWordOutputProcessor.class.getName()).setUserPayload(MRHelpers
         .createUserPayloadFromConf(stage2Conf)), stage1NumTasks,
         MRHelpers.getMapResource(stage2Conf));
-    stage2Vertex.setTaskLocalResources(commonLocalResources);
+    stage2Vertex.setTaskLocalFiles(commonLocalResources);
 
     // Configure the Output for stage2
     stage2Vertex.addOutput("MROutput",

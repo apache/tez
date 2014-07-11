@@ -997,14 +997,14 @@ public class DAGAppMaster extends AbstractService {
       preWarmVertex.setTaskEnvironment(preWarmContext.getEnvironment());
     }
     if (preWarmContext.getLocalResources() != null) {
-      preWarmVertex.setTaskLocalResources(preWarmContext.getLocalResources());
+      preWarmVertex.setTaskLocalFiles(preWarmContext.getLocalResources());
     }
     if (preWarmContext.getLocationHints() != null) {
       preWarmVertex.setTaskLocationsHint(
         preWarmContext.getLocationHints().getTaskLocationHints());
     }
     if (preWarmContext.getJavaOpts() != null) {
-      preWarmVertex.setJavaOpts(preWarmContext.getJavaOpts());
+      preWarmVertex.setTaskLaunchCmdOpts(preWarmContext.getJavaOpts());
     }
     dag.addVertex(preWarmVertex);
     LOG.info("Pre-warming containers"
