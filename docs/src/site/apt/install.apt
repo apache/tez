@@ -31,15 +31,15 @@ Install/Deploy Instructions
 
   [[i]] Copy the tez jars and their dependencies into HDFS.
 
-    * The tez jars and dependencies will be found in tez-dist/target/tez-0.4.0-incubating/tez-0.4.0-incubating if you run the intial command mentioned in step 2.
+    * The tez jars and dependencies will be found in tez-dist/target/tez-0.4.1-incubating/tez-0.4.1-incubating if you run the intial command mentioned in step 2.
 
-    * Assuming that the tez jars are put in /apps/ on HDFS, the command would be "hadoop dfs -put tez-dist/target/tez-0.4.0-incubating/tez-0.4.0-incubating /apps/"
+    * Assuming that the tez jars are put in /apps/ on HDFS, the command would be "hadoop dfs -put tez-dist/target/tez-0.4.1-incubating/tez-0.4.1-incubating /apps/"
 
     * Please do not upload the tarball to HDFS, upload only the jars.
 
 
   [[i]] Configure tez-site.xml to set tez.lib.uris to point to the paths in HDFS containing the jars. Please note that the paths are not searched recursively so for <basedir> and <basedir>/lib/, you will need to configure the 2 paths as a comma-separated list.
-    * Assuming you followed step 3, the value would be: "$\{fs.default.name\}/apps/tez-0.4.0-incubating,$\{fs.default.name\}/apps/tez-0.4.0-incubating/lib/"
+    * Assuming you followed step 3, the value would be: "$\{fs.default.name\}/apps/tez-0.4.1-incubating,$\{fs.default.name\}/apps/tez-0.4.1-incubating/lib/"
 
   [[i]] Modify mapred-site.xml to change "mapreduce.framework.name" property from its default value of "yarn" to "yarn-tez"
 

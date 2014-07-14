@@ -113,9 +113,8 @@
     </menu>
 
     <menu name="Releases">
-      <item name="0.2.0-incubating" href="http://www.apache.org/dyn/closer.cgi/incubator/tez/tez-0.2.0-incubating/"/>
-      <item name="0.3.0-incubating" href="http://www.apache.org/dyn/closer.cgi/incubator/tez/tez-0.3.0-incubating/"/>
       <item name="0.4.0-incubating" href="http://www.apache.org/dyn/closer.cgi/incubator/tez/tez-0.4.0-incubating/"/>
+      <item name="0.4.1-incubating" href="http://www.apache.org/dyn/closer.cgi/incubator/tez/tez-0.4.1-incubating/"/>
     </menu>
 
     <menu name="Contribute">
