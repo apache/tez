@@ -30,8 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import javax.annotation.Nullable;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
@@ -97,6 +95,84 @@ public class MRHelpers {
   static final String JOB_SPLIT_RESOURCE_NAME = "job.split";
   static final String JOB_SPLIT_METAINFO_RESOURCE_NAME =
       "job.splitmetainfo";
+
+  /**
+   * Translates MR keys to Tez for the provided vertex conf. The conversion is
+   * done in place.
+   *
+   * @param conf
+   *          Configuration for the vertex being configured.
+   */
+  @LimitedPrivate("Hive, Pig")
+  @Unstable
+  public static void translateVertexConfToTez(Configuration conf) {
+    convertVertexConfToTez(conf);
+  }
+
+  private static void convertVertexConfToTez(Configuration vertexConf) {
+    setStageKeysFromBaseConf(vertexConf, vertexConf, "unknown");
+    processDirectConversion(vertexConf);
+  }
+
+  /**
+   * Pulls in specific keys from the base configuration, if they are not set at
+   * the stage level. An explicit list of keys is copied over (not all), which
+   * require translation to tez keys.
+   */
+  private static void setStageKeysFromBaseConf(Configuration conf,
+                                               Configuration baseConf, String stage) {
+    JobConf jobConf = new JobConf(baseConf);
+    // Don't clobber explicit tez config.
+    if (conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS) == null) {
+      // If this is set, but the comparator is not set, and their types differ -
+      // the job will break.
+      if (conf.get(MRJobConfig.MAP_OUTPUT_KEY_CLASS) == null) {
+        // Pull this in from the baseConf
+        conf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS, jobConf
+            .getMapOutputKeyClass().getName());
+
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Setting " + MRJobConfig.MAP_OUTPUT_KEY_CLASS
+              + " for stage: " + stage
+              + " based on job level configuration. Value: "
+              + conf.get(MRJobConfig.MAP_OUTPUT_KEY_CLASS));
+        }
+      }
+    }
+
+    if (conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS) == null) {
+      if (conf.get(MRJobConfig.MAP_OUTPUT_VALUE_CLASS) == null) {
+        conf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS, jobConf
+            .getMapOutputValueClass().getName());
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Setting " + MRJobConfig.MAP_OUTPUT_VALUE_CLASS
+              + " for stage: " + stage
+              + " based on job level configuration. Value: "
+              + conf.get(MRJobConfig.MAP_OUTPUT_VALUE_CLASS));
+        }
+      }
+    }
+  }
+
+  private static void processDirectConversion(Configuration conf) {
+    for (Map.Entry<String, String> dep : DeprecatedKeys.getMRToTezRuntimeParamMap().entrySet()) {
+      if (conf.get(dep.getKey()) != null) {
+        // TODO Deprecation reason does not seem to reflect in the config ?
+        // The ordering is important in case of keys which are also deprecated.
+        // Unset will unset the deprecated keys and all it's variants.
+        final String mrValue = conf.get(dep.getKey());
+        final String tezValue = conf.get(dep.getValue());
+        conf.unset(dep.getKey());
+        if (tezValue == null) {
+          conf.set(dep.getValue(), mrValue, "TRANSLATED_TO_TEZ");
+        }
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Config: mr(unset):" + dep.getKey() + ", mr initial value="
+              + mrValue + ", tez:" + dep.getValue() + "=" + conf.get(dep.getValue()));
+        }
+      }
+    }
+  }
 
   /**
    * Comparator for org.apache.hadoop.mapreduce.InputSplit

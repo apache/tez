@@ -27,8 +27,6 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
 
-import com.google.common.collect.Maps;
-
 public class DeprecatedKeys {
 
   
@@ -39,17 +37,6 @@ public class DeprecatedKeys {
    */
   private static Map<String, String> mrParamToDAGParamMap = new HashMap<String, String>();
 
-  
-  public static enum MultiStageKeys {
-    INPUT, OUTPUT
-  }
-  /**
-   * Keys which are used across an edge. i.e. by an Output-Input pair.
-   */
-  private static Map<String, Map<MultiStageKeys, String>> multiStageParamMap =
-      new HashMap<String, Map<MultiStageKeys, String>>();
-  
-  
   /**
    * Keys used by the Tez Runtime.
    */
@@ -61,51 +48,9 @@ public class DeprecatedKeys {
   static {
     populateMRToTezRuntimeParamMap();
     populateMRToDagParamMap();
-    populateMultiStageParamMap();
     addDeprecatedKeys();
   }
-  
-  
-  private static void populateMultiStageParamMap() {
-    
-    multiStageParamMap.put(
-        MRJobConfig.KEY_COMPARATOR,
-        getDeprecationMap(
-            TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
-            TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS));
-    
-    multiStageParamMap.put(
-        MRJobConfig.MAP_OUTPUT_KEY_CLASS,
-        getDeprecationMap(
-            TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
-            TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS));
-    
-    multiStageParamMap.put(
-        MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
-        getDeprecationMap(
-            TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS,
-            TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS));
 
-    multiStageParamMap.put(
-        MRJobConfig.MAP_OUTPUT_COMPRESS,
-        getDeprecationMap(
-            TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED,
-            TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS));
-
-    multiStageParamMap.put(
-        MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC,
-        getDeprecationMap(
-            TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC,
-            TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC));
-  }
-  
-  private static Map<MultiStageKeys, String> getDeprecationMap(String inputKey, String outputKey) {
-    Map<MultiStageKeys, String>  m = Maps.newEnumMap(MultiStageKeys.class);
-    m.put(MultiStageKeys.INPUT, inputKey);
-    m.put(MultiStageKeys.OUTPUT, outputKey);
-    return m;
-  }
-  
   private static void populateMRToDagParamMap() {
     // TODO Default value handling.
     mrParamToDAGParamMap.put(MRJobConfig.MR_AM_TASK_LISTENER_THREAD_COUNT,
@@ -192,9 +137,20 @@ public class DeprecatedKeys {
     
     registerMRToRuntimeKeyTranslation(MRJobConfig.GROUP_COMPARATOR_CLASS, TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS);
     
-    registerMRToRuntimeKeyTranslation(MRJobConfig.GROUP_COMPARATOR_CLASS, TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS);
+    registerMRToRuntimeKeyTranslation(MRJobConfig.GROUP_COMPARATOR_CLASS, TezJobConfig.TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS);
     
-    registerMRToRuntimeKeyTranslation(TezJobConfig.TEZ_CREDENTIALS_PATH, MRJobConfig.MAPREDUCE_JOB_CREDENTIALS_BINARY);
+    registerMRToRuntimeKeyTranslation(MRJobConfig.MAPREDUCE_JOB_CREDENTIALS_BINARY, TezJobConfig.TEZ_CREDENTIALS_PATH);
+
+    registerMRToRuntimeKeyTranslation(MRJobConfig.KEY_COMPARATOR, TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS);
+
+    registerMRToRuntimeKeyTranslation(MRJobConfig.MAP_OUTPUT_KEY_CLASS, TezJobConfig.TEZ_RUNTIME_KEY_CLASS);
+
+    registerMRToRuntimeKeyTranslation(MRJobConfig.MAP_OUTPUT_VALUE_CLASS, TezJobConfig.TEZ_RUNTIME_VALUE_CLASS);
+
+    registerMRToRuntimeKeyTranslation(MRJobConfig.MAP_OUTPUT_COMPRESS, TezJobConfig.TEZ_RUNTIME_COMPRESS);
+
+    registerMRToRuntimeKeyTranslation(MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC, TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC);
+
   }
   
   private static void addDeprecatedKeys() {
@@ -217,10 +173,4 @@ public class DeprecatedKeys {
   public static Map<String, String> getMRToTezRuntimeParamMap() {
     return Collections.unmodifiableMap(mrParamToTezRuntimeParamMap);
   }
-
-  // TODO Ideally, multi-stage should not be exposed.
-  public static Map<String, Map<MultiStageKeys, String>> getMultiStageParamMap() {
-    return Collections.unmodifiableMap(multiStageParamMap);
-  }
-
 }

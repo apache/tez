@@ -94,14 +94,14 @@ public class TestOnFileSortedOutputConfiguration {
 
     // Verify programmatic API usage
     assertEquals(2048, conf.getInt(TezJobConfig.TEZ_RUNTIME_IO_SORT_MB, 0));
-    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, ""));
-    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, ""));
+    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("PARTITIONER", conf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
     assertEquals("CustomCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, ""));
-    assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS,
+        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS,
         false));
-    assertEquals("KEY_COMPARATOR", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS));
+    assertEquals("KEY_COMPARATOR", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
 
     // Verify additional configs
     assertEquals(false, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
@@ -133,16 +133,13 @@ public class TestOnFileSortedOutputConfiguration {
     assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
         TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
 
-    // Default Output property present.
+    // Property present
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, ""));
-    // Input property should be absent
-    assertEquals("DEFAULT",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, "DEFAULT"));
+        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     // Verify whatever was configured
-    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, ""));
-    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, ""));
+    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("PARTITIONER", conf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
   }
 
@@ -151,7 +148,7 @@ public class TestOnFileSortedOutputConfiguration {
     Configuration partitionerConf = new Configuration(false);
     partitionerConf.set("partitioner.test.key", "PARTITIONERKEY");
     partitionerConf
-        .set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, "InvalidKeyOverride");
+        .set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
     OnFileSortedOutputConfiguration.Builder builder =
         OnFileSortedOutputConfiguration.newBuilder("KEY", "VALUE", "PARTITIONER", partitionerConf);
 
@@ -165,7 +162,7 @@ public class TestOnFileSortedOutputConfiguration {
 
     // Default Output property should not be overridden based on partitioner config
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, ""));
+        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     assertEquals("PARTITIONERKEY", conf.get("partitioner.test.key"));
   }
@@ -175,7 +172,7 @@ public class TestOnFileSortedOutputConfiguration {
     Configuration combinerConf = new Configuration(false);
     combinerConf.set("combiner.test.key", "COMBINERKEY");
     combinerConf
-        .set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, "InvalidKeyOverride");
+        .set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
     OnFileSortedOutputConfiguration.Builder builder =
         OnFileSortedOutputConfiguration.newBuilder("KEY", "VALUE", "PARTITIONER", null)
             .setCombiner("COMBINER", combinerConf);
@@ -190,7 +187,7 @@ public class TestOnFileSortedOutputConfiguration {
 
     // Default Output property should not be overridden based on partitioner config
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, ""));
+        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     assertEquals("COMBINERKEY", conf.get("combiner.test.key"));
   }

@@ -78,14 +78,9 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -100,10 +95,10 @@ import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
+import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
-import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfiguration;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -475,14 +470,17 @@ public class YARNRunner implements ClientProtocol {
     for (int i = 0; i < vertices.length; i++) {
       dag.addVertex(vertices[i]);
       if (i > 0) {
-        EdgeProperty edgeProperty = new EdgeProperty(
-            DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
-            SchedulingType.SEQUENTIAL, 
-            new OutputDescriptor(OnFileSortedOutput.class.getName()),
-            new InputDescriptor(ShuffledMergedInputLegacy.class.getName()));
-
-        Edge edge = null;
-        edge = new Edge(vertices[i - 1], vertices[i], edgeProperty);
+        // Set edge conf based on Input conf (compression etc properties for MapReduce are
+        // w.r.t Outputs - MAP_OUTPUT_COMPRESS for example)
+        OrderedPartitionedKVEdgeConfiguration edgeConf =
+            OrderedPartitionedKVEdgeConfiguration.newBuilder(stageConfs[i - 1].get(
+                TezJobConfig.TEZ_RUNTIME_KEY_CLASS),
+                stageConfs[i - 1].get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS))
+                .configureOutput(
+                    MRPartitioner.class.getName(), stageConfs[i - 1]).done()
+                .configureInput().useLegacyInput().done()
+                .setFromConfiguration(stageConfs[i - 1]).build();
+        Edge edge = new Edge(vertices[i-1], vertices[i], edgeConf.createDefaultEdgeProperty());
         dag.addEdge(edge);
       }
 
@@ -535,15 +533,11 @@ public class YARNRunner implements ClientProtocol {
     JobConf jobConf = new JobConf(new TezConfiguration(conf));
 
     // Extract individual raw MR configs.
-    Configuration[] stageConfs = MultiStageMRConfToTezTranslator
-        .getStageConfs(jobConf);
+    Configuration[] stageConfs = MultiStageMRConfToTezTranslator.getStageConfs(jobConf);
 
     // Transform all confs to use Tez keys
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(stageConfs[0],
-        null);
-    for (int i = 1; i < stageConfs.length; i++) {
-      MultiStageMRConfToTezTranslator.translateVertexConfToTez(stageConfs[i],
-          stageConfs[i - 1]);
+    for (int i = 0; i < stageConfs.length; i++) {
+      MRHelpers.translateVertexConfToTez(stageConfs[i]);
     }
 
     // create inputs to tezClient.submit()

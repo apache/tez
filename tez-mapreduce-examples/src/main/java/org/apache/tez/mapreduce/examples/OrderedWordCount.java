@@ -71,7 +71,6 @@ import org.apache.tez.mapreduce.examples.helpers.SplitsInClientOptionParser;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
@@ -168,8 +167,7 @@ public class OrderedWordCount extends Configured implements Tool {
       mapStageConf.setInt(MRJobConfig.NUM_MAPS, inputSplitInfo.getNumTasks());
     }
 
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(mapStageConf,
-        null);
+    MRHelpers.translateVertexConfToTez(mapStageConf);
 
     Configuration iReduceStageConf = new JobConf(conf);
     iReduceStageConf.setInt(MRJobConfig.NUM_REDUCES, 2); // TODO NEWTEZ - NOT NEEDED NOW???
@@ -181,8 +179,7 @@ public class OrderedWordCount extends Configured implements Tool {
         Text.class.getName());
     iReduceStageConf.setBoolean("mapred.mapper.new-api", true);
 
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(iReduceStageConf,
-        mapStageConf);
+    MRHelpers.translateVertexConfToTez(iReduceStageConf);
 
     Configuration finalReduceConf = new JobConf(conf);
     finalReduceConf.setInt(MRJobConfig.NUM_REDUCES, 1);
@@ -193,8 +190,7 @@ public class OrderedWordCount extends Configured implements Tool {
     finalReduceConf.set(FileOutputFormat.OUTDIR, outputPath);
     finalReduceConf.setBoolean("mapred.mapper.new-api", true);
 
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(finalReduceConf,
-        iReduceStageConf);
+    MRHelpers.translateVertexConfToTez(finalReduceConf);
 
     MRHelpers.doJobClientMagic(mapStageConf);
     MRHelpers.doJobClientMagic(iReduceStageConf);
@@ -245,14 +241,15 @@ public class OrderedWordCount extends Configured implements Tool {
 
     OrderedPartitionedKVEdgeConfiguration edgeConf = OrderedPartitionedKVEdgeConfiguration
         .newBuilder(IntWritable.class.getName(), Text.class.getName()).configureOutput(
-            HashPartitioner.class.getName(), null).done().build();
+            HashPartitioner.class.getName(),
+            null).done().configureInput().useLegacyInput().done().build();
 
     DAG dag = new DAG("OrderedWordCount" + dagIndex);
     for (int i = 0; i < vertices.size(); ++i) {
       dag.addVertex(vertices.get(i));
       if (i != 0) {
-        dag.addEdge(new Edge(vertices.get(i - 1),
-            vertices.get(i), edgeConf.createDefaultEdgeProperty()));
+        dag.addEdge(
+            new Edge(vertices.get(i - 1), vertices.get(i), edgeConf.createDefaultEdgeProperty()));
       }
     }
     return dag;
@@ -272,7 +269,7 @@ public class OrderedWordCount extends Configured implements Tool {
     Configuration conf = getConf();
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
 
-    boolean generateSplitsInClient = false;
+    boolean generateSplitsInClient;
 
     SplitsInClientOptionParser splitCmdLineParser = new SplitsInClientOptionParser();
     try {

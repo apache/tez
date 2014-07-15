@@ -84,11 +84,11 @@ public class TestOnFileUnorderedKVOutputConfiguration {
     Configuration conf = rebuilt.conf;
 
     // Verify programmatic API usage
-    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, ""));
-    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, ""));
+    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("CustomCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, ""));
-    assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS,
+        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS,
         false));
 
     // Verify additional configs
@@ -121,15 +121,12 @@ public class TestOnFileUnorderedKVOutputConfiguration {
     assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
         TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
 
-    // Default Output property present.
+    // Default property present.
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, ""));
-    // Input property should be absent
-    assertEquals("DEFAULT",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, "DEFAULT"));
+        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     // Verify whatever was configured
-    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, ""));
-    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, ""));
+    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
   }
 }

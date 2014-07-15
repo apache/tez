@@ -237,10 +237,10 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
     confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT);
     confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT);
     confKeys.add(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_KEY_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COMPRESS);
+    confKeys.add(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC);
   }
 
   // TODO Maybe add helper methods to extract keys

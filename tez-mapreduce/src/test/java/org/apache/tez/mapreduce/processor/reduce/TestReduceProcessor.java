@@ -26,7 +26,6 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -50,7 +49,6 @@ import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutputLegacy;
@@ -121,28 +119,23 @@ public class TestReduceProcessor {
     JobConf jobConf = new JobConf(defaultConf);
     setUpJobConf(jobConf);
     
-    Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
-    conf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
-    
-    Configuration mapStageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
-        mapVertexName);
-    
-    JobConf mapConf = new JobConf(mapStageConf);
-    
-    mapConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
+    MRHelpers.translateVertexConfToTez(jobConf);
+    jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
+
+    jobConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
-    mapConf.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
+    jobConf.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
     
     Path mapInput = new Path(workDir, "map0");
-    MapUtils.generateInputSplit(localFs, workDir, mapConf, mapInput);
+    MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput);
     
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
         new InputDescriptor(MRInputLegacy.class.getName())
-            .setUserPayload(MRHelpers.createMRInputPayload(mapConf, null)),
+            .setUserPayload(MRHelpers.createMRInputPayload(jobConf, null)),
         1);
     OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", new OutputDescriptor(LocalOnFileSorterOutput.class.getName()), 1);
     // Run a map
-    LogicalIOProcessorRuntimeTask mapTask = MapUtils.createLogicalTask(localFs, workDir, mapConf, 0,
+    LogicalIOProcessorRuntimeTask mapTask = MapUtils.createLogicalTask(localFs, workDir, jobConf, 0,
         mapInput, new TestUmbilical(), dagName, mapVertexName,
         Collections.singletonList(mapInputSpec),
         Collections.singletonList(mapOutputSpec));
@@ -154,16 +147,13 @@ public class TestReduceProcessor {
     LOG.info("Starting reduce...");
     
     Token<JobTokenIdentifier> shuffleToken = new Token<JobTokenIdentifier>();
-    
-    Configuration reduceStageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
-        reduceVertexName);
-    JobConf reduceConf = new JobConf(reduceStageConf);
-    reduceConf.setOutputFormat(SequenceFileOutputFormat.class);
-    reduceConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
+
+    jobConf.setOutputFormat(SequenceFileOutputFormat.class);
+    jobConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
-    FileOutputFormat.setOutputPath(reduceConf, new Path(workDir, "output"));
+    FileOutputFormat.setOutputPath(jobConf, new Path(workDir, "output"));
     ProcessorDescriptor reduceProcessorDesc = new ProcessorDescriptor(
-        ReduceProcessor.class.getName()).setUserPayload(TezUtils.createUserPayloadFromConf(reduceConf));
+        ReduceProcessor.class.getName()).setUserPayload(TezUtils.createUserPayloadFromConf(jobConf));
     
     InputSpec reduceInputSpec = new InputSpec(mapVertexName,
         new InputDescriptor(LocalMergedInput.class.getName()), 1);
@@ -186,7 +176,7 @@ public class TestReduceProcessor {
     LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
         taskSpec,
         0,
-        reduceConf,
+        jobConf,
         new String[] {workDir.toString()},
         new TestUmbilical(),
         serviceConsumerMetadata,
@@ -211,7 +201,7 @@ public class TestReduceProcessor {
     Path reduceOutputFile = new Path(reduceOutputDir, "part-v001-o000-00000");
     
     SequenceFile.Reader reader = new SequenceFile.Reader(localFs,
-        reduceOutputFile, reduceConf);
+        reduceOutputFile, jobConf);
 
     LongWritable key = new LongWritable();
     Text value = new Text();

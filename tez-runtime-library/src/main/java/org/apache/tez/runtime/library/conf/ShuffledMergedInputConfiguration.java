@@ -33,6 +33,7 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.input.ShuffledMergedInput;
+import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
 
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
@@ -44,6 +45,11 @@ public class ShuffledMergedInputConfiguration {
   @InterfaceAudience.Private
   public static interface SpecificConfigurer<T> extends BaseConfigurer<T> {
 
+    /**
+     * Specifies whether the legacy version of this input should be used.
+     * @return instance of the current builder
+     */
+    public T useLegacyInput();
     /**
      * Sets the buffer fraction, as a fraction of container size, to be used while fetching remote
      * data.
@@ -124,6 +130,11 @@ public class ShuffledMergedInputConfiguration {
       this.builder = builder;
     }
 
+    public SpecificBuilder<E> useLegacyInput() {
+      builder.useLegacyInput();
+      return this;
+    }
+
     @Override
     public SpecificBuilder<E> setShuffleBufferFraction(float shuffleBufferFraction) {
       builder.setShuffleBufferFraction(shuffleBufferFraction);
@@ -195,13 +206,20 @@ public class ShuffledMergedInputConfiguration {
   @VisibleForTesting
   Configuration conf;
 
+  private String inputClassName;
+
   @InterfaceAudience.Private
   @VisibleForTesting
   ShuffledMergedInputConfiguration() {
   }
 
-  private ShuffledMergedInputConfiguration(Configuration conf) {
+  private ShuffledMergedInputConfiguration(Configuration conf, boolean useLegacyInput) {
     this.conf = conf;
+    if (useLegacyInput) {
+      inputClassName = ShuffledMergedInputLegacy.class.getName();
+    } else {
+      inputClassName = ShuffledMergedInput.class.getName();
+    }
   }
 
   /**
@@ -224,6 +242,10 @@ public class ShuffledMergedInputConfiguration {
     }
   }
 
+  public String getInputClassName() {
+    return inputClassName;
+  }
+
   public static Builder newBuilder(String keyClass, String valueClass) {
     return new Builder(keyClass, valueClass);
   }
@@ -233,6 +255,7 @@ public class ShuffledMergedInputConfiguration {
   public static class Builder implements SpecificConfigurer<Builder> {
 
     private final Configuration conf = new Configuration(false);
+    private boolean useLegacyInput = false;
 
     /**
      * Create a configuration builder for {@link org.apache.tez.runtime.library.input.ShuffledMergedInput}
@@ -261,14 +284,19 @@ public class ShuffledMergedInputConfiguration {
     @InterfaceAudience.Private
     Builder setKeyClassName(String keyClassName) {
       Preconditions.checkNotNull(keyClassName, "Key class name cannot be null");
-      this.conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS, keyClassName);
+      this.conf.set(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, keyClassName);
       return this;
     }
 
     @InterfaceAudience.Private
     Builder setValueClassName(String valueClassName) {
       Preconditions.checkNotNull(valueClassName, "Value class name cannot be null");
-      this.conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS, valueClassName);
+      this.conf.set(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, valueClassName);
+      return this;
+    }
+
+    public Builder useLegacyInput() {
+      this.useLegacyInput = true;
       return this;
     }
 
@@ -328,7 +356,7 @@ public class ShuffledMergedInputConfiguration {
      * @return instance of the current builder
      */
     public Builder setKeyComparatorClass(String comparatorClassName) {
-      this.conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
+      this.conf.set(TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
           comparatorClassName);
       return this;
     }
@@ -371,10 +399,10 @@ public class ShuffledMergedInputConfiguration {
     }
 
     public Builder enableCompression(String compressionCodec) {
-      this.conf.setBoolean(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED, true);
+      this.conf.setBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS, true);
       if (compressionCodec != null) {
         this.conf
-            .set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, compressionCodec);
+            .set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, compressionCodec);
       }
       return this;
     }
@@ -385,7 +413,7 @@ public class ShuffledMergedInputConfiguration {
      * @return an instance of the Configuration
      */
     public ShuffledMergedInputConfiguration build() {
-      return new ShuffledMergedInputConfiguration(this.conf);
+      return new ShuffledMergedInputConfiguration(this.conf, this.useLegacyInput);
     }
   }
 

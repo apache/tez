@@ -90,13 +90,13 @@ public class TestOrderedPartitionedKVEdgeConfiguration {
     assertEquals(true, outputConf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
         TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
     assertEquals("TestCodec",
-        outputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, ""));
+        outputConf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     Configuration inputConf = rebuiltInput.conf;
     assertEquals(true, inputConf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
         TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
     assertEquals("TestCodec",
-        inputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, ""));
+        inputConf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
   }
 
   @Test
@@ -117,12 +117,12 @@ public class TestOrderedPartitionedKVEdgeConfiguration {
     rebuiltInput.fromByteArray(inputBytes);
 
     Configuration outputConf = rebuiltOutput.conf;
-    assertEquals("DEFAULT",
-        outputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, "DEFAULT"));
+    assertEquals("TestCodec",
+        outputConf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, "DEFAULT"));
 
     Configuration inputConf = rebuiltInput.conf;
-    assertEquals("DEFAULT",
-        inputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, "DEFAULT"));
+    assertEquals("TestCodec",
+        inputConf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, "DEFAULT"));
   }
 
   @Test
@@ -221,34 +221,34 @@ public class TestOrderedPartitionedKVEdgeConfiguration {
     Configuration outputConf = rebuiltOutput.conf;
     Configuration inputConf = rebuiltInput.conf;
 
-    assertEquals("KEY", outputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, ""));
+    assertEquals("KEY", outputConf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
     assertEquals("VALUE",
-        outputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, ""));
+        outputConf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("PARTITIONER", outputConf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
     assertEquals(1111, outputConf.getInt(TezJobConfig.TEZ_RUNTIME_IO_SORT_MB, 0));
     assertEquals("CustomCodec",
-        outputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, ""));
+        outputConf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
     assertEquals(true,
-        outputConf.getBoolean(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS,
+        outputConf.getBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS,
             false));
     assertEquals("KEY_COMPARATOR",
-        outputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS));
-    assertNull(outputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC));
-    assertNull(outputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED));
+        outputConf.get(TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
     assertNull(outputConf.get(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT));
     assertNull(outputConf.get(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT));
     assertNull(outputConf.get(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT));
     assertNull(outputConf.get(TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT));
 
 
-    assertEquals("KEY", inputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS, ""));
+    assertEquals("KEY_COMPARATOR", inputConf.get(TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
+    assertEquals("KEY", inputConf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
     assertEquals("VALUE",
-        inputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS, ""));
+        inputConf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("CustomCodec",
-        inputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, ""));
+        inputConf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
     assertEquals(true,
-        inputConf.getBoolean(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED,
+        inputConf.getBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS,
             false));
+
     assertEquals(0.11f,
         inputConf.getFloat(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, 0.0f), 0.001f);
     assertEquals(0.22f, inputConf.getFloat(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 0.0f),
@@ -258,9 +258,7 @@ public class TestOrderedPartitionedKVEdgeConfiguration {
     assertEquals(0.44f,
         inputConf.getFloat(TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, 0.00f), 0.001f);
     assertNull(inputConf.get(TezJobConfig.TEZ_RUNTIME_IO_SORT_MB));
-    assertNull(inputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC));
-    assertNull(inputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS));
-    assertNull(inputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS));
+
   }
 
 }

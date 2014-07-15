@@ -95,12 +95,12 @@ public class TestOnFileUnorderedPartitionedKVOutput {
 
     // Verify programmatic API usage
     assertEquals(1111, conf.getInt(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB, 0));
-    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, ""));
-    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, ""));
+    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("PARTITIONER", conf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
     assertEquals("CustomCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, ""));
-    assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS,
+        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS,
         false));
 
     // Verify additional configs
@@ -135,16 +135,13 @@ public class TestOnFileUnorderedPartitionedKVOutput {
     assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
         TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
 
-    // Default Output property present.
+    // Default property present.
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, ""));
-    // Input property should be absent
-    assertEquals("DEFAULT",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, "DEFAULT"));
+        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     // Verify whatever was configured
-    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, ""));
-    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, ""));
+    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("PARTITIONER", conf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
   }
 
@@ -153,7 +150,7 @@ public class TestOnFileUnorderedPartitionedKVOutput {
     Configuration partitionerConf = new Configuration(false);
     partitionerConf.set("partitioner.test.key", "PARTITIONERKEY");
     partitionerConf
-        .set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, "InvalidKeyOverride");
+        .set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
     OnFileUnorderedPartitionedKVOutputConfiguration.Builder builder =
         OnFileUnorderedPartitionedKVOutputConfiguration
             .newBuilder("KEY", "VALUE", "PARTITIONER", partitionerConf);
@@ -169,7 +166,7 @@ public class TestOnFileUnorderedPartitionedKVOutput {
 
     // Default Output property should not be overridden based on partitioner config
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, ""));
+        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     assertEquals("PARTITIONERKEY", conf.get("partitioner.test.key"));
   }

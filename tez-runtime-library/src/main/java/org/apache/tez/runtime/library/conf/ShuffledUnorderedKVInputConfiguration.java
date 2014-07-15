@@ -217,14 +217,14 @@ public class ShuffledUnorderedKVInputConfiguration {
     @InterfaceAudience.Private
     Builder setKeyClassName(String keyClassName) {
       Preconditions.checkNotNull(keyClassName, "Key class name cannot be null");
-      this.conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS, keyClassName);
+      this.conf.set(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, keyClassName);
       return this;
     }
 
     @InterfaceAudience.Private
     Builder setValueClassName(String valueClassName) {
       Preconditions.checkNotNull(valueClassName, "Value class name cannot be null");
-      this.conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS, valueClassName);
+      this.conf.set(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, valueClassName);
       return this;
     }
 
@@ -292,10 +292,10 @@ public class ShuffledUnorderedKVInputConfiguration {
     }
 
     public Builder enableCompression(String compressionCodec) {
-      this.conf.setBoolean(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED, true);
+      this.conf.setBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS, true);
       if (compressionCodec != null) {
         this.conf
-            .set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, compressionCodec);
+            .set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, compressionCodec);
       }
       return this;
     }

@@ -23,7 +23,6 @@ import java.util.Collections;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -39,7 +38,6 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.mapreduce.TestUmbilical;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
@@ -108,30 +106,26 @@ public class TestMapProcessor {
     JobConf jobConf = new JobConf(defaultConf);
     setUpJobConf(jobConf);
 
-    Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
-    conf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
+    MRHelpers.translateVertexConfToTez(jobConf);
+    jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
 
-    Configuration stageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
-        vertexName);
-    
-    JobConf job = new JobConf(stageConf);
-    job.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
+    jobConf.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
 
-    job.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
+    jobConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
     
     Path mapInput = new Path(workDir, "map0");
     
     
-    MapUtils.generateInputSplit(localFs, workDir, job, mapInput);
+    MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput);
     
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
         new InputDescriptor(MRInputLegacy.class.getName())
-            .setUserPayload(MRHelpers.createMRInputPayload(job, null)),
+            .setUserPayload(MRHelpers.createMRInputPayload(jobConf, null)),
         1);
     OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", new OutputDescriptor(LocalOnFileSorterOutput.class.getName()), 1);
 
-    LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask(localFs, workDir, job, 0,
+    LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask(localFs, workDir, jobConf, 0,
         new Path(workDir, "map0"), new TestUmbilical(), dagName, vertexName,
         Collections.singletonList(mapInputSpec),
         Collections.singletonList(mapOutputSpec));

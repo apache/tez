@@ -43,7 +43,6 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
 import org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
@@ -94,8 +93,7 @@ public class MROutput extends AbstractLogicalOutput {
     Configuration outputConf = new JobConf(conf);
     outputConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, outputFormatName);
     outputConf.setBoolean("mapred.mapper.new-api", useNewApi);
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(outputConf,
-        null);
+    MRHelpers.translateVertexConfToTez(outputConf);
     MRHelpers.doJobClientMagic(outputConf);
     return TezUtils.createUserPayloadFromConf(outputConf);
   }

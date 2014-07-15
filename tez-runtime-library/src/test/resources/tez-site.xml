@@ -24,12 +24,8 @@
   </property>
 
   <property>
-    <name>tez.runtime.intermediate-output.compress.codec</name>
+    <name>tez.runtime.compress.codec</name>
     <value>TestCodec</value>
   </property>
 
-  <property>
-    <name>tez.runtime.intermediate-input.compress.codec</name>
-    <value>TestCodec</value>
-  </property>
 </configuration>

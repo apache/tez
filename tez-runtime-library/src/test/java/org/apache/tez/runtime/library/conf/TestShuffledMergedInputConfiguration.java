@@ -86,11 +86,11 @@ public class TestShuffledMergedInputConfiguration {
     Configuration conf = rebuilt.conf;
 
     // Verify programmatic API usage
-    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS, ""));
-    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS, ""));
+    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("CustomCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, ""));
-    assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED,
+        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS,
         false));
     assertEquals(0.11f, conf.getFloat(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, 0.0f), 0.001f);
     assertEquals(0.22f, conf.getFloat(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 0.0f), 0.001f);
@@ -126,16 +126,13 @@ public class TestShuffledMergedInputConfiguration {
     assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
         TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
 
-    // Default Output property present.
+    // Default property present.
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, ""));
-    // Input property should be absent
-    assertEquals("DEFAULT",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, "DEFAULT"));
+        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     // Verify whatever was configured
-    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS, ""));
-    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS, ""));
+    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
   }
 
   @Test
@@ -143,7 +140,7 @@ public class TestShuffledMergedInputConfiguration {
     Configuration combinerConf = new Configuration(false);
     combinerConf.set("combiner.test.key", "COMBINERKEY");
     combinerConf
-        .set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, "InvalidKeyOverride");
+        .set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
     ShuffledMergedInputConfiguration.Builder builder =
         ShuffledMergedInputConfiguration.newBuilder("KEY", "VALUE")
             .setCombiner("COMBINER", combinerConf);
@@ -158,7 +155,7 @@ public class TestShuffledMergedInputConfiguration {
 
     // Default Output property should not be overridden based on partitioner config
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, ""));
+        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     assertEquals("COMBINERKEY", conf.get("combiner.test.key"));
   }

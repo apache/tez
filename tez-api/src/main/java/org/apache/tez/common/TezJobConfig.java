@@ -257,51 +257,20 @@ public class TezJobConfig {
   public static final String TEZ_RUNTIME_INTERNAL_SORTER_CLASS = TEZ_RUNTIME_PREFIX +
       "internal.sorter.class";
 
-  public static final String TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS =
-      TEZ_RUNTIME_PREFIX +
-          "intermediate-output.key.comparator.class";
-  public static final String TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS =
-      TEZ_RUNTIME_PREFIX +
-          "intermediate-input.key.comparator.class";
+  public static final String TEZ_RUNTIME_KEY_COMPARATOR_CLASS =
+      TEZ_RUNTIME_PREFIX + "key.comparator.class";
 
-  public static final String TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS = TEZ_RUNTIME_PREFIX +
-      "intermediate-output.key.class";
-  public static final String TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS = TEZ_RUNTIME_PREFIX +
-      "intermediate-input.key.class";
+  public static final String TEZ_RUNTIME_KEY_CLASS = TEZ_RUNTIME_PREFIX + "key.class";
 
-  public static final String TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS = TEZ_RUNTIME_PREFIX +
-      "intermediate-output.value.class";
-  public static final String TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS = TEZ_RUNTIME_PREFIX +
-      "intermediate-input.value.class";
+  public static final String TEZ_RUNTIME_VALUE_CLASS = TEZ_RUNTIME_PREFIX + "value.class";
 
+  public static final String TEZ_RUNTIME_COMPRESS = TEZ_RUNTIME_PREFIX + "compress";
 
-  /**
-   * Whether intermediate output should be compressed or not
-   */
-  public static final String TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS = TEZ_RUNTIME_PREFIX +
-      "intermediate-output.should-compress";
-  /**
-   * Whether intermediate input is compressed
-   */
-  public static final String TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED = TEZ_RUNTIME_PREFIX +
-      "intermediate-input.is-compressed";
-  /**
-   * The coded to be used if compressing intermediate output. Only applicable if
-   * tez.runtime.intermediate-output.should-compress is enabled.
-   */
-  public static final String TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC = TEZ_RUNTIME_PREFIX +
-      "intermediate-output.compress.codec";
-  /**
-   * The coded to be used when reading intermediate compressed input. Only
-   * applicable if tez.runtime.intermediate-input.is-compressed is enabled.
-   */
-  public static final String TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC = TEZ_RUNTIME_PREFIX +
-      "intermediate-input.compress.codec";
+  public static final String TEZ_RUNTIME_COMPRESS_CODEC = TEZ_RUNTIME_PREFIX + "compress.codec";
 
-
-  public static final String TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS =
-      TEZ_RUNTIME_PREFIX +
-          "intermediate-input.key.secondary.comparator.class";
+  // TODO Move this key to MapReduce
+  public static final String TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS =
+      TEZ_RUNTIME_PREFIX + "key.secondary.comparator.class";
 
   public static final String TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED =
       TEZ_RUNTIME_PREFIX +
@@ -430,17 +399,12 @@ public class TezJobConfig {
     tezRuntimeKeys.add(TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
     tezRuntimeKeys.add(TEZ_RUNTIME_GROUP_COMPARATOR_CLASS);
     tezRuntimeKeys.add(TEZ_RUNTIME_INTERNAL_SORTER_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS);
+    tezRuntimeKeys.add(TEZ_RUNTIME_KEY_COMPARATOR_CLASS);
+    tezRuntimeKeys.add(TEZ_RUNTIME_KEY_CLASS);
+    tezRuntimeKeys.add(TEZ_RUNTIME_VALUE_CLASS);
+    tezRuntimeKeys.add(TEZ_RUNTIME_COMPRESS);
+    tezRuntimeKeys.add(TEZ_RUNTIME_COMPRESS_CODEC);
+    tezRuntimeKeys.add(TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS);
     tezRuntimeKeys.add(TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED);
     tezRuntimeKeys.add(TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED);
     tezRuntimeKeys.add(TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_MAX_SIZE);

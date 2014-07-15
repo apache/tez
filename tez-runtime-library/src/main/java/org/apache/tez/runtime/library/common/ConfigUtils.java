@@ -45,7 +45,7 @@ public class ConfigUtils {
       Configuration conf, Class<DefaultCodec> defaultValue) {
     Class<? extends CompressionCodec> codecClass = defaultValue;
     String name = conf
-        .get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC);
+        .get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC);
     if (name != null) {
       try {
         codecClass = conf.getClassByName(name).asSubclass(
@@ -62,7 +62,7 @@ public class ConfigUtils {
       Configuration conf, Class<DefaultCodec> defaultValue) {
     Class<? extends CompressionCodec> codecClass = defaultValue;
     String name = conf
-        .get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC);
+        .get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC);
     if (name != null) {
       try {
         codecClass = conf.getClassByName(name).asSubclass(
@@ -80,45 +80,45 @@ public class ConfigUtils {
   
   public static boolean shouldCompressIntermediateOutput(Configuration conf) {
     return conf.getBoolean(
-        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS, false);
+        TezJobConfig.TEZ_RUNTIME_COMPRESS, false);
   }
 
   public static boolean isIntermediateInputCompressed(Configuration conf) {
     return conf.getBoolean(
-        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED, false);
+        TezJobConfig.TEZ_RUNTIME_COMPRESS, false);
   }
 
   public static <V> Class<V> getIntermediateOutputValueClass(Configuration conf) {
     Class<V> retv = (Class<V>) conf.getClass(
-        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, null,
+        TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, null,
         Object.class);
     return retv;
   }
   
   public static <V> Class<V> getIntermediateInputValueClass(Configuration conf) {
     Class<V> retv = (Class<V>) conf.getClass(
-        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS, null,
+        TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, null,
         Object.class);
     return retv;
   }
 
   public static <K> Class<K> getIntermediateOutputKeyClass(Configuration conf) {
     Class<K> retv = (Class<K>) conf.getClass(
-        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, null,
+        TezJobConfig.TEZ_RUNTIME_KEY_CLASS, null,
         Object.class);
     return retv;
   }
 
   public static <K> Class<K> getIntermediateInputKeyClass(Configuration conf) {
     Class<K> retv = (Class<K>) conf.getClass(
-        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS, null,
+        TezJobConfig.TEZ_RUNTIME_KEY_CLASS, null,
         Object.class);
     return retv;
   }
 
   public static <K> RawComparator<K> getIntermediateOutputKeyComparator(Configuration conf) {
     Class<? extends RawComparator> theClass = conf.getClass(
-        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, null,
+        TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS, null,
         RawComparator.class);
     if (theClass != null)
       return ReflectionUtils.newInstance(theClass, conf);
@@ -128,7 +128,7 @@ public class ConfigUtils {
 
   public static <K> RawComparator<K> getIntermediateInputKeyComparator(Configuration conf) {
     Class<? extends RawComparator> theClass = conf.getClass(
-        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, null,
+        TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS, null,
         RawComparator.class);
     if (theClass != null)
       return ReflectionUtils.newInstance(theClass, conf);
@@ -143,7 +143,7 @@ public class ConfigUtils {
       Configuration conf) {
     Class<? extends RawComparator> theClass = conf
         .getClass(
-            TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS,
+            TezJobConfig.TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS,
             null, RawComparator.class);
     if (theClass == null) {
       return getIntermediateInputKeyComparator(conf);

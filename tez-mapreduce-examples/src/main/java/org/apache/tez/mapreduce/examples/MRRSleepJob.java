@@ -75,7 +75,6 @@ import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.common.MRInputSplitDistributor;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
@@ -440,8 +439,7 @@ public class MRRSleepJob extends Configured implements Tool {
           NullOutputFormat.class.getName());
     }
 
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(mapStageConf,
-        null);
+    MRHelpers.translateVertexConfToTez(mapStageConf);
 
     Configuration[] intermediateReduceStageConfs = null;
     if (iReduceStagesCount > 0
@@ -461,14 +459,8 @@ public class MRRSleepJob extends Configured implements Tool {
         iReduceStageConf.set(MRJobConfig.PARTITIONER_CLASS_ATTR,
             MRRSleepJobPartitioner.class.getName());
 
-        if (i == 1) {
-          MultiStageMRConfToTezTranslator.translateVertexConfToTez(
-              iReduceStageConf, mapStageConf);
-        }
-        else {
-          MultiStageMRConfToTezTranslator.translateVertexConfToTez(
-              iReduceStageConf, intermediateReduceStageConfs[i-2]);
-        }
+
+        MRHelpers.translateVertexConfToTez(iReduceStageConf);
         intermediateReduceStageConfs[i-1] = iReduceStageConf;
       }
     }
@@ -487,14 +479,7 @@ public class MRRSleepJob extends Configured implements Tool {
       finalReduceConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
           NullOutputFormat.class.getName());
 
-      if (iReduceStagesCount > 0
-          && numIReducer > 0) {
-        MultiStageMRConfToTezTranslator.translateVertexConfToTez(finalReduceConf,
-            intermediateReduceStageConfs[iReduceStagesCount-1]);
-      } else {
-        MultiStageMRConfToTezTranslator.translateVertexConfToTez(finalReduceConf,
-            mapStageConf);
-      }
+      MRHelpers.translateVertexConfToTez(finalReduceConf);
     }
 
     MRHelpers.doJobClientMagic(mapStageConf);
@@ -634,13 +619,14 @@ public class MRRSleepJob extends Configured implements Tool {
     partitionerConf.set(MRJobConfig.PARTITIONER_CLASS_ATTR, MRRSleepJobPartitioner.class.getName());
     OrderedPartitionedKVEdgeConfiguration edgeConf = OrderedPartitionedKVEdgeConfiguration
         .newBuilder(IntWritable.class.getName(), IntWritable.class.getName()).configureOutput(
-            MRPartitioner.class.getName(), partitionerConf).done().build();
+            MRPartitioner.class.getName(), partitionerConf).done().configureInput().useLegacyInput()
+        .done().build();
 
     for (int i = 0; i < vertices.size(); ++i) {
       dag.addVertex(vertices.get(i));
       if (i != 0) {
-        dag.addEdge(new Edge(vertices.get(i-1),
-            vertices.get(i), edgeConf.createDefaultEdgeProperty()));
+        dag.addEdge(
+            new Edge(vertices.get(i - 1), vertices.get(i), edgeConf.createDefaultEdgeProperty()));
       }
     }
 

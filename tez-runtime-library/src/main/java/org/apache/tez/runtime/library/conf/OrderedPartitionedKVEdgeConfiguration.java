@@ -27,7 +27,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 /**
@@ -74,7 +73,7 @@ public class OrderedPartitionedKVEdgeConfiguration extends HadoopKeyValuesBasedB
 
   @Override
   public String getInputClassName() {
-    return ShuffledMergedInput.class.getName();
+    return inputConf.getInputClassName();
   }
 
   /**

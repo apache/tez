@@ -42,7 +42,7 @@ public class TestDeprecatedKeys {
     jobConf.setBoolean(MRJobConfig.REDUCE_MEMTOMEM_ENABLED, true);
     jobConf.setFloat(MRJobConfig.REDUCE_INPUT_BUFFER_PERCENT, 0.33f);
 
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(jobConf, null);
+    MRHelpers.translateVertexConfToTez(jobConf);
 
     assertEquals(0.4f, jobConf.getFloat(
         TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, 0f), 0.01f);
@@ -70,7 +70,6 @@ public class TestDeprecatedKeys {
    */
   public void verifyTezOverridenKeys() {
     JobConf jobConf = new JobConf();
-    JobConf jobConf2 = new JobConf();
     jobConf.setInt(MRJobConfig.IO_SORT_FACTOR, 2000);
     jobConf.setInt(MRJobConfig.IO_SORT_MB, 100);
     jobConf.setInt(MRJobConfig.COUNTERS_MAX_KEY, 100);
@@ -97,14 +96,12 @@ public class TestDeprecatedKeys {
     jobConf.setFloat(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT, 10.0f);
     jobConf.set(TezJobConfig.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, "DefaultSorter");
     jobConf.set(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, "groupComparator");
-    jobConf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS, "SecondaryComparator");
+    jobConf.set(TezJobConfig.TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS, "SecondaryComparator");
     
     jobConf.setBoolean(MRJobConfig.MAP_OUTPUT_COMPRESS, false);
-    jobConf2.setBoolean(MRJobConfig.MAP_OUTPUT_COMPRESS, false);
-    jobConf.setBoolean(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS, true);
+    jobConf.setBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS, true);
 
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(jobConf, null);
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(jobConf2, jobConf);
+    MRHelpers.translateVertexConfToTez(jobConf);
 
     assertEquals(1000, jobConf.getInt(TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR, 0));
     assertEquals(200, jobConf.getInt(TezJobConfig.TEZ_RUNTIME_IO_SORT_MB, 100));
@@ -127,10 +124,9 @@ public class TestDeprecatedKeys {
     assertEquals(10.0f, jobConf.getFloat(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT, 0.0f), 0.0f);
     assertEquals("DefaultSorter", jobConf.get(TezJobConfig.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, ""));
     assertEquals("groupComparator", jobConf.get(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, ""));
-    assertEquals("SecondaryComparator", jobConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS, ""));
+    assertEquals("SecondaryComparator", jobConf.get(TezJobConfig.TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS, ""));
     assertEquals("DefaultSorter", jobConf.get(TezJobConfig.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, ""));
-    assertTrue(jobConf.getBoolean(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS, false));
-    assertTrue(jobConf2.getBoolean(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_IS_COMPRESSED, false));
+    assertTrue(jobConf.getBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS, false));
 
     assertNull(jobConf.get(MRConfig.MAPRED_IFILE_READAHEAD));
     assertNull(jobConf.get(MRConfig.MAPRED_IFILE_READAHEAD_BYTES));

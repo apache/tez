@@ -39,7 +39,6 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.TezJobConfig;
-import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -96,8 +95,8 @@ public class TestOnFileUnorderedKVOutput {
     OnFileUnorderedKVOutput kvOutput = new OnFileUnorderedKVOutputForTest();
 
     Configuration conf = new Configuration();
-    conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, Text.class.getName());
-    conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, IntWritable.class.getName());
+    conf.set(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
+    conf.set(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, IntWritable.class.getName());
 
     int appAttemptNumber = 1;
     TezUmbilical tezUmbilical = null;

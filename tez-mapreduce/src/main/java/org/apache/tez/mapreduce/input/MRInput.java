@@ -35,7 +35,6 @@ import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.input.base.MRInputBase;
 import org.apache.tez.mapreduce.lib.MRInputUtils;
 import org.apache.tez.mapreduce.lib.MRReader;
@@ -115,7 +114,7 @@ public class MRInput extends MRInputBase {
     inputConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
         configInputFormatClassName);
     inputConf.setBoolean("mapred.mapper.new-api", useNewApi);
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(inputConf, null);
+    MRHelpers.translateVertexConfToTez(inputConf);
     MRHelpers.doJobClientMagic(inputConf);
     if (groupSplitsInAM) {
       return MRHelpers.createMRInputPayloadWithGrouping(inputConf,

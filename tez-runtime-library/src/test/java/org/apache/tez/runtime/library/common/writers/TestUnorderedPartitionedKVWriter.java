@@ -632,16 +632,16 @@ public class TestUnorderedPartitionedKVWriter {
       Class<? extends Partitioner> partitionerClass) {
     Configuration conf = new Configuration(false);
     conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, outputContext.getWorkDirs());
-    conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, keyClass.getName());
-    conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, valClass.getName());
+    conf.set(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, keyClass.getName());
+    conf.set(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, valClass.getName());
     conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, partitionerClass.getName());
     if (maxSingleBufferSizeBytes >= 0) {
       conf.setInt(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES,
           maxSingleBufferSizeBytes);
     }
-    conf.setBoolean(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_SHOULD_COMPRESS, shouldCompress);
+    conf.setBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS, shouldCompress);
     if (shouldCompress) {
-      conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC,
+      conf.set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC,
           DefaultCodec.class.getName());
     }
     return conf;

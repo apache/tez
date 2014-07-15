@@ -96,7 +96,6 @@ import org.apache.tez.mapreduce.examples.UnionExample;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
-import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
@@ -445,13 +444,11 @@ public class TestMRRJobsDAGApi {
     stage3Conf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
         NullOutputFormat.class.getName());
 
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage1Conf, null);
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage2Conf,
-        stage1Conf);
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage22Conf,
-        stage1Conf);
-    MultiStageMRConfToTezTranslator.translateVertexConfToTez(stage3Conf,
-        stage2Conf); // this also works stage22 as it sets up keys etc
+    MRHelpers.translateVertexConfToTez(stage1Conf);
+    MRHelpers.translateVertexConfToTez(stage2Conf);
+    MRHelpers.translateVertexConfToTez(stage22Conf);
+    // this also works stage22 as it sets up keys etc
+    MRHelpers.translateVertexConfToTez(stage3Conf);
 
     MRHelpers.doJobClientMagic(stage1Conf);
     MRHelpers.doJobClientMagic(stage2Conf);

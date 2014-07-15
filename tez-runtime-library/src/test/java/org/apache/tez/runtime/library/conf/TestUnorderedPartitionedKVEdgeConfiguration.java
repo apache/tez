@@ -91,13 +91,13 @@ public class TestUnorderedPartitionedKVEdgeConfiguration {
     assertEquals(true, outputConf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
         TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
     assertEquals("TestCodec",
-        outputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, ""));
+        outputConf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     Configuration inputConf = rebuiltInput.conf;
     assertEquals(true, inputConf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
         TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
     assertEquals("TestCodec",
-        inputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, ""));
+        inputConf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
   }
 
   @Test
@@ -120,12 +120,12 @@ public class TestUnorderedPartitionedKVEdgeConfiguration {
     rebuiltInput.fromByteArray(inputBytes);
 
     Configuration outputConf = rebuiltOutput.conf;
-    assertEquals("DEFAULT",
-        outputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC, "DEFAULT"));
+    assertEquals("TestCodec",
+        outputConf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, "DEFAULT"));
 
     Configuration inputConf = rebuiltInput.conf;
-    assertEquals("DEFAULT",
-        inputConf.get(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC, "DEFAULT"));
+    assertEquals("TestCodec",
+        inputConf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, "DEFAULT"));
   }
 
   @Test
