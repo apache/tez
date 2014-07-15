@@ -36,8 +36,8 @@ import org.apache.tez.runtime.api.TezRootInputInitializer;
  * A {@link TezRootInputInitializer} may send Events with or without a
  * serialized user payload.
  * 
- * Events, after being processed by a {@link VertexManagerPlugin,} must
- * contained the payload in a serialized form.
+ * Events, after being processed by a {@link VertexManagerPlugin}, must
+ * contain the payload in a serialized form.
  */
 public final class RootInputDataInformationEvent extends Event {
 
