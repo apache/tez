@@ -98,7 +98,7 @@ import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
-import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfiguration;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -472,9 +472,9 @@ public class YARNRunner implements ClientProtocol {
       if (i > 0) {
         // Set edge conf based on Input conf (compression etc properties for MapReduce are
         // w.r.t Outputs - MAP_OUTPUT_COMPRESS for example)
-        OrderedPartitionedKVEdgeConfiguration edgeConf =
-            OrderedPartitionedKVEdgeConfiguration.newBuilder(stageConfs[i - 1].get(
-                TezJobConfig.TEZ_RUNTIME_KEY_CLASS),
+        OrderedPartitionedKVEdgeConfigurer edgeConf =
+            OrderedPartitionedKVEdgeConfigurer.newBuilder(stageConfs[i - 1].get(
+                    TezJobConfig.TEZ_RUNTIME_KEY_CLASS),
                 stageConfs[i - 1].get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS))
                 .configureOutput(
                     MRPartitioner.class.getName(), stageConfs[i - 1]).done()

@@ -36,11 +36,11 @@ import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
  */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
-public class UnorderedUnpartitionedKVEdgeConfiguration extends HadoopKeyValuesBasedBaseConf {
+public class UnorderedUnpartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseConf {
   private final OnFileUnorderedKVOutputConfiguration outputConf;
   private final ShuffledUnorderedKVInputConfiguration inputConf;
 
-  private UnorderedUnpartitionedKVEdgeConfiguration(
+  private UnorderedUnpartitionedKVEdgeConfigurer(
       OnFileUnorderedKVOutputConfiguration outputConfiguration,
       ShuffledUnorderedKVInputConfiguration inputConfiguration) {
     this.outputConf = outputConfiguration;
@@ -124,16 +124,16 @@ public class UnorderedUnpartitionedKVEdgeConfiguration extends HadoopKeyValuesBa
 
     private final OnFileUnorderedKVOutputConfiguration.Builder outputBuilder =
         new OnFileUnorderedKVOutputConfiguration.Builder();
-    private final OnFileUnorderedKVOutputConfiguration.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfiguration.Builder>
+    private final OnFileUnorderedKVOutputConfiguration.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfigurer.Builder>
         specificOutputBuilder =
-        new OnFileUnorderedKVOutputConfiguration.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfiguration.Builder>(
+        new OnFileUnorderedKVOutputConfiguration.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfigurer.Builder>(
             this, outputBuilder);
 
     private final ShuffledUnorderedKVInputConfiguration.Builder inputBuilder =
         new ShuffledUnorderedKVInputConfiguration.Builder();
-    private final ShuffledUnorderedKVInputConfiguration.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfiguration.Builder>
+    private final ShuffledUnorderedKVInputConfiguration.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfigurer.Builder>
         specificInputBuilder =
-        new ShuffledUnorderedKVInputConfiguration.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfiguration.Builder>(
+        new ShuffledUnorderedKVInputConfiguration.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfigurer.Builder>(
             this, inputBuilder);
 
     @InterfaceAudience.Private
@@ -192,8 +192,8 @@ public class UnorderedUnpartitionedKVEdgeConfiguration extends HadoopKeyValuesBa
      * Build and return an instance of the configuration
      * @return an instance of the acatual configuration
      */
-    public UnorderedUnpartitionedKVEdgeConfiguration build() {
-      return new UnorderedUnpartitionedKVEdgeConfiguration(outputBuilder.build(), inputBuilder.build());
+    public UnorderedUnpartitionedKVEdgeConfigurer build() {
+      return new UnorderedUnpartitionedKVEdgeConfigurer(outputBuilder.build(), inputBuilder.build());
     }
 
   }

@@ -62,7 +62,7 @@ import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
-import org.apache.tez.runtime.library.conf.UnorderedPartitionedKVEdgeConfiguration;
+import org.apache.tez.runtime.library.conf.UnorderedPartitionedKVEdgeConfigurer;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
@@ -197,8 +197,8 @@ public class IntersectExample extends Configured implements Tool {
     // This should only be setting selective keys from the underlying conf. Fix after there's a
     // better mechanism to configure the IOs.
 
-    UnorderedPartitionedKVEdgeConfiguration edgeConf =
-        UnorderedPartitionedKVEdgeConfiguration
+    UnorderedPartitionedKVEdgeConfigurer edgeConf =
+        UnorderedPartitionedKVEdgeConfigurer
             .newBuilder(Text.class.getName(), NullWritable.class.getName())
             .configureOutput(HashPartitioner.class.getName(), null).done().build();
 

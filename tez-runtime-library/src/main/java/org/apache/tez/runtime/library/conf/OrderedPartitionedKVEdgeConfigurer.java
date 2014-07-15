@@ -1,21 +1,19 @@
-/*
- * *
- *  * Licensed to the Apache Software Foundation (ASF) under one
- *  * or more contributor license agreements.  See the NOTICE file
- *  * distributed with this work for additional information
- *  * regarding copyright ownership.  The ASF licenses this file
- *  * to you under the Apache License, Version 2.0 (the
- *  * "License"); you may not use this file except in compliance
- *  * with the License.  You may obtain a copy of the License at
- *  *
- *  *     http://www.apache.org/licenses/LICENSE-2.0
- *  *
- *  * Unless required by applicable law or agreed to in writing, software
- *  * distributed under the License is distributed on an "AS IS" BASIS,
- *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  * See the License for the specific language governing permissions and
- *  * limitations under the License.
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.tez.runtime.library.conf;
@@ -29,25 +27,23 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
-import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
-import org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput;
+import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 /**
- * Configure payloads for the OnFileUnorderedPartitionedKVOutput and ShuffledUnorderedKVInput pair
+ * Configure payloads for the OnFileSortedOutput and ShuffledMergedInput pair
  */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
-public class UnorderedPartitionedKVEdgeConfiguration extends HadoopKeyValuesBasedBaseConf {
+public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseConf {
 
-  private final OnFileUnorderedPartitionedKVOutputConfiguration outputConf;
-  private final ShuffledUnorderedKVInputConfiguration inputConf;
+  private final OnFileSortedOutputConfiguration outputConf;
+  private final ShuffledMergedInputConfiguration inputConf;
 
-  private UnorderedPartitionedKVEdgeConfiguration(
-      OnFileUnorderedPartitionedKVOutputConfiguration outputConfiguration,
-      ShuffledUnorderedKVInputConfiguration inputConfiguration) {
+  private OrderedPartitionedKVEdgeConfigurer(
+      OnFileSortedOutputConfiguration outputConfiguration,
+      ShuffledMergedInputConfiguration inputConfiguration) {
     this.outputConf = outputConfiguration;
     this.inputConf = inputConfiguration;
-
   }
 
   /**
@@ -67,7 +63,7 @@ public class UnorderedPartitionedKVEdgeConfiguration extends HadoopKeyValuesBase
 
   @Override
   public String getOutputClassName() {
-    return OnFileUnorderedPartitionedKVOutput.class.getName();
+    return OnFileSortedOutput.class.getName();
   }
 
   @Override
@@ -77,7 +73,7 @@ public class UnorderedPartitionedKVEdgeConfiguration extends HadoopKeyValuesBase
 
   @Override
   public String getInputClassName() {
-    return ShuffledUnorderedKVInput.class.getName();
+    return inputConf.getInputClassName();
   }
 
   /**
@@ -106,19 +102,19 @@ public class UnorderedPartitionedKVEdgeConfiguration extends HadoopKeyValuesBase
 
     private boolean outputConfigured = false;
 
-    private final OnFileUnorderedPartitionedKVOutputConfiguration.Builder outputBuilder =
-        new OnFileUnorderedPartitionedKVOutputConfiguration.Builder();
-    private final OnFileUnorderedPartitionedKVOutputConfiguration.SpecificBuilder<UnorderedPartitionedKVEdgeConfiguration.Builder>
+    private final OnFileSortedOutputConfiguration.Builder outputBuilder =
+        new OnFileSortedOutputConfiguration.Builder();
+    private final OnFileSortedOutputConfiguration.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>
         specificOutputBuilder =
-        new OnFileUnorderedPartitionedKVOutputConfiguration.SpecificBuilder<UnorderedPartitionedKVEdgeConfiguration.Builder>(
+        new OnFileSortedOutputConfiguration.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>(
             this, outputBuilder);
 
-    private final ShuffledUnorderedKVInputConfiguration.Builder inputBuilder =
-        new ShuffledUnorderedKVInputConfiguration.Builder();
-    private final ShuffledUnorderedKVInputConfiguration.SpecificBuilder<UnorderedPartitionedKVEdgeConfiguration.Builder>
+    private final ShuffledMergedInputConfiguration.Builder inputBuilder =
+        new ShuffledMergedInputConfiguration.Builder();
+    private final ShuffledMergedInputConfiguration.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>
         specificInputBuilder =
-        new ShuffledUnorderedKVInputConfiguration.SpecificBuilder<UnorderedPartitionedKVEdgeConfiguration.Builder>(
-            this, inputBuilder);
+        new ShuffledMergedInputConfiguration.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>(this,
+            inputBuilder);
 
     @InterfaceAudience.Private
     Builder(String keyClassName, String valueClassName) {
@@ -126,6 +122,18 @@ public class UnorderedPartitionedKVEdgeConfiguration extends HadoopKeyValuesBase
       outputBuilder.setValueClassName(valueClassName);
       inputBuilder.setKeyClassName(keyClassName);
       inputBuilder.setValueClassName(valueClassName);
+    }
+
+    /**
+     * Set the key comparator class
+     *
+     * @param comparatorClassName the key comparator class name
+     * @return instance of the current builder
+     */
+    public Builder setKeyComparatorClass(String comparatorClassName) {
+      outputBuilder.setKeyComparatorClass(comparatorClassName);
+      inputBuilder.setKeyComparatorClass(comparatorClassName);
+      return this;
     }
 
     @Override
@@ -162,7 +170,7 @@ public class UnorderedPartitionedKVEdgeConfiguration extends HadoopKeyValuesBase
      * @param partitionerConf configuration for the partitioner. This can be null
      * @return a builder to configure the output
      */
-    public OnFileUnorderedPartitionedKVOutputConfiguration.SpecificBuilder<Builder> configureOutput(
+    public OnFileSortedOutputConfiguration.SpecificBuilder<Builder> configureOutput(
         String partitionerClassName, Configuration partitionerConf) {
       outputConfigured = true;
       outputBuilder.setPartitioner(partitionerClassName, partitionerConf);
@@ -173,7 +181,7 @@ public class UnorderedPartitionedKVEdgeConfiguration extends HadoopKeyValuesBase
      * Configure the specific input
      * @return a builder to configure the input
      */
-    public ShuffledUnorderedKVInputConfiguration.SpecificBuilder<Builder> configureInput() {
+    public ShuffledMergedInputConfiguration.SpecificBuilder<Builder> configureInput() {
       return specificInputBuilder;
     }
 
@@ -181,11 +189,32 @@ public class UnorderedPartitionedKVEdgeConfiguration extends HadoopKeyValuesBase
      * Build and return an instance of the configuration
      * @return an instance of the acatual configuration
      */
-    public UnorderedPartitionedKVEdgeConfiguration build() {
-      Preconditions
-          .checkState(outputConfigured == true, "Output must be configured - partitioner required");
-      return new UnorderedPartitionedKVEdgeConfiguration(outputBuilder.build(), inputBuilder.build());
+    public OrderedPartitionedKVEdgeConfigurer build() {
+      Preconditions.checkState(outputConfigured == true, "Output must be configured - partitioner required");
+      return new OrderedPartitionedKVEdgeConfigurer(outputBuilder.build(), inputBuilder.build());
     }
+
+  }
+
+  public static void main(String[] args) {
+    // Sample usage;
+    OrderedPartitionedKVEdgeConfigurer
+        conf = OrderedPartitionedKVEdgeConfigurer.newBuilder("keyClass", "valClass")
+        .setKeyComparatorClass("comparatorClass")
+        .enableCompression(null)
+        .configureOutput("partitionerClassName", null)
+        .setSortBufferSize(1024)
+        .setSorterNumThreads(1)
+        .done()
+        .configureInput()
+        .setCombiner("Combiner", null)
+        .setShuffleBufferFraction(0.25f)
+        .done()
+        .build();
+
+    conf.getInputPayload();
+    conf.getOutputPayload();
+
 
   }
 }

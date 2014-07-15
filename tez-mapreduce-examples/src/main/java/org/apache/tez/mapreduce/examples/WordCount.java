@@ -58,7 +58,7 @@ import org.apache.tez.runtime.api.Output;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
-import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfiguration;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 
 import com.google.common.base.Preconditions;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -132,7 +132,7 @@ public class WordCount extends Configured implements Tool {
             SumProcessor.class.getName()), 1, MRHelpers.getReduceResource(tezConf));
     summerVertex.addOutput("MROutput", od, MROutputCommitter.class);
 
-    OrderedPartitionedKVEdgeConfiguration edgeConf = OrderedPartitionedKVEdgeConfiguration
+    OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName()).configureOutput(
             HashPartitioner.class.getName(), null).done().build();
 
