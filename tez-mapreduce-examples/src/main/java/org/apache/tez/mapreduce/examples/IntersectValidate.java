@@ -205,8 +205,8 @@ public class IntersectValidate extends Configured implements Tool {
     // This should only be setting selective keys from the underlying conf. Fix after there's a
     // better mechanism to configure the IOs.
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder(Text.class.getName(), NullWritable.class.getName()).configureOutput(
-            HashPartitioner.class.getName(), null).done().build();
+        .newBuilder(Text.class.getName(), NullWritable.class.getName(),
+            HashPartitioner.class.getName(), null).build();
 
     // Change the way resources are setup - no MRHelpers
     Vertex lhsVertex = new Vertex(LHS_INPUT_NAME, new ProcessorDescriptor(

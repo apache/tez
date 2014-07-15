@@ -221,8 +221,8 @@ public class UnionExample {
     unionVertex.addOutput("parts", od1, MROutputCommitter.class);
 
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder(Text.class.getName(), IntWritable.class.getName()).configureOutput(
-            HashPartitioner.class.getName(), null).done().build();
+        .newBuilder(Text.class.getName(), IntWritable.class.getName(),
+            HashPartitioner.class.getName(), null).build();
 
     dag.addVertex(mapVertex1)
         .addVertex(mapVertex2)

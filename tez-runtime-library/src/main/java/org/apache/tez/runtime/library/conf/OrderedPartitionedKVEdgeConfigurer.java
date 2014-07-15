@@ -24,6 +24,7 @@ import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -50,10 +51,13 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
    * Create a builder to configure the relevant Input and Output
    * @param keyClassName the key class name
    * @param valueClassName the value class name
+   * @param partitionerClassName the partitioner class name
+   * @param  partitionerConf the partitioner configuration. Can be null
    * @return a builder to configure the edge
    */
-  public static Builder newBuilder(String keyClassName, String valueClassName) {
-    return new Builder(keyClassName, valueClassName);
+  public static Builder newBuilder(String keyClassName, String valueClassName,
+                                   String partitionerClassName, Configuration partitionerConf) {
+    return new Builder(keyClassName, valueClassName, partitionerClassName, partitionerConf);
   }
 
   @Override
@@ -79,8 +83,6 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
   /**
    * This is a convenience method for the typical usage of this edge, and creates an instance of
    * {@link org.apache.tez.dag.api.EdgeProperty} which is likely to be used. </p>
-   * If custom edge properties are required, the methods to get the relevant payloads should be
-   * used. </p>
    * * In this case - DataMovementType.SCATTER_GATHER, EdgeProperty.DataSourceType.PERSISTED,
    * EdgeProperty.SchedulingType.SEQUENTIAL
    *
@@ -96,11 +98,26 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
     return edgeProperty;
   }
 
+  /**
+   * This is a convenience method for creating an Edge descriptor based on the specified
+   * EdgeManagerDescriptor.
+   *
+   * @param edgeManagerDescriptor the custom edge specification
+   * @return an {@link org.apache.tez.dag.api.EdgeProperty} instance
+   */
+  public EdgeProperty createDefaultCustomEdgeProperty(EdgeManagerDescriptor edgeManagerDescriptor) {
+    Preconditions.checkNotNull(edgeManagerDescriptor, "EdgeManagerDescriptor cannot be null");
+    EdgeProperty edgeProperty =
+        new EdgeProperty(edgeManagerDescriptor, EdgeProperty.DataSourceType.PERSISTED,
+            EdgeProperty.SchedulingType.SEQUENTIAL,
+            new OutputDescriptor(getOutputClassName()).setUserPayload(getOutputPayload()),
+            new InputDescriptor(getInputClassName()).setUserPayload(getInputPayload()));
+    return edgeProperty;
+  }
+
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
   public static class Builder extends HadoopKeyValuesBasedBaseConf.Builder<Builder> {
-
-    private boolean outputConfigured = false;
 
     private final OnFileSortedOutputConfiguration.Builder outputBuilder =
         new OnFileSortedOutputConfiguration.Builder();
@@ -117,9 +134,11 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
             inputBuilder);
 
     @InterfaceAudience.Private
-    Builder(String keyClassName, String valueClassName) {
+    Builder(String keyClassName, String valueClassName, String partitionerClassName,
+            Configuration partitionerConf) {
       outputBuilder.setKeyClassName(keyClassName);
       outputBuilder.setValueClassName(valueClassName);
+      outputBuilder.setPartitioner(partitionerClassName, partitionerConf);
       inputBuilder.setKeyClassName(keyClassName);
       inputBuilder.setValueClassName(valueClassName);
     }
@@ -166,14 +185,9 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
 
     /**
      * Configure the specific output
-     * @param partitionerClassName the partitioner class name
-     * @param partitionerConf configuration for the partitioner. This can be null
      * @return a builder to configure the output
      */
-    public OnFileSortedOutputConfiguration.SpecificBuilder<Builder> configureOutput(
-        String partitionerClassName, Configuration partitionerConf) {
-      outputConfigured = true;
-      outputBuilder.setPartitioner(partitionerClassName, partitionerConf);
+    public OnFileSortedOutputConfiguration.SpecificBuilder<Builder> configureOutput() {
       return specificOutputBuilder;
     }
 
@@ -190,31 +204,8 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
      * @return an instance of the acatual configuration
      */
     public OrderedPartitionedKVEdgeConfigurer build() {
-      Preconditions.checkState(outputConfigured == true, "Output must be configured - partitioner required");
       return new OrderedPartitionedKVEdgeConfigurer(outputBuilder.build(), inputBuilder.build());
     }
-
-  }
-
-  public static void main(String[] args) {
-    // Sample usage;
-    OrderedPartitionedKVEdgeConfigurer
-        conf = OrderedPartitionedKVEdgeConfigurer.newBuilder("keyClass", "valClass")
-        .setKeyComparatorClass("comparatorClass")
-        .enableCompression(null)
-        .configureOutput("partitionerClassName", null)
-        .setSortBufferSize(1024)
-        .setSorterNumThreads(1)
-        .done()
-        .configureInput()
-        .setCombiner("Combiner", null)
-        .setShuffleBufferFraction(0.25f)
-        .done()
-        .build();
-
-    conf.getInputPayload();
-    conf.getOutputPayload();
-
 
   }
 }

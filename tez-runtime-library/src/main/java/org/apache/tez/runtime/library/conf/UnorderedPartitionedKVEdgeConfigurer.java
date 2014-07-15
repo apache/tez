@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -54,10 +55,13 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
    * Create a builder to configure the relevant Input and Output
    * @param keyClassName the key class name
    * @param valueClassName the value class name
+   * @param partitionerClassName the partitioner class name
+   * @param  partitionerConf the partitioner configuration. Can be null
    * @return a builder to configure the edge
    */
-  public static Builder newBuilder(String keyClassName, String valueClassName) {
-    return new Builder(keyClassName, valueClassName);
+  public static Builder newBuilder(String keyClassName, String valueClassName,
+                                   String partitionerClassName, Configuration partitionerConf) {
+    return new Builder(keyClassName, valueClassName, partitionerClassName, partitionerConf);
   }
 
   @Override
@@ -100,11 +104,26 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
     return edgeProperty;
   }
 
+  /**
+   * This is a convenience method for creating an Edge descriptor based on the specified
+   * EdgeManagerDescriptor.
+   *
+   * @param edgeManagerDescriptor the custom edge specification
+   * @return an {@link org.apache.tez.dag.api.EdgeProperty} instance
+   */
+  public EdgeProperty createDefaultCustomEdgeProperty(EdgeManagerDescriptor edgeManagerDescriptor) {
+    Preconditions.checkNotNull(edgeManagerDescriptor, "EdgeManagerDescriptor cannot be null");
+    EdgeProperty edgeProperty =
+        new EdgeProperty(edgeManagerDescriptor, EdgeProperty.DataSourceType.PERSISTED,
+            EdgeProperty.SchedulingType.SEQUENTIAL,
+            new OutputDescriptor(getOutputClassName()).setUserPayload(getOutputPayload()),
+            new InputDescriptor(getInputClassName()).setUserPayload(getInputPayload()));
+    return edgeProperty;
+  }
+
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
   public static class Builder extends HadoopKeyValuesBasedBaseConf.Builder<Builder> {
-
-    private boolean outputConfigured = false;
 
     private final OnFileUnorderedPartitionedKVOutputConfiguration.Builder outputBuilder =
         new OnFileUnorderedPartitionedKVOutputConfiguration.Builder();
@@ -121,9 +140,11 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
             this, inputBuilder);
 
     @InterfaceAudience.Private
-    Builder(String keyClassName, String valueClassName) {
+    Builder(String keyClassName, String valueClassName, String partitionerClassName,
+            Configuration partitionerConf) {
       outputBuilder.setKeyClassName(keyClassName);
       outputBuilder.setValueClassName(valueClassName);
+      outputBuilder.setPartitioner(partitionerClassName, partitionerConf);
       inputBuilder.setKeyClassName(keyClassName);
       inputBuilder.setValueClassName(valueClassName);
     }
@@ -158,14 +179,10 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
 
     /**
      * Configure the specific output
-     * @param partitionerClassName the partitioner class name
-     * @param partitionerConf configuration for the partitioner. This can be null
+     *
      * @return a builder to configure the output
      */
-    public OnFileUnorderedPartitionedKVOutputConfiguration.SpecificBuilder<Builder> configureOutput(
-        String partitionerClassName, Configuration partitionerConf) {
-      outputConfigured = true;
-      outputBuilder.setPartitioner(partitionerClassName, partitionerConf);
+    public OnFileUnorderedPartitionedKVOutputConfiguration.SpecificBuilder<Builder> configureOutput() {
       return specificOutputBuilder;
     }
 
@@ -182,8 +199,6 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
      * @return an instance of the acatual configuration
      */
     public UnorderedPartitionedKVEdgeConfigurer build() {
-      Preconditions
-          .checkState(outputConfigured == true, "Output must be configured - partitioner required");
       return new UnorderedPartitionedKVEdgeConfigurer(outputBuilder.build(), inputBuilder.build());
     }
 

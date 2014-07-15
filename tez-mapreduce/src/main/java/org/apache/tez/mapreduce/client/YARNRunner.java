@@ -475,9 +475,8 @@ public class YARNRunner implements ClientProtocol {
         OrderedPartitionedKVEdgeConfigurer edgeConf =
             OrderedPartitionedKVEdgeConfigurer.newBuilder(stageConfs[i - 1].get(
                     TezJobConfig.TEZ_RUNTIME_KEY_CLASS),
-                stageConfs[i - 1].get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS))
-                .configureOutput(
-                    MRPartitioner.class.getName(), stageConfs[i - 1]).done()
+                stageConfs[i - 1].get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS),
+                MRPartitioner.class.getName(), stageConfs[i - 1])
                 .configureInput().useLegacyInput().done()
                 .setFromConfiguration(stageConfs[i - 1]).build();
         Edge edge = new Edge(vertices[i-1], vertices[i], edgeConf.createDefaultEdgeProperty());

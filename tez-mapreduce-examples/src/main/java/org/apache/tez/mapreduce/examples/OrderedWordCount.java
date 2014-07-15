@@ -240,9 +240,8 @@ public class OrderedWordCount extends Configured implements Tool {
     vertices.add(finalReduceVertex);
 
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder(IntWritable.class.getName(), Text.class.getName()).configureOutput(
-            HashPartitioner.class.getName(),
-            null).done().configureInput().useLegacyInput().done().build();
+        .newBuilder(IntWritable.class.getName(), Text.class.getName(),
+            HashPartitioner.class.getName(), null).configureInput().useLegacyInput().done().build();
 
     DAG dag = new DAG("OrderedWordCount" + dagIndex);
     for (int i = 0; i < vertices.size(); ++i) {

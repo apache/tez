@@ -17,7 +17,7 @@ INCOMPATIBLE CHANGES
   TEZ-1130. Replace confusing names on Vertex API
   TEZ-1213. Fix parameter naming in TezJobConfig.
     - Details at https://issues.apache.org/jira/browse/TEZ-1213?focusedCommentId=14039381&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-14039381
-  TEZ-1080, TEZ-1272, TEZ-1279. Change YARNRunner to use EdgeConfigs. 
+  TEZ-1080, TEZ-1272, TEZ-1279, TEZ-1266. Change YARNRunner to use EdgeConfigs. 
     - Removes separation of runtime configs into input/ouput configs. Also refactors public methods used for this conversion.
 
 Release 0.4.0-incubating: 2014-04-05

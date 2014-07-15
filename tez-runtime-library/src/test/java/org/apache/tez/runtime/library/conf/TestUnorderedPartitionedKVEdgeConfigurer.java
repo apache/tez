@@ -33,36 +33,25 @@ import org.apache.tez.common.TezJobConfig;
 import org.junit.Test;
 
 public class TestUnorderedPartitionedKVEdgeConfigurer {
-  @Test
-  public void testIncompleteParameters() {
-    UnorderedPartitionedKVEdgeConfigurer.Builder builder =
-        UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE");
-    try {
-      builder.build();
-      fail("Should have failed since the partitioner has not been specified");
-    } catch (Exception e) {
-      assertTrue(e.getMessage().contains("Output must be configured - partitioner"));
-    }
-  }
 
   @Test
   public void testNullParams() {
     try {
-      UnorderedPartitionedKVEdgeConfigurer.newBuilder(null, "VALUE");
+      UnorderedPartitionedKVEdgeConfigurer.newBuilder(null, "VALUE", "PARTITIONER", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", null);
+      UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", null, "PARTITIONER", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE").configureOutput(null, null);
+      UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", null, null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
@@ -72,8 +61,7 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
   @Test
   public void testDefaultConfigsUsed() {
     UnorderedPartitionedKVEdgeConfigurer.Builder builder =
-        UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE")
-            .configureOutput("PARTITIONER", null).done();
+        UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null);
 
     UnorderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
@@ -104,8 +92,7 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
   public void testSpecificIOConfs() {
     // Ensures that Output and Input confs are not mixed.
     UnorderedPartitionedKVEdgeConfigurer.Builder builder =
-        UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE")
-            .configureOutput("PARTITIONER", null).done();
+        UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null);
 
     UnorderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
@@ -146,9 +133,7 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
     additionalConfs.put("file.shouldExist", "file");
 
     UnorderedPartitionedKVEdgeConfigurer.Builder builder = UnorderedPartitionedKVEdgeConfigurer
-        .newBuilder("KEY",
-            "VALUE")
-        .configureOutput("PARTITIONER", null).done()
+        .newBuilder("KEY", "VALUE", "PARTITIONER", null)
         .setAdditionalConfiguration("fs.shouldExist", "fs")
         .setAdditionalConfiguration("test.key.1", "key1")
         .setAdditionalConfiguration(TezJobConfig.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE, "3333")

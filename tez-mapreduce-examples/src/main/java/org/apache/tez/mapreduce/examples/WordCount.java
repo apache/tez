@@ -133,8 +133,8 @@ public class WordCount extends Configured implements Tool {
     summerVertex.addOutput("MROutput", od, MROutputCommitter.class);
 
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder(Text.class.getName(), IntWritable.class.getName()).configureOutput(
-            HashPartitioner.class.getName(), null).done().build();
+        .newBuilder(Text.class.getName(), IntWritable.class.getName(),
+            HashPartitioner.class.getName(), null).build();
 
     DAG dag = new DAG("WordCount");
     dag.addVertex(tokenizerVertex)

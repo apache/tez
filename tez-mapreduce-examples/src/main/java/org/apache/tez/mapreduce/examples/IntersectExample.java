@@ -199,8 +199,8 @@ public class IntersectExample extends Configured implements Tool {
 
     UnorderedPartitionedKVEdgeConfigurer edgeConf =
         UnorderedPartitionedKVEdgeConfigurer
-            .newBuilder(Text.class.getName(), NullWritable.class.getName())
-            .configureOutput(HashPartitioner.class.getName(), null).done().build();
+            .newBuilder(Text.class.getName(), NullWritable.class.getName(),
+                HashPartitioner.class.getName(), null).build();
 
     Configuration finalOutputConf = new Configuration(tezConf);
     finalOutputConf.set(FileOutputFormat.OUTDIR, outPath.toUri().toString());

@@ -618,8 +618,8 @@ public class MRRSleepJob extends Configured implements Tool {
     Configuration partitionerConf = new Configuration(false);
     partitionerConf.set(MRJobConfig.PARTITIONER_CLASS_ATTR, MRRSleepJobPartitioner.class.getName());
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder(IntWritable.class.getName(), IntWritable.class.getName()).configureOutput(
-            MRPartitioner.class.getName(), partitionerConf).done().configureInput().useLegacyInput()
+        .newBuilder(IntWritable.class.getName(), IntWritable.class.getName(),
+            MRPartitioner.class.getName(), partitionerConf).configureInput().useLegacyInput()
         .done().build();
 
     for (int i = 0; i < vertices.size(); ++i) {

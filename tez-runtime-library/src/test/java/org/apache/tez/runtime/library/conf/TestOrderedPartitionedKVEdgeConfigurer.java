@@ -35,35 +35,23 @@ import org.junit.Test;
 public class TestOrderedPartitionedKVEdgeConfigurer {
 
   @Test
-  public void testIncompleteParameters() {
-    OrderedPartitionedKVEdgeConfigurer.Builder builder =
-        OrderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE");
-    try {
-      builder.build();
-      fail("Should have failed since the partitioner has not been specified");
-    } catch (Exception e) {
-      assertTrue(e.getMessage().contains("Output must be configured - partitioner"));
-    }
-  }
-
-  @Test
   public void testNullParams() {
     try {
-      OrderedPartitionedKVEdgeConfigurer.newBuilder(null, "VALUE");
+      OrderedPartitionedKVEdgeConfigurer.newBuilder(null, "VALUE", "PARTITIONER", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      OrderedPartitionedKVEdgeConfigurer.newBuilder("KEY", null);
+      OrderedPartitionedKVEdgeConfigurer.newBuilder("KEY", null, "PARTITIONER", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      OrderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE").configureOutput(null, null);
+      OrderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", null, null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
@@ -73,8 +61,7 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
   @Test
   public void testDefaultConfigsUsed() {
     OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder("KEY", "VALUE")
-        .configureOutput("PARTITIONER", null).done();
+        .newBuilder("KEY", "VALUE", "PARTITIONER", null);
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
@@ -103,8 +90,7 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
   public void testSpecificIOConfs() {
     // Ensures that Output and Input confs are not mixed.
     OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder("KEY", "VALUE")
-        .configureOutput("PARTITIONER", null).done();
+        .newBuilder("KEY", "VALUE", "PARTITIONER", null);
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
@@ -142,8 +128,7 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
     additionalConfs.put("file.shouldExist", "file");
 
     OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder("KEY", "VALUE")
-        .configureOutput("PARTITIONER", null).done()
+        .newBuilder("KEY", "VALUE", "PARTITIONER", null)
         .setAdditionalConfiguration("fs.shouldExist", "fs")
         .setAdditionalConfiguration("test.key.1", "key1")
         .setAdditionalConfiguration(TezJobConfig.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE, "2222")
@@ -201,9 +186,9 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
   @Test
   public void testSetters() {
     OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder("KEY", "VALUE")
+        .newBuilder("KEY", "VALUE", "PARTITIONER", null)
         .setKeyComparatorClass("KEY_COMPARATOR")
-        .configureOutput("PARTITIONER", null).setSortBufferSize(1111).setSorterNumThreads(2).done()
+        .configureOutput().setSortBufferSize(1111).setSorterNumThreads(2).done()
         .configureInput().setMaxSingleMemorySegmentFraction(0.11f).setMergeFraction(0.22f)
         .setPostMergeBufferFraction(0.33f).setShuffleBufferFraction(0.44f).done()
         .enableCompression("CustomCodec");
