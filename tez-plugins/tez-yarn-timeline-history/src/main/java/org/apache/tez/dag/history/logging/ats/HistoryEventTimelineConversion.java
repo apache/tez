@@ -18,8 +18,11 @@
 
 package org.apache.tez.dag.history.logging.ats;
 
+import java.io.IOException;
+
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
@@ -277,8 +280,12 @@ public class HistoryEventTimelineConversion {
     atsEntity.addPrimaryFilter(ATSConstants.USER, event.getUser());
     atsEntity.addPrimaryFilter(ATSConstants.DAG_NAME, event.getDAGName());
 
-    atsEntity.addOtherInfo(ATSConstants.DAG_PLAN,
-        DAGUtils.convertDAGPlanToATSMap(event.getDAGPlan()));
+    try {
+      atsEntity.addOtherInfo(ATSConstants.DAG_PLAN,
+          DAGUtils.convertDAGPlanToATSMap(event.getDAGPlan()));
+    } catch (IOException e) {
+      throw new TezUncheckedException(e);
+    }
     atsEntity.addOtherInfo(ATSConstants.APPLICATION_ID,
         event.getApplicationAttemptId().getApplicationId().toString());
 

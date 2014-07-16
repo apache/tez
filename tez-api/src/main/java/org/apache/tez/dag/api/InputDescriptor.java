@@ -33,7 +33,19 @@ public class InputDescriptor extends TezEntityDescriptor {
 
   @Override
   public InputDescriptor setUserPayload(byte[] userPayload) {
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
+    super.setUserPayload(userPayload);
     return this;
   }
+
+  /**
+   * Provide a human-readable version of the user payload that can be
+   * used in the History UI
+   * @param historyText History text
+   */
+  @Override
+  public InputDescriptor setHistoryText(String historyText) {
+    super.setHistoryText(historyText);
+    return this;
+  }
+
 }

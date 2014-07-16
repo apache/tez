@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
@@ -90,7 +91,7 @@ public class ShuffleInputEventHandler {
     }
     if (shufflePayload.hasEmptyPartitions()) {
       try {
-        byte[] emptyPartitions = TezUtils.decompressByteStringToByteArray(shufflePayload.getEmptyPartitions());
+        byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload.getEmptyPartitions());
         BitSet emptyPartitionsBitSet = TezUtils.fromByteArray(emptyPartitions);
         if (emptyPartitionsBitSet.get(partitionId)) {
           LOG.info("Source partition: " + partitionId + " did not generate any data. SrcAttempt: ["

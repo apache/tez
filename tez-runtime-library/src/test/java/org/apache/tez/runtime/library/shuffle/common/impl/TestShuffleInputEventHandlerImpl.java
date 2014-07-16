@@ -27,6 +27,7 @@ import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezInputContext;
@@ -151,7 +152,7 @@ public class TestShuffleInputEventHandlerImpl {
     for (int i : emptyPartitions) {
       bitSet.set(i);
     }
-    ByteString emptyPartitionsBytesString = TezUtils.compressByteArrayToByteString(TezUtils
+    ByteString emptyPartitionsBytesString = TezCommonUtils.compressByteArrayToByteString(TezUtils
         .toByteArray(bitSet));
     return emptyPartitionsBytesString;
   }

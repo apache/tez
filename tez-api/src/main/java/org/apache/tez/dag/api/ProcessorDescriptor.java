@@ -31,8 +31,21 @@ public class ProcessorDescriptor extends TezEntityDescriptor {
     super(processorClassName);
   }
 
+  @Override
   public ProcessorDescriptor setUserPayload(byte[] userPayload) {
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
+    super.setUserPayload(userPayload);
     return this;
   }
+
+  /**
+   * Provide a human-readable version of the user payload that can be
+   * used in the History UI
+   * @param historyText History text
+   */
+  @Override
+  public ProcessorDescriptor setHistoryText(String historyText) {
+    super.setHistoryText(historyText);
+    return this;
+  }
+
 }

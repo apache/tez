@@ -48,6 +48,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
@@ -477,7 +478,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     }
     if (emptyPartitions.cardinality() != 0) {
       // Empty partitions exist
-      ByteString emptyPartitionsByteString = TezUtils.compressByteArrayToByteString(TezUtils
+      ByteString emptyPartitionsByteString = TezCommonUtils.compressByteArrayToByteString(TezUtils
           .toByteArray(emptyPartitions));
       payloadBuidler.setEmptyPartitions(emptyPartitionsByteString);
     }

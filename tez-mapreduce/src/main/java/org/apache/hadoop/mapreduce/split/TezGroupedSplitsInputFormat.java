@@ -31,8 +31,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.RuntimeUtils;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 
 import com.google.common.base.Preconditions;
@@ -120,7 +119,7 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
       Class<? extends InputFormat> clazz = (Class<? extends InputFormat>) 
           getClassFromName(split.wrappedInputFormatName);
       try {
-        wrappedInputFormat = ReflectionUtils.newInstance(clazz, conf);
+        wrappedInputFormat = org.apache.hadoop.util.ReflectionUtils.newInstance(clazz, conf);
       } catch (Exception e) {
         throw new TezUncheckedException(e);
       }
@@ -128,7 +127,7 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
   }
   
   static Class<?> getClassFromName(String name) {
-    return RuntimeUtils.getClazz(name);
+    return ReflectionUtils.getClazz(name);
   }
   
   public class TezGroupedSplitsRecordReader  extends RecordReader<K, V> {

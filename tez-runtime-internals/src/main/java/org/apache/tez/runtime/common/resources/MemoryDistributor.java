@@ -30,7 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.RuntimeUtils;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.TezEntityDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -65,9 +65,9 @@ public class MemoryDistributor {
   private final List<RequestorInfo> requestList;
 
   /**
-   * @param numInputs
+   * @param numTotalInputs
    *          total number of Inputs for the task
-   * @param numOutputs
+   * @param numTotalOutputs
    *          total number of Outputs for the task
    * @param conf
    *          Tez specific task configuration
@@ -122,7 +122,7 @@ public class MemoryDistributor {
       String allocatorClassName = conf.get(TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_ALLOCATOR_CLASS,
           TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_ALLOCATOR_CLASS_DEFAULT);
       LOG.info("Using Allocator class: " + allocatorClassName);
-      InitialMemoryAllocator allocator = RuntimeUtils.createClazzInstance(allocatorClassName);
+      InitialMemoryAllocator allocator = ReflectionUtils.createClazzInstance(allocatorClassName);
       allocator.setConf(conf);
       allocations = allocator.assignMemory(totalJvmMemory, numTotalInputs, numTotalOutputs,
           Iterables.unmodifiableIterable(requestContexts));

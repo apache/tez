@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.RuntimeUtils;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeManager;
 import org.apache.tez.dag.api.EdgeManagerContext;
@@ -125,7 +125,7 @@ public class TestShuffleVertexManager {
           newEdgeManagers.clear();
           for (Entry<String, EdgeManagerDescriptor> entry :
               ((Map<String, EdgeManagerDescriptor>)invocation.getArguments()[2]).entrySet()) {
-            EdgeManager edgeManager = RuntimeUtils.createClazzInstance(
+            EdgeManager edgeManager = ReflectionUtils.createClazzInstance(
                 entry.getValue().getClassName());
             final byte[] userPayload = entry.getValue().getUserPayload();
             edgeManager.initialize(new EdgeManagerContext() {

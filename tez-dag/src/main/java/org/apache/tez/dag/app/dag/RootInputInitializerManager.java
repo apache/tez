@@ -33,7 +33,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.tez.common.RuntimeUtils;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
@@ -101,7 +101,7 @@ public class RootInputInitializerManager {
     String className = input.getInitializerClassName();
     @SuppressWarnings("unchecked")
     Class<? extends TezRootInputInitializer> clazz =
-        (Class<? extends TezRootInputInitializer>) RuntimeUtils
+        (Class<? extends TezRootInputInitializer>) ReflectionUtils
             .getClazz(className);
     TezRootInputInitializer initializer = null;
     try {

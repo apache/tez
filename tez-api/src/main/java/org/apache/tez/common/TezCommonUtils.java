@@ -19,7 +19,11 @@
 package org.apache.tez.common;
 
 import java.io.IOException;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.InflaterInputStream;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -31,6 +35,8 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
+
+import com.google.protobuf.ByteString;
 
 public class TezCommonUtils {
   public static final FsPermission TEZ_AM_DIR_PERMISSION = FsPermission
@@ -211,8 +217,6 @@ public class TezCommonUtils {
    * 
    * @param recoveryPath
    *          TEZ recovery directory used for Tez internals
-   * @param conf
-   *          Tez configuration
    * @param attemptID
    *          Application Attempt Id
    * @return App attempt specific recovery path
@@ -283,4 +287,23 @@ public class TezCommonUtils {
   public static FSDataOutputStream createFileForAM(FileSystem fs, Path filePath) throws IOException {
     return FileSystem.create(fs, filePath, new FsPermission(TEZ_AM_FILE_PERMISSION));
   }
+
+  @Private
+  public static ByteString compressByteArrayToByteString(byte[] inBytes) throws IOException {
+    ByteString.Output os = ByteString.newOutput();
+    DeflaterOutputStream compressOs = new DeflaterOutputStream(os, new Deflater(
+        Deflater.BEST_COMPRESSION));
+    compressOs.write(inBytes);
+    compressOs.finish();
+    ByteString byteString = os.toByteString();
+    return byteString;
+  }
+
+  @Private
+  public static byte[] decompressByteStringToByteArray(ByteString byteString) throws IOException {
+    InflaterInputStream in = new InflaterInputStream(byteString.newInput());
+    byte[] bytes = IOUtils.toByteArray(in);
+    return bytes;
+  }
+
 }

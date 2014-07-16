@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.history.utils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -26,6 +27,8 @@ import java.util.Map;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.PlanGroupInputEdgeInfo;
 import org.apache.tez.dag.app.dag.impl.VertexStats;
@@ -35,125 +38,58 @@ import org.codehaus.jettison.json.JSONObject;
 
 public class DAGUtils {
 
+  static final String DAG_NAME_KEY = "dagName";
+  static final String VERTICES_KEY = "vertices";
+  static final String EDGES_KEY = "edges";
+  static final String VERTEX_GROUPS_KEY = "vertexGroups";
+
+  static final String VERTEX_NAME_KEY = "vertexName";
+  static final String PROCESSOR_CLASS_KEY = "processorClass";
+  static final String IN_EDGE_IDS_KEY = "inEdgeIds";
+  static final String OUT_EDGE_IDS_KEY = "outEdgeIds";
+  static final String ADDITIONAL_INPUTS_KEY = "additionalInputs";
+  static final String ADDITIONAL_OUTPUTS_KEY = "additionalOutputs";
+  static final String VERTEX_MANAGER_PLUGIN_CLASS_KEY =
+      "vertexManagerPluginClass";
+  static final String USER_PAYLOAD_AS_TEXT = "userPayloadAsText";
+  static final String OUTPUT_USER_PAYLOAD_AS_TEXT = "outputUserPayloadAsText";
+  static final String INPUT_USER_PAYLOAD_AS_TEXT = "inputUserPayloadAsText";
+
+  static final String EDGE_ID_KEY = "edgeId";
+  static final String INPUT_VERTEX_NAME_KEY = "inputVertexName";
+  static final String OUTPUT_VERTEX_NAME_KEY = "outputVertexName";
+  static final String DATA_MOVEMENT_TYPE_KEY = "dataMovementType";
+  static final String DATA_SOURCE_TYPE_KEY = "dataSourceType";
+  static final String SCHEDULING_TYPE_KEY = "schedulingType";
+  static final String EDGE_SOURCE_CLASS_KEY = "edgeSourceClass";
+  static final String EDGE_DESTINATION_CLASS_KEY =
+      "edgeDestinationClass";
+
+  static final String NAME_KEY = "name";
+  static final String CLASS_KEY = "class";
+  static final String INITIALIZER_KEY = "initializer";
+
+  static final String VERTEX_GROUP_NAME_KEY = "groupName";
+  static final String VERTEX_GROUP_MEMBERS_KEY = "groupMembers";
+  static final String VERTEX_GROUP_OUTPUTS_KEY = "outputs";
+  static final String VERTEX_GROUP_EDGE_MERGED_INPUTS_KEY = "edgeMergedInputs";
+  static final String VERTEX_GROUP_DESTINATION_VERTEX_NAME_KEY = "destinationVertexName";
+
+
+
   public static JSONObject generateSimpleJSONPlan(DAGProtos.DAGPlan dagPlan) throws JSONException {
-
-    final String DAG_NAME_KEY = "dagName";
-    final String VERTICES_KEY = "vertices";
-    final String EDGES_KEY = "edges";
-
-    final String VERTEX_NAME_KEY = "vertexName";
-    final String PROCESSOR_CLASS_KEY = "processorClass";
-    final String IN_EDGE_IDS_KEY = "inEdgeIds";
-    final String OUT_EDGE_IDS_KEY = "outEdgeIds";
-    final String ADDITIONAL_INPUTS_KEY = "additionalInputs";
-    final String ADDITIONAL_OUTPUTS_KEY = "additionalOutputs";
-    final String VERTEX_MANAGER_PLUGIN_CLASS_KEY =
-        "vertexManagerPluginClass";
-
-    final String EDGE_ID_KEY = "edgeId";
-    final String INPUT_VERTEX_NAME_KEY = "inputVertexName";
-    final String OUTPUT_VERTEX_NAME_KEY = "outputVertexName";
-    final String DATA_MOVEMENT_TYPE_KEY = "dataMovementType";
-    final String DATA_SOURCE_TYPE_KEY = "dataSourceType";
-    final String SCHEDULING_TYPE_KEY = "schedulingType";
-    final String EDGE_SOURCE_CLASS_KEY = "edgeSourceClass";
-    final String EDGE_DESTINATION_CLASS_KEY =
-        "edgeDestinationClass";
-
-    final String NAME_KEY = "name";
-    final String CLASS_KEY = "class";
-    final String INITIALIZER_KEY = "initializer";
-
-    JSONObject dagJson = new JSONObject();
-    dagJson.put(DAG_NAME_KEY, dagPlan.getName());
-    for (DAGProtos.VertexPlan vertexPlan : dagPlan.getVertexList()) {
-      JSONObject vertexJson = new JSONObject();
-      vertexJson.put(VERTEX_NAME_KEY, vertexPlan.getName());
-
-      if (vertexPlan.hasProcessorDescriptor()) {
-        vertexJson.put(PROCESSOR_CLASS_KEY,
-            vertexPlan.getProcessorDescriptor().getClassName());
-      }
-
-      for (String inEdgeId : vertexPlan.getInEdgeIdList()) {
-        vertexJson.accumulate(IN_EDGE_IDS_KEY, inEdgeId);
-      }
-      for (String outEdgeId : vertexPlan.getOutEdgeIdList()) {
-        vertexJson.accumulate(OUT_EDGE_IDS_KEY, outEdgeId);
-      }
-
-      for (DAGProtos.RootInputLeafOutputProto input :
-          vertexPlan.getInputsList()) {
-        JSONObject jsonInput = new JSONObject();
-        jsonInput.put(NAME_KEY, input.getName());
-        jsonInput.put(CLASS_KEY, input.getEntityDescriptor().getClassName());
-        if (input.hasInitializerClassName()) {
-          jsonInput.put(INITIALIZER_KEY, input.getInitializerClassName());
-        }
-        vertexJson.accumulate(ADDITIONAL_INPUTS_KEY, jsonInput);
-      }
-
-      for (DAGProtos.RootInputLeafOutputProto output :
-          vertexPlan.getOutputsList()) {
-        JSONObject jsonOutput = new JSONObject();
-        jsonOutput.put(NAME_KEY, output.getName());
-        jsonOutput.put(CLASS_KEY, output.getEntityDescriptor().getClassName());
-        if (output.hasInitializerClassName()) {
-          jsonOutput.put(INITIALIZER_KEY, output.getInitializerClassName());
-        }
-        vertexJson.accumulate(ADDITIONAL_OUTPUTS_KEY, jsonOutput);
-      }
-
-      if (vertexPlan.hasVertexManagerPlugin()) {
-        vertexJson.put(VERTEX_MANAGER_PLUGIN_CLASS_KEY,
-            vertexPlan.getVertexManagerPlugin().getClassName());
-      }
-
-      dagJson.accumulate(VERTICES_KEY, vertexJson);
+    JSONObject dagJson;
+    try {
+      dagJson = new JSONObject(convertDAGPlanToATSMap(dagPlan));
+    } catch (IOException e) {
+      throw new TezUncheckedException(e);
     }
-
-    for (DAGProtos.EdgePlan edgePlan : dagPlan.getEdgeList()) {
-      JSONObject edgeJson = new JSONObject();
-      edgeJson.put(EDGE_ID_KEY, edgePlan.getId());
-      edgeJson.put(INPUT_VERTEX_NAME_KEY, edgePlan.getInputVertexName());
-      edgeJson.put(OUTPUT_VERTEX_NAME_KEY, edgePlan.getOutputVertexName());
-      edgeJson.put(DATA_MOVEMENT_TYPE_KEY,
-          edgePlan.getDataMovementType().name());
-      edgeJson.put(DATA_SOURCE_TYPE_KEY, edgePlan.getDataSourceType().name());
-      edgeJson.put(SCHEDULING_TYPE_KEY, edgePlan.getSchedulingType().name());
-      edgeJson.put(EDGE_SOURCE_CLASS_KEY,
-          edgePlan.getEdgeSource().getClassName());
-      edgeJson.put(EDGE_DESTINATION_CLASS_KEY,
-          edgePlan.getEdgeDestination().getClassName());
-
-      dagJson.accumulate(EDGES_KEY, edgeJson);
-    }
-
     return dagJson;
   }
 
   public static JSONObject convertCountersToJSON(TezCounters counters)
       throws JSONException {
-    JSONObject jsonObject = new JSONObject();
-    if (counters == null) {
-      return jsonObject;
-    }
-
-    for (CounterGroup group : counters) {
-      JSONObject jsonCGrp = new JSONObject();
-      jsonCGrp.put(ATSConstants.COUNTER_GROUP_NAME, group.getName());
-      jsonCGrp.put(ATSConstants.COUNTER_GROUP_DISPLAY_NAME,
-          group.getDisplayName());
-      for (TezCounter counter : group) {
-        JSONObject counterJson = new JSONObject();
-        counterJson.put(ATSConstants.COUNTER_NAME, counter.getName());
-        counterJson.put(ATSConstants.COUNTER_DISPLAY_NAME,
-            counter.getDisplayName());
-        counterJson.put(ATSConstants.COUNTER_VALUE, counter.getValue());
-        jsonCGrp.accumulate(ATSConstants.COUNTERS, counterJson);
-      }
-      jsonObject.accumulate(ATSConstants.COUNTER_GROUPS, jsonCGrp);
-    }
+    JSONObject jsonObject = new JSONObject(convertCountersToATSMap(counters));
     return jsonObject;
   }
 
@@ -185,44 +121,10 @@ public class DAGUtils {
   }
 
   public static Map<String,Object> convertDAGPlanToATSMap(
-      DAGProtos.DAGPlan dagPlan) {
+      DAGProtos.DAGPlan dagPlan) throws IOException {
 
     final String VERSION_KEY = "version";
     final int version = 1;
-    final String DAG_NAME_KEY = "dagName";
-    final String VERTICES_KEY = "vertices";
-    final String EDGES_KEY = "edges";
-    final String VERTEX_GROUPS_KEY = "vertexGroups";
-
-    final String VERTEX_NAME_KEY = "vertexName";
-    final String PROCESSOR_CLASS_KEY = "processorClass";
-    final String IN_EDGE_IDS_KEY = "inEdgeIds";
-    final String OUT_EDGE_IDS_KEY = "outEdgeIds";
-    final String ADDITIONAL_INPUTS_KEY = "additionalInputs";
-    final String ADDITIONAL_OUTPUTS_KEY = "additionalOutputs";
-    final String VERTEX_MANAGER_PLUGIN_CLASS_KEY =
-        "vertexManagerPluginClass";
-
-    final String EDGE_ID_KEY = "edgeId";
-    final String INPUT_VERTEX_NAME_KEY = "inputVertexName";
-    final String OUTPUT_VERTEX_NAME_KEY = "outputVertexName";
-    final String DATA_MOVEMENT_TYPE_KEY = "dataMovementType";
-    final String DATA_SOURCE_TYPE_KEY = "dataSourceType";
-    final String SCHEDULING_TYPE_KEY = "schedulingType";
-    final String EDGE_SOURCE_CLASS_KEY = "edgeSourceClass";
-    final String EDGE_DESTINATION_CLASS_KEY =
-        "edgeDestinationClass";
-
-    final String NAME_KEY = "name";
-    final String CLASS_KEY = "class";
-    final String INITIALIZER_KEY = "initializer";
-
-    final String VERTEX_GROUP_NAME_KEY = "groupName";
-    final String VERTEX_GROUP_MEMBERS_KEY = "groupMembers";
-    final String VERTEX_GROUP_OUTPUTS_KEY = "outputs";
-    final String VERTEX_GROUP_EDGE_MERGED_INPUTS_KEY = "edgeMergedInputs";
-    final String VERTEX_GROUP_DESTINATION_VERTEX_NAME_KEY = "destinationVertexName";
-
     Map<String,Object> dagMap = new LinkedHashMap<String, Object>();
     dagMap.put(DAG_NAME_KEY, dagPlan.getName());
     dagMap.put(VERSION_KEY, version);
@@ -234,6 +136,11 @@ public class DAGUtils {
       if (vertexPlan.hasProcessorDescriptor()) {
         vertexMap.put(PROCESSOR_CLASS_KEY,
             vertexPlan.getProcessorDescriptor().getClassName());
+        if (vertexPlan.getProcessorDescriptor().hasHistoryText()) {
+          vertexMap.put(USER_PAYLOAD_AS_TEXT,
+              DagTypeConverters.getHistoryTextFromProto(
+                  vertexPlan.getProcessorDescriptor()));
+        }
       }
 
       ArrayList<Object> inEdgeIdList = new ArrayList<Object>();
@@ -253,6 +160,11 @@ public class DAGUtils {
         if (input.hasInitializerClassName()) {
           inputMap.put(INITIALIZER_KEY, input.getInitializerClassName());
         }
+        if (input.getEntityDescriptor().hasHistoryText()) {
+          inputMap.put(USER_PAYLOAD_AS_TEXT,
+              DagTypeConverters.getHistoryTextFromProto(
+                  input.getEntityDescriptor()));
+        }
         inputsList.add(inputMap);
       }
       putInto(vertexMap, ADDITIONAL_INPUTS_KEY, inputsList);
@@ -265,6 +177,11 @@ public class DAGUtils {
         outputMap.put(CLASS_KEY, output.getEntityDescriptor().getClassName());
         if (output.hasInitializerClassName()) {
           outputMap.put(INITIALIZER_KEY, output.getInitializerClassName());
+        }
+        if (output.getEntityDescriptor().hasHistoryText()) {
+          outputMap.put(USER_PAYLOAD_AS_TEXT,
+              DagTypeConverters.getHistoryTextFromProto(
+                  output.getEntityDescriptor()));
         }
         outputsList.add(outputMap);
       }
@@ -293,7 +210,16 @@ public class DAGUtils {
           edgePlan.getEdgeSource().getClassName());
       edgeMap.put(EDGE_DESTINATION_CLASS_KEY,
           edgePlan.getEdgeDestination().getClassName());
-
+      if (edgePlan.getEdgeSource().hasHistoryText()) {
+        edgeMap.put(OUTPUT_USER_PAYLOAD_AS_TEXT,
+            DagTypeConverters.getHistoryTextFromProto(
+                edgePlan.getEdgeSource()));
+      }
+      if (edgePlan.getEdgeDestination().hasHistoryText()) {
+        edgeMap.put(INPUT_USER_PAYLOAD_AS_TEXT,
+            DagTypeConverters.getHistoryTextFromProto(
+                edgePlan.getEdgeDestination()));
+      }
       edgesList.add(edgeMap);
     }
     putInto(dagMap, EDGES_KEY, edgesList);
@@ -321,6 +247,11 @@ public class DAGUtils {
             && edgeMergedInputInfo.getMergedInput().hasClassName()) {
             edgeMergedInput.put(PROCESSOR_CLASS_KEY,
                 edgeMergedInputInfo.getMergedInput().getClassName());
+            if (edgeMergedInputInfo.getMergedInput().hasHistoryText()) {
+              edgeMergedInput.put(USER_PAYLOAD_AS_TEXT,
+                  DagTypeConverters.getHistoryTextFromProto(
+                      edgeMergedInputInfo.getMergedInput()));
+            }
           }
           edgeMergedInputs.add(edgeMergedInput);
         }

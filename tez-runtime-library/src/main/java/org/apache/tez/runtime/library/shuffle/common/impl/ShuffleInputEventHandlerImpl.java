@@ -26,6 +26,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
@@ -101,7 +102,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
         + stringify(shufflePayload));
 
     if (shufflePayload.hasEmptyPartitions()) {
-      byte[] emptyPartitions = TezUtils.decompressByteStringToByteArray(shufflePayload
+      byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload
           .getEmptyPartitions());
       BitSet emptyPartionsBitSet = TezUtils.fromByteArray(emptyPartitions);
       if (emptyPartionsBitSet.get(srcIndex)) {

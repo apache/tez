@@ -67,7 +67,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezAppMasterStatus;
-import org.apache.tez.common.RuntimeUtils;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -671,7 +671,7 @@ public class TestMRRJobsDAGApi {
           .getConfigurationBytes());
 
       try {
-        RuntimeUtils.getClazz(RELOCALIZATION_TEST_CLASS_NAME);
+        ReflectionUtils.getClazz(RELOCALIZATION_TEST_CLASS_NAME);
         LOG.info("Class found");
         FileSystem fs = FileSystem.get(conf);
         fs.mkdirs(new Path("/tmp/relocalizationfilefound"));

@@ -25,7 +25,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
-import org.apache.tez.common.RuntimeUtils;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -76,7 +76,7 @@ public class TestHistoryEventsProtoConversion {
     event.toProtoStream(os);
     os.flush();
     os.close();
-    deserializedEvent = RuntimeUtils.createClazzInstance(
+    deserializedEvent = ReflectionUtils.createClazzInstance(
         event.getClass().getName());
     LOG.info("Serialized event to byte array"
         + ", eventType=" + event.getEventType()
@@ -100,7 +100,7 @@ public class TestHistoryEventsProtoConversion {
     SummaryEventProto summaryEventProto =
         SummaryEventProto.parseDelimitedFrom(
             new ByteArrayInputStream(os.toByteArray()));
-    deserializedEvent = RuntimeUtils.createClazzInstance(
+    deserializedEvent = ReflectionUtils.createClazzInstance(
         event.getClass().getName());
     ((SummaryEvent)deserializedEvent).fromSummaryProtoStream(summaryEventProto);
     return deserializedEvent;

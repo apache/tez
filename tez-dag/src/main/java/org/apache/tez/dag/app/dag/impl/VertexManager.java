@@ -32,7 +32,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.common.RuntimeUtils;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -235,7 +235,7 @@ public class VertexManager {
   public void initialize() {
     pluginContext = new VertexManagerPluginContextImpl();
     if (pluginDesc != null) {
-      plugin = RuntimeUtils.createClazzInstance(pluginDesc.getClassName());
+      plugin = ReflectionUtils.createClazzInstance(pluginDesc.getClassName());
       payload = DagTypeConverters.convertToTezUserPayload(pluginDesc.getUserPayload());
     }
     if (payload == null || payload.getPayload() == null) {

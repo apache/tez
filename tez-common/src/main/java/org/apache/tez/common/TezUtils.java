@@ -229,24 +229,6 @@ public class TezUtils {
     return output;
   }
 
-  @Private
-  public static ByteString compressByteArrayToByteString(byte[] inBytes) throws IOException {
-    ByteString.Output os = ByteString.newOutput();
-    DeflaterOutputStream compressOs = new DeflaterOutputStream(os, new Deflater(
-        Deflater.BEST_COMPRESSION));
-    compressOs.write(inBytes);
-    compressOs.finish();
-    ByteString byteString = os.toByteString();
-    return byteString;
-  }
-  
-  @Private
-  public static byte[] decompressByteStringToByteArray(ByteString byteString) throws IOException {
-    InflaterInputStream in = new InflaterInputStream(byteString.newInput());
-    byte[] bytes = IOUtils.toByteArray(in);
-    return bytes;
-  }
-
   private static final Pattern pattern = Pattern.compile("\\W");
   @Private
   public static final int MAX_VERTEX_NAME_LENGTH = 40;

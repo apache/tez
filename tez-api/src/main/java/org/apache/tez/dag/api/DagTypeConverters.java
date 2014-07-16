@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.client.TezAppMasterStatus;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
@@ -277,8 +278,29 @@ public class DagTypeConverters {
       builder
           .setUserPayload(ByteString.copyFrom(descriptor.getUserPayload()));
     }
+    if (descriptor.getHistoryText() != null) {
+      try {
+        builder.setHistoryText(TezCommonUtils.compressByteArrayToByteString(
+            descriptor.getHistoryText().getBytes()));
+      } catch (IOException e) {
+        throw new TezUncheckedException(e);
+      }
+    }
     return builder.build();
   }
+
+  public static String getHistoryTextFromProto(TezEntityDescriptorProto proto) {
+    if (!proto.hasHistoryText()) {
+      return null;
+    }
+    try {
+      return new String(TezCommonUtils.decompressByteStringToByteArray(proto.getHistoryText()));
+    } catch (IOException e) {
+      throw new TezUncheckedException(e);
+    }
+  }
+
+
 
   public static RootInputLeafOutputProto convertToDAGPlan(
       RootInputLeafOutput<? extends TezEntityDescriptor> descriptor) {

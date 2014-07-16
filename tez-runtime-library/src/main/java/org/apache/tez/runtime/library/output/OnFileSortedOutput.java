@@ -35,6 +35,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
@@ -165,7 +166,7 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
       }
       if (emptyPartitions > 0) {
         ByteString emptyPartitionsBytesString =
-            TezUtils.compressByteArrayToByteString(TezUtils.toByteArray(emptyPartitionDetails));
+            TezCommonUtils.compressByteArrayToByteString(TezUtils.toByteArray(emptyPartitionDetails));
         payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
         LOG.info("EmptyPartition bitsetSize=" + emptyPartitionDetails.cardinality() + ", numOutputs="
                 + getNumPhysicalOutputs() + ", emptyPartitions=" + emptyPartitions

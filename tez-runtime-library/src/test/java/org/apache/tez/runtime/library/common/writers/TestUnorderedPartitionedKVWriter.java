@@ -57,6 +57,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
@@ -316,7 +317,7 @@ public class TestUnorderedPartitionedKVWriter {
     BitSet emptyPartitionBits = null;
     if (partitionsWithData.cardinality() != numPartitions) {
       assertTrue(eventProto.hasEmptyPartitions());
-      byte[] emptyPartitions = TezUtils.decompressByteStringToByteArray(eventProto
+      byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(eventProto
           .getEmptyPartitions());
       emptyPartitionBits = TezUtils.fromByteArray(emptyPartitions);
       assertEquals(numPartitions - partitionsWithData.cardinality(),
@@ -505,7 +506,7 @@ public class TestUnorderedPartitionedKVWriter {
       emptyPartitionBits = new BitSet(numPartitions);
     } else {
       assertTrue(eventProto.hasEmptyPartitions());
-      byte[] emptyPartitions = TezUtils.decompressByteStringToByteArray(eventProto
+      byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(eventProto
           .getEmptyPartitions());
       emptyPartitionBits = TezUtils.fromByteArray(emptyPartitions);
       if (numRecordsWritten == 0) {

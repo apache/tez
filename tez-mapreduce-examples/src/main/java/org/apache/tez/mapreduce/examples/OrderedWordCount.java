@@ -18,6 +18,7 @@
 
 package org.apache.tez.mapreduce.examples;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -198,12 +199,16 @@ public class OrderedWordCount extends Configured implements Tool {
 
     List<Vertex> vertices = new ArrayList<Vertex>();
 
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream(4096);
+    mapStageConf.writeXml(outputStream);
+    String mapStageHistoryText = new String(outputStream.toByteArray(), "UTF-8");
     byte[] mapPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
     byte[] mapInputPayload = MRHelpers.createMRInputPayloadWithGrouping(mapPayload,
       TextInputFormat.class.getName());
     int numMaps = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
-        MapProcessor.class.getName()).setUserPayload(mapPayload),
+        MapProcessor.class.getName()).setUserPayload(mapPayload)
+            .setHistoryText(mapStageHistoryText),
         numMaps, MRHelpers.getMapResource(mapStageConf));
     if (generateSplitsInClient) {
       mapVertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
@@ -222,19 +227,27 @@ public class OrderedWordCount extends Configured implements Tool {
     MRHelpers.addMRInput(mapVertex, mapInputPayload, initializerClazz);
     vertices.add(mapVertex);
 
+    ByteArrayOutputStream iROutputStream = new ByteArrayOutputStream(4096);
+    iReduceStageConf.writeXml(iROutputStream);
+    String iReduceStageHistoryText = new String(iROutputStream.toByteArray(), "UTF-8");
     Vertex ivertex = new Vertex("intermediate_reducer", new ProcessorDescriptor(
-        ReduceProcessor.class.getName()).
-        setUserPayload(MRHelpers.createUserPayloadFromConf(iReduceStageConf)),
-        2,
-        MRHelpers.getReduceResource(iReduceStageConf));
+        ReduceProcessor.class.getName())
+            .setUserPayload(MRHelpers.createUserPayloadFromConf(iReduceStageConf))
+            .setHistoryText(iReduceStageHistoryText),
+        2, MRHelpers.getReduceResource(iReduceStageConf));
     ivertex.setTaskLocalFiles(commonLocalResources);
     vertices.add(ivertex);
 
+    ByteArrayOutputStream finalReduceOutputStream = new ByteArrayOutputStream(4096);
+    finalReduceConf.writeXml(finalReduceOutputStream);
+    String finalReduceStageHistoryText = new String(finalReduceOutputStream.toByteArray(), "UTF-8");
     byte[] finalReducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
     Vertex finalReduceVertex = new Vertex("finalreduce",
         new ProcessorDescriptor(
-            ReduceProcessor.class.getName()).setUserPayload(finalReducePayload),
-                1, MRHelpers.getReduceResource(finalReduceConf));
+            ReduceProcessor.class.getName())
+                .setUserPayload(finalReducePayload)
+                .setHistoryText(finalReduceStageHistoryText), 1,
+        MRHelpers.getReduceResource(finalReduceConf));
     finalReduceVertex.setTaskLocalFiles(commonLocalResources);
     MRHelpers.addMROutputLegacy(finalReduceVertex, finalReducePayload);
     vertices.add(finalReduceVertex);

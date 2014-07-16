@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.tez.common.RuntimeUtils;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManager;
@@ -125,7 +125,7 @@ public class Edge {
       case CUSTOM:
         if (edgeProperty.getEdgeManagerDescriptor() != null) {
           String edgeManagerClassName = edgeProperty.getEdgeManagerDescriptor().getClassName();
-          edgeManager = RuntimeUtils.createClazzInstance(edgeManagerClassName);
+          edgeManager = ReflectionUtils.createClazzInstance(edgeManagerClassName);
         }
         break;
       default:

@@ -29,4 +29,16 @@ public class EdgeManagerDescriptor extends TezEntityDescriptor {
     this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     return this;
   }
+
+  /**
+   * Provide a human-readable version of the user payload that can be
+   * used in the History UI
+   * @param historyText History text
+   */
+  @Override
+  public EdgeManagerDescriptor setHistoryText(String historyText) {
+    super.setHistoryText(historyText);
+    return this;
+  }
+
 }

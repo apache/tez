@@ -30,7 +30,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.dag.api.TezUncheckedException;
 
 @Private
-public class RuntimeUtils {
+public class ReflectionUtils {
   
   private static final Map<String, Class<?>> CLAZZ_CACHE = new ConcurrentHashMap<String, Class<?>>();
 

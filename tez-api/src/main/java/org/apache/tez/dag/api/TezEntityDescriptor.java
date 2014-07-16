@@ -31,6 +31,7 @@ public abstract class TezEntityDescriptor implements Writable {
 
   protected TezUserPayload userPayload;
   private String className;
+  protected String historyText;
 
   @Private // for Writable
   public TezEntityDescriptor() {
@@ -44,9 +45,29 @@ public abstract class TezEntityDescriptor implements Writable {
     return (userPayload == null) ? null : userPayload.getPayload();
   }
 
+  /**
+   * Set user payload for this entity descriptor
+   * @param userPayload User Payload
+   * @return
+   */
   public TezEntityDescriptor setUserPayload(byte[] userPayload) {
     this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     return this;
+  }
+
+  /**
+   * Provide a human-readable version of the user payload that can be
+   * used in the History UI
+   * @param historyText History text
+   */
+  public TezEntityDescriptor setHistoryText(String historyText) {
+    this.historyText = historyText;
+    return this;
+  }
+
+  @Private // Internal use only
+  public String getHistoryText() {
+    return this.historyText;
   }
 
   public String getClassName() {

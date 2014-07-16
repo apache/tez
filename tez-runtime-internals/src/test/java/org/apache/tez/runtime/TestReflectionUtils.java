@@ -29,11 +29,11 @@ import java.util.Collections;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.tez.common.RuntimeUtils;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezException;
 import org.junit.Test;
 
-public class TestRuntimeUtils {
+public class TestReflectionUtils {
 
   @Test
   public void testAddResourceToClasspath() throws IOException, TezException {
@@ -57,7 +57,7 @@ public class TestRuntimeUtils {
       urlForm = urlForm.substring(0, urlForm.lastIndexOf('/') + 1);
       URL url = new URL(urlForm);
 
-      RuntimeUtils.addResourcesToClasspath(Collections.singletonList(url));
+      ReflectionUtils.addResourcesToClasspath(Collections.singletonList(url));
 
       loadedUrl = Thread.currentThread().getContextClassLoader().getResource(rsrcName);
 

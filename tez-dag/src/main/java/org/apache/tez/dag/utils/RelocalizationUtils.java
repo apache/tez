@@ -32,7 +32,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
-import org.apache.tez.common.RuntimeUtils;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezException;
 
 import com.google.common.collect.Lists;
@@ -55,7 +55,7 @@ public class RelocalizationUtils {
   }
 
   public static void addUrlsToClassPath(List<URL> urls) {
-    RuntimeUtils.addResourcesToSystemClassLoader(urls);
+    ReflectionUtils.addResourcesToSystemClassLoader(urls);
   }
 
   private static Path downloadResource(String destName, URI uri, Configuration conf)

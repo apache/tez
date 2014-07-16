@@ -42,7 +42,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.tez.common.RuntimeUtils;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -503,7 +503,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private LogicalInput createInputFromDescriptor(InputDescriptor inputDesc) {
-    Input input = RuntimeUtils.createClazzInstance(inputDesc.getClassName());
+    Input input = ReflectionUtils.createClazzInstance(inputDesc.getClassName());
     if (!(input instanceof LogicalInput)) {
       throw new TezUncheckedException(inputDesc.getClass().getName()
           + " is not a sub-type of LogicalInput."
@@ -514,7 +514,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   
   private LogicalOutput createOutput(OutputSpec outputSpec) {
     LOG.info("Creating Output");
-    Output output = RuntimeUtils.createClazzInstance(outputSpec
+    Output output = ReflectionUtils.createClazzInstance(outputSpec
         .getOutputDescriptor().getClassName());
     if (!(output instanceof LogicalOutput)) {
       throw new TezUncheckedException(output.getClass().getName()
@@ -526,7 +526,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   private LogicalIOProcessor createProcessor(
       ProcessorDescriptor processorDescriptor) {
-    Processor processor = RuntimeUtils.createClazzInstance(processorDescriptor
+    Processor processor = ReflectionUtils.createClazzInstance(processorDescriptor
         .getClassName());
     if (!(processor instanceof LogicalIOProcessor)) {
       throw new TezUncheckedException(processor.getClass().getName()
