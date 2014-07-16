@@ -44,6 +44,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
+import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
 import org.apache.tez.runtime.library.common.sort.impl.PipelinedSorter;
@@ -106,12 +107,17 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
   }
 
   @Override
-  public synchronized KeyValueWriter getWriter() throws IOException {
+  public synchronized KeyValuesWriter getWriter() throws IOException {
     Preconditions.checkState(isStarted.get(), "Cannot get writer before starting the Output");
-    return new KeyValueWriter() {
+    return new KeyValuesWriter() {
       @Override
       public void write(Object key, Object value) throws IOException {
         sorter.write(key, value);
+      }
+
+      @Override
+      public void write(Object key, Iterable<Object> values) throws IOException {
+        sorter.write(key, values);
       }
     };
   }

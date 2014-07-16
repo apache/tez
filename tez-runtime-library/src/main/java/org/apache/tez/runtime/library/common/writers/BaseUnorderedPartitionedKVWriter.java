@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.library.common.writers;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -35,13 +36,14 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
+import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 
 @SuppressWarnings("rawtypes")
-public abstract class BaseUnorderedPartitionedKVWriter implements KeyValueWriter {
+public abstract class BaseUnorderedPartitionedKVWriter implements KeyValuesWriter {
 
   private static final Log LOG = LogFactory.getLog(BaseUnorderedPartitionedKVWriter.class);
   
@@ -155,7 +157,16 @@ public abstract class BaseUnorderedPartitionedKVWriter implements KeyValueWriter
 
   @Override
   public abstract void write(Object key, Object value) throws IOException;
-  
+
+  @Override
+  public void write(Object key, Iterable<Object> values) throws IOException {
+    //TODO: UnorderedPartitionedKVWriter should override this method later.
+    Iterator<Object> it = values.iterator();
+    while(it.hasNext()) {
+      write(key, it.next());
+    }
+  }
+
   public abstract List<Event> close() throws IOException, InterruptedException;
 
 }

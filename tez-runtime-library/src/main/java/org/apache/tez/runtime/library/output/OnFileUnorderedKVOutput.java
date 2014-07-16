@@ -38,7 +38,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
-import org.apache.tez.runtime.library.api.KeyValueWriter;
+import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.broadcast.output.FileBasedKVWriter;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
@@ -93,7 +93,7 @@ public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
   }
 
   @Override
-  public synchronized KeyValueWriter getWriter() throws Exception {
+  public synchronized KeyValuesWriter getWriter() throws Exception {
     // Eventually, disallow multiple invocations.
     return kvWriter;
   }

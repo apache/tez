@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.library.broadcast.output;
 
 import java.io.IOException;
+import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,6 +36,7 @@ import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
+import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
@@ -44,7 +46,7 @@ import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 
 import com.google.common.base.Preconditions;
 
-public class FileBasedKVWriter implements KeyValueWriter {
+public class FileBasedKVWriter implements KeyValuesWriter {
 
   private static final Log LOG = LogFactory.getLog(FileBasedKVWriter.class);
   
@@ -150,7 +152,14 @@ public class FileBasedKVWriter implements KeyValueWriter {
     this.outputRecordsCounter.increment(1);
     numRecords++;
   }
-  
+
+  @Override
+  public void write(Object key, Iterable<Object> values) throws IOException {
+    writer.appendKeyValues(key, values.iterator());
+    this.outputRecordsCounter.increment(1);
+    numRecords++;
+  }
+
   public long getRawLength() {
     Preconditions.checkState(closed, "Only available after the Writer has been closed");
     return this.writer.getRawLength();
@@ -177,4 +186,5 @@ public class FileBasedKVWriter implements KeyValueWriter {
     }
     return buf;
   }
+
 }

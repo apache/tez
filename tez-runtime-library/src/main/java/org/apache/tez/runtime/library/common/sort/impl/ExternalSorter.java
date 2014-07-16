@@ -21,6 +21,7 @@ package org.apache.tez.runtime.library.common.sort.impl;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -65,6 +66,14 @@ public abstract class ExternalSorter {
   public abstract void flush() throws IOException;
 
   public abstract void write(Object key, Object value) throws IOException;
+
+  public void write(Object key, Iterable<Object> values) throws IOException {
+    //TODO: Sorter classes should override this method later.
+    Iterator<Object> it = values.iterator();
+    while(it.hasNext()) {
+      write(key, it.next());
+    }
+  }
 
   protected final Progressable nullProgressable = new NullProgressable();
   protected final TezOutputContext outputContext;
