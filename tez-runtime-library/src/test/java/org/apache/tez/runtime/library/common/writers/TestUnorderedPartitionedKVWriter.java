@@ -309,7 +309,7 @@ public class TestUnorderedPartitionedKVWriter {
     assertTrue(events.get(0) instanceof CompositeDataMovementEvent);
     CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) events.get(0);
     assertEquals(0, cdme.getSourceIndexStart());
-    assertEquals(numPartitions, cdme.getSourceIndexEnd());
+    assertEquals(numPartitions, cdme.getCount());
     DataMovementEventPayloadProto eventProto = DataMovementEventPayloadProto.parseFrom(cdme
         .getUserPayload());
     assertFalse(eventProto.hasData());
@@ -496,7 +496,7 @@ public class TestUnorderedPartitionedKVWriter {
     assertTrue(events.get(0) instanceof CompositeDataMovementEvent);
     CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) events.get(0);
     assertEquals(0, cdme.getSourceIndexStart());
-    assertEquals(numOutputs, cdme.getSourceIndexEnd());
+    assertEquals(numOutputs, cdme.getCount());
     DataMovementEventPayloadProto eventProto = DataMovementEventPayloadProto.parseFrom(cdme
         .getUserPayload());
     assertFalse(eventProto.hasData());

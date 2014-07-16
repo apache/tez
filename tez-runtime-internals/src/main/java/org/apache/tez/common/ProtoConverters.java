@@ -53,7 +53,7 @@ public class ProtoConverters {
     EventProtos.CompositeEventProto.Builder builder =
         EventProtos.CompositeEventProto.newBuilder();
     builder.setStartIndex(event.getSourceIndexStart());
-    builder.setEndIndex(event.getSourceIndexEnd());
+    builder.setCount(event.getCount());
     if (event.getUserPayload() != null) {
       builder.setUserPayload(ByteString.copyFrom(event.getUserPayload()));
     }
@@ -63,7 +63,7 @@ public class ProtoConverters {
   public static CompositeDataMovementEvent convertCompositeDataMovementEventFromProto(
       EventProtos.CompositeEventProto proto) {
     return new CompositeDataMovementEvent(proto.getStartIndex(),
-        proto.getEndIndex(),
+        proto.getCount(),
         proto.hasUserPayload() ?
             proto.getUserPayload().toByteArray() : null);
   }

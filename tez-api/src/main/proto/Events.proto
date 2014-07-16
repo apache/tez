@@ -51,7 +51,7 @@ message RootInputDataInformationEventProto {
 
 message CompositeEventProto {
   optional int32 start_index = 1;
-  optional int32 end_index = 2;
+  optional int32 count = 2;
   optional bytes user_payload = 3;
 }
 

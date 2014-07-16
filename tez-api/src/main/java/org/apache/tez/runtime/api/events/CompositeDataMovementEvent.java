@@ -39,7 +39,7 @@ import org.apache.tez.runtime.api.Event;
 public class CompositeDataMovementEvent extends Event {
 
   protected final int sourceIndexStart;
-  protected final int sourceIndexEnd;
+  protected final int count;
   protected int version;
 
   protected final TezUserPayload userPayload;
@@ -48,15 +48,15 @@ public class CompositeDataMovementEvent extends Event {
    * @param srcIndexStart
    *          the startIndex of the physical source which generated the event
    *          (inclusive)
-   * @param srcIndexEnd
-   *          the endIndex of the physical source which generated the event
-   *          (non-inclusive)
+   * @param count
+   *          the number of physical sources represented by this event,
+   *          starting from the srcIndexStart(non-inclusive)
    * @param userPayload
    *          the common payload between all the events.
    */
-  public CompositeDataMovementEvent(int srcIndexStart, int srcIndexEnd, byte[] userPayload) {
+  public CompositeDataMovementEvent(int srcIndexStart, int count, byte[] userPayload) {
     this.sourceIndexStart = srcIndexStart;
-    this.sourceIndexEnd = srcIndexEnd;
+    this.count = count;
     this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
   }
 
@@ -64,8 +64,8 @@ public class CompositeDataMovementEvent extends Event {
     return sourceIndexStart;
   }
 
-  public int getSourceIndexEnd() {
-    return sourceIndexEnd;
+  public int getCount() {
+    return count;
   }
 
   public byte[] getUserPayload() {
@@ -92,7 +92,7 @@ public class CompositeDataMovementEvent extends Event {
 
           @Override
           public boolean hasNext() {
-            return currentPos < sourceIndexEnd;
+            return currentPos < (count + sourceIndexStart);
           }
 
           @Override
