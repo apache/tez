@@ -33,6 +33,7 @@ import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.mapreduce.TestUmbilical;
@@ -123,7 +124,9 @@ public class TestMapProcessor {
         new InputDescriptor(MRInputLegacy.class.getName())
             .setUserPayload(MRHelpers.createMRInputPayload(jobConf, null)),
         1);
-    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", new OutputDescriptor(LocalOnFileSorterOutput.class.getName()), 1);
+    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", 
+        new OutputDescriptor(LocalOnFileSorterOutput.class.getName())
+            .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
 
     LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask(localFs, workDir, jobConf, 0,
         new Path(workDir, "map0"), new TestUmbilical(), dagName, vertexName,
@@ -165,77 +168,4 @@ public class TestMapProcessor {
     }
     reader.close();
   }
-
-//  @Test
-//  @Ignore
-//  public void testMapProcessorWithInMemSort() throws Exception {
-//    
-//    String vertexName = MultiStageMRConfigUtil.getInitialMapVertexName();
-//    
-//    final int partitions = 2;
-//    JobConf jobConf = new JobConf(defaultConf);
-//    jobConf.setNumReduceTasks(partitions);
-//    setUpJobConf(jobConf);
-//    TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles();
-//    mapOutputs.setConf(jobConf);
-//    
-//    Configuration conf = MultiStageMRConfToTezTranslator.convertMRToLinearTez(jobConf);
-//    Configuration stageConf = MultiStageMRConfigUtil.getConfForVertex(conf,
-//        vertexName);
-//    
-//    JobConf job = new JobConf(stageConf);
-//
-//    job.set(TezJobConfig.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
-//        "localized-resources").toUri().toString());
-//    localFs.delete(workDir, true);
-//    Task t =
-//        MapUtils.runMapProcessor(
-//            localFs, workDir, job, 0, new Path(workDir, "map0"), 
-//            new TestUmbilicalProtocol(true), vertexName, 
-//            Collections.singletonList(new InputSpec("NullVertex", 0,
-//                MRInput.class.getName())),
-//            Collections.singletonList(new OutputSpec("FakeVertex", 1,
-//                OldInMemorySortedOutput.class.getName()))
-//            );
-//    OldInMemorySortedOutput[] outputs = (OldInMemorySortedOutput[])t.getOutputs();
-//    
-//    verifyInMemSortedStream(outputs[0], 0, 4096);
-//    int i = 0;
-//    for (i = 2; i < 256; i <<= 1) {
-//      verifyInMemSortedStream(outputs[0], 0, i);
-//    }
-//    verifyInMemSortedStream(outputs[0], 1, 4096);
-//    for (i = 2; i < 256; i <<= 1) {
-//      verifyInMemSortedStream(outputs[0], 1, i);
-//    }
-//
-//    t.close();
-//  }
-//  
-//  private void verifyInMemSortedStream(
-//      OldInMemorySortedOutput output, int partition, int chunkSize) 
-//          throws Exception {
-//    ChunkedStream cs = 
-//        new ChunkedStream(
-//            output.getSorter().getSortedStream(partition), chunkSize);
-//    int actualBytes = 0;
-//    ChannelBuffer b = null;
-//    while ((b = (ChannelBuffer)cs.nextChunk()) != null) {
-//      LOG.info("b = " + b);
-//      actualBytes += 
-//          (b instanceof TruncatedChannelBuffer) ? 
-//              ((TruncatedChannelBuffer)b).capacity() :
-//              ((BigEndianHeapChannelBuffer)b).readableBytes();
-//    }
-//    
-//    LOG.info("verifyInMemSortedStream" +
-//    		" partition=" + partition + 
-//    		" chunkSize=" + chunkSize +
-//        " expected=" + 
-//    		output.getSorter().getShuffleHeader(partition).getCompressedLength() + 
-//        " actual=" + actualBytes);
-//    Assert.assertEquals(
-//        output.getSorter().getShuffleHeader(partition).getCompressedLength(), 
-//        actualBytes);
-//  }
 }

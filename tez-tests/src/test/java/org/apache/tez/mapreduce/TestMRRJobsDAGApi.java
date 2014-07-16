@@ -430,9 +430,6 @@ public class TestMRRJobsDAGApi {
     stage2Conf.set(MRJobConfig.PARTITIONER_CLASS_ATTR,
         MRRSleepJobPartitioner.class.getName());
 
-    JobConf stage22Conf = new JobConf(stage2Conf);
-    stage22Conf.setInt(MRJobConfig.NUM_REDUCES, 2);
-
     stage3Conf.setLong(MRRSleepJob.REDUCE_SLEEP_TIME, 1);
     stage3Conf.setInt(MRRSleepJob.REDUCE_SLEEP_COUNT, 1);
     stage3Conf.setInt(MRJobConfig.NUM_REDUCES, 1);
@@ -446,13 +443,10 @@ public class TestMRRJobsDAGApi {
 
     MRHelpers.translateVertexConfToTez(stage1Conf);
     MRHelpers.translateVertexConfToTez(stage2Conf);
-    MRHelpers.translateVertexConfToTez(stage22Conf);
-    // this also works stage22 as it sets up keys etc
     MRHelpers.translateVertexConfToTez(stage3Conf);
 
     MRHelpers.doJobClientMagic(stage1Conf);
     MRHelpers.doJobClientMagic(stage2Conf);
-    MRHelpers.doJobClientMagic(stage22Conf);
     MRHelpers.doJobClientMagic(stage3Conf);
 
     Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String
@@ -465,6 +459,7 @@ public class TestMRRJobsDAGApi {
     }
 
     byte[] stage1Payload = MRHelpers.createUserPayloadFromConf(stage1Conf);
+    byte[] stage2Payload = MRHelpers.createUserPayloadFromConf(stage2Conf);
     byte[] stage1InputPayload = MRHelpers.createMRInputPayload(stage1Payload, null);
     byte[] stage3Payload = MRHelpers.createUserPayloadFromConf(stage3Conf);
     
@@ -479,8 +474,7 @@ public class TestMRRJobsDAGApi {
         stage1NumTasks, Resource.newInstance(256, 1));
     MRHelpers.addMRInput(stage1Vertex, stage1InputPayload, inputInitializerClazz);
     Vertex stage2Vertex = new Vertex("ireduce", new ProcessorDescriptor(
-        ReduceProcessor.class.getName()).setUserPayload(
-        MRHelpers.createUserPayloadFromConf(stage2Conf)),
+        ReduceProcessor.class.getName()).setUserPayload(stage2Payload),
         1, Resource.newInstance(256, 1));
     Vertex stage3Vertex = new Vertex("reduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName()).setUserPayload(stage3Payload),
@@ -512,13 +506,13 @@ public class TestMRRJobsDAGApi {
     Edge edge1 = new Edge(stage1Vertex, stage2Vertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL, new OutputDescriptor(
-        OnFileSortedOutput.class.getName()), new InputDescriptor(
-                ShuffledMergedInputLegacy.class.getName())));
+        OnFileSortedOutput.class.getName()).setUserPayload(stage2Payload), new InputDescriptor(
+                ShuffledMergedInputLegacy.class.getName()).setUserPayload(stage2Payload)));
     Edge edge2 = new Edge(stage2Vertex, stage3Vertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL, new OutputDescriptor(
-        OnFileSortedOutput.class.getName()), new InputDescriptor(
-                ShuffledMergedInputLegacy.class.getName())));
+        OnFileSortedOutput.class.getName()).setUserPayload(stage3Payload), new InputDescriptor(
+                ShuffledMergedInputLegacy.class.getName()).setUserPayload(stage3Payload)));
 
     dag.addEdge(edge1);
     dag.addEdge(edge2);

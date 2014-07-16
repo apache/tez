@@ -18,8 +18,6 @@
 
 package org.apache.tez.common;
 
-import com.google.common.base.Preconditions;
-
 /**
  * Helper class to hold user payload.
  */

@@ -468,9 +468,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         taskSpec.getDAGName(), taskSpec.getVertexName(),
         inputSpec.getSourceVertexName(), taskSpec.getTaskAttemptID(),
         tezCounters, inputIndex,
-        inputSpec.getInputDescriptor().getUserPayload() == null ? taskSpec
-            .getProcessorDescriptor().getUserPayload() : inputSpec
-            .getInputDescriptor().getUserPayload(), this,
+        inputSpec.getInputDescriptor().getUserPayload(), this,
         serviceConsumerMetadata, System.getenv(), initialMemoryDistributor,
         inputSpec.getInputDescriptor(), input, inputReadyTracker);
     return inputContext;
@@ -482,9 +480,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         taskSpec.getDAGName(), taskSpec.getVertexName(),
         outputSpec.getDestinationVertexName(), taskSpec.getTaskAttemptID(),
         tezCounters, outputIndex,
-        outputSpec.getOutputDescriptor().getUserPayload() == null ? taskSpec
-            .getProcessorDescriptor().getUserPayload() : outputSpec
-            .getOutputDescriptor().getUserPayload(), this,
+        outputSpec.getOutputDescriptor().getUserPayload(), this,
         serviceConsumerMetadata, System.getenv(), initialMemoryDistributor,
         outputSpec.getOutputDescriptor());
     return outputContext;

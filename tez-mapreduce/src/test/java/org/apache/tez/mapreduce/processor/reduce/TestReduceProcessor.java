@@ -133,7 +133,9 @@ public class TestReduceProcessor {
         new InputDescriptor(MRInputLegacy.class.getName())
             .setUserPayload(MRHelpers.createMRInputPayload(jobConf, null)),
         1);
-    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", new OutputDescriptor(LocalOnFileSorterOutput.class.getName()), 1);
+    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", 
+        new OutputDescriptor(LocalOnFileSorterOutput.class.getName()).
+          setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
     // Run a map
     LogicalIOProcessorRuntimeTask mapTask = MapUtils.createLogicalTask(localFs, workDir, jobConf, 0,
         mapInput, new TestUmbilical(), dagName, mapVertexName,
@@ -156,9 +158,11 @@ public class TestReduceProcessor {
         ReduceProcessor.class.getName()).setUserPayload(TezUtils.createUserPayloadFromConf(jobConf));
     
     InputSpec reduceInputSpec = new InputSpec(mapVertexName,
-        new InputDescriptor(LocalMergedInput.class.getName()), 1);
+        new InputDescriptor(LocalMergedInput.class.getName())
+            .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
     OutputSpec reduceOutputSpec = new OutputSpec("NullDestinationVertex",
-        new OutputDescriptor(MROutputLegacy.class.getName()), 1);
+        new OutputDescriptor(MROutputLegacy.class.getName())
+            .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
 
     // Now run a reduce
     TaskSpec taskSpec = new TaskSpec(
