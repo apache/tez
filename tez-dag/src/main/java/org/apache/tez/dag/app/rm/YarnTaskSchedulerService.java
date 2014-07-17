@@ -35,9 +35,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
@@ -64,6 +66,7 @@ import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -134,7 +137,12 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
 
   DelayedContainerManager delayedContainerManager;
   long localitySchedulingDelay;
-  long sessionDelay;
+  long idleContainerTimeoutMin;
+  long idleContainerTimeoutMax = 0;
+  int sessionNumMinHeldContainers = 0;
+  Set<ContainerId> sessionMinHeldContainers = Sets.newHashSet();
+  
+  RandomDataGenerator random = new RandomDataGenerator();
 
   @VisibleForTesting
   protected AtomicBoolean shouldUnregister = new AtomicBoolean(false);
@@ -296,11 +304,24 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     Preconditions.checkArgument(localitySchedulingDelay >= 0,
         "Locality Scheduling delay should be >=0");
 
-    sessionDelay = conf.getLong(
-        TezConfiguration.TEZ_AM_CONTAINER_SESSION_DELAY_ALLOCATION_MILLIS,
-        TezConfiguration.TEZ_AM_CONTAINER_SESSION_DELAY_ALLOCATION_MILLIS_DEFAULT);
-    Preconditions.checkArgument(sessionDelay >= 0 || sessionDelay == -1,
-      "Session delay should be either -1 or >=0");
+    idleContainerTimeoutMin = conf.getLong(
+        TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS,
+        TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS_DEFAULT);
+    Preconditions.checkArgument(idleContainerTimeoutMin >= 0 || idleContainerTimeoutMin == -1,
+      "Idle container release min timeout should be either -1 or >=0");
+    
+    idleContainerTimeoutMax = conf.getLong(
+        TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS,
+        TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS_DEFAULT);
+    Preconditions.checkArgument(
+        idleContainerTimeoutMax >= 0 && idleContainerTimeoutMax >= idleContainerTimeoutMin,
+        "Idle container release max timeout should be >=0 and >= " + 
+        TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS);
+    
+    sessionNumMinHeldContainers = conf.getInt(TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS, 
+        TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS_DEFAULT);
+    Preconditions.checkArgument(sessionNumMinHeldContainers >= 0, 
+        "Session minimum held containers should be >=0");
 
     delayedContainerManager = new DelayedContainerManager();
     LOG.info("TaskScheduler initialized with configuration: " +
@@ -309,7 +330,9 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
             ", reuseRackLocal: " + reuseRackLocal +
             ", reuseNonLocal: " + reuseNonLocal + 
             ", localitySchedulingDelay: " + localitySchedulingDelay +
-            ", sessionDelay=" + sessionDelay);
+            ", idleContainerMinTimeout=" + idleContainerTimeoutMin +
+            ", idleContainerMaxTimeout=" + idleContainerTimeoutMax +
+            ", sessionMinHeldContainers=" + sessionNumMinHeldContainers);
   }
 
   @Override
@@ -509,6 +532,17 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
 
     return assignedContainers;
   }
+  
+  @VisibleForTesting
+  long getHeldContainerExpireTime(long startTime) {
+    long expireTime = (startTime + idleContainerTimeoutMin);
+    if (idleContainerTimeoutMin != -1 && idleContainerTimeoutMin < idleContainerTimeoutMax) {
+      long expireTimeMax = startTime + idleContainerTimeoutMax;
+      expireTime = random.nextLong(expireTime, expireTimeMax);
+    }
+    
+    return expireTime;
+  }
 
   /**
    * Try to assign a re-used container
@@ -539,35 +573,64 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       // if sessionDelay defined, push back into delayed queue if not already
       // done so
 
+      // Compute min held containers.
+      if (appContext.isSession() && sessionNumMinHeldContainers > 0 &&
+          sessionMinHeldContainers.isEmpty()) {
+        // session mode and need to hold onto containers and not done so already
+        determineMinHeldContainers();
+      }
+      
       heldContainer.resetLocalityMatchLevel();
       long currentTime = System.currentTimeMillis();
+      boolean releaseContainer = false;
+
       if (isNew || (heldContainer.getContainerExpiryTime() <= currentTime
-          && sessionDelay != -1)) {
-        LOG.info("No taskRequests. Container's session delay expired or is new. " +
-        	"Releasing container"
-          + ", containerId=" + heldContainer.container.getId()
-          + ", containerExpiryTime="
-          + heldContainer.getContainerExpiryTime()
-          + ", sessionDelay=" + sessionDelay
-          + ", taskRequestsCount=" + taskRequests.size()
-          + ", heldContainers=" + heldContainers.size()
-          + ", delayedContainers=" + delayedContainerManager.delayedContainers.size()
-          + ", isNew=" + isNew);
-        releaseUnassignedContainers(
-            Lists.newArrayList(heldContainer.container));
-      } else {
-        if (!appContext.isSession()) {
-          releaseUnassignedContainers(
-            Lists.newArrayList(heldContainer.container));
+          && idleContainerTimeoutMin != -1)) {
+        // container idle timeout has expired or is a new unused container. 
+        // new container is possibly a spurious race condition allocation.
+        if (!isNew && appContext.isSession() && 
+            sessionMinHeldContainers.contains(heldContainer.getContainer().getId())) {
+          // Not a potentially spurious new container.
+          // In session mode and container in set of chosen min held containers
+          // increase the idle container expire time to maintain sanity with 
+          // the rest of the code
+          heldContainer.setContainerExpiryTime(getHeldContainerExpireTime(currentTime));
         } else {
-          // only put back in queue if this is a session
-          heldContainer.resetLocalityMatchLevel();
-          delayedContainerManager.addDelayedContainer(
-            heldContainer.getContainer(),
-            currentTime + localitySchedulingDelay);
+          releaseContainer = true;
         }
       }
-    } else if (state.equals(DAGAppMasterState.RUNNING)) {
+      
+      if (releaseContainer) {
+        LOG.info("No taskRequests. Container's idle timeout delay expired or is new. " +
+            "Releasing container"
+            + ", containerId=" + heldContainer.container.getId()
+            + ", containerExpiryTime="
+            + heldContainer.getContainerExpiryTime()
+            + ", idleTimeout=" + idleContainerTimeoutMin
+            + ", taskRequestsCount=" + taskRequests.size()
+            + ", heldContainers=" + heldContainers.size()
+            + ", delayedContainers=" + delayedContainerManager.delayedContainers.size()
+            + ", isNew=" + isNew);
+          releaseUnassignedContainers(
+              Lists.newArrayList(heldContainer.container));        
+      } else {
+        // no outstanding work and container idle timeout not expired
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Holding onto idle container with no work. CId: "
+              + heldContainer.getContainer().getId() + " with expiry: "
+              + heldContainer.getContainerExpiryTime() + " currentTime: "
+              + currentTime + " next look: "
+              + (currentTime + localitySchedulingDelay));
+        }
+        // put back and wait for new requests until expiry
+        heldContainer.resetLocalityMatchLevel();
+        delayedContainerManager.addDelayedContainer(
+            heldContainer.getContainer(), currentTime
+                + localitySchedulingDelay);        
+      }
+   } else if (state.equals(DAGAppMasterState.RUNNING)) {
+      // clear min held containers since we need to allocate to tasks
+      sessionMinHeldContainers.clear();
       HeldContainer.LocalityMatchLevel localityMatchLevel =
         heldContainer.getLocalityMatchLevel();
       Map<CookieContainerRequest, Container> assignedContainers =
@@ -633,13 +696,20 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
 
         // Release container if final expiry time is reached
         // Dont release a new container. The RM may not give us new ones
+        // The assumption is that the expire time is larger than the sum of all
+        // locality delays. So if we hit the expire time then we have already 
+        // tried to assign at all locality levels.
+        // We run the risk of not being able to retain min held containers but 
+        // if we are not being able to assign containers to pending tasks then 
+        // we cannot avoid releasing containers. Or else we may not be able to 
+        // get new containers from YARN to match the pending request
         if (!isNew && heldContainer.getContainerExpiryTime() <= currentTime
-          && sessionDelay != -1) {
-          LOG.info("Container's session delay expired. Releasing container"
+          && idleContainerTimeoutMin != -1) {
+          LOG.info("Container's idle timeout expired. Releasing container"
             + ", containerId=" + heldContainer.container.getId()
             + ", containerExpiryTime="
             + heldContainer.getContainerExpiryTime()
-            + ", sessionDelay=" + sessionDelay);
+            + ", idleTimeoutMin=" + idleContainerTimeoutMin);
           releaseUnassignedContainers(
             Lists.newArrayList(heldContainer.container));
         } else {
@@ -688,7 +758,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
               LOG.info("Releasing held container as either there are pending but "
                 + " unmatched requests or this is not a session"
                 + ", containerId=" + heldContainer.container.getId()
-                + ", pendingTasks=" + !taskRequests.isEmpty()
+                + ", pendingTasks=" + taskRequests.size()
                 + ", isSession=" + appContext.isSession()
                 + ". isNew=" + isNew);
               releaseUnassignedContainers(
@@ -910,8 +980,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
           if (heldContainer != null) {
             heldContainer.resetLocalityMatchLevel();
             long currentTime = System.currentTimeMillis();
-            if (sessionDelay > 0) {
-              heldContainer.setContainerExpiryTime(currentTime + sessionDelay);
+            if (idleContainerTimeoutMin > 0) {
+              heldContainer.setContainerExpiryTime(getHeldContainerExpireTime(currentTime));
             }
             assignedContainers = assignDelayedContainer(heldContainer);
           } else {
@@ -1265,9 +1335,9 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   
   private void pushNewContainerToDelayed(List<Container> containers){
     long expireTime = -1;
-    if (sessionDelay > 0) {
+    if (idleContainerTimeoutMin > 0) {
       long currentTime = System.currentTimeMillis();
-      expireTime = currentTime + sessionDelay;
+      expireTime = currentTime + idleContainerTimeoutMin;
     }
 
     synchronized (delayedContainerManager) {
@@ -1384,14 +1454,15 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       return false;
     }
     
-    if (topPendingTaskPriority.compareTo(containerPriority) > 0) {
+    if (topPendingTaskPriority.compareTo(containerPriority) > 0 && 
+        heldContainers.get(container.getId()).isNew()) {
       // if the next task to assign is higher priority than the container then 
       // dont assign this container to that task.
       // if task and container are equal priority - then its first use or reuse
       // within the same priority - safe to use
-      // if task is lower priority than container then its we use a container that
+      // if task is lower priority than container then if we use a container that
       // is no longer needed by higher priority tasks All those higher pri tasks 
-      // have been assigned resources - safe to use (first use or reuse)
+      // has been assigned resources - safe to use (first use or reuse)
       // if task is higher priority than container then we may end up using a 
       // container that was assigned by the RM for a lower priority pending task 
       // that will be assigned after this higher priority task is assigned. If we
@@ -1399,6 +1470,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       // container to that task later on. However the RM has already assigned us 
       // all containers and is not going to give us new containers. We will get 
       // stuck for resources.
+      // the above applies for new containers. If a container has already been 
+      // re-used then this is not relevant
       return false;
     }
     
@@ -1550,8 +1623,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       // TEZ-586 this is not match an actual rackLocal request unless honorLocality
       // is false. This method is useless if honorLocality=true
       if (!honorLocality) {
-        String location = RackResolver.resolve(container.getNodeId().getHost())
-          .getNetworkLocation();
+        String location = heldContainers.get(container.getId()).getRack();
         CookieContainerRequest assigned = getMatchingRequestWithoutPriority(
             container, location, false);
         doBookKeepingForAssignedContainer(assigned, container, location,
@@ -1804,6 +1876,80 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     }
 
   }
+  
+  synchronized void determineMinHeldContainers() {
+    sessionMinHeldContainers.clear();
+    if (sessionNumMinHeldContainers <= 0) {
+      return;
+    }
+    
+    if (heldContainers.size() <= sessionNumMinHeldContainers) {
+      sessionMinHeldContainers.addAll(heldContainers.keySet());
+    }
+    
+    Map<String, AtomicInteger> rackHeldNumber = Maps.newHashMap();
+    Map<String, List<HeldContainer>> nodeHeldContainers = Maps.newHashMap();
+    for(HeldContainer heldContainer : heldContainers.values()) {
+      AtomicInteger count = rackHeldNumber.get(heldContainer.getRack());
+      if (count == null) {
+        count = new AtomicInteger(0);
+        rackHeldNumber.put(heldContainer.getRack(), count);
+      }
+      count.incrementAndGet();
+      List<HeldContainer> nodeContainers = nodeHeldContainers.get(heldContainer.getNode());
+      if (nodeContainers == null) {
+        nodeContainers = Lists.newLinkedList();
+        nodeHeldContainers.put(heldContainer.getNode(), nodeContainers);
+      }
+      nodeContainers.add(heldContainer);
+    }
+    Map<String, AtomicInteger> rackToHoldNumber = Maps.newHashMap();
+    for (String rack : rackHeldNumber.keySet()) {
+      rackToHoldNumber.put(rack, new AtomicInteger(0));
+    }
+    
+    // distribute evenly across nodes
+    // the loop assigns 1 container per rack over all racks
+    int containerCount = 0;
+    while (containerCount < sessionNumMinHeldContainers && !rackHeldNumber.isEmpty()) {
+      Iterator<Entry<String, AtomicInteger>> iter = rackHeldNumber.entrySet().iterator();
+      while (containerCount < sessionNumMinHeldContainers && iter.hasNext()) {
+        Entry<String, AtomicInteger> entry = iter.next();
+        if (entry.getValue().decrementAndGet() >=0) {
+          containerCount++;
+          rackToHoldNumber.get(entry.getKey()).incrementAndGet();
+        } else {
+          iter.remove();
+        }
+      }
+    }
+    
+    // distribute containers evenly across nodes while not exceeding rack limit
+    // the loop assigns 1 container per node over all nodes
+    containerCount = 0;
+    while (containerCount < sessionNumMinHeldContainers && !nodeHeldContainers.isEmpty()) {
+      Iterator<Entry<String, List<HeldContainer>>> iter = nodeHeldContainers.entrySet().iterator();
+      while (containerCount < sessionNumMinHeldContainers && iter.hasNext()) {
+        List<HeldContainer> nodeContainers = iter.next().getValue();
+        if (nodeContainers.isEmpty()) {
+          // node is empty. remove it.
+          iter.remove();
+          continue;
+        }
+        HeldContainer heldContainer = nodeContainers.remove(nodeContainers.size() - 1);
+        if (rackToHoldNumber.get(heldContainer.getRack()).decrementAndGet() >= 0) {
+          // rack can hold a container
+          containerCount++;
+          sessionMinHeldContainers.add(heldContainer.getContainer().getId());
+        } else {
+          // rack limit reached. remove node.
+          iter.remove();
+        }
+      }
+    }
+    
+    LOG.info("Holding on to " + sessionMinHeldContainers.size() + " containers");
+  }
 
   private class ContainerIterable implements Iterable<Container> {
 
@@ -1849,6 +1995,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     }
 
     Container container;
+    private String rack;
     private long nextScheduleTime;
     private Object firstContainerSignature;
     private LocalityMatchLevel localityMatchLevel;
@@ -1868,10 +2015,20 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       }
       this.localityMatchLevel = LocalityMatchLevel.NODE;
       this.containerExpiryTime = containerExpiryTime;
+      this.rack = RackResolver.resolve(container.getNodeId().getHost())
+          .getNetworkLocation();
     }
     
     boolean isNew() {
       return firstContainerSignature == null;
+    }
+    
+    String getRack() {
+      return this.rack;
+    }
+    
+    String getNode() {
+      return this.container.getNodeId().getHost();
     }
     
     int geNumAssignmentAttempts() {

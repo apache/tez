@@ -199,7 +199,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     // is the same filesystem as the one used for Input/Output.
     TezClient tezSession = null;
     // needs session or else TaskScheduler does not hold onto containers
-    tezSession = new TezClient("broadcastAndOneToOneExample", tezConf, true);
+    tezSession = new TezClient("broadcastAndOneToOneExample", tezConf);
     tezSession.start();
 
     DAGClient dagClient = null;

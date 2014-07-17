@@ -275,14 +275,37 @@ public class TezConfiguration extends Configuration {
     TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS_DEFAULT = 1000l;
 
   /**
-   * The amount of time to hold on to a container if no task can be assigned to
-   * it immediately. Only active when reuse is enabled. Set to -1 to never
-   * release a container in a session.
+   * The minimum amount of time to hold on to a container if no task can be
+   * assigned to it immediately. Only active when reuse is enabled. Set to -1 to
+   * never release a container in a session.
    */
-  public static final String TEZ_AM_CONTAINER_SESSION_DELAY_ALLOCATION_MILLIS =
-    TEZ_AM_PREFIX + "container.session.delay-allocation-millis";
+  public static final String TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS = 
+    TEZ_AM_PREFIX + "container.idle.release-timeout-min.millis";
   public static final long
-    TEZ_AM_CONTAINER_SESSION_DELAY_ALLOCATION_MILLIS_DEFAULT = 10000l;
+    TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS_DEFAULT = 5000l;  
+
+  /**
+   * The maximum amount of time to hold on to a container if no task can be
+   * assigned to it immediately. Only active when reuse is enabled. The value
+   * must be +ve and >=
+   * TezConfiguration#TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS.
+   * Containers will have an expire time set to a random value between
+   * TezConfiguration#TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS &&
+   * TezConfiguration#TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS. This 
+   * creates a graceful reduction in the amount of idle resources held
+   */
+  public static final String TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS = 
+      TEZ_AM_PREFIX + "container.idle.release-timeout-max.millis";
+  public static final long
+    TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS_DEFAULT = 10000l;
+  
+  /**
+   * The minimum number of containers that will be held by the session
+   */
+  public static final String TEZ_AM_SESSION_MIN_HELD_CONTAINERS = 
+      TEZ_AM_PREFIX + "session.min.held-containers";
+  public static final int TEZ_AM_SESSION_MIN_HELD_CONTAINERS_DEFAULT = 0;
+
 
   public static final String TEZ_PB_BINARY_CONF_NAME = "tez-conf.pb";
   public static final String TEZ_PB_PLAN_BINARY_NAME = "tez-dag.pb";

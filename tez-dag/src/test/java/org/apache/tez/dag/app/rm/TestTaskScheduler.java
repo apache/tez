@@ -41,6 +41,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
@@ -78,6 +79,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import com.google.common.collect.Sets;
 
 
 public class TestTaskScheduler {
@@ -516,7 +519,7 @@ public class TestTaskScheduler {
     // to match all in the same pass
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 0);
     // to release immediately after deallocate
-    conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_SESSION_DELAY_ALLOCATION_MILLIS, 0);
+    conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 0);
     scheduler.init(conf);
     drainableAppCallback.drain();
 
@@ -985,6 +988,217 @@ public class TestTaskScheduler {
                                               appMsg, appUrl);
     verify(mockRMClient).stop();
     scheduler.close();
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test(timeout=5000)
+  public void testTaskSchedulerDetermineMinHeldContainers() throws Exception {
+    RackResolver.init(new YarnConfiguration());
+    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
+    AppContext mockAppContext = mock(AppContext.class);
+    when(mockAppContext.getAMState()).thenReturn(DAGAppMasterState.RUNNING);
+
+    TezAMRMClientAsync<CookieContainerRequest> mockRMClient =
+                                                  mock(TezAMRMClientAsync.class);
+
+    String appHost = "host";
+    int appPort = 0;
+    String appUrl = "url";
+    TaskSchedulerWithDrainableAppCallback scheduler =
+      new TaskSchedulerWithDrainableAppCallback(
+        mockApp, new AlwaysMatchesContainerMatcher(), appHost, appPort,
+        appUrl, mockRMClient, mockAppContext);
+
+    Configuration conf = new Configuration();
+    scheduler.init(conf);
+    RegisterApplicationMasterResponse mockRegResponse = mock(RegisterApplicationMasterResponse.class);
+    Resource mockMaxResource = mock(Resource.class);
+    Map<ApplicationAccessType, String> mockAcls = mock(Map.class);
+    when(mockRegResponse.getMaximumResourceCapability()).thenReturn(
+        mockMaxResource);
+    when(mockRegResponse.getApplicationACLs()).thenReturn(mockAcls);
+    when(
+        mockRMClient.registerApplicationMaster(anyString(), anyInt(),
+            anyString())).thenReturn(mockRegResponse);
+    Resource mockClusterResource = mock(Resource.class);
+    when(mockRMClient.getAvailableResources()).thenReturn(mockClusterResource);
+
+    scheduler.start();
+    
+    String rack1 = "r1";
+    String rack2 = "r2";
+    String rack3 = "r3";
+    String node1Rack1 = "n1r1";
+    String node2Rack1 = "n2r1";
+    String node1Rack2 = "n1r2";
+    String node2Rack2 = "n2r2";
+    String node1Rack3 = "n1r3";
+    ApplicationAttemptId appId = ApplicationAttemptId.newInstance(ApplicationId.newInstance(0, 0), 0);
+
+    ContainerId mockCId1 = ContainerId.newInstance(appId, 0);
+    HeldContainer hc1 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    when(hc1.getNode()).thenReturn(node1Rack1);
+    when(hc1.getRack()).thenReturn(rack1);
+    when(hc1.getContainer().getId()).thenReturn(mockCId1);
+    ContainerId mockCId2 = ContainerId.newInstance(appId, 1);
+    HeldContainer hc2 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    when(hc2.getNode()).thenReturn(node2Rack1);
+    when(hc2.getRack()).thenReturn(rack1);
+    when(hc2.getContainer().getId()).thenReturn(mockCId2);
+    ContainerId mockCId3 = ContainerId.newInstance(appId, 2);
+    HeldContainer hc3 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    when(hc3.getNode()).thenReturn(node1Rack1);
+    when(hc3.getRack()).thenReturn(rack1);
+    when(hc3.getContainer().getId()).thenReturn(mockCId3);
+    ContainerId mockCId4 = ContainerId.newInstance(appId, 3);
+    HeldContainer hc4 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    when(hc4.getNode()).thenReturn(node2Rack1);
+    when(hc4.getRack()).thenReturn(rack1);
+    when(hc4.getContainer().getId()).thenReturn(mockCId4);
+    ContainerId mockCId5 = ContainerId.newInstance(appId, 4);
+    HeldContainer hc5 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    when(hc5.getNode()).thenReturn(node1Rack2);
+    when(hc5.getRack()).thenReturn(rack2);
+    when(hc5.getContainer().getId()).thenReturn(mockCId5);
+    ContainerId mockCId6 = ContainerId.newInstance(appId, 5);
+    HeldContainer hc6 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    when(hc6.getNode()).thenReturn(node2Rack2);
+    when(hc6.getRack()).thenReturn(rack2);
+    when(hc6.getContainer().getId()).thenReturn(mockCId6);
+    ContainerId mockCId7 = ContainerId.newInstance(appId, 6);
+    HeldContainer hc7 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    when(hc7.getNode()).thenReturn(node1Rack3);
+    when(hc7.getRack()).thenReturn(rack3);
+    when(hc7.getContainer().getId()).thenReturn(mockCId7);
+    
+    scheduler.heldContainers.put(mockCId1, hc1);
+    scheduler.heldContainers.put(mockCId2, hc2);
+    scheduler.heldContainers.put(mockCId3, hc3);
+    scheduler.heldContainers.put(mockCId4, hc4);
+    scheduler.heldContainers.put(mockCId5, hc5);
+    scheduler.heldContainers.put(mockCId6, hc6);
+    scheduler.heldContainers.put(mockCId7, hc7);
+    
+    // test empty case
+    scheduler.sessionNumMinHeldContainers = 0;
+    scheduler.determineMinHeldContainers();
+    Assert.assertEquals(0, scheduler.sessionMinHeldContainers.size());
+    
+    // test min >= held
+    scheduler.sessionNumMinHeldContainers = 7;
+    scheduler.determineMinHeldContainers();
+    Assert.assertEquals(7, scheduler.sessionMinHeldContainers.size());
+    
+    // test min < held
+    scheduler.sessionNumMinHeldContainers = 5;
+    scheduler.determineMinHeldContainers();
+    Assert.assertEquals(5, scheduler.sessionMinHeldContainers.size());
+    
+    Set<HeldContainer> heldContainers = Sets.newHashSet();
+    for (ContainerId cId : scheduler.sessionMinHeldContainers) {
+      heldContainers.add(scheduler.heldContainers.get(cId));
+    }
+    Set<String> racks = Sets.newHashSet();
+    Set<String> nodes = Sets.newHashSet();
+    for (HeldContainer hc : heldContainers) {
+      nodes.add(hc.getNode());
+      racks.add(hc.getRack());
+    }
+    // 1 container from each node in rack1 and rack2. 1 container from rack3.
+    // covers not enough containers in rack (rack 3)
+    // covers just enough containers in rack (rack 2)
+    // covers more than enough containers in rack (rack 1)
+    Assert.assertEquals(5, nodes.size());
+    Assert.assertTrue(nodes.contains(node1Rack1) && nodes.contains(node2Rack1) &&
+        nodes.contains(node1Rack2) && nodes.contains(node2Rack2) &&
+        nodes.contains(node1Rack3));
+    Assert.assertEquals(3, racks.size());
+    Assert.assertTrue(racks.contains(rack1) && racks.contains(rack2) &&
+        racks.contains(rack3));
+    
+    String appMsg = "success";
+    AppFinalStatus finalStatus =
+        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
+    when(mockApp.getFinalAppStatus()).thenReturn(finalStatus);
+    scheduler.stop();
+    scheduler.close();
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test(timeout=5000)
+  public void testTaskSchedulerRandomReuseExpireTime() throws Exception {
+    RackResolver.init(new YarnConfiguration());
+    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
+    AppContext mockAppContext = mock(AppContext.class);
+    when(mockAppContext.getAMState()).thenReturn(DAGAppMasterState.RUNNING);
+
+    TezAMRMClientAsync<CookieContainerRequest> mockRMClient =
+                                                  mock(TezAMRMClientAsync.class);
+
+    String appHost = "host";
+    int appPort = 0;
+    String appUrl = "url";
+    TaskSchedulerWithDrainableAppCallback scheduler1 =
+      new TaskSchedulerWithDrainableAppCallback(
+        mockApp, new AlwaysMatchesContainerMatcher(), appHost, appPort,
+        appUrl, mockRMClient, mockAppContext);
+    TaskSchedulerWithDrainableAppCallback scheduler2 =
+        new TaskSchedulerWithDrainableAppCallback(
+          mockApp, new AlwaysMatchesContainerMatcher(), appHost, appPort,
+          appUrl, mockRMClient, mockAppContext);
+
+    long minTime = 1000l;
+    long maxTime = 100000l;
+    Configuration conf1 = new Configuration();
+    conf1.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, minTime);
+    conf1.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, minTime);
+    scheduler1.init(conf1);
+    Configuration conf2 = new Configuration();
+    conf2.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, minTime);
+    conf2.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, maxTime);
+    scheduler2.init(conf2);
+
+    RegisterApplicationMasterResponse mockRegResponse =
+                                mock(RegisterApplicationMasterResponse.class);
+    Resource mockMaxResource = mock(Resource.class);
+    Map<ApplicationAccessType, String> mockAcls = mock(Map.class);
+    when(mockRegResponse.getMaximumResourceCapability()).
+                                                   thenReturn(mockMaxResource);
+    when(mockRegResponse.getApplicationACLs()).thenReturn(mockAcls);
+    when(mockRMClient.
+          registerApplicationMaster(anyString(), anyInt(), anyString())).
+                                                   thenReturn(mockRegResponse);
+    Resource mockClusterResource = mock(Resource.class);
+    when(mockRMClient.getAvailableResources()).
+                                              thenReturn(mockClusterResource);
+
+    scheduler1.start();
+    scheduler2.start();
+    
+    // when min == max the expire time is always min
+    for (int i=0; i<10; ++i) {
+      Assert.assertEquals(minTime, scheduler1.getHeldContainerExpireTime(0));
+    }
+    
+    long lastExpireTime = 0;
+    // when min < max the expire time is random in between min and max
+    for (int i=0; i<10; ++i) {
+      long currExpireTime = scheduler2.getHeldContainerExpireTime(0);
+      Assert.assertTrue(
+          "min: " + minTime + " curr: " + currExpireTime + " max: " + maxTime,
+          (minTime <= currExpireTime && currExpireTime <= maxTime));
+      Assert.assertNotEquals(lastExpireTime, currExpireTime);
+      lastExpireTime = currExpireTime;
+    }
+
+    String appMsg = "success";
+    AppFinalStatus finalStatus =
+        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
+    when(mockApp.getFinalAppStatus()).thenReturn(finalStatus);
+    scheduler1.stop();
+    scheduler1.close();
+    scheduler2.stop();
+    scheduler2.close();
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
