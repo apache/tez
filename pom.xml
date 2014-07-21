@@ -19,7 +19,7 @@
   <groupId>org.apache.tez</groupId>
   <artifactId>tez</artifactId>
   <packaging>pom</packaging>
-  <version>0.5.0-incubating-SNAPSHOT</version>
+  <version>0.5.0-SNAPSHOT</version>
   <name>tez</name>
 
   <licenses>
@@ -49,7 +49,7 @@
     <protobuf.version>2.5.0</protobuf.version>
     <protoc.path>${env.PROTOC_PATH}</protoc.path>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <scm.url>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-tez.git</scm.url>
+    <scm.url>scm:git:https://git-wip-us.apache.org/repos/asf/tez.git</scm.url>
   </properties>
   <scm>
     <connection>${scm.url}</connection>

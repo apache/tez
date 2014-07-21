@@ -21,13 +21,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <name>Tez</name>
     <description>Tez is an application framework which allows for a complex directed-acyclic-graph of tasks for processing data and is built atop Apache Hadoop YARN.</description>
-    <url>http://incubator.apache.org/tez</url>
+    <url>http://tez.apache.org/</url>
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
       <groupId>org.apache.tez</groupId>
       <artifactId>tez</artifactId>
-      <version>0.5.0-incubating-SNAPSHOT</version>
+      <version>0.5.0-SNAPSHOT</version>
     </parent>
     <artifactId>tez-docs</artifactId>
     <packaging>pom</packaging>
@@ -48,39 +48,39 @@
     <mailingLists>
         <mailingList>
             <name>User list</name>
-            <subscribe>mailto:user-subscribe@tez.incubator.apache.org
+            <subscribe>mailto:user-subscribe@tez.apache.org
             </subscribe>
-            <unsubscribe>mailto:user-unsubscribe@tez.incubator.apache.org
+            <unsubscribe>mailto:user-unsubscribe@tez.apache.org
             </unsubscribe>
-            <post>mailto:user@tez.incubator.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/incubator-tez-user/</archive>
+            <post>mailto:user@tez.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/tez-user/</archive>
         </mailingList>
         <mailingList>
             <name>Development list</name>
-            <subscribe>mailto:dev-subscribe@tez.incubator.apache.org
+            <subscribe>mailto:dev-subscribe@tez.apache.org
             </subscribe>
-            <unsubscribe>mailto:dev-unsubscribe@tez.incubator.apache.org
+            <unsubscribe>mailto:dev-unsubscribe@tez.apache.org
             </unsubscribe>
-            <post>mailto:dev@tez.incubator.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/incubator-tez-dev/</archive>
+            <post>mailto:dev@tez.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/tez-dev/</archive>
         </mailingList>
         <mailingList>
             <name>Commit list</name>
-            <subscribe>mailto:commits-subscribe@tez.incubator.apache.org
+            <subscribe>mailto:commits-subscribe@tez.apache.org
             </subscribe>
-            <unsubscribe>mailto:commits-unsubscribe@tez.incubator.apache.org
+            <unsubscribe>mailto:commits-unsubscribe@tez.apache.org
             </unsubscribe>
-            <post>mailto:commits@tez.incubator.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/incubator-tez-commits/</archive>
+            <post>mailto:commits@tez.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/tez-commits/</archive>
         </mailingList>
         <mailingList>
             <name>JIRA Issues list</name>
-            <subscribe>mailto:issues-subscribe@tez.incubator.apache.org
+            <subscribe>mailto:issues-subscribe@tez.apache.org
             </subscribe>
-            <unsubscribe>mailto:issues-unsubscribe@tez.incubator.apache.org
+            <unsubscribe>mailto:issues-unsubscribe@tez.apache.org
             </unsubscribe>
-            <post>mailto:issues@tez.incubator.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/incubator-tez-issues/</archive>
+            <post>mailto:issues@tez.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/tez-issues/</archive>
         </mailingList>
     </mailingLists>
 
@@ -283,7 +283,7 @@
         <email>kamrul@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-          <role>Committer</role>
+          <role>PMC</role>
         </roles>
         <organization>
           LinkedIn Inc.
@@ -367,7 +367,7 @@
         <email>rbalamohan@apache.org</email>
         <timezone>+5:30</timezone>
         <roles>
-          <role>Committer</role>
+          <role>PMC</role>
         </roles>
         <organization>
           Hortonworks
@@ -379,7 +379,7 @@
         <email>rohini@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-          <role>Committer</role>
+          <role>PMC</role>
         </roles>
         <organization>
           Yahoo!
@@ -403,7 +403,7 @@
         <email>tassapola@apache.org</email>
         <timezone>-8</timezone>
         <roles>
-          <role>Committer</role>
+          <role>PMC</role>
         </roles>
         <organization>
           Hortonworks

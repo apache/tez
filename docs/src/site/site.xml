@@ -37,18 +37,11 @@
     </fluidoSkin>
   </custom>
 
-<!--
   <bannerLeft>
     <name>Tez</name>
-    <href>http://tez.incubator.apache.org/</href>
-  </bannerLeft>
--->
-
-  <bannerRight>
-    <name>Apache Incubator</name>
     <src>./images/apache-incubator-logo.png</src>
-    <href>http://incubator.apache.org/</href>
-  </bannerRight>
+    <href>http://tez.apache.org/</href>
+  </bannerLeft>
 
   <publishDate position="right"/>
   <version position="right"/>
@@ -93,7 +86,7 @@
     </head>
 
     <breadcrumbs>
-      <item name="Tez" href="http://tez.incubator.apache.org/"/>
+      <item name="Apache Tez" href="http://tez.apache.org/"/>
     </breadcrumbs>
 
     <menu name="Getting Started">
@@ -101,7 +94,6 @@
       <item name="Install Guide" href="install.html"/>
       <item name="Design Doc" href="https://issues.apache.org/jira/secure/attachment/12588887/Tez%20Design%20v1.1.pdf"/>
       <item name="Talks and Meetup Recordings" href="talks.html"/>
-      <item name="Apache Incubator Proposal for Tez" href="http://wiki.apache.org/incubator/TezProposal"/>
       <item name="Project License" href="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
     </menu>
 
@@ -113,14 +105,13 @@
     </menu>
 
     <menu name="Releases">
-      <item name="0.4.0-incubating" href="http://www.apache.org/dyn/closer.cgi/incubator/tez/tez-0.4.0-incubating/"/>
       <item name="0.4.1-incubating" href="http://www.apache.org/dyn/closer.cgi/incubator/tez/tez-0.4.1-incubating/"/>
     </menu>
 
     <menu name="Contribute">
       <item name="JIRA" href="https://issues.apache.org/jira/browse/TEZ" />
-      <item name="Git (Read/Write)" href="https://git-wip-us.apache.org/repos/asf/incubator-tez.git" alt="Use git clone https://git-wip-us.apache.org/repos/asf/incubator-tez.git" />
-      <item name="Git (Read-only)" href="git://git.apache.org/incubator-tez.git" alt="Use git clone git://git.apache.org/incubator-tez.git" />
+      <item name="Git (Read/Write)" href="https://git-wip-us.apache.org/repos/asf/tez.git" alt="Use git clone https://git-wip-us.apache.org/repos/asf/tez.git" />
+      <item name="Git (Read-only)" href="git://git.apache.org/tez.git" alt="Use git clone git://git.apache.org/tez.git" />
     </menu>
 
     <footer>

@@ -48,7 +48,3 @@ Introduction
 
 [./images/PigHiveQueryOnTez.png] Flow for a Hive or Pig Query on Tez
 
-Disclaimer
-
-  Apache Tez is an effort currently undergoing incubation at The Apache Software Foundation (ASF) sponsored by the Apache Incubator PMC.
-
