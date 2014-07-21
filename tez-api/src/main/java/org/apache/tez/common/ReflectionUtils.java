@@ -18,6 +18,7 @@
 
 package org.apache.tez.common;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -31,7 +32,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 
 @Private
 public class ReflectionUtils {
-  
+
   private static final Map<String, Class<?>> CLAZZ_CACHE = new ConcurrentHashMap<String, Class<?>>();
 
   @Private
@@ -61,6 +62,27 @@ public class ReflectionUtils {
     return instance;
   }
 
+  private static <T> T getNewInstance(Class<T> clazz, Class<?>[] parameterTypes, Object[] parameters) {
+    T instance;
+    try {
+      Constructor<T> constructor = clazz.getConstructor(parameterTypes);
+      instance = constructor.newInstance(parameters);
+    } catch (InstantiationException e) {
+      throw new TezUncheckedException(
+          "Unable to instantiate class with " + parameters.length + " arguments: " + clazz.getName(), e);
+    } catch (IllegalAccessException e) {
+      throw new TezUncheckedException(
+          "Unable to instantiate class with " + parameters.length + " arguments: " + clazz.getName(), e);
+    } catch (NoSuchMethodException e) {
+      throw new TezUncheckedException(
+          "Unable to instantiate class with " + parameters.length + " arguments: " + clazz.getName(), e);
+    } catch (InvocationTargetException e) {
+      throw new TezUncheckedException(
+          "Unable to instantiate class with " + parameters.length + " arguments: " + clazz.getName(), e);
+    }
+    return instance;
+  }
+
   @Private
   public static <T> T createClazzInstance(String className) {
     Class<?> clazz = getClazz(className);
@@ -68,20 +90,25 @@ public class ReflectionUtils {
     T instance = (T) getNewInstance(clazz);
     return instance;
   }
-  
-  
+
+  @Private
+  public static <T> T createClazzInstance(String className, Class<?>[] parameterTypes, Object[] parameters) {
+    Class<?> clazz = getClazz(className);
+    @SuppressWarnings("unchecked")
+    T instance = (T) getNewInstance(clazz, parameterTypes, parameters);
+    return instance;
+  }
+
   @Private
   public static synchronized void addResourcesToClasspath(List<URL> urls) {
     ClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]), Thread
         .currentThread().getContextClassLoader());
     Thread.currentThread().setContextClassLoader(classLoader);
   }
-  
-  
+
   // Parameters for addResourcesToSystemClassLoader
   private static final Class<?>[] parameters = new Class[]{URL.class};
   private static Method sysClassLoaderMethod = null;
-
 
   @Private
   public static synchronized void addResourcesToSystemClassLoader(List<URL> urls) {
@@ -111,5 +138,4 @@ public class ReflectionUtils {
       }
     }
   }
-  
 }

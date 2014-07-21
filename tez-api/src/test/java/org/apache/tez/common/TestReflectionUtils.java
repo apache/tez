@@ -16,8 +16,9 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime;
+package org.apache.tez.common;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -29,11 +30,30 @@ import java.util.Collections;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezException;
 import org.junit.Test;
 
 public class TestReflectionUtils {
+
+  public static class ParameterizedConstructorClass {
+    final String first;
+    final int second;
+    public ParameterizedConstructorClass(String first, int second) {
+      this.first = first;
+      this.second = second;
+    }
+  }
+
+  @Test
+  public void testConstructorWithParameters()
+  {
+    Class<?>[] parameterTypes = new Class[] { String.class, Integer.TYPE };
+    Object[] parameters = new Object[] { new String("test"), 1 };
+    ParameterizedConstructorClass instance = ReflectionUtils.createClazzInstance(
+        ParameterizedConstructorClass.class.getName(), parameterTypes, parameters);
+    assertEquals("Class not constructed with first parameter correctly", instance.first, "test");
+    assertEquals("Class not constructed with second parameter correctly", instance.second, 1);
+  }
 
   @Test
   public void testAddResourceToClasspath() throws IOException, TezException {
