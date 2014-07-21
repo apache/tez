@@ -38,8 +38,10 @@
   </custom>
 
   <bannerLeft>
-    <name>Tez</name>
-    <src>./images/apache-incubator-logo.png</src>
+    <name>Apache Tez</name>
+    <src>./images/ApacheTezLogo.png</src>
+    <width>25%</width>
+    <height>25%</height>
     <href>http://tez.apache.org/</href>
   </bannerLeft>
 
