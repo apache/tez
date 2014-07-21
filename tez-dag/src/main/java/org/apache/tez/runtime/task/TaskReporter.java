@@ -46,7 +46,6 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
-import org.mortbay.log.Log;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -236,7 +235,7 @@ public class TaskReporter {
       TezHeartbeatRequest request = new TezHeartbeatRequest(requestId, events, containerIdStr,
           task.getTaskAttemptID(), task.getEventCounter(), maxEventsToGet);
       if (LOG.isDebugEnabled()) {
-        Log.debug("Sending heartbeat to AM, request=" + request);
+        LOG.debug("Sending heartbeat to AM, request=" + request);
       }
 
       maybeLogCounters();

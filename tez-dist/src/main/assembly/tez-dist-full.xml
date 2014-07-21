@@ -21,6 +21,9 @@
   <moduleSets>
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
+      <excludes>
+        <exclude>org.apache.tez:tez-tests</exclude>
+      </excludes>
       <binaries>
         <outputDirectory>/</outputDirectory>
         <unpack>false</unpack>
@@ -31,25 +34,8 @@
             <outputDirectory>/lib</outputDirectory>
             <excludes>
               <exclude>*:*:test-jar</exclude>
-              <exclude>org.apache.hadoop:hadoop-common</exclude>
-              <exclude>org.apache.hadoop:hadoop-auth</exclude>
-              <exclude>org.apache.hadoop:hadoop-annotations</exclude>
-              <exclude>org.apache.hadoop:hadoop-yarn-api</exclude>
-              <exclude>org.apache.hadoop:hadoop-yarn-client</exclude>
-              <exclude>org.apache.hadoop:hadoop-yarn-common</exclude>
-              <exclude>org.apache.hadoop:hadoop-yarn-server-common</exclude>
-              <exclude>org.apache.hadoop:hadoop-yarn-server-nodemanager</exclude>
               <exclude>org.apache.tez:*</exclude>
-              <exclude>org.slf4j:*</exclude>
             </excludes>
-          </dependencySet>
-          <dependencySet>
-            <unpack>false</unpack>
-            <scope>runtime</scope>
-            <outputDirectory>/tests</outputDirectory>
-            <includes>
-            <include>*:*:test-jar</include>
-            </includes>
           </dependencySet>
         </dependencySets>
       </binaries>

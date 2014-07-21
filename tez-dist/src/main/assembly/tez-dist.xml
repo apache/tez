@@ -21,6 +21,9 @@
   <moduleSets>
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
+      <excludes>
+        <exclude>org.apache.tez:tez-tests</exclude>
+      </excludes>
       <binaries>
         <outputDirectory>/</outputDirectory>
         <unpack>false</unpack>
@@ -33,6 +36,7 @@
             <excludes>
               <exclude>*:*:test-jar</exclude>
               <exclude>org.apache.hadoop:hadoop-common</exclude>
+              <exclude>org.apache.hadoop:hadoop-hdfs</exclude>
               <exclude>org.apache.hadoop:hadoop-yarn-api</exclude>
               <exclude>org.apache.hadoop:hadoop-yarn-client</exclude>
               <exclude>org.apache.hadoop:hadoop-yarn-common</exclude>

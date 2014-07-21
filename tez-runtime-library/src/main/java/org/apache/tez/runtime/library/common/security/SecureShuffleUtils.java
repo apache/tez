@@ -24,7 +24,6 @@ import java.io.PrintStream;
 import java.net.URL;
 
 import javax.crypto.SecretKey;
-import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -107,15 +106,7 @@ public class SecureShuffleUtils {
   public static String buildMsgFrom(URL url) {
     return buildMsgFrom(url.getPath(), url.getQuery(), url.getPort());
   }
-  /**
-   * Shuffle specific utils - build string for encoding from URL
-   * @param request
-   * @return string for encoding
-   */
-  public static String buildMsgFrom(HttpServletRequest request ) {
-    return buildMsgFrom(request.getRequestURI(), request.getQueryString(),
-        request.getLocalPort());
-  }
+
   /**
    * Shuffle specific utils - build string for encoding from URL
    * @param uri_path
