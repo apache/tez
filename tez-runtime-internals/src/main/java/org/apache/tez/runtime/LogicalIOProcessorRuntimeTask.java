@@ -49,11 +49,15 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
+import org.apache.tez.runtime.api.InputFrameworkInterface;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
+import org.apache.tez.runtime.api.LogicalInputFrameworkInterface;
 import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.LogicalOutputFrameworkInterface;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.Output;
+import org.apache.tez.runtime.api.OutputFrameworkInterface;
 import org.apache.tez.runtime.api.Processor;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.TezOutputContext;
@@ -93,33 +97,35 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final List<OutputSpec> outputSpecs;
   private final ConcurrentHashMap<String, LogicalOutput> outputsMap;
   private final ConcurrentHashMap<String, TezOutputContext> outputContextMap;
-  
+
   private final List<GroupInputSpec> groupInputSpecs;
   private ConcurrentHashMap<String, MergedLogicalInput> groupInputsMap;
-  
+
   private final ProcessorDescriptor processorDescriptor;
   private final LogicalIOProcessor processor;
   private TezProcessorContext processorContext;
-  
+
   private final MemoryDistributor initialMemoryDistributor;
 
   /** Maps which will be provided to the processor run method */
   private final LinkedHashMap<String, LogicalInput> runInputMap;
   private final LinkedHashMap<String, LogicalOutput> runOutputMap;
-  
+
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
-  
+
   private final ExecutorService initializerExecutor;
   private final CompletionService<Void> initializerCompletionService;
-  
+
   private final Multimap<String, String> startedInputsMap;
 
   private LinkedBlockingQueue<TezEvent> eventsToBeProcessed;
   private Thread eventRouterThread = null;
 
   private final int appAttemptNumber;
-  
+
   private final InputReadyTracker inputReadyTracker;
+
+  // KKK Make sure LogicalInputFramework checks are in place
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, String[] localDirs, TezUmbilical tezUmbilical,
@@ -149,7 +155,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.state = State.NEW;
     this.appAttemptNumber = appAttemptNumber;
     int numInitializers = numInputs + numOutputs; // Processor is initialized in the main thread.
-    numInitializers = (numInitializers == 0 ? 1 : numInitializers); 
+    numInitializers = (numInitializers == 0 ? 1 : numInitializers);
     this.initializerExecutor = Executors.newFixedThreadPool(
         numInitializers,
         new ThreadFactoryBuilder().setDaemon(true)
@@ -169,26 +175,26 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     LOG.info("Initializing LogicalProcessorIORuntimeTask");
     Preconditions.checkState(this.state == State.NEW, "Already initialized");
     this.state = State.INITED;
-    
+
     int numTasks = 0;
-    
+
     int inputIndex = 0;
     for (InputSpec inputSpec : taskSpec.getInputs()) {
       this.initializerCompletionService.submit(
           new InitializeInputCallable(inputSpec, inputIndex++));
       numTasks++;
     }
-    
+
     int outputIndex = 0;
     for (OutputSpec outputSpec : taskSpec.getOutputs()) {
       this.initializerCompletionService.submit(
           new InitializeOutputCallable(outputSpec, outputIndex++));
       numTasks++;
     }
-    
+
     // Initialize processor in the current thread.
     initializeLogicalIOProcessor();
-    
+
     int completedTasks = 0;
     while (completedTasks < numTasks) {
       LOG.info("Waiting for " + (numTasks-completedTasks) + " initializers to finish");
@@ -211,14 +217,14 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.inputReadyTracker
         .setGroupedInputs(groupInputsMap == null ? null : groupInputsMap.values());
     // Grouped input start will be controlled by the start of the GroupedInput
-    
+
     // Construct the set of groupedInputs up front so that start is not invoked on them.
     Set<String> groupInputs = Sets.newHashSet();
     // Construct Inputs/Outputs map argument for processor.run()
     // first add the group inputs
     if (groupInputSpecs !=null && !groupInputSpecs.isEmpty()) {
       for (GroupInputSpec groupInputSpec : groupInputSpecs) {
-        runInputMap.put(groupInputSpec.getGroupName(), 
+        runInputMap.put(groupInputSpec.getGroupName(),
                                  groupInputsMap.get(groupInputSpec.getGroupName()));
         groupInputs.addAll(groupInputSpec.getGroupVertices());
       }
@@ -244,7 +250,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       }
     }
 
-    if (groupInputSpecs != null) {      
+    if (groupInputSpecs != null) {
       for (GroupInputSpec group : groupInputSpecs) {
         if (!inputAlreadyStarted(taskSpec.getVertexName(), group.getGroupName())) {
           numAutoStarts++;
@@ -258,7 +264,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
     // Shutdown after all tasks complete.
     this.initializerExecutor.shutdown();
-    
+
     completedTasks = 0;
     LOG.info("Num IOs determined for AutoStart: " + numAutoStarts);
     while (completedTasks < numAutoStarts) {
@@ -277,7 +283,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
     LOG.info("AutoStartComplete");
 
-    
+
 
     // then add the non-grouped inputs
     for (InputSpec inputSpec : inputSpecs) {
@@ -292,10 +298,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       String outputName = outputSpec.getDestinationVertexName();
       runOutputMap.put(outputName, output);
     }
-    
+
     // TODO Maybe close initialized inputs / outputs in case of failure to
     // initialize.
-  
+
     startRouterThread();
   }
 
@@ -321,7 +327,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       // Close the Inputs.
       for (InputSpec inputSpec : inputSpecs) {
         String srcVertexName = inputSpec.getSourceVertexName();
-        List<Event> closeInputEvents = inputsMap.get(srcVertexName).close();
+        List<Event> closeInputEvents = ((InputFrameworkInterface)inputsMap.get(srcVertexName)).close();
         sendTaskGeneratedEvents(closeInputEvents,
             EventProducerConsumerType.INPUT, taskSpec.getVertexName(),
             srcVertexName, taskSpec.getTaskAttemptID());
@@ -330,7 +336,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       // Close the Outputs.
       for (OutputSpec outputSpec : outputSpecs) {
         String destVertexName = outputSpec.getDestinationVertexName();
-        List<Event> closeOutputEvents = outputsMap.get(destVertexName).close();
+        List<Event> closeOutputEvents = ((LogicalOutputFrameworkInterface)outputsMap.get(destVertexName)).close();
         sendTaskGeneratedEvents(closeOutputEvents,
             EventProducerConsumerType.OUTPUT, taskSpec.getVertexName(),
             destVertexName, taskSpec.getTaskAttemptID());
@@ -362,12 +368,12 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       inputsMap.put(edgeName, input);
       inputContextMap.put(edgeName, inputContext);
 
-      if (input instanceof LogicalInput) {
-        ((LogicalInput) input).setNumPhysicalInputs(inputSpec
+      if (input instanceof LogicalInputFrameworkInterface) {
+        ((LogicalInputFrameworkInterface) input).setNumPhysicalInputs(inputSpec
             .getPhysicalEdgeCount());
       }
       LOG.info("Initializing Input with src edge: " + edgeName);
-      List<Event> events = input.initialize(inputContext);
+      List<Event> events = ((InputFrameworkInterface)input).initialize(inputContext);
       sendTaskGeneratedEvents(events, EventProducerConsumerType.INPUT,
           inputContext.getTaskVertexName(), inputContext.getSourceVertexName(),
           taskSpec.getTaskAttemptID());
@@ -379,12 +385,12 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private class StartInputCallable implements Callable<Void> {
     private final LogicalInput input;
     private final String srcVertexName;
-    
+
     public StartInputCallable(LogicalInput input, String srcVertexName) {
       this.input = input;
       this.srcVertexName = srcVertexName;
     }
-    
+
     @Override
     public Void call() throws Exception {
       LOG.info("Starting Input with src edge: " + srcVertexName);
@@ -413,12 +419,12 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       outputsMap.put(edgeName, output);
       outputContextMap.put(edgeName, outputContext);
 
-      if (output instanceof LogicalOutput) {
-        ((LogicalOutput) output).setNumPhysicalOutputs(outputSpec
+      if (output instanceof LogicalOutputFrameworkInterface) {
+        ((LogicalOutputFrameworkInterface) output).setNumPhysicalOutputs(outputSpec
             .getPhysicalEdgeCount());
       }
       LOG.info("Initializing Output with dest edge: " + edgeName);
-      List<Event> events = output.initialize(outputContext);
+      List<Event> events = ((OutputFrameworkInterface)output).initialize(outputContext);
       sendTaskGeneratedEvents(events, EventProducerConsumerType.OUTPUT,
           outputContext.getTaskVertexName(),
           outputContext.getDestinationVertexName(), taskSpec.getTaskAttemptID());
@@ -436,7 +442,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private void initializeGroupInputs() {
-    if (groupInputSpecs != null && !groupInputSpecs.isEmpty()) {      
+    if (groupInputSpecs != null && !groupInputSpecs.isEmpty()) {
      groupInputsMap = new ConcurrentHashMap<String, MergedLogicalInput>(groupInputSpecs.size());
      for (GroupInputSpec groupInputSpec : groupInputSpecs) {
         LOG.info("Initializing GroupInput using GroupInputSpec: " + groupInputSpec);
@@ -451,7 +457,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       }
     }
   }
-  
+
   private void initializeLogicalIOProcessor() throws Exception {
     LOG.info("Initializing processor" + ", processorClassName="
         + processorDescriptor.getClassName());
@@ -511,7 +517,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
     return (LogicalInput)input;
   }
-  
+
   private LogicalOutput createOutput(OutputSpec outputSpec) {
     LOG.info("Creating Output");
     Output output = ReflectionUtils.createClazzInstance(outputSpec
@@ -573,7 +579,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         LogicalInput input = inputsMap.get(
             e.getDestinationInfo().getEdgeVertexName());
         if (input != null) {
-          input.handleEvents(Collections.singletonList(e.getEvent()));
+          ((InputFrameworkInterface)input).handleEvents(Collections.singletonList(e.getEvent()));
         } else {
           throw new TezUncheckedException("Unhandled event for invalid target: "
               + e);
@@ -583,7 +589,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         LogicalOutput output = outputsMap.get(
             e.getDestinationInfo().getEdgeVertexName());
         if (output != null) {
-          output.handleEvents(Collections.singletonList(e.getEvent()));
+          ((OutputFrameworkInterface)output).handleEvents(Collections.singletonList(e.getEvent()));
         } else {
           throw new TezUncheckedException("Unhandled event for invalid target: "
               + e);

@@ -24,6 +24,7 @@ INCOMPATIBLE CHANGES
     refactors public methods used for this conversion.
   TEZ-696. Remove implicit copying of processor payload to input and output
   TEZ-1269. TaskScheduler prematurely releases containers
+  TEZ-857. Split Input/Output interfaces into user/framework components.
 
 Release 0.4.0-incubating: 2014-04-05
 

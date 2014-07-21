@@ -20,11 +20,15 @@ package org.apache.tez.runtime.api;
 import java.util.List;
 
 /**
- * The abstract implementation of {@link LogicalInput}. It includes default
- * implementations of few methods for the convenience.
+ * An abstract class which should be the base class for all implementations of LogicalInput.
+ *
+ * This class implements the framework facing as well as user facing methods which need to be
+ * implemented by all LogicalInputs.
+ *
+ * This includes default implementations of a new method for convenience.
  * 
  */
-public abstract class AbstractLogicalInput implements LogicalInput {
+public abstract class AbstractLogicalInput implements LogicalInput, LogicalInputFrameworkInterface {
 
   protected int numPhysicalInputs;
   protected TezInputContext inputContext;
@@ -49,5 +53,4 @@ public abstract class AbstractLogicalInput implements LogicalInput {
   public TezInputContext getContext() {
     return inputContext;
   }
-
 }

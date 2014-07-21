@@ -20,11 +20,15 @@ package org.apache.tez.runtime.api;
 import java.util.List;
 
 /**
- * The abstract implementation of {@link LogicalOutput}. It includes default
- * implementations of few methods for the convenience.
- * 
+ * An abstract class which should be the base class for all implementations of LogicalOutput.
+ *
+ * This class implements the framework facing as well as user facing methods which need to be
+ * implemented by all LogicalOutputs.
+ *
+ * This includes default implementations of a new method for convenience.
+ *
  */
-public abstract class AbstractLogicalOutput implements LogicalOutput {
+public abstract class AbstractLogicalOutput implements LogicalOutput, LogicalOutputFrameworkInterface {
 
   protected int numPhysicalOutputs;
   protected TezOutputContext outputContext;
@@ -49,5 +53,4 @@ public abstract class AbstractLogicalOutput implements LogicalOutput {
   public TezOutputContext getContext() {
     return outputContext;
   }
-
 }

@@ -30,7 +30,7 @@ public interface Processor {
    * Initializes the <code>Processor</code>
    *
    * @param processorContext
-   * @throws IOException
+   * @throws java.io.IOException
    *           if an error occurs
    */
   public void initialize(TezProcessorContext processorContext)
@@ -47,7 +47,7 @@ public interface Processor {
   /**
    * Closes the <code>Processor</code>
    *
-   * @throws IOException
+   * @throws java.io.IOException
    *           if an error occurs
    */
   public void close() throws Exception;

@@ -38,15 +38,13 @@ import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.dag.api.client.VertexStatus.State;
+import org.apache.tez.runtime.api.AbstractLogicalInput;
+import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.api.TezRootInputInitializerContext;
 import org.apache.tez.runtime.api.Writer;
@@ -227,15 +225,10 @@ public class MultiAttemptDAG {
     }
   }
 
-  public static class NoOpInput implements LogicalInput, MemoryUpdateCallback {
+  public static class NoOpInput extends AbstractLogicalInput implements MemoryUpdateCallback {
 
     @Override
-    public void setNumPhysicalInputs(int numInputs) {
-
-    }
-
-    @Override
-    public List<Event> initialize(TezInputContext inputContext) throws Exception {
+    public List<Event> initialize() throws Exception {
       inputContext.requestInitialMemory(1l, this);
       return null;
     }
@@ -266,15 +259,10 @@ public class MultiAttemptDAG {
     }
   }
 
-  public static class NoOpOutput implements LogicalOutput, MemoryUpdateCallback {
+  public static class NoOpOutput extends AbstractLogicalOutput implements MemoryUpdateCallback {
 
     @Override
-    public void setNumPhysicalOutputs(int numOutputs) {
-
-    }
-
-    @Override
-    public List<Event> initialize(TezOutputContext outputContext) throws Exception {
+    public List<Event> initialize() throws Exception {
       outputContext.requestInitialMemory(1l, this);
       return null;
     }

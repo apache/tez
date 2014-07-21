@@ -18,37 +18,16 @@
 
 package org.apache.tez.runtime.api;
 
-import java.util.List;
-
 /**
  * Represents an input through which a TezProcessor receives data on an edge.
  * </p>
- * 
- * <code>Input</code> classes must have a 0 argument public constructor for Tez
- * to construct the <code>Input</code>. Tez will take care of initializing and
- * closing the Input after a {@link Processor} completes. </p>
- * 
- * During initialization, Inputs must specify an initial memory requirement via
- * {@link TezInputContext}.requestInitialMemory
- * 
- * Inputs must also inform the framework once they are ready to be consumed.
- * This typically means that the Processor will not block when reading from the
- * corresponding Input. This is done via {@link TezInputContext}.inputIsReady.
- * Inputs choose the policy on when they are ready.
+ *
+ * This interface has methods which can be used by a {@link org.apache.tez.runtime.api.Processor}
+ * to control execution of this Input and read data from it.
+ *
  */
 public interface Input {
 
-  /**
-   * Initializes the <code>Input</code>.
-   *
-   * @param inputContext
-   *          the {@link TezInputContext}
-   * @return list of events that were generated during initialization
-   * @throws Exception
-   *           if an error occurs
-   */
-  public List<Event> initialize(TezInputContext inputContext)
-      throws Exception;
 
   /**
    * Start any processing that the Input may need to perform. It is the
@@ -76,22 +55,4 @@ public interface Input {
    *           if an error occurs
    */
   public Reader getReader() throws Exception;
-
-  /**
-   * Handles user and system generated {@link Event}s, which typically carry
-   * information such as an output being available on the previous vertex.
-   *
-   * @param inputEvents
-   *          the list of {@link Event}s
-   */
-  public void handleEvents(List<Event> inputEvents) throws Exception;
-
-  /**
-   * Closes the <code>Input</code>
-   *
-   * @return list of events that were generated during close
-   * @throws Exception
-   *           if an error occurs
-   */
-  public List<Event> close() throws Exception;
 }

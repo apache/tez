@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * This Input is not initialized or closed. It is only expected to provide a 
  * merged view of the real inputs. It cannot send or receive events
  */
-public abstract class MergedLogicalInput implements LogicalInput {
+public abstract class MergedLogicalInput implements LogicalInput, LogicalInputFrameworkInterface {
 
   // TODO Remove with TEZ-866
   private volatile InputReadyCallback inputReadyCallback;

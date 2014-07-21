@@ -32,6 +32,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezOutputContext;
@@ -44,7 +45,7 @@ import org.apache.tez.runtime.library.common.writers.UnorderedPartitionedKVWrite
  * write Key-Value pairs. The key-value pairs are written to the correct partition based on the
  * configured Partitioner.
  */
-public class OnFileUnorderedPartitionedKVOutput implements LogicalOutput {
+public class OnFileUnorderedPartitionedKVOutput extends AbstractLogicalOutput {
 
   private static final Log LOG = LogFactory.getLog(OnFileUnorderedPartitionedKVOutput.class);
 
@@ -67,6 +68,11 @@ public class OnFileUnorderedPartitionedKVOutput implements LogicalOutput {
         UnorderedPartitionedKVWriter.getInitialMemoryRequirement(conf,
             outputContext.getTotalMemoryAvailableToTask()), memoryUpdateCallbackHandler);
     return Collections.emptyList();
+  }
+
+  @Override
+  public List<Event> initialize() throws Exception {
+    return null;
   }
 
   @Override
