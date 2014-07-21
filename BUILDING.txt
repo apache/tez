@@ -1,5 +1,8 @@
 Build instructions for Tez
 
+For instructions on how to contribute to Tez, refer to:
+https://cwiki.apache.org/confluence/display/TEZ
+
 ----------------------------------------------------------------------------------
 Requirements:
 
