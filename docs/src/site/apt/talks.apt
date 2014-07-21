@@ -13,6 +13,10 @@
 ~~ See the License for the specific language governing permissions and
 ~~ limitations under the License.
 ~~
+  ----
+  Presentations and Talks on Tez
+  ----
+
 Talks
 
   * Apache Tez : Accelerating Hadoop Query Processing by Arun Murthy and Bikas Saha at {{{http://hadoopsummit.org/san-jose/}Hadoop Summit 2013, San Jose, CA, USA}}

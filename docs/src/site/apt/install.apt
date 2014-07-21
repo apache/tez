@@ -13,6 +13,10 @@
 ~~ See the License for the specific language governing permissions and
 ~~ limitations under the License.
 ~~
+  -----
+  Install and Deployment Instructions
+  -----
+
 Install/Deploy Instructions
 
   [[i]] Deploy Apache Hadoop using either the 2.2.0 release or a compatible 2.x version.

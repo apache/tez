@@ -13,6 +13,10 @@
 ~~ See the License for the specific language governing permissions and
 ~~ limitations under the License.
 ~~
+  ------
+  Welcome to Apache Tez
+  ------
+
 Introduction
 
   The Apache Tez project is aimed at building an application framework which allows for a complex directed-acyclic-graph of tasks for processing data. It is currently built atop {{{http://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html}Apache Hadoop YARN}}

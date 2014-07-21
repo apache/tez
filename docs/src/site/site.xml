@@ -39,7 +39,7 @@
 
   <bannerLeft>
     <name>Apache Tez</name>
-    <src>./images/ApacheTezLogo.png</src>
+    <src>./images/ApacheTezLogo_lowres.png</src>
     <width>25%</width>
     <height>25%</height>
     <href>http://tez.apache.org/</href>
@@ -94,7 +94,6 @@
     <menu name="Getting Started">
       <item name="Overview" href="index.html"/>
       <item name="Install Guide" href="install.html"/>
-      <item name="Design Doc" href="https://issues.apache.org/jira/secure/attachment/12588887/Tez%20Design%20v1.1.pdf"/>
       <item name="Talks and Meetup Recordings" href="talks.html"/>
       <item name="Project License" href="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
     </menu>
