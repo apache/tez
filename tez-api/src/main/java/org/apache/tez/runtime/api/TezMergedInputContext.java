@@ -18,15 +18,23 @@
 
 package org.apache.tez.runtime.api;
 
-import org.apache.hadoop.classification.InterfaceAudience.Private;
+import javax.annotation.Nullable;
 
-/**
- * Used temporarily until MergedInputs have access to a context. Remove after
- * TEZ-866
- */
-@Private
-public interface InputReadyCallback {
+public interface TezMergedInputContext {
 
-  public void setInputReady(Input input);
-
+  @Nullable
+  public byte[] getUserPayload();
+  
+  /**
+   * Inform the framework that the specific Input is ready for consumption.
+   * 
+   * This method can be invoked multiple times.
+   */
+  public void inputIsReady();
+  
+  /**
+   * Get the work directories for the Input
+   * @return an array of work dirs
+   */
+  public String[] getWorkDirs();
 }

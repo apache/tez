@@ -31,6 +31,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -152,8 +153,8 @@ public class TestInputReadyTracker {
     group2Inputs.add(input3);
     group2Inputs.add(input4);
 
-    group1.initialize(group1Inputs);
-    group2.initialize(group2Inputs);
+    group1.initialize(group1Inputs, new TezMergedInputContextImpl(null, group1, inputReadyTracker, null));
+    group2.initialize(group2Inputs, new TezMergedInputContextImpl(null, group2, inputReadyTracker, null));
     
     // Register groups with tracker
     List<MergedLogicalInput> groups = Lists.newArrayList(group1, group2);

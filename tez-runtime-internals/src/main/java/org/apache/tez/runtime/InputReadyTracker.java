@@ -29,14 +29,13 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.tez.runtime.api.Input;
-import org.apache.tez.runtime.api.InputReadyCallback;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-public class InputReadyTracker implements InputReadyCallback {
+public class InputReadyTracker {
 
   private final ConcurrentMap<Input, Boolean> readyInputs;
   
@@ -128,20 +127,14 @@ public class InputReadyTracker implements InputReadyCallback {
     }
   }
 
-  @Override   // TODO Remove with TEZ-866
-  public void setInputReady(Input input) {
-    setInputIsReady(input);
-  }
-
   public void setGroupedInputs(Collection<MergedLogicalInput> inputGroups) {
     lock.lock();
     try {
       if (inputGroups != null) {
         inputToGroupMap = Maps.newConcurrentMap();
         for (MergedLogicalInput mergedInput : inputGroups) {
-          mergedInput.setInputReadyCallback(this);
           for (Input dest : mergedInput.getInputs()) {
-            // Check already readt Inputs - may have become ready during initialize
+            // Check already ready Inputs - may have become ready during initialize
             if (readyInputs.containsKey(dest)) {
               mergedInput.setConstituentInputIsReady(dest);
             }

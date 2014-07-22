@@ -95,7 +95,7 @@ public interface TezTaskContext {
   public byte[] getUserPayload();
 
   /**
-   * Get the work diectories for the Input/Output/Processor
+   * Get the work directories for the Input/Output/Processor
    * @return an array of work dirs
    */
   public String[] getWorkDirs();

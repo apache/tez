@@ -70,6 +70,7 @@ import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezInputContextImpl;
+import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
 import org.apache.tez.runtime.api.impl.TezOutputContextImpl;
 import org.apache.tez.runtime.api.impl.TezProcessorContextImpl;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
@@ -452,7 +453,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         for (String groupVertex : groupInputSpec.getGroupVertices()) {
           inputs.add(inputsMap.get(groupVertex));
         }
-        groupInput.initialize(inputs);
+        groupInput.initialize(inputs, new TezMergedInputContextImpl(
+            groupInputSpec.getMergedInputDescriptor().getUserPayload(),
+            groupInput, inputReadyTracker, localDirs));
         groupInputsMap.put(groupInputSpec.getGroupName(), groupInput);
       }
     }

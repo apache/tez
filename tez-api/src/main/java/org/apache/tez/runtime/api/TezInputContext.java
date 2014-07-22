@@ -37,9 +37,7 @@ public interface TezInputContext extends TezTaskContext {
   public int getInputIndex();
   
   /**
-   * Inform the framework that the specific Input is ready for consumption. This
-   * method will typically be invoked as a result of an
-   * Input.inputReadyNotificationRequired invocation.
+   * Inform the framework that the specific Input is ready for consumption.
    * 
    * This method can be invoked multiple times.
    */

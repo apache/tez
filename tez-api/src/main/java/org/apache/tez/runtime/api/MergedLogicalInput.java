@@ -28,27 +28,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * This Input is not initialized or closed. It is only expected to provide a 
  * merged view of the real inputs. It cannot send or receive events
  */
-public abstract class MergedLogicalInput implements LogicalInput, LogicalInputFrameworkInterface {
+public abstract class MergedLogicalInput implements LogicalInput {
 
-  // TODO Remove with TEZ-866
-  private volatile InputReadyCallback inputReadyCallback;
   private AtomicBoolean notifiedInputReady = new AtomicBoolean(false);
   private List<Input> inputs;
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
+  private TezMergedInputContext context;
 
-  public final void initialize(List<Input> inputs) {
+  public final void initialize(List<Input> inputs, TezMergedInputContext context) {
     this.inputs = Collections.unmodifiableList(inputs);
+    this.context = context;
   }
   
   public final List<Input> getInputs() {
     return inputs;
   }
   
-  @Override
-  public final List<Event> initialize(TezInputContext inputContext) throws Exception {
-    throw new UnsupportedOperationException();
+  public TezMergedInputContext getContext() {
+    return context;
   }
-
+  
   @Override
   public final void start() throws Exception {
     if (!isStarted.getAndSet(true)) {
@@ -58,34 +57,12 @@ public abstract class MergedLogicalInput implements LogicalInput, LogicalInputFr
     }
   }
 
-  @Override
-  public final void handleEvents(List<Event> inputEvents) throws Exception {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public final List<Event> close() throws Exception {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public final void setNumPhysicalInputs(int numInputs) {
-    throw new UnsupportedOperationException();
-  }
-
-  // TODO Remove with TEZ-866
-  public void setInputReadyCallback(InputReadyCallback callback) {
-    this.inputReadyCallback =  callback;
-  }
-  
   /**
    * Used by the actual MergedInput to notify that it's ready for consumption.
-   * TBD eventually via the context.
    */
   protected final void informInputReady() {
-    // TODO Fix with TEZ-866
     if (!notifiedInputReady.getAndSet(true)) {
-      inputReadyCallback.setInputReady(this);
+      context.inputIsReady();
     }
   }
 
