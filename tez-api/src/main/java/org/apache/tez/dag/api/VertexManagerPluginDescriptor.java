@@ -20,7 +20,7 @@ package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
-public class VertexManagerPluginDescriptor extends TezEntityDescriptor {
+public class VertexManagerPluginDescriptor extends TezEntityDescriptor<VertexManagerPluginDescriptor> {
 
   @Private // for Writable
   public VertexManagerPluginDescriptor() {
@@ -30,22 +30,4 @@ public class VertexManagerPluginDescriptor extends TezEntityDescriptor {
   public VertexManagerPluginDescriptor(String className) {
     super(className);
   }
-
-  @Override
-  public VertexManagerPluginDescriptor setUserPayload(byte[] userPayload) {
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
-    return this;
-  }
-
-  /**
-   * Provide a human-readable version of the user payload that can be
-   * used in the History UI
-   * @param historyText History text
-   */
-  @Override
-  public VertexManagerPluginDescriptor setHistoryText(String historyText) {
-    super.setHistoryText(historyText);
-    return this;
-  }
-
 }

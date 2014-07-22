@@ -20,7 +20,7 @@ package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
-public class InputDescriptor extends TezEntityDescriptor {
+public class InputDescriptor extends TezEntityDescriptor<InputDescriptor> {
 
   @Private // for Writable
   public InputDescriptor() {
@@ -30,22 +30,4 @@ public class InputDescriptor extends TezEntityDescriptor {
   public InputDescriptor(String inputClassName) {
     super(inputClassName);
   }
-
-  @Override
-  public InputDescriptor setUserPayload(byte[] userPayload) {
-    super.setUserPayload(userPayload);
-    return this;
-  }
-
-  /**
-   * Provide a human-readable version of the user payload that can be
-   * used in the History UI
-   * @param historyText History text
-   */
-  @Override
-  public InputDescriptor setHistoryText(String historyText) {
-    super.setHistoryText(historyText);
-    return this;
-  }
-
 }

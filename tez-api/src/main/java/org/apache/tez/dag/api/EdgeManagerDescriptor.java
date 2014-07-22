@@ -18,27 +18,10 @@
 
 package org.apache.tez.dag.api;
 
-public class EdgeManagerDescriptor extends TezEntityDescriptor {
+public class EdgeManagerDescriptor extends TezEntityDescriptor<EdgeManagerDescriptor> {
 
   public EdgeManagerDescriptor(String edgeManagerClassName) {
     super(edgeManagerClassName);
-  }
-
-  @Override
-  public EdgeManagerDescriptor setUserPayload(byte[] userPayload) {
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
-    return this;
-  }
-
-  /**
-   * Provide a human-readable version of the user payload that can be
-   * used in the History UI
-   * @param historyText History text
-   */
-  @Override
-  public EdgeManagerDescriptor setHistoryText(String historyText) {
-    super.setHistoryText(historyText);
-    return this;
   }
 
 }

@@ -27,7 +27,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.common.TezUserPayload;
 
-public abstract class TezEntityDescriptor implements Writable {
+public abstract class TezEntityDescriptor<T extends TezEntityDescriptor<T>> implements Writable {
 
   protected TezUserPayload userPayload;
   private String className;
@@ -50,9 +50,9 @@ public abstract class TezEntityDescriptor implements Writable {
    * @param userPayload User Payload
    * @return
    */
-  public TezEntityDescriptor setUserPayload(byte[] userPayload) {
+  public T setUserPayload(byte[] userPayload) {
     this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
-    return this;
+    return (T) this;
   }
 
   /**
@@ -60,9 +60,9 @@ public abstract class TezEntityDescriptor implements Writable {
    * used in the History UI
    * @param historyText History text
    */
-  public TezEntityDescriptor setHistoryText(String historyText) {
+  public T setHistoryText(String historyText) {
     this.historyText = historyText;
-    return this;
+    return (T) this;
   }
 
   @Private // Internal use only
