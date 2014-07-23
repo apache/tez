@@ -96,9 +96,16 @@ public class VertexGroup {
    */
   public VertexGroup addOutput(String outputName, OutputDescriptor outputDescriptor,
       Class<? extends OutputCommitter> outputCommitterClazz) {
-    outputs.add(new RootInputLeafOutput<OutputDescriptor>(outputName,
-        outputDescriptor, outputCommitterClazz));
+    RootInputLeafOutput<OutputDescriptor> leafOutput = new RootInputLeafOutput<OutputDescriptor>(outputName,
+        outputDescriptor, outputCommitterClazz);
+    outputs.add(leafOutput);
     this.groupInfo.outputs.add(outputName);
+    
+    // also add output to its members
+    for (Vertex member : getMembers()) {
+      member.addAdditionalOutput(leafOutput);
+    }
+    
     return this;
   }
   

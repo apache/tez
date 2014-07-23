@@ -629,6 +629,9 @@ public class TestDAGVerify {
     dag.addEdge(e1);
     dag.addEdge(e2);
     dag.verify();
+    for (int i = 0; i< 10;++i){
+      dag.verify();  // should be OK when called multiple times
+    }
     
     Assert.assertEquals(2, v1.getOutputVertices().size());
     Assert.assertEquals(2, v2.getOutputVertices().size());
@@ -685,8 +688,10 @@ public class TestDAGVerify {
     dag.addVertex(v5);
     dag.addEdge(e1);
     dag.addEdge(e2);
-    dag.verify();
-
+    for (int i = 0; i< 10;++i){
+      dag.verify(); // should be OK when called multiple times
+    }
+    
     // for the first Group v1 and v2 should get connected to v4 and also have 1 output
     // for the second Group v2 and v3 should get connected to v5
     // the Group place holders should disappear
@@ -765,7 +770,10 @@ public class TestDAGVerify {
     dag.addVertex(v5);
     dag.addEdge(e1);
     dag.addEdge(e2);
-    dag.verify();
+    for (int i = 0; i< 10;++i){
+      dag.verify();  // should be OK when called multiple times
+    }
+    
     Assert.assertEquals(dummyTaskCount, v5.getParallelism());
   }
 

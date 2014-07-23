@@ -58,6 +58,7 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanVertexGroupInfo;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -202,39 +203,25 @@ public class DAG {
     VertexGroup av = edge.getInputVertexGroup();
     av.addOutputVertex(edge.getOutputVertex(), edge);
     groupInputEdges.add(edge);
-    return this;
-  }
-  
-  public String getName() {
-    return this.name;
-  }
-  
-  private void processEdgesAndGroups() throws IllegalStateException {
-    // process all VertexGroups by transferring outgoing connections to the members
     
-    // add edges between VertexGroup members and destination vertices
+    // add new edge between members of VertexGroup and destVertex of the GroupInputEdge
     List<Edge> newEdges = Lists.newLinkedList();
-    for (GroupInputEdge e : groupInputEdges) {
-      Vertex  dstVertex = e.getOutputVertex();
-      VertexGroup uv = e.getInputVertexGroup();
-      for (Vertex member : uv.getMembers()) {
-        newEdges.add(new Edge(member, dstVertex, e.getEdgeProperty()));
-      }
-      dstVertex.addGroupInput(uv.getGroupName(), uv.getGroupInfo());
+    Vertex dstVertex = edge.getOutputVertex();
+    VertexGroup uv = edge.getInputVertexGroup();
+    for (Vertex member : uv.getMembers()) {
+      newEdges.add(new Edge(member, dstVertex, edge.getEdgeProperty()));
     }
+    dstVertex.addGroupInput(uv.getGroupName(), uv.getGroupInfo());
     
     for (Edge e : newEdges) {
       addEdge(e);
     }
     
-    // add outputs to VertexGroup members
-    for(VertexGroup av : vertexGroups) {
-      for (RootInputLeafOutput<OutputDescriptor> output : av.getOutputs()) {
-        for (Vertex member : av.getMembers()) {
-          member.addAdditionalOutput(output);
-        }
-      }
-    }
+    return this;
+  }
+  
+  public String getName() {
+    return this.name;
   }
   
   void checkAndInferOneToOneParallelism() {
@@ -324,16 +311,16 @@ public class DAG {
   //   In short term, the supported DAGs are limited. Call with restricted=true for these verifications.
   //   Illegal:
   //     - any vertex with more than one input or output edge. (n-ary input, n-ary merge)
-  public void verify() throws IllegalStateException {
+  @VisibleForTesting
+  void verify() throws IllegalStateException {
     verify(true);
   }
 
-  public void verify(boolean restricted) throws IllegalStateException {
+  @VisibleForTesting
+  void verify(boolean restricted) throws IllegalStateException {
     if (vertices.isEmpty()) {
       throw new IllegalStateException("Invalid dag containing 0 vertices");
     }
-
-    processEdgesAndGroups();
     
     // check for valid vertices, duplicate vertex names,
     // and prepare for cycle detection
