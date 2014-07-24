@@ -213,13 +213,13 @@ public class IntersectDataGen extends Configured implements Tool {
     Vertex genDataVertex = new Vertex("datagen", new ProcessorDescriptor(
         GenDataProcessor.class.getName()).setUserPayload(GenDataProcessor.createConfiguration(
         largeOutSizePerTask, smallOutSizePerTask)), numTasks, MRHelpers.getMapResource(tezConf));
-    genDataVertex.addOutput(STREAM_OUTPUT_NAME,
+    genDataVertex.addDataSink(STREAM_OUTPUT_NAME,
         new OutputDescriptor(MROutput.class.getName()).setUserPayload(streamOutputPayload),
         new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
-    genDataVertex.addOutput(HASH_OUTPUT_NAME,
+    genDataVertex.addDataSink(HASH_OUTPUT_NAME,
         new OutputDescriptor(MROutput.class.getName()).setUserPayload(hashOutputPayload),
         new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
-    genDataVertex.addOutput(EXPECTED_OUTPUT_NAME,
+    genDataVertex.addDataSink(EXPECTED_OUTPUT_NAME,
         new OutputDescriptor(MROutput.class.getName()).setUserPayload(expectedOutputPayload),
         new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
 

@@ -131,12 +131,12 @@ public class WordCount extends Configured implements Tool {
 
     Vertex tokenizerVertex = new Vertex("tokenizer", new ProcessorDescriptor(
         TokenProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf));
-    tokenizerVertex.addInput("MRInput", id, iid);
+    tokenizerVertex.addDataSource("MRInput", id, iid);
 
     Vertex summerVertex = new Vertex("summer",
         new ProcessorDescriptor(
             SumProcessor.class.getName()), 1, MRHelpers.getReduceResource(tezConf));
-    summerVertex.addOutput("MROutput", od, ocd);
+    summerVertex.addDataSink("MROutput", od, ocd);
 
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),

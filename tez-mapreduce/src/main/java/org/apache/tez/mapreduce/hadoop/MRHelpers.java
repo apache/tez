@@ -983,7 +983,7 @@ public class MRHelpers {
       InputInitializerDescriptor initClazz) {
     InputDescriptor id = new InputDescriptor(MRInputLegacy.class.getName())
         .setUserPayload(userPayload);
-    vertex.addInput("MRInput", id, initClazz);
+    vertex.addDataSource("MRInput", id, initClazz);
   }
 
   /**
@@ -998,14 +998,14 @@ public class MRHelpers {
   public static void addMROutput(Vertex vertex, byte[] userPayload) {
     OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
         .setUserPayload(userPayload);
-    vertex.addOutput("MROutput", od, new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
+    vertex.addDataSink("MROutput", od, new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
   }
 
   @Private
   public static void addMROutputLegacy(Vertex vertex, byte[] userPayload) {
     OutputDescriptor od = new OutputDescriptor(MROutputLegacy.class.getName())
         .setUserPayload(userPayload);
-    vertex.addOutput("MROutput", od, new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
+    vertex.addDataSink("MROutput", od, new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
   }
 
   @SuppressWarnings("unchecked")

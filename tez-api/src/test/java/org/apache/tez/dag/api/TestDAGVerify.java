@@ -482,7 +482,7 @@ public class TestDAGVerify {
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     
-    v2.addInput("v1", new InputDescriptor(), null);
+    v2.addDataSource("v1", new InputDescriptor(), null);
     
     Edge e1 = new Edge(v1, v2,
         new EdgeProperty(DataMovementType.SCATTER_GATHER, 
@@ -506,7 +506,7 @@ public class TestDAGVerify {
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     
-    v1.addOutput("v2", new OutputDescriptor(), null);
+    v1.addDataSink("v2", new OutputDescriptor(), null);
     
     Edge e1 = new Edge(v1, v2,
         new EdgeProperty(DataMovementType.SCATTER_GATHER, 
@@ -530,7 +530,7 @@ public class TestDAGVerify {
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     
-    v1.addOutput("v2", new OutputDescriptor(), null);
+    v1.addDataSink("v2", new OutputDescriptor(), null);
     
     DAG dag = new DAG("testDag");
     dag.addVertex(v1);
@@ -547,7 +547,7 @@ public class TestDAGVerify {
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     
-    v1.addInput("v2", new InputDescriptor(), null);
+    v1.addDataSource("v2", new InputDescriptor(), null);
     
     DAG dag = new DAG("testDag");
     dag.addVertex(v1);
@@ -606,7 +606,7 @@ public class TestDAGVerify {
     DAG dag = new DAG("testDag");
     VertexGroup uv12 = dag.createVertexGroup("uv12", v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor();
-    uv12.addOutput("uvOut", outDesc, null);
+    uv12.addDataSink("uvOut", outDesc, null);
     
     GroupInputEdge e1 = new GroupInputEdge(uv12, v3,
         new EdgeProperty(DataMovementType.SCATTER_GATHER, 
@@ -663,7 +663,7 @@ public class TestDAGVerify {
     String groupName1 = "uv12";
     VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor();
-    uv12.addOutput("uvOut", outDesc, null);
+    uv12.addDataSink("uvOut", outDesc, null);
     
     String groupName2 = "uv23";
     VertexGroup uv23 = dag.createVertexGroup(groupName2, v2, v3);
@@ -745,7 +745,7 @@ public class TestDAGVerify {
     String groupName1 = "uv12";
     VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor();
-    uv12.addOutput("uvOut", outDesc, null);
+    uv12.addDataSink("uvOut", outDesc, null);
     
     String groupName2 = "uv23";
     VertexGroup uv23 = dag.createVertexGroup(groupName2, v2, v3);
@@ -880,8 +880,8 @@ public class TestDAGVerify {
         .getBytes());
     InputDescriptor inputDescriptor2 = new InputDescriptor("input2").setUserPayload("inputBytes"
         .getBytes());
-    v1.addInput("input1", inputDescriptor1, null);
-    v1.addInput("input2", inputDescriptor2, null);
+    v1.addDataSource("input1", inputDescriptor1, null);
+    v1.addDataSource("input2", inputDescriptor2, null);
 
     dag.addVertex(v1);
 

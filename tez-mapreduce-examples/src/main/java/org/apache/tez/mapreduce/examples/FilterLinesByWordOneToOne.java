@@ -185,7 +185,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     // Configure the Input for stage1
     Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
         : MRInputAMSplitGenerator.class;
-    stage1Vertex.addInput("MRInput",
+    stage1Vertex.addDataSource("MRInput",
         new InputDescriptor(MRInputLegacy.class.getName())
             .setUserPayload(MRHelpers.createMRInputPayload(stage1Payload, null)),
             (initializerClazz==null ? null : new InputInitializerDescriptor(initializerClazz.getName())));
@@ -198,7 +198,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     stage2Vertex.setTaskLocalFiles(commonLocalResources);
 
     // Configure the Output for stage2
-    stage2Vertex.addOutput("MROutput",
+    stage2Vertex.addDataSink("MROutput",
         new OutputDescriptor(MROutput.class.getName()).setUserPayload(MRHelpers
             .createUserPayloadFromConf(stage2Conf)),
             new OutputCommitterDescriptor(MROutputCommitter.class.getName()));

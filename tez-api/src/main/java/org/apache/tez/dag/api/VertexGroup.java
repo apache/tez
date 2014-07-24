@@ -87,10 +87,10 @@ public class VertexGroup {
   }
   
   /**
-   * Add an common output to the group of vertices.
-   * Refer to {@link Vertex#addOutput(String, OutputDescriptor, OutputCommitterDescriptor)}
+   * Add an common data sink to the group of vertices.
+   * Refer to {@link Vertex#addDataSink(String, OutputDescriptor, OutputCommitterDescriptor)}
    */
-  public VertexGroup addOutput(String outputName, OutputDescriptor outputDescriptor,
+  public VertexGroup addDataSink(String outputName, OutputDescriptor outputDescriptor,
       @Nullable OutputCommitterDescriptor committerDescriptor) {
     RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> leafOutput = 
         new RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>(outputName,
@@ -99,7 +99,7 @@ public class VertexGroup {
     
     // also add output to its members
     for (Vertex member : getMembers()) {
-      member.addAdditionalOutput(leafOutput);
+      member.addAdditionalDataSink(leafOutput);
     }
     
     return this;

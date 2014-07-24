@@ -30,6 +30,8 @@ INCOMPATIBLE CHANGES
   TezRuntimeConfiguration (bikas)
   TEZ-1134. InputInitializer and OutputCommitter implicitly use payloads of
   the input and output (bikas)
+  TEZ-1312. rename vertex.addInput/Output() to vertex.addDataSource/Sink()
+  (Chen He via bikas)
 
 Release 0.4.0-incubating: 2014-04-05
 

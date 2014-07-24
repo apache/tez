@@ -180,7 +180,7 @@ public class TestDAGRecovery2 {
             .toUserPayload());
     OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(
         MultiAttemptDAG.FailingOutputCommitter.class.getName());
-    dag.getVertex("v3").addOutput("FailingOutput", od, ocd);
+    dag.getVertex("v3").addDataSink("FailingOutput", od, ocd);
     runDAGAndVerify(dag, State.FAILED);
   }
 

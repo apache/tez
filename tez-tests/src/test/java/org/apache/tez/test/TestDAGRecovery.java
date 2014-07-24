@@ -173,7 +173,7 @@ public class TestDAGRecovery {
   @Test(timeout=120000)
   public void testDelayedInit() throws Exception {
     DAG dag = SimpleVTestDAG.createDAG("DelayedInitDAG", null);
-    dag.getVertex("v1").addInput("i1",
+    dag.getVertex("v1").addDataSource("i1",
         new InputDescriptor(NoOpInput.class.getName()),
         new InputInitializerDescriptor(FailingInputInitializer.class.getName()));
     runDAGAndVerify(dag, State.SUCCEEDED);

@@ -184,17 +184,17 @@ public class UnionExample {
         numMaps, MRHelpers.getMapResource(tezConf));
     InputInitializerDescriptor iid = 
         new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName());
-    mapVertex1.addInput("MRInput", id, iid);
+    mapVertex1.addDataSource("MRInput", id, iid);
 
     Vertex mapVertex2 = new Vertex("map2", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
         numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex2.addInput("MRInput", id, iid);
+    mapVertex2.addDataSource("MRInput", id, iid);
 
     Vertex mapVertex3 = new Vertex("map3", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
         numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex3.addInput("MRInput", id, iid);
+    mapVertex3.addDataSource("MRInput", id, iid);
 
     Vertex checkerVertex = new Vertex("checker",
         new ProcessorDescriptor(
@@ -207,14 +207,14 @@ public class UnionExample {
       .setUserPayload(MROutput.createUserPayload(
           outputConf, TextOutputFormat.class.getName(), true));
     OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(MROutputCommitter.class.getName());
-    checkerVertex.addOutput("union", od, ocd);
+    checkerVertex.addDataSink("union", od, ocd);
 
     Configuration allPartsConf = new Configuration(tezConf);
     allPartsConf.set(FileOutputFormat.OUTDIR, outputPath+"-all-parts");
     OutputDescriptor od2 = new OutputDescriptor(MROutput.class.getName())
       .setUserPayload(MROutput.createUserPayload(
           allPartsConf, TextOutputFormat.class.getName(), true));
-    checkerVertex.addOutput("all-parts", od2, ocd);
+    checkerVertex.addDataSink("all-parts", od2, ocd);
 
     Configuration partsConf = new Configuration(tezConf);
     partsConf.set(FileOutputFormat.OUTDIR, outputPath+"-parts");
@@ -223,7 +223,7 @@ public class UnionExample {
     OutputDescriptor od1 = new OutputDescriptor(MROutput.class.getName())
       .setUserPayload(MROutput.createUserPayload(
           partsConf, TextOutputFormat.class.getName(), true));
-    unionVertex.addOutput("parts", od1, ocd);
+    unionVertex.addDataSink("parts", od1, ocd);
 
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),

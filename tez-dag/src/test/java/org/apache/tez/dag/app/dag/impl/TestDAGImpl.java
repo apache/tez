@@ -360,8 +360,8 @@ public class TestDAGImpl {
         TotalCountingOutputCommitter.class.getName());
     org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor("output.class");
-    uv12.addOutput("uvOut", outDesc, ocd);
-    v3.addOutput("uvOut", outDesc, ocd);
+    uv12.addDataSink("uvOut", outDesc, ocd);
+    v3.addDataSink("uvOut", outDesc, ocd);
     
     GroupInputEdge e1 = new GroupInputEdge(uv12, v3,
         new EdgeProperty(DataMovementType.SCATTER_GATHER, 

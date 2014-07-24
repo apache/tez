@@ -212,21 +212,21 @@ public class IntersectExample extends Configured implements Tool {
     // Change the way resources are setup - no MRHelpers
     Vertex streamFileVertex = new Vertex("partitioner1",
         new ProcessorDescriptor(ForwardingProcessor.class.getName()), -1,
-        MRHelpers.getMapResource(tezConf)).addInput("streamfile",
+        MRHelpers.getMapResource(tezConf)).addDataSource("streamfile",
         new InputDescriptor(MRInput.class.getName())
             .setUserPayload(streamInputPayload), 
             new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
 
     Vertex hashFileVertex = new Vertex("partitioner2", new ProcessorDescriptor(
         ForwardingProcessor.class.getName()), -1,
-        MRHelpers.getMapResource(tezConf)).addInput("hashfile",
+        MRHelpers.getMapResource(tezConf)).addDataSource("hashfile",
         new InputDescriptor(MRInput.class.getName())
             .setUserPayload(hashInputPayload), 
             new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
 
     Vertex intersectVertex = new Vertex("intersect", new ProcessorDescriptor(
         IntersectProcessor.class.getName()), numPartitions,
-        MRHelpers.getReduceResource(tezConf)).addOutput("finalOutput",
+        MRHelpers.getReduceResource(tezConf)).addDataSink("finalOutput",
         new OutputDescriptor(MROutput.class.getName())
             .setUserPayload(finalOutputPayload), 
         new OutputCommitterDescriptor(MROutputCommitter.class.getName()));

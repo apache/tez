@@ -94,7 +94,7 @@ public class MRInput extends MRInputBase {
    *          the InputFormat will be grouped in the AM based on available
    *          resources, locality etc. This option may be set to true only when
    *          using MRInputAMSplitGenerator as the initializer class in
-   *          {@link Vertex#addInput(String, org.apache.tez.dag.api.InputDescriptor, 
+   *          {@link Vertex#addDataSource(String, org.apache.tez.dag.api.InputDescriptor, 
    *          org.apache.tez.dag.api.InputInitializerDescriptor)}
    * @return returns the user payload to be set on the InputDescriptor of
    *         MRInput

@@ -54,7 +54,7 @@ public class TestDAGUtils {
     org.apache.tez.dag.api.Vertex v1 = new org.apache.tez.dag.api.Vertex("vertex1",
         new ProcessorDescriptor("Processor").setHistoryText("vertex1 Processor HistoryText"),
         dummyTaskCount, dummyTaskResource);
-    v1.addInput("input1", new InputDescriptor("input.class").setHistoryText("input HistoryText"),
+    v1.addDataSource("input1", new InputDescriptor("input.class").setHistoryText("input HistoryText"),
         null);
     org.apache.tez.dag.api.Vertex v2 = new org.apache.tez.dag.api.Vertex("vertex2",
         new ProcessorDescriptor("Processor").setHistoryText("vertex2 Processor HistoryText"),
@@ -69,8 +69,8 @@ public class TestDAGUtils {
     OutputDescriptor outDesc = new OutputDescriptor("output.class")
         .setHistoryText("uvOut HistoryText");
     OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(OutputCommitter.class.getName());
-    uv12.addOutput("uvOut", outDesc, ocd);
-    v3.addOutput("uvOut", outDesc, ocd);
+    uv12.addDataSink("uvOut", outDesc, ocd);
+    v3.addDataSink("uvOut", outDesc, ocd);
 
     GroupInputEdge e1 = new GroupInputEdge(uv12, v3,
         new EdgeProperty(DataMovementType.SCATTER_GATHER,

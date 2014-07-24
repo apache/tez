@@ -199,7 +199,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     // Configure the Input for stage1
     Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
         : MRInputAMSplitGenerator.class;
-    stage1Vertex.addInput("MRInput",
+    stage1Vertex.addDataSource("MRInput",
         new InputDescriptor(MRInputLegacy.class.getName())
             .setUserPayload(MRHelpers.createMRInputPayload(stage1Payload, null)),
         (initializerClazz==null ? null : new InputInitializerDescriptor(initializerClazz.getName())));
@@ -215,7 +215,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
         .setUserPayload(MRHelpers.createUserPayloadFromConf(stage2Conf));
     OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(MROutputCommitter.class.getName());
-    stage2Vertex.addOutput("MROutput", od, ocd);
+    stage2Vertex.addDataSink("MROutput", od, ocd);
 
     UnorderedUnpartitionedKVEdgeConfigurer edgeConf = UnorderedUnpartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();

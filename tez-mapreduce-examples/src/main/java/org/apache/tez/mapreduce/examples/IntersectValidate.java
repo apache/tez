@@ -212,13 +212,13 @@ public class IntersectValidate extends Configured implements Tool {
     // Change the way resources are setup - no MRHelpers
     Vertex lhsVertex = new Vertex(LHS_INPUT_NAME, new ProcessorDescriptor(
         ForwardingProcessor.class.getName()), -1,
-        MRHelpers.getMapResource(tezConf)).addInput("lhs", new InputDescriptor(
+        MRHelpers.getMapResource(tezConf)).addDataSource("lhs", new InputDescriptor(
         MRInput.class.getName()).setUserPayload(streamInputPayload),
         new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
 
     Vertex rhsVertex = new Vertex(RHS_INPUT_NAME, new ProcessorDescriptor(
         ForwardingProcessor.class.getName()), -1,
-        MRHelpers.getMapResource(tezConf)).addInput("rhs", new InputDescriptor(
+        MRHelpers.getMapResource(tezConf)).addDataSource("rhs", new InputDescriptor(
         MRInput.class.getName()).setUserPayload(hashInputPayload),
         new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
 
