@@ -31,7 +31,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ReflectionUtils;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezEntityDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
@@ -74,8 +74,8 @@ public class MemoryDistributor {
    */
   public MemoryDistributor(int numTotalInputs, int numTotalOutputs, Configuration conf) {
     this.conf = conf;
-    isEnabled = conf.getBoolean(TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_ENABLED,
-        TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_ENABLED_DEFAULT);
+    isEnabled = conf.getBoolean(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ENABLED,
+        TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ENABLED_DEFAULT);
     
 
     this.numTotalInputs = numTotalInputs;
@@ -93,7 +93,7 @@ public class MemoryDistributor {
    * Used by the Tez framework to request memory on behalf of user requests.
    */
   public void requestMemory(long requestSize, MemoryUpdateCallback callback,
-      TezTaskContext taskContext, TezEntityDescriptor descriptor) {
+      TezTaskContext taskContext, TezEntityDescriptor<?> descriptor) {
     registerRequest(requestSize, callback, taskContext, descriptor);
   }
   
@@ -119,8 +119,8 @@ public class MemoryDistributor {
         }
       });
     } else {
-      String allocatorClassName = conf.get(TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_ALLOCATOR_CLASS,
-          TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_ALLOCATOR_CLASS_DEFAULT);
+      String allocatorClassName = conf.get(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS,
+          TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS_DEFAULT);
       LOG.info("Using Allocator class: " + allocatorClassName);
       InitialMemoryAllocator allocator = ReflectionUtils.createClazzInstance(allocatorClassName);
       allocator.setConf(conf);
@@ -154,7 +154,7 @@ public class MemoryDistributor {
   }
 
   private long registerRequest(long requestSize, MemoryUpdateCallback callback,
-      TezTaskContext entityContext, TezEntityDescriptor descriptor) {
+      TezTaskContext entityContext, TezEntityDescriptor<?> descriptor) {
     Preconditions.checkArgument(requestSize >= 0);
     Preconditions.checkNotNull(callback);
     Preconditions.checkNotNull(entityContext);
@@ -211,7 +211,7 @@ public class MemoryDistributor {
     private final InitialMemoryRequestContext requestContext;
 
     public RequestorInfo(TezTaskContext taskContext, long requestSize,
-        final MemoryUpdateCallback callback, TezEntityDescriptor descriptor) {
+        final MemoryUpdateCallback callback, TezEntityDescriptor<?> descriptor) {
       InitialMemoryRequestContext.ComponentType type;
       String componentVertexName;
       if (taskContext instanceof TezInputContext) {

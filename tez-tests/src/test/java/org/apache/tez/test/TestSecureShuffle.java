@@ -32,8 +32,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.security.ssl.KeyStoreTestUtil;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.mapreduce.examples.OrderedWordCount;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -68,8 +68,8 @@ public class TestSecureShuffle {
     conf.set("fs.defaultFS", fs.getUri().toString());
 
     // 15 seconds should be good enough in local machine
-    conf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT, 15 * 1000);
-    conf.setInt(TezJobConfig.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 15 * 1000);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT, 15 * 1000);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 15 * 1000);
 
     miniTezCluster =
         new MiniTezCluster(TestSecureShuffle.class.getName(), 3, 3, 1);
@@ -87,7 +87,7 @@ public class TestSecureShuffle {
   @Test(timeout = 60000)
   public void testSecureShuffle() throws Exception {
     miniTezCluster.getConfig().setBoolean(
-      TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, true);
+      TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, true);
 
     OrderedWordCount wordCount = new OrderedWordCount();
     wordCount.setConf(new Configuration(miniTezCluster.getConfig()));

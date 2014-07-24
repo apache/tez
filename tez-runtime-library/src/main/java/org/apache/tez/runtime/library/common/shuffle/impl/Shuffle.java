@@ -40,7 +40,6 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
@@ -48,6 +47,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.combine.Combiner;
@@ -133,12 +133,12 @@ public class Shuffle implements ExceptionReporter {
       codec = null;
     }
     this.ifileReadAhead = conf.getBoolean(
-        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
-        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT);
+        TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
+        TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT);
     if (this.ifileReadAhead) {
       this.ifileReadAheadLength = conf.getInt(
-          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
-          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT);
+          TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
+          TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT);
     } else {
       this.ifileReadAheadLength = 0;
     }
@@ -173,8 +173,8 @@ public class Shuffle implements ExceptionReporter {
         + (codec == null ? "None" : codec.getClass().getName()) + 
         "ifileReadAhead: " + ifileReadAhead);
 
-    boolean sslShuffle = conf.getBoolean(TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
-      TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT);
+    boolean sslShuffle = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
+      TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT);
     scheduler = new ShuffleScheduler(
           this.inputContext,
           this.conf,
@@ -210,8 +210,8 @@ public class Shuffle implements ExceptionReporter {
 
     int configuredNumFetchers = 
         conf.getInt(
-            TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES, 
-            TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES_DEFAULT);
+            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES, 
+            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES_DEFAULT);
     numFetchers = Math.min(configuredNumFetchers, numInputs);
     LOG.info("Num fetchers being started: " + numFetchers);
     fetchers = Lists.newArrayListWithCapacity(numFetchers);

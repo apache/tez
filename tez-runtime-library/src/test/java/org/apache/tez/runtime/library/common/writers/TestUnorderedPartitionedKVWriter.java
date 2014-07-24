@@ -58,7 +58,6 @@ import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezCommonUtils;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
@@ -68,6 +67,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.library.api.Partitioner;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
@@ -633,16 +633,16 @@ public class TestUnorderedPartitionedKVWriter {
       Class<? extends Partitioner> partitionerClass) {
     Configuration conf = new Configuration(false);
     conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, outputContext.getWorkDirs());
-    conf.set(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, keyClass.getName());
-    conf.set(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, valClass.getName());
-    conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, partitionerClass.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, keyClass.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, valClass.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, partitionerClass.getName());
     if (maxSingleBufferSizeBytes >= 0) {
-      conf.setInt(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES,
+      conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES,
           maxSingleBufferSizeBytes);
     }
-    conf.setBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS, shouldCompress);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, shouldCompress);
     if (shouldCompress) {
-      conf.set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC,
+      conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC,
           DefaultCodec.class.getName());
     }
     return conf;

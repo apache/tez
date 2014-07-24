@@ -26,11 +26,12 @@ import java.util.Map;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 
@@ -208,49 +209,49 @@ public class ShuffledUnorderedKVInputConfiguration {
     @InterfaceAudience.Private
     Builder() {
       Map<String, String> tezDefaults = ConfigUtils
-          .extractConfigurationMap(TezJobConfig.getTezRuntimeConfigDefaults(),
+          .extractConfigurationMap(TezRuntimeConfiguration.getTezRuntimeConfigDefaults(),
               ShuffledUnorderedKVInput.getConfigurationKeySet());
       ConfigUtils.addConfigMapToConfiguration(this.conf, tezDefaults);
-      ConfigUtils.addConfigMapToConfiguration(this.conf, TezJobConfig.getOtherConfigDefaults());
+      ConfigUtils.addConfigMapToConfiguration(this.conf, TezRuntimeConfiguration.getOtherConfigDefaults());
     }
 
     @InterfaceAudience.Private
     Builder setKeyClassName(String keyClassName) {
       Preconditions.checkNotNull(keyClassName, "Key class name cannot be null");
-      this.conf.set(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, keyClassName);
+      this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, keyClassName);
       return this;
     }
 
     @InterfaceAudience.Private
     Builder setValueClassName(String valueClassName) {
       Preconditions.checkNotNull(valueClassName, "Value class name cannot be null");
-      this.conf.set(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, valueClassName);
+      this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, valueClassName);
       return this;
     }
 
     @Override
     public Builder setShuffleBufferFraction(float shuffleBufferFraction) {
       this.conf
-          .setFloat(TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, shuffleBufferFraction);
+          .setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, shuffleBufferFraction);
       return this;
     }
 
     @Override
     public Builder setMaxSingleMemorySegmentFraction(float maxSingleSegmentFraction) {
-      this.conf.setFloat(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT,
+      this.conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT,
           maxSingleSegmentFraction);
       return this;
     }
 
     @Override
     public Builder setMergeFraction(float mergeFraction) {
-      this.conf.setFloat(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, mergeFraction);
+      this.conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, mergeFraction);
       return this;
     }
 
     @Override
     public Builder enableEncryptedTransfer() {
-      this.conf.setBoolean(TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, true);
+      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, true);
       return this;
     }
 
@@ -259,8 +260,8 @@ public class ShuffledUnorderedKVInputConfiguration {
       Preconditions.checkNotNull(key, "Key cannot be null");
       if (ConfigUtils.doesKeyQualify(key,
           Lists.newArrayList(ShuffledUnorderedKVInput.getConfigurationKeySet(),
-              TezJobConfig.getRuntimeAdditionalConfigKeySet()),
-          TezJobConfig.getAllowedPrefixes())) {
+              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()),
+          TezRuntimeConfiguration.getAllowedPrefixes())) {
         if (value == null) {
           this.conf.unset(key);
         } else {
@@ -275,7 +276,7 @@ public class ShuffledUnorderedKVInputConfiguration {
       Preconditions.checkNotNull(confMap, "ConfMap cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(confMap,
           Lists.newArrayList(ShuffledUnorderedKVInput.getConfigurationKeySet(),
-              TezJobConfig.getRuntimeAdditionalConfigKeySet()), TezJobConfig.getAllowedPrefixes());
+              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
     }
@@ -286,16 +287,16 @@ public class ShuffledUnorderedKVInputConfiguration {
       Preconditions.checkArgument(conf != null, "Configuration cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
           Lists.newArrayList(ShuffledUnorderedKVInput.getConfigurationKeySet(),
-              TezJobConfig.getRuntimeAdditionalConfigKeySet()), TezJobConfig.getAllowedPrefixes());
+              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
     }
 
     public Builder enableCompression(String compressionCodec) {
-      this.conf.setBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS, true);
+      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, true);
       if (compressionCodec != null) {
         this.conf
-            .set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, compressionCodec);
+            .set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, compressionCodec);
       }
       return this;
     }

@@ -18,14 +18,13 @@
 package org.apache.tez.runtime.library.api;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
 
 /**
  * {@link Partitioner} is used by the TEZ framework to partition output
  * key/value pairs.
  * 
  * <b>Partitioner Initialization</b></p> The Partitioner class is picked up
- * using the TEZ_RUNTIME_PARTITIONER_CLASS attribute in {@link TezJobConfig}
+ * using the TEZ_RUNTIME_PARTITIONER_CLASS attribute in {@link TezRuntimeConfiguration}
  * 
  * TODO NEWTEZ Change construction to first check for a Constructor with a bytep[] payload
  * 

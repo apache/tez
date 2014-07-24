@@ -75,7 +75,6 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Level;
 import org.apache.tez.common.TezCommonUtils;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.common.impl.LogUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -200,7 +199,7 @@ public class TezClientUtils {
 
   static void processTezLocalCredentialsFile(Credentials credentials, Configuration conf)
       throws IOException {
-    String path = conf.get(TezJobConfig.TEZ_CREDENTIALS_PATH);
+    String path = conf.get(TezConfiguration.TEZ_CREDENTIALS_PATH);
     if (path == null) {
       return;
     } else {

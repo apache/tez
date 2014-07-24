@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.dag.api.TezConfiguration;
 
 @InterfaceAudience.Private
 public class Limits {
@@ -44,17 +44,17 @@ public class Limits {
       conf = new Configuration();
     }
     GROUP_NAME_MAX =
-        conf.getInt(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_KEY,
-            TezJobConfig.TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_DEFAULT);
+        conf.getInt(TezConfiguration.TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS,
+            TezConfiguration.TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS_DEFAULT);
     COUNTER_NAME_MAX =
-        conf.getInt(TezJobConfig.TEZ_RUNTIME_COUNTER_NAME_MAX_KEY,
-            TezJobConfig.TEZ_RUNTIME_COUNTER_NAME_MAX_DEFAULT);
+        conf.getInt(TezConfiguration.TEZ_AM_COUNTERS_NAME_MAX_KEYS,
+            TezConfiguration.TEZ_AM_COUNTERS_NAME_MAX_KEYS_DEFAULT);
     GROUPS_MAX =
-        conf.getInt(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUPS_MAX_KEY,
-            TezJobConfig.TEZ_RUNTIME_COUNTER_GROUPS_MAX_DEFAULT);
+        conf.getInt(TezConfiguration.TEZ_AM_COUNTERS_GROUPS_MAX_KEYS,
+            TezConfiguration.TEZ_AM_COUNTERS_GROUPS_MAX_KEYS_DEFAULT);
     COUNTERS_MAX =
-        conf.getInt(TezJobConfig.TEZ_RUNTIME_COUNTERS_MAX_KEY, TezJobConfig.
-            TEZ_RUNTIME_COUNTERS_MAX_DEFAULT);
+        conf.getInt(TezConfiguration.TEZ_AM_COUNTERS_MAX_KEYS, 
+            TezConfiguration.TEZ_AM_COUNTERS_MAX_KEYS_DEFAULT);
     initialized = true;
     LOG.info("Counter limits initialized with parameters: " + " GROUP_NAME_MAX=" + GROUP_NAME_MAX
         + ", MAX_GROUPS=" + GROUPS_MAX + ", COUNTER_NAME_MAX=" + COUNTER_NAME_MAX

@@ -24,9 +24,8 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.dag.api.TezConfiguration;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -35,9 +34,6 @@ import com.google.common.collect.Lists;
 public class ScalingAllocator implements InitialMemoryAllocator {
 
   private static final Log LOG = LogFactory.getLog(ScalingAllocator.class);
-
-  @VisibleForTesting
-  static final double DEFAULT_RESERVE_FRACTION = 0.3d;
 
   private Configuration conf;
 
@@ -53,8 +49,8 @@ public class ScalingAllocator implements InitialMemoryAllocator {
     }
 
     // Take a certain amount of memory away for general usage.
-    double reserveFraction = conf.getDouble(TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_RESERVE_FRACTION,
-        DEFAULT_RESERVE_FRACTION);
+    double reserveFraction = conf.getDouble(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION,
+        TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION_DEFAULT);
     Preconditions.checkState(reserveFraction >= 0.0d && reserveFraction <= 1.0d);
     availableForAllocation = (long) (availableForAllocation - (reserveFraction * availableForAllocation));
 

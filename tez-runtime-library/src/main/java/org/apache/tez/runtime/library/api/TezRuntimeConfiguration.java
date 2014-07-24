@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.common;
+package org.apache.tez.runtime.library.api;
 
 
 
@@ -43,7 +43,7 @@ import org.apache.hadoop.conf.Configuration;
 // TODO EVENTUALLY A description for each property.
 @InterfaceAudience.Public
 @Evolving
-public class TezJobConfig {
+public class TezRuntimeConfiguration {
 
   private static final String TEZ_RUNTIME_PREFIX = "tez.runtime.";
 
@@ -144,25 +144,6 @@ public class TezJobConfig {
    * Specifies a combiner class (primarily for Shuffle)
    */
   public static final String TEZ_RUNTIME_COMBINER_CLASS = TEZ_RUNTIME_PREFIX + "combiner.class";
-
-  public static final String TEZ_RUNTIME_COUNTERS_MAX_KEY = TEZ_RUNTIME_PREFIX + "job.counters.max";
-  public static final int TEZ_RUNTIME_COUNTERS_MAX_DEFAULT = 1200;
-
-
-  public static final String TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_KEY =
-      TEZ_RUNTIME_PREFIX + "job.counters.group.name.max";
-  public static final int TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_DEFAULT = 128;
-
-
-  public static final String TEZ_RUNTIME_COUNTER_NAME_MAX_KEY =
-      TEZ_RUNTIME_PREFIX + "job.counters.counter.name.max";
-  public static final int TEZ_RUNTIME_COUNTER_NAME_MAX_DEFAULT = 64;
-
-
-  public static final String TEZ_RUNTIME_COUNTER_GROUPS_MAX_KEY =
-      TEZ_RUNTIME_PREFIX + "job.counters.groups.max";
-  public static final int TEZ_RUNTIME_COUNTER_GROUPS_MAX_DEFAULT = 500;
-
 
   public static final String TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES = TEZ_RUNTIME_PREFIX +
       "shuffle.parallel.copies";
@@ -289,73 +270,6 @@ public class TezJobConfig {
   // TODO TEZ-1233 - allow this property to be set per vertex
   // TODO TEZ-1231 - move these properties out since they are not relevant for Inputs / Outputs
 
-  /**
-   * Defines the ProcessTree implementation which will be used to collect resource utilization.
-   */
-  public static final String TEZ_RUNTIME_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS =
-      TEZ_RUNTIME_PREFIX + "resource.calculator.process-tree.class";
-
-  /**
-   * Whether to scale down memory requested by each component if the total
-   * exceeds the available JVM memory
-   */
-  @Private
-  @Unstable
-  public static final String TEZ_RUNTIME_SCALE_TASK_MEMORY_ENABLED = TEZ_RUNTIME_PREFIX
-      + "scale.task.memory.enabled";
-  public static final boolean TEZ_RUNTIME_SCALE_TASK_MEMORY_ENABLED_DEFAULT = true;
-
-  /**
-   * The allocator to use for initial memory allocation
-   */
-  @Private
-  @Unstable
-  public static final String TEZ_RUNTIME_SCALE_TASK_MEMORY_ALLOCATOR_CLASS = TEZ_RUNTIME_PREFIX
-      + "scale.task.memory.allocator.class";
-  public static final String TEZ_RUNTIME_SCALE_TASK_MEMORY_ALLOCATOR_CLASS_DEFAULT =
-      "org.apache.tez.runtime.common.resources.ScalingAllocator";
-
-  /**
-   * The fraction of the JVM memory which will not be considered for allocation.
-   * No defaults, since there are pre-existing defaults based on different scenarios.
-   */
-  @Private
-  @Unstable
-  public static final String TEZ_RUNTIME_SCALE_TASK_MEMORY_RESERVE_FRACTION = TEZ_RUNTIME_PREFIX
-      + "scale.task.memory.reserve-fraction";
-
-  /**
-   * Fraction of available memory to reserve per input/output. This amount is
-   * removed from the total available pool before allocation and is for factoring in overheads.
-   */
-  @Private
-  @Unstable
-  public static final String TEZ_RUNTIME_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO =
-      TEZ_RUNTIME_PREFIX
-          + "scale.task.memory.additional.reservation.fraction.per-io";
-
-  /**
-   * Max cumulative total reservation for additional IOs.
-   */
-  public static final String TEZ_RUNTIME_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX =
-      TEZ_RUNTIME_PREFIX
-          + "scale.task.memory.additional reservation.fraction.max";
-  /*
-   * Weighted ratios for individual component types in the RuntimeLibrary.
-   * e.g. PARTITIONED_UNSORTED_OUTPUT:0,UNSORTED_INPUT:1,SORTED_OUTPUT:2,SORTED_MERGED_INPUT:3,PROCESSOR:1,OTHER:1
-   */
-  @Private
-  @Unstable
-  public static final String TEZ_RUNTIME_SCALE_TASK_MEMORY_WEIGHTED_RATIOS = TEZ_RUNTIME_PREFIX
-      + "scale.task.memory.ratios";
-
-  /**
-   * Path to a credentials file located on the local file system with serialized credentials.
-   * Note: This property does not follow the standard convention of including tez.runtime in it's
-   * name.
-   */
-  public static final String TEZ_CREDENTIALS_PATH = "tez.credentials.path";
-
 
   @Unstable
   @Private
@@ -377,10 +291,6 @@ public class TezJobConfig {
     tezRuntimeKeys.add(TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES);
     tezRuntimeKeys.add(TEZ_RUNTIME_PARTITIONER_CLASS);
     tezRuntimeKeys.add(TEZ_RUNTIME_COMBINER_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_COUNTERS_MAX_KEY);
-    tezRuntimeKeys.add(TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_KEY);
-    tezRuntimeKeys.add(TEZ_RUNTIME_COUNTER_NAME_MAX_KEY);
-    tezRuntimeKeys.add(TEZ_RUNTIME_COUNTER_GROUPS_MAX_KEY);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE);
@@ -408,14 +318,6 @@ public class TezJobConfig {
     tezRuntimeKeys.add(TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED);
     tezRuntimeKeys.add(TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED);
     tezRuntimeKeys.add(TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_MAX_SIZE);
-    tezRuntimeKeys.add(TEZ_RUNTIME_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SCALE_TASK_MEMORY_ENABLED);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SCALE_TASK_MEMORY_ALLOCATOR_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SCALE_TASK_MEMORY_RESERVE_FRACTION);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SCALE_TASK_MEMORY_WEIGHTED_RATIOS);
-    tezRuntimeKeys.add(TEZ_CREDENTIALS_PATH);
     tezRuntimeKeys.add(TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS);
 
     defaultConf.addResource("core-default.xml");

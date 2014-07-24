@@ -18,7 +18,7 @@
  *
  */
 
-package org.apache.tez.common;
+package org.apache.tez.runtime.library.api;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -27,14 +27,15 @@ import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
-public class TestTezJobConfig {
+public class TestTezRuntimeConfiguration {
 
 
   @Test
   public void testKeySet() throws IllegalAccessException {
-    Class<?> c = TezJobConfig.class;
+    Class<?> c = TezRuntimeConfiguration.class;
     Set<String> expectedKeys = new HashSet<String>();
     for (Field f : c.getFields()) {
       if (!f.getName().endsWith("DEFAULT") && f.getType() == String.class) {
@@ -42,7 +43,7 @@ public class TestTezJobConfig {
       }
     }
 
-    Set<String> actualKeySet = TezJobConfig.getRuntimeConfigKeySet();
+    Set<String> actualKeySet = TezRuntimeConfiguration.getRuntimeConfigKeySet();
     for (String key : actualKeySet) {
       if (!expectedKeys.remove(key)) {
         fail("Found unexpected key: " + key + " in key set");

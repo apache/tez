@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
 public class TestOnFileUnorderedPartitionedKVOutput {
@@ -65,11 +65,11 @@ public class TestOnFileUnorderedPartitionedKVOutput {
   public void testSetters() {
     Configuration fromConf = new Configuration(false);
     fromConf.set("test.conf.key.1", "confkey1");
-    fromConf.setInt(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, 1111);
+    fromConf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, 1111);
     fromConf.set("io.shouldExist", "io");
     Map<String, String> additionalConf = new HashMap<String, String>();
     additionalConf.put("test.key.2", "key2");
-    additionalConf.put(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, "2222");
+    additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, "2222");
     additionalConf.put("file.shouldExist", "file");
     OnFileUnorderedPartitionedKVOutputConfiguration.Builder builder =
         OnFileUnorderedPartitionedKVOutputConfiguration.newBuilder("KEY", "VALUE", "PARTITIONER",
@@ -78,7 +78,7 @@ public class TestOnFileUnorderedPartitionedKVOutput {
             .setAvailableBufferSize(1111)
             .setAdditionalConfiguration("fs.shouldExist", "fs")
             .setAdditionalConfiguration("test.key.1", "key1")
-            .setAdditionalConfiguration(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
+            .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
                 String.valueOf(false))
             .setAdditionalConfiguration(additionalConf)
             .setFromConfiguration(fromConf);
@@ -94,22 +94,22 @@ public class TestOnFileUnorderedPartitionedKVOutput {
     Configuration conf = rebuilt.conf;
 
     // Verify programmatic API usage
-    assertEquals(1111, conf.getInt(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB, 0));
-    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
-    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
-    assertEquals("PARTITIONER", conf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
+    assertEquals(1111, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB, 0));
+    assertEquals("KEY", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
+    assertEquals("PARTITIONER", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
     assertEquals("CustomCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
-    assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS,
+        conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertEquals(true, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
         false));
 
     // Verify additional configs
-    assertEquals(false, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
-        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
-    assertEquals(1111, conf.getInt(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
-        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT));
+    assertEquals(false, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
+        TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
+    assertEquals(1111, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
+        TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT));
     assertEquals(2222,
-        conf.getInt(TezJobConfig.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, 0));
+        conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, 0));
     assertEquals("io", conf.get("io.shouldExist"));
     assertEquals("file", conf.get("file.shouldExist"));
     assertEquals("fs", conf.get("fs.shouldExist"));
@@ -132,17 +132,17 @@ public class TestOnFileUnorderedPartitionedKVOutput {
 
     Configuration conf = rebuilt.conf;
 
-    assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
-        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
+    assertEquals(true, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
+        TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
 
     // Default property present.
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+        conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     // Verify whatever was configured
-    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
-    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
-    assertEquals("PARTITIONER", conf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
+    assertEquals("KEY", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
+    assertEquals("PARTITIONER", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
   }
 
   @Test
@@ -150,7 +150,7 @@ public class TestOnFileUnorderedPartitionedKVOutput {
     Configuration partitionerConf = new Configuration(false);
     partitionerConf.set("partitioner.test.key", "PARTITIONERKEY");
     partitionerConf
-        .set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
+        .set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
     OnFileUnorderedPartitionedKVOutputConfiguration.Builder builder =
         OnFileUnorderedPartitionedKVOutputConfiguration
             .newBuilder("KEY", "VALUE", "PARTITIONER", partitionerConf);
@@ -166,7 +166,7 @@ public class TestOnFileUnorderedPartitionedKVOutput {
 
     // Default Output property should not be overridden based on partitioner config
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+        conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     assertEquals("PARTITIONERKEY", conf.get("partitioner.test.key"));
   }

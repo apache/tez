@@ -22,8 +22,8 @@ import org.apache.hadoop.metrics.MetricsContext;
 import org.apache.hadoop.metrics.MetricsRecord;
 import org.apache.hadoop.metrics.MetricsUtil;
 import org.apache.hadoop.metrics.Updater;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 
@@ -40,8 +40,8 @@ class ShuffleClientMetrics implements Updater {
       String user) {
     this.numCopiers = 
         conf.getInt(
-            TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES, 
-            TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES_DEFAULT);
+            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES, 
+            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES_DEFAULT);
 
     MetricsContext metricsContext = MetricsUtil.getContext(Constants.TEZ);
     this.shuffleMetrics = 

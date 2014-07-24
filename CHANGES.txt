@@ -26,6 +26,8 @@ INCOMPATIBLE CHANGES
   TEZ-1269. TaskScheduler prematurely releases containers
   TEZ-857. Split Input/Output interfaces into user/framework components.
   TEZ-866. Add a TezMergedInputContext for MergedInputs (bikas)
+  TEZ-1137. Move TezJobConfig to runtime-library and rename to
+  TezRuntimeConfiguration (bikas)
 
 Release 0.4.0-incubating: 2014-04-05
 

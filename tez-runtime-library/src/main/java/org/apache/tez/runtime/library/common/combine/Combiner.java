@@ -22,13 +22,13 @@ import java.io.IOException;
 
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 
 /**
  *<b>Combiner Initialization</b></p> The Combiner class is picked up
- * using the TEZ_RUNTIME_COMBINER_CLASS attribute in {@link TezJobConfig}
+ * using the TEZ_RUNTIME_COMBINER_CLASS attribute in {@link TezRuntimeConfiguration}
  * 
  * 
  * Partitioners need to provide a single argument ({@link TezRawKeyValueIterator})

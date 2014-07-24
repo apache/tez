@@ -31,14 +31,15 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.library.api.KeyValueReader;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.readers.ShuffledUnorderedKVReader;
@@ -108,17 +109,17 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
         codec = null;
       }
 
-      boolean ifileReadAhead = conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
-          TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT);
+      boolean ifileReadAhead = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
+          TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT);
       int ifileReadAheadLength = 0;
       int ifileBufferSize = 0;
 
       if (ifileReadAhead) {
-        ifileReadAheadLength = conf.getInt(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
-            TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT);
+        ifileReadAheadLength = conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
+            TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT);
       }
       ifileBufferSize = conf.getInt("io.file.buffer.size",
-          TezJobConfig.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
+          TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
 
       this.inputManager = new SimpleFetchedInputAllocator(getContext().getUniqueIdentifier(), conf,
           getContext().getTotalMemoryAvailableToTask(),
@@ -215,32 +216,32 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
   private static final Set<String> confKeys = new HashSet<String>();
 
   static {
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTERS_MAX_KEY);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_KEY);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_NAME_MAX_KEY);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUPS_MAX_KEY);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_KEY_CLASS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COMPRESS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC);
+    confKeys.add(TezConfiguration.TEZ_AM_COUNTERS_MAX_KEYS);
+    confKeys.add(TezConfiguration.TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS);
+    confKeys.add(TezConfiguration.TEZ_AM_COUNTERS_NAME_MAX_KEYS);
+    confKeys.add(TezConfiguration.TEZ_AM_COUNTERS_GROUPS_MAX_KEYS);
   }
 
   // TODO Maybe add helper methods to extract keys

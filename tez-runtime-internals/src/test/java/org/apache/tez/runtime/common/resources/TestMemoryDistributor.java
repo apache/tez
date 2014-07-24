@@ -24,10 +24,10 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.TezOutputContext;
@@ -41,8 +41,8 @@ public class TestMemoryDistributor {
   
   @Before
   public void setup() {
-    conf.setBoolean(TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_ENABLED, true);
-    conf.set(TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_ALLOCATOR_CLASS,
+    conf.setBoolean(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ENABLED, true);
+    conf.set(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS,
         ScalingAllocator.class.getName());
   }
   
@@ -151,7 +151,7 @@ public class TestMemoryDistributor {
   public void testScalingDisabled() {
     // Real world values
     Configuration conf = new Configuration(this.conf);
-    conf.setBoolean(TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_ENABLED, false);
+    conf.setBoolean(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ENABLED, false);
     MemoryDistributor dist = new MemoryDistributor(2, 0, conf);
     
     dist.setJvmMemory(207093760l);
@@ -177,7 +177,7 @@ public class TestMemoryDistributor {
   @Test(timeout = 5000)
   public void testReserveFractionConfigured() {
     Configuration conf = new Configuration(this.conf);
-    conf.setDouble(TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_RESERVE_FRACTION, 0.5d);
+    conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION, 0.5d);
     MemoryDistributor dist = new MemoryDistributor(2, 1, conf);
     
     dist.setJvmMemory(10000l);

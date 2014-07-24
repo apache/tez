@@ -29,9 +29,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TezConfiguration;
 
 
 /**
@@ -139,7 +139,7 @@ public class TaskCounterUpdater {
   
   private void initResourceCalculatorPlugin() {
     Class<? extends ResourceCalculatorProcessTree> clazz = this.conf.getClass(
-        TezJobConfig.TEZ_RUNTIME_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS, null,
+        TezConfiguration.TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS, null,
         ResourceCalculatorProcessTree.class); 
 
     pTree = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(

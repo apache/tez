@@ -25,11 +25,11 @@ import java.lang.reflect.InvocationTargetException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.TezTaskContext;
 import org.apache.tez.runtime.library.api.Partitioner;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.combine.Combiner;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
@@ -58,9 +58,9 @@ public class TezRuntimeUtils {
   @SuppressWarnings("unchecked")
   public static Combiner instantiateCombiner(Configuration conf, TezTaskContext taskContext) throws IOException {
     Class<? extends Combiner> clazz;
-    String className = conf.get(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS);
+    String className = conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS);
     if (className == null) {
-      LOG.info("No combiner specified via " + TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS + ". Combiner will not be used");
+      LOG.info("No combiner specified via " + TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS + ". Combiner will not be used");
       return null;
     }
     LOG.info("Using Combiner class: " + className);
@@ -98,10 +98,10 @@ public class TezRuntimeUtils {
     Class<? extends Partitioner> clazz;
     try {
       clazz = (Class<? extends Partitioner>) conf.getClassByName(conf
-          .get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS));
+          .get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS));
     } catch (ClassNotFoundException e) {
       throw new IOException("Unable to find Partitioner class specified in config : "
-          + conf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS), e);
+          + conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS), e);
     }
 
     LOG.info("Using partitioner class: " + clazz.getName());

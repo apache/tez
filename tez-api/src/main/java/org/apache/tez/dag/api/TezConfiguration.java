@@ -46,6 +46,13 @@ public class TezConfiguration extends Configuration {
   /** The staging dir used while submitting DAGs */
   public static final String TEZ_AM_STAGING_DIR = TEZ_PREFIX + "staging-dir";
   public static final String TEZ_AM_STAGING_DIR_DEFAULT = "/tmp/tez/staging";
+  
+  /**
+   * Path to a credentials file located on the local file system with serialized credentials.
+   * Note: This property does not follow the standard convention of including tez.runtime in it's
+   * name.
+   */
+  public static final String TEZ_CREDENTIALS_PATH = TEZ_PREFIX + "credentials.path";
 
   public static final String TEZ_APPLICATION_MASTER_CLASS =
       "org.apache.tez.dag.app.DAGAppMaster";
@@ -115,6 +122,27 @@ public class TezConfiguration extends Configuration {
       TEZ_AM_PREFIX + "task.listener.thread-count";
   public static final int TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
 
+  /**
+   * Configuration to limit the counters per AM
+   */
+  public static final String TEZ_AM_COUNTERS_MAX_KEYS = TEZ_AM_PREFIX + "counters.max.keys";
+  public static final int TEZ_AM_COUNTERS_MAX_KEYS_DEFAULT = 1200;
+
+  public static final String TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS =
+      TEZ_AM_PREFIX + "counters.group-name.max.keys";
+  public static final int TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS_DEFAULT = 128;
+
+
+  public static final String TEZ_AM_COUNTERS_NAME_MAX_KEYS =
+      TEZ_AM_PREFIX + "counters.name.max.keys";
+  public static final int TEZ_AM_COUNTERS_NAME_MAX_KEYS_DEFAULT = 64;
+
+
+  public static final String TEZ_AM_COUNTERS_GROUPS_MAX_KEYS =
+      TEZ_AM_PREFIX + "counters.groups.max.keys";
+  public static final int TEZ_AM_COUNTERS_GROUPS_MAX_KEYS_DEFAULT = 500;
+
+  
   /*
    * MR AM Service Authorization
    * These are the same as MR which allows Tez to run in secure
@@ -239,6 +267,69 @@ public class TezConfiguration extends Configuration {
   public static final String TASK_TIMEOUT = TEZ_TASK_PREFIX + "timeout";
 
   public static final String TASK_HEARTBEAT_TIMEOUT_MS = TEZ_TASK_PREFIX + "heartbeat.timeout-ms";
+    
+  /**
+   * Whether to scale down memory requested by each component if the total
+   * exceeds the available JVM memory
+   */
+  @Private
+  @Unstable
+  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ENABLED = TEZ_TASK_PREFIX
+      + "scale.task.memory.enabled";
+  public static final boolean TEZ_TASK_SCALE_TASK_MEMORY_ENABLED_DEFAULT = true;
+
+  /**
+   * The allocator to use for initial memory allocation
+   */
+  @Private
+  @Unstable
+  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS = TEZ_TASK_PREFIX
+      + "scale.task.memory.allocator.class";
+  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS_DEFAULT =
+      "org.apache.tez.runtime.common.resources.ScalingAllocator";
+
+  /**
+   * The fraction of the JVM memory which will not be considered for allocation.
+   * No defaults, since there are pre-existing defaults based on different scenarios.
+   */
+  @Private
+  @Unstable
+  public static final String TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION = TEZ_TASK_PREFIX
+      + "scale.task.memory.reserve-fraction";
+  public static final double TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION_DEFAULT = 0.3d; 
+
+  @Private
+  @Unstable
+  /**
+   * Defines the ProcessTree implementation which will be used to collect resource utilization.
+   */
+  public static final String TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS =
+      TEZ_TASK_PREFIX + "resource.calculator.process-tree.class";
+
+  /**
+   * Fraction of available memory to reserve per input/output. This amount is
+   * removed from the total available pool before allocation and is for factoring in overheads.
+   */
+  @Private
+  @Unstable
+  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO =
+      TEZ_TASK_PREFIX + "scale.task.memory.additional-reservation.fraction.per-io";
+
+  /**
+   * Max cumulative total reservation for additional IOs.
+   */
+  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX =
+      TEZ_TASK_PREFIX + "scale.task.memory.additional-reservation.fraction.max";
+  /*
+   * Weighted ratios for individual component types in the RuntimeLibrary.
+   * e.g. PARTITIONED_UNSORTED_OUTPUT:0,UNSORTED_INPUT:1,SORTED_OUTPUT:2,SORTED_MERGED_INPUT:3,PROCESSOR:1,OTHER:1
+   */
+  @Private
+  @Unstable
+  public static final String TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS = 
+      TEZ_TASK_PREFIX + "scale.task.memory.ratios";
+
+
   /**
    * Configuration to specify whether container should be reused.
    */

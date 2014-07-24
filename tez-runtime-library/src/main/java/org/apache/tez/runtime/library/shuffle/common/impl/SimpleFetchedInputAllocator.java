@@ -25,9 +25,9 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalDirAllocator;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
@@ -74,11 +74,11 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
     
     // Setup configuration
     final float maxInMemCopyUse = conf.getFloat(
-        TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT,
-        TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT_DEFAULT);
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT_DEFAULT);
     if (maxInMemCopyUse > 1.0 || maxInMemCopyUse < 0.0) {
       throw new IllegalArgumentException("Invalid value for "
-          + TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT + ": "
+          + TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT + ": "
           + maxInMemCopyUse);
     }
     
@@ -94,12 +94,12 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
     LOG.info("RequestedMem=" + memReq + ", Allocated: " + this.memoryLimit);
     
     final float singleShuffleMemoryLimitPercent = conf.getFloat(
-        TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT,
-        TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT_DEFAULT);
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT_DEFAULT);
     if (singleShuffleMemoryLimitPercent <= 0.0f
         || singleShuffleMemoryLimitPercent > 1.0f) {
       throw new IllegalArgumentException("Invalid value for "
-          + TezJobConfig.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT + ": "
+          + TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT + ": "
           + singleShuffleMemoryLimitPercent);
     }
 
@@ -112,11 +112,11 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
   @Private
   public static long getInitialMemoryReq(Configuration conf, long maxAvailableTaskMemory) {
     final float maxInMemCopyUse = conf.getFloat(
-        TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT,
-        TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT_DEFAULT);
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT_DEFAULT);
     if (maxInMemCopyUse > 1.0 || maxInMemCopyUse < 0.0) {
       throw new IllegalArgumentException("Invalid value for "
-          + TezJobConfig.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT + ": "
+          + TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT + ": "
           + maxInMemCopyUse);
     }
     long memReq = (long) (conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,

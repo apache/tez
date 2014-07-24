@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
 public class TestOnFileSortedOutputConfiguration {
@@ -65,12 +65,12 @@ public class TestOnFileSortedOutputConfiguration {
   public void testSetters() {
     Configuration fromConf = new Configuration(false);
     fromConf.set("test.conf.key.1", "confkey1");
-    fromConf.setInt(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, 1111);
+    fromConf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, 1111);
     fromConf.set("fs.shouldExist", "fs");
     Map<String, String> additionalConf = new HashMap<String, String>();
     additionalConf.put("test.key.2", "key2");
     additionalConf.put("io.shouldExist", "io");
-    additionalConf.put(TezJobConfig.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, "TestInternalSorter");
+    additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, "TestInternalSorter");
     OnFileSortedOutputConfiguration.Builder builder =
         OnFileSortedOutputConfiguration.newBuilder("KEY", "VALUE", "PARTITIONER", null)
             .setKeyComparatorClass("KEY_COMPARATOR")
@@ -78,7 +78,7 @@ public class TestOnFileSortedOutputConfiguration {
             .setSortBufferSize(2048)
             .setAdditionalConfiguration("test.key.1", "key1")
             .setAdditionalConfiguration("file.shouldExist", "file")
-            .setAdditionalConfiguration(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
+            .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
                 String.valueOf(false))
             .setAdditionalConfiguration(additionalConf)
             .setFromConfiguration(fromConf);
@@ -93,23 +93,23 @@ public class TestOnFileSortedOutputConfiguration {
     Configuration conf = rebuilt.conf;
 
     // Verify programmatic API usage
-    assertEquals(2048, conf.getInt(TezJobConfig.TEZ_RUNTIME_IO_SORT_MB, 0));
-    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
-    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
-    assertEquals("PARTITIONER", conf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
+    assertEquals(2048, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
+    assertEquals("KEY", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
+    assertEquals("PARTITIONER", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
     assertEquals("CustomCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
-    assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS,
+        conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertEquals(true, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
         false));
-    assertEquals("KEY_COMPARATOR", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
+    assertEquals("KEY_COMPARATOR", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
 
     // Verify additional configs
-    assertEquals(false, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
-        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
-    assertEquals(1111, conf.getInt(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
-        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT));
+    assertEquals(false, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
+        TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
+    assertEquals(1111, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
+        TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT));
     assertEquals("TestInternalSorter",
-        conf.get(TezJobConfig.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, ""));
+        conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, ""));
     assertEquals("io", conf.get("io.shouldExist"));
     assertEquals("file", conf.get("file.shouldExist"));
     assertEquals("fs", conf.get("fs.shouldExist"));
@@ -130,17 +130,17 @@ public class TestOnFileSortedOutputConfiguration {
 
     Configuration conf = rebuilt.conf;
 
-    assertEquals(true, conf.getBoolean(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD,
-        TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
+    assertEquals(true, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
+        TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
 
     // Property present
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+        conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     // Verify whatever was configured
-    assertEquals("KEY", conf.get(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, ""));
-    assertEquals("VALUE", conf.get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, ""));
-    assertEquals("PARTITIONER", conf.get(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
+    assertEquals("KEY", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
+    assertEquals("PARTITIONER", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
   }
 
   @Test
@@ -148,7 +148,7 @@ public class TestOnFileSortedOutputConfiguration {
     Configuration partitionerConf = new Configuration(false);
     partitionerConf.set("partitioner.test.key", "PARTITIONERKEY");
     partitionerConf
-        .set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
+        .set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
     OnFileSortedOutputConfiguration.Builder builder =
         OnFileSortedOutputConfiguration.newBuilder("KEY", "VALUE", "PARTITIONER", partitionerConf);
 
@@ -162,7 +162,7 @@ public class TestOnFileSortedOutputConfiguration {
 
     // Default Output property should not be overridden based on partitioner config
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+        conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     assertEquals("PARTITIONERKEY", conf.get("partitioner.test.key"));
   }
@@ -172,7 +172,7 @@ public class TestOnFileSortedOutputConfiguration {
     Configuration combinerConf = new Configuration(false);
     combinerConf.set("combiner.test.key", "COMBINERKEY");
     combinerConf
-        .set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
+        .set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
     OnFileSortedOutputConfiguration.Builder builder =
         OnFileSortedOutputConfiguration.newBuilder("KEY", "VALUE", "PARTITIONER", null)
             .setCombiner("COMBINER", combinerConf);
@@ -187,7 +187,7 @@ public class TestOnFileSortedOutputConfiguration {
 
     // Default Output property should not be overridden based on partitioner config
     assertEquals("TestCodec",
-        conf.get(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+        conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     assertEquals("COMBINERKEY", conf.get("combiner.test.key"));
   }

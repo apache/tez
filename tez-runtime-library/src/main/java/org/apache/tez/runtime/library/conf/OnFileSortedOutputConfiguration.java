@@ -26,11 +26,12 @@ import java.util.Map;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
@@ -193,58 +194,58 @@ public class OnFileSortedOutputConfiguration {
     @InterfaceAudience.Private
     Builder() {
       Map<String, String> tezDefaults = ConfigUtils
-          .extractConfigurationMap(TezJobConfig.getTezRuntimeConfigDefaults(),
+          .extractConfigurationMap(TezRuntimeConfiguration.getTezRuntimeConfigDefaults(),
               OnFileSortedOutput.getConfigurationKeySet());
       ConfigUtils.addConfigMapToConfiguration(this.conf, tezDefaults);
-      ConfigUtils.addConfigMapToConfiguration(this.conf, TezJobConfig.getOtherConfigDefaults());
+      ConfigUtils.addConfigMapToConfiguration(this.conf, TezRuntimeConfiguration.getOtherConfigDefaults());
     }
 
     @InterfaceAudience.Private
     Builder setKeyClassName(String keyClassName) {
       Preconditions.checkNotNull(keyClassName, "Key class name cannot be null");
-      this.conf.set(TezJobConfig.TEZ_RUNTIME_KEY_CLASS, keyClassName);
+      this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, keyClassName);
       return this;
     }
 
     @InterfaceAudience.Private
     Builder setValueClassName(String valueClassName) {
       Preconditions.checkNotNull(valueClassName, "Value class name cannot be null");
-      this.conf.set(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS, valueClassName);
+      this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, valueClassName);
       return this;
     }
 
     @InterfaceAudience.Private
     Builder setPartitioner(String partitionerClassName, Configuration partitionerConf) {
       Preconditions.checkNotNull(partitionerClassName, "Partitioner class name cannot be null");
-      this.conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, partitionerClassName);
+      this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, partitionerClassName);
       if (partitionerConf != null) {
         // Merging the confs for now. Change to be specific in the future.
         ConfigUtils.mergeConfsWithExclusions(this.conf, partitionerConf,
-            TezJobConfig.getRuntimeConfigKeySet());
+            TezRuntimeConfiguration.getRuntimeConfigKeySet());
       }
       return this;
     }
 
     @Override
     public Builder setSortBufferSize(int sortBufferSize) {
-      this.conf.setInt(TezJobConfig.TEZ_RUNTIME_IO_SORT_MB, sortBufferSize);
+      this.conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, sortBufferSize);
       return this;
     }
 
     @Override
     public Builder setCombiner(String combinerClassName, Configuration combinerConf) {
-      this.conf.set(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS, combinerClassName);
+      this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS, combinerClassName);
       if (combinerConf != null) {
         // Merging the confs for now. Change to be specific in the future.
         ConfigUtils.mergeConfsWithExclusions(this.conf, combinerConf,
-            TezJobConfig.getRuntimeConfigKeySet());
+            TezRuntimeConfiguration.getRuntimeConfigKeySet());
       }
       return this;
     }
 
     @Override
     public Builder setSorterNumThreads(int numThreads) {
-      this.conf.setInt(TezJobConfig.TEZ_RUNTIME_SORT_THREADS, numThreads);
+      this.conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, numThreads);
       return this;
     }
 
@@ -253,8 +254,8 @@ public class OnFileSortedOutputConfiguration {
       Preconditions.checkNotNull(key, "Key cannot be null");
       if (ConfigUtils.doesKeyQualify(key,
           Lists.newArrayList(OnFileSortedOutput.getConfigurationKeySet(),
-              TezJobConfig.getRuntimeAdditionalConfigKeySet()),
-          TezJobConfig.getAllowedPrefixes())) {
+              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()),
+          TezRuntimeConfiguration.getAllowedPrefixes())) {
         if (value == null) {
           this.conf.unset(key);
         } else {
@@ -269,7 +270,7 @@ public class OnFileSortedOutputConfiguration {
       Preconditions.checkNotNull(confMap, "ConfMap cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(confMap,
           Lists.newArrayList(OnFileSortedOutput.getConfigurationKeySet(),
-              TezJobConfig.getRuntimeAdditionalConfigKeySet()), TezJobConfig.getAllowedPrefixes());
+              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
     }
@@ -280,7 +281,7 @@ public class OnFileSortedOutputConfiguration {
       Preconditions.checkArgument(conf != null, "Configuration cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
           Lists.newArrayList(OnFileSortedOutput.getConfigurationKeySet(),
-              TezJobConfig.getRuntimeAdditionalConfigKeySet()), TezJobConfig.getAllowedPrefixes());
+              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
     }
@@ -292,16 +293,16 @@ public class OnFileSortedOutputConfiguration {
      * @return instance of the current builder
      */
     public Builder setKeyComparatorClass(String comparatorClassName) {
-      this.conf.set(TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
+      this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
           comparatorClassName);
       return this;
     }
 
     public Builder enableCompression(String compressionCodec) {
-      this.conf.setBoolean(TezJobConfig.TEZ_RUNTIME_COMPRESS, true);
+      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, true);
       if (compressionCodec != null) {
         this.conf
-            .set(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC, compressionCodec);
+            .set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, compressionCodec);
       }
       return this;
     }

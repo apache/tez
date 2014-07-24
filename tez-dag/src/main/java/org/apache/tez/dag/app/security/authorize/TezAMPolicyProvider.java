@@ -26,7 +26,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 
 /**
- * {@link PolicyProvider} for YARN MapReduce protocols.
+ * {@link PolicyProvider} for YARN Tez client protocols.
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable

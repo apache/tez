@@ -78,7 +78,6 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.client.TezClient;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -98,6 +97,7 @@ import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -474,8 +474,8 @@ public class YARNRunner implements ClientProtocol {
         // w.r.t Outputs - MAP_OUTPUT_COMPRESS for example)
         OrderedPartitionedKVEdgeConfigurer edgeConf =
             OrderedPartitionedKVEdgeConfigurer.newBuilder(stageConfs[i - 1].get(
-                    TezJobConfig.TEZ_RUNTIME_KEY_CLASS),
-                stageConfs[i - 1].get(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS),
+                    TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS),
+                stageConfs[i - 1].get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS),
                 MRPartitioner.class.getName(), stageConfs[i - 1])
                 .configureInput().useLegacyInput().done()
                 .setFromConfiguration(stageConfs[i - 1]).build();

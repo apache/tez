@@ -28,7 +28,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezJobConfig;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.common.resources.InitialMemoryAllocator;
 import org.apache.tez.runtime.common.resources.InitialMemoryRequestContext;
 import org.apache.tez.runtime.library.input.ShuffledMergedInput;
@@ -56,9 +56,6 @@ import com.google.common.collect.Maps;
 public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator {
 
   private static final Log LOG = LogFactory.getLog(WeightedScalingMemoryDistributor.class);
-
-  @VisibleForTesting
-  static final double DEFAULT_RESERVE_FRACTION = 0.25d;
 
   static final double MAX_ADDITIONAL_RESERVATION_FRACTION_PER_IO = 0.3d;
   static final double RESERVATION_FRACTION_PER_IO = 0.025d;
@@ -196,7 +193,7 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
   }
 
   private void populateTypeScaleMap() {
-    String[] ratios = conf.getStrings(TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_WEIGHTED_RATIOS);
+    String[] ratios = conf.getStrings(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS);
     int numExpectedValues = RequestType.values().length;
     if (ratios == null) {
       LOG.info("No ratio specified. Falling back to Linear scaling");
@@ -233,10 +230,10 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
   private double computeReservedFraction(int numTotalRequests) {
 
     double reserveFractionPerIo = conf.getDouble(
-        TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO,
+        TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO,
         RESERVATION_FRACTION_PER_IO);
     double maxAdditionalReserveFraction = conf.getDouble(
-        TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX,
+        TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX,
         MAX_ADDITIONAL_RESERVATION_FRACTION_PER_IO);
     Preconditions.checkArgument(maxAdditionalReserveFraction >= 0f
         && maxAdditionalReserveFraction <= 1f);
@@ -247,8 +244,8 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
           + maxAdditionalReserveFraction);
     }
 
-    double initialReserveFraction = conf.getDouble(TezJobConfig.TEZ_RUNTIME_SCALE_TASK_MEMORY_RESERVE_FRACTION,
-        DEFAULT_RESERVE_FRACTION);
+    double initialReserveFraction = conf.getDouble(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION,
+        TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION_DEFAULT);
     double additionalReserveFraction = Math.min(maxAdditionalReserveFraction, numTotalRequests
         * reserveFractionPerIo);
 

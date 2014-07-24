@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -36,16 +37,17 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezCommonUtils;
-import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
 import org.apache.tez.runtime.library.common.sort.impl.PipelinedSorter;
@@ -86,8 +88,8 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
             getContext().getTotalMemoryAvailableToTask()), memoryUpdateCallbackHandler);
 
     sendEmptyPartitionDetails = this.conf.getBoolean(
-        TezJobConfig.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED,
-        TezJobConfig.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED_DEFAULT);
+        TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED,
+        TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED_DEFAULT);
     return Collections.emptyList();
   }
 
@@ -95,8 +97,8 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
   public synchronized void start() throws Exception {
     if (!isStarted.get()) {
       memoryUpdateCallbackHandler.validateUpdateReceived();
-      if (this.conf.getInt(TezJobConfig.TEZ_RUNTIME_SORT_THREADS,
-          TezJobConfig.TEZ_RUNTIME_SORT_THREADS_DEFAULT) > 1) {
+      if (this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS,
+          TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS_DEFAULT) > 1) {
         sorter = new PipelinedSorter(getContext(), conf, getNumPhysicalOutputs(),
             memoryUpdateCallbackHandler.getMemoryAssigned());
       } else {
@@ -201,28 +203,28 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
   private static final Set<String> confKeys = new HashSet<String>();
 
   static {
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_SORT_FACTOR);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SORT_SPILL_PERCENT);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_IO_SORT_MB);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COMBINE_MIN_SPILLS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_SORT_THREADS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTERS_MAX_KEY);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUP_NAME_MAX_KEY);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_NAME_MAX_KEY);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COUNTER_GROUPS_MAX_KEY);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_INTERNAL_SORTER_CLASS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_KEY_COMPARATOR_CLASS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_KEY_CLASS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_VALUE_CLASS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COMPRESS);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_COMPRESS_CODEC);
-    confKeys.add(TezJobConfig.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINE_MIN_SPILLS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED);
+    confKeys.add(TezConfiguration.TEZ_AM_COUNTERS_MAX_KEYS);
+    confKeys.add(TezConfiguration.TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS);
+    confKeys.add(TezConfiguration.TEZ_AM_COUNTERS_NAME_MAX_KEYS);
+    confKeys.add(TezConfiguration.TEZ_AM_COUNTERS_GROUPS_MAX_KEYS);
   }
 
   // TODO Maybe add helper methods to extract keys
