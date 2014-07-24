@@ -60,8 +60,11 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -552,8 +555,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private Map<Vertex, Edge> targetVertices;
   Set<Edge> uninitializedEdges = Sets.newHashSet();
 
-  private Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> rootInputDescriptors;
-  private Map<String, RootInputLeafOutputDescriptor<OutputDescriptor>> additionalOutputs;
+  private Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
+    rootInputDescriptors;
+  private Map<String, RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> 
+    additionalOutputs;
   private Map<String, OutputCommitter> outputCommitters;
   private Map<String, RootInputSpecUpdate> rootInputSpecs = new HashMap<String, RootInputSpecUpdate>();
   private static final RootInputSpecUpdate DEFAULT_ROOT_INPUT_SPECS = RootInputSpecUpdate
@@ -1639,12 +1644,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private void initializeCommitters() throws Exception {
     if (!this.additionalOutputSpecs.isEmpty()) {
       LOG.info("Invoking committer inits for vertex, vertexId=" + logIdentifier);
-      for (Entry<String, RootInputLeafOutputDescriptor<OutputDescriptor>> entry:
+      for (Entry<String, RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> entry:
           additionalOutputs.entrySet())  {
         final String outputName = entry.getKey();
-        final RootInputLeafOutputDescriptor<OutputDescriptor> od = entry.getValue();
-        if (od.getInitializerClassName() == null
-            || od.getInitializerClassName().isEmpty()) {
+        final RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> od = entry.getValue();
+        if (od.getControllerDescriptor() == null
+            || od.getControllerDescriptor().getClassName() == null) {
           LOG.info("Ignoring committer as none specified for output="
               + outputName
               + ", vertexId=" + logIdentifier);
@@ -1652,20 +1657,19 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         }
         LOG.info("Instantiating committer for output=" + outputName
             + ", vertexId=" + logIdentifier
-            + ", committerClass=" + od.getInitializerClassName());
+            + ", committerClass=" + od.getControllerDescriptor().getClassName());
 
         dagUgi.doAs(new PrivilegedExceptionAction<Void>() {
           @Override
           public Void run() throws Exception {
             OutputCommitter outputCommitter = ReflectionUtils.createClazzInstance(
-                od.getInitializerClassName());
+                od.getControllerDescriptor().getClassName());
             OutputCommitterContext outputCommitterContext =
                 new OutputCommitterContextImpl(appContext.getApplicationID(),
                     appContext.getApplicationAttemptId().getAttemptId(),
                     appContext.getCurrentDAG().getName(),
                     vertexName,
-                    outputName,
-                    od.getDescriptor().getUserPayload(),
+                    od,
                     vertexId.getId());
 
             LOG.info("Invoking committer init for output=" + outputName
@@ -1783,15 +1787,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       if (rootInputDescriptors != null) {
         LOG.info("Root Inputs exist for Vertex: " + getName() + " : "
             + rootInputDescriptors);
-        for (RootInputLeafOutputDescriptor<InputDescriptor> input : rootInputDescriptors.values()) {
-          if (input.getInitializerClassName() != null) {
+        for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input 
+            : rootInputDescriptors.values()) {
+          if (input.getControllerDescriptor() != null && 
+              input.getControllerDescriptor().getClassName() != null) {
             if (inputsWithInitializers == null) {
               inputsWithInitializers = Sets.newHashSet();
             }
-            inputsWithInitializers.add(input.getEntityName());
+            inputsWithInitializers.add(input.getName());
             LOG.info("Starting root input initializer for input: "
-                + input.getEntityName() + ", with class: ["
-                + input.getInitializerClassName() + "]");
+                + input.getName() + ", with class: ["
+                + input.getControllerDescriptor().getClassName() + "]");
           }
         }
       }
@@ -2597,8 +2603,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               vertex.appContext.getTaskScheduler().getNumClusterNodes(),
               vertex.getTaskResource(),
               vertex.appContext.getTaskScheduler().getTotalResources());
-          List<RootInputLeafOutputDescriptor<InputDescriptor>> inputList = Lists
-              .newArrayListWithCapacity(vertex.inputsWithInitializers.size());
+          List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
+              inputList = Lists.newArrayListWithCapacity(vertex.inputsWithInitializers.size());
           for (String inputName : vertex.inputsWithInitializers) {
             inputList.add(vertex.rootInputDescriptors.get(inputName));
           }
@@ -2640,8 +2646,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               vertex.appContext.getTaskScheduler().getNumClusterNodes(),
               vertex.getTaskResource(),
               vertex.appContext.getTaskScheduler().getTotalResources());
-          List<RootInputLeafOutputDescriptor<InputDescriptor>> inputList = Lists
-              .newArrayListWithCapacity(vertex.inputsWithInitializers.size());
+          List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
+          inputList = Lists.newArrayListWithCapacity(vertex.inputsWithInitializers.size());
           for (String inputName : vertex.inputsWithInitializers) {
             inputList.add(vertex.rootInputDescriptors.get(inputName));
           }
@@ -2729,7 +2735,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         vertex.vertexManager.onRootVertexInitialized(
             liInitEvent.getInputName(),
             vertex.getAdditionalInputs().get(liInitEvent.getInputName())
-                .getDescriptor(), liInitEvent.getEvents());
+                .getIODescriptor(), liInitEvent.getEvents());
       }
 
       vertex.numInitializedInputs++;
@@ -3476,12 +3482,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     for (RootInputLeafOutputProto input : inputs) {
 
       InputDescriptor id = DagTypeConverters
-          .convertInputDescriptorFromDAGPlan(input.getEntityDescriptor());
+          .convertInputDescriptorFromDAGPlan(input.getIODescriptor());
 
-      this.rootInputDescriptors.put(input.getName(),
-          new RootInputLeafOutputDescriptor<InputDescriptor>(input.getName(), id,
-              input.hasInitializerClassName() ? input.getInitializerClassName()
-                  : null));
+      this.rootInputDescriptors
+          .put(
+              input.getName(),
+              new RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>(
+                  input.getName(), id,
+                  input.hasControllerDescriptor() ? DagTypeConverters
+                      .convertInputInitializerDescriptorFromDAGPlan(input
+                          .getControllerDescriptor()) : null));
       this.rootInputSpecs.put(input.getName(), DEFAULT_ROOT_INPUT_SPECS);
     }
   }
@@ -3509,13 +3519,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.outputCommitters = Maps.newHashMapWithExpectedSize(outputs.size());
     for (RootInputLeafOutputProto output : outputs) {
       OutputDescriptor od = DagTypeConverters
-          .convertOutputDescriptorFromDAGPlan(output.getEntityDescriptor());
+          .convertOutputDescriptorFromDAGPlan(output.getIODescriptor());
 
-      this.additionalOutputs.put(
-          output.getName(),
-          new RootInputLeafOutputDescriptor<OutputDescriptor>(output.getName(), od,
-              output.hasInitializerClassName() ? output
-                  .getInitializerClassName() : null));
+      this.additionalOutputs
+          .put(
+              output.getName(),
+              new RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>(
+                  output.getName(), od,
+                  output.hasControllerDescriptor() ? DagTypeConverters
+                      .convertOutputCommitterDescriptorFromDAGPlan(output
+                          .getControllerDescriptor()) : null));
       OutputSpec outputSpec = new OutputSpec(output.getName(), od, 0);
       additionalOutputSpecs.add(outputSpec);
     }
@@ -3523,13 +3536,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Nullable
   @Override
-  public Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> getAdditionalInputs() {
+  public Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
+    getAdditionalInputs() {
     return this.rootInputDescriptors;
   }
 
   @Nullable
   @Override
-  public Map<String, RootInputLeafOutputDescriptor<OutputDescriptor>> getAdditionalOutputs() {
+  public Map<String, RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> 
+    getAdditionalOutputs() {
     return this.additionalOutputs;
   }
 
@@ -3618,10 +3633,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     inputSpecList = new ArrayList<InputSpec>(this.getInputVerticesCount()
         + (rootInputDescriptors == null ? 0 : rootInputDescriptors.size()));
     if (rootInputDescriptors != null) {
-      for (Entry<String, RootInputLeafOutputDescriptor<InputDescriptor>> rootInputDescriptorEntry : rootInputDescriptors
-          .entrySet()) {
+      for (Entry<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
+           rootInputDescriptorEntry : rootInputDescriptors.entrySet()) {
         inputSpecList.add(new InputSpec(rootInputDescriptorEntry.getKey(),
-            rootInputDescriptorEntry.getValue().getDescriptor(), rootInputSpecs.get(
+            rootInputDescriptorEntry.getValue().getIODescriptor(), rootInputSpecs.get(
                 rootInputDescriptorEntry.getKey()).getNumPhysicalInputsForWorkUnit(taskIndex)));
       }
     }

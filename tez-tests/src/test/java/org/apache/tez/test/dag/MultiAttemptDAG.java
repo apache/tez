@@ -154,7 +154,7 @@ public class MultiAttemptDAG {
     public void initialize(OutputCommitterContext context) throws Exception {
       FailingOutputCommitterConfig config = new
           FailingOutputCommitterConfig();
-      config.fromUserPayload(context.getUserPayload());
+      config.fromUserPayload(context.getOutputUserPayload());
       failOnCommit = config.failOnCommit;
     }
 

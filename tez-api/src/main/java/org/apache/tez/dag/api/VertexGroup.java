@@ -19,13 +19,11 @@
 package org.apache.tez.dag.api;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.tez.runtime.api.OutputCommitter;
+import javax.annotation.Nullable;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -67,8 +65,6 @@ public class VertexGroup {
     }
   }
   
-  List<RootInputLeafOutput<OutputDescriptor>> outputs = Lists.newLinkedList();
-  
   GroupInfo groupInfo;
   
   /**
@@ -92,13 +88,13 @@ public class VertexGroup {
   
   /**
    * Add an common output to the group of vertices.
-   * Refer to {@link Vertex#addOutput(String, OutputDescriptor, Class)}
+   * Refer to {@link Vertex#addOutput(String, OutputDescriptor, OutputCommitterDescriptor)}
    */
   public VertexGroup addOutput(String outputName, OutputDescriptor outputDescriptor,
-      Class<? extends OutputCommitter> outputCommitterClazz) {
-    RootInputLeafOutput<OutputDescriptor> leafOutput = new RootInputLeafOutput<OutputDescriptor>(outputName,
-        outputDescriptor, outputCommitterClazz);
-    outputs.add(leafOutput);
+      @Nullable OutputCommitterDescriptor committerDescriptor) {
+    RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> leafOutput = 
+        new RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>(outputName,
+        outputDescriptor, committerDescriptor);
     this.groupInfo.outputs.add(outputName);
     
     // also add output to its members
@@ -114,10 +110,6 @@ public class VertexGroup {
     return "[ VertexGroup: " + groupInfo.getGroupName() + "]";
   }
 
-  List<RootInputLeafOutput<OutputDescriptor>> getOutputs() {
-    return outputs;
-  }
-  
   GroupInfo getGroupInfo() {
     return groupInfo;
   }

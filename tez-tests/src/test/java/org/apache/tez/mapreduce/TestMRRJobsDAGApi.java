@@ -75,6 +75,7 @@ import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -472,7 +473,9 @@ public class TestMRRJobsDAGApi {
     Vertex stage1Vertex = new Vertex("map", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(stage1Payload),
         stage1NumTasks, Resource.newInstance(256, 1));
-    MRHelpers.addMRInput(stage1Vertex, stage1InputPayload, inputInitializerClazz);
+    MRHelpers.addMRInput(stage1Vertex, stage1InputPayload, 
+        (inputInitializerClazz==null) ? null : 
+          new InputInitializerDescriptor(inputInitializerClazz.getName()));
     Vertex stage2Vertex = new Vertex("ireduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName()).setUserPayload(stage2Payload),
         1, Resource.newInstance(256, 1));
@@ -666,7 +669,7 @@ public class TestMRRJobsDAGApi {
   public static class MRInputAMSplitGeneratorRelocalizationTest extends MRInputAMSplitGenerator {
     public List<Event> initialize(TezRootInputInitializerContext rootInputContext)  throws Exception {
       MRInputUserPayloadProto userPayloadProto = MRHelpers
-          .parseMRInputPayload(rootInputContext.getUserPayload());
+          .parseMRInputPayload(rootInputContext.getInputUserPayload());
       Configuration conf = MRHelpers.createConfFromByteString(userPayloadProto
           .getConfigurationBytes());
 

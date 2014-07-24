@@ -64,6 +64,8 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
@@ -77,7 +79,6 @@ import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
 import com.google.common.base.Function;
@@ -979,7 +980,7 @@ public class MRHelpers {
    * @param initClazz class to init the input in the AM
    */
   public static void addMRInput(Vertex vertex, byte[] userPayload,
-      Class<? extends TezRootInputInitializer> initClazz) {
+      InputInitializerDescriptor initClazz) {
     InputDescriptor id = new InputDescriptor(MRInputLegacy.class.getName())
         .setUserPayload(userPayload);
     vertex.addInput("MRInput", id, initClazz);
@@ -997,14 +998,14 @@ public class MRHelpers {
   public static void addMROutput(Vertex vertex, byte[] userPayload) {
     OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
         .setUserPayload(userPayload);
-    vertex.addOutput("MROutput", od, MROutputCommitter.class);
+    vertex.addOutput("MROutput", od, new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
   }
 
   @Private
   public static void addMROutputLegacy(Vertex vertex, byte[] userPayload) {
     OutputDescriptor od = new OutputDescriptor(MROutputLegacy.class.getName())
         .setUserPayload(userPayload);
-    vertex.addOutput("MROutput", od, MROutputCommitter.class);
+    vertex.addOutput("MROutput", od, new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
   }
 
   @SuppressWarnings("unchecked")

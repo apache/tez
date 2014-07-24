@@ -156,14 +156,14 @@ public class DAGUtils {
           vertexPlan.getInputsList()) {
         Map<String,Object> inputMap = new LinkedHashMap<String, Object>();
         inputMap.put(NAME_KEY, input.getName());
-        inputMap.put(CLASS_KEY, input.getEntityDescriptor().getClassName());
-        if (input.hasInitializerClassName()) {
-          inputMap.put(INITIALIZER_KEY, input.getInitializerClassName());
+        inputMap.put(CLASS_KEY, input.getIODescriptor().getClassName());
+        if (input.hasControllerDescriptor()) {
+          inputMap.put(INITIALIZER_KEY, input.getControllerDescriptor().getClassName());
         }
-        if (input.getEntityDescriptor().hasHistoryText()) {
+        if (input.getIODescriptor().hasHistoryText()) {
           inputMap.put(USER_PAYLOAD_AS_TEXT,
               DagTypeConverters.getHistoryTextFromProto(
-                  input.getEntityDescriptor()));
+                  input.getIODescriptor()));
         }
         inputsList.add(inputMap);
       }
@@ -174,14 +174,14 @@ public class DAGUtils {
           vertexPlan.getOutputsList()) {
         Map<String,Object> outputMap = new LinkedHashMap<String, Object>();
         outputMap.put(NAME_KEY, output.getName());
-        outputMap.put(CLASS_KEY, output.getEntityDescriptor().getClassName());
-        if (output.hasInitializerClassName()) {
-          outputMap.put(INITIALIZER_KEY, output.getInitializerClassName());
+        outputMap.put(CLASS_KEY, output.getIODescriptor().getClassName());
+        if (output.hasControllerDescriptor()) {
+          outputMap.put(INITIALIZER_KEY, output.getControllerDescriptor().getClassName());
         }
-        if (output.getEntityDescriptor().hasHistoryText()) {
+        if (output.getIODescriptor().hasHistoryText()) {
           outputMap.put(USER_PAYLOAD_AS_TEXT,
               DagTypeConverters.getHistoryTextFromProto(
-                  output.getEntityDescriptor()));
+                  output.getIODescriptor()));
         }
         outputsList.add(outputMap);
       }

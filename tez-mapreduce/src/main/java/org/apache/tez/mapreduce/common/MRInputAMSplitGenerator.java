@@ -66,7 +66,7 @@ public class MRInputAMSplitGenerator implements TezRootInputInitializer {
       sw = new Stopwatch().start();
     }
     MRInputUserPayloadProto userPayloadProto = MRHelpers
-        .parseMRInputPayload(rootInputContext.getUserPayload());
+        .parseMRInputPayload(rootInputContext.getInputUserPayload());
     if (LOG.isDebugEnabled()) {
       sw.stop();
       LOG.debug("Time to parse MRInput payload into prot: "

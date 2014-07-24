@@ -42,6 +42,7 @@ import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -166,7 +167,6 @@ public class TestDAGImpl {
   }
 
   private class TaskAttemptEventDispatcher implements EventHandler<TaskAttemptEvent> {
-    @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskAttemptEvent event) {
       // Ignore
@@ -221,12 +221,14 @@ public class TestDAGImpl {
                     )
                 .addOutputs(
                     DAGProtos.RootInputLeafOutputProto.newBuilder()
-                    .setEntityDescriptor(
+                    .setIODescriptor(
                         TezEntityDescriptorProto.newBuilder().setClassName("output1").build()
                     )
                     .setName("output1")
-                    .setInitializerClassName(CountingOutputCommitter.class.getName())
-                 )
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                CountingOutputCommitter.class.getName()))
+                    )
                     .addOutEdgeId("e1")
                     .build()
             )
@@ -251,11 +253,13 @@ public class TestDAGImpl {
                     )
                 .addOutputs(
                     DAGProtos.RootInputLeafOutputProto.newBuilder()
-                    .setEntityDescriptor(
+                    .setIODescriptor(
                         TezEntityDescriptorProto.newBuilder().setClassName("output2").build()
                     )
                     .setName("output2")
-                    .setInitializerClassName(CountingOutputCommitter.class.getName())
+                    .setControllerDescriptor(
+                        TezEntityDescriptorProto.newBuilder().setClassName(
+                            CountingOutputCommitter.class.getName()))
                  )
                    .addInEdgeId("e1")
                     .addOutEdgeId("e2")
@@ -283,11 +287,13 @@ public class TestDAGImpl {
                     )
                .addOutputs(
                     DAGProtos.RootInputLeafOutputProto.newBuilder()
-                    .setEntityDescriptor(
+                    .setIODescriptor(
                         TezEntityDescriptorProto.newBuilder().setClassName("output3").build()
                     )
                     .setName("output3")
-                    .setInitializerClassName(CountingOutputCommitter.class.getName())
+                    .setControllerDescriptor(
+                        TezEntityDescriptorProto.newBuilder().setClassName(
+                            CountingOutputCommitter.class.getName()))
                )
                .addInEdgeId("e2")
                .build()
@@ -350,10 +356,12 @@ public class TestDAGImpl {
     
     DAG dag = new DAG("testDag");
     String groupName1 = "uv12";
+    OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(
+        TotalCountingOutputCommitter.class.getName());
     org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor("output.class");
-    uv12.addOutput("uvOut", outDesc, TotalCountingOutputCommitter.class);
-    v3.addOutput("uvOut", outDesc, TotalCountingOutputCommitter.class);
+    uv12.addOutput("uvOut", outDesc, ocd);
+    v3.addOutput("uvOut", outDesc, ocd);
     
     GroupInputEdge e1 = new GroupInputEdge(uv12, v3,
         new EdgeProperty(DataMovementType.SCATTER_GATHER, 
@@ -807,13 +815,18 @@ public class TestDAGImpl {
     List<RootInputLeafOutputProto> outputs =
         new ArrayList<RootInputLeafOutputProto>();
     outputs.add(RootInputLeafOutputProto.newBuilder()
-        .setInitializerClassName(CountingOutputCommitter.class.getName())
+        .setControllerDescriptor(
+            TezEntityDescriptorProto
+                .newBuilder()
+                .setClassName(CountingOutputCommitter.class.getName())
+                .setUserPayload(
+                    ByteString
+                        .copyFrom(new CountingOutputCommitter.CountingOutputCommitterConfig(
+                            true, false, false).toUserPayload())).build())
         .setName("output3")
-        .setEntityDescriptor(
-            TezEntityDescriptorProto.newBuilder()
-                .setUserPayload(ByteString.copyFrom(
-                    new CountingOutputCommitter.CountingOutputCommitterConfig(
-                        true, false, false).toUserPayload())).build())
+        .setIODescriptor(
+            TezEntityDescriptorProto.newBuilder().setClassName("output.class")
+                )
         .build());
     badVertex.setAdditionalOutputs(outputs);
     

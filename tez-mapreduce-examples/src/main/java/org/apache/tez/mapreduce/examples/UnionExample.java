@@ -38,6 +38,8 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.GroupInputEdge;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.VertexGroup;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
@@ -180,17 +182,19 @@ public class UnionExample {
     Vertex mapVertex1 = new Vertex("map1", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
         numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex1.addInput("MRInput", id, MRInputAMSplitGenerator.class);
+    InputInitializerDescriptor iid = 
+        new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName());
+    mapVertex1.addInput("MRInput", id, iid);
 
     Vertex mapVertex2 = new Vertex("map2", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
         numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex2.addInput("MRInput", id, MRInputAMSplitGenerator.class);
+    mapVertex2.addInput("MRInput", id, iid);
 
     Vertex mapVertex3 = new Vertex("map3", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
         numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex3.addInput("MRInput", id, MRInputAMSplitGenerator.class);
+    mapVertex3.addInput("MRInput", id, iid);
 
     Vertex checkerVertex = new Vertex("checker",
         new ProcessorDescriptor(
@@ -202,14 +206,15 @@ public class UnionExample {
     OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
       .setUserPayload(MROutput.createUserPayload(
           outputConf, TextOutputFormat.class.getName(), true));
-    checkerVertex.addOutput("union", od, MROutputCommitter.class);
+    OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(MROutputCommitter.class.getName());
+    checkerVertex.addOutput("union", od, ocd);
 
     Configuration allPartsConf = new Configuration(tezConf);
     allPartsConf.set(FileOutputFormat.OUTDIR, outputPath+"-all-parts");
     OutputDescriptor od2 = new OutputDescriptor(MROutput.class.getName())
       .setUserPayload(MROutput.createUserPayload(
           allPartsConf, TextOutputFormat.class.getName(), true));
-    checkerVertex.addOutput("all-parts", od2, MROutputCommitter.class);
+    checkerVertex.addOutput("all-parts", od2, ocd);
 
     Configuration partsConf = new Configuration(tezConf);
     partsConf.set(FileOutputFormat.OUTDIR, outputPath+"-parts");
@@ -218,7 +223,7 @@ public class UnionExample {
     OutputDescriptor od1 = new OutputDescriptor(MROutput.class.getName())
       .setUserPayload(MROutput.createUserPayload(
           partsConf, TextOutputFormat.class.getName(), true));
-    unionVertex.addOutput("parts", od1, MROutputCommitter.class);
+    unionVertex.addOutput("parts", od1, ocd);
 
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),

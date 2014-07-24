@@ -168,7 +168,7 @@ public class TestMRInputSplitDistributor {
     }
 
     @Override
-    public byte[] getUserPayload() {
+    public byte[] getInputUserPayload() {
       return payload;
     }
 
@@ -200,6 +200,11 @@ public class TestMRInputSplitDistributor {
     @Override
     public int getVertexNumTasks(String vertexName) {
       throw new UnsupportedOperationException("getVertexNumTasks not implemented in this mock");
+    }
+
+    @Override
+    public byte[] getUserPayload() {
+      throw new UnsupportedOperationException("getUserPayload not implemented in this mock");
     }
 
   }

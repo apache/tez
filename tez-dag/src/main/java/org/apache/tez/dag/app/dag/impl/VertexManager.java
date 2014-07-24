@@ -28,8 +28,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.ReflectionUtils;
@@ -39,6 +37,8 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
@@ -72,9 +72,7 @@ public class VertexManager {
   VertexManagerPluginContextImpl pluginContext;
   TezUserPayload payload = null;
   AppContext appContext;
-  
-  private static final Log LOG = LogFactory.getLog(VertexManager.class);
-  
+    
   class VertexManagerPluginContextImpl implements VertexManagerPluginContext {
     // TODO Add functionality to allow VertexManagers to send VertexManagerEvents
     
@@ -121,8 +119,8 @@ public class VertexManager {
     @Override
     public Set<String> getVertexInputNames() {
       Set<String> inputNames = null;
-      Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> inputs = 
-          managedVertex.getAdditionalInputs();
+      Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
+          inputs = managedVertex.getAdditionalInputs();
       if (inputs != null) {
         inputNames = inputs.keySet();
       }

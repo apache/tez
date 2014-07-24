@@ -700,8 +700,8 @@ public class DAGAppMaster extends AbstractService {
             + "[" + sanitizeLabelForViz(input.getName()) + "]");
         inputNode.setShape("box");
         inputNode.addEdge(n, "Input"
-            + " [inputClass=" + getShortClassName(input.getEntityDescriptor().getClassName())
-            + ", initializer=" + getShortClassName(input.getInitializerClassName()) + "]");
+            + " [inputClass=" + getShortClassName(input.getIODescriptor().getClassName())
+            + ", initializer=" + getShortClassName(input.getControllerDescriptor().getClassName()) + "]");
       }
       for (DAGProtos.RootInputLeafOutputProto output : v.getOutputsList()) {
         Graph.Node outputNode = graph.getNode(sanitizeLabelForViz(v.getName())
@@ -710,8 +710,8 @@ public class DAGAppMaster extends AbstractService {
             + "[" + sanitizeLabelForViz(output.getName()) + "]");
         outputNode.setShape("box");
         n.addEdge(outputNode, "Output"
-            + " [outputClass=" + getShortClassName(output.getEntityDescriptor().getClassName())
-            + ", initializer=" + getShortClassName(output.getInitializerClassName()) + "]");
+            + " [outputClass=" + getShortClassName(output.getIODescriptor().getClassName())
+            + ", initializer=" + getShortClassName(output.getControllerDescriptor().getClassName()) + "]");
       }
     }
 

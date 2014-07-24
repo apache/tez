@@ -42,6 +42,8 @@ import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -61,6 +63,7 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 
 import com.google.common.base.Preconditions;
+
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 
 
@@ -116,21 +119,24 @@ public class WordCount extends Configured implements Tool {
     InputDescriptor id = new InputDescriptor(MRInput.class.getName())
         .setUserPayload(MRInput.createUserPayload(inputConf,
             TextInputFormat.class.getName(), true, true));
+    InputInitializerDescriptor iid = new InputInitializerDescriptor(
+        MRInputAMSplitGenerator.class.getName());
 
     Configuration outputConf = new Configuration(tezConf);
     outputConf.set(FileOutputFormat.OUTDIR, outputPath);
     OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
       .setUserPayload(MROutput.createUserPayload(
           outputConf, TextOutputFormat.class.getName(), true));
+    OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(MROutputCommitter.class.getName());
 
     Vertex tokenizerVertex = new Vertex("tokenizer", new ProcessorDescriptor(
         TokenProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf));
-    tokenizerVertex.addInput("MRInput", id, MRInputAMSplitGenerator.class);
+    tokenizerVertex.addInput("MRInput", id, iid);
 
     Vertex summerVertex = new Vertex("summer",
         new ProcessorDescriptor(
             SumProcessor.class.getName()), 1, MRHelpers.getReduceResource(tezConf));
-    summerVertex.addOutput("MROutput", od, MROutputCommitter.class);
+    summerVertex.addOutput("MROutput", od, ocd);
 
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),

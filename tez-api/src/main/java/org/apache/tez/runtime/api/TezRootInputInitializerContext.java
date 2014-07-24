@@ -18,6 +18,8 @@
 
 package org.apache.tez.runtime.api;
 
+import javax.annotation.Nullable;
+
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 
@@ -42,10 +44,16 @@ public interface TezRootInputInitializerContext {
   String getInputName();
 
   /**
-   * Get the user payload
+   * Get the user payload for the input
    * @return User payload
    */
-  byte[] getUserPayload();
+  @Nullable byte[] getInputUserPayload();
+  
+  /**
+   * Get the user payload for the initializer
+   * @return User payload
+   */
+  @Nullable byte[] getUserPayload();
   
   /**
    * Get the number of tasks in this vertex. Maybe -1 if the vertex has not been

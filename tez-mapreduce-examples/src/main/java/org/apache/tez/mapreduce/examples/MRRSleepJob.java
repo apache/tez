@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -65,6 +64,7 @@ import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -575,12 +575,14 @@ public class MRRSleepJob extends Configured implements Tool {
     }
 
     if (generateSplitsInAM) {
-      MRHelpers.addMRInput(mapVertex, mapInputPayload, MRInputAMSplitGenerator.class);
+      MRHelpers.addMRInput(mapVertex, mapInputPayload, 
+          new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
     } else {
       if (writeSplitsToDFS) {
         MRHelpers.addMRInput(mapVertex, mapInputPayload, null);
       } else {
-        MRHelpers.addMRInput(mapVertex, mapInputPayload, MRInputSplitDistributor.class);
+        MRHelpers.addMRInput(mapVertex, mapInputPayload, 
+            new InputInitializerDescriptor(MRInputSplitDistributor.class.getName()));
       }
     }
     vertices.add(mapVertex);

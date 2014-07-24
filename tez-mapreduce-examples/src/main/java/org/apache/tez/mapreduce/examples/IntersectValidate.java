@@ -42,6 +42,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -213,13 +214,13 @@ public class IntersectValidate extends Configured implements Tool {
         ForwardingProcessor.class.getName()), -1,
         MRHelpers.getMapResource(tezConf)).addInput("lhs", new InputDescriptor(
         MRInput.class.getName()).setUserPayload(streamInputPayload),
-        MRInputAMSplitGenerator.class);
+        new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
 
     Vertex rhsVertex = new Vertex(RHS_INPUT_NAME, new ProcessorDescriptor(
         ForwardingProcessor.class.getName()), -1,
         MRHelpers.getMapResource(tezConf)).addInput("rhs", new InputDescriptor(
         MRInput.class.getName()).setUserPayload(hashInputPayload),
-        MRInputAMSplitGenerator.class);
+        new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
 
     Vertex intersectValidateVertex = new Vertex("intersectvalidate",
         new ProcessorDescriptor(IntersectValidateProcessor.class.getName()),

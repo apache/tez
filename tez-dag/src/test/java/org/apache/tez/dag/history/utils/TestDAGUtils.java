@@ -33,12 +33,12 @@ import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -68,8 +68,9 @@ public class TestDAGUtils {
     org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor("output.class")
         .setHistoryText("uvOut HistoryText");
-    uv12.addOutput("uvOut", outDesc, OutputCommitter.class);
-    v3.addOutput("uvOut", outDesc, OutputCommitter.class);
+    OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(OutputCommitter.class.getName());
+    uv12.addOutput("uvOut", outDesc, ocd);
+    v3.addOutput("uvOut", outDesc, ocd);
 
     GroupInputEdge e1 = new GroupInputEdge(uv12, v3,
         new EdgeProperty(DataMovementType.SCATTER_GATHER,
@@ -86,6 +87,7 @@ public class TestDAGUtils {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testConvertDAGPlanToATSMap() throws IOException, JSONException {
     DAGPlan dagPlan = createDAG();
     Map<String, Object> atsMap = DAGUtils.convertDAGPlanToATSMap(dagPlan);

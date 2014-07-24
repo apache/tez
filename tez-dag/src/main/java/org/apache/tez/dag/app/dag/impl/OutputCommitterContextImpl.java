@@ -19,10 +19,11 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import javax.annotation.Nullable;
+
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.tez.common.TezUserPayload;
-import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 
 public class OutputCommitterContextImpl implements OutputCommitterContext {
@@ -31,27 +32,24 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
   private final int dagAttemptNumber;
   private final String dagName;
   private final String vertexName;
-  private final String outputName;
-  private final TezUserPayload userPayload;
   private final int vertexIdx;
+  private final RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output;
 
   public OutputCommitterContextImpl(ApplicationId applicationId,
       int dagAttemptNumber,
       String dagName,
       String vertexName,
-      String outputName,
-      @Nullable byte[] userPayload,
+      RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output,
       int vertexIdx) {
     checkNotNull(applicationId, "applicationId is null");
     checkNotNull(dagName, "dagName is null");
     checkNotNull(vertexName, "vertexName is null");
-    checkNotNull(outputName, "outputName is null");
+    checkNotNull(output, "output is null");
     this.applicationId = applicationId;
     this.dagAttemptNumber = dagAttemptNumber;
     this.dagName = dagName;
     this.vertexName = vertexName;
-    this.outputName = outputName;
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
+    this.output = output;
     this.vertexIdx = vertexIdx;
   }
 
@@ -77,12 +75,17 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
 
   @Override
   public String getOutputName() {
-    return outputName;
+    return output.getName();
   }
 
   @Override
+  public byte[] getOutputUserPayload() {
+    return output.getIODescriptor().getUserPayload();
+  }
+  
+  @Override
   public byte[] getUserPayload() {
-    return userPayload.getPayload();
+    return output.getControllerDescriptor().getUserPayload();
   }
 
   @Override

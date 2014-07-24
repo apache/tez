@@ -45,6 +45,8 @@ import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -212,19 +214,22 @@ public class IntersectExample extends Configured implements Tool {
         new ProcessorDescriptor(ForwardingProcessor.class.getName()), -1,
         MRHelpers.getMapResource(tezConf)).addInput("streamfile",
         new InputDescriptor(MRInput.class.getName())
-            .setUserPayload(streamInputPayload), MRInputAMSplitGenerator.class);
+            .setUserPayload(streamInputPayload), 
+            new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
 
     Vertex hashFileVertex = new Vertex("partitioner2", new ProcessorDescriptor(
         ForwardingProcessor.class.getName()), -1,
         MRHelpers.getMapResource(tezConf)).addInput("hashfile",
         new InputDescriptor(MRInput.class.getName())
-            .setUserPayload(hashInputPayload), MRInputAMSplitGenerator.class);
+            .setUserPayload(hashInputPayload), 
+            new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
 
     Vertex intersectVertex = new Vertex("intersect", new ProcessorDescriptor(
         IntersectProcessor.class.getName()), numPartitions,
         MRHelpers.getReduceResource(tezConf)).addOutput("finalOutput",
         new OutputDescriptor(MROutput.class.getName())
-            .setUserPayload(finalOutputPayload), MROutputCommitter.class);
+            .setUserPayload(finalOutputPayload), 
+        new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
 
     Edge e1 = new Edge(streamFileVertex, intersectVertex, edgeConf.createDefaultEdgeProperty());
 

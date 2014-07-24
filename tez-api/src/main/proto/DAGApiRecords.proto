@@ -118,8 +118,8 @@ message TezEntityDescriptorProto {
 
 message RootInputLeafOutputProto {
   optional string name = 1;
-  optional TezEntityDescriptorProto entity_descriptor= 2;
-  optional string initializer_class_name = 3;
+  optional TezEntityDescriptorProto i_o_descriptor = 2;
+  optional TezEntityDescriptorProto controller_descriptor = 3;
 }
 
 message VertexPlan {

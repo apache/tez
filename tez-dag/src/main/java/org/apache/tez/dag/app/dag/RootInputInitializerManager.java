@@ -29,17 +29,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputFailed;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputInitialized;
-import org.apache.tez.dag.app.dag.impl.RootInputLeafOutputDescriptor;
 import org.apache.tez.dag.app.dag.impl.TezRootInputInitializerContextImpl;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.Event;
@@ -53,6 +55,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
 
 public class RootInputInitializerManager {
@@ -71,7 +74,6 @@ public class RootInputInitializerManager {
 
   private final Map<String, InitializerWrapper> initializerMap = new HashMap<String, InitializerWrapper>();
 
-  @SuppressWarnings("rawtypes")
   public RootInputInitializerManager(Vertex vertex, AppContext appContext,
                                      UserGroupInformation dagUgi) {
     this.appContext = appContext;
@@ -83,12 +85,12 @@ public class RootInputInitializerManager {
     this.dagUgi = dagUgi;
   }
   
-  public void runInputInitializers(List<RootInputLeafOutputDescriptor<InputDescriptor>> inputs) {
-
-    for (RootInputLeafOutputDescriptor<InputDescriptor> input : inputs) {
+  public void runInputInitializers(List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
+      inputs) {
+    for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input : inputs) {
       TezRootInputInitializer initializer = createInitializer(input);
       InitializerWrapper initializerWrapper = new InitializerWrapper(input, initializer, vertex, appContext);
-      initializerMap.put(input.getEntityName(), initializerWrapper);
+      initializerMap.put(input.getName(), initializerWrapper);
       ListenableFuture<List<Event>> future = executor
           .submit(new InputInitializerCallable(initializerWrapper, dagUgi));
       Futures.addCallback(future, createInputInitializerCallback(initializerWrapper));
@@ -97,8 +99,9 @@ public class RootInputInitializerManager {
 
 
   @VisibleForTesting
-  protected TezRootInputInitializer createInitializer(RootInputLeafOutputDescriptor<InputDescriptor> input) {
-    String className = input.getInitializerClassName();
+  protected TezRootInputInitializer createInitializer(RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>
+      input) {
+    String className = input.getControllerDescriptor().getClassName();
     @SuppressWarnings("unchecked")
     Class<? extends TezRootInputInitializer> clazz =
         (Class<? extends TezRootInputInitializer>) ReflectionUtils
@@ -131,7 +134,7 @@ public class RootInputInitializerManager {
     if (initializer.isComplete()) {
       LOG.warn(
           "Event targeted at vertex " + vertex.getLogIdentifier() + ", initializerWrapper for Input: " +
-              initializer.getInput().getEntityName() +
+              initializer.getInput().getName() +
               " will be dropped, since Input has already been initialized. [" + event + "]");
     }
     try {
@@ -173,7 +176,7 @@ public class RootInputInitializerManager {
         @Override
         public List<Event> run() throws Exception {
           LOG.info(
-              "Starting InputInitializer for Input: " + initializerWrapper.getInput().getEntityName() +
+              "Starting InputInitializer for Input: " + initializerWrapper.getInput().getName() +
                   " on vertex " + initializerWrapper.getVertexLogIdentifier());
           return initializerWrapper.getInitializer().initialize(initializerWrapper.context);
         }
@@ -203,10 +206,10 @@ public class RootInputInitializerManager {
     public void onSuccess(List<Event> result) {
       initializer.setComplete();
       LOG.info(
-          "Succeeded InputInitializer for Input: " + initializer.getInput().getEntityName() +
+          "Succeeded InputInitializer for Input: " + initializer.getInput().getName() +
               " on vertex " + initializer.getVertexLogIdentifier());
       eventHandler.handle(new VertexEventRootInputInitialized(vertexID,
-          initializer.getInput().getEntityName(), result));
+          initializer.getInput().getName(), result));
     }
 
     @SuppressWarnings("unchecked")
@@ -214,23 +217,23 @@ public class RootInputInitializerManager {
     public void onFailure(Throwable t) {
       initializer.setComplete();
       LOG.info(
-          "Failed InputInitializer for Input: " + initializer.getInput().getEntityName() +
+          "Failed InputInitializer for Input: " + initializer.getInput().getName() +
               " on vertex " + initializer.getVertexLogIdentifier());
       eventHandler
-          .handle(new VertexEventRootInputFailed(vertexID, initializer.getInput().getEntityName(), t));
+          .handle(new VertexEventRootInputFailed(vertexID, initializer.getInput().getName(), t));
     }
   }
 
   private static class InitializerWrapper {
 
 
-    private final RootInputLeafOutputDescriptor<InputDescriptor> input;
+    private final RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input;
     private final TezRootInputInitializer initializer;
     private final TezRootInputInitializerContext context;
     private final AtomicBoolean isComplete = new AtomicBoolean(false);
     private final String vertexLogIdentifier;
 
-    InitializerWrapper(RootInputLeafOutputDescriptor<InputDescriptor> input,
+    InitializerWrapper(RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input,
                        TezRootInputInitializer initializer, Vertex vertex,
                        AppContext appContext) {
       this.input = input;
@@ -239,16 +242,12 @@ public class RootInputInitializerManager {
       this.vertexLogIdentifier = vertex.getLogIdentifier();
     }
 
-    public RootInputLeafOutputDescriptor<InputDescriptor> getInput() {
+    public RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> getInput() {
       return input;
     }
 
     public TezRootInputInitializer getInitializer() {
       return initializer;
-    }
-
-    public TezRootInputInitializerContext getContext() {
-      return context;
     }
 
     public String getVertexLogIdentifier() {

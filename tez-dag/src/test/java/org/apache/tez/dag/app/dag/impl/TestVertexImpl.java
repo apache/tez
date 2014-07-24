@@ -68,8 +68,10 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -436,9 +438,11 @@ public class TestVertexImpl {
                 .setType(PlanVertexType.NORMAL)
                 .addInputs(
                     RootInputLeafOutputProto.newBuilder()
-                    .setInitializerClassName(initializerClassName)
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                initializerClassName))
                     .setName("input1")
-                    .setEntityDescriptor(
+                    .setIODescriptor(
                         TezEntityDescriptorProto.newBuilder()
                             .setClassName("InputClazz")
                             .build()
@@ -462,9 +466,11 @@ public class TestVertexImpl {
                 .setType(PlanVertexType.NORMAL)
                 .addInputs(
                     RootInputLeafOutputProto.newBuilder()
-                        .setInitializerClassName(initializerClassName)
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                initializerClassName))
                         .setName("input2")
-                        .setEntityDescriptor(
+                        .setIODescriptor(
                             TezEntityDescriptorProto.newBuilder()
                               .setClassName("InputClazz")
                               .build()
@@ -489,9 +495,11 @@ public class TestVertexImpl {
                 .setType(PlanVertexType.NORMAL)
                 .addInputs(
                     RootInputLeafOutputProto.newBuilder()
-                        .setInitializerClassName(initializerClassName)
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                initializerClassName))
                         .setName("input3")
-                        .setEntityDescriptor(
+                        .setIODescriptor(
                             TezEntityDescriptorProto.newBuilder()
                               .setClassName("InputClazz")
                               .build()
@@ -518,9 +526,11 @@ public class TestVertexImpl {
                 .setType(PlanVertexType.NORMAL)
                 .addInputs(
                     RootInputLeafOutputProto.newBuilder()
-                        .setInitializerClassName(initializerClassName)
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                initializerClassName))
                         .setName("input4")
-                        .setEntityDescriptor(
+                        .setIODescriptor(
                             TezEntityDescriptorProto.newBuilder()
                               .setClassName("InputClazz")
                               .build()
@@ -583,9 +593,11 @@ public class TestVertexImpl {
                 .setType(PlanVertexType.NORMAL)
                 .addInputs(
                     RootInputLeafOutputProto.newBuilder()
-                        .setInitializerClassName("IrrelevantInitializerClassName")
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                "IrrelevantInitializerClassName"))
                         .setName("input1")
-                        .setEntityDescriptor(
+                        .setIODescriptor(
                             TezEntityDescriptorProto.newBuilder()
                                 .setClassName("InputClazz")
                                 .build()
@@ -630,9 +642,11 @@ public class TestVertexImpl {
                 .setType(PlanVertexType.NORMAL)
                 .addInputs(
                     RootInputLeafOutputProto.newBuilder()
-                        .setInitializerClassName(initializerClassName)
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                initializerClassName))
                         .setName("input1")
-                        .setEntityDescriptor(
+                        .setIODescriptor(
                             TezEntityDescriptorProto.newBuilder()
                               .setClassName("InputClazz")
                               .build()
@@ -697,9 +711,11 @@ public class TestVertexImpl {
       numTasks = -1;
       v1Builder.addInputs(
           RootInputLeafOutputProto.newBuilder()
-          .setInitializerClassName(initializerClassName)
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                initializerClassName))
           .setName("input1")
-          .setEntityDescriptor(
+          .setIODescriptor(
               TezEntityDescriptorProto.newBuilder()
                   .setClassName("InputClazz")
                   .build()
@@ -1026,11 +1042,13 @@ public class TestVertexImpl {
                 )
                 .addOutputs(
                     DAGProtos.RootInputLeafOutputProto.newBuilder()
-                        .setEntityDescriptor(
+                        .setIODescriptor(
                             TezEntityDescriptorProto.newBuilder().setClassName("output").build()
                         )
                         .setName("outputx")
-                        .setInitializerClassName(CountingOutputCommitter.class.getName())
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                CountingOutputCommitter.class.getName()))
                 )
                 .setTaskConfig(
                     PlanTaskConfiguration.newBuilder()
@@ -2340,13 +2358,14 @@ public class TestVertexImpl {
     List<RootInputLeafOutputProto> outputs =
         new ArrayList<RootInputLeafOutputProto>();
     outputs.add(RootInputLeafOutputProto.newBuilder()
-        .setInitializerClassName(CountingOutputCommitter.class.getName())
-        .setName("output_v2")
-        .setEntityDescriptor(
-            TezEntityDescriptorProto.newBuilder()
-                .setUserPayload(ByteString.copyFrom(
+        .setControllerDescriptor(
+            TezEntityDescriptorProto.newBuilder().setClassName(
+                CountingOutputCommitter.class.getName()).setUserPayload(ByteString.copyFrom(
                     new CountingOutputCommitter.CountingOutputCommitterConfig()
-                        .toUserPayload())).build())
+                    .toUserPayload())).build())
+        .setName("output_v2")
+        .setIODescriptor(
+            TezEntityDescriptorProto.newBuilder().setClassName("output.class"))
         .build());
     v.setAdditionalOutputs(outputs);
 
@@ -2452,13 +2471,14 @@ public class TestVertexImpl {
     List<RootInputLeafOutputProto> outputs =
         new ArrayList<RootInputLeafOutputProto>();
     outputs.add(RootInputLeafOutputProto.newBuilder()
-        .setInitializerClassName(CountingOutputCommitter.class.getName())
-        .setName("output_v2")
-        .setEntityDescriptor(
-            TezEntityDescriptorProto.newBuilder()
-                .setUserPayload(ByteString.copyFrom(
+        .setControllerDescriptor(
+            TezEntityDescriptorProto.newBuilder().setClassName(
+                CountingOutputCommitter.class.getName()).setUserPayload(ByteString.copyFrom(
                     new CountingOutputCommitter.CountingOutputCommitterConfig(
                         true, true, false).toUserPayload())).build())
+        .setName("output_v2")
+        .setIODescriptor(
+            TezEntityDescriptorProto.newBuilder().setClassName("output.class"))
         .build());
     v.setAdditionalOutputs(outputs);
 
@@ -2495,13 +2515,14 @@ public class TestVertexImpl {
     List<RootInputLeafOutputProto> outputs =
         new ArrayList<RootInputLeafOutputProto>();
     outputs.add(RootInputLeafOutputProto.newBuilder()
-        .setInitializerClassName(CountingOutputCommitter.class.getName())
-        .setName("output_v2")
-        .setEntityDescriptor(
-            TezEntityDescriptorProto.newBuilder()
-                .setUserPayload(ByteString.copyFrom(
+        .setControllerDescriptor(
+            TezEntityDescriptorProto.newBuilder().setClassName(
+                CountingOutputCommitter.class.getName()).setUserPayload(ByteString.copyFrom(
                     new CountingOutputCommitter.CountingOutputCommitterConfig(
                         true, true, true).toUserPayload())).build())
+        .setName("output_v2")
+        .setIODescriptor(
+            TezEntityDescriptorProto.newBuilder().setClassName("output.class"))
         .build());
     v.setAdditionalOutputs(outputs);
 
@@ -2793,6 +2814,7 @@ public class TestVertexImpl {
     Assert.assertEquals(true, initializerManager2.hasShutDown);
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 10000)
   public void testRootInputInitializerEvent() throws Exception {
     useCustomInitializer = true;
@@ -2814,7 +2836,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITIALIZING, v2.getState());
     dispatcher.await();
 
-    RootInputInitializerManagerWithRunningInitializer manager2 = v2.getRootInputInitializerManager();
     // Wait for the initializer to be invoked - which may be a separate thread.
     while (!initializer.initStarted.get()) {
       Thread.sleep(10);
@@ -3052,6 +3073,7 @@ public class TestVertexImpl {
     }
   }
 
+  @SuppressWarnings("rawtypes")
   private static class VertexImplWithRunningInputInitializer extends VertexImpl {
 
     private RootInputInitializerManagerWithRunningInitializer rootInputInitializerManager;
@@ -3085,10 +3107,6 @@ public class TestVertexImpl {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-      return rootInputInitializerManager;
-    }
-
-    RootInputInitializerManagerWithRunningInitializer getRootInputInitializerManager() {
       return rootInputInitializerManager;
     }
   }
@@ -3150,7 +3168,7 @@ public class TestVertexImpl {
 
     @Override
     protected TezRootInputInitializer createInitializer(
-        RootInputLeafOutputDescriptor<InputDescriptor> input) {
+        RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input) {
       return presetInitializer;
     }
   }
@@ -3159,7 +3177,7 @@ public class TestVertexImpl {
   private static class RootInputInitializerManagerControlled extends
       RootInputInitializerManager {
 
-    private List<RootInputLeafOutputDescriptor<InputDescriptor>> inputs;
+    private List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> inputs;
     private final EventHandler eventHandler;
     private final DrainDispatcher dispatcher;
     private final TezVertexID vertexID;
@@ -3177,13 +3195,13 @@ public class TestVertexImpl {
 
     @Override
     public void runInputInitializers(
-        List<RootInputLeafOutputDescriptor<InputDescriptor>> inputs) {
+        List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> inputs) {
       this.inputs = inputs;
     }
 
     @Override
     protected TezRootInputInitializer createInitializer(
-        RootInputLeafOutputDescriptor<InputDescriptor> input) {
+        RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input) {
 
       return new TezRootInputInitializer() {
         @Override
@@ -3207,14 +3225,14 @@ public class TestVertexImpl {
     public void failInputInitialization() {
       super.runInputInitializers(inputs);
       eventHandler.handle(new VertexEventRootInputFailed(vertexID, inputs
-          .get(0).getEntityName(),
+          .get(0).getName(),
           new RuntimeException("MockInitializerFailed")));
       dispatcher.await();
     }
 
     public void completeInputInitialization() {
       eventHandler.handle(new VertexEventRootInputInitialized(vertexID, inputs.get(0)
-          .getEntityName(), null));
+          .getName(), null));
       dispatcher.await();
     }
 
@@ -3223,7 +3241,7 @@ public class TestVertexImpl {
       RootInputUpdatePayloadEvent event = new RootInputUpdatePayloadEvent(payload);
       events.add(event);
       eventHandler.handle(new VertexEventRootInputInitialized(vertexID, inputs
-          .get(0).getEntityName(), events));
+          .get(0).getName(), events));
       dispatcher.await();
     }
 
@@ -3240,7 +3258,7 @@ public class TestVertexImpl {
         events.add(diEvent);
       }
       eventHandler.handle(new VertexEventRootInputInitialized(vertexID, inputs
-          .get(initializerIndex).getEntityName(), events));
+          .get(initializerIndex).getName(), events));
       dispatcher.await();
     }
   }

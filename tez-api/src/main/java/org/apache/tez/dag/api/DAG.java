@@ -366,7 +366,8 @@ public class DAG {
 
     // check input and output names don't collide with vertex names
     for (Vertex vertex : vertices.values()) {
-      for (RootInputLeafOutput<InputDescriptor> input : vertex.getInputs()) {
+      for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> 
+           input : vertex.getInputs()) {
         if (vertexMap.containsKey(input.getName())) {
           throw new IllegalStateException("Vertex: "
               + vertex.getName()
@@ -374,7 +375,8 @@ public class DAG {
               + input.getName());
         }
       }
-      for (RootInputLeafOutput<OutputDescriptor> output : vertex.getOutputs()) {
+      for (RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> 
+            output : vertex.getOutputs()) {
         if (vertexMap.containsKey(output.getName())) {
           throw new IllegalStateException("Vertex: "
               + vertex.getName()
@@ -387,7 +389,8 @@ public class DAG {
     // Check for valid InputNames
     for (Entry<Vertex, Set<String>> entry : inboundVertexMap.entrySet()) {
       Vertex vertex = entry.getKey();
-      for (RootInputLeafOutput<InputDescriptor> input : vertex.getInputs()) {
+      for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> 
+           input : vertex.getInputs()) {
         if (entry.getValue().contains(input.getName())) {
           throw new IllegalStateException("Vertex: "
               + vertex.getName()
@@ -400,7 +403,8 @@ public class DAG {
     // Check for valid OutputNames
     for (Entry<Vertex, Set<String>> entry : outboundVertexMap.entrySet()) {
       Vertex vertex = entry.getKey();
-      for (RootInputLeafOutput<OutputDescriptor> output : vertex.getOutputs()) {
+      for (RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> 
+            output : vertex.getOutputs()) {
         if (entry.getValue().contains(output.getName())) {
           throw new IllegalStateException("Vertex: "
               + vertex.getName()
@@ -532,12 +536,12 @@ public class DAG {
       vertexBuilder.setProcessorDescriptor(DagTypeConverters
         .convertToDAGPlan(vertex.getProcessorDescriptor()));
       if (vertex.getInputs().size() > 0) {
-        for (RootInputLeafOutput<InputDescriptor> input : vertex.getInputs()) {
+        for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input : vertex.getInputs()) {
           vertexBuilder.addInputs(DagTypeConverters.convertToDAGPlan(input));
         }
       }
       if (vertex.getOutputs().size() > 0) {
-        for (RootInputLeafOutput<OutputDescriptor> output : vertex.getOutputs()) {
+        for (RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output : vertex.getOutputs()) {
           vertexBuilder.addOutputs(DagTypeConverters.convertToDAGPlan(output));
         }
       }

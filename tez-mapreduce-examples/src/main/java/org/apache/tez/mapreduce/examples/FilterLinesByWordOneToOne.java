@@ -48,6 +48,8 @@ import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -186,7 +188,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     stage1Vertex.addInput("MRInput",
         new InputDescriptor(MRInputLegacy.class.getName())
             .setUserPayload(MRHelpers.createMRInputPayload(stage1Payload, null)),
-        initializerClazz);
+            (initializerClazz==null ? null : new InputInitializerDescriptor(initializerClazz.getName())));
 
     // Setup stage2 Vertex
     Vertex stage2Vertex = new Vertex("stage2", new ProcessorDescriptor(
@@ -199,7 +201,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     stage2Vertex.addOutput("MROutput",
         new OutputDescriptor(MROutput.class.getName()).setUserPayload(MRHelpers
             .createUserPayloadFromConf(stage2Conf)),
-        MROutputCommitter.class);
+            new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
 
     UnorderedUnpartitionedKVEdgeConfigurer edgeConf = UnorderedUnpartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();

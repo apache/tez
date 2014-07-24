@@ -29,6 +29,7 @@ import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
@@ -174,7 +175,7 @@ public class TestDAGRecovery {
     DAG dag = SimpleVTestDAG.createDAG("DelayedInitDAG", null);
     dag.getVertex("v1").addInput("i1",
         new InputDescriptor(NoOpInput.class.getName()),
-        FailingInputInitializer.class);
+        new InputInitializerDescriptor(FailingInputInitializer.class.getName()));
     runDAGAndVerify(dag, State.SUCCEEDED);
   }
 

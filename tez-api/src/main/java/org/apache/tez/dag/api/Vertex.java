@@ -24,12 +24,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.VertexGroup.GroupInfo;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
-import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 
@@ -46,10 +47,10 @@ public class Vertex {
   private final Resource taskResource;
   private Map<String, LocalResource> taskLocalResources = new HashMap<String, LocalResource>();
   private Map<String, String> taskEnvironment = new HashMap<String, String>();
-  private final List<RootInputLeafOutput<InputDescriptor>> additionalInputs 
-                      = new ArrayList<RootInputLeafOutput<InputDescriptor>>();
-  private final List<RootInputLeafOutput<OutputDescriptor>> additionalOutputs 
-                      = new ArrayList<RootInputLeafOutput<OutputDescriptor>>();
+  private final List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs 
+                      = new ArrayList<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>();
+  private final List<RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> additionalOutputs 
+                      = new ArrayList<RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>>();
   private VertexManagerPluginDescriptor vertexManagerPlugin;
 
   private final List<Vertex> inputVertices = new ArrayList<Vertex>();
@@ -232,7 +233,7 @@ public class Vertex {
    *          in the {@link LogicalIOProcessor}
    * @param inputDescriptor
    *          the inputDescriptor for this input
-   * @param inputInitializer
+   * @param inputInitializerDescriptor
    *          An initializer for this Input which may run within the AM. This
    *          can be used to set the parallelism for this vertex and generate
    *          {@link RootInputDataInformationEvent}s for the actual Input.</p>
@@ -240,13 +241,14 @@ public class Vertex {
    *          vertex. In addition, the Input should know how to access data for
    *          each of it's tasks. </p> If a {@link TezRootInputInitializer} is
    *          meant to determine the parallelism of the vertex, the initial
-   *          vertex parallelism should be set to -1.
+   *          vertex parallelism should be set to -1. Can be null.
    * @return this Vertex
    */
   public Vertex addInput(String inputName, InputDescriptor inputDescriptor,
-      Class<? extends TezRootInputInitializer> inputInitializer) {
-    additionalInputs.add(new RootInputLeafOutput<InputDescriptor>(inputName,
-        inputDescriptor, inputInitializer));
+      @Nullable InputInitializerDescriptor inputInitializerDescriptor) {
+    additionalInputs
+        .add(new RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>(
+            inputName, inputDescriptor, inputInitializerDescriptor));
     return this;
   }
 
@@ -265,41 +267,29 @@ public class Vertex {
    *          the name of the output. This will be used when accessing the
    *          output in the {@link LogicalIOProcessor}
    * @param outputDescriptor
-   * @param outputCommitterClazz Class to be used for the OutputCommitter.
-   *                             Can be null.
+   * @param outputCommitterDescriptor Specify committer to be used for the output
+   *           Can be null. After all tasks in the vertex (or in the DAG) have 
+   *           completed, the committer (if specified) is invoked to commit the 
+   *           outputs. Commit is a data sink specific operation that usually 
+   *           determines the visibility of the output to external observers.
+   *           E.g. moving output files from temporary dirs to the real output 
+   *           dir. When there are multiple executions of a task, the commit 
+   *           process also helps decide which execution will be included in the 
+   *           final output. Users should consider whether their application or 
+   *           data sink need a commit operation.
    * @return this Vertex
    */
   public Vertex addOutput(String outputName, OutputDescriptor outputDescriptor,
-      Class<? extends OutputCommitter> outputCommitterClazz) {
-    additionalOutputs.add(new RootInputLeafOutput<OutputDescriptor>(outputName,
-        outputDescriptor, outputCommitterClazz));
+      @Nullable OutputCommitterDescriptor outputCommitterDescriptor) {
+    additionalOutputs
+        .add(new RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>(
+            outputName, outputDescriptor, outputCommitterDescriptor));
     return this;
   }
   
-  Vertex addAdditionalOutput(RootInputLeafOutput<OutputDescriptor> output) {
+  Vertex addAdditionalOutput(RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output) {
     additionalOutputs.add(output);
     return this;
-  }
-
-  /**
-   * Specifies an Output for a Vertex. This is meant to be used when a Vertex
-   * writes Output directly to an external destination. </p>
-   * 
-   * If an output of the vertex is meant to be consumed by another Vertex in the
-   * DAG - use the {@link DAG addEdge} method.
-   * 
-   * If a vertex needs generate data to an external source as well as for
-   * another Vertex in the DAG, a combination of this API and the DAG.addEdge
-   * API can be used.
-   * 
-   * @param outputName
-   *          the name of the output. This will be used when accessing the
-   *          output in the {@link LogicalIOProcessor}
-   * @param outputDescriptor
-   * @return this Vertex
-   */
-  public Vertex addOutput(String outputName, OutputDescriptor outputDescriptor) {
-    return addOutput(outputName, outputDescriptor, null);
   }
   
   /**
@@ -371,11 +361,11 @@ public class Vertex {
     return outputEdges;
   }
   
-  List<RootInputLeafOutput<InputDescriptor>> getInputs() {
+  List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> getInputs() {
     return additionalInputs;
   }
 
-  List<RootInputLeafOutput<OutputDescriptor>> getOutputs() {
+  List<RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> getOutputs() {
     return additionalOutputs;
   }
 }

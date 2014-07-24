@@ -24,12 +24,11 @@ import java.io.OutputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
-import org.apache.tez.dag.app.dag.impl.RootInputLeafOutputDescriptor;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezVertexID;
@@ -38,15 +37,13 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexInitializedProto
 
 public class VertexInitializedEvent implements HistoryEvent {
 
-  private static final Log LOG = LogFactory.getLog(VertexInitializedEvent.class);
-
   private TezVertexID vertexID;
   private String vertexName;
   private long initRequestedTime;
   private long initedTime;
   private int numTasks;
   private String processorName;
-  private Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> additionalInputs;
+  private Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs;
 
   public VertexInitializedEvent() {
   }
@@ -54,7 +51,7 @@ public class VertexInitializedEvent implements HistoryEvent {
   public VertexInitializedEvent(TezVertexID vertexId,
       String vertexName, long initRequestedTime, long initedTime,
       int numTasks, String processorName,
-      Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> additionalInputs) {
+      Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs) {
     this.vertexName = vertexName;
     this.vertexID = vertexId;
     this.initRequestedTime = initRequestedTime;
@@ -83,16 +80,17 @@ public class VertexInitializedEvent implements HistoryEvent {
     VertexInitializedProto.Builder builder = VertexInitializedProto.newBuilder();
     if (additionalInputs != null
       && !additionalInputs.isEmpty()) {
-      for (RootInputLeafOutputDescriptor<InputDescriptor> input :
+      for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input :
         additionalInputs.values()) {
         RootInputLeafOutputProto.Builder inputBuilder
             = RootInputLeafOutputProto.newBuilder();
-        inputBuilder.setName(input.getEntityName());
-        if (input.getInitializerClassName() != null) {
-          inputBuilder.setInitializerClassName(input.getInitializerClassName());
+        inputBuilder.setName(input.getName());
+        if (input.getControllerDescriptor() != null) {
+          inputBuilder.setControllerDescriptor(DagTypeConverters
+              .convertToDAGPlan(input.getControllerDescriptor()));
         }
-        inputBuilder.setEntityDescriptor(
-            DagTypeConverters.convertToDAGPlan(input.getDescriptor()));
+        inputBuilder.setIODescriptor(
+            DagTypeConverters.convertToDAGPlan(input.getIODescriptor()));
         builder.addInputs(inputBuilder.build());
       }
     }
@@ -112,16 +110,17 @@ public class VertexInitializedEvent implements HistoryEvent {
     this.numTasks = proto.getNumTasks();
     if (proto.getInputsCount() > 0) {
       this.additionalInputs =
-          new LinkedHashMap<String, RootInputLeafOutputDescriptor<InputDescriptor>>();
+          new LinkedHashMap<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>();
       for (RootInputLeafOutputProto inputProto : proto.getInputsList()) {
-        RootInputLeafOutputDescriptor<InputDescriptor> input =
-            new RootInputLeafOutputDescriptor<InputDescriptor>(
+        RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input =
+            new RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>(
                 inputProto.getName(),
                 DagTypeConverters.convertInputDescriptorFromDAGPlan(
-                    inputProto.getEntityDescriptor()),
-                inputProto.hasInitializerClassName() ?
-                    inputProto.getInitializerClassName() : null);
-        additionalInputs.put(input.getEntityName(), input);
+                    inputProto.getIODescriptor()),
+                inputProto.hasControllerDescriptor() ? DagTypeConverters
+                    .convertInputInitializerDescriptorFromDAGPlan(inputProto
+                        .getControllerDescriptor()) : null);
+        additionalInputs.put(input.getName(), input);
       }
     }
   }
@@ -169,7 +168,8 @@ public class VertexInitializedEvent implements HistoryEvent {
     return numTasks;
   }
 
-  public Map<String, RootInputLeafOutputDescriptor<InputDescriptor>> getAdditionalInputs() {
+  public Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
+    getAdditionalInputs() {
     return additionalInputs;
   }
 

@@ -19,9 +19,12 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.runtime.api.TezRootInputInitializerContext;
@@ -29,14 +32,15 @@ import org.apache.tez.runtime.api.TezRootInputInitializerContext;
 public class TezRootInputInitializerContextImpl implements
     TezRootInputInitializerContext {
 
-  private RootInputLeafOutputDescriptor<InputDescriptor> input;
+  private RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input;
   private final Vertex vertex;
   private final AppContext appContext;
 
   // TODO Add support for counters - merged with the Vertex counters.
 
-  public TezRootInputInitializerContextImpl(RootInputLeafOutputDescriptor<InputDescriptor> input, Vertex vertex,
-                                            AppContext appContext) {
+  public TezRootInputInitializerContextImpl(
+      RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input,
+      Vertex vertex, AppContext appContext) {
     checkNotNull(input, "input is null");
     checkNotNull(vertex, "vertex is null");
     checkNotNull(appContext, "appContext is null");
@@ -57,12 +61,17 @@ public class TezRootInputInitializerContextImpl implements
 
   @Override
   public String getInputName() {
-    return this.input.getEntityName();
+    return this.input.getName();
   }
 
   @Override
+  public byte[] getInputUserPayload() {
+    return this.input.getIODescriptor().getUserPayload();
+  }
+  
+  @Override
   public byte[] getUserPayload() {
-    return this.input.getDescriptor().getUserPayload();
+    return this.input.getControllerDescriptor().getUserPayload();
   }
   
   @Override 

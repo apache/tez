@@ -28,6 +28,8 @@ INCOMPATIBLE CHANGES
   TEZ-866. Add a TezMergedInputContext for MergedInputs (bikas)
   TEZ-1137. Move TezJobConfig to runtime-library and rename to
   TezRuntimeConfiguration (bikas)
+  TEZ-1134. InputInitializer and OutputCommitter implicitly use payloads of
+  the input and output (bikas)
 
 Release 0.4.0-incubating: 2014-04-05
 

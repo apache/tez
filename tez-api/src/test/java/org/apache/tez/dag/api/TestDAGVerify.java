@@ -506,7 +506,7 @@ public class TestDAGVerify {
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     
-    v1.addOutput("v2", new OutputDescriptor());
+    v1.addOutput("v2", new OutputDescriptor(), null);
     
     Edge e1 = new Edge(v1, v2,
         new EdgeProperty(DataMovementType.SCATTER_GATHER, 
@@ -530,7 +530,7 @@ public class TestDAGVerify {
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     
-    v1.addOutput("v2", new OutputDescriptor());
+    v1.addOutput("v2", new OutputDescriptor(), null);
     
     DAG dag = new DAG("testDag");
     dag.addVertex(v1);
@@ -701,8 +701,8 @@ public class TestDAGVerify {
     Assert.assertFalse(dag.edges.contains(e2));
     Assert.assertEquals(1, v1.getOutputs().size());
     Assert.assertEquals(1, v2.getOutputs().size());
-    Assert.assertEquals(outDesc, v1.getOutputs().get(0).getDescriptor());
-    Assert.assertEquals(outDesc, v2.getOutputs().get(0).getDescriptor());
+    Assert.assertEquals(outDesc, v1.getOutputs().get(0).getIODescriptor());
+    Assert.assertEquals(outDesc, v2.getOutputs().get(0).getIODescriptor());
     Assert.assertEquals(1, v1.getOutputVertices().size());
     Assert.assertEquals(1, v3.getOutputVertices().size());
     Assert.assertEquals(2, v2.getOutputVertices().size());

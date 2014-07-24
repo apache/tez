@@ -27,6 +27,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.common.TezUserPayload;
 
+@SuppressWarnings("unchecked")
 public abstract class TezEntityDescriptor<T extends TezEntityDescriptor<T>> implements Writable {
 
   protected TezUserPayload userPayload;

@@ -270,7 +270,7 @@ public class DagTypeConverters {
   }
 
   public static TezEntityDescriptorProto convertToDAGPlan(
-      TezEntityDescriptor descriptor) {
+      TezEntityDescriptor<?> descriptor) {
     TezEntityDescriptorProto.Builder builder = TezEntityDescriptorProto
         .newBuilder();
     builder.setClassName(descriptor.getClassName());
@@ -303,13 +303,12 @@ public class DagTypeConverters {
 
 
   public static RootInputLeafOutputProto convertToDAGPlan(
-      RootInputLeafOutput<? extends TezEntityDescriptor> descriptor) {
+      RootInputLeafOutput<? extends TezEntityDescriptor<?>, ? extends TezEntityDescriptor<?>> rootIO) {
     RootInputLeafOutputProto.Builder builder = RootInputLeafOutputProto.newBuilder();
-    builder.setName(descriptor.getName());
-    builder.setEntityDescriptor(convertToDAGPlan(descriptor.getDescriptor()));
-    if (descriptor.getInitializerClass() != null) {
-      builder.setInitializerClassName(descriptor.getInitializerClass()
-          .getName());
+    builder.setName(rootIO.getName());
+    builder.setIODescriptor(convertToDAGPlan(rootIO.getIODescriptor()));
+    if (rootIO.getControllerDescriptor() != null) {
+      builder.setControllerDescriptor(convertToDAGPlan(rootIO.getControllerDescriptor()));
     }
     return builder.build();
   }
@@ -333,7 +332,27 @@ public class DagTypeConverters {
     }
     return new OutputDescriptor(className).setUserPayload(bb);
   }
-  
+
+  public static InputInitializerDescriptor convertInputInitializerDescriptorFromDAGPlan(
+      TezEntityDescriptorProto proto) {
+    String className = proto.getClassName();
+    byte[] bb = null;
+    if (proto.hasUserPayload()) {
+      bb = proto.getUserPayload().toByteArray();
+    }
+    return new InputInitializerDescriptor(className).setUserPayload(bb);
+  }
+
+  public static OutputCommitterDescriptor convertOutputCommitterDescriptorFromDAGPlan(
+      TezEntityDescriptorProto proto) {
+    String className = proto.getClassName();
+    byte[] bb = null;
+    if (proto.hasUserPayload()) {
+      bb = proto.getUserPayload().toByteArray();
+    }
+    return new OutputCommitterDescriptor(className).setUserPayload(bb);
+  }
+
   public static VertexManagerPluginDescriptor convertVertexManagerPluginDescriptorFromDAGPlan(
       TezEntityDescriptorProto proto) {
     String className = proto.getClassName();

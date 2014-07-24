@@ -56,12 +56,12 @@ public class MROutputCommitter extends OutputCommitter {
 
   @Override
   public void initialize(OutputCommitterContext context) throws IOException {
-    byte[] userPayload = context.getUserPayload();
+    byte[] userPayload = context.getOutputUserPayload();
     if (userPayload == null) {
       jobConf = new JobConf();
     } else {
       jobConf = new JobConf(
-          MRHelpers.createConfFromUserPayload(context.getUserPayload()));
+          MRHelpers.createConfFromUserPayload(context.getOutputUserPayload()));
     }
 
     // Read all credentials into the credentials instance stored in JobConf.

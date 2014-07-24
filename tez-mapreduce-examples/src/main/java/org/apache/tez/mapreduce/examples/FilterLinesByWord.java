@@ -56,6 +56,8 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -200,7 +202,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     stage1Vertex.addInput("MRInput",
         new InputDescriptor(MRInputLegacy.class.getName())
             .setUserPayload(MRHelpers.createMRInputPayload(stage1Payload, null)),
-        initializerClazz);
+        (initializerClazz==null ? null : new InputInitializerDescriptor(initializerClazz.getName())));
 
     // Setup stage2 Vertex
     Vertex stage2Vertex = new Vertex("stage2", new ProcessorDescriptor(
@@ -212,7 +214,8 @@ public class FilterLinesByWord extends Configured implements Tool {
     // Configure the Output for stage2
     OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
         .setUserPayload(MRHelpers.createUserPayloadFromConf(stage2Conf));
-    stage2Vertex.addOutput("MROutput", od, MROutputCommitter.class);
+    OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(MROutputCommitter.class.getName());
+    stage2Vertex.addOutput("MROutput", od, ocd);
 
     UnorderedUnpartitionedKVEdgeConfigurer edgeConf = UnorderedUnpartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();

@@ -59,7 +59,7 @@ public class MRInputSplitDistributor implements TezRootInputInitializer {
     if (LOG.isDebugEnabled()) {
       sw = new Stopwatch().start();
     }
-    MRInputUserPayloadProto userPayloadProto = MRHelpers.parseMRInputPayload(rootInputContext.getUserPayload());
+    MRInputUserPayloadProto userPayloadProto = MRHelpers.parseMRInputPayload(rootInputContext.getInputUserPayload());
     if (LOG.isDebugEnabled()) {
       sw.stop();
       LOG.debug("Time to parse MRInput payload into prot: "

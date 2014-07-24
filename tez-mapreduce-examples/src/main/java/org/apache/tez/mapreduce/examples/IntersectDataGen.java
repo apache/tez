@@ -44,6 +44,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -214,13 +215,13 @@ public class IntersectDataGen extends Configured implements Tool {
         largeOutSizePerTask, smallOutSizePerTask)), numTasks, MRHelpers.getMapResource(tezConf));
     genDataVertex.addOutput(STREAM_OUTPUT_NAME,
         new OutputDescriptor(MROutput.class.getName()).setUserPayload(streamOutputPayload),
-        MROutputCommitter.class);
+        new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
     genDataVertex.addOutput(HASH_OUTPUT_NAME,
         new OutputDescriptor(MROutput.class.getName()).setUserPayload(hashOutputPayload),
-        MROutputCommitter.class);
+        new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
     genDataVertex.addOutput(EXPECTED_OUTPUT_NAME,
         new OutputDescriptor(MROutput.class.getName()).setUserPayload(expectedOutputPayload),
-        MROutputCommitter.class);
+        new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
 
     dag.addVertex(genDataVertex);
 
