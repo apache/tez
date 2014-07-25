@@ -79,9 +79,6 @@ import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
-import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
-import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
-import org.apache.tez.runtime.common.objectregistry.ObjectRegistryFactory;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -221,18 +218,6 @@ public class MRRSleepJob extends Configured implements Tool {
           org.apache.tez.mapreduce.hadoop.MRJobConfig.VERTEX_NAME);
 
       TaskAttemptID taId = context.getTaskAttemptID();
-
-      ObjectRegistry objectRegistry = ObjectRegistryFactory.getObjectRegistry();
-      String fooBarVal = (String) objectRegistry.get("FooBar");
-      if (null == fooBarVal) {
-        LOG.info("Adding FooBar key to Object cache");
-        objectRegistry.add(ObjectLifeCycle.DAG,
-            "FooBar", "BarFooFromTask" + taId.getTaskID().toString());
-      } else {
-        LOG.info("Got FooBar val from Object cache"
-            + ", currentTaskId=" + taId.getTaskID().toString()
-            + ", val=" + fooBarVal);
-      }
 
       String[] taskIds = conf.getStrings(MAP_ERROR_TASK_IDS);
       if (taId.getId()+1 >= context.getMaxMapAttempts()) {

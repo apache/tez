@@ -22,8 +22,10 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import javax.annotation.Nullable;
+
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
 
 /**
  * Base interface for Context classes used to initialize the Input, Output
@@ -107,6 +109,13 @@ public interface TezTaskContext {
    * @return a unique identifier
    */
   public String getUniqueIdentifier();
+  
+  /**
+   * Returns a shared {@link ObjectRegistry} to hold user objects in memory 
+   * between tasks. 
+   * @return {@link ObjectRegistry}
+   */
+  public ObjectRegistry getObjectRegistry();
 
   /**
    * Report a fatal error to the framework. This will cause the entire task to

@@ -222,7 +222,7 @@ public class MapUtils {
         new String[] {workDir.toString()},
         umbilical,
         serviceConsumerMetadata,
-        HashMultimap.<String, String>create());
+        HashMultimap.<String, String>create(), null);
     return task;
   }
 }

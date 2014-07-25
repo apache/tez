@@ -62,7 +62,6 @@ import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
-import org.apache.tez.runtime.common.objectregistry.ObjectRegistryModule;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 
 import com.google.common.base.Function;
@@ -74,8 +73,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
 
 public class TezChild {
 
@@ -207,7 +204,7 @@ public class TezChild {
         // Execute the Actual Task
         TezTaskRunner taskRunner = new TezTaskRunner(new TezConfiguration(defaultConf), childUGI,
             localDirs, containerTask.getTaskSpec(), umbilical, appAttemptNumber,
-            serviceConsumerMetadata, startedInputsMap, taskReporter, executor);
+            serviceConsumerMetadata, startedInputsMap, taskReporter, executor, objectRegistry);
         boolean shouldDie = false;
         try {
           shouldDie = !taskRunner.run();
@@ -355,9 +352,8 @@ public class TezChild {
     // of this class. Leaving it here, till there's some entity representing a running JVM.
     DefaultMetricsSystem.initialize("TezTask");
 
+    // singleton of ObjectRegistry for this JVM
     ObjectRegistryImpl objectRegistry = new ObjectRegistryImpl();
-    @SuppressWarnings("unused")
-    Injector injector = Guice.createInjector(new ObjectRegistryModule(objectRegistry));
 
     TezChild tezChild = new TezChild(defaultConf, host, port, containerIdentifier, tokenIdentifier,
         attemptNumber, localDirs, objectRegistry);

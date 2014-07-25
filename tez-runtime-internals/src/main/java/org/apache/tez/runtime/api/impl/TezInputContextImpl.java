@@ -19,13 +19,16 @@
 package org.apache.tez.runtime.api.impl;
 
 import com.google.common.base.Preconditions;
+
 import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
+
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUserPayload;
@@ -40,6 +43,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
+import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
 public class TezInputContextImpl extends TezTaskContextImpl
@@ -59,11 +63,11 @@ public class TezInputContextImpl extends TezTaskContextImpl
       TezCounters counters, int inputIndex, @Nullable byte[] userPayload,
       RuntimeTask runtimeTask, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
-      InputDescriptor inputDescriptor,  Input input, InputReadyTracker inputReadyTracker) {
+      InputDescriptor inputDescriptor,  Input input, InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry) {
     super(conf, workDirs, appAttemptNumber, dagName, taskVertexName, taskAttemptID,
         wrapCounters(counters, taskVertexName, sourceVertexName, conf),
         runtimeTask, tezUmbilical, serviceConsumerMetadata,
-        auxServiceEnv, memDist, inputDescriptor);
+        auxServiceEnv, memDist, inputDescriptor, objectRegistry);
     checkNotNull(inputIndex, "inputIndex is null");
     checkNotNull(sourceVertexName, "sourceVertexName is null");
     checkNotNull(input, "input is null");

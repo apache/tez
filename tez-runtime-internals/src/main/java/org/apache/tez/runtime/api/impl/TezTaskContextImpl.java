@@ -19,12 +19,14 @@
 package org.apache.tez.runtime.api.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
+
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -35,6 +37,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.TezTaskContext;
+import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
 import com.google.common.base.Preconditions;
@@ -55,8 +58,9 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   private final int appAttemptNumber;
   private final Map<String, String> auxServiceEnv;
   protected final MemoryDistributor initialMemoryDistributor;
-  protected final TezEntityDescriptor descriptor;
+  protected final TezEntityDescriptor<?> descriptor;
   private final String dagName;
+  private final ObjectRegistry objectRegistry;
 
   @Private
   public TezTaskContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
@@ -64,7 +68,7 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
       TezCounters counters, RuntimeTask runtimeTask,
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
-      TezEntityDescriptor descriptor) {
+      TezEntityDescriptor<?> descriptor, ObjectRegistry objectRegistry) {
     checkNotNull(conf, "conf is null");
     checkNotNull(dagName, "dagName is null");
     checkNotNull(taskVertexName, "taskVertexName is null");
@@ -92,6 +96,7 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
         generateId());
     this.initialMemoryDistributor = memDist;
     this.descriptor = descriptor;
+    this.objectRegistry = objectRegistry;
   }
 
   @Override
@@ -143,6 +148,11 @@ public abstract class TezTaskContextImpl implements TezTaskContext {
   @Override
   public String getUniqueIdentifier() {
     return uniqueIdentifier;
+  }
+  
+  @Override
+  public ObjectRegistry getObjectRegistry() {
+    return objectRegistry;
   }
 
   @Override

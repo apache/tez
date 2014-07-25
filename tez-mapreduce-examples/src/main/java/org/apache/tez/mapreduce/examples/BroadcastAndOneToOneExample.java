@@ -48,7 +48,6 @@ import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
-import org.apache.tez.runtime.common.objectregistry.ObjectRegistryFactory;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.conf.UnorderedUnpartitionedKVEdgeConfigurer;
@@ -72,7 +71,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
       if (userPayload != null) {
         boolean doLocalityCheck = userPayload[0] > 0 ? true : false;
         if (doLocalityCheck) {
-          ObjectRegistry objectRegistry = ObjectRegistryFactory.getObjectRegistry();
+          ObjectRegistry objectRegistry = getContext().getObjectRegistry();
           String entry = String.valueOf(getContext().getTaskIndex());
           objectRegistry.add(ObjectLifeCycle.DAG, entry, entry);
         }
@@ -104,7 +103,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
       Preconditions.checkState((sum == expectedSum), "Sum = " + sum);      
       
       if (doLocalityCheck) {
-        ObjectRegistry objectRegistry = ObjectRegistryFactory.getObjectRegistry();
+        ObjectRegistry objectRegistry = getContext().getObjectRegistry();
         String index = (String) objectRegistry.get(String.valueOf(getContext().getTaskIndex()));
         if (index == null || Integer.valueOf(index).intValue() != getContext().getTaskIndex()) {
           String msg = "Did not find expected local producer "

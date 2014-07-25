@@ -20,22 +20,10 @@ package org.apache.tez.runtime.common.objectregistry;
 
 import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
-import org.apache.tez.runtime.common.objectregistry.ObjectRegistryFactory;
-import org.apache.tez.runtime.common.objectregistry.ObjectRegistryModule;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-
 public class TestObjectRegistry {
-
-  @SuppressWarnings("unused")
-  @Before
-  public void setup() {
-    Injector injector = Guice.createInjector(new ObjectRegistryModule());
-  }
 
   private void testCRUD(ObjectRegistry objectRegistry) {
     Assert.assertNotNull(objectRegistry);
@@ -58,8 +46,7 @@ public class TestObjectRegistry {
 
   @Test
   public void testBasicCRUD() {
-    ObjectRegistry objectRegistry =
-        ObjectRegistryFactory.getObjectRegistry();
+    ObjectRegistry objectRegistry = new ObjectRegistryImpl();
     testCRUD(objectRegistry);
   }
 

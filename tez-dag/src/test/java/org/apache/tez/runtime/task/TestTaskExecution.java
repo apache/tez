@@ -649,7 +649,7 @@ public class TestTaskExecution {
 
     TezTaskRunner taskRunner = new TezTaskRunner(tezConf, ugi, localDirs, taskSpec, umbilical, 1,
         new HashMap<String, ByteBuffer>(), HashMultimap.<String, String> create(), taskReporter,
-        executor);
+        executor, null);
     return taskRunner;
   }
 

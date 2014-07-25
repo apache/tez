@@ -184,7 +184,7 @@ public class TestReduceProcessor {
         new String[] {workDir.toString()},
         new TestUmbilical(),
         serviceConsumerMetadata,
-        HashMultimap.<String, String>create());
+        HashMultimap.<String, String>create(), null);
     
     task.initialize();
     task.run();

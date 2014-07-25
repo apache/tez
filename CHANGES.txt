@@ -32,6 +32,8 @@ INCOMPATIBLE CHANGES
   the input and output (bikas)
   TEZ-1312. rename vertex.addInput/Output() to vertex.addDataSource/Sink()
   (Chen He via bikas)
+  TEZ-1311. get sharedobjectregistry from the context instead of a static
+  (bikas)"
 
 Release 0.4.0-incubating: 2014-04-05
 
