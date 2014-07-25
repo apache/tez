@@ -74,7 +74,7 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT = true;
 
   /** Command line options for the Tez AppMaster process. */
-  public static final String TEZ_AM_LAUNCH_CMD_OPTS = TEZ_AM_PREFIX +  "java.opts";
+  public static final String TEZ_AM_LAUNCH_CMD_OPTS = TEZ_AM_PREFIX +  "launch.cmd-opts";
   public static final String TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT = 
       "-Djava.net.preferIPv4Stack=true " +
       "-Dhadoop.metrics.log.level=WARN ";
