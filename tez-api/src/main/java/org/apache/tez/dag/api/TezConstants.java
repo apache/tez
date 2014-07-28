@@ -18,14 +18,19 @@
 
 package org.apache.tez.dag.api;
 
+import org.apache.hadoop.classification.InterfaceAudience;
+
 /**
  * Specifies all constant values in Tez
  */
+@InterfaceAudience.Private
 public class TezConstants {
 
   /**
    * Command-line argument to be set when running the Tez AM in session mode.
    */
   public static final String TEZ_SESSION_MODE_CLI_OPTION = "session";
+
+  public static final String TEZ_TAR_LR_NAME = "tezlib";
 
 }

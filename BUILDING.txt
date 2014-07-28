@@ -41,12 +41,12 @@ Maven build goals:
  * Run clover                : mvn test -Pclover [-Dclover.license=${user.home}/clover.license]
  * Run Rat                   : mvn apache-rat:check
  * Build javadocs            : mvn javadoc:javadoc
- * Build distribution        : mvn package[-Dtar][-Dhadoop.version=2.4.0]
+ * Build distribution        : mvn package[-Dhadoop.version=2.4.0]
  * Visualize state machines  : mvn compile -Pvisualize -DskipTests=true
  
 Build options:
  
- * Use -Dtar to create a TAR with the distribution (tar.gz will be created under /tez-dist/target)
+ * Use -Dpackage.format to create distributions with a format other than .tar.gz (mvn-assembly-plugin formats). 
  * Use -Dclover.license to specify the path to the clover license file
  * Use -Dhadoop.version to specify the version of hadoop to build tez against
  * Use -Dprotoc.path to specify the path to protoc
@@ -67,16 +67,16 @@ Tez runs on top of Apache Hadoop YARN and requires hadoop version 2.2.0 or highe
 By default, it can be compiled against hadoop versions 2.4.0 and higher by just
 specifying the hadoop.version. For example, to build tez against hadoop 3.0.0-SNAPSHOT 
 
- $ mvn package -Dtar -Dhadoop.version=3.0.0-SNAPSHOT
+ $ mvn package -Dhadoop.version=3.0.0-SNAPSHOT
  
 However, to compile against hadoop versions lower than 2.4.0, the hadoop24 profile needs
 to be disabled
 
- $ mvn package -Dtar -Dhadoop.version=2.2.0 -P\!hadoop24
+ $ mvn package  -Dhadoop.version=2.2.0 -P\!hadoop24
 
 To skip Tests and java docs
 
- $ mvn package -Dtar -Dhadoop.version=3.0.0-SNAPSHOT -DskipTests -Dmaven.javadoc.skip=true
+ $ mvn package -Dhadoop.version=3.0.0-SNAPSHOT -DskipTests -Dmaven.javadoc.skip=true
 
 ----------------------------------------------------------------------------------
 Protocol Buffer compiler:
@@ -91,7 +91,7 @@ protoc is looked up in the PATH.
 
 You can also specify the path to protoc while building using -Dprotoc.path
 
- $ mvn package -DskipTests -Dtar -Dprotoc.path=/usr/local/bin/protoc
+ $ mvn package -DskipTests -Dprotoc.path=/usr/local/bin/protoc
 
 
 ----------------------------------------------------------------------------------

@@ -18,6 +18,7 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
   <id>tez-dist</id>
+  <includeBaseDirectory>false</includeBaseDirectory>
   <moduleSets>
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
@@ -32,8 +33,14 @@
             <unpack>false</unpack>
             <scope>runtime</scope>
             <outputDirectory>/lib</outputDirectory>
+            <useTransitiveDependencies>false</useTransitiveDependencies>
             <excludes>
               <exclude>*:*:test-jar</exclude>
+              <exclude>org.apache.hadoop:hadoop-common</exclude>
+              <exclude>org.apache.hadoop:hadoop-hdfs</exclude>
+              <exclude>org.apache.hadoop:hadoop-yarn-api</exclude>
+              <exclude>org.apache.hadoop:hadoop-yarn-client</exclude>
+              <exclude>org.apache.hadoop:hadoop-yarn-common</exclude>
               <exclude>org.apache.tez:*</exclude>
             </excludes>
           </dependencySet>

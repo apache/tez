@@ -47,9 +47,7 @@
   </dependencies>
 
   <properties>
-    <package.format>dir</package.format>
-    <!--includeBaseDirectory is not used - replacement does not work in the packaging-->
-    <package.includeBaseDirectory>false</package.includeBaseDirectory>
+    <package.format>tar.gz</package.format>
   </properties>
 
   <profiles>
@@ -65,19 +63,6 @@
           <version>${project.version}</version>
         </dependency>
       </dependencies>
-    </profile>
-    <profile>
-      <id>dist-tar</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-        <property>
-          <name>tar</name>
-        </property>
-      </activation>
-      <properties>
-        <package.format>tar.gz</package.format>
-        <package.includeBaseDirectory>true</package.includeBaseDirectory>
-      </properties>
     </profile>
   </profiles>
 
@@ -116,11 +101,11 @@
             </goals>
           </execution>
           <execution>
-            <id>package-tez-full</id>
+            <id>package-tez-partial</id>
             <configuration>
-              <finalName>tez-${project.version}-full</finalName>
+              <finalName>tez-${project.version}-partial</finalName>
               <descriptors>
-                <descriptor>src/main/assembly/tez-dist-full.xml</descriptor>
+                <descriptor>src/main/assembly/tez-dist-partial.xml</descriptor>
               </descriptors>
               <formats>
                 <format>${package.format}</format>

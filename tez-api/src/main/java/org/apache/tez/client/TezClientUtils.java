@@ -45,9 +45,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
@@ -104,6 +102,38 @@ public class TezClientUtils {
   private static Log LOG = LogFactory.getLog(TezClientUtils.class);
   private static final int UTF8_CHUNK_SIZE = 16 * 1024;
 
+  private static FileStatus[] getLRFileStatus(String fileName, Configuration conf,
+                                              boolean asDir) throws
+      IOException {
+
+    URI uri;
+    try {
+      uri = new URI(fileName);
+    } catch (URISyntaxException e) {
+      String message = "Invalid URI defined in configuration for"
+          + " location of TEZ jars. providedURI=" + fileName;
+      LOG.error(message);
+      throw new TezUncheckedException(message, e);
+    }
+
+    if (!uri.isAbsolute()) {
+      String message = "Non-absolute URI defined in configuration for"
+          + " location of TEZ jars. providedURI=" + fileName;
+      LOG.error(message);
+      throw new TezUncheckedException(message);
+    }
+    Path p = new Path(uri);
+    FileSystem pathfs = p.getFileSystem(conf);
+    p = pathfs.makeQualified(p);
+
+    if (asDir) {
+      return pathfs.listStatus(p);
+    } else {
+      FileStatus fStatus = pathfs.getFileStatus(p);
+      return new FileStatus[]{fStatus};
+    }
+  }
+
   /**
    * Setup LocalResource map for Tez jars based on provided Configuration
    * 
@@ -136,48 +166,47 @@ public class TezClientUtils {
      
       List<Path> tezJarPaths = Lists.newArrayListWithCapacity(tezJarUris.length);
 
-      for (String tezJarUri : tezJarUris) {
-        URI uri;
-        try {
-          uri = new URI(tezJarUri.trim());
-        } catch (URISyntaxException e) {
-          String message = "Invalid URI defined in configuration for"
-              + " location of TEZ jars. providedURI=" + tezJarUri;
-          LOG.error(message);
-          throw new TezUncheckedException(message, e);
-        }
-        if (!uri.isAbsolute()) {
-          String message = "Non-absolute URI defined in configuration for"
-              + " location of TEZ jars. providedURI=" + tezJarUri;
-          LOG.error(message);
-          throw new TezUncheckedException(message);
-        }
-        Path p = new Path(uri);
-        FileSystem pathfs = p.getFileSystem(conf);
-        p = pathfs.makeQualified(p);
-        tezJarPaths.add(p);
-        RemoteIterator<LocatedFileStatus> iter = pathfs.listFiles(p, false);
-        while (iter.hasNext()) {
-          LocatedFileStatus fStatus = iter.next();
-          String rsrcName = fStatus.getPath().getName();
-          // FIXME currently not checking for duplicates due to quirks
-          // in assembly generation
-          if (tezJarResources.containsKey(rsrcName)) {
-            String message = "Duplicate resource found"
-                + ", resourceName=" + rsrcName
-                + ", existingPath=" +
-                tezJarResources.get(rsrcName).getResource().toString()
-                + ", newPath=" + fStatus.getPath();
-            LOG.warn(message);
-            // throw new TezUncheckedException(message);
-          }
-          tezJarResources.put(rsrcName,
+      if (tezJarUris.length == 1 && (tezJarUris[0].endsWith(".tar.gz") || tezJarUris[0].endsWith(".tgz"))) {
+        String fileName = tezJarUris[0];
+        if (fileName.endsWith(".tar.gz") || fileName.endsWith(".tgz")) {
+          FileStatus fStatus = getLRFileStatus(fileName, conf, false)[0];
+          tezJarResources.put(TezConstants.TEZ_TAR_LR_NAME,
               LocalResource.newInstance(
                   ConverterUtils.getYarnUrlFromPath(fStatus.getPath()),
-                  LocalResourceType.FILE,
+                  LocalResourceType.ARCHIVE,
                   LocalResourceVisibility.PUBLIC,
                   fStatus.getLen(),
                   fStatus.getModificationTime()));
+          tezJarPaths.add(fStatus.getPath());
+        }
+      } else { // Treat as non-archives - each entry being a directory
+        for (String tezJarUri : tezJarUris) {
+          FileStatus [] fileStatuses = getLRFileStatus(tezJarUri, conf, true);
+          for (FileStatus fStatus : fileStatuses) {
+            if (fStatus.isDirectory()) {
+              // Skip directories - since tez.lib.uris is not recursive.
+              continue;
+            }
+            String rsrcName = fStatus.getPath().getName();
+            // FIXME currently not checking for duplicates due to quirks
+            // in assembly generation
+            if (tezJarResources.containsKey(rsrcName)) {
+              String message = "Duplicate resource found"
+                  + ", resourceName=" + rsrcName
+                  + ", existingPath=" +
+                  tezJarResources.get(rsrcName).getResource().toString()
+                  + ", newPath=" + fStatus.getPath();
+              LOG.warn(message);
+              // throw new TezUncheckedException(message);
+            }
+            tezJarResources.put(rsrcName,
+                LocalResource.newInstance(
+                    ConverterUtils.getYarnUrlFromPath(fStatus.getPath()),
+                    LocalResourceType.FILE,
+                    LocalResourceVisibility.PUBLIC,
+                    fStatus.getLen(),
+                    fStatus.getModificationTime()));
+          }
         }
       }
       
@@ -304,6 +333,13 @@ public class TezClientUtils {
     }
   }
 
+  @Private
+  static boolean usingTezLibsFromArchive(Map<String, LocalResource> tezLrs) {
+    return tezLrs.size() == 1 &&
+        tezLrs.keySet().contains(TezConstants.TEZ_TAR_LR_NAME) &&
+        tezLrs.values().iterator().next().getType() == LocalResourceType.ARCHIVE;
+  }
+
   /**
    * Create an ApplicationSubmissionContext to launch a Tez AM
    * @param conf TezConfiguration
@@ -324,6 +360,8 @@ public class TezClientUtils {
           throws IOException, YarnException{
 
     Preconditions.checkNotNull(sessionCreds);
+
+    boolean tezLrsAsArchive = usingTezLibsFromArchive(tezJarResources);
 
     FileSystem fs = TezClientUtils.ensureStagingDirExists(conf,
         TezCommonUtils.getTezBaseStagingPath(conf));
@@ -415,7 +453,7 @@ public class TezClientUtils {
 
     Map<String, String> environment = new TreeMap<String, String>();
     TezYARNUtils.setupDefaultEnv(environment, conf, TezConfiguration.TEZ_AM_LAUNCH_ENV,
-        TezConfiguration.TEZ_AM_LAUNCH_ENV_DEFAULT);
+        TezConfiguration.TEZ_AM_LAUNCH_ENV_DEFAULT, tezLrsAsArchive);
     
     // finally apply env set in the code. This could potentially be removed in
     // TEZ-692
@@ -515,7 +553,7 @@ public class TezClientUtils {
         Map<String, String> taskEnv = v.getTaskEnvironment();
         TezYARNUtils.setupDefaultEnv(taskEnv, conf,
             TezConfiguration.TEZ_TASK_LAUNCH_ENV,
-            TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT);
+            TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT, tezLrsAsArchive);
 
         TezClientUtils.setDefaultLaunchCmdOpts(v, amConfig.getTezConfiguration());
       }

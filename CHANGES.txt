@@ -34,6 +34,8 @@ INCOMPATIBLE CHANGES
   (Chen He via bikas)
   TEZ-1311. get sharedobjectregistry from the context instead of a static
   (bikas)"
+  TEZ-1300. Change deploy mechanism for Tez to be based on a tarball which
+  includes Hadoop libs.
 
 Release 0.4.0-incubating: 2014-04-05
 

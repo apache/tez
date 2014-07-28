@@ -18,7 +18,6 @@
 
 package org.apache.tez.client;
 
-import java.io.File;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.Map;
@@ -30,7 +29,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
@@ -345,7 +343,8 @@ public class TezClient {
     for (Vertex v : dag.getVertices()) {
       Map<String, String> taskEnv = v.getTaskEnvironment();
       TezYARNUtils.setupDefaultEnv(taskEnv, amConfig.getTezConfiguration(),
-          TezConfiguration.TEZ_TASK_LAUNCH_ENV, TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT);
+          TezConfiguration.TEZ_TASK_LAUNCH_ENV, TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT,
+          TezClientUtils.usingTezLibsFromArchive(getTezJarResources(sessionCredentials)));
       TezClientUtils.setDefaultLaunchCmdOpts(v, amConfig.getTezConfiguration());
     }
     
@@ -535,12 +534,11 @@ public class TezClient {
             + " timeout interval, timeoutSecs=" + clientTimeout);
       }
 
-      String classpath = TezYARNUtils
-        .getFrameworkClasspath(amConfig.getYarnConfiguration());
       Map<String, String> contextEnv = context.getEnvironment();
-      TezYARNUtils.addToEnvironment(contextEnv,
-        ApplicationConstants.Environment.CLASSPATH.name(),
-        classpath, File.pathSeparator);
+      TezYARNUtils.setupDefaultEnv(contextEnv, amConfig.getTezConfiguration(),
+          TezConfiguration.TEZ_TASK_LAUNCH_ENV,
+          TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT,
+          TezClientUtils.usingTezLibsFromArchive(getTezJarResources(sessionCredentials)));
 
       DAGClientAMProtocolRPC.PreWarmRequestProto.Builder
         preWarmReqProtoBuilder =
