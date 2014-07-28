@@ -178,6 +178,30 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
     }
 
     /**
+     * Set serialization class responsible for providing serializer/deserializer for keys.
+     *
+     * @param serializationClassName
+     * @return
+     */
+    public Builder setKeySerializationClass(String serializationClassName) {
+      outputBuilder.setKeySerializationClass(serializationClassName);
+      inputBuilder.setKeySerializationClass(serializationClassName);
+      return this;
+    }
+
+    /**
+     * Set serialization class responsible for providing serializer/deserializer for values.
+     *
+     * @param serializationClassName
+     * @return
+     */
+    public Builder setValueSerializationClass(String serializationClassName) {
+      outputBuilder.setValueSerializationClass(serializationClassName);
+      inputBuilder.setValueSerializationClass(serializationClassName);
+      return this;
+    }
+
+    /**
      * Configure the specific output
      *
      * @return a builder to configure the output

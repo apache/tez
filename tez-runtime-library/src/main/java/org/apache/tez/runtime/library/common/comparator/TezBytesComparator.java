@@ -15,10 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.io;
+package org.apache.tez.runtime.library.common.comparator;
 
-public interface HashComparator<KEY> {
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.WritableComparator;
 
-  int getHashCode(KEY key);
+public class TezBytesComparator extends WritableComparator {
+
+  public TezBytesComparator() {
+    super(BytesWritable.class);
+  }
+
+  /**
+   * Compare the buffers in serialized form.
+   */
+  @Override
+  public int compare(byte[] b1, int s1, int l1,
+      byte[] b2, int s2, int l2) {
+    return compareBytes(b1, s1, l1, b2, s2, l2);
+  }
 
 }

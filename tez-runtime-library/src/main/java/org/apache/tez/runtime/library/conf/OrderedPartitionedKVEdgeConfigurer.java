@@ -24,6 +24,7 @@ import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -154,6 +155,35 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
       inputBuilder.setKeyComparatorClass(comparatorClassName);
       return this;
     }
+
+    /**
+     * Set serialization class and the relevant comparator to be used for sorting.
+     * Providing custom serialization class could change the way, keys needs to be compared in
+     * sorting. Providing invalid comparator here could create invalid results.
+     *
+     * @param serializationClassName
+     * @param comparatorClassName
+     * @return
+     */
+    public Builder setKeySerializationClass(String serializationClassName,
+        String comparatorClassName) {
+      outputBuilder.setKeySerializationClass(serializationClassName, comparatorClassName);
+      inputBuilder.setKeySerializationClass(serializationClassName, comparatorClassName);
+      return this;
+    }
+
+    /**
+     * Set serialization class responsible for providing serializer/deserializer for values.
+     *
+     * @param serializationClassName
+     * @return
+     */
+    public Builder setValueSerializationClass(String serializationClassName) {
+      outputBuilder.setValueSerializationClass(serializationClassName);
+      inputBuilder.setValueSerializationClass(serializationClassName);
+      return this;
+    }
+
 
     @Override
     public Builder enableCompression(String compressionCodec) {

@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -188,6 +189,31 @@ public class UnorderedUnpartitionedKVEdgeConfigurer extends HadoopKeyValuesBased
     public Builder setFromConfiguration(Configuration conf) {
       outputBuilder.setFromConfiguration(conf);
       inputBuilder.setFromConfiguration(conf);
+      return this;
+    }
+
+    /**
+     * Set serialization class responsible for providing serializer/deserializer for key/value and
+     * the corresponding comparator class to be used as key comparator.
+     *
+     * @param serializationClassName
+     * @return
+     */
+    public Builder setKeySerializationClass(String serializationClassName) {
+      outputBuilder.setKeySerializationClass(serializationClassName);
+      inputBuilder.setKeySerializationClass(serializationClassName);
+      return this;
+    }
+
+    /**
+     * Set serialization class responsible for providing serializer/deserializer for values.
+     *
+     * @param serializationClassName
+     * @return
+     */
+    public Builder setValueSerializationClass(String serializationClassName) {
+      outputBuilder.setValueSerializationClass(serializationClassName);
+      inputBuilder.setValueSerializationClass(serializationClassName);
       return this;
     }
 

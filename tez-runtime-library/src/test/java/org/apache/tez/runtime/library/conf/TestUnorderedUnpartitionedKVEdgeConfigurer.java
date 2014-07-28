@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
@@ -55,6 +56,7 @@ public class TestUnorderedUnpartitionedKVEdgeConfigurer {
   public void testDefaultConfigsUsed() {
     UnorderedUnpartitionedKVEdgeConfigurer.Builder builder =
         UnorderedUnpartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE");
+    builder.setKeySerializationClass("SerClass1").setValueSerializationClass("SerClass2");
 
     UnorderedUnpartitionedKVEdgeConfigurer configuration = builder.build();
 
@@ -73,12 +75,16 @@ public class TestUnorderedUnpartitionedKVEdgeConfigurer {
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
     assertEquals("TestCodec",
         outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertTrue(outputConf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY).startsWith
+        ("SerClass2,SerClass1"));
 
     Configuration inputConf = rebuiltInput.conf;
     assertEquals(true, inputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
     assertEquals("TestCodec",
         inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertTrue(inputConf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY).startsWith
+        ("SerClass2,SerClass1"));
   }
 
   @Test

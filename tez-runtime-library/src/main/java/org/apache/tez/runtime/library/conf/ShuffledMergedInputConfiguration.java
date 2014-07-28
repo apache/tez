@@ -30,6 +30,7 @@ import com.google.common.collect.Lists;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
@@ -405,6 +406,41 @@ public class ShuffledMergedInputConfiguration {
         this.conf
             .set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, compressionCodec);
       }
+      return this;
+    }
+
+    /**
+     * Set serialization class and the relevant comparator to be used for sorting.
+     * Providing custom serialization class could change the way, keys needs to be compared in
+     * sorting. Providing invalid comparator here could create invalid results.
+     *
+     * @param serializationClassName
+     * @param comparatorClassName
+     * @return
+     */
+    public Builder setKeySerializationClass(String serializationClassName,
+        String comparatorClassName) {
+      Preconditions.checkArgument(serializationClassName != null,
+          "serializationClassName cannot be null");
+      Preconditions.checkArgument(comparatorClassName != null,
+          "comparator cannot be null");
+      this.conf.set(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY, serializationClassName + ","
+          + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
+      setKeyComparatorClass(comparatorClassName);
+      return this;
+    }
+
+    /**
+     * Serialization class to be used for serializing values.
+     *
+     * @param serializationClassName
+     * @return
+     */
+    public Builder setValueSerializationClass(String serializationClassName) {
+      Preconditions.checkArgument(serializationClassName != null,
+          "serializationClassName cannot be null");
+      this.conf.set(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY, serializationClassName + ","
+          + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
       return this;
     }
 

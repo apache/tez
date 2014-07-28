@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.RawComparator;
@@ -41,6 +43,7 @@ import com.google.common.base.Preconditions;
  */
 
 public class ValuesIterator<KEY,VALUE> {
+  private static final Log LOG = LogFactory.getLog(ValuesIterator.class.getName());
   protected TezRawKeyValueIterator in; //input iterator
   private KEY key;               // current key
   private KEY nextKey;
@@ -75,6 +78,7 @@ public class ValuesIterator<KEY,VALUE> {
     this.keyDeserializer.open(keyIn);
     this.valDeserializer = serializationFactory.getDeserializer(valClass);
     this.valDeserializer.open(this.valueIn);
+    LOG.info("keyDeserializer=" + keyDeserializer + "; valueDeserializer=" + valDeserializer);
   }
 
   TezRawKeyValueIterator getRawIterator() { return in; }
@@ -175,7 +179,8 @@ public class ValuesIterator<KEY,VALUE> {
     more = in.next();
     if (more) {      
       DataInputBuffer nextKeyBytes = in.getKey();
-      keyIn.reset(nextKeyBytes.getData(), nextKeyBytes.getPosition(), nextKeyBytes.getLength());
+     keyIn.reset(nextKeyBytes.getData(), nextKeyBytes.getPosition(),
+         nextKeyBytes.getLength() - nextKeyBytes.getPosition());
       nextKey = keyDeserializer.deserialize(nextKey);
       // TODO Is a counter increment required here ?
       hasMoreValues = key != null && (comparator.compare(key, nextKey) == 0);
@@ -190,7 +195,8 @@ public class ValuesIterator<KEY,VALUE> {
    */
   private void readNextValue() throws IOException {
     DataInputBuffer nextValueBytes = in.getValue();
-    valueIn.reset(nextValueBytes.getData(), nextValueBytes.getPosition(), nextValueBytes.getLength());
+    valueIn.reset(nextValueBytes.getData(), nextValueBytes.getPosition(),
+        nextValueBytes.getLength() - nextValueBytes.getPosition());
     value = valDeserializer.deserialize(value);
   }
 }

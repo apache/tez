@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
@@ -122,7 +123,9 @@ public class TestOnFileUnorderedPartitionedKVOutput {
   public void testDefaultConfigsUsed() {
     OnFileUnorderedPartitionedKVOutputConfiguration.Builder builder =
         OnFileUnorderedPartitionedKVOutputConfiguration
-            .newBuilder("KEY", "VALUE", "PARTITIONER", null);
+            .newBuilder("KEY", "VALUE", "PARTITIONER", null)
+            .setKeySerializationClass("SerClass1")
+            .setValueSerializationClass("SerClass2");
     OnFileUnorderedPartitionedKVOutputConfiguration configuration = builder.build();
 
     byte[] confBytes = configuration.toByteArray();
@@ -143,6 +146,10 @@ public class TestOnFileUnorderedPartitionedKVOutput {
     assertEquals("KEY", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
     assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("PARTITIONER", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
+    assertTrue(conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY).startsWith("SerClass2," +
+        "SerClass1"));
+    //for unordered paritioned kv output, comparator is not populated
+    assertNull(conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
   }
 
   @Test

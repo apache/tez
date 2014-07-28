@@ -27,6 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
@@ -162,6 +163,9 @@ public abstract class ExternalSorter {
     serializationFactory = new SerializationFactory(this.conf);
     keySerializer = serializationFactory.getSerializer(keyClass);
     valSerializer = serializationFactory.getSerializer(valClass);
+    LOG.info("keySerializer=" + keySerializer + "; valueSerializer=" + valSerializer
+        + "; comparator=" + (RawComparator) ConfigUtils.getIntermediateOutputKeyComparator(conf)
+        + "; conf=" + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
 
     //    counters    
     mapOutputByteCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES);

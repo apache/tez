@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
@@ -246,4 +247,56 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
   }
 
+  @Test
+  public void testSerialization() {
+    OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
+        .newBuilder("KEY", "VALUE", "PARTITIONER", null)
+        .enableCompression("CustomCodec")
+        .setKeySerializationClass("serClass1", "SomeComparator1")
+        .setValueSerializationClass("serClass2");
+
+    OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
+
+    byte[] outputBytes = configuration.getOutputPayload();
+    byte[] inputBytes = configuration.getInputPayload();
+
+    OnFileSortedOutputConfiguration rebuiltOutput = new OnFileSortedOutputConfiguration();
+    rebuiltOutput.fromByteArray(outputBytes);
+    ShuffledMergedInputConfiguration rebuiltInput = new ShuffledMergedInputConfiguration();
+    rebuiltInput.fromByteArray(inputBytes);
+
+    Configuration outputConf = rebuiltOutput.conf;
+    Configuration inputConf = rebuiltInput.conf;
+
+    assertEquals("KEY", outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE",
+        outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
+    assertEquals("PARTITIONER", outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
+    assertEquals("CustomCodec",
+        outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertEquals(true,
+        outputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
+            false));
+    assertNull(outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT));
+    //verify comparator and serialization class
+    assertEquals("SomeComparator1",
+        outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
+    assertTrue(outputConf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY).trim().startsWith
+        ("serClass2,serClass1"));
+
+
+    //verify comparator and serialization class
+    assertEquals("SomeComparator1", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
+    assertTrue(inputConf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY).trim().startsWith
+        ("serClass2,serClass1"));
+
+    assertEquals("KEY", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
+    assertEquals("VALUE",
+        inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
+    assertEquals("CustomCodec",
+        inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+    assertEquals(true,
+        inputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
+            false));
+  }
 }

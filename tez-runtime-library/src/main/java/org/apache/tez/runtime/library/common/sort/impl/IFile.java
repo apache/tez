@@ -238,8 +238,10 @@ public class IFile {
       if (writtenRecordsCounter != null) {
         writtenRecordsCounter.increment(numRecordsWritten);
       }
-      LOG.info("Total keys written=" + numRecordsWritten + "; Savings(optimized due to " +
-          "multi-kv/rle)=" + totalKeySaving + "; number of RLEs written=" + rleWritten);
+      LOG.info("Total keys written=" + numRecordsWritten + "; rleEnabled=" + rle + "; Savings" +
+          "(due to multi-kv/rle)=" + totalKeySaving + "; number of RLEs written=" +
+          rleWritten + "; compressedLen=" + compressedBytesWritten + "; rawLen="
+          + decompressedBytesWritten);
     }
 
     /**
