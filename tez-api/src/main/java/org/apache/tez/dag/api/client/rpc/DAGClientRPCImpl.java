@@ -33,10 +33,9 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
-import org.apache.hadoop.yarn.client.api.YarnClient;
-import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.tez.client.FrameworkClient;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -68,7 +67,7 @@ public class DAGClientRPCImpl implements DAGClient {
   private final TezConfiguration conf;
   @VisibleForTesting
   ApplicationReport appReport;
-  private YarnClient yarnClient;
+  private FrameworkClient frameworkClient;
   @VisibleForTesting
   DAGClientAMProtocolBlockingPB proxy = null;
 
@@ -77,9 +76,9 @@ public class DAGClientRPCImpl implements DAGClient {
     this.appId = appId;
     this.dagId = dagId;
     this.conf = conf;
-    yarnClient = new YarnClientImpl();
-    yarnClient.init(new YarnConfiguration(conf));
-    yarnClient.start();
+    frameworkClient = FrameworkClient.createFrameworkClient();
+    frameworkClient.init(new YarnConfiguration(conf));
+    frameworkClient.start();
     appReport = null;
   }
 
@@ -142,8 +141,8 @@ public class DAGClientRPCImpl implements DAGClient {
     if (this.proxy != null) {
       RPC.stopProxy(this.proxy);
     }
-    if(yarnClient != null) {
-      yarnClient.stop();
+    if(frameworkClient != null) {
+      frameworkClient.stop();
     }
   }
 
@@ -190,7 +189,7 @@ public class DAGClientRPCImpl implements DAGClient {
     }
     ApplicationReport appReport;
     try {
-      appReport = yarnClient.getApplicationReport(appId);
+      appReport = frameworkClient.getApplicationReport(appId);
     } catch (YarnException e) {
       throw new TezException(e);
     }
@@ -279,7 +278,7 @@ public class DAGClientRPCImpl implements DAGClient {
 
   ApplicationReport getAppReport() throws IOException, TezException {
     try {
-      ApplicationReport appReport = yarnClient.getApplicationReport(appId);
+      ApplicationReport appReport = frameworkClient.getApplicationReport(appId);
       if (LOG.isDebugEnabled()) {
         LOG.debug("App: " + appId + " in state: "
             + appReport.getYarnApplicationState());

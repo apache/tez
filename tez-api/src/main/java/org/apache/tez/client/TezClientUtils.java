@@ -67,7 +67,6 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
-import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
@@ -730,7 +729,7 @@ public class TezClientUtils {
     return textPath;
   }
 
-  static DAGClientAMProtocolBlockingPB getSessionAMProxy(YarnClient yarnClient,
+  static DAGClientAMProtocolBlockingPB getSessionAMProxy(FrameworkClient yarnClient,
       Configuration conf,
       ApplicationId applicationId) throws TezException, IOException {
     ApplicationReport appReport;

@@ -61,7 +61,7 @@ import com.google.protobuf.RpcController;
 public class TestTezClient {
 
   class TezClientForTest extends TezClient {
-    YarnClient mockYarnClient;
+    TezYarnClient mockYarnClient;
     DAGClientAMProtocolBlockingPB sessionAmProxy;
 
     public TezClientForTest(String name, TezConfiguration tezConf,
@@ -71,7 +71,7 @@ public class TestTezClient {
     }
     
     @Override
-    protected YarnClient createYarnClient() {
+    protected FrameworkClient createFrameworkClient() {
       return mockYarnClient;
     }
     
@@ -112,7 +112,7 @@ public class TestTezClient {
     DAGClientAMProtocolBlockingPB sessionAmProxy = mock(DAGClientAMProtocolBlockingPB.class, RETURNS_DEEP_STUBS);
     
     client.sessionAmProxy = sessionAmProxy;
-    client.mockYarnClient = yarnClient;
+    client.mockYarnClient = new TezYarnClient(yarnClient);
     
     client.start();
     verify(yarnClient, times(1)).init((Configuration)any());

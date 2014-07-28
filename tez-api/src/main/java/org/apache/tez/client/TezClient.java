@@ -36,7 +36,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.TezYARNUtils;
@@ -89,7 +88,7 @@ public class TezClient {
   private ApplicationId sessionAppId;
   private ApplicationId lastSubmittedAppId;
   private AMConfiguration amConfig;
-  private YarnClient yarnClient;
+  private FrameworkClient frameworkClient;
   private boolean isSession;
   private boolean sessionStarted = false;
   private boolean sessionStopped = false;
@@ -250,9 +249,9 @@ public class TezClient {
   public synchronized void start() throws TezException, IOException {
     amConfig.setYarnConfiguration(new YarnConfiguration(amConfig.getTezConfiguration()));
 
-    yarnClient = createYarnClient();
-    yarnClient.init(amConfig.getYarnConfiguration());
-    yarnClient.start();    
+    frameworkClient = createFrameworkClient();
+    frameworkClient.init(amConfig.getYarnConfiguration());
+    frameworkClient.start();    
 
     if (isSession) {
       LOG.info("Session mode. Starting session.");
@@ -286,7 +285,7 @@ public class TezClient {
             TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT)) {
           appContext.setMaxAppAttempts(1);
         }  
-        yarnClient.submitApplication(appContext);
+        frameworkClient.submitApplication(appContext);
         sessionStarted = true;
       } catch (YarnException e) {
         throw new TezException(e);
@@ -422,15 +421,15 @@ public class TezClient {
               + ", sessionName=" + clientName
               + ", applicationId=" + sessionAppId);
           try {
-            yarnClient.killApplication(sessionAppId);
+            frameworkClient.killApplication(sessionAppId);
           } catch (YarnException e) {
             throw new TezException(e);
           }
         }
       }
     } finally {
-      if (yarnClient != null) {
-        yarnClient.close();
+      if (frameworkClient != null) {
+        frameworkClient.close();
       }
     }
   }
@@ -476,7 +475,7 @@ public class TezClient {
     }
     Preconditions.checkState(appId != null, "Cannot get status without starting an application");
     try {
-      ApplicationReport appReport = yarnClient.getApplicationReport(
+      ApplicationReport appReport = frameworkClient.getApplicationReport(
           appId);
       switch (appReport.getYarnApplicationState()) {
       case NEW:
@@ -600,15 +599,15 @@ public class TezClient {
   }
   
   // for testing
-  protected YarnClient createYarnClient() {
-    return YarnClient.createYarnClient();
+  protected FrameworkClient createFrameworkClient() {
+    return FrameworkClient.createFrameworkClient();
   }
   
   // for testing
   protected DAGClientAMProtocolBlockingPB getSessionAMProxy(ApplicationId appId) 
       throws TezException, IOException {
     return TezClientUtils.getSessionAMProxy(
-        yarnClient, amConfig.getYarnConfiguration(), appId);
+        frameworkClient, amConfig.getYarnConfiguration(), appId);
   }
 
   private DAGClientAMProtocolBlockingPB waitForProxy()
@@ -672,7 +671,7 @@ public class TezClient {
           + ", applicationId=" + appId
           + ", dagName=" + dag.getName());
       
-      yarnClient.submitApplication(appContext);
+      frameworkClient.submitApplication(appContext);
       lastSubmittedAppId = appId;
     } catch (YarnException e) {
       throw new TezException(e);
@@ -682,7 +681,7 @@ public class TezClient {
 
   private ApplicationId createApplication() throws TezException, IOException {
     try {
-      return yarnClient.createApplication().
+      return frameworkClient.createApplication().
           getNewApplicationResponse().getApplicationId();
     } catch (YarnException e) {
       throw new TezException(e);
