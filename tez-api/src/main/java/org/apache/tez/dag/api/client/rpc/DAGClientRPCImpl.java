@@ -57,7 +57,7 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ServiceException;
 
-public class DAGClientRPCImpl implements DAGClient {
+public class DAGClientRPCImpl extends DAGClient {
   private static final Log LOG = LogFactory.getLog(DAGClientRPCImpl.class);
 
   private static final long SLEEP_FOR_COMPLETION = 500;
@@ -147,7 +147,7 @@ public class DAGClientRPCImpl implements DAGClient {
   }
 
   @Override
-  public ApplicationReport getApplicationReport() {
+  protected ApplicationReport getApplicationReportInternal() {
     return appReport;
   }
 

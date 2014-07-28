@@ -199,7 +199,7 @@ public class TestDAGClient {
   @Test
   public void testApp() throws IOException, TezException, ServiceException{
     assertEquals(mockAppId, dagClient.getApplicationId());
-    assertEquals(mockAppReport, dagClient.getApplicationReport());
+    assertEquals(mockAppReport, dagClient.getApplicationReportInternal());
   }
   
   @Test

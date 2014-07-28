@@ -39,7 +39,7 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.tez.client.TezClient;
+import org.apache.tez.client.MRTezClient;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
@@ -199,7 +199,7 @@ public class GroupByOrderByMRRTest extends Configured implements Tool {
     JobID jobId = job.getJobID();
     ApplicationId appId = TypeConverter.toYarn(jobId).getAppId();
 
-    DAGClient dagClient = TezClient.getDAGClient(appId, new TezConfiguration(conf));
+    DAGClient dagClient = MRTezClient.getDAGClient(appId, new TezConfiguration(conf));
     DAGStatus dagStatus;
     String[] vNames = { "initialmap" , "ireduce1" , "finalreduce" };
     while (true) {

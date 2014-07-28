@@ -643,9 +643,8 @@ public class TezClient {
     return submitDAGApplication(appId, dag);
   }
 
-  @Private
-  // To be used only by YarnRunner
-  public DAGClient submitDAGApplication(ApplicationId appId, DAG dag)
+  @Private // To be used only by YarnRunner
+  DAGClient submitDAGApplication(ApplicationId appId, DAG dag)
           throws TezException, IOException {
     LOG.info("Submitting DAG application with id: " + appId);
     try {
@@ -655,7 +654,7 @@ public class TezClient {
       if (credentials == null) {
         credentials = new Credentials();
       }
-      TezClientUtils.processTezLocalCredentialsFile(credentials, 
+      TezClientUtils.processTezLocalCredentialsFile(credentials,
           amConfig.getTezConfiguration());
 
       // Add session token for shuffle
@@ -698,7 +697,7 @@ public class TezClient {
   }
 
   @Private // Used only for MapReduce compatibility code
-  public static DAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf)
+  static DAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf)
       throws IOException, TezException {
       return new DAGClientRPCImpl(appId, getDefaultTezDAGID(appId), tezConf);
   }
@@ -716,6 +715,7 @@ public class TezClient {
     }
   };
 
+  // Used only for MapReduce compatibility code
   private static String getDefaultTezDAGID(ApplicationId appId) {
      return (new StringBuilder(DAG)).append(SEPARATOR).
                    append(appId.getClusterTimestamp()).

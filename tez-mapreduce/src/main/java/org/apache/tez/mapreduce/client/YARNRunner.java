@@ -77,7 +77,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
-import org.apache.tez.client.TezClient;
+import org.apache.tez.client.MRTezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -86,8 +86,8 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
-import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.MRDAGClient;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
@@ -120,8 +120,8 @@ public class YARNRunner implements ClientProtocol {
   final public static int UTF8_CHUNK_SIZE = 16 * 1024;
 
   private final TezConfiguration tezConf;
-  private TezClient tezSession;
-  private DAGClient dagClient;
+  private MRTezClient tezClient;
+  private MRDAGClient dagClient;
 
   /**
    * Yarn runner incapsulates the client interface of
@@ -615,10 +615,10 @@ public class YARNRunner implements ClientProtocol {
       dagAMConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 
           jobConf.getInt(MRJobConfig.MR_AM_MAX_ATTEMPTS, MRJobConfig.DEFAULT_MR_AM_MAX_ATTEMPTS));
       
-      tezSession = new TezClient("MapReduce", dagAMConf, false, jobLocalResources, ts);
-      tezSession.start();
-      tezSession.submitDAGApplication(appId, dag);
-      tezSession.stop();
+      tezClient = new MRTezClient("MapReduce", dagAMConf, false, jobLocalResources, ts);
+      tezClient.start();
+      tezClient.submitDAGApplication(appId, dag);
+      tezClient.stop();
     } catch (TezException e) {
       throw new IOException(e);
     }
@@ -676,7 +676,7 @@ public class YARNRunner implements ClientProtocol {
     DAGStatus dagStatus;
     try {
       if(dagClient == null) {
-        dagClient = TezClient.getDAGClient(TypeConverter.toYarn(jobID).getAppId(), tezConf);
+        dagClient = MRTezClient.getDAGClient(TypeConverter.toYarn(jobID).getAppId(), tezConf);
       }
       dagStatus = dagClient.getDAGStatus(null);
       return new DAGJobStatus(dagClient.getApplicationReport(), dagStatus, jobFile);
