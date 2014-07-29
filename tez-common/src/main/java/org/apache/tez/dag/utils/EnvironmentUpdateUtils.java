@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.utils;
 
+import org.apache.hadoop.classification.InterfaceAudience;
+
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,6 +28,7 @@ import java.util.Map;
 /**
  * A utility class which allows one to dynamically update/change Environment variables
  */
+@InterfaceAudience.Private
 public class EnvironmentUpdateUtils {
 
   /**
