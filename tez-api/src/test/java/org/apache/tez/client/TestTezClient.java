@@ -20,6 +20,7 @@ package org.apache.tez.client;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
@@ -39,6 +40,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -49,6 +51,7 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -205,4 +208,44 @@ public class TestTezClient {
     }
     verify(yarnClient, times(1)).stop();
   }
+  
+  @Test(timeout = 5000)
+  public void testWaitTillReady_Interrupt() throws Exception {
+    TezConfiguration conf = new TezConfiguration();
+    conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
+    conf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
+    Map<String, LocalResource> lrs = Maps.newHashMap();
+    final TezClientForTest client = new TezClientForTest("test", conf, lrs, null);
+
+    ApplicationId appId1 = ApplicationId.newInstance(0, 1);
+    YarnClient yarnClient = mock(YarnClient.class, RETURNS_DEEP_STUBS);
+    when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId1);
+    ArgumentCaptor<ApplicationSubmissionContext> captor = ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
+
+    DAGClientAMProtocolBlockingPB sessionAmProxy = mock(DAGClientAMProtocolBlockingPB.class, RETURNS_DEEP_STUBS);
+
+    client.sessionAmProxy = sessionAmProxy;
+    client.mockYarnClient = new TezYarnClient(yarnClient);
+
+    client.start();
+
+    when(yarnClient.getApplicationReport(appId1).getYarnApplicationState()).thenReturn(YarnApplicationState.NEW);
+    final AtomicReference<Exception> exceptionReference = new AtomicReference<Exception>();
+    Thread thread = new Thread() {
+      @Override
+      public void run() {
+        try {
+          client.waitTillReady();
+        } catch (Exception e) {
+          exceptionReference.set(e);
+        }
+      };
+    };
+    thread.start();
+    thread.join(250);
+    thread.interrupt();
+    thread.join();
+    Assert.assertThat(exceptionReference.get(),CoreMatchers. instanceOf(InterruptedException.class));
+  }
+
 }

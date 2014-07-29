@@ -36,6 +36,7 @@ INCOMPATIBLE CHANGES
   (bikas)"
   TEZ-1300. Change deploy mechanism for Tez to be based on a tarball which
   includes Hadoop libs.
+  TEZ-1278. TezClient#waitTillReady() should not swallow interrupts
 
 Release 0.4.0-incubating: 2014-04-05
 

@@ -573,9 +573,10 @@ public class TezClient {
    * In session mode, this waits for the session host to be ready to accept a DAG
    * @throws IOException
    * @throws TezException
+   * @throws InterruptedException 
    */
   @InterfaceStability.Evolving
-  public void waitTillReady() throws IOException, TezException {
+  public void waitTillReady() throws IOException, TezException, InterruptedException {
     if (!isSession) {
       // nothing to wait for in non-session mode
       return;
@@ -589,12 +590,7 @@ public class TezClient {
       if (status.equals(TezAppMasterStatus.READY)) {
         return;
       }
-      try {
-        Thread.sleep(SLEEP_FOR_READY);
-      } catch (InterruptedException e) {
-        LOG.info("Sleep interrupted", e);
-        continue;
-      }
+      Thread.sleep(SLEEP_FOR_READY);
     }
   }
   

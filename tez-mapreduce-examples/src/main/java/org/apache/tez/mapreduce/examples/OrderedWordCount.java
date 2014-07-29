@@ -506,7 +506,7 @@ public class OrderedWordCount extends Configured implements Tool {
   }
 
   private static void waitForTezSessionReady(TezClient tezSession)
-    throws IOException, TezException {
+    throws IOException, TezException, InterruptedException {
     tezSession.waitTillReady();
   }
 
