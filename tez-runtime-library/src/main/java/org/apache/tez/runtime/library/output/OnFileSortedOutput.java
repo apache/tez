@@ -154,6 +154,7 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
         .newBuilder();
 
+    boolean outputGenerated = true;
     if (sendEmptyPartitionDetails) {
       Path indexFile = sorter.getMapOutput().getOutputIndexFile();
       TezSpillRecord spillRecord = new TezSpillRecord(indexFile, conf);
@@ -166,6 +167,7 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
           emptyPartitions++;
         }
       }
+      outputGenerated = (spillRecord.size() != emptyPartitions);
       if (emptyPartitions > 0) {
         ByteString emptyPartitionsBytesString =
             TezCommonUtils.compressByteArrayToByteString(TezUtils.toByteArray(emptyPartitionDetails));
@@ -175,9 +177,12 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
               + ", compressedSize=" + emptyPartitionsBytesString.size());
       }
     }
-    payloadBuilder.setHost(host);
-    payloadBuilder.setPort(shufflePort);
-    payloadBuilder.setPathComponent(getContext().getUniqueIdentifier());
+    if (!sendEmptyPartitionDetails || outputGenerated) {
+      payloadBuilder.setHost(host);
+      payloadBuilder.setPort(shufflePort);
+      payloadBuilder.setPathComponent(getContext().getUniqueIdentifier());
+    }
+
     payloadBuilder.setRunDuration((int) ((endTime - startTime) / 1000));
     DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
     byte[] payloadBytes = payloadProto.toByteArray();
