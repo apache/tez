@@ -284,6 +284,8 @@ public class TezClient {
           appContext.setMaxAppAttempts(1);
         }  
         frameworkClient.submitApplication(appContext);
+        ApplicationReport appReport = frameworkClient.getApplicationReport(sessionAppId);
+        LOG.info("The url to track the Tez Session: " + appReport.getTrackingUrl());
         sessionStarted = true;
       } catch (YarnException e) {
         throw new TezException(e);
@@ -669,6 +671,8 @@ public class TezClient {
           + ", dagName=" + dag.getName());
       
       frameworkClient.submitApplication(appContext);
+      ApplicationReport appReport = frameworkClient.getApplicationReport(appId);
+      LOG.info("The url to track the Tez AM: " + appReport.getTrackingUrl());
       lastSubmittedAppId = appId;
     } catch (YarnException e) {
       throw new TezException(e);
