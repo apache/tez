@@ -23,6 +23,7 @@ import java.net.URI;
 import java.util.BitSet;
 import java.util.List;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.common.TezCommonUtils;
@@ -78,11 +79,8 @@ public class ShuffleInputEventHandler {
       throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
     } 
     int partitionId = dmEvent.getSourceIndex();
-    URI baseUri = getBaseURI(shufflePayload.getHost(), shufflePayload.getPort(), partitionId);
-    InputAttemptIdentifier srcAttemptIdentifier = 
-        new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion(), shufflePayload.getPathComponent());
-    LOG.info("DataMovementEvent baseUri:" + baseUri + ", src: " + srcAttemptIdentifier);
-    
+    LOG.info("DataMovementEvent partitionId:" + partitionId + ", targetIndex: " + dmEvent.getTargetIndex()
+        + ", attemptNum: " + dmEvent.getVersion() + ", payload: " + ShuffleUtils.stringify(shufflePayload));
     // TODO NEWTEZ See if this duration hack can be removed.
     int duration = shufflePayload.getRunDuration();
     if (duration > maxMapRuntime) {
@@ -94,6 +92,8 @@ public class ShuffleInputEventHandler {
         byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload.getEmptyPartitions());
         BitSet emptyPartitionsBitSet = TezUtils.fromByteArray(emptyPartitions);
         if (emptyPartitionsBitSet.get(partitionId)) {
+          InputAttemptIdentifier srcAttemptIdentifier =
+              new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion());
           LOG.info("Source partition: " + partitionId + " did not generate any data. SrcAttempt: ["
               + srcAttemptIdentifier + "]. Not fetching.");
           scheduler.copySucceeded(srcAttemptIdentifier, null, 0, 0, 0, null);
@@ -104,7 +104,10 @@ public class ShuffleInputEventHandler {
                 "the empty partition to succeeded", e);
       }
     }
-    scheduler.addKnownMapOutput(shufflePayload.getHost(), shufflePayload.getPort(), 
+    URI baseUri = getBaseURI(shufflePayload.getHost(), shufflePayload.getPort(), partitionId);
+    InputAttemptIdentifier srcAttemptIdentifier =
+        new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion(), shufflePayload.getPathComponent());
+    scheduler.addKnownMapOutput(shufflePayload.getHost(), shufflePayload.getPort(),
         partitionId, baseUri.toString(), srcAttemptIdentifier);
   }
   
@@ -115,7 +118,8 @@ public class ShuffleInputEventHandler {
   }
 
   // TODO NEWTEZ Handle encrypted shuffle
-  private URI getBaseURI(String host, int port, int partitionId) {
+  @VisibleForTesting
+  URI getBaseURI(String host, int port, int partitionId) {
     StringBuilder sb = ShuffleUtils.constructBaseURIForShuffleHandler(host, port,
       partitionId, inputContext.getApplicationId().toString(), sslShuffle);
     URI u = URI.create(sb.toString());

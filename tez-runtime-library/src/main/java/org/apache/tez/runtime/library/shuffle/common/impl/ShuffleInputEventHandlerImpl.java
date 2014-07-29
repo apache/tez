@@ -99,7 +99,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     LOG.info("Processing DataMovementEvent with srcIndex: "
         + srcIndex + ", targetIndex: " + dme.getTargetIndex()
         + ", attemptNum: " + dme.getVersion() + ", payload: "
-        + stringify(shufflePayload));
+        + ShuffleUtils.stringify(shufflePayload));
 
     if (shufflePayload.hasEmptyPartitions()) {
       byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload
@@ -154,17 +154,6 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(ife.getTargetIndex(), ife.getVersion());
     shuffleManager.obsoleteKnownInput(srcAttemptIdentifier);
   }
-  
-  private String stringify(DataMovementEventPayloadProto dmProto) {
-    StringBuilder sb = new StringBuilder();
-    sb.append("[");
-    sb.append("hasEmptyPartitions: ").append(dmProto.hasEmptyPartitions()).append(", ");
-    sb.append("host: " + dmProto.getHost()).append(", ");
-    sb.append("port: " + dmProto.getPort()).append(", ");
-    sb.append("pathComponent: " + dmProto.getPathComponent()).append(", ");
-    sb.append("runDuration: " + dmProto.getRunDuration()).append(", ");
-    sb.append("hasDataInEvent: " + dmProto.hasData());
-    return sb.toString();
-  }
+
 }
 

@@ -44,6 +44,7 @@ import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParams;
 import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParamsBuilder;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 
 public class ShuffleUtils {
 
@@ -219,6 +220,19 @@ public class ShuffleUtils {
     builder.setSSL(sslShuffle, conf);
 
     return builder.build();
+  }
+
+  public static String stringify(DataMovementEventPayloadProto dmProto) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    sb.append("hasEmptyPartitions: ").append(dmProto.hasEmptyPartitions()).append(", ");
+    sb.append("host: " + dmProto.getHost()).append(", ");
+    sb.append("port: " + dmProto.getPort()).append(", ");
+    sb.append("pathComponent: " + dmProto.getPathComponent()).append(", ");
+    sb.append("runDuration: " + dmProto.getRunDuration()).append(", ");
+    sb.append("hasDataInEvent: " + dmProto.hasData());
+    sb.append("]");
+    return sb.toString();
   }
 }
 
