@@ -108,6 +108,7 @@ public class TestOnFileSortedOutput {
   @Before
   public void setup() throws Exception {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, sorterThreads);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 5);
 
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, Text.class.getName());
@@ -242,7 +243,7 @@ public class TestOnFileSortedOutput {
     doReturn(counters).when(context).getCounters();
     doReturn(workingDirs).when(context).getWorkDirs();
     doReturn(payLoad).when(context).getUserPayload();
-    doReturn(100 * 1024 * 1024l).when(context).getTotalMemoryAvailableToTask();
+    doReturn(5 * 1024 * 1024l).when(context).getTotalMemoryAvailableToTask();
     doReturn(UniqueID).when(context).getUniqueIdentifier();
     doReturn("v1").when(context).getDestinationVertexName();
     doReturn(ByteBuffer.wrap(serviceProviderMetaData.getData())).when(context)
