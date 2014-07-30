@@ -36,9 +36,6 @@ public enum TaskAttemptEventType {
   TA_FAILED,
   TA_TIMED_OUT,
   
-//Producer: Client
-  TA_FAIL_REQUEST,
-  
 //Producer: Client, Scheduler, On speculation.
   TA_KILL_REQUEST,
 
