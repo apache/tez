@@ -90,6 +90,7 @@ public class TezChild {
   private final int amHeartbeatInterval;
   private final long sendCounterInterval;
   private final int maxEventsToGet;
+  private final boolean isLocal;
 
   private final ListeningExecutorService executor;
   private final ObjectRegistryImpl objectRegistry;
@@ -104,7 +105,8 @@ public class TezChild {
 
   public TezChild(Configuration conf, String host, int port, String containerIdentifier,
       String tokenIdentifier, int appAttemptNumber, String[] localDirs,
-      ObjectRegistryImpl objectRegistry) throws IOException, InterruptedException {
+      ObjectRegistryImpl objectRegistry)
+      throws IOException, InterruptedException {
     this.defaultConf = conf;
     this.containerIdString = containerIdentifier;
     this.appAttemptNumber = appAttemptNumber;
@@ -141,6 +143,8 @@ public class TezChild {
       }
     }
 
+    this.isLocal = defaultConf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
+        TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
     UserGroupInformation taskOwner = UserGroupInformation.createRemoteUser(tokenIdentifier);
     Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
     SecurityUtil.setTokenService(jobToken, address);
@@ -149,16 +153,18 @@ public class TezChild {
     serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,
         ShuffleUtils.convertJobTokenToBytes(jobToken));
 
-    umbilical = taskOwner.doAs(new PrivilegedExceptionAction<TezTaskUmbilicalProtocol>() {
-      @Override
-      public TezTaskUmbilicalProtocol run() throws Exception {
-        return (TezTaskUmbilicalProtocol) RPC.getProxy(TezTaskUmbilicalProtocol.class,
-            TezTaskUmbilicalProtocol.versionID, address, defaultConf);
-      }
-    });
+    if (!isLocal) {
+      umbilical = taskOwner.doAs(new PrivilegedExceptionAction<TezTaskUmbilicalProtocol>() {
+        @Override
+        public TezTaskUmbilicalProtocol run() throws Exception {
+          return RPC.getProxy(TezTaskUmbilicalProtocol.class,
+              TezTaskUmbilicalProtocol.versionID, address, defaultConf);
+        }
+      });
+    }
   }
   
-  void run() throws IOException, InterruptedException, TezException {
+  public void run() throws IOException, InterruptedException, TezException {
 
     ContainerContext containerContext = new ContainerContext(containerIdString);
     ContainerReporter containerReporter = new ContainerReporter(umbilical, containerContext,
@@ -205,7 +211,7 @@ public class TezChild {
         TezTaskRunner taskRunner = new TezTaskRunner(new TezConfiguration(defaultConf), childUGI,
             localDirs, containerTask.getTaskSpec(), umbilical, appAttemptNumber,
             serviceConsumerMetadata, startedInputsMap, taskReporter, executor, objectRegistry);
-        boolean shouldDie = false;
+        boolean shouldDie;
         try {
           shouldDie = !taskRunner.run();
           if (shouldDie) {
@@ -233,12 +239,12 @@ public class TezChild {
    *          the new task specification. Must be a valid task
    * @param childUGI
    *          the old UGI instance being used
-   * @return
+   * @return childUGI
    */
   UserGroupInformation handleNewTaskCredentials(ContainerTask containerTask,
       UserGroupInformation childUGI) {
     // Re-use the UGI only if the Credentials have not changed.
-    Preconditions.checkState(containerTask.shouldDie() != true);
+    Preconditions.checkState(!containerTask.shouldDie());
     Preconditions.checkState(containerTask.getTaskSpec() != null);
     if (containerTask.haveCredentialsChanged()) {
       LOG.info("Refreshing UGI since Credentials have changed");
@@ -294,7 +300,7 @@ public class TezChild {
    *          the new task specification. Must be a valid task
    */
   private void cleanupOnTaskChanged(ContainerTask containerTask) {
-    Preconditions.checkState(containerTask.shouldDie() != true);
+    Preconditions.checkState(!containerTask.shouldDie());
     Preconditions.checkState(containerTask.getTaskSpec() != null);
     TezVertexID newVertexID = containerTask.getTaskSpec().getTaskAttemptID().getTaskID()
         .getVertexID();
@@ -317,30 +323,29 @@ public class TezChild {
     }
     RPC.stopProxy(umbilical);
     DefaultMetricsSystem.shutdown();
-    LogManager.shutdown();
+    if (!isLocal) {
+      LogManager.shutdown();
+    }
   }
 
-  public static void main(String[] args) throws IOException, InterruptedException, TezException {
-    Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
-    LOG.info("TezChild starting");
+  public void setUmbilical(TezTaskUmbilicalProtocol tezTaskUmbilicalProtocol){
+    if(tezTaskUmbilicalProtocol != null){
+      this.umbilical = tezTaskUmbilicalProtocol;
+    }
+  }
 
-    final Configuration defaultConf = new Configuration();
+  public static TezChild newTezChild(Configuration conf, String host, int port, String containerIdentifier,
+      String tokenIdentifier, int attemptNumber, String[] localDirs)
+      throws IOException, InterruptedException, TezException {
+
     // Pull in configuration specified for the session.
     // TODO TEZ-1233. This needs to be moved over the wire rather than localizing the file
     // for each and every task, and reading it back from disk. Also needs to be per vertex.
-    TezUtils.addUserSpecifiedTezConfiguration(defaultConf);
-    UserGroupInformation.setConfiguration(defaultConf);
-    Limits.setConfiguration(defaultConf);
+    TezUtils.addUserSpecifiedTezConfiguration(conf);
+    UserGroupInformation.setConfiguration(conf);
+    Limits.setConfiguration(conf);
 
-    assert args.length == 5;
-    String host = args[0];
-    int port = Integer.parseInt(args[1]);
-    final String containerIdentifier = args[2];
-    final String tokenIdentifier = args[3];
-    final int attemptNumber = Integer.parseInt(args[4]);
     final String pid = System.getenv().get("JVM_PID");
-    final String[] localDirs = StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS
-        .name()));
     LOG.info("PID, containerIdentifier:  " + pid + ", " + containerIdentifier);
     if (LOG.isDebugEnabled()) {
       LOG.debug("Info from cmd line: AM-host: " + host + " AM-port: " + port
@@ -355,9 +360,27 @@ public class TezChild {
     // singleton of ObjectRegistry for this JVM
     ObjectRegistryImpl objectRegistry = new ObjectRegistryImpl();
 
-    TezChild tezChild = new TezChild(defaultConf, host, port, containerIdentifier, tokenIdentifier,
+    return new TezChild(conf, host, port, containerIdentifier, tokenIdentifier,
         attemptNumber, localDirs, objectRegistry);
+  }
 
+  public static void main(String[] args) throws IOException, InterruptedException, TezException {
+
+    final Configuration defaultConf = new Configuration();
+
+    Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
+    LOG.info("TezChild starting");
+
+    assert args.length == 5;
+    String host = args[0];
+    int port = Integer.parseInt(args[1]);
+    final String containerIdentifier = args[2];
+    final String tokenIdentifier = args[3];
+    final int attemptNumber = Integer.parseInt(args[4]);
+    final String[] localDirs = StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS
+        .name()));
+    TezChild tezChild = newTezChild(defaultConf, host, port, containerIdentifier,
+        tokenIdentifier, attemptNumber, localDirs);
     tezChild.run();
   }
 

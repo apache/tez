@@ -45,6 +45,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -60,6 +61,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -130,6 +132,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.app.launcher.ContainerLauncher;
 import org.apache.tez.dag.app.launcher.ContainerLauncherImpl;
+import org.apache.tez.dag.app.launcher.LocalContainerLauncher;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.NMCommunicatorEventType;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
@@ -218,6 +221,8 @@ public class DAGAppMaster extends AbstractService {
   private final Map<String, LocalResource> sessionResources =
     new HashMap<String, LocalResource>();
 
+  private boolean isLocal = false; //Local mode flag
+
   private DAGAppMasterShutdownHandler shutdownHandler =
       new DAGAppMasterShutdownHandler();
 
@@ -297,6 +302,12 @@ public class DAGAppMaster extends AbstractService {
     isLastAMRetry = appAttemptID.getAttemptId() >= maxAppAttempts;
 
     this.amConf = conf;
+    this.isLocal = conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
+        TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
+    if (isLocal) {
+       UserGroupInformation.setConfiguration(conf);
+       appMasterUgi = UserGroupInformation.getCurrentUser();
+    }
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
 
     dispatcher = createDispatcher();
@@ -797,7 +808,11 @@ public class DAGAppMaster extends AbstractService {
 
   protected ContainerLauncher
       createContainerLauncher(final AppContext context) {
-    return new ContainerLauncherImpl(context);
+    if(isLocal){
+      return new LocalContainerLauncher(context, taskAttemptListener);
+    } else {
+      return new ContainerLauncherImpl(context);
+    }
   }
 
   public ApplicationId getAppID() {
