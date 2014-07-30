@@ -28,14 +28,26 @@ import org.apache.tez.dag.api.client.VertexStatus;
 @InterfaceStability.Unstable
 public abstract class OutputCommitter {
 
+  private final OutputCommitterContext outputCommitterContext;
+
+  /**
+   * Constructor an instance of the OutputCommitter. Classes extending this one to create an
+   * OutputCommitter, must provide the same constructor so that Tez can create an instance of
+   * the class at runtime.
+   *
+   * @param committerContext committer context which can be used to access the payload, vertex
+   *                         properties, etc
+   */
+  public OutputCommitter(OutputCommitterContext committerContext) {
+    this.outputCommitterContext = committerContext;
+  }
+
   /**
    * Setup up the Output committer.
    *
-   * @param context Context of the output that is being acted upon
    * @throws java.lang.Exception
    */
-  public abstract void initialize(OutputCommitterContext context)
-      throws Exception;
+  public abstract void initialize() throws Exception;
 
   /**
    * For the framework to setup the output during initialization. This is
@@ -87,6 +99,16 @@ public abstract class OutputCommitter {
    * @throws java.lang.Exception
    */
   public void recoverTask(int taskIndex, int previousDAGAttempt)  throws Exception {
+  }
+
+  /**
+   * Return ahe {@link org.apache.tez.runtime.api.OutputCommitterContext} for this specific instance of
+   * the Committer.
+   *
+   * @return the {@link org.apache.tez.runtime.api.OutputCommitterContext} for the input
+   */
+  public final OutputCommitterContext getContext() {
+    return this.outputCommitterContext;
   }
 
 }

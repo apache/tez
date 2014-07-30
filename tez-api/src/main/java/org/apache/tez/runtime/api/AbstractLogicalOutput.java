@@ -30,27 +30,44 @@ import java.util.List;
  */
 public abstract class AbstractLogicalOutput implements LogicalOutput, LogicalOutputFrameworkInterface {
 
-  protected int numPhysicalOutputs;
-  protected TezOutputContext outputContext;
+  private final int numPhysicalOutputs;
+  private final TezOutputContext outputContext;
 
-  @Override
-  public void setNumPhysicalOutputs(int numOutputs) {
-    this.numPhysicalOutputs = numOutputs;
+  /**
+   * Constructor an instance of the LogicalOutput. Classes extending this one to create a
+   * LogicalOutput, must provide the same constructor so that Tez can create an instance of the
+   * class at runtime.
+   *
+   * @param outputContext      the {@link org.apache.tez.runtime.api.TezOutputContext} which
+   *                           provides
+   *                           the Output with context information within the running task.
+   * @param numPhysicalOutputs the number of physical outputs that the logical output will
+   *                           generate. This is typically determined by Edge Routing.
+   */
+  public AbstractLogicalOutput(TezOutputContext outputContext, int numPhysicalOutputs) {
+    this.outputContext = outputContext;
+    this.numPhysicalOutputs = numPhysicalOutputs;
   }
 
-  @Override
-  public List<Event> initialize(TezOutputContext _outputContext) throws Exception {
-    this.outputContext = _outputContext;
-    return initialize();
-  }
-  
   public abstract List<Event> initialize() throws Exception;
 
-  public int getNumPhysicalOutputs() {
+  /**
+   * Get the number of physical outputs that this LogicalOutput is expected to generate. This is
+   * typically determined by Edge routing, and number of downstream tasks
+   *
+   * @return the number of physical outputs
+   */
+  public final int getNumPhysicalOutputs() {
     return numPhysicalOutputs;
   }
 
-  public TezOutputContext getContext() {
+  /**
+   * Return ahe {@link org.apache.tez.runtime.api.TezOutputContext} for this specific instance of
+   * the LogicalOutput
+   *
+   * @return the {@link org.apache.tez.runtime.api.TezOutputContext} for the output
+   */
+  public final TezOutputContext getContext() {
     return outputContext;
   }
 }

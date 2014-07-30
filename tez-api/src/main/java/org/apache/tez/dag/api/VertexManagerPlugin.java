@@ -33,12 +33,27 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
  */
 @InterfaceStability.Unstable
 public abstract class VertexManagerPlugin {
+
+  private final VertexManagerPluginContext context;
+
+  /**
+   * Crete an instance of the VertexManagerPlugin. Classes extending this one to create a
+   * VertexManagerPlugin, must provide the same constructor so that Tez can create an instance of
+   * the class at runtime.
+   *
+   * @param context vertex manager plugin context which can be used to access the payload,
+   *                        vertex
+   *                        properties, etc
+   */
+  public VertexManagerPlugin(VertexManagerPluginContext context) {
+    this.context = context;
+  }
+
   /**
    * Initialize the plugin. Called when the vertex is initializing. This happens 
    * after all source vertices and inputs have initialized
-   * @param context
    */
-  public abstract void initialize(VertexManagerPluginContext context);
+  public abstract void initialize();
 
   /**
    * Notification that the vertex is ready to start running tasks
@@ -67,4 +82,14 @@ public abstract class VertexManagerPlugin {
    */
   public abstract void onRootVertexInitialized(String inputName,
       InputDescriptor inputDescriptor, List<Event> events);
+
+  /**
+   * Return ahe {@link org.apache.tez.dag.api.VertexManagerPluginContext} for this specific instance of
+   * the vertex manager.
+   *
+   * @return the {@link org.apache.tez.dag.api.VertexManagerPluginContext} for the input
+   */
+  public final VertexManagerPluginContext getContext() {
+    return this.context;
+  }
  }

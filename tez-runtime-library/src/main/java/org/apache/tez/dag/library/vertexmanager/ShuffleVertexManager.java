@@ -105,7 +105,6 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   private static final Log LOG = 
                    LogFactory.getLog(ShuffleVertexManager.class);
 
-  VertexManagerPluginContext context;
   float slowStartMinSrcCompletionFraction;
   float slowStartMaxSrcCompletionFraction;
   long desiredTaskInputDataSize = 1024*1024*100L;
@@ -121,11 +120,11 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   
   Map<String, Set<Integer>> bipartiteSources = Maps.newHashMap();
   long completedSourceTasksOutputSize = 0;
-  
-  public ShuffleVertexManager() {
+
+  public ShuffleVertexManager(VertexManagerPluginContext context) {
+    super(context);
   }
-  
-  
+
   public static class CustomShuffleEdgeManager extends EdgeManager {
     int numSourceTaskOutputs;
     int numDestinationTasks;
@@ -133,13 +132,14 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     int remainderRangeForLastShuffler;
     int numSourceTasks;
 
-    public CustomShuffleEdgeManager() {
+    public CustomShuffleEdgeManager(EdgeManagerContext context) {
+      super(context);
     }
 
     @Override
-    public void initialize(EdgeManagerContext edgeManagerContext) {
+    public void initialize() {
       // Nothing to do. This class isn't currently designed to be used at the DAG API level.
-      byte[] userPayload = edgeManagerContext.getUserPayload();
+      byte[] userPayload = getContext().getUserPayload();
       if (userPayload == null
         || userPayload.length == 0) {
         throw new RuntimeException("Could not initialize CustomShuffleEdgeManager"
@@ -298,12 +298,12 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   @Override
   public void onVertexStarted(Map<String, List<Integer>> completions) {
     pendingTasks = Lists.newArrayListWithCapacity(
-        context.getVertexNumTasks(context.getVertexName()));
+        getContext().getVertexNumTasks(getContext().getVertexName()));
     // track the tasks in this vertex
     updatePendingTasks();
     updateSourceTaskCount();
     
-    LOG.info("OnVertexStarted vertex: " + context.getVertexName() + 
+    LOG.info("OnVertexStarted vertex: " + getContext().getVertexName() +
              " with " + totalNumSourceTasks + " source tasks and " + 
              totalTasksToSchedule + " pending tasks");
     
@@ -357,7 +357,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   
   void updatePendingTasks() {
     pendingTasks.clear();
-    for (int i=0; i<context.getVertexNumTasks(context.getVertexName()); ++i) {
+    for (int i=0; i<getContext().getVertexNumTasks(getContext().getVertexName()); ++i) {
       pendingTasks.add(new Integer(i));
     }
     totalTasksToSchedule = pendingTasks.size();
@@ -367,7 +367,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     // track source vertices
     int numSrcTasks = 0;
     for(String vertex : bipartiteSources.keySet()) {
-      numSrcTasks += context.getVertexNumTasks(vertex);
+      numSrcTasks += getContext().getVertexNumTasks(vertex);
     }
     totalNumSourceTasks = numSrcTasks;
   }
@@ -410,7 +410,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     int finalTaskParallelism = (remainderRangeForLastShuffler > 0) ?
           (numShufflersWithBaseRange + 1) : (numShufflersWithBaseRange);
 
-    LOG.info("Reduce auto parallelism for vertex: " + context.getVertexName() 
+    LOG.info("Reduce auto parallelism for vertex: " + getContext().getVertexName()
         + " to " + finalTaskParallelism + " from " + pendingTasks.size() 
         + " . Expected output: " + expectedTotalSourceTasksOutputSize 
         + " based on actual output: " + completedSourceTasksOutputSize
@@ -427,7 +427,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         CustomShuffleEdgeManagerConfig edgeManagerConfig =
             new CustomShuffleEdgeManagerConfig(
                 currentParallelism, finalTaskParallelism, 
-                context.getVertexNumTasks(vertex), basePartitionRange,
+                getContext().getVertexNumTasks(vertex), basePartitionRange,
                 ((remainderRangeForLastShuffler > 0) ?
                     remainderRangeForLastShuffler : basePartitionRange));
         EdgeManagerDescriptor edgeManagerDescriptor =
@@ -436,7 +436,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         edgeManagers.put(vertex, edgeManagerDescriptor);
       }
       
-      context.setVertexParallelism(finalTaskParallelism, null, edgeManagers, null);
+      getContext().setVertexParallelism(finalTaskParallelism, null, edgeManagers, null);
       updatePendingTasks();      
     }
   }
@@ -460,7 +460,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       scheduledTasks.add(new TaskWithLocationHint(pendingTasks.get(0), null));
       pendingTasks.remove(0);
     }
-    context.scheduleVertexTasks(scheduledTasks);
+    getContext().scheduleVertexTasks(scheduledTasks);
   }
   
   void schedulePendingTasks() {
@@ -472,7 +472,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     if (numSourceTasksCompleted == totalNumSourceTasks && numPendingTasks > 0) {
       LOG.info("All source tasks assigned. " +
           "Ramping up " + numPendingTasks + 
-          " remaining tasks for vertex: " + context.getVertexName());
+          " remaining tasks for vertex: " + getContext().getVertexName());
       schedulePendingTasks(numPendingTasks);
       return;
     }
@@ -515,7 +515,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       // numTasksToSchedule can be -ve if numSourceTasksCompleted does not 
       // does not increase monotonically
       LOG.info("Scheduling " + numTasksToSchedule + " tasks for vertex: " + 
-               context.getVertexName() + " with totalTasks: " + 
+               getContext().getVertexName() + " with totalTasks: " +
                totalTasksToSchedule + ". " + numSourceTasksCompleted + 
                " source tasks completed out of " + totalNumSourceTasks + 
                ". SourceTaskCompletedFraction: " + completedSourceTaskFraction + 
@@ -526,15 +526,13 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   }
 
   @Override
-  public void initialize(VertexManagerPluginContext context) {
+  public void initialize() {
     Configuration conf;
     try {
-      conf = TezUtils.createConfFromUserPayload(context.getUserPayload());
+      conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }
-    
-    this.context = context;
 
     this.slowStartMinSrcCompletionFraction = conf
         .getFloat(
@@ -571,7 +569,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         + " desiredTaskIput:" + desiredTaskInputDataSize + " minTasks:"
         + minTaskParallelism);
     
-    Map<String, EdgeProperty> inputs = context.getInputVertexEdgeProperties();
+    Map<String, EdgeProperty> inputs = getContext().getInputVertexEdgeProperties();
     for(Map.Entry<String, EdgeProperty> entry : inputs.entrySet()) {
       if (entry.getValue().getDataMovementType() == DataMovementType.SCATTER_GATHER) {
         String vertex = entry.getKey();

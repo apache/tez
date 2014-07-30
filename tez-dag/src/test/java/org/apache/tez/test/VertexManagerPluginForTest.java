@@ -29,8 +29,12 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 public class VertexManagerPluginForTest extends VertexManagerPlugin {
 
+  public VertexManagerPluginForTest(VertexManagerPluginContext context) {
+    super(context);
+  }
+
   @Override
-  public void initialize(VertexManagerPluginContext context) {}
+  public void initialize() {}
 
   @Override
   public void onVertexStarted(Map<String, List<Integer>> completions) {}

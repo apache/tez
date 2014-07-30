@@ -88,8 +88,12 @@ public class RootInputInitializerManager {
   public void runInputInitializers(List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
       inputs) {
     for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input : inputs) {
-      TezRootInputInitializer initializer = createInitializer(input);
-      InitializerWrapper initializerWrapper = new InitializerWrapper(input, initializer, vertex, appContext);
+
+      TezRootInputInitializerContext context =
+          new TezRootInputInitializerContextImpl(input, vertex, appContext);
+      TezRootInputInitializer initializer = createInitializer(input, context);
+
+      InitializerWrapper initializerWrapper = new InitializerWrapper(input, initializer, context, vertex);
       initializerMap.put(input.getName(), initializerWrapper);
       ListenableFuture<List<Event>> future = executor
           .submit(new InputInitializerCallable(initializerWrapper, dagUgi));
@@ -100,20 +104,10 @@ public class RootInputInitializerManager {
 
   @VisibleForTesting
   protected TezRootInputInitializer createInitializer(RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>
-      input) {
-    String className = input.getControllerDescriptor().getClassName();
-    @SuppressWarnings("unchecked")
-    Class<? extends TezRootInputInitializer> clazz =
-        (Class<? extends TezRootInputInitializer>) ReflectionUtils
-            .getClazz(className);
-    TezRootInputInitializer initializer = null;
-    try {
-      initializer = clazz.newInstance();
-    } catch (InstantiationException e) {
-      throw new TezUncheckedException("Failed to create input initializerWrapper", e);
-    } catch (IllegalAccessException e) {
-      throw new TezUncheckedException("Failed to create input initializerWrapper", e);
-    }
+      input, TezRootInputInitializerContext context) {
+    TezRootInputInitializer initializer = ReflectionUtils
+        .createClazzInstance(input.getControllerDescriptor().getClassName(),
+            new Class[]{TezRootInputInitializerContext.class}, new Object[]{context});
     return initializer;
   }
 
@@ -178,7 +172,7 @@ public class RootInputInitializerManager {
           LOG.info(
               "Starting InputInitializer for Input: " + initializerWrapper.getInput().getName() +
                   " on vertex " + initializerWrapper.getVertexLogIdentifier());
-          return initializerWrapper.getInitializer().initialize(initializerWrapper.context);
+          return initializerWrapper.getInitializer().initialize();
         }
       });
       return events;
@@ -234,11 +228,11 @@ public class RootInputInitializerManager {
     private final String vertexLogIdentifier;
 
     InitializerWrapper(RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input,
-                       TezRootInputInitializer initializer, Vertex vertex,
-                       AppContext appContext) {
+                       TezRootInputInitializer initializer, TezRootInputInitializerContext context,
+                       Vertex vertex) {
       this.input = input;
       this.initializer = initializer;
-      this.context = new TezRootInputInitializerContextImpl(input, vertex, appContext);
+      this.context = context;
       this.vertexLogIdentifier = vertex.getLogIdentifier();
     }
 

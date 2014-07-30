@@ -39,6 +39,7 @@ import org.apache.tez.mapreduce.lib.MRReaderMapred;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 
@@ -46,9 +47,8 @@ public class MultiMRInput extends MRInputBase {
 
   private static final Log LOG = LogFactory.getLog(MultiMRInput.class);
 
-  @Override
-  public int getNumPhysicalInputs() {
-    return super.getNumPhysicalInputs();
+  public MultiMRInput(TezInputContext inputContext, int numPhysicalInputs) {
+    super(inputContext, numPhysicalInputs);
   }
 
   private final ReentrantLock lock = new ReentrantLock();

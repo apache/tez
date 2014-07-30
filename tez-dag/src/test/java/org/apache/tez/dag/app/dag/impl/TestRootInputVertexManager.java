@@ -43,8 +43,8 @@ public class TestRootInputVertexManager {
     doReturn("vertex1").when(context).getVertexName();
     doReturn(1).when(context).getVertexNumTasks(eq("vertex1"));
 
-    RootInputVertexManager rootInputVertexManager = new RootInputVertexManager();
-    rootInputVertexManager.initialize(context);
+    RootInputVertexManager rootInputVertexManager = new RootInputVertexManager(context);
+    rootInputVertexManager.initialize();
 
     InputDescriptor id1 = mock(InputDescriptor.class);
     List<Event> events1 = new LinkedList<Event>();
@@ -74,8 +74,8 @@ public class TestRootInputVertexManager {
     doReturn("vertex1").when(context).getVertexName();
     doReturn(-1).when(context).getVertexNumTasks(eq("vertex1"));
 
-    RootInputVertexManager rootInputVertexManager = new RootInputVertexManager();
-    rootInputVertexManager.initialize(context);
+    RootInputVertexManager rootInputVertexManager = new RootInputVertexManager(context);
+    rootInputVertexManager.initialize();
 
     InputDescriptor id1 = mock(InputDescriptor.class);
     List<Event> events1 = new LinkedList<Event>();

@@ -32,6 +32,7 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
@@ -108,7 +109,17 @@ public class TestInput extends AbstractLogicalInput {
    */
   public static String TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT =
       "tez.failing-input.failing-task-attempt";
-  
+
+  public TestInput(TezInputContext inputContext, int numPhysicalInputs) {
+    super(inputContext, numPhysicalInputs);
+    this.completedInputVersion = new int[numPhysicalInputs];
+    this.inputValues = new int[numPhysicalInputs];
+    for (int i=0; i<numPhysicalInputs; ++i) {
+      this.completedInputVersion[i] = -1;
+      this.inputValues[i] = -1;
+    }
+  }
+
   public static InputDescriptor getInputDesc(byte[] payload) {
     return new InputDescriptor(TestInput.class.getName()).
         setUserPayload(payload);
@@ -140,7 +151,7 @@ public class TestInput extends AbstractLogicalInput {
              (lastInputReadyValue <= failingInputUpto)) {
           List<Event> events = Lists.newLinkedList();
           if (failingInputIndices.contains(failAll)) {
-            for (int i=0; i<numPhysicalInputs; ++i) {
+            for (int i=0; i<getNumPhysicalInputs(); ++i) {
               String msg = ("FailingInput: " + getContext().getUniqueIdentifier() + 
                   " index: " + i + " version: " + lastInputReadyValue);
               events.add(new InputReadErrorEvent(msg, i, lastInputReadyValue));
@@ -148,9 +159,9 @@ public class TestInput extends AbstractLogicalInput {
             }
           } else {
             for (Integer index : failingInputIndices) {
-              if (index.intValue() >= numPhysicalInputs) {
+              if (index.intValue() >= getNumPhysicalInputs()) {
                 throwException("InputIndex: " + index.intValue() + 
-                    " should be less than numInputs: " + numPhysicalInputs);
+                    " should be less than numInputs: " + getNumPhysicalInputs());
               }
               if (completedInputVersion[index.intValue()] < lastInputReadyValue) {
                 continue; // dont fail a previous version now.
@@ -196,7 +207,7 @@ public class TestInput extends AbstractLogicalInput {
     
     // sum input value given by upstream tasks
     int sum = 0;
-    for (int i=0; i<numPhysicalInputs; ++i) {
+    for (int i=0; i<getNumPhysicalInputs(); ++i) {
       if (inputValues[i] == -1) {
         throwException("Invalid input value : " + i);
       }
@@ -215,7 +226,7 @@ public class TestInput extends AbstractLogicalInput {
   public static String getVertexConfName(String confName, String vertexName) {
     return confName + "." + vertexName;
   }
-  
+
   @Override
   public List<Event> initialize() throws Exception {
     getContext().requestInitialMemory(0l, null); //Mandatory call.
@@ -272,7 +283,7 @@ public class TestInput extends AbstractLogicalInput {
         LOG.info("Received DataMovement event sourceId : " + dmEvent.getSourceIndex() + 
             " targetId: " + dmEvent.getTargetIndex() +
             " version: " + dmEvent.getVersion() +
-            " numInputs: " + numPhysicalInputs +
+            " numInputs: " + getNumPhysicalInputs() +
             " numCompletedInputs: " + numCompletedInputs);
         this.completedInputVersion[dmEvent.getTargetIndex()] = dmEvent.getVersion();
         this.inputValues[dmEvent.getTargetIndex()] = 
@@ -282,13 +293,13 @@ public class TestInput extends AbstractLogicalInput {
         numCompletedInputs--;
         LOG.info("Received InputFailed event targetId: " + ifEvent.getTargetIndex() +
             " version: " + ifEvent.getVersion() +
-            " numInputs: " + numPhysicalInputs +
+            " numInputs: " + getNumPhysicalInputs() +
             " numCompletedInputs: " + numCompletedInputs);
       }
     }
-    if (numCompletedInputs == numPhysicalInputs) {
+    if (numCompletedInputs == getNumPhysicalInputs()) {
       int maxInputVersionSeen = -1;  
-      for (int i=0; i<numPhysicalInputs; ++i) {
+      for (int i=0; i<getNumPhysicalInputs(); ++i) {
         if (completedInputVersion[i] < 0) {
           LOG.info("Not received completion for input " + i);
           return;
@@ -310,14 +321,4 @@ public class TestInput extends AbstractLogicalInput {
     return null;
   }
 
-  @Override
-  public void setNumPhysicalInputs(int numInputs) {
-    this.numPhysicalInputs = numInputs;
-    this.completedInputVersion = new int[numInputs];
-    this.inputValues = new int[numInputs];
-    for (int i=0; i<numInputs; ++i) {
-      this.completedInputVersion[i] = -1;
-      this.inputValues[i] = -1;
-    }
-  }
 }

@@ -29,20 +29,22 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
 public class ScatterGatherEdgeManager extends EdgeManager {
 
-  EdgeManagerContext context;
+  public ScatterGatherEdgeManager(EdgeManagerContext context) {
+    super(context);
+  }
+
   @Override
-  public void initialize(EdgeManagerContext edgeManagerContext) {
-    this.context = edgeManagerContext;
+  public void initialize() {
   }
 
   @Override
   public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
-    return context.getSourceVertexNumTasks();
+    return getContext().getSourceVertexNumTasks();
   }
   
   @Override
   public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
-    return context.getDestinationVertexNumTasks();
+    return getContext().getDestinationVertexNumTasks();
   }
 
   @Override
@@ -56,7 +58,7 @@ public class ScatterGatherEdgeManager extends EdgeManager {
   @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
       Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
-    for (int i=0; i<context.getDestinationVertexNumTasks(); ++i) {
+    for (int i=0; i<getContext().getDestinationVertexNumTasks(); ++i) {
       destinationTaskAndInputIndices.put(i, Collections.singletonList(sourceTaskIndex));
     }
   }
@@ -69,7 +71,7 @@ public class ScatterGatherEdgeManager extends EdgeManager {
 
   @Override
   public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
-    return context.getDestinationVertexNumTasks();
+    return getContext().getDestinationVertexNumTasks();
   }
 
 }

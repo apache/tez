@@ -39,6 +39,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
@@ -78,6 +79,10 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
   private TezCounter inputValueCounter;
 
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
+
+  public ShuffledMergedInput(TezInputContext inputContext, int numPhysicalInputs) {
+    super(inputContext, numPhysicalInputs);
+  }
 
   @Override
   public synchronized List<Event> initialize() throws IOException {

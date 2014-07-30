@@ -29,6 +29,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.RecordReader;
+import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 
 @LimitedPrivate("Hive")
@@ -40,6 +41,10 @@ public class MRInputLegacy extends MRInput {
   private volatile boolean inited = false;
   private ReentrantLock eventLock = new ReentrantLock();
   private Condition eventCondition = eventLock.newCondition();
+
+  public MRInputLegacy(TezInputContext inputContext, int numPhysicalInputs) {
+    super(inputContext, numPhysicalInputs);
+  }
 
   @Private
   protected void initializeInternal() throws IOException {

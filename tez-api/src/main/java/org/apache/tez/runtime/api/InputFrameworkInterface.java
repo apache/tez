@@ -34,10 +34,6 @@ import java.util.List;
  * {@link TezInputContext}.requestInitialMemory
  * <p/>
  *
- * <code>Input</code> classes must have a 0 argument public constructor for Tez
- * to construct the <code>Input</code>. Tez will take care of initializing and
- * closing the Input after a {@link Processor} completes. </p>
- * <p/>
  *
  * Inputs must also inform the framework once they are ready to be consumed.
  * This typically means that the Processor will not block when reading from the
@@ -48,14 +44,11 @@ public interface InputFrameworkInterface {
   /**
    * Initializes the <code>Input</code>.
    *
-   * @param inputContext
-   *          the {@link TezInputContext}
    * @return list of events that were generated during initialization
    * @throws Exception
    *           if an error occurs
    */
-  public List<Event> initialize(TezInputContext inputContext)
-      throws Exception;
+  public List<Event> initialize() throws Exception;
 
   /**
    * Handles user and system generated {@link Event}s, which typically carry

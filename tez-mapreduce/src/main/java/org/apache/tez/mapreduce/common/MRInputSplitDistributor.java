@@ -47,19 +47,19 @@ public class MRInputSplitDistributor extends TezRootInputInitializer {
   
   private boolean sendSerializedEvents;
 
-  public MRInputSplitDistributor() {
-  }
-
   private MRSplitsProto splitsProto;
 
+  public MRInputSplitDistributor(TezRootInputInitializerContext initializerContext) {
+    super(initializerContext);
+  }
+
   @Override
-  public List<Event> initialize(TezRootInputInitializerContext rootInputContext)
-      throws IOException {
+  public List<Event> initialize() throws IOException {
     Stopwatch sw = null;
     if (LOG.isDebugEnabled()) {
       sw = new Stopwatch().start();
     }
-    MRInputUserPayloadProto userPayloadProto = MRHelpers.parseMRInputPayload(rootInputContext.getInputUserPayload());
+    MRInputUserPayloadProto userPayloadProto = MRHelpers.parseMRInputPayload(getContext().getInputUserPayload());
     if (LOG.isDebugEnabled()) {
       sw.stop();
       LOG.debug("Time to parse MRInput payload into prot: "

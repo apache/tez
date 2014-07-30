@@ -51,37 +51,33 @@ public class OnFileUnorderedPartitionedKVOutput extends AbstractLogicalOutput {
 
   private static final Log LOG = LogFactory.getLog(OnFileUnorderedPartitionedKVOutput.class);
 
-  private TezOutputContext outputContext;
   private Configuration conf;
-  private int numPhysicalOutputs;
   private MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;
   private UnorderedPartitionedKVWriter kvWriter;
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
-  @Override
-  public synchronized List<Event> initialize(TezOutputContext outputContext) throws Exception {
-    this.outputContext = outputContext;
-    this.conf = TezUtils.createConfFromUserPayload(outputContext.getUserPayload());
-    this.conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, outputContext.getWorkDirs());
-    this.conf.setInt(TezRuntimeFrameworkConfigs.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS,
-        this.numPhysicalOutputs);
-    this.memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
-    outputContext.requestInitialMemory(
-        UnorderedPartitionedKVWriter.getInitialMemoryRequirement(conf,
-            outputContext.getTotalMemoryAvailableToTask()), memoryUpdateCallbackHandler);
-    return Collections.emptyList();
+  public OnFileUnorderedPartitionedKVOutput(TezOutputContext outputContext, int numPhysicalOutputs) {
+    super(outputContext, numPhysicalOutputs);
   }
 
   @Override
-  public List<Event> initialize() throws Exception {
-    return null;
+  public synchronized List<Event> initialize() throws Exception {
+    this.conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
+    this.conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, getContext().getWorkDirs());
+    this.conf.setInt(TezRuntimeFrameworkConfigs.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS,
+        getNumPhysicalOutputs());
+    this.memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
+    getContext().requestInitialMemory(
+        UnorderedPartitionedKVWriter.getInitialMemoryRequirement(conf,
+            getContext().getTotalMemoryAvailableToTask()), memoryUpdateCallbackHandler);
+    return Collections.emptyList();
   }
 
   @Override
   public synchronized void start() throws Exception {
     if (!isStarted.get()) {
       memoryUpdateCallbackHandler.validateUpdateReceived();
-      this.kvWriter = new UnorderedPartitionedKVWriter(outputContext, conf, numPhysicalOutputs,
+      this.kvWriter = new UnorderedPartitionedKVWriter(getContext(), conf, getNumPhysicalOutputs(),
           memoryUpdateCallbackHandler.getMemoryAssigned());
       isStarted.set(true);
     }
@@ -104,11 +100,6 @@ public class OnFileUnorderedPartitionedKVOutput extends AbstractLogicalOutput {
     } else {
       return Collections.emptyList();
     }
-  }
-
-  @Override
-  public synchronized void setNumPhysicalOutputs(int numOutputs) {
-    this.numPhysicalOutputs = numOutputs;
   }
 
   private static final Set<String> confKeys = new HashSet<String>();

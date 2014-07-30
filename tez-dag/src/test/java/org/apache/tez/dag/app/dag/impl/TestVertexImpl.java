@@ -79,6 +79,7 @@ import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos;
@@ -194,8 +195,7 @@ public class TestVertexImpl {
   private HistoryEventHandler historyEventHandler;
   private static JavaProfilerOptions javaProfilerOptions;
 
-  public static class CountingOutputCommitter extends
-      OutputCommitter {
+  public static class CountingOutputCommitter extends OutputCommitter {
 
     public int initCounter = 0;
     public int setupCounter = 0;
@@ -205,23 +205,18 @@ public class TestVertexImpl {
     private boolean throwErrorOnAbort;
     private boolean throwRuntimeException;
 
-    public CountingOutputCommitter(boolean throwError,
-        boolean throwOnAbort,
-        boolean throwRuntimeException) {
-      this.throwError = throwError;
-      this.throwErrorOnAbort = throwOnAbort;
-      this.throwRuntimeException = throwRuntimeException;
-    }
-
-    public CountingOutputCommitter() {
-      this(false, false, false);
+    public CountingOutputCommitter(OutputCommitterContext context) {
+      super(context);
+      this.throwError = false;
+      this.throwErrorOnAbort = false;
+      this.throwRuntimeException = false;
     }
 
     @Override
-    public void initialize(OutputCommitterContext context) throws IOException {
-      if (context.getUserPayload() != null) {
+    public void initialize() throws IOException {
+      if (getContext().getUserPayload() != null) {
         CountingOutputCommitterConfig conf =
-            new CountingOutputCommitterConfig(context.getUserPayload());
+            new CountingOutputCommitterConfig(getContext().getUserPayload());
         this.throwError = conf.throwError;
         this.throwErrorOnAbort = conf.throwErrorOnAbort;
         this.throwRuntimeException = conf.throwRuntimeException;
@@ -2702,8 +2697,10 @@ public class TestVertexImpl {
     initAllVertices(VertexState.INITED);
     
     // fudge vertex manager so that tasks dont start running
-    v1.vertexManager = new VertexManager(new VertexManagerPluginForTest(),
+    v1.vertexManager = new VertexManager(
+        new VertexManagerPluginDescriptor(VertexManagerPluginForTest.class.getName()),
         v1, appContext);
+    v1.vertexManager.initialize();
     startVertex(v1);
     
     Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
@@ -2737,8 +2734,10 @@ public class TestVertexImpl {
     initAllVertices(VertexState.INITED);
     
     // fudge vertex manager so that tasks dont start running
-    v1.vertexManager = new VertexManager(new VertexManagerPluginForTest(),
+    v1.vertexManager = new VertexManager(
+        new VertexManagerPluginDescriptor(VertexManagerPluginForTest.class.getName()),
         v1, appContext);
+    v1.vertexManager.initialize();
     
     Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
     Assert.assertEquals(numTasks, vertices.get("vertex3").getTotalTasks());
@@ -2818,7 +2817,7 @@ public class TestVertexImpl {
   @Test(timeout = 10000)
   public void testRootInputInitializerEvent() throws Exception {
     useCustomInitializer = true;
-    customInitializer = new EventHandlingRootInputInitializer();
+    customInitializer = new EventHandlingRootInputInitializer(null);
     EventHandlingRootInputInitializer initializer =
         (EventHandlingRootInputInitializer) customInitializer;
     setupPreDagCreation();
@@ -3168,7 +3167,8 @@ public class TestVertexImpl {
 
     @Override
     protected TezRootInputInitializer createInitializer(
-        RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input) {
+        RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input,
+        TezRootInputInitializerContext context) {
       return presetInitializer;
     }
   }
@@ -3201,11 +3201,12 @@ public class TestVertexImpl {
 
     @Override
     protected TezRootInputInitializer createInitializer(
-        RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input) {
+        RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input,
+        TezRootInputInitializerContext context) {
 
-      return new TezRootInputInitializer() {
+      return new TezRootInputInitializer(context) {
         @Override
-        public List<Event> initialize(TezRootInputInitializerContext inputVertexContext) throws
+        public List<Event> initialize() throws
             Exception {
           return null;
         }
@@ -3393,12 +3394,14 @@ public class TestVertexImpl {
   @InterfaceAudience.Private
   public static class RootInputSpecUpdaterVertexManager extends VertexManagerPlugin {
 
-    private VertexManagerPluginContext context;
     private static final int NUM_TASKS = 5;
 
+    public RootInputSpecUpdaterVertexManager(VertexManagerPluginContext context) {
+      super(context);
+    }
+
     @Override
-    public void initialize(VertexManagerPluginContext context) {
-      this.context = context;
+    public void initialize() {
     }
 
     @Override
@@ -3417,7 +3420,7 @@ public class TestVertexImpl {
     public void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor,
         List<Event> events) {
       Map<String, RootInputSpecUpdate> map = new HashMap<String, RootInputSpecUpdate>();
-      if (context.getUserPayload()[0] == 0) {
+      if (getContext().getUserPayload()[0] == 0) {
         map.put("input3", RootInputSpecUpdate.createAllTaskRootInputSpecUpdate(4));
       } else {
         List<Integer> pInputList = new LinkedList<Integer>();
@@ -3426,7 +3429,7 @@ public class TestVertexImpl {
         }
         map.put("input4", RootInputSpecUpdate.createPerTaskRootInputSpecUpdate(pInputList));
       }
-      context.setVertexParallelism(NUM_TASKS, null, null, map);
+      getContext().setVertexParallelism(NUM_TASKS, null, null, map);
     }
   }
 
@@ -3440,9 +3443,13 @@ public class TestVertexImpl {
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition eventCondition = lock.newCondition();
 
+    public EventHandlingRootInputInitializer(
+        TezRootInputInitializerContext initializerContext) {
+      super(initializerContext);
+    }
+
     @Override
-    public List<Event> initialize(TezRootInputInitializerContext inputVertexContext) throws
-        Exception {
+    public List<Event> initialize() throws Exception {
       initStarted.set(true);
       lock.lock();
       try {

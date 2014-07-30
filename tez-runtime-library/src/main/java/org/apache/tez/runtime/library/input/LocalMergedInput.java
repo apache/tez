@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
+import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.library.common.localshuffle.LocalShuffle;
 
 /**
@@ -31,6 +32,10 @@ import org.apache.tez.runtime.library.common.localshuffle.LocalShuffle;
  * sorted data, merges them and provides key/<values> to the consumer. 
  */
 public class LocalMergedInput extends ShuffledMergedInputLegacy {
+
+  public LocalMergedInput(TezInputContext inputContext, int numPhysicalInputs) {
+    super(inputContext, numPhysicalInputs);
+  }
 
   @Override
   public List<Event> initialize() throws IOException {

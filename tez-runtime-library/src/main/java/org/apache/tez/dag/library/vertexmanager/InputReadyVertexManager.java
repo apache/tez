@@ -42,13 +42,16 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
   private static final Log LOG = 
       LogFactory.getLog(InputReadyVertexManager.class);
 
-  VertexManagerPluginContext context;
   Map<String, SourceVertexInfo> srcVertexInfo = Maps.newHashMap();
   boolean taskIsStarted[];
   int oneToOneSrcTasksDoneCount[];
   Container oneToOneLocationHints[];
   int numOneToOneEdges;
-  
+
+  public InputReadyVertexManager(VertexManagerPluginContext context) {
+    super(context);
+  }
+
   class SourceVertexInfo {
     EdgeProperty edgeProperty;
     int numTasks;
@@ -64,25 +67,24 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
   }
   
   @Override
-  public void initialize(VertexManagerPluginContext context) {
-    this.context = context;
+  public void initialize() {
   }
 
   @Override
   public void onVertexStarted(Map<String, List<Integer>> completions) {
-    int numManagedTasks = context.getVertexNumTasks(context.getVertexName());
-    LOG.info("Managing " + numManagedTasks + " tasks for vertex: " + context.getVertexName());
+    int numManagedTasks = getContext().getVertexNumTasks(getContext().getVertexName());
+    LOG.info("Managing " + numManagedTasks + " tasks for vertex: " + getContext().getVertexName());
     taskIsStarted = new boolean[numManagedTasks];
 
     // find out about all input edge types. If there is a custom edge then 
     // TODO Until TEZ-1013 we cannot handle custom input formats
-    Map<String, EdgeProperty> edges = context.getInputVertexEdgeProperties();
+    Map<String, EdgeProperty> edges = getContext().getInputVertexEdgeProperties();
     int oneToOneSrcTaskCount = 0;
     numOneToOneEdges = 0;
     for (Map.Entry<String, EdgeProperty> entry : edges.entrySet()) {
       EdgeProperty edgeProp = entry.getValue();
       String srcVertex = entry.getKey();
-      int numSrcTasks = context.getVertexNumTasks(srcVertex);
+      int numSrcTasks = getContext().getVertexNumTasks(srcVertex);
       switch (edgeProp.getDataMovementType()) {
       case CUSTOM:
         throw new TezUncheckedException("Cannot handle custom edge");
@@ -145,7 +147,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
         oneToOneSrcTasksDoneCount[taskId.intValue()]++;
         // keep the latest container that completed as the location hint
         // After there is standard data size info available then use it
-        oneToOneLocationHints[taskId.intValue()] = context.getTaskContainer(vertex, taskId);
+        oneToOneLocationHints[taskId.intValue()] = getContext().getTaskContainer(vertex, taskId);
       }
     }
     
@@ -174,7 +176,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
     if (numOneToOneEdges == 0) {
       // no 1-1 dependency. Start all tasks
       int numTasks = taskIsStarted.length;
-      LOG.info("Starting all " + numTasks + "tasks for vertex: " + context.getVertexName());
+      LOG.info("Starting all " + numTasks + "tasks for vertex: " + getContext().getVertexName());
       tasksToStart = Lists.newArrayListWithCapacity(numTasks);
       for (int i=0; i<numTasks; ++i) {
         taskIsStarted[i] = true;
@@ -191,7 +193,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
             locationHint = new TaskLocationHint(oneToOneLocationHints[i].getId());
           }
           LOG.info("Starting task " + i + " for vertex: "
-              + context.getVertexName() + " with location: "
+              + getContext().getVertexName() + " with location: "
               + ((locationHint != null) ? locationHint.getAffinitizedContainer() : "null"));
           tasksToStart.add(new TaskWithLocationHint(new Integer(i), locationHint));
         }
@@ -199,7 +201,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
     }
     
     if (tasksToStart != null && !tasksToStart.isEmpty()) {
-      context.scheduleVertexTasks(tasksToStart);
+      getContext().scheduleVertexTasks(tasksToStart);
     }
     
   }

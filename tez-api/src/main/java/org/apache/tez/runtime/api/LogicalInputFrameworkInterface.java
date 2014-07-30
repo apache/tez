@@ -21,13 +21,4 @@
 package org.apache.tez.runtime.api;
 
 public interface LogicalInputFrameworkInterface extends InputFrameworkInterface {
-  /**
-   * Sets the number of physical inputs that this <code>LogicalInput</code> will
-   * receive. This will be called by the Tez framework before initializing the
-   * <code>LogicalInput</code>
-   *
-   * @param numInputs
-   *          the number of physical inputs.
-   */
-  public void setNumPhysicalInputs(int numInputs);
 }

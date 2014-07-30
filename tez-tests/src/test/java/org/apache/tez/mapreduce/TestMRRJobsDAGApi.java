@@ -667,9 +667,16 @@ public class TestMRRJobsDAGApi {
   // the path it writes to is not dynamic.
   private static String RELOCALIZATION_TEST_CLASS_NAME = "AMClassloadTestDummyClass";
   public static class MRInputAMSplitGeneratorRelocalizationTest extends MRInputAMSplitGenerator {
-    public List<Event> initialize(TezRootInputInitializerContext rootInputContext)  throws Exception {
+
+    public MRInputAMSplitGeneratorRelocalizationTest(
+        TezRootInputInitializerContext initializerContext) {
+      super(initializerContext);
+    }
+
+    @Override
+    public List<Event> initialize()  throws Exception {
       MRInputUserPayloadProto userPayloadProto = MRHelpers
-          .parseMRInputPayload(rootInputContext.getInputUserPayload());
+          .parseMRInputPayload(getContext().getInputUserPayload());
       Configuration conf = MRHelpers.createConfFromByteString(userPayloadProto
           .getConfigurationBytes());
 
@@ -682,7 +689,7 @@ public class TestMRRJobsDAGApi {
         LOG.info("Class not found");
       }
 
-      return super.initialize(rootInputContext);
+      return super.initialize();
     }
   }
   

@@ -96,9 +96,8 @@ public class TestMultiMRInput {
 
     TezInputContext inputContext = createTezInputContext(payload);
 
-    MultiMRInput input = new MultiMRInput();
-    input.setNumPhysicalInputs(1);
-    input.initialize(inputContext);
+    MultiMRInput input = new MultiMRInput(inputContext, 1);
+    input.initialize();
     List<Event> eventList = new ArrayList<Event>();
 
     String file1 = "file1";
@@ -147,9 +146,8 @@ public class TestMultiMRInput {
 
     TezInputContext inputContext = createTezInputContext(payload);
 
-    MultiMRInput input = new MultiMRInput();
-    input.setNumPhysicalInputs(2);
-    input.initialize(inputContext);
+    MultiMRInput input = new MultiMRInput(inputContext, 2);
+    input.initialize();
     List<Event> eventList = new ArrayList<Event>();
 
     LinkedHashMap<LongWritable, Text> data = new LinkedHashMap<LongWritable, Text>();
@@ -212,9 +210,8 @@ public class TestMultiMRInput {
 
     TezInputContext inputContext = createTezInputContext(payload);
 
-    MultiMRInput input = new MultiMRInput();
-    input.setNumPhysicalInputs(1);
-    input.initialize(inputContext);
+    MultiMRInput input = new MultiMRInput(inputContext, 1);
+    input.initialize();
     List<Event> eventList = new ArrayList<Event>();
 
     String file1 = "file1";

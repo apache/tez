@@ -205,17 +205,7 @@ public class VertexManager {
       return null;
     }
   }
-  
-  public VertexManager(VertexManagerPlugin plugin, 
-      Vertex managedVertex, AppContext appContext) {
-    checkNotNull(plugin, "plugin is null");
-    checkNotNull(managedVertex, "managedVertex is null");
-    checkNotNull(appContext, "appContext is null");
-    this.plugin = plugin;
-    this.managedVertex = managedVertex;
-    this.appContext = appContext;
-  }
-  
+
   public VertexManager(VertexManagerPluginDescriptor pluginDesc, 
       Vertex managedVertex, AppContext appContext) {
     checkNotNull(pluginDesc, "pluginDesc is null");
@@ -233,7 +223,8 @@ public class VertexManager {
   public void initialize() {
     pluginContext = new VertexManagerPluginContextImpl();
     if (pluginDesc != null) {
-      plugin = ReflectionUtils.createClazzInstance(pluginDesc.getClassName());
+      plugin = ReflectionUtils.createClazzInstance(pluginDesc.getClassName(),
+          new Class[]{VertexManagerPluginContext.class}, new Object[]{pluginContext});
       payload = DagTypeConverters.convertToTezUserPayload(pluginDesc.getUserPayload());
     }
     if (payload == null || payload.getPayload() == null) {
@@ -246,7 +237,7 @@ public class VertexManager {
         throw new TezUncheckedException(e);
       }
     }
-    plugin.initialize(pluginContext);
+    plugin.initialize();
   }
 
   public void onVertexStarted(List<TezTaskAttemptID> completions) {

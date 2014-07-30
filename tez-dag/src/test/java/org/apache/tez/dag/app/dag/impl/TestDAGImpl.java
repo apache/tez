@@ -95,6 +95,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.OutputCommitter;
+import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -329,8 +330,8 @@ public class TestDAGImpl {
   
   public static class TotalCountingOutputCommitter extends CountingOutputCommitter {
     static int totalCommitCounter = 0;
-    public TotalCountingOutputCommitter() {
-      super();
+    public TotalCountingOutputCommitter(OutputCommitterContext context) {
+      super(context);
     }
     @Override
     public void commitOutput() throws IOException {

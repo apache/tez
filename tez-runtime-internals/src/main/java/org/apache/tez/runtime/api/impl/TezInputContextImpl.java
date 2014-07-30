@@ -40,7 +40,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.Input;
+import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
@@ -53,24 +53,27 @@ public class TezInputContextImpl extends TezTaskContextImpl
   private final String sourceVertexName;
   private final EventMetaData sourceInfo;
   private final int inputIndex;
-  private final Input input;
+  private final Map<String, LogicalInput> inputs;
   private final InputReadyTracker inputReadyTracker;
 
   @Private
-  public TezInputContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
-      TezUmbilical tezUmbilical, String dagName, String taskVertexName,
-      String sourceVertexName, TezTaskAttemptID taskAttemptID,
-      TezCounters counters, int inputIndex, @Nullable byte[] userPayload,
-      RuntimeTask runtimeTask, Map<String, ByteBuffer> serviceConsumerMetadata,
-      Map<String, String> auxServiceEnv, MemoryDistributor memDist,
-      InputDescriptor inputDescriptor,  Input input, InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry) {
+  public TezInputContextImpl(Configuration conf, String[] workDirs,
+                             int appAttemptNumber,
+                             TezUmbilical tezUmbilical, String dagName, String taskVertexName,
+                             String sourceVertexName, TezTaskAttemptID taskAttemptID,
+                             TezCounters counters, int inputIndex, @Nullable byte[] userPayload,
+                             RuntimeTask runtimeTask,
+                             Map<String, ByteBuffer> serviceConsumerMetadata,
+                             Map<String, String> auxServiceEnv, MemoryDistributor memDist,
+                             InputDescriptor inputDescriptor, Map<String, LogicalInput> inputs,
+                             InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry) {
     super(conf, workDirs, appAttemptNumber, dagName, taskVertexName, taskAttemptID,
         wrapCounters(counters, taskVertexName, sourceVertexName, conf),
         runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, inputDescriptor, objectRegistry);
     checkNotNull(inputIndex, "inputIndex is null");
     checkNotNull(sourceVertexName, "sourceVertexName is null");
-    checkNotNull(input, "input is null");
+    checkNotNull(inputs, "input map is null");
     checkNotNull(inputReadyTracker, "inputReadyTracker is null");
     this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     this.inputIndex = inputIndex;
@@ -78,7 +81,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
     this.sourceInfo = new EventMetaData(
         EventProducerConsumerType.INPUT, taskVertexName, sourceVertexName,
         taskAttemptID);
-    this.input = input;
+    this.inputs = inputs;
     this.inputReadyTracker = inputReadyTracker;
   }
 
@@ -126,6 +129,6 @@ public class TezInputContextImpl extends TezTaskContextImpl
 
   @Override
   public void inputIsReady() {
-    inputReadyTracker.setInputIsReady(input);
+    inputReadyTracker.setInputIsReady(inputs.get(sourceVertexName));
   }
 }

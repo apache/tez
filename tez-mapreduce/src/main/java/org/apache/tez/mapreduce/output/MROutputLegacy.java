@@ -19,8 +19,13 @@
 package org.apache.tez.mapreduce.output;
 
 import org.apache.hadoop.mapreduce.OutputCommitter;
+import org.apache.tez.runtime.api.TezOutputContext;
 
 public class MROutputLegacy extends MROutput {
+
+  public MROutputLegacy(TezOutputContext outputContext, int numPhysicalOutputs) {
+    super(outputContext, numPhysicalOutputs);
+  }
 
   public OutputCommitter getOutputCommitter() {
     return committer;

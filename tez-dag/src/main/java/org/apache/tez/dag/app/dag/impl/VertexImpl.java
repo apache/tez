@@ -1662,8 +1662,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         dagUgi.doAs(new PrivilegedExceptionAction<Void>() {
           @Override
           public Void run() throws Exception {
-            OutputCommitter outputCommitter = ReflectionUtils.createClazzInstance(
-                od.getControllerDescriptor().getClassName());
             OutputCommitterContext outputCommitterContext =
                 new OutputCommitterContextImpl(appContext.getApplicationID(),
                     appContext.getApplicationAttemptId().getAttemptId(),
@@ -1671,10 +1669,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                     vertexName,
                     od,
                     vertexId.getId());
-
+            OutputCommitter outputCommitter = ReflectionUtils
+                .createClazzInstance(od.getControllerDescriptor().getClassName(),
+                    new Class[]{OutputCommitterContext.class},
+                    new Object[]{outputCommitterContext});
             LOG.info("Invoking committer init for output=" + outputName
                 + ", vertexId=" + logIdentifier);
-            outputCommitter.initialize(outputCommitterContext);
+            outputCommitter.initialize();
             outputCommitters.put(outputName, outputCommitter);
             LOG.info("Invoking committer setup for output=" + outputName
                 + ", vertexId=" + logIdentifier);
@@ -1897,24 +1898,28 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       if (inputsWithInitializers != null) {
         LOG.info("Setting vertexManager to RootInputVertexManager for "
             + logIdentifier);
-        vertexManager = new VertexManager(new RootInputVertexManager(),
+        vertexManager = new VertexManager(
+            new VertexManagerPluginDescriptor(RootInputVertexManager.class.getName()),
             this, appContext);
       } else if (hasOneToOne && !hasCustom) {
         LOG.info("Setting vertexManager to InputReadyVertexManager for "
             + logIdentifier);
-        vertexManager = new VertexManager(new InputReadyVertexManager(),
+        vertexManager = new VertexManager(
+            new VertexManagerPluginDescriptor(InputReadyVertexManager.class.getName()),
             this, appContext);
       } else if (hasBipartite && !hasCustom) {
         LOG.info("Setting vertexManager to ShuffleVertexManager for "
             + logIdentifier);
-        vertexManager = new VertexManager(new ShuffleVertexManager(),
+        vertexManager = new VertexManager(
+            new VertexManagerPluginDescriptor(ShuffleVertexManager.class.getName()),
             this, appContext);
       } else {
         // schedule all tasks upon vertex start. Default behavior.
         LOG.info("Setting vertexManager to ImmediateStartVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            new ImmediateStartVertexManager(), this, appContext);
+            new VertexManagerPluginDescriptor(ImmediateStartVertexManager.class.getName()),
+            this, appContext);
       }
     }
   }

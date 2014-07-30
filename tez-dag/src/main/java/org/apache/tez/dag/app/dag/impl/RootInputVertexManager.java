@@ -39,22 +39,24 @@ import com.google.common.collect.Lists;
 
 public class RootInputVertexManager extends VertexManagerPlugin {
 
-  VertexManagerPluginContext context;
   private String configuredInputName;
 
+  public RootInputVertexManager(VertexManagerPluginContext context) {
+    super(context);
+  }
+
   @Override
-  public void initialize(VertexManagerPluginContext context) {
-    this.context = context;
+  public void initialize() {
   }
 
   @Override
   public void onVertexStarted(Map<String, List<Integer>> completions) {
-    int numTasks = context.getVertexNumTasks(context.getVertexName());
+    int numTasks = getContext().getVertexNumTasks(getContext().getVertexName());
     List<TaskWithLocationHint> scheduledTasks = Lists.newArrayListWithCapacity(numTasks);
     for (int i=0; i<numTasks; ++i) {
       scheduledTasks.add(new TaskWithLocationHint(new Integer(i), null));
     }
-    context.scheduleVertexTasks(scheduledTasks);
+    getContext().scheduleVertexTasks(scheduledTasks);
   }
 
   @Override
@@ -74,12 +76,12 @@ public class RootInputVertexManager extends VertexManagerPlugin {
       if (event instanceof RootInputConfigureVertexTasksEvent) {
         // No tasks should have been started yet. Checked by initial state check.
         Preconditions.checkState(dataInformationEventSeen == false);
-        Preconditions.checkState(context.getVertexNumTasks(context.getVertexName()) == -1,
+        Preconditions.checkState(getContext().getVertexNumTasks(getContext().getVertexName()) == -1,
             "Parallelism for the vertex should be set to -1 if the InputInitializer is setting parallelism"
-                + ", VertexName: " + context.getVertexName());
+                + ", VertexName: " + getContext().getVertexName());
         Preconditions.checkState(configuredInputName == null,
             "RootInputVertexManager cannot configure multiple inputs. Use a custom VertexManager"
-                + ", VertexName: " + context.getVertexName() + ", ConfiguredInput: "
+                + ", VertexName: " + getContext().getVertexName() + ", ConfiguredInput: "
                 + configuredInputName + ", CurrentInput: " + inputName);
         configuredInputName = inputName;
         RootInputConfigureVertexTasksEvent cEvent = (RootInputConfigureVertexTasksEvent) event;
@@ -88,7 +90,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
             inputName,
             cEvent.getRootInputSpecUpdate() == null ? RootInputSpecUpdate
                 .getDefaultSinglePhysicalInputSpecUpdate() : cEvent.getRootInputSpecUpdate());
-        context.setVertexParallelism(cEvent.getNumTasks(),
+        getContext().setVertexParallelism(cEvent.getNumTasks(),
             new VertexLocationHint(cEvent.getTaskLocationHints()), null, rootInputSpecUpdate);
       }
       if (event instanceof RootInputUpdatePayloadEvent) {
@@ -99,11 +101,11 @@ public class RootInputVertexManager extends VertexManagerPlugin {
       } else if (event instanceof RootInputDataInformationEvent) {
         dataInformationEventSeen = true;
         // # Tasks should have been set by this point.
-        Preconditions.checkState(context.getVertexNumTasks(context.getVertexName()) != 0);
+        Preconditions.checkState(getContext().getVertexNumTasks(getContext().getVertexName()) != 0);
         Preconditions.checkState(
             configuredInputName == null || configuredInputName.equals(inputName),
             "RootInputVertexManager cannot configure multiple inputs. Use a custom VertexManager"
-                + ", VertexName:" + context.getVertexName() + ", ConfiguredInput: "
+                + ", VertexName:" + getContext().getVertexName() + ", ConfiguredInput: "
                 + configuredInputName + ", CurrentInput: " + inputName);
         configuredInputName = inputName;
         
@@ -112,6 +114,6 @@ public class RootInputVertexManager extends VertexManagerPlugin {
         riEvents.add(rEvent);
       }
     }
-    context.addRootInputEvents(inputName, riEvents);
+    getContext().addRootInputEvents(inputName, riEvents);
   }
 }

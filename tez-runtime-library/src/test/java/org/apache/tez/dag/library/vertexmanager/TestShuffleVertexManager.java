@@ -125,10 +125,10 @@ public class TestShuffleVertexManager {
           newEdgeManagers.clear();
           for (Entry<String, EdgeManagerDescriptor> entry :
               ((Map<String, EdgeManagerDescriptor>)invocation.getArguments()[2]).entrySet()) {
-            EdgeManager edgeManager = ReflectionUtils.createClazzInstance(
-                entry.getValue().getClassName());
+
+
             final byte[] userPayload = entry.getValue().getUserPayload();
-            edgeManager.initialize(new EdgeManagerContext() {
+            EdgeManagerContext emContext = new EdgeManagerContext() {
               @Override
               public byte[] getUserPayload() {
                 return userPayload;
@@ -153,7 +153,11 @@ public class TestShuffleVertexManager {
               public int getDestinationVertexNumTasks() {
                 return 0;
               }
-            });
+            };
+            EdgeManager edgeManager = ReflectionUtils
+                .createClazzInstance(entry.getValue().getClassName(),
+                    new Class[]{EdgeManagerContext.class}, new Object[]{emContext});
+            edgeManager.initialize();
             newEdgeManagers.put(entry.getKey(), edgeManager);
           }
           return null;
@@ -486,8 +490,7 @@ public class TestShuffleVertexManager {
   private ShuffleVertexManager createManager(Configuration conf, 
       VertexManagerPluginContext context, float min, float max) {
     conf.setFloat(ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, min);
-    conf.setFloat(ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, max);    
-    ShuffleVertexManager manager = new ShuffleVertexManager();
+    conf.setFloat(ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, max);
     byte[] payload;
     try {
       payload = TezUtils.createUserPayloadFromConf(conf);
@@ -495,7 +498,8 @@ public class TestShuffleVertexManager {
       throw new RuntimeException(e);
     }
     when(context.getUserPayload()).thenReturn(payload);
-    manager.initialize(context);
+    ShuffleVertexManager manager = new ShuffleVertexManager(context);
+    manager.initialize();
     return manager;
   }
 }

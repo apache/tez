@@ -68,9 +68,9 @@ public class TestMRInputSplitDistributor {
     byte[] userPayload = payloadProto.build().toByteArray();
 
     TezRootInputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
-    MRInputSplitDistributor splitDist = new MRInputSplitDistributor();
+    MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
 
-    List<Event> events = splitDist.initialize(context);
+    List<Event> events = splitDist.initialize();
 
     assertEquals(3, events.size());
     assertTrue(events.get(0) instanceof RootInputUpdatePayloadEvent);
@@ -116,9 +116,9 @@ public class TestMRInputSplitDistributor {
     byte[] userPayload = payloadProto.build().toByteArray();
 
     TezRootInputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
-    MRInputSplitDistributor splitDist = new MRInputSplitDistributor();
+    MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
 
-    List<Event> events = splitDist.initialize(context);
+    List<Event> events = splitDist.initialize();
 
     assertEquals(3, events.size());
     assertTrue(events.get(0) instanceof RootInputUpdatePayloadEvent);

@@ -36,6 +36,8 @@ INCOMPATIBLE CHANGES
   includes Hadoop libs.
   TEZ-1278. TezClient#waitTillReady() should not swallow interrupts
   TEZ-1058. Replace user land interfaces with abstract classes
+  TEZ-1303. Change Inputs, Outputs, InputInitializer, OutputCommitter, VertexManagerPlugin, EdgeManager
+  to require constructors for creation, and remove the initialize methods.
 
 Release 0.4.0-incubating: 2014-04-05
 

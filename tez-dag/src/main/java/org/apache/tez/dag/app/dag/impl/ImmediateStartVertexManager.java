@@ -34,20 +34,19 @@ import com.google.common.collect.Lists;
  * Starts all tasks immediately on vertex start
  */
 public class ImmediateStartVertexManager extends VertexManagerPlugin {
-  
-  private VertexManagerPluginContext context;
-  
-  ImmediateStartVertexManager() {
+
+  public ImmediateStartVertexManager(VertexManagerPluginContext context) {
+    super(context);
   }
-  
+
   @Override
   public void onVertexStarted(Map<String, List<Integer>> completions) {
-    int numTasks = context.getVertexNumTasks(context.getVertexName());
+    int numTasks = getContext().getVertexNumTasks(getContext().getVertexName());
     List<TaskWithLocationHint> scheduledTasks = Lists.newArrayListWithCapacity(numTasks);
     for (int i=0; i<numTasks; ++i) {
       scheduledTasks.add(new TaskWithLocationHint(new Integer(i), null));
     }
-    context.scheduleVertexTasks(scheduledTasks);
+    getContext().scheduleVertexTasks(scheduledTasks);
   }
 
   @Override
@@ -55,8 +54,7 @@ public class ImmediateStartVertexManager extends VertexManagerPlugin {
   }
 
   @Override
-  public void initialize(VertexManagerPluginContext context) {
-    this.context = context;
+  public void initialize() {
   }
 
   @Override

@@ -41,6 +41,8 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
@@ -168,7 +170,8 @@ public class TestLogicalIOProcessorRuntimeTask {
 
     public static volatile int startCount = 0;
 
-    public TestInput() {
+    public TestInput(TezInputContext inputContext, int numPhysicalInputs) {
+      super(inputContext, numPhysicalInputs);
     }
 
     @Override
@@ -204,8 +207,10 @@ public class TestLogicalIOProcessorRuntimeTask {
 
     public static volatile int startCount = 0;
 
-    public TestOutput() {
+    public TestOutput(TezOutputContext outputContext, int numPhysicalOutputs) {
+      super(outputContext, numPhysicalOutputs);
     }
+
 
     @Override
     public List<Event> initialize() throws Exception {

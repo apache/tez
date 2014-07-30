@@ -33,7 +33,6 @@ import org.apache.tez.dag.api.EdgeManagerContext;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
@@ -114,18 +113,28 @@ public class Edge {
   private void createEdgeManager() {
     switch (edgeProperty.getDataMovementType()) {
       case ONE_TO_ONE:
-        edgeManager = new OneToOneEdgeManager();
+        edgeManagerContext = new EdgeManagerContextImpl(null);
+        edgeManager = new OneToOneEdgeManager(edgeManagerContext);
         break;
       case BROADCAST:
-        edgeManager = new BroadcastEdgeManager();
+        edgeManagerContext = new EdgeManagerContextImpl(null);
+        edgeManager = new BroadcastEdgeManager(edgeManagerContext);
         break;
       case SCATTER_GATHER:
-        edgeManager = new ScatterGatherEdgeManager();
+        edgeManagerContext = new EdgeManagerContextImpl(null);
+        edgeManager = new ScatterGatherEdgeManager(edgeManagerContext);
         break;
       case CUSTOM:
         if (edgeProperty.getEdgeManagerDescriptor() != null) {
+          byte []bb = null;
+          if (edgeProperty.getEdgeManagerDescriptor().getUserPayload() != null) {
+            bb = edgeProperty.getEdgeManagerDescriptor().getUserPayload();
+          }
+          edgeManagerContext = new EdgeManagerContextImpl(bb);
           String edgeManagerClassName = edgeProperty.getEdgeManagerDescriptor().getClassName();
-          edgeManager = ReflectionUtils.createClazzInstance(edgeManagerClassName);
+          edgeManager = ReflectionUtils
+              .createClazzInstance(edgeManagerClassName, new Class[]{EdgeManagerContext.class},
+                  new Object[]{edgeManagerContext});
         }
         break;
       default:
@@ -136,16 +145,8 @@ public class Edge {
   }
 
   public void initialize() {
-    byte[] bb = null;
-    if (edgeProperty.getDataMovementType() == DataMovementType.CUSTOM) {
-      if (edgeProperty.getEdgeManagerDescriptor() != null && 
-          edgeProperty.getEdgeManagerDescriptor().getUserPayload() != null) {
-        bb = edgeProperty.getEdgeManagerDescriptor().getUserPayload();
-      }
-    }
-    edgeManagerContext = new EdgeManagerContextImpl(bb);
     if (edgeManager != null) {
-      edgeManager.initialize(edgeManagerContext);
+      edgeManager.initialize();
     }
     destinationMetaInfo = new EventMetaData(EventProducerConsumerType.INPUT, 
         destinationVertex.getName(), 

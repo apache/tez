@@ -24,15 +24,17 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.io.RawComparator;
 import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.TezMergedInputContext;
 import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
@@ -40,14 +42,13 @@ import org.junit.Test;
 
 public class TestSortedGroupedMergedInput {
 
-  TezMergedInputContext createMergedInputContext(Input input) {
-    return new TezMergedInputContextImpl(null, input, mock(InputReadyTracker.class), null);
+  TezMergedInputContext createMergedInputContext() {
+    return new TezMergedInputContextImpl(null, "mergedInputName", new HashMap<String, MergedLogicalInput>(),
+        mock(InputReadyTracker.class), null);
   }
   
   @Test
   public void testSimple() throws Exception {
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput();
-
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3 },
         new int[][] { { 1, 1 }, { 2, 2 }, { 3, 3 } });
 
@@ -65,8 +66,8 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput1);
     sInputs.add(sInput2);
     sInputs.add(sInput3);
+    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
 
-    input.initialize(sInputs, createMergedInputContext(input));
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
     while (kvsReader.next()) {
@@ -86,7 +87,7 @@ public class TestSortedGroupedMergedInput {
 
   @Test
   public void testSkippedKey() throws Exception {
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput();
+
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3 },
         new int[][] { { 1, 1 }, { 2, 2 }, { 3, 3 } });
@@ -106,7 +107,8 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    input.initialize(sInputs, createMergedInputContext(input));
+    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
+
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
     while (kvsReader.next()) {
@@ -129,7 +131,6 @@ public class TestSortedGroupedMergedInput {
 
   @Test
   public void testPartialValuesSkip() throws Exception {
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput();
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3 },
         new int[][] { { 1, 1 }, { 2, 2 }, { 3, 3 } });
@@ -149,7 +150,7 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    input.initialize(sInputs, createMergedInputContext(input));
+    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
     while (kvsReader.next()) {
@@ -176,7 +177,6 @@ public class TestSortedGroupedMergedInput {
 
   @Test
   public void testOrdering() throws Exception {
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput();
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 2, 4 },
         new int[][] { { 2, 2 }, { 4, 4 } });
@@ -196,7 +196,7 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    input.initialize(sInputs, createMergedInputContext(input));
+    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
     while (kvsReader.next()) {
@@ -228,7 +228,6 @@ public class TestSortedGroupedMergedInput {
 
   @Test
   public void testSkippedKey2() throws Exception {
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput();
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 2, 4 },
         new int[][] { { 2, 2 }, { 4, 4 } });
@@ -248,7 +247,7 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    input.initialize(sInputs, createMergedInputContext(input));
+    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
     while (kvsReader.next()) {
@@ -284,7 +283,6 @@ public class TestSortedGroupedMergedInput {
   // Reads all values for a key, but doesn't trigger the last hasNext() call.
   @Test
   public void testSkippedKey3() throws Exception {
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput();
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3, 4 },
         new int[][] { { 1, 1 }, { 2, 2 }, { 3, 3 }, {4, 4} });
@@ -304,7 +302,8 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    input.initialize(sInputs, createMergedInputContext(input));
+    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
+
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
     while (kvsReader.next()) {
@@ -330,7 +329,6 @@ public class TestSortedGroupedMergedInput {
 
   @Test
   public void testEmptySources() throws Exception {
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput();
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] {},
         new int[][] {});
@@ -350,7 +348,8 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    input.initialize(sInputs, createMergedInputContext(input));
+    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
+
     KeyValuesReader kvsReader = input.getReader();
     assertFalse(kvsReader.next());
   }
@@ -360,12 +359,12 @@ public class TestSortedGroupedMergedInput {
     final SortedTestKeyValuesReader reader;
 
     SortedTestInput(SortedTestKeyValuesReader reader) {
+      super(null, 0);
       this.reader = reader;
     }
 
     @Override
-    public List<Event> initialize(TezInputContext inputContext) throws Exception {
-      inputContext.inputIsReady();
+    public List<Event> initialize() throws IOException {
       return null;
     }
 
@@ -385,10 +384,6 @@ public class TestSortedGroupedMergedInput {
     @Override
     public List<Event> close() throws IOException {
       return null;
-    }
-
-    @Override
-    public void setNumPhysicalInputs(int numInputs) {
     }
 
     @SuppressWarnings("rawtypes")

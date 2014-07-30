@@ -34,7 +34,22 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
  */
 @InterfaceStability.Unstable
 public abstract class EdgeManager {
-  
+
+  private final EdgeManagerContext context;
+
+  /**
+   * Crete an instance of the VertexManagerPlugin. Classes extending this one to create a
+   * VertexManagerPlugin, must provide the same constructor so that Tez can create an instance of
+   * the class at runtime.
+   *
+   * @param context the context within which this EdgeManager will run. Includes
+   *                  information like configuration which the user may have specified
+   *                  while setting up the edge.
+   */
+  public EdgeManager(EdgeManagerContext context) {
+    this.context = context;
+  }
+
   /**
    * Initializes the EdgeManager. This method is called in the following
    * circumstances </p> 1. when initializing an Edge Manager for the first time.
@@ -42,13 +57,9 @@ public abstract class EdgeManager {
    * EdgeManager instance is created and setup by the user. The initialize
    * method will be called with the original {@link EdgeManagerContext} when the
    * edgeManager is replaced.
-   * 
-   * @param edgeManagerContext
-   *          the context within which this EdgeManager will run. Includes
-   *          information like configuration which the user may have specified
-   *          while setting up the edge.
+   *
    */
-  public abstract void initialize(EdgeManagerContext edgeManagerContext);
+  public abstract void initialize();
   
   /**
    * Get the number of physical inputs on the destination task
@@ -124,5 +135,14 @@ public abstract class EdgeManager {
    */
   public abstract int routeInputErrorEventToSource(InputReadErrorEvent event,
       int destinationTaskIndex, int destinationFailedInputIndex);
-  
+
+  /**
+   * Return ahe {@link org.apache.tez.dag.api.EdgeManagerContext} for this specific instance of
+   * the vertex manager.
+   *
+   * @return the {@link org.apache.tez.dag.api.EdgeManagerContext} for the input
+   */
+  public EdgeManagerContext getContext() {
+    return this.context;
+  }
 }

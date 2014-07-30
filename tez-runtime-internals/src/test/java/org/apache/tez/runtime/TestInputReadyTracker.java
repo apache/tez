@@ -23,7 +23,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.tez.runtime.api.AbstractLogicalInput;
@@ -31,6 +33,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.TezMergedInputContext;
 import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
 import org.junit.Test;
 
@@ -142,8 +145,7 @@ public class TestInputReadyTracker {
     ImmediatelyReadyInputForTest input3 = new ImmediatelyReadyInputForTest(inputReadyTracker);
     ControlledReadyInputForTest input4 = new ControlledReadyInputForTest(inputReadyTracker);
     
-    AnyOneMergedInputForTest group1 = new AnyOneMergedInputForTest();
-    AllMergedInputForTest group2 = new AllMergedInputForTest();
+
     
     List<Input> group1Inputs = new ArrayList<Input>();
     group1Inputs.add(input1);
@@ -153,9 +155,15 @@ public class TestInputReadyTracker {
     group2Inputs.add(input3);
     group2Inputs.add(input4);
 
-    group1.initialize(group1Inputs, new TezMergedInputContextImpl(null, group1, inputReadyTracker, null));
-    group2.initialize(group2Inputs, new TezMergedInputContextImpl(null, group2, inputReadyTracker, null));
-    
+    Map<String, MergedLogicalInput> mergedInputMap = new HashMap<String, MergedLogicalInput>();
+    TezMergedInputContext mergedInputContext1 = new TezMergedInputContextImpl(null, "group1", mergedInputMap, inputReadyTracker, null);
+    TezMergedInputContext mergedInputContext2 = new TezMergedInputContextImpl(null, "group2", mergedInputMap, inputReadyTracker, null);
+
+    AnyOneMergedInputForTest group1 = new AnyOneMergedInputForTest(mergedInputContext1, group1Inputs);
+    AllMergedInputForTest group2 = new AllMergedInputForTest(mergedInputContext2, group2Inputs);
+    mergedInputMap.put("group1", group1);
+    mergedInputMap.put("group2", group2);
+
     // Register groups with tracker
     List<MergedLogicalInput> groups = Lists.newArrayList(group1, group2);
     inputReadyTracker.setGroupedInputs(groups);
@@ -210,6 +218,7 @@ public class TestInputReadyTracker {
     private volatile boolean isReady = false;
     
     ImmediatelyReadyInputForTest(InputReadyTracker inputReadyTracker) {
+      super(null, 0);
       isReady = true;
       inputReadyTracker.setInputIsReady(this);
     }
@@ -244,6 +253,7 @@ public class TestInputReadyTracker {
     private InputReadyTracker inputReadyTracker;
     
     ControlledReadyInputForTest(InputReadyTracker inputReadyTracker) {
+      super(null, 0);
       this.inputReadyTracker = inputReadyTracker;
     }
 
@@ -280,7 +290,11 @@ public class TestInputReadyTracker {
   private static class AnyOneMergedInputForTest extends MergedLogicalInput {
 
     private volatile boolean isReady = false;
-    
+
+    public AnyOneMergedInputForTest(TezMergedInputContext context, List<Input> inputs) {
+      super(context, inputs);
+    }
+
     @Override
     public Reader getReader() throws Exception {
       return null;
@@ -297,7 +311,11 @@ public class TestInputReadyTracker {
 
     private volatile boolean isReady = false;
     private Set<Input> readyInputs = Sets.newHashSet();
-    
+
+    public AllMergedInputForTest(TezMergedInputContext context, List<Input> inputs) {
+      super(context, inputs);
+    }
+
     @Override
     public Reader getReader() throws Exception {
       return null;

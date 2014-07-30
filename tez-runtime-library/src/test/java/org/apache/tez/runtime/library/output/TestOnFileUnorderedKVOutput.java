@@ -91,9 +91,6 @@ public class TestOnFileUnorderedKVOutput {
 
   @Test
   public void testGeneratedDataMovementEvent() throws Exception {
-
-    OnFileUnorderedKVOutput kvOutput = new OnFileUnorderedKVOutputForTest();
-
     Configuration conf = new Configuration();
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, IntWritable.class.getName());
@@ -127,9 +124,11 @@ public class TestOnFileUnorderedKVOutput {
         taskAttemptID, counters, 0, userPayload, runtimeTask,
         null, auxEnv, new MemoryDistributor(1, 1, conf) , outputDescriptor, null);
 
+    OnFileUnorderedKVOutput kvOutput = new OnFileUnorderedKVOutputForTest(outputContext, 1);
+
     List<Event> events = null;
 
-    events = kvOutput.initialize(outputContext);
+    events = kvOutput.initialize();
     assertTrue(events != null && events.size() == 0);
 
     KeyValueWriter kvWriter = kvOutput.getWriter();
@@ -154,6 +153,11 @@ public class TestOnFileUnorderedKVOutput {
   }
 
   private static class OnFileUnorderedKVOutputForTest extends OnFileUnorderedKVOutput {
+
+    public OnFileUnorderedKVOutputForTest(TezOutputContext outputContext, int numPhysicalOutputs) {
+      super(outputContext, numPhysicalOutputs);
+    }
+
     @Override
     String getHost() {
       return "host";

@@ -28,20 +28,14 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
 public class EdgeManagerForTest extends EdgeManager {
 
-  private EdgeManagerContext edgeManagerContext = null;
   private byte[] userPayload;
 
-  public static EdgeManagerForTest createInstance() {
-    EdgeManagerForTest e = new EdgeManagerForTest();
-    return e;
+  public EdgeManagerForTest(EdgeManagerContext context) {
+    super(context);
   }
 
   public EdgeManagerContext getEdgeManagerContext() {
-    return edgeManagerContext;
-  }
-
-  
-  public EdgeManagerForTest() {
+    return getContext();
   }
 
   public byte[] getUserPayload() {
@@ -50,9 +44,8 @@ public class EdgeManagerForTest extends EdgeManager {
 
   // Overridden methods
   @Override
-  public void initialize(EdgeManagerContext edgeManagerContext) {
-    this.edgeManagerContext = edgeManagerContext;
-    this.userPayload = edgeManagerContext.getUserPayload();
+  public void initialize() {
+    this.userPayload = getContext().getUserPayload();
   }
 
   @Override

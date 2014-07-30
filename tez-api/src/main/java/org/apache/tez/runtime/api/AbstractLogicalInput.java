@@ -26,31 +26,55 @@ import java.util.List;
  * implemented by all LogicalInputs.
  *
  * This includes default implementations of a new method for convenience.
- * 
+ *
+ * <code>Input</code> classes must provide a 2 argument public constructor for Tez to create the
+ * Input. The parameters to this constructor are 1) an instance of
+ * {@link org.apache.tez.runtime.api.TezInputContext} and 2) an integer which is used to
+ * setup the number of physical inputs that the logical input will see.
+ * Tez will take care of initializing and closing the Input after a {@link Processor} completes. </p>
+ * <p/>
+ *
  */
 public abstract class AbstractLogicalInput implements LogicalInput, LogicalInputFrameworkInterface {
 
-  protected int numPhysicalInputs;
-  protected TezInputContext inputContext;
+  private final int numPhysicalInputs;
+  private final TezInputContext inputContext;
 
-  @Override
-  public void setNumPhysicalInputs(int numInputs) {
-    this.numPhysicalInputs = numInputs;
+  /**
+   * Constructor an instance of the LogicalInput. Classes extending this one to create a
+   * LogicalInput, must provide the same constructor so that Tez can create an instance of the
+   * class at runtime.
+   *
+   * @param inputContext      the {@link org.apache.tez.runtime.api.TezInputContext} which provides
+   *                          the Input with context information within the running task.
+   * @param numPhysicalInputs the number of physical inputs that the logical input will
+   *                          receive. This is typically determined by Edge Routing.
+   */
+  public AbstractLogicalInput(TezInputContext inputContext, int numPhysicalInputs) {
+    this.inputContext = inputContext;
+    this.numPhysicalInputs = numPhysicalInputs;
   }
 
   @Override
-  public List<Event> initialize(TezInputContext _inputContext) throws Exception {
-    this.inputContext = _inputContext;
-    return initialize();
-  }
-
   public abstract List<Event> initialize() throws Exception;
 
-  public int getNumPhysicalInputs() {
+  /**
+   * Get the number of physical inputs that this LogicalInput will receive. This is
+   * typically determined by Edge routing, and number of upstream tasks
+   *
+   * @return the number of physical inputs
+   */
+  public final int getNumPhysicalInputs() {
     return numPhysicalInputs;
   }
 
-  public TezInputContext getContext() {
+  /**
+   * Return ahe {@link org.apache.tez.runtime.api.TezInputContext} for this specific instance of
+   * the LogicalInput
+   *
+   * @return the {@link org.apache.tez.runtime.api.TezInputContext} for the input
+   */
+  public final TezInputContext getContext() {
     return inputContext;
   }
 }

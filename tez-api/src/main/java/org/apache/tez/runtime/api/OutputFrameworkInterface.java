@@ -33,25 +33,17 @@ import java.util.List;
  * {@link TezOutputContext}.requestInitialMemory
  * <p/>
  *
- * <code>Output</code> classes must have a 0 argument public constructor for Tez
- * to construct the <code>Output</code>. Tez will take care of initializing and
- * closing the Output after a {@link Processor} completes. </p>
- * <p/>
- *
  */
 public interface OutputFrameworkInterface {
 
   /**
    * Initializes the <code>Output</code>
    *
-   * @param outputContext
-   *          the {@link TezOutputContext}
    * @return list of events that were generated during initialization
    * @throws Exception
    *           if an error occurs
    */
-  public List<Event> initialize(TezOutputContext outputContext)
-      throws Exception;
+  public List<Event> initialize() throws Exception;
 
   /**
    * Handles user and system generated {@link Event}s, which typically carry

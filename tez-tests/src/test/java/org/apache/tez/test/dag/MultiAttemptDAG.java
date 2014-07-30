@@ -45,6 +45,8 @@ import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.api.TezRootInputInitializerContext;
 import org.apache.tez.runtime.api.Writer;
@@ -76,16 +78,18 @@ public class MultiAttemptDAG {
   public static class FailOnAttemptVertexManagerPlugin extends VertexManagerPlugin {
     private int numSourceTasks = 0;
     private AtomicInteger numCompletions = new AtomicInteger();
-    private VertexManagerPluginContext context;
     private boolean tasksScheduled = false;
 
+    public FailOnAttemptVertexManagerPlugin(VertexManagerPluginContext context) {
+      super(context);
+    }
+
     @Override
-    public void initialize(VertexManagerPluginContext context) {
-      this.context = context;
+    public void initialize() {
       for (String input :
-          context.getInputVertexEdgeProperties().keySet()) {
+          getContext().getInputVertexEdgeProperties().keySet()) {
         LOG.info("Adding sourceTasks for Vertex " + input);
-        numSourceTasks += context.getVertexNumTasks(input);
+        numSourceTasks += getContext().getVertexNumTasks(input);
         LOG.info("Current numSourceTasks=" + numSourceTasks);
       }
     }
@@ -107,21 +111,21 @@ public class MultiAttemptDAG {
       if (numCompletions.get() >= numSourceTasks
           && !tasksScheduled) {
         tasksScheduled = true;
-        String payload = new String(context.getUserPayload());
+        String payload = new String(getContext().getUserPayload());
         int successAttemptId = Integer.valueOf(payload);
         LOG.info("Checking whether to crash AM or schedule tasks"
             + ", successfulAttemptID=" + successAttemptId
-            + ", currentAttempt=" + context.getDAGAttemptNumber());
-        if (successAttemptId > context.getDAGAttemptNumber()) {
+            + ", currentAttempt=" + getContext().getDAGAttemptNumber());
+        if (successAttemptId > getContext().getDAGAttemptNumber()) {
           Runtime.getRuntime().halt(-1);
-        } else if (successAttemptId == context.getDAGAttemptNumber()) {
-          LOG.info("Scheduling tasks for vertex=" + context.getVertexName());
-          int numTasks = context.getVertexNumTasks(context.getVertexName());
+        } else if (successAttemptId == getContext().getDAGAttemptNumber()) {
+          LOG.info("Scheduling tasks for vertex=" + getContext().getVertexName());
+          int numTasks = getContext().getVertexNumTasks(getContext().getVertexName());
           List<TaskWithLocationHint> scheduledTasks = Lists.newArrayListWithCapacity(numTasks);
           for (int i=0; i<numTasks; ++i) {
             scheduledTasks.add(new TaskWithLocationHint(new Integer(i), null));
           }
-          context.scheduleVertexTasks(scheduledTasks);
+          getContext().scheduleVertexTasks(scheduledTasks);
         }
       }
     }
@@ -150,11 +154,15 @@ public class MultiAttemptDAG {
 
     boolean failOnCommit = false;
 
+    public FailingOutputCommitter(OutputCommitterContext committerContext) {
+      super(committerContext);
+    }
+
     @Override
-    public void initialize(OutputCommitterContext context) throws Exception {
+    public void initialize() throws Exception {
       FailingOutputCommitterConfig config = new
           FailingOutputCommitterConfig();
-      config.fromUserPayload(context.getOutputUserPayload());
+      config.fromUserPayload(getContext().getOutputUserPayload());
       failOnCommit = config.failOnCommit;
     }
 
@@ -204,14 +212,18 @@ public class MultiAttemptDAG {
 
   public static class FailingInputInitializer extends TezRootInputInitializer {
 
+    public FailingInputInitializer(TezRootInputInitializerContext initializerContext) {
+      super(initializerContext);
+    }
+
     @Override
-    public List<Event> initialize(TezRootInputInitializerContext inputVertexContext) throws Exception {
+    public List<Event> initialize() throws Exception {
       try {
         Thread.sleep(2000l);
       } catch (InterruptedException e) {
         // Ignore
       }
-      if (inputVertexContext.getDAGAttemptNumber() == 1) {
+      if (getContext().getDAGAttemptNumber() == 1) {
         LOG.info("Shutting down the AM in 1st attempt");
         Runtime.getRuntime().halt(-1);
       }
@@ -227,9 +239,13 @@ public class MultiAttemptDAG {
 
   public static class NoOpInput extends AbstractLogicalInput {
 
+    public NoOpInput(TezInputContext inputContext, int numPhysicalInputs) {
+      super(inputContext, numPhysicalInputs);
+    }
+
     @Override
     public List<Event> initialize() throws Exception {
-      inputContext.requestInitialMemory(1l, new MemoryUpdateCallback() {
+      getContext().requestInitialMemory(1l, new MemoryUpdateCallback() {
         @Override
         public void memoryAssigned(long assignedSize) {}
       });
@@ -259,11 +275,17 @@ public class MultiAttemptDAG {
 
   public static class NoOpOutput extends AbstractLogicalOutput {
 
+    public NoOpOutput(TezOutputContext outputContext,
+                      int numPhysicalOutputs) {
+      super(outputContext, numPhysicalOutputs);
+    }
+
     @Override
     public List<Event> initialize() throws Exception {
-      outputContext.requestInitialMemory(1l, new MemoryUpdateCallback() {
+      getContext().requestInitialMemory(1l, new MemoryUpdateCallback() {
         @Override
-        public void memoryAssigned(long assignedSize) {}
+        public void memoryAssigned(long assignedSize) {
+        }
       });
       return null;
     }

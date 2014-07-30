@@ -38,6 +38,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -47,7 +48,6 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovem
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataProto;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
@@ -62,8 +62,10 @@ public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
   private boolean dataViaEventsEnabled;
   private int dataViaEventsMaxSize;
 
-  public OnFileUnorderedKVOutput() {
+  public OnFileUnorderedKVOutput(TezOutputContext outputContext, int numPhysicalOutputs) {
+    super(outputContext, numPhysicalOutputs);
   }
+
 
   @Override
   public synchronized List<Event> initialize()
@@ -153,12 +155,6 @@ public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
     return events;
   }
 
-  @Override
-  public synchronized void setNumPhysicalOutputs(int numOutputs) {
-    Preconditions.checkArgument(numOutputs == 1,
-        "Number of outputs can only be 1 for " + this.getClass().getName());
-  }
-  
   @VisibleForTesting
   @Private
   String getHost() {

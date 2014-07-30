@@ -21,13 +21,4 @@
 package org.apache.tez.runtime.api;
 
 public interface LogicalOutputFrameworkInterface extends OutputFrameworkInterface {
-  /**
-   * Sets the number of physical outputs that this <code>LogicalOutput</code>
-   * will receive. This will be called by the Tez framework before initializing
-   * the <code>LogicalOutput</code>
-   *
-   * @param numOutputs
-   *          the number of physical outputs
-   */
-  public void setNumPhysicalOutputs(int numOutputs);
 }

@@ -32,19 +32,31 @@ import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
 @InterfaceStability.Unstable
 public abstract class TezRootInputInitializer {
 
+  private final TezRootInputInitializerContext initializerContext;
+
+  /**
+   * Constructor an instance of the RootInputInitializer. Classes extending this one to create a
+   * RootInputInitializer, must provide the same constructor so that Tez can create an instance of
+   * the class at runtime.
+   *
+   * @param initializerContext initializer context which can be used to access the payload, vertex
+   *                           properties, etc
+   */
+  public TezRootInputInitializer(TezRootInputInitializerContext initializerContext) {
+    this.initializerContext = initializerContext;
+  }
+
   /**
    * Run the root input initializer. This is the main method where initialization takes place. If an
    * Initializer is written to accept events, a notification mechanism should be setup, with the
    * heavy lifting of processing the event being done via this method. The moment this method
    * returns a list of events, RootInputInitialization is considered to be complete.
    *
-   * @param inputVertexContext initializer context which can be used to access the payload, vertex
-   *                           properties, etc
    * @return a list of events which are eventually routed to a {@link org.apache.tez.dag.api.VertexManagerPlugin}
    * for routing
    * @throws Exception
    */
-  public abstract List<Event> initialize(TezRootInputInitializerContext inputVertexContext)
+  public abstract List<Event> initialize()
       throws Exception;
 
   /**
@@ -57,5 +69,15 @@ public abstract class TezRootInputInitializer {
    * @throws Exception
    */
   public abstract void handleInputInitializerEvent(List<RootInputInitializerEvent> events) throws Exception;
+
+  /**
+   * Return ahe {@link org.apache.tez.runtime.api.TezRootInputInitializerContext} for this specific instance of
+   * the Initializer.
+   *
+   * @return the {@link org.apache.tez.runtime.api.TezRootInputInitializerContext} for the input
+   */
+  public final TezRootInputInitializerContext getContext() {
+    return this.initializerContext;
+  }
   
 }

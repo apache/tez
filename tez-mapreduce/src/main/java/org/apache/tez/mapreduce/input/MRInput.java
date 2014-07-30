@@ -43,6 +43,7 @@ import org.apache.tez.mapreduce.lib.MRReaderMapred;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
+import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 
@@ -77,7 +78,11 @@ public class MRInput extends MRInputBase {
   
   @Private
   volatile boolean splitInfoViaEvents;
-  
+
+  public MRInput(TezInputContext inputContext, int numPhysicalInputs) {
+    super(inputContext, numPhysicalInputs);
+  }
+
   /**
    * Helper API to generate the user payload for the MRInput and
    * MRInputAMSplitGenerator (if used). The InputFormat will be invoked by Tez

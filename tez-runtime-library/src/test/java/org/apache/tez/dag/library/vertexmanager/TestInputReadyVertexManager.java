@@ -78,8 +78,8 @@ public class TestInputReadyVertexManager {
     Map<String, List<Integer>> initialCompletions = Maps.newHashMap();
     initialCompletions.put(mockSrcVertexId1, Collections.singletonList(0));
     
-    InputReadyVertexManager manager = new InputReadyVertexManager();
-    manager.initialize(mockContext);
+    InputReadyVertexManager manager = new InputReadyVertexManager(mockContext);
+    manager.initialize();
     manager.onVertexStarted(initialCompletions);
     manager.onSourceTaskCompleted(mockSrcVertexId1, 1);
     verify(mockContext, times(0)).scheduleVertexTasks(anyList());
@@ -121,8 +121,8 @@ public class TestInputReadyVertexManager {
     Map<String, List<Integer>> initialCompletions = Maps.newHashMap();
     initialCompletions.put(mockSrcVertexId1, Collections.singletonList(0));
     
-    InputReadyVertexManager manager = new InputReadyVertexManager();
-    manager.initialize(mockContext);
+    InputReadyVertexManager manager = new InputReadyVertexManager(mockContext);
+    manager.initialize();
     manager.onVertexStarted(initialCompletions);
     verify(mockContext, times(1)).scheduleVertexTasks(requestCaptor.capture());
     Assert.assertEquals(1, requestCaptor.getValue().size());
@@ -196,9 +196,9 @@ public class TestInputReadyVertexManager {
     Map<String, List<Integer>> initialCompletions = Maps.newHashMap();
     
     // 1-1 sources do not match managed tasks
-    InputReadyVertexManager manager = new InputReadyVertexManager();
     when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(4);
-    manager.initialize(mockContext);
+    InputReadyVertexManager manager = new InputReadyVertexManager(mockContext);
+    manager.initialize();
     try {
       manager.onVertexStarted(initialCompletions);
       Assert.assertTrue("Should have exception", false);
@@ -207,10 +207,10 @@ public class TestInputReadyVertexManager {
     }
     
     // 1-1 sources do not match
-    manager = new InputReadyVertexManager();
     when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(3);
     when(mockContext.getVertexNumTasks(mockSrcVertexId3)).thenReturn(4);
-    manager.initialize(mockContext);
+    manager = new InputReadyVertexManager(mockContext);
+    manager.initialize();
     try {
       manager.onVertexStarted(initialCompletions);
       Assert.assertTrue("Should have exception", false);
@@ -221,8 +221,8 @@ public class TestInputReadyVertexManager {
     initialCompletions.put(mockSrcVertexId1, Collections.singletonList(0));
     initialCompletions.put(mockSrcVertexId2, Collections.singletonList(0));
     when(mockContext.getVertexNumTasks(mockSrcVertexId3)).thenReturn(3);
-    manager = new InputReadyVertexManager();
-    manager.initialize(mockContext);
+    manager = new InputReadyVertexManager(mockContext);
+    manager.initialize();
     manager.onVertexStarted(initialCompletions);
     // all 1-1 0's done but not scheduled because v1 is not done
     manager.onSourceTaskCompleted(mockSrcVertexId3, 0);

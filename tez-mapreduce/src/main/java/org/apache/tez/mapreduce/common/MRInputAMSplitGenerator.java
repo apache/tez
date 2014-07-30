@@ -52,21 +52,21 @@ public class MRInputAMSplitGenerator extends TezRootInputInitializer {
 
   private boolean sendSerializedEvents;
   
-  private static final Log LOG = LogFactory
-      .getLog(MRInputAMSplitGenerator.class);
+  private static final Log LOG = LogFactory.getLog(MRInputAMSplitGenerator.class);
 
-  public MRInputAMSplitGenerator() {
+  public MRInputAMSplitGenerator(
+      TezRootInputInitializerContext initializerContext) {
+    super(initializerContext);
   }
 
   @Override
-  public List<Event> initialize(TezRootInputInitializerContext rootInputContext)
-      throws Exception {
+  public List<Event> initialize() throws Exception {
     Stopwatch sw = null;
     if (LOG.isDebugEnabled()) {
       sw = new Stopwatch().start();
     }
     MRInputUserPayloadProto userPayloadProto = MRHelpers
-        .parseMRInputPayload(rootInputContext.getInputUserPayload());
+        .parseMRInputPayload(getContext().getInputUserPayload());
     if (LOG.isDebugEnabled()) {
       sw.stop();
       LOG.debug("Time to parse MRInput payload into prot: "
@@ -91,15 +91,15 @@ public class MRInputAMSplitGenerator extends TezRootInputInitializer {
       sw.reset().start();
     }
 
-    int totalResource = rootInputContext.getTotalAvailableResource().getMemory();
-    int taskResource = rootInputContext.getVertexTaskResource().getMemory();
+    int totalResource = getContext().getTotalAvailableResource().getMemory();
+    int taskResource = getContext().getVertexTaskResource().getMemory();
     float waves = conf.getFloat(
         TezConfiguration.TEZ_AM_GROUPING_SPLIT_WAVES,
         TezConfiguration.TEZ_AM_GROUPING_SPLIT_WAVES_DEFAULT);
 
     int numTasks = (int)((totalResource*waves)/taskResource);
 
-    LOG.info("Input " + rootInputContext.getInputName() + " asking for " + numTasks
+    LOG.info("Input " + getContext().getInputName() + " asking for " + numTasks
         + " tasks. Headroom: " + totalResource + " Task Resource: "
         + taskResource + " waves: " + waves);
 

@@ -30,10 +30,14 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 public class OneToOneEdgeManager extends EdgeManager {
 
   List<Integer> destinationInputIndices = 
-      Collections.unmodifiableList(Collections.singletonList(0)); 
+      Collections.unmodifiableList(Collections.singletonList(0));
+
+  public OneToOneEdgeManager(EdgeManagerContext context) {
+    super(context);
+  }
 
   @Override
-  public void initialize(EdgeManagerContext edgeManagerContext) {
+  public void initialize() {
     // Nothing to do.
   }
 
