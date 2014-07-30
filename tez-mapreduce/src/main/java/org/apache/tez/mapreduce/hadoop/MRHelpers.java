@@ -935,7 +935,7 @@ public class MRHelpers {
    * Get default initialize JobConf-based configuration
    * @return Base configuration for MR-based jobs
    */
-  public static Configuration getBaseMRConfiguration() {
+  static Configuration getBaseMRConfiguration() {
     return getBaseJobConf(null);
   }
 
@@ -984,21 +984,6 @@ public class MRHelpers {
     InputDescriptor id = new InputDescriptor(MRInputLegacy.class.getName())
         .setUserPayload(userPayload);
     vertex.addDataSource("MRInput", id, initClazz);
-  }
-
-  /**
-   * Convenience method to add an MR Output to the specified vertex. The name of
-   * the Output is "MROutput" </p>
-   * 
-   * This should only be called for one vertex in a DAG
-   * 
-   * @param vertex
-   * @param userPayload
-   */
-  public static void addMROutput(Vertex vertex, byte[] userPayload) {
-    OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
-        .setUserPayload(userPayload);
-    vertex.addDataSink("MROutput", od, new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
   }
 
   @Private
@@ -1091,26 +1076,6 @@ public class MRHelpers {
         });
 
     return Lists.newArrayList(iterable);
-  }
-
-  /**
-   * Merge tokens from a configured binary file into provided Credentials object.
-   * Uses "mapreduce.job.credentials.binary" property to find location of token file.
-   * @param creds Credentials object to add new tokens to
-   * @param conf Configuration containing location of token file.
-   * 
-   * TezClient reads credentials from the property - TezJobConfig.TEZ_CREDENTIALS_PATH. This method
-   * is not required if that property is set.
-   * 
-   * @throws IOException
-   */
-  public static void mergeMRBinaryTokens(Credentials creds,
-      Configuration conf) throws IOException {
-    String tokenFilePath = conf.get(MRJobConfig.MAPREDUCE_JOB_CREDENTIALS_BINARY);
-    if (tokenFilePath == null || tokenFilePath.isEmpty()) {
-      return;
-    }
-    TokenCache.mergeBinaryTokens(creds, conf, tokenFilePath);
   }
 
 }
