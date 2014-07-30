@@ -21,6 +21,7 @@ package org.apache.tez.runtime.common.objectregistry;
 /**
  * Preliminary version of a simple shared object cache to re-use
  * objects across multiple tasks within the same container/JVM.
+ * This interface is not supposed to be implemented by users
  */
 public interface ObjectRegistry {
 

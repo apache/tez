@@ -211,7 +211,7 @@ public class TestMemoryDistributor {
   }
   
   
-  private static class MemoryUpdateCallbackForTest implements MemoryUpdateCallback {
+  private static class MemoryUpdateCallbackForTest extends MemoryUpdateCallback {
 
     long assigned = -1000;
 

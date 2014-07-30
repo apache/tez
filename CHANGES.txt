@@ -25,18 +25,17 @@ INCOMPATIBLE CHANGES
   TEZ-696. Remove implicit copying of processor payload to input and output
   TEZ-1269. TaskScheduler prematurely releases containers
   TEZ-857. Split Input/Output interfaces into user/framework components.
-  TEZ-866. Add a TezMergedInputContext for MergedInputs (bikas)
+  TEZ-866. Add a TezMergedInputContext for MergedInputs
   TEZ-1137. Move TezJobConfig to runtime-library and rename to
-  TezRuntimeConfiguration (bikas)
+  TezRuntimeConfiguration
   TEZ-1134. InputInitializer and OutputCommitter implicitly use payloads of
-  the input and output (bikas)
+  the input and output
   TEZ-1312. rename vertex.addInput/Output() to vertex.addDataSource/Sink()
-  (Chen He via bikas)
   TEZ-1311. get sharedobjectregistry from the context instead of a static
-  (bikas)"
   TEZ-1300. Change deploy mechanism for Tez to be based on a tarball which
   includes Hadoop libs.
   TEZ-1278. TezClient#waitTillReady() should not swallow interrupts
+  TEZ-1058. Replace user land interfaces with abstract classes
 
 Release 0.4.0-incubating: 2014-04-05
 

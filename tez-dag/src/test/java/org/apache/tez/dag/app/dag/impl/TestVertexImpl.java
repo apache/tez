@@ -3431,7 +3431,7 @@ public class TestVertexImpl {
   }
 
   @InterfaceAudience.Private
-  public static class EventHandlingRootInputInitializer implements TezRootInputInitializer {
+  public static class EventHandlingRootInputInitializer extends TezRootInputInitializer {
 
     final AtomicBoolean initStarted = new AtomicBoolean(false);
     final AtomicBoolean eventReceived = new AtomicBoolean(false);

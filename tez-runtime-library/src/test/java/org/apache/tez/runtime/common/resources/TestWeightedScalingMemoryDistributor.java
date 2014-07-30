@@ -145,7 +145,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
     assertEquals(1500, e4Callback.assigned);
   }
   
-  private static class MemoryUpdateCallbackForTest implements MemoryUpdateCallback {
+  private static class MemoryUpdateCallbackForTest extends MemoryUpdateCallback {
 
     long assigned = -1000;
 

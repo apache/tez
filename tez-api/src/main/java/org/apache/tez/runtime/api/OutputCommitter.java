@@ -18,12 +18,14 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.dag.api.client.VertexStatus;
 
 /**
  * OutputCommitter to "finalize" the output and make it user-visible if needed.
  * The OutputCommitter is allowed only on a terminal Output.
  */
+@InterfaceStability.Unstable
 public abstract class OutputCommitter {
 
   /**

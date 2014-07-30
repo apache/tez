@@ -20,7 +20,6 @@ package org.apache.tez.runtime.api;
 
 import java.util.List;
 
-import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
 
@@ -30,9 +29,8 @@ import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
  * vertex, determine the number of tasks at runtime, update the Input payload
  * etc.
  */
-@InterfaceAudience.Public
 @InterfaceStability.Unstable
-public interface TezRootInputInitializer {
+public abstract class TezRootInputInitializer {
 
   /**
    * Run the root input initializer. This is the main method where initialization takes place. If an
@@ -46,7 +44,7 @@ public interface TezRootInputInitializer {
    * for routing
    * @throws Exception
    */
-  List<Event> initialize(TezRootInputInitializerContext inputVertexContext)
+  public abstract List<Event> initialize(TezRootInputInitializerContext inputVertexContext)
       throws Exception;
 
   /**
@@ -58,6 +56,6 @@ public interface TezRootInputInitializer {
    * @param events list of events
    * @throws Exception
    */
-  void handleInputInitializerEvent(List<RootInputInitializerEvent> events) throws Exception;
+  public abstract void handleInputInitializerEvent(List<RootInputInitializerEvent> events) throws Exception;
   
 }

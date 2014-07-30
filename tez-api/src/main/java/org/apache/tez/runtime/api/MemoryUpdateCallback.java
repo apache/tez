@@ -22,13 +22,14 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 
 /**
  * This interface will be used by Tez to inform components about available
- * memory. This will typically be implemented by {@link Input}s, {@link Output}s
- * and potentially {@link Processor}s
+ * memory. This will typically be implemented by authors of {@link Input}s,
+ * {@link Output}s and potentially {@link Processor}s in order to request 
+ * for appropriate memory limits for the respective components.
  * 
  */
 @Unstable
-public interface MemoryUpdateCallback {
+public abstract class MemoryUpdateCallback {
 
-  public void memoryAssigned(long assignedSize);
+  public abstract void memoryAssigned(long assignedSize);
 
 }

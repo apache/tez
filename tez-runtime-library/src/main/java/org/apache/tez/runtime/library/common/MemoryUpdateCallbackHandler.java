@@ -22,7 +22,7 @@ import org.apache.tez.runtime.api.MemoryUpdateCallback;
 
 import com.google.common.base.Preconditions;
 
-public class MemoryUpdateCallbackHandler implements MemoryUpdateCallback {
+public class MemoryUpdateCallbackHandler extends MemoryUpdateCallback {
 
   private long assignedMemory;
   private boolean updated = false;

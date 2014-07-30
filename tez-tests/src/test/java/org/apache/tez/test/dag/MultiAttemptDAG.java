@@ -202,7 +202,7 @@ public class MultiAttemptDAG {
     }
   }
 
-  public static class FailingInputInitializer implements TezRootInputInitializer {
+  public static class FailingInputInitializer extends TezRootInputInitializer {
 
     @Override
     public List<Event> initialize(TezRootInputInitializerContext inputVertexContext) throws Exception {
@@ -225,11 +225,14 @@ public class MultiAttemptDAG {
     }
   }
 
-  public static class NoOpInput extends AbstractLogicalInput implements MemoryUpdateCallback {
+  public static class NoOpInput extends AbstractLogicalInput {
 
     @Override
     public List<Event> initialize() throws Exception {
-      inputContext.requestInitialMemory(1l, this);
+      inputContext.requestInitialMemory(1l, new MemoryUpdateCallback() {
+        @Override
+        public void memoryAssigned(long assignedSize) {}
+      });
       return null;
     }
 
@@ -252,18 +255,16 @@ public class MultiAttemptDAG {
     public List<Event> close() throws Exception {
       return null;
     }
-
-    @Override
-    public void memoryAssigned(long assignedSize) {
-
-    }
   }
 
-  public static class NoOpOutput extends AbstractLogicalOutput implements MemoryUpdateCallback {
+  public static class NoOpOutput extends AbstractLogicalOutput {
 
     @Override
     public List<Event> initialize() throws Exception {
-      outputContext.requestInitialMemory(1l, this);
+      outputContext.requestInitialMemory(1l, new MemoryUpdateCallback() {
+        @Override
+        public void memoryAssigned(long assignedSize) {}
+      });
       return null;
     }
 
@@ -285,10 +286,6 @@ public class MultiAttemptDAG {
     @Override
     public List<Event> close() throws Exception {
       return null;
-    }
-
-    @Override
-    public void memoryAssigned(long assignedSize) {
     }
   }
 

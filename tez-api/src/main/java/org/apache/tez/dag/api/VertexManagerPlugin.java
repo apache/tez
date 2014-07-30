@@ -21,6 +21,7 @@ package org.apache.tez.dag.api;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
@@ -30,6 +31,7 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
  * The plugin will be notified of interesting events in the vertex execution life
  * cycle and can respond to them by via the context object
  */
+@InterfaceStability.Unstable
 public abstract class VertexManagerPlugin {
   /**
    * Initialize the plugin. Called when the vertex is initializing. This happens 

@@ -21,7 +21,7 @@ package org.apache.tez.dag.api;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
@@ -32,7 +32,7 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
  * 
  * Implementations must provide a 0 argument public constructor.
  */
-@Evolving
+@InterfaceStability.Unstable
 public abstract class EdgeManager {
   
   /**

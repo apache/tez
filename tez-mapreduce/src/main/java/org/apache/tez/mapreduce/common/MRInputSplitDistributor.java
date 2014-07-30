@@ -41,7 +41,7 @@ import org.apache.tez.runtime.api.events.RootInputUpdatePayloadEvent;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
-public class MRInputSplitDistributor implements TezRootInputInitializer {
+public class MRInputSplitDistributor extends TezRootInputInitializer {
 
   private static final Log LOG = LogFactory.getLog(MRInputSplitDistributor.class);
   

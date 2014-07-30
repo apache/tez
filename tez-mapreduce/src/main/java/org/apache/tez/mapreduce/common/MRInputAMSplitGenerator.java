@@ -48,7 +48,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
 
-public class MRInputAMSplitGenerator implements TezRootInputInitializer {
+public class MRInputAMSplitGenerator extends TezRootInputInitializer {
 
   private boolean sendSerializedEvents;
   
