@@ -51,7 +51,7 @@ public class AMStartedEvent implements HistoryEvent {
 
   @Override
   public boolean isRecoveryEvent() {
-    return true;
+    return false;
   }
 
   @Override
