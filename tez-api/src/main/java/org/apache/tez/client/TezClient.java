@@ -596,9 +596,9 @@ public class TezClient {
   
   // for testing
   protected FrameworkClient createFrameworkClient() {
-    return FrameworkClient.createFrameworkClient();
+    return FrameworkClient.createFrameworkClient(amConfig.getTezConfiguration());
   }
-  
+
   // for testing
   protected DAGClientAMProtocolBlockingPB getSessionAMProxy(ApplicationId appId) 
       throws TezException, IOException {

@@ -18,6 +18,7 @@
 package org.apache.tez.common;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -35,7 +36,6 @@ import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -61,7 +61,7 @@ public class TezUtils {
     FileInputStream confPBBinaryStream = null;
     ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
     try {
-      confPBBinaryStream = new FileInputStream(TezConfiguration.TEZ_PB_BINARY_CONF_NAME);
+      confPBBinaryStream = new FileInputStream(new File(TezConfiguration.TEZ_PB_BINARY_CONF_NAME).getAbsolutePath());
       confProtoBuilder.mergeFrom(confPBBinaryStream);
     } finally {
       if (confPBBinaryStream != null) {

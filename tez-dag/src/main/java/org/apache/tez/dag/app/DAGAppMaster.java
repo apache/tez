@@ -403,7 +403,7 @@ public class DAGAppMaster extends AbstractService {
       FileInputStream sessionResourcesStream = null;
       try {
         sessionResourcesStream = new FileInputStream(
-          TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME);
+          new File(TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME).getAbsolutePath());
         PlanLocalResourcesProto sessionLocalResourcesProto =
           PlanLocalResourcesProto.parseDelimitedFrom(sessionResourcesStream);
         PlanLocalResourcesProto amLocalResourceProto = PlanLocalResourcesProto
@@ -857,6 +857,10 @@ public class DAGAppMaster extends AbstractService {
 
   public int getAppNMHttpPort() {
     return nmHttpPort;
+  }
+
+  public int getRpcPort() {
+    return clientRpcServer.getBindAddress().getPort();
   }
 
   public DAGAppMasterState getState() {
@@ -1696,16 +1700,9 @@ public class DAGAppMaster extends AbstractService {
 
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
 
-      final Configuration conf = new Configuration(new YarnConfiguration());
-      TezUtils.addUserSpecifiedTezConfiguration(conf);
 
       String jobUserName = System
           .getenv(ApplicationConstants.Environment.USER.name());
-
-      // Do not automatically close FileSystem objects so that in case of
-      // SIGTERM I have a chance to write out the job history. I'll be closing
-      // the objects myself.
-      conf.setBoolean("fs.automatic.close", false);
 
       // Command line options
       Options opts = new Options();
@@ -1722,9 +1719,7 @@ public class DAGAppMaster extends AbstractService {
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 
-      Limits.setConfiguration(conf);
-      initAndStartAppMaster(appMaster, conf,
-          jobUserName);
+      initAndStartAppMaster(appMaster, jobUserName);
 
     } catch (Throwable t) {
       LOG.fatal("Error starting DAGAppMaster", t);
@@ -1775,8 +1770,8 @@ public class DAGAppMaster extends AbstractService {
       DAGPlan dagPlan = null;
 
       // Read the protobuf DAG
-      dagPBBinaryStream = new FileInputStream(
-          TezConfiguration.TEZ_PB_PLAN_BINARY_NAME);
+      dagPBBinaryStream = new FileInputStream(new File(
+          TezConfiguration.TEZ_PB_PLAN_BINARY_NAME).getAbsolutePath());
       dagPlan = DAGPlan.parseFrom(dagPBBinaryStream);
 
       startDAG(dagPlan, null);
@@ -1868,9 +1863,19 @@ public class DAGAppMaster extends AbstractService {
   }
 
   // TODO XXX Does this really need to be a YarnConfiguration ?
-  protected static void initAndStartAppMaster(final DAGAppMaster appMaster,
-      final Configuration conf, String jobUserName) throws IOException,
+  public static void initAndStartAppMaster(final DAGAppMaster appMaster,
+      String jobUserName) throws IOException,
       InterruptedException {
+
+    final Configuration conf = new Configuration(new YarnConfiguration());
+    TezUtils.addUserSpecifiedTezConfiguration(conf);
+
+    // Do not automatically close FileSystem objects so that in case of
+    // SIGTERM I have a chance to write out the job history. I'll be closing
+    // the objects myself.
+    conf.setBoolean("fs.automatic.close", false);
+    Limits.setConfiguration(conf);
+
     UserGroupInformation.setConfiguration(conf);
     Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
 

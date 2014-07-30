@@ -27,10 +27,23 @@ import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.dag.api.TezConfiguration;
 
 public abstract class FrameworkClient {
 
-  public static FrameworkClient createFrameworkClient() {
+  private static FrameworkClient localClient = null;
+
+  public static FrameworkClient createFrameworkClient(TezConfiguration tezConf) {
+
+    boolean isLocal = tezConf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
+    if (isLocal) {
+      // Cache local client instance
+      if (localClient == null) {
+        localClient = ReflectionUtils.createClazzInstance("org.apache.tez.client.LocalClient");
+      }
+      return localClient;
+    }
     return new TezYarnClient(YarnClient.createYarnClient());
   }
 
