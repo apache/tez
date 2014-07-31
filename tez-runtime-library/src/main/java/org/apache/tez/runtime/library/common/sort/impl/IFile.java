@@ -66,6 +66,12 @@ public class IFile {
   public static final byte[] HEADER = new byte[] { (byte) 'T', (byte) 'I',
     (byte) 'F' , (byte) 0};
 
+  private static final String WRONG_KEY_CLASS = "wrong key class: %s is not %s";
+  private static final String WRONG_VALUE_CLASS = "wrong value class: %s is not %s";
+  private static final String NEGATIVE_KEY_LEN = "Negative key-length not allowed: %d for %s";
+  private static final String NEGATIVE_VAL_LEN = "Negative value-length not allowed: %d for %s";
+  private static final String INCOMPLETE_READ = "Requested to read %d got %d";
+
   /**
    * <code>IFile.Writer</code> to write out intermediate map-outputs.
    */
@@ -254,18 +260,17 @@ public class IFile {
      * @throws IOException
      */
     public void append(Object key, Object value) throws IOException {
-      checkArgument((key == REPEAT_KEY || key.getClass() == keyClass),
-          "wrong key class: " + key.getClass() + " is not " + keyClass);
-      checkArgument((value.getClass() == valueClass),
-        "wrong value class: %s is not %s", value.getClass(), valueClass);
+      checkArgument((key == REPEAT_KEY || key.getClass() == keyClass), WRONG_KEY_CLASS,
+          key.getClass(), keyClass);
+      checkArgument((value.getClass() == valueClass), WRONG_VALUE_CLASS, value.getClass(),
+          valueClass);
 
       int keyLength = 0;
       boolean sameKey = (key == REPEAT_KEY);
       if (!sameKey) {
         keySerializer.serialize(key);
         keyLength = buffer.getLength();
-        checkState(keyLength >= 0, "Negative key-length not allowed: "
-            + keyLength + " for " + key);
+        checkState(keyLength >= 0, NEGATIVE_KEY_LEN, keyLength, key);
         if (rle && (keyLength == previous.getLength())) {
           sameKey = (BufferUtils.compare(previous, buffer) == 0);
         }
@@ -274,8 +279,7 @@ public class IFile {
       // Append the 'value'
       valueSerializer.serialize(value);
       int valueLength = buffer.getLength() - keyLength;
-      checkState(valueLength >= 0,
-        "Negative value-length not allowed: %d for %s", valueLength, value);
+      checkState(valueLength >= 0, NEGATIVE_VAL_LEN, valueLength, value);
       if (!sameKey) {
         //dump entire key value pair
         writeKVPair(buffer.getData(), 0, keyLength, buffer.getData(),
@@ -304,8 +308,7 @@ public class IFile {
     public void appendValue(Object value) throws IOException {
       valueSerializer.serialize(value);
       int valueLength = buffer.getLength();
-      checkState(valueLength >= 0,
-          "Negative value-length not allowed: %d for %s", valueLength, value);
+      checkState(valueLength >= 0, NEGATIVE_VAL_LEN, valueLength, value);
       writeValue(buffer.getData(), 0, valueLength);
       buffer.reset();
       ++numRecordsWritten;
@@ -321,8 +324,7 @@ public class IFile {
      */
     public void appendValue(DataInputBuffer value) throws IOException {
       int valueLength = value.getLength() - value.getPosition();
-      checkState(valueLength >= 0,
-          "Negative value-length not allowed: %d for %s", valueLength, value);
+      checkState(valueLength >= 0, NEGATIVE_VAL_LEN, valueLength, value);
       writeValue(value.getData(), value.getPosition(), valueLength);
       buffer.reset();
       ++numRecordsWritten;
@@ -372,12 +374,10 @@ public class IFile {
      */
     public void append(DataInputBuffer key, DataInputBuffer value) throws IOException {
       int keyLength = key.getLength() - key.getPosition();
-      checkState((key == REPEAT_KEY || keyLength >= 0),
-        "Negative key-length not allowed: %d for %s", keyLength, key);
+      checkState((key == REPEAT_KEY || keyLength >= 0), NEGATIVE_KEY_LEN, keyLength, key);
 
       int valueLength = value.getLength() - value.getPosition();
-      checkState(valueLength >= 0,
-        "Negative value-length not allowed: %d for %s", valueLength, value);
+      checkState(valueLength >= 0, NEGATIVE_VAL_LEN, valueLength, value);
 
       boolean sameKey = (key == REPEAT_KEY);
       if (!sameKey && rle) {
@@ -743,8 +743,7 @@ public class IFile {
         keyBytes = new byte[currentKeyLength << 1];
       }
       int i = readData(keyBytes, 0, currentKeyLength);
-      checkState((i == currentKeyLength), "Asked for %d got %",
-        currentKeyLength, i);
+      checkState((i == currentKeyLength), INCOMPLETE_READ, currentKeyLength, i);
       key.reset(keyBytes, currentKeyLength);
       bytesRead += currentKeyLength;
       return KeyState.NEW_KEY;
@@ -756,8 +755,7 @@ public class IFile {
         ? new byte[currentValueLength << 1]
         : value.getData();
       int i = readData(valBytes, 0, currentValueLength);
-      checkState((i == currentValueLength), "Asked for %d got %d",
-        currentValueLength, i);
+      checkState((i == currentValueLength), INCOMPLETE_READ, currentValueLength, i);
       value.reset(valBytes, currentValueLength);
 
       // Record the bytes read
