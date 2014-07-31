@@ -329,6 +329,8 @@ public class TaskReporter {
           task.getProgress()), updateEventMetadata);
       if (diagnostics == null) {
         diagnostics = StringUtils.stringifyException(t);
+      } else {
+        diagnostics = diagnostics + ":" + StringUtils.stringifyException(t);
       }
       TezEvent taskAttemptFailedEvent = new TezEvent(new TaskAttemptFailedEvent(diagnostics),
           srcMeta == null ? updateEventMetadata : srcMeta);
