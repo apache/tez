@@ -180,7 +180,7 @@ public class IntersectValidate extends Configured implements Tool {
           LOG.info("Validate failed. The two sides are not equivalent");
           return -3;
         } else {
-          LOG.info("Vlidation successful. The two sides are equivalent");
+          LOG.info("Validation successful. The two sides are equivalent");
           return 0;
         }
       }

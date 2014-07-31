@@ -25,12 +25,15 @@ import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -42,6 +45,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.client.TezClient;
@@ -60,6 +65,7 @@ import org.apache.tez.mapreduce.examples.ExampleDriver;
 import org.apache.tez.mapreduce.examples.IntersectDataGen;
 import org.apache.tez.mapreduce.examples.IntersectExample;
 import org.apache.tez.mapreduce.examples.IntersectValidate;
+import org.apache.tez.mapreduce.examples.OrderedWordCount;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
 import org.junit.AfterClass;
@@ -256,7 +262,7 @@ public class TestTezJobs {
     assertEquals(1, statuses.length);
     FSDataInputStream inStream = remoteFs.open(statuses[0].getPath());
     BufferedReader reader = new BufferedReader(new InputStreamReader(inStream));
-    String line = null;
+    String line;
     while ((line = reader.readLine()) != null) {
       assertTrue(expectedResult.remove(line));
     }
@@ -403,5 +409,152 @@ public class TestTezJobs {
     Assert.assertTrue(historyLogFileStatus.getLen() > 0);
     tezSession.stop();
   }
+
+  private void generateOrderedWordCountInput(Path inputDir) throws IOException {
+    Path dataPath1 = new Path(inputDir, "inPath1");
+    Path dataPath2 = new Path(inputDir, "inPath2");
+
+    FSDataOutputStream f1 = null;
+    FSDataOutputStream f2 = null;
+    try {
+      f1 = remoteFs.create(dataPath1);
+      f2 = remoteFs.create(dataPath2);
+
+      final String prefix = "a";
+      for (int i = 1; i <= 10; ++i) {
+        final String word = prefix + "_" + i;
+        for (int j = 10; j >= i; --j) {
+          LOG.info("Writing " + word + " to input files");
+          f1.write(word.getBytes());
+          f1.writeChars("\t");
+          f2.write(word.getBytes());
+          f2.writeChars("\t");
+        }
+      }
+      f1.hsync();
+      f2.hsync();
+    } finally {
+      if (f1 != null) {
+        f1.close();
+      }
+      if (f2 != null) {
+        f2.close();
+      }
+    }
+  }
+
+  private void verifyOrderedWordCountOutput(Path resultFile) throws IOException {
+    FSDataInputStream inputStream = remoteFs.open(resultFile);
+    final String prefix = "a";
+    int currentCounter = 10;
+
+    byte[] buffer = new byte[4096];
+    int bytesRead = inputStream.read(buffer, 0, 4096);
+
+    BufferedReader reader =
+        new BufferedReader(new InputStreamReader(new ByteArrayInputStream(buffer, 0, bytesRead)));
+
+    String line;
+    while ((line = reader.readLine()) != null) {
+      LOG.info("Line: " + line + ", counter=" + currentCounter);
+      int pos = line.indexOf("\t");
+      String word = line.substring(0, pos-1);
+      Assert.assertEquals(prefix + "_" + currentCounter, word);
+      String val = line.substring(pos+1, line.length());
+      Assert.assertEquals((long)(11 - currentCounter) * 2, (long)Long.valueOf(val));
+      currentCounter--;
+    }
+
+    Assert.assertEquals(0, currentCounter);
+  }
+
+  @Test(timeout = 60000)
+  public void testOrderedWordCount() throws Exception {
+    String inputDirStr = "/tmp/owc-input/";
+    Path inputDir = new Path(inputDirStr);
+    Path stagingDirPath = new Path("/tmp/owc-staging-dir");
+    remoteFs.mkdirs(inputDir);
+    remoteFs.mkdirs(stagingDirPath);
+    generateOrderedWordCountInput(inputDir);
+
+    String outputDirStr = "/tmp/owc-output/";
+    Path outputDir = new Path(outputDirStr);
+
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    Path simpleLogPath = new Path("/tmp/owc-logging/");
+    remoteFs.mkdirs(simpleLogPath);
+    simpleLogPath = remoteFs.resolvePath(simpleLogPath);
+    tezConf.set(TezConfiguration.TEZ_SIMPLE_HISTORY_LOGGING_DIR, simpleLogPath.toString());
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+    TezClient tezSession = null;
+
+    try {
+      tezSession = new TezClient("OrderedWordCountSession", tezConf);
+      tezSession.start();
+      tezSession.waitTillReady();
+
+      Map<String, LocalResource> localResourceMap = new TreeMap<String, LocalResource>();
+
+      OrderedWordCount orderedWordCount = new OrderedWordCount();
+      DAG dag = orderedWordCount.createDAG(remoteFs, tezConf, localResourceMap, stagingDirPath,
+          1, inputDirStr, outputDirStr, false);
+
+      DAGClient dagClient = tezSession.submitDAG(dag);
+      DAGStatus dagStatus = dagClient.getDAGStatus(null);
+      while (!dagStatus.isCompleted()) {
+        LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
+            + dagStatus.getState());
+        Thread.sleep(500l);
+        dagStatus = dagClient.getDAGStatus(null);
+      }
+      dagStatus = dagClient.getDAGStatus(Sets.newHashSet(StatusGetOpts.GET_COUNTERS));
+
+      assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+      assertTrue(remoteFs.exists(outputDir));
+      if (tezSession != null) {
+        tezSession.stop();
+        tezSession = null;
+      }
+
+      FileStatus[] fileStatuses = remoteFs.listStatus(outputDir);
+      Path resultFile = null;
+      boolean foundResult = false;
+      boolean foundSuccessFile = false;
+      for (FileStatus fileStatus : fileStatuses) {
+        if (!fileStatus.isFile()) {
+          continue;
+        }
+        if (fileStatus.getPath().getName().equals("_SUCCESS")) {
+          foundSuccessFile = true;
+          continue;
+        }
+        if (fileStatus.getPath().getName().startsWith("part-")) {
+          if (foundResult) {
+            fail("Found 2 part files instead of 1"
+                + ", paths=" + resultFile + "," + fileStatus.getPath());
+          }
+          foundResult = true;
+          resultFile = fileStatus.getPath();
+          LOG.info("Found output at " + resultFile);
+        }
+      }
+      assertTrue(foundResult);
+      assertTrue(resultFile != null);
+      assertTrue(foundSuccessFile);
+      verifyOrderedWordCountOutput(resultFile);
+
+      // check simple history log exists
+      FileStatus[] fileStatuses1 = remoteFs.listStatus(simpleLogPath);
+      Assert.assertEquals(1, fileStatuses1.length);
+      Assert.assertTrue(fileStatuses1[0].getPath().getName().startsWith(
+          SimpleHistoryLoggingService.LOG_FILE_NAME_PREFIX));
+    } finally {
+      if (tezSession != null) {
+        tezSession.stop();
+      }
+    }
+
+  }
+
 
 }

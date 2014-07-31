@@ -76,9 +76,12 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.runtime.api.TezRootInputInitializer;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * An MRR job built on top of word count to return words sorted by
@@ -144,8 +147,9 @@ public class OrderedWordCount extends Configured implements Tool {
   }
 
   private Credentials credentials = new Credentials();
-  
-  private DAG createDAG(FileSystem fs, Configuration conf,
+
+  @VisibleForTesting
+  public DAG createDAG(FileSystem fs, Configuration conf,
       Map<String, LocalResource> commonLocalResources, Path stagingDir,
       int dagIndex, String inputPath, String outputPath,
       boolean generateSplitsInClient) throws Exception {
@@ -172,15 +176,14 @@ public class OrderedWordCount extends Configured implements Tool {
     MRHelpers.translateVertexConfToTez(mapStageConf);
 
     Configuration iReduceStageConf = new JobConf(conf);
-    iReduceStageConf.setInt(MRJobConfig.NUM_REDUCES, 2); // TODO NEWTEZ - NOT NEEDED NOW???
+    // TODO replace with auto-reduce parallelism
+    iReduceStageConf.setInt(MRJobConfig.NUM_REDUCES, 2);
     iReduceStageConf.set(MRJobConfig.REDUCE_CLASS_ATTR,
         IntSumReducer.class.getName());
-    iReduceStageConf.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,
+    iReduceStageConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
+    iReduceStageConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS,
         IntWritable.class.getName());
-    iReduceStageConf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
-        Text.class.getName());
     iReduceStageConf.setBoolean("mapred.mapper.new-api", true);
-
     MRHelpers.translateVertexConfToTez(iReduceStageConf);
 
     Configuration finalReduceConf = new JobConf(conf);
@@ -191,7 +194,8 @@ public class OrderedWordCount extends Configured implements Tool {
         TextOutputFormat.class.getName());
     finalReduceConf.set(FileOutputFormat.OUTDIR, outputPath);
     finalReduceConf.setBoolean("mapred.mapper.new-api", true);
-
+    finalReduceConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, IntWritable.class.getName());
+    finalReduceConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, Text.class.getName());
     MRHelpers.translateVertexConfToTez(finalReduceConf);
 
     MRHelpers.doJobClientMagic(mapStageConf);
@@ -255,18 +259,25 @@ public class OrderedWordCount extends Configured implements Tool {
     MRHelpers.addMROutputLegacy(finalReduceVertex, finalReducePayload);
     vertices.add(finalReduceVertex);
 
-    OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder(IntWritable.class.getName(), Text.class.getName(),
-            HashPartitioner.class.getName(), null).configureInput().useLegacyInput().done().build();
-
     DAG dag = new DAG("OrderedWordCount" + dagIndex);
     for (int i = 0; i < vertices.size(); ++i) {
       dag.addVertex(vertices.get(i));
-      if (i != 0) {
-        dag.addEdge(
-            new Edge(vertices.get(i - 1), vertices.get(i), edgeConf.createDefaultEdgeProperty()));
-      }
     }
+
+    OrderedPartitionedKVEdgeConfigurer edgeConf1 = OrderedPartitionedKVEdgeConfigurer
+        .newBuilder(Text.class.getName(), IntWritable.class.getName(),
+            HashPartitioner.class.getName(), null).configureInput().useLegacyInput().done().build();
+    dag.addEdge(
+        new Edge(dag.getVertex("initialmap"), dag.getVertex("intermediate_reducer"),
+            edgeConf1.createDefaultEdgeProperty()));
+
+    OrderedPartitionedKVEdgeConfigurer edgeConf2 = OrderedPartitionedKVEdgeConfigurer
+        .newBuilder(IntWritable.class.getName(), Text.class.getName(),
+            HashPartitioner.class.getName(), null).configureInput().useLegacyInput().done().build();
+    dag.addEdge(
+        new Edge(dag.getVertex("intermediate_reducer"), dag.getVertex("finalreduce"),
+            edgeConf2.createDefaultEdgeProperty()));
+
     return dag;
   }
 
