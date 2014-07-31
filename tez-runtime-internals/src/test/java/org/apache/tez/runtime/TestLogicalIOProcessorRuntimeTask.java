@@ -43,6 +43,7 @@ import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
@@ -141,7 +142,8 @@ public class TestLogicalIOProcessorRuntimeTask {
 
     public static volatile int runCount = 0;
 
-    public TestProcessor() {
+    public TestProcessor(TezProcessorContext context) {
+      super(context);
     }
 
     @Override

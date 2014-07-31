@@ -32,8 +32,8 @@ import org.apache.tez.mapreduce.examples.FilterLinesByWord.TextLongPair;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
+import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
@@ -41,21 +41,23 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
-public class FilterByWordInputProcessor implements LogicalIOProcessor {
+public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
 
   private static final Log LOG = LogFactory.getLog(FilterByWordInputProcessor.class);
 
   private String filterWord;
 
-  public FilterByWordInputProcessor() {
+  public FilterByWordInputProcessor(TezProcessorContext context) {
+    super(context);
   }
 
+
   @Override
-  public void initialize(TezProcessorContext processorContext) throws Exception {
-    Configuration conf = TezUtils.createConfFromUserPayload(processorContext.getUserPayload());
+  public void initialize() throws Exception {
+    Configuration conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
     filterWord = conf.get(FilterLinesByWord.FILTER_PARAM_NAME);
     if (filterWord == null) {
-      processorContext.fatalError(null, "No filter word specified");
+      getContext().fatalError(null, "No filter word specified");
     }
   }
 

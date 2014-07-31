@@ -42,7 +42,6 @@ import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
-import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
@@ -55,22 +54,22 @@ import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class ReduceProcessor extends MRTask implements LogicalIOProcessor {
+public class ReduceProcessor extends MRTask {
 
   private static final Log LOG = LogFactory.getLog(ReduceProcessor.class);
 
   private Counter reduceInputKeyCounter;
   private Counter reduceInputValueCounter;
 
-  public ReduceProcessor() {
-    super(false);
+  public ReduceProcessor(TezProcessorContext processorContext) {
+    super(processorContext, false);
   }
 
   @Override
-  public void initialize(TezProcessorContext processorContext)
+  public void initialize()
       throws IOException {
     try {
-      super.initialize(processorContext);
+      super.initialize();
     } catch (InterruptedException e) {
       throw new IOException(e);
     }

@@ -39,6 +39,7 @@ INCOMPATIBLE CHANGES
   TEZ-1303. Change Inputs, Outputs, InputInitializer, OutputCommitter, VertexManagerPlugin, EdgeManager
   to require constructors for creation, and remove the initialize methods.
   TEZ-1133. Remove some unused methods from MRHelpers.
+  TEZ-1346. Change Processor to require context constructors for creation, and remove the requirement of the initialize method requiring the context.
 
 Release 0.4.0-incubating: 2014-04-05
 

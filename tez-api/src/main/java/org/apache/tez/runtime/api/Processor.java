@@ -29,12 +29,10 @@ public interface Processor {
   /**
    * Initializes the <code>Processor</code>
    *
-   * @param processorContext
-   * @throws java.io.IOException
+   * @throws java.lang.Exception
    *           if an error occurs
    */
-  public void initialize(TezProcessorContext processorContext)
-      throws Exception;
+  public void initialize() throws Exception;
 
   /**
    * Handles user and system generated {@link Event}s.

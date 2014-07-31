@@ -56,6 +56,7 @@ import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
+import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
 import com.google.common.base.Preconditions;
@@ -235,6 +236,10 @@ public class IntersectDataGen extends Configured implements Tool {
     long streamOutputFileSize;
     long hashOutputFileSize;
     float overlapApprox = 0.2f;
+
+    public GenDataProcessor(TezProcessorContext context) {
+      super(context);
+    }
 
     public static byte[] createConfiguration(long streamOutputFileSize, long hashOutputFileSize)
         throws IOException {

@@ -76,6 +76,7 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.hadoop.mapreduce.JobContextImpl;
 import org.apache.tez.mapreduce.output.MROutputLegacy;
+import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
@@ -83,7 +84,7 @@ import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
 @SuppressWarnings("deprecation")
-public abstract class MRTask {
+public abstract class MRTask extends AbstractLogicalIOProcessor {
 
   static final Log LOG = LogFactory.getLog(MRTask.class);
 
@@ -118,27 +119,29 @@ public abstract class MRTask {
   protected MRTaskReporter mrReporter;
   protected boolean useNewApi;
 
-  public MRTask(boolean isMap) {
+  public MRTask(TezProcessorContext processorContext, boolean isMap) {
+    super(processorContext);
     this.isMap = isMap;
   }
 
   // TODO how to update progress
-  public void initialize(TezProcessorContext context) throws IOException,
+  @Override
+  public void initialize() throws IOException,
   InterruptedException {
 
     DeprecatedKeys.init();
 
-    processorContext = context;
-    counters = context.getCounters();
+    processorContext = getContext();
+    counters = processorContext.getCounters();
     this.taskAttemptId = new TaskAttemptID(
         new TaskID(
-            Long.toString(context.getApplicationId().getClusterTimestamp()),
-            context.getApplicationId().getId(),
+            Long.toString(processorContext.getApplicationId().getClusterTimestamp()),
+            processorContext.getApplicationId().getId(),
             (isMap ? TaskType.MAP : TaskType.REDUCE),
-            context.getTaskIndex()),
-          context.getTaskAttemptNumber());
+            processorContext.getTaskIndex()),
+        processorContext.getTaskAttemptNumber());
 
-    byte[] userPayload = context.getUserPayload();
+    byte[] userPayload = processorContext.getUserPayload();
     Configuration conf = TezUtils.createConfFromUserPayload(userPayload);
     if (conf instanceof JobConf) {
       this.jobConf = (JobConf)conf;
@@ -150,7 +153,7 @@ public abstract class MRTask {
     jobConf.set(MRJobConfig.TASK_ATTEMPT_ID,
       taskAttemptId.toString());
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
-        context.getDAGAttemptNumber());
+        processorContext.getDAGAttemptNumber());
 
     LOG.info("MRTask.inited: taskAttemptId = " + taskAttemptId.toString());
 

@@ -105,7 +105,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private ConcurrentHashMap<String, MergedLogicalInput> groupInputsMap;
 
   private final ProcessorDescriptor processorDescriptor;
-  private final LogicalIOProcessor processor;
+  private LogicalIOProcessor processor;
   private TezProcessorContext processorContext;
 
   private final MemoryDistributor initialMemoryDistributor;
@@ -154,7 +154,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.runOutputMap = new LinkedHashMap<String, LogicalOutput>();
 
     this.processorDescriptor = taskSpec.getProcessorDescriptor();
-    this.processor = createProcessor(processorDescriptor);
     this.serviceConsumerMetadata = serviceConsumerMetadata;
     this.eventsToBeProcessed = new LinkedBlockingQueue<TezEvent>();
     this.state = State.NEW;
@@ -181,6 +180,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     LOG.info("Initializing LogicalProcessorIORuntimeTask");
     Preconditions.checkState(this.state == State.NEW, "Already initialized");
     this.state = State.INITED;
+
+    LOG.info("Creating processor" + ", processorClassName=" + processorDescriptor.getClassName());
+    this.processorContext = createProcessorContext();
+    this.processor = createProcessor(processorDescriptor.getClassName(), processorContext);
 
     int numTasks = 0;
 
@@ -466,9 +469,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private void initializeLogicalIOProcessor() throws Exception {
     LOG.info("Initializing processor" + ", processorClassName="
         + processorDescriptor.getClassName());
-    TezProcessorContext processorContext = createProcessorContext();
-    this.processorContext = processorContext;
-    processor.initialize(processorContext);
+    processor.initialize();
     LOG.info("Initialized processor" + ", processorClassName="
         + processorDescriptor.getClassName());
   }
@@ -553,9 +554,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private LogicalIOProcessor createProcessor(
-      ProcessorDescriptor processorDescriptor) {
-    Processor processor = ReflectionUtils.createClazzInstance(processorDescriptor
-        .getClassName());
+      String processorClassName, TezProcessorContext processorContext) {
+    Processor processor = ReflectionUtils.createClazzInstance(processorClassName,
+        new Class[]{TezProcessorContext.class}, new Object[]{processorContext});
     if (!(processor instanceof LogicalIOProcessor)) {
       throw new TezUncheckedException(processor.getClass().getName()
           + " is not a sub-type of LogicalIOProcessor."

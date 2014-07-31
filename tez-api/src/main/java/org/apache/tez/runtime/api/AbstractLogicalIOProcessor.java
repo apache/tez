@@ -28,17 +28,24 @@ import org.apache.hadoop.classification.InterfaceStability;
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public abstract class AbstractLogicalIOProcessor implements LogicalIOProcessor {
-  protected TezProcessorContext context;
+  private final TezProcessorContext context;
 
-  @Override
-  public void initialize(TezProcessorContext processorContext) throws Exception {
-    this.context = processorContext;
-    initialize();
+  /**
+   * Constructor an instance of the LogicalProcessor. Classes extending this one to create a
+   * LogicalProcessor, must provide the same constructor so that Tez can create an instance of the
+   * class at runtime.
+   *
+   * @param context the {@link org.apache.tez.runtime.api.TezProcessorContext} which provides
+   *                the Processor with context information within the running task.
+   */
+  public AbstractLogicalIOProcessor(TezProcessorContext context) {
+    this.context = context;
   }
 
+  @Override
   public abstract void initialize() throws Exception;
 
-  public TezProcessorContext getContext() {
+  public final TezProcessorContext getContext() {
     return context;
   }
 

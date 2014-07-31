@@ -61,7 +61,7 @@ public abstract class MergedLogicalInput implements LogicalInput {
     return inputs;
   }
   
-  public TezMergedInputContext getContext() {
+  public final TezMergedInputContext getContext() {
     return context;
   }
   

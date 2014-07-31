@@ -46,6 +46,7 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
 import org.apache.tez.runtime.library.api.KeyValueReader;
@@ -59,6 +60,10 @@ import com.google.common.base.Preconditions;
 public class BroadcastAndOneToOneExample extends Configured implements Tool {
   public static class InputProcessor extends SimpleProcessor {
     Text word = new Text();
+
+    public InputProcessor(TezProcessorContext context) {
+      super(context);
+    }
 
     @Override
     public void run() throws Exception {
@@ -81,6 +86,10 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
 
   public static class OneToOneProcessor extends SimpleProcessor {
     Text word = new Text();
+
+    public OneToOneProcessor(TezProcessorContext context) {
+      super(context);
+    }
 
     @Override
     public void run() throws Exception {

@@ -24,13 +24,18 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import com.google.common.collect.Lists;
 
 public abstract class SimpleMRProcessor extends SimpleProcessor {
   private static final Log LOG = LogFactory.getLog(SimpleMRProcessor.class);
-  
+
+  public SimpleMRProcessor(TezProcessorContext context) {
+    super(context);
+  }
+
   @Override
   protected void postOp() throws Exception {
     if (getOutputs() == null) {

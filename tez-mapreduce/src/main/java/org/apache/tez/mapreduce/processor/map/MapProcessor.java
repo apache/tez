@@ -53,19 +53,19 @@ import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class MapProcessor extends MRTask implements LogicalIOProcessor {
+public class MapProcessor extends MRTask {
 
   private static final Log LOG = LogFactory.getLog(MapProcessor.class);
 
-  public MapProcessor(){
-    super(true);
+  public MapProcessor(TezProcessorContext processorContext) {
+    super(processorContext, true);
   }
 
   @Override
-  public void initialize(TezProcessorContext processorContext)
+  public void initialize()
       throws IOException {
     try {
-      super.initialize(processorContext);
+      super.initialize();
     } catch (InterruptedException e) {
       throw new IOException(e);
     }

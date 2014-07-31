@@ -408,7 +408,7 @@ public class TezMerger {
     };
 
     public MergeQueue(Configuration conf, FileSystem fs, 
-                      Path[] inputs, boolean deleteInputs, 
+                      Path[] inputs, boolean deleteInputs,
                       CompressionCodec codec, boolean ifileReadAhead,
                       int ifileReadAheadLength, int ifileBufferSize,
                       boolean considerFinalMergeForProgress,

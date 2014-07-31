@@ -59,6 +59,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.impl.InputSpec;
@@ -354,6 +355,10 @@ public class TestTaskExecution {
     private boolean signalFatalAndThrow = false;
     private boolean signalFatalAndLoop = false;
     private boolean signalFatalAndComplete = false;
+
+    public TestProcessor(TezProcessorContext context) {
+      super(context);
+    }
 
     @Override
     public void initialize() throws Exception {

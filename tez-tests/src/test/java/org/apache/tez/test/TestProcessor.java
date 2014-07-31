@@ -27,6 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -44,12 +45,11 @@ import com.google.common.collect.Sets;
  * fail. It fails and exits if configured to do so. If not, then it calls
  * doRead() on all inputs to let them fail.
  */
-public class TestProcessor implements LogicalIOProcessor {
+public class TestProcessor extends AbstractLogicalIOProcessor {
   private static final Log LOG = LogFactory
       .getLog(TestProcessor.class);
   
   Configuration conf;
-  TezTaskContext processorContext;
   
   boolean doFail = false;
   long sleepMs;
@@ -88,7 +88,19 @@ public class TestProcessor implements LogicalIOProcessor {
   
   public static String TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX =
       "tez.failing-processor.verify-task-index";
-  
+
+  /**
+   * Constructor an instance of the LogicalProcessor. Classes extending this one to create a
+   * LogicalProcessor, must provide the same constructor so that Tez can create an instance of the
+   * class at runtime.
+   *
+   * @param context the {@link org.apache.tez.runtime.api.TezProcessorContext} which provides
+   *                the Processor with context information within the running task.
+   */
+  public TestProcessor(TezProcessorContext context) {
+    super(context);
+  }
+
   public static ProcessorDescriptor getProcDesc(byte[] payload) {
     return new ProcessorDescriptor(TestProcessor.class.getName()).
         setUserPayload(payload);
@@ -96,7 +108,7 @@ public class TestProcessor implements LogicalIOProcessor {
 
   void throwException(String msg) {
     RuntimeException e = new RuntimeException(msg);
-    processorContext.fatalError(e , msg);
+    getContext().fatalError(e , msg);
     throw e;
   }
 
@@ -110,15 +122,13 @@ public class TestProcessor implements LogicalIOProcessor {
   }
   
   @Override
-  public void initialize(TezProcessorContext processorContext) throws Exception {
-    this.processorContext = processorContext;
-    if (processorContext.getUserPayload() != null) {
-      String vName = processorContext.getTaskVertexName();
-      conf = TezUtils.createConfFromUserPayload(processorContext
-          .getUserPayload());
+  public void initialize() throws Exception {
+    if (getContext().getUserPayload() != null) {
+      String vName = getContext().getTaskVertexName();
+      conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
       verifyValue = conf.getInt(
           getVertexConfName(TEZ_FAILING_PROCESSOR_VERIFY_VALUE, vName,
-              processorContext.getTaskIndex()), -1);
+              getContext().getTaskIndex()), -1);
       if (verifyValue != -1) {
         LOG.info("Verify value: " + verifyValue);
         for (String verifyIndex : conf
@@ -143,7 +153,7 @@ public class TestProcessor implements LogicalIOProcessor {
         failingTaskAttemptUpto = conf.getInt(
             getVertexConfName(TEZ_FAILING_PROCESSOR_FAILING_UPTO_TASK_ATTEMPT, vName), 0);
         LOG.info("Adding failing attempt : " + failingTaskAttemptUpto + 
-            " dag: " + processorContext.getDAGName());
+            " dag: " + getContext().getDAGName());
       }
     }
   }
@@ -173,31 +183,31 @@ public class TestProcessor implements LogicalIOProcessor {
     if (doFail) {
       if (
           (failingTaskIndices.contains(failAll) ||
-          failingTaskIndices.contains(processorContext.getTaskIndex())) &&
+          failingTaskIndices.contains(getContext().getTaskIndex())) &&
           (failingTaskAttemptUpto == failAll.intValue() || 
-           failingTaskAttemptUpto >= processorContext.getTaskAttemptNumber())) {
-        String msg = "FailingProcessor: " + processorContext.getUniqueIdentifier() + 
-            " dag: " + processorContext.getDAGName() +
-            " taskIndex: " + processorContext.getTaskIndex() +
-            " taskAttempt: " + processorContext.getTaskAttemptNumber();
+           failingTaskAttemptUpto >= getContext().getTaskAttemptNumber())) {
+        String msg = "FailingProcessor: " + getContext().getUniqueIdentifier() + 
+            " dag: " + getContext().getDAGName() +
+            " taskIndex: " + getContext().getTaskIndex() +
+            " taskAttempt: " + getContext().getTaskAttemptNumber();
         LOG.info(msg);
         throwException(msg);
       }
     }
     
     if (inputs.entrySet().size() > 0) {
-        String msg = "Reading input of current FailingProcessor: " + processorContext.getUniqueIdentifier() + 
-            " dag: " + processorContext.getDAGName() +
-            " vertex: " + processorContext.getTaskVertexName() +
-            " taskIndex: " + processorContext.getTaskIndex() +
-            " taskAttempt: " + processorContext.getTaskAttemptNumber();
+        String msg = "Reading input of current FailingProcessor: " + getContext().getUniqueIdentifier() + 
+            " dag: " + getContext().getDAGName() +
+            " vertex: " + getContext().getTaskVertexName() +
+            " taskIndex: " + getContext().getTaskIndex() +
+            " taskAttempt: " + getContext().getTaskAttemptNumber();
         LOG.info(msg);
     }
     //initialize sum to attempt number + 1
-    int sum = processorContext.getTaskAttemptNumber() + 1;
-    LOG.info("initializing vertex= " + processorContext.getTaskVertexName() +
-             " taskIndex: " + processorContext.getTaskIndex() +
-             " taskAttempt: " + processorContext.getTaskAttemptNumber() +
+    int sum = getContext().getTaskAttemptNumber() + 1;
+    LOG.info("initializing vertex= " + getContext().getTaskVertexName() +
+             " taskIndex: " + getContext().getTaskIndex() +
+             " taskAttempt: " + getContext().getTaskAttemptNumber() +
              " sum= " + sum);
     //sum = summation of input values
     for (Map.Entry<String, LogicalInput> entry : inputs.entrySet()) {
@@ -213,11 +223,11 @@ public class TestProcessor implements LogicalIOProcessor {
     }
     
     if (outputs.entrySet().size() > 0) {
-        String msg = "Writing output of current FailingProcessor: " + processorContext.getUniqueIdentifier() + 
-            " dag: " + processorContext.getDAGName() +
-            " vertex: " + processorContext.getTaskVertexName() +
-            " taskIndex: " + processorContext.getTaskIndex() +
-            " taskAttempt: " + processorContext.getTaskAttemptNumber();
+        String msg = "Writing output of current FailingProcessor: " + getContext().getUniqueIdentifier() + 
+            " dag: " + getContext().getDAGName() +
+            " vertex: " + getContext().getTaskVertexName() +
+            " taskIndex: " + getContext().getTaskIndex() +
+            " taskAttempt: " + getContext().getTaskAttemptNumber();
         LOG.info(msg);
     }
     for (Map.Entry<String, LogicalOutput> entry : outputs.entrySet()) {
@@ -231,28 +241,28 @@ public class TestProcessor implements LogicalIOProcessor {
       output.write(sum);
     }
     
-    LOG.info("Output for DAG: " + processorContext.getDAGName() 
-        + " vertex: " + processorContext.getTaskVertexName()
-        + " task: " + processorContext.getTaskIndex()
-        + " attempt: " + processorContext.getTaskAttemptNumber()
+    LOG.info("Output for DAG: " + getContext().getDAGName() 
+        + " vertex: " + getContext().getTaskVertexName()
+        + " task: " + getContext().getTaskIndex()
+        + " attempt: " + getContext().getTaskAttemptNumber()
         + " is: " + sum);
     if (verifyTaskIndices
-        .contains(new Integer(processorContext.getTaskIndex()))) {
+        .contains(new Integer(getContext().getTaskIndex()))) {
       if (verifyValue != -1 && verifyValue != sum) {
         // expected output value set and not equal to observed value
         String msg = "Expected output mismatch of current FailingProcessor: " 
-                     + processorContext.getUniqueIdentifier() + 
-                     " dag: " + processorContext.getDAGName() +
-                     " vertex: " + processorContext.getTaskVertexName() +
-                     " taskIndex: " + processorContext.getTaskIndex() +
-                     " taskAttempt: " + processorContext.getTaskAttemptNumber();
+                     + getContext().getUniqueIdentifier() + 
+                     " dag: " + getContext().getDAGName() +
+                     " vertex: " + getContext().getTaskVertexName() +
+                     " taskIndex: " + getContext().getTaskIndex() +
+                     " taskAttempt: " + getContext().getTaskAttemptNumber();
         msg += "\n" + "Expected output: " + verifyValue + " got: " + sum;
         throwException(msg);
       } else {
-        LOG.info("Verified output for DAG: " + processorContext.getDAGName()
-            + " vertex: " + processorContext.getTaskVertexName() + " task: "
-            + processorContext.getTaskIndex() + " attempt: "
-            + processorContext.getTaskAttemptNumber() + " is: " + sum);
+        LOG.info("Verified output for DAG: " + getContext().getDAGName()
+            + " vertex: " + getContext().getTaskVertexName() + " task: "
+            + getContext().getTaskIndex() + " attempt: "
+            + getContext().getTaskAttemptNumber() + " is: " + sum);
       }
     }
   }
