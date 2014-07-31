@@ -26,9 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
-import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
@@ -40,7 +38,6 @@ import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 public class FilterByWordOutputProcessor extends AbstractLogicalIOProcessor {
 
   private static final Log LOG = LogFactory.getLog(MapProcessor.class);
-  private TezProcessorContext processorContext;
 
   public FilterByWordOutputProcessor(TezProcessorContext context) {
     super(context);
@@ -101,7 +98,7 @@ public class FilterByWordOutputProcessor extends AbstractLogicalIOProcessor {
 
       kvWriter.write(key, value);
     }
-    if (processorContext.canCommit()) {
+    if (getContext().canCommit()) {
       mrOutput.commit();
     } else {
       mrOutput.abort();
