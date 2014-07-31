@@ -44,7 +44,10 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
 
   private static final Log LOG = LogFactory.getLog(DAGSubmittedEvent.class);
 
+  private static final String CHARSET_NAME = "utf-8";
+
   private TezDAGID dagID;
+  private String dagName;
   private long submitTime;
   private DAGProtos.DAGPlan dagPlan;
   private ApplicationAttemptId applicationAttemptId;
@@ -59,6 +62,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
       Map<String, LocalResource> cumulativeAdditionalLocalResources,
       String user) {
     this.dagID = dagID;
+    this.dagName = dagPlan.getName();
     this.submitTime = submitTime;
     this.dagPlan = dagPlan;
     this.applicationAttemptId = applicationAttemptId;
@@ -93,10 +97,11 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
     }
     return builder.build();
   }
- 
+
   public void fromProto(DAGSubmittedProto proto) {
     this.dagID = TezDAGID.fromString(proto.getDagId());
     this.dagPlan = proto.getDagPlan();
+    this.dagName = this.dagPlan.getName();
     this.submitTime = proto.getSubmitTime();
     this.applicationAttemptId = ConverterUtils.toApplicationAttemptId(
         proto.getApplicationAttemptId());
@@ -129,13 +134,15 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   @Override
   public void toSummaryProtoStream(OutputStream outputStream) throws IOException {
     ProtoUtils.toSummaryEventProto(dagID, submitTime,
-        HistoryEventType.DAG_SUBMITTED).writeDelimitedTo(outputStream);
+        HistoryEventType.DAG_SUBMITTED, dagName.getBytes(CHARSET_NAME))
+        .writeDelimitedTo(outputStream);
   }
 
   @Override
   public void fromSummaryProtoStream(SummaryEventProto proto) throws IOException {
-    throw new UnsupportedOperationException("Cannot re-initialize event from"
-        + " summary stream");
+    this.dagID = TezDAGID.fromString(proto.getDagId());
+    this.submitTime = proto.getTimestamp();
+    this.dagName = new String(proto.getEventPayload().toByteArray(), CHARSET_NAME);
   }
 
   @Override
@@ -144,10 +151,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   }
 
   public String getDAGName() {
-    if (dagPlan != null && dagPlan.hasName()) {
-      return dagPlan.getName();
-    }
-    return null;
+    return this.dagName;
   }
 
   public DAGProtos.DAGPlan getDAGPlan() {
@@ -161,7 +165,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   public ApplicationAttemptId getApplicationAttemptId() {
     return applicationAttemptId;
   }
-  
+
   public Map<String, LocalResource> getCumulativeAdditionalLocalResources() {
     return cumulativeAdditionalLocalResources;
   }

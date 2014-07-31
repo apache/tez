@@ -31,6 +31,7 @@ import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatus.State;
@@ -168,6 +169,13 @@ public class TestDAGRecovery {
     DAG dag = MultiAttemptDAG.createDAG("TestBasicRecovery", null);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
 
+    // it should fail if submitting same dags in recovery mode (TEZ-1064)
+    try{
+      DAGClient dagClient = tezSession.submitDAG(dag);
+      Assert.fail("Expected DAG submit to fail on duplicate dag name");
+    } catch (TezException e) {
+      Assert.assertTrue(e.getMessage().contains("Duplicate dag name"));
+    }
   }
 
   @Test(timeout=120000)

@@ -94,7 +94,7 @@ public class DAGCommitStartedEvent implements HistoryEvent, SummaryEvent {
   @Override
   public void toSummaryProtoStream(OutputStream outputStream) throws IOException {
     ProtoUtils.toSummaryEventProto(dagID, commitStartTime,
-        getEventType()).writeDelimitedTo(outputStream);
+        getEventType(), null).writeDelimitedTo(outputStream);
   }
 
   @Override

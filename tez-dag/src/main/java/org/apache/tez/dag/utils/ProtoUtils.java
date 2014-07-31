@@ -22,13 +22,21 @@ import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
 
+import com.google.protobuf.ByteString;
+
 public class ProtoUtils {
 
   public static RecoveryProtos.SummaryEventProto toSummaryEventProto(
-      TezDAGID dagID, long timestamp, HistoryEventType historyEventType) {
-    return RecoveryProtos.SummaryEventProto.newBuilder()
+      TezDAGID dagID, long timestamp, HistoryEventType historyEventType, byte[] payload) {
+    RecoveryProtos.SummaryEventProto.Builder builder =
+        RecoveryProtos.SummaryEventProto.newBuilder()
         .setDagId(dagID.toString())
         .setTimestamp(timestamp)
-        .setEventType(historyEventType.ordinal()).build();
+        .setEventType(historyEventType.ordinal());
+    if (payload != null){
+      builder.setEventPayload(ByteString.copyFrom(payload));
+    }
+    return builder.build();
   }
+
 }
