@@ -18,8 +18,10 @@
 package org.apache.tez.dag.app;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -117,28 +119,39 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
   protected void startRpcServer() {
     Configuration conf = getConfig();
-    try {
-      server = new RPC.Builder(conf)
-          .setProtocol(TezTaskUmbilicalProtocol.class)
-          .setBindAddress("0.0.0.0")
-          .setPort(0)
-          .setInstance(this)
-          .setNumHandlers(
-              conf.getInt(TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT,
-                  TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT))
-          .setSecretManager(jobTokenSecretManager).build();
+    if (!conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT)) {
+      try {
+        server = new RPC.Builder(conf)
+            .setProtocol(TezTaskUmbilicalProtocol.class)
+            .setBindAddress("0.0.0.0")
+            .setPort(0)
+            .setInstance(this)
+            .setNumHandlers(
+                conf.getInt(TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT,
+                    TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT))
+            .setSecretManager(jobTokenSecretManager).build();
 
-      // Enable service authorization?
-      if (conf.getBoolean(
-          CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION,
-          false)) {
-        refreshServiceAcls(conf, new TezAMPolicyProvider());
+        // Enable service authorization?
+        if (conf.getBoolean(
+            CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION,
+            false)) {
+          refreshServiceAcls(conf, new TezAMPolicyProvider());
+        }
+
+        server.start();
+        this.address = NetUtils.getConnectAddress(server);
+      } catch (IOException e) {
+        throw new TezUncheckedException(e);
       }
-
-      server.start();
-      this.address = NetUtils.getConnectAddress(server);
-    } catch (IOException e) {
-      throw new TezUncheckedException(e);
+    } else {
+      try {
+        this.address = new InetSocketAddress(InetAddress.getLocalHost(), 0);
+      } catch (UnknownHostException e) {
+        throw new TezUncheckedException(e);
+      }
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Not starting TaskAttemptListener RPC in LocalMode");
+      }
     }
   }
 

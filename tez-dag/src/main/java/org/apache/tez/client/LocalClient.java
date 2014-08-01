@@ -224,8 +224,10 @@ public class LocalClient extends FrameworkClient {
           fs.setWorkingDirectory(userDir);
 
           // Prepare Environment
-          Path logDir = new Path(userDir, "logs");
-          Path localDir = new Path(userDir, "local");
+          Path logDir = new Path(userDir, "localmode-log-dir");
+          Path localDir = new Path(userDir, "localmode-local-dir");
+          fs.mkdirs(logDir);
+          fs.mkdirs(localDir);
 
           EnvironmentUpdateUtils.put(Environment.LOG_DIRS.name(), logDir.toUri().getPath());
           EnvironmentUpdateUtils.put(Environment.LOCAL_DIRS.name(), localDir.toUri().getPath());

@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.task;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -81,7 +82,6 @@ public class TezChild {
   private final Configuration defaultConf;
   private final String containerIdString;
   private final int appAttemptNumber;
-  private final InetSocketAddress address;
   private final String[] localDirs;
 
   private final AtomicLong heartbeatCounter = new AtomicLong(0);
@@ -126,8 +126,6 @@ public class TezChild {
     maxEventsToGet = defaultConf.getInt(TezConfiguration.TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT,
         TezConfiguration.TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT);
 
-    address = NetUtils.createSocketAddrForHost(host, port);
-
     ExecutorService executor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
         .setDaemon(true).setNameFormat("TezChild").build());
     this.executor = MoreExecutors.listeningDecorator(executor);
@@ -147,13 +145,14 @@ public class TezChild {
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
     UserGroupInformation taskOwner = UserGroupInformation.createRemoteUser(tokenIdentifier);
     Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
-    SecurityUtil.setTokenService(jobToken, address);
-    taskOwner.addToken(jobToken);
 
     serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,
         ShuffleUtils.convertJobTokenToBytes(jobToken));
 
     if (!isLocal) {
+      final InetSocketAddress address = NetUtils.createSocketAddrForHost(host, port);
+      SecurityUtil.setTokenService(jobToken, address);
+      taskOwner.addToken(jobToken);
       umbilical = taskOwner.doAs(new PrivilegedExceptionAction<TezTaskUmbilicalProtocol>() {
         @Override
         public TezTaskUmbilicalProtocol run() throws Exception {
@@ -164,7 +163,7 @@ public class TezChild {
     }
   }
   
-  public void run() throws IOException, InterruptedException, TezException {
+  public ContainerExecutionResult run() throws IOException, InterruptedException, TezException {
 
     ContainerContext containerContext = new ContainerContext(containerIdString);
     ContainerReporter containerReporter = new ContainerReporter(umbilical, containerContext,
@@ -186,17 +185,20 @@ public class TezChild {
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
         handleError(cause);
-        return;
+        return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE,
+            cause, "Execution Exception while fetching new work: " + e.getMessage());
       } catch (InterruptedException e) {
-        LOG.info("Interrupted while waiting for task to complete:"
+        LOG.info("Interrupted while waiting for new work:"
             + containerTask.getTaskSpec().getTaskAttemptID());
         handleError(e);
-        return;
+        return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.INTERRUPTED, e,
+            "Interrupted while waiting for new work");
       }
       if (containerTask.shouldDie()) {
         LOG.info("ContainerTask returned shouldDie=true, Exiting");
         shutdown();
-        return;
+        return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.SUCCESS, null,
+            "Asked to die by the AM");
       } else {
         String loggerAddend = containerTask.getTaskSpec().getTaskAttemptID().toString();
         taskCount++;
@@ -217,19 +219,24 @@ public class TezChild {
           if (shouldDie) {
             LOG.info("Got a shouldDie notification via hearbeats. Shutting down");
             shutdown();
-            return;
+            return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.SUCCESS, null,
+                "Asked to die by the AM");
           }
         } catch (IOException e) {
           handleError(e);
-          return;
+          return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE,
+              e, "TaskExecutionFailure: " + e.getMessage());
         } catch (TezException e) {
           handleError(e);
-          return;
+          return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE,
+              e, "TaskExecutionFailure: " + e.getMessage());
         } finally {
           FileSystem.closeAllForUGI(childUGI);
         }
       }
     }
+    return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.SUCCESS, null,
+        null);
   }
 
   /**
@@ -331,6 +338,48 @@ public class TezChild {
   public void setUmbilical(TezTaskUmbilicalProtocol tezTaskUmbilicalProtocol){
     if(tezTaskUmbilicalProtocol != null){
       this.umbilical = tezTaskUmbilicalProtocol;
+    }
+  }
+
+  public static class ContainerExecutionResult {
+    public static enum ExitStatus {
+      SUCCESS(0),
+      EXECUTION_FAILURE(1),
+      INTERRUPTED(2),
+      ASKED_TO_DIE(3);
+
+      private final int exitCode;
+
+      ExitStatus(int code) {
+        this.exitCode = code;
+      }
+
+      public int getExitCode() {
+        return this.exitCode;
+      }
+    }
+
+    private final ExitStatus exitStatus;
+    private final Throwable throwable;
+    private final String errorMessage;
+
+    ContainerExecutionResult(ExitStatus exitStatus, @Nullable Throwable throwable,
+                             @Nullable String errorMessage) {
+      this.exitStatus = exitStatus;
+      this.throwable = throwable;
+      this.errorMessage = errorMessage;
+    }
+
+    public ExitStatus getExitStatus() {
+      return this.exitStatus;
+    }
+
+    public Throwable getThrowable() {
+      return this.throwable;
+    }
+
+    public String getErrorMessage() {
+      return this.errorMessage;
     }
   }
 
