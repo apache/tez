@@ -18,7 +18,6 @@
 package org.apache.tez.common;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -56,6 +55,7 @@ public class TezYARNUtils {
         Environment.PWD.$() + File.separator + "*",
         File.pathSeparator);
 
+    // Next add the tez libs, if specified via an archive.
     if (usingArchive) {
       TezYARNUtils.addToEnvironment(environment, Environment.CLASSPATH.name(),
           Environment.PWD.$() + File.separator +
@@ -67,6 +67,7 @@ public class TezYARNUtils {
           File.pathSeparator);
     }
 
+    // Last add HADOOP_CLASSPATH, if it's required.
     if (conf.getBoolean(TezConfiguration.TEZ_USE_CLUSTER_HADOOP_LIBS,
         TezConfiguration.TEZ_USE_CLUSTER_HADOOP_LIBS_DEFAULT)) {
       for (String c : conf.getStrings(
@@ -75,6 +76,10 @@ public class TezYARNUtils {
         TezYARNUtils.addToEnvironment(environment, Environment.CLASSPATH.name(),
             c.trim(), File.pathSeparator);
       }
+    } else {
+      // Setup HADOOP_CONF_DIR after PWD and tez-libs, if it's required.
+      TezYARNUtils.addToEnvironment(environment, Environment.CLASSPATH.name(),
+          Environment.HADOOP_CONF_DIR.$(), File.pathSeparator);
     }
     return StringInterner.weakIntern(environment.get(Environment.CLASSPATH.name()));
   }
