@@ -127,11 +127,6 @@ public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
       payloadBuilder.setData(dataProtoBuilder.build());
     }
 
-    String host = getHost();
-    ByteBuffer shuffleMetadata = getContext()
-        .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
-    int shufflePort = ShuffleUtils
-        .deserializeShuffleProviderMetaData(shuffleMetadata);
     // Set the list of empty partitions - single partition on this case.
     if (!outputGenerated) {
       LOG.info("No output was generated");
@@ -142,6 +137,11 @@ public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
       payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
     }
     if (outputGenerated) {
+      String host = getHost();
+      ByteBuffer shuffleMetadata = getContext()
+          .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
+      int shufflePort = ShuffleUtils
+          .deserializeShuffleProviderMetaData(shuffleMetadata);
       payloadBuilder.setHost(host);
       payloadBuilder.setPort(shufflePort);
       payloadBuilder.setPathComponent(getContext().getUniqueIdentifier());

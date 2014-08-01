@@ -149,12 +149,6 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
   }
   
   protected List<Event> generateEventsOnClose() throws IOException {
-    String host = System.getenv(ApplicationConstants.Environment.NM_HOST
-        .toString());
-    ByteBuffer shuffleMetadata = getContext()
-        .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
-    int shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(shuffleMetadata);
-
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
         .newBuilder();
 
@@ -182,6 +176,11 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
       }
     }
     if (!sendEmptyPartitionDetails || outputGenerated) {
+      String host = System.getenv(ApplicationConstants.Environment.NM_HOST
+          .toString());
+      ByteBuffer shuffleMetadata = getContext()
+          .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
+      int shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(shuffleMetadata);
       payloadBuilder.setHost(host);
       payloadBuilder.setPort(shufflePort);
       payloadBuilder.setPathComponent(getContext().getUniqueIdentifier());
