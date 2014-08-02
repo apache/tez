@@ -30,6 +30,7 @@ import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -807,7 +808,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   protected ContainerLauncher
-      createContainerLauncher(final AppContext context) {
+      createContainerLauncher(final AppContext context) throws UnknownHostException {
     if(isLocal){
       return new LocalContainerLauncher(context, taskAttemptListener);
     } else {

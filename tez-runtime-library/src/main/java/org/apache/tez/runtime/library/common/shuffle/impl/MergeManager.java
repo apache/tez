@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.FileChunkPath;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.Progressable;
@@ -425,9 +426,9 @@ public class MergeManager {
   
   public synchronized void closeOnDiskFile(Path file) {
     onDiskMapOutputs.add(file);
-    
+
     synchronized (onDiskMerger) {
-      if (!onDiskMerger.isInProgress() && 
+      if (!onDiskMerger.isInProgress() &&
           onDiskMapOutputs.size() >= (2 * ioSortFactor - 1)) {
         onDiskMerger.startMerge(onDiskMapOutputs);
       }
@@ -631,7 +632,7 @@ public class MergeManager {
    * Merges multiple on-disk segments
    */
   private class OnDiskMerger extends MergeThread<Path> {
-    
+
     public OnDiskMerger(MergeManager manager) {
       super(manager, ioSortFactor, exceptionReporter);
       setName("DiskToDiskMerger [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "]");
@@ -653,10 +654,28 @@ public class MergeManager {
       
       LOG.info("OnDiskMerger: We have  " + inputs.size() + 
                " map outputs on disk. Triggering merge...");
-      
-      // 1. Prepare the list of files to be merged. 
+
+      List<Segment> inputSegments = new ArrayList<Segment>(inputs.size());
+
+      // 1. Prepare the list of files to be merged.
       for (Path file : inputs) {
-        approxOutputSize += localFS.getFileStatus(file).getLen();
+        long offset;
+        long size;
+        boolean preserve = false;
+
+        if (file instanceof FileChunkPath) {
+          size = ((FileChunkPath)file).getLength();
+          offset = ((FileChunkPath)file).getOffset();
+          approxOutputSize += size;
+          preserve = true;
+        } else {
+          size = localFS.getFileStatus(file).getLen();
+          offset = 0;
+          approxOutputSize += size;
+        }
+        Segment segment = new Segment(conf, rfs, file, offset, size, codec, ifileReadAhead,
+            ifileReadAheadLength, ifileBufferSize, preserve);
+        inputSegments.add(segment);
       }
 
       // add the checksum length
@@ -676,13 +695,13 @@ public class MergeManager {
       Path tmpDir = new Path(inputContext.getUniqueIdentifier());
       try {
         iter = TezMerger.merge(conf, rfs,
-                            (Class)ConfigUtils.getIntermediateInputKeyClass(conf), 
-                            (Class)ConfigUtils.getIntermediateInputValueClass(conf),
-                            codec, ifileReadAhead, ifileReadAheadLength, ifileBufferSize,
-                            inputs.toArray(new Path[inputs.size()]), true, ioSortFactor, tmpDir, 
-                            (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf), 
-                            nullProgressable, spilledRecordsCounter, null, 
-                            mergedMapOutputsCounter, null);
+            (Class)ConfigUtils.getIntermediateInputKeyClass(conf),
+            (Class)ConfigUtils.getIntermediateInputValueClass(conf),
+            inputSegments,
+            ioSortFactor, tmpDir,
+            (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
+            nullProgressable, true, spilledRecordsCounter, null,
+            mergedMapOutputsCounter, null);
 
         // TODO Maybe differentiate between data written because of Merges and
         // the finalMerge (i.e. final mem available may be different from
@@ -856,15 +875,26 @@ public class MergeManager {
     long onDiskBytes = inMemToDiskBytes;
     Path[] onDisk = onDiskMapOutputs.toArray(new Path[onDiskMapOutputs.size()]);
     for (Path file : onDisk) {
-      onDiskBytes += fs.getFileStatus(file).getLen();
-      LOG.debug("Disk file: " + file + " Length is " + 
-          fs.getFileStatus(file).getLen());
-      diskSegments.add(new Segment(job, fs, file, codec, ifileReadAhead,
-                                   ifileReadAheadLength, ifileBufferSize, false,
-                                         (file.toString().endsWith(
-                                             Constants.MERGED_OUTPUT_PREFIX) ?
-                                          null : mergedMapOutputsCounter)
-                                        ));
+      long fileLength;
+      long fileOffset;
+      boolean preserve = false;
+      if (file instanceof FileChunkPath) {
+        FileChunkPath fileChunkPath = (FileChunkPath) file;
+        fileOffset = fileChunkPath.getOffset();
+        fileLength = fileChunkPath.getLength();
+        preserve = true;
+      } else {
+        fileOffset = 0;
+        fileLength = fs.getFileStatus(file).getLen();
+      }
+      onDiskBytes += fileLength;
+      LOG.debug("Disk file: " + file + " Length is " + fileLength);
+
+      TezCounter counter =
+          file.toString().endsWith(Constants.MERGED_OUTPUT_PREFIX) ? null : mergedMapOutputsCounter;
+
+      diskSegments.add(new Segment(job, fs, file, fileOffset, fileLength, codec, ifileReadAhead,
+                                   ifileReadAheadLength, ifileBufferSize, preserve, counter));
     }
     LOG.info("Merging " + onDisk.length + " files, " +
              onDiskBytes + " bytes from disk");
@@ -897,7 +927,7 @@ public class MergeManager {
       }
       finalSegments.add(new Segment(
             new RawKVIteratorReader(diskMerge, onDiskBytes), true));
-    } 
+    }
     // This is doing nothing but creating an iterator over the segments.
     return TezMerger.merge(job, fs, keyClass, valueClass,
                  finalSegments, finalSegments.size(), tmpDir,

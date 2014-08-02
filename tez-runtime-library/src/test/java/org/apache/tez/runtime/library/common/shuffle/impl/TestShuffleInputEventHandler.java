@@ -1,6 +1,7 @@
 package org.apache.tez.runtime.library.common.shuffle.impl;
 
 import com.google.protobuf.ByteString;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtils;
@@ -79,11 +80,13 @@ public class TestShuffleInputEventHandler {
   public void setup() throws Exception {
     TezInputContext inputContext = createTezInputContext();
     scheduler = mock(ShuffleScheduler.class);
-    handler = new ShuffleInputEventHandler(inputContext, scheduler, false);
+    Configuration conf = mock(Configuration.class);
+    MergeManager merger = mock(MergeManager.class);
+    handler = new ShuffleInputEventHandler(inputContext, scheduler, merger,conf, false);
   }
 
   @Test
-  public void basicTest() {
+  public void basicTest() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int srcIdx = 0;
     int targetIdx = 1;
@@ -100,7 +103,7 @@ public class TestShuffleInputEventHandler {
   }
 
   @Test
-  public void testFailedEvent() {
+  public void testFailedEvent() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int targetIdx = 1;
     InputFailedEvent failedEvent = new InputFailedEvent(targetIdx, 0);

@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
+import org.apache.hadoop.io.FileChunkPath;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 
@@ -40,14 +41,16 @@ class MapOutput {
   public static enum Type {
     WAIT,
     MEMORY,
-    DISK
+    DISK,
+    DISK_DIRECT
   }
   
   private InputAttemptIdentifier attemptIdentifier;
   private final int id;
   
   private final MergeManager merger;
-  
+
+  private final long fileOffset;
   private final long size;
   
   private final byte[] memory;
@@ -76,6 +79,7 @@ class MapOutput {
     memory = null;
     byteStream = null;
 
+    this.fileOffset = 0;
     this.size = size;
     
     this.localFS = FileSystem.getLocal(conf);
@@ -87,7 +91,30 @@ class MapOutput {
     
     this.primaryMapOutput = primaryMapOutput;
   }
-  
+
+  MapOutput(InputAttemptIdentifier attemptIdentifier, MergeManager merger, Configuration conf,
+            Path path, long offset, long size)
+      throws IOException {
+    this.id = ID.incrementAndGet();
+    this.attemptIdentifier = attemptIdentifier;
+    this.merger = merger;
+
+    type = Type.DISK_DIRECT;
+
+    memory = null;
+    byteStream = null;
+
+    this.fileOffset = offset;
+    this.size = size;
+
+    this.localFS = FileSystem.getLocal(conf);
+    outputPath = path;
+    tmpOutputPath = null;
+
+    disk = null;
+    this.primaryMapOutput = true;
+  }
+
   MapOutput(InputAttemptIdentifier attemptIdentifier, MergeManager merger, int size, 
             boolean primaryMapOutput) {
     this.id = ID.incrementAndGet();
@@ -99,6 +126,7 @@ class MapOutput {
     memory = byteStream.getBuffer();
 
     this.size = size;
+    this.fileOffset = -1;
     
     localFS = null;
     disk = null;
@@ -118,6 +146,7 @@ class MapOutput {
     byteStream = null;
     
     size = -1;
+    fileOffset = -1;
     
     localFS = null;
     disk = null;
@@ -125,7 +154,7 @@ class MapOutput {
     tmpOutputPath = null;
 
     this.primaryMapOutput = false;
-}
+  }
   
   public boolean isPrimaryMapOutput() {
     return primaryMapOutput;
@@ -178,6 +207,9 @@ class MapOutput {
     } else if (type == Type.DISK) {
       localFS.rename(tmpOutputPath, outputPath);
       merger.closeOnDiskFile(outputPath);
+    } else if (type == Type.DISK_DIRECT) {
+      FileChunkPath fileChunkPath = new FileChunkPath(outputPath.toString(), fileOffset, size);
+      merger.closeOnDiskFile(fileChunkPath);
     } else {
       throw new IOException("Cannot commit MapOutput of type WAIT!");
     }
@@ -192,6 +224,7 @@ class MapOutput {
       } catch (IOException ie) {
         LOG.info("failure to clean up " + tmpOutputPath, ie);
       }
+    } else if (type == Type.DISK_DIRECT) { //nothing to do.
     } else {
       throw new IllegalArgumentException
                    ("Cannot commit MapOutput with of type WAIT!");

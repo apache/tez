@@ -88,7 +88,7 @@ class ShuffleScheduler {
   private final TezCounter failedShuffleCounter;
   private final TezCounter bytesShuffledToDisk;
   private final TezCounter bytesShuffledToMem;
-  
+
   private final long startTime;
   private long lastProgressTime;
 

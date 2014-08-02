@@ -383,9 +383,12 @@ class Fetcher extends Thread {
         ShuffleUtils.shuffleToMemory(mapOutput.getMemory(), input,
           (int) decompressedLength, (int) compressedLength, codec, ifileReadAhead,
           ifileReadAheadLength, LOG, mapOutput.getAttemptIdentifier().toString());
-      } else {
+      } else if (mapOutput.getType() == Type.DISK) {
         ShuffleUtils.shuffleToDisk(mapOutput.getDisk(), host.getHostIdentifier(),
           input, compressedLength, LOG, mapOutput.getAttemptIdentifier().toString());
+      } else {
+        throw new IOException("Unknown mapOutput type while fetching shuffle data:" +
+            mapOutput.getType());
       }
       
       // Inform the shuffle scheduler

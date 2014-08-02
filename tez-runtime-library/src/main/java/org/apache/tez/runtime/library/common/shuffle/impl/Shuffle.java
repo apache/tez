@@ -186,10 +186,7 @@ public class Shuffle implements ExceptionReporter {
           failedShuffleCounter,
           bytesShuffedToDisk,
           bytesShuffedToMem);
-    eventHandler= new ShuffleInputEventHandler(
-      inputContext,
-      scheduler,
-      sslShuffle);
+
     merger = new MergeManager(
           this.conf,
           localFS,
@@ -204,6 +201,13 @@ public class Shuffle implements ExceptionReporter {
           codec,
           ifileReadAhead,
           ifileReadAheadLength);
+
+    eventHandler= new ShuffleInputEventHandler(
+        inputContext,
+        scheduler,
+        merger,
+        this.conf,
+        sslShuffle);
     
     ExecutorService rawExecutor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
         .setDaemon(true).setNameFormat("ShuffleAndMergeRunner [" + srcNameTrimmed + "]").build());
@@ -220,7 +224,7 @@ public class Shuffle implements ExceptionReporter {
     runShuffleCallable = new RunShuffleCallable();
   }
 
-  public void handleEvents(List<Event> events) {
+  public void handleEvents(List<Event> events) throws IOException {
     if (!isShutDown.get()) {
       eventHandler.handleEvents(events);
     } else {

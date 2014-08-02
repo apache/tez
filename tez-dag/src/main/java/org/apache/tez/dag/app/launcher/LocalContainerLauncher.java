@@ -21,6 +21,9 @@ package org.apache.tez.dag.app.launcher;
 
 import java.io.IOException;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -38,6 +41,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -62,6 +66,7 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventLaunched;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
+import org.apache.tez.dag.utils.EnvironmentUpdateUtils;
 import org.apache.tez.runtime.task.TezChild;
 
 
@@ -95,10 +100,15 @@ public class LocalContainerLauncher extends AbstractService implements
 
 
   public LocalContainerLauncher(AppContext context,
-                                TaskAttemptListener taskAttemptListener) {
+                                TaskAttemptListener taskAttemptListener) throws
+      UnknownHostException {
     super(LocalContainerLauncher.class.getName());
     this.context = context;
     this.taskAttemptListener = taskAttemptListener;
+    EnvironmentUpdateUtils.put("NM_AUX_SERVICE_mapreduce_shuffle",
+        Base64.encodeBase64String(ByteBuffer.allocate(4).putInt(0).array()));
+    EnvironmentUpdateUtils.put(Environment.NM_HOST.toString(),
+        InetAddress.getLocalHost().getHostName());
   }
 
   @Override

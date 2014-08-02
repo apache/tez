@@ -27,6 +27,7 @@ import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.api.Event;
@@ -49,10 +50,11 @@ public class TestShuffleInputEventHandlerImpl {
   public void testSimple() throws IOException {
     TezInputContext inputContext = mock(TezInputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
+    Configuration conf = mock(Configuration.class);
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
 
     ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
-        shuffleManager, inputAllocator, null, false, 0);
+        shuffleManager, inputAllocator, null, false, 0, conf);
 
     int taskIndex = 1;
     Event dme = createDataMovementEvent(0, taskIndex, null);
@@ -71,10 +73,11 @@ public class TestShuffleInputEventHandlerImpl {
   public void testCurrentPartitionEmpty() throws IOException {
     TezInputContext inputContext = mock(TezInputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
+    Configuration conf = mock(Configuration.class);
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
 
     ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
-        shuffleManager, inputAllocator, null, false, 0);
+        shuffleManager, inputAllocator, null, false, 0, conf);
 
     int taskIndex = 1;
     Event dme = createDataMovementEvent(0, taskIndex, createEmptyPartitionByteString(0));
@@ -92,10 +95,11 @@ public class TestShuffleInputEventHandlerImpl {
   public void testOtherPartitionEmpty() throws IOException {
     TezInputContext inputContext = mock(TezInputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
+    Configuration conf = mock(Configuration.class);
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
 
     ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
-        shuffleManager, inputAllocator, null, false, 0);
+        shuffleManager, inputAllocator, null, false, 0, conf);
 
     int taskIndex = 1;
     Event dme = createDataMovementEvent(0, taskIndex, createEmptyPartitionByteString(1));
@@ -112,10 +116,11 @@ public class TestShuffleInputEventHandlerImpl {
   public void testMultipleEvents1() throws IOException {
     TezInputContext inputContext = mock(TezInputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
+    Configuration conf = mock(Configuration.class);
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
 
     ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
-        shuffleManager, inputAllocator, null, false, 0);
+        shuffleManager, inputAllocator, null, false, 0, conf);
 
     int taskIndex1 = 1;
     Event dme1 = createDataMovementEvent(0, taskIndex1, createEmptyPartitionByteString(0));

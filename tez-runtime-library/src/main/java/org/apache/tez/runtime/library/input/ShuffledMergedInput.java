@@ -236,7 +236,7 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
   }
 
   @Override
-  public void handleEvents(List<Event> inputEvents) {
+  public void handleEvents(List<Event> inputEvents) throws IOException {
     synchronized (this) {
       if (getNumPhysicalInputs() == 0) {
         throw new RuntimeException("No input events expected as numInputs is 0");
@@ -327,6 +327,7 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
     confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS);
     confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC);
     confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH);
     confKeys.add(TezConfiguration.TEZ_AM_COUNTERS_MAX_KEYS);
     confKeys.add(TezConfiguration.TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS);
     confKeys.add(TezConfiguration.TEZ_AM_COUNTERS_NAME_MAX_KEYS);
