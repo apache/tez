@@ -176,6 +176,8 @@ public class TezClient {
       @Nullable Credentials credentials) {
     this.clientName = name;
     this.isSession = isSession;
+    // Set in conf for local mode AM to figure out whether in session mode or not
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
     this.amConfig = new AMConfiguration(tezConf, localResources, credentials);
   }
   
