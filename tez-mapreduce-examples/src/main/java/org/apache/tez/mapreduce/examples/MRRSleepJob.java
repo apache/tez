@@ -69,6 +69,7 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
@@ -546,7 +547,7 @@ public class MRRSleepJob extends Configured implements Tool {
         MapProcessor.class.getName()).setUserPayload(mapUserPayload),
         numTasks, MRHelpers.getMapResource(mapStageConf));
     if (!generateSplitsInAM) {
-      mapVertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
+      mapVertex.setLocationHint(new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
     }
     
     if (writeSplitsToDFS) {

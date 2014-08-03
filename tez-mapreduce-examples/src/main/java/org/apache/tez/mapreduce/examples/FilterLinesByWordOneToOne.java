@@ -56,6 +56,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
@@ -173,7 +174,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
         FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload),
         stage1NumTasks, MRHelpers.getMapResource(stage1Conf));
     if (generateSplitsInClient) {
-      stage1Vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
+      stage1Vertex.setLocationHint(new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
       Map<String, LocalResource> stage1LocalResources = new HashMap<String, LocalResource>();
       stage1LocalResources.putAll(commonLocalResources);
       MRHelpers.updateLocalResourcesForInputSplits(fs, inputSplitInfo, stage1LocalResources);

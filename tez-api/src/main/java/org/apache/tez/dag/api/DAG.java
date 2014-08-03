@@ -587,9 +587,9 @@ public class DAG {
         taskConfigBuilder.addEnvironmentSetting(envSettingBuilder);
       }
 
-      if (vertex.getTaskLocationsHint() != null) {
-        if (vertex.getTaskLocationsHint().getTaskLocationHints() != null) {
-          for (TaskLocationHint hint : vertex.getTaskLocationsHint().getTaskLocationHints()) {
+      if (vertex.getLocationHint() != null) {
+        if (vertex.getLocationHint().getTaskLocationHints() != null) {
+          for (TaskLocationHint hint : vertex.getLocationHint().getTaskLocationHints()) {
             PlanTaskLocationHint.Builder taskLocationHintBuilder = PlanTaskLocationHint.newBuilder();
 
             if (hint.getAffinitizedContainer() != null) {

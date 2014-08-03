@@ -43,7 +43,7 @@ public class Vertex {
   private final ProcessorDescriptor processorDescriptor;
 
   private int parallelism;
-  private VertexLocationHint taskLocationsHint;
+  private VertexLocationHint locationHint;
   private final Resource taskResource;
   private Map<String, LocalResource> taskLocalResources = new HashMap<String, LocalResource>();
   private Map<String, String> taskEnvironment = new HashMap<String, String>();
@@ -139,19 +139,20 @@ public class Vertex {
    * @param locations list of locations for each task in the vertex
    * @return this Vertex
    */
-  public Vertex setTaskLocationsHint(List<TaskLocationHint> locations) {
+  public Vertex setLocationHint(VertexLocationHint locationHint) {
+    List<TaskLocationHint> locations = locationHint.getTaskLocationHints();
     if (locations == null) {
       return this;
     }
     Preconditions.checkArgument((locations.size() == parallelism), 
         "Locations array length must match the parallelism set for the vertex");
-    taskLocationsHint = new VertexLocationHint(locations);
+    this.locationHint = locationHint;
     return this;
   }
 
   // used internally to create parallelism location resource file
-  VertexLocationHint getTaskLocationsHint() {
-    return taskLocationsHint;
+  VertexLocationHint getLocationHint() {
+    return locationHint;
   }
 
   /**

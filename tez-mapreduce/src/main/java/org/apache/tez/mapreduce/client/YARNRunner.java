@@ -84,6 +84,7 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.DAGStatus;
@@ -424,7 +425,7 @@ public class YARNRunner implements ClientProtocol {
 
     vertex.setTaskEnvironment(taskEnv)
         .setTaskLocalFiles(taskLocalResources)
-        .setTaskLocationsHint(locations)
+        .setLocationHint(new VertexLocationHint(locations))
         .setTaskLaunchCmdOpts(taskJavaOpts);
     
     if (!isMap) {

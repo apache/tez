@@ -82,6 +82,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatus.State;
@@ -497,7 +498,7 @@ public class TestMRRJobsDAGApi {
               LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
 
       stage1Vertex.setTaskLocalFiles(stage1LocalResources);
-      stage1Vertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
+      stage1Vertex.setLocationHint(new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
     }
     
     // TODO env, resources

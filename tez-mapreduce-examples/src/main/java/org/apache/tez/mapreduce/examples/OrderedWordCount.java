@@ -216,7 +216,7 @@ public class OrderedWordCount extends Configured implements Tool {
             .setHistoryText(mapStageHistoryText),
         numMaps, MRHelpers.getMapResource(mapStageConf));
     if (generateSplitsInClient) {
-      mapVertex.setTaskLocationsHint(inputSplitInfo.getTaskLocationHints());
+      mapVertex.setLocationHint(new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
       Map<String, LocalResource> mapLocalResources =
           new HashMap<String, LocalResource>();
       mapLocalResources.putAll(commonLocalResources);

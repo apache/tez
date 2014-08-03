@@ -46,7 +46,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -62,7 +61,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -1020,8 +1018,7 @@ public class DAGAppMaster extends AbstractService {
       preWarmVertex.setTaskLocalFiles(preWarmContext.getLocalResources());
     }
     if (preWarmContext.getLocationHints() != null) {
-      preWarmVertex.setTaskLocationsHint(
-        preWarmContext.getLocationHints().getTaskLocationHints());
+      preWarmVertex.setLocationHint(preWarmContext.getLocationHints());
     }
     if (preWarmContext.getJavaOpts() != null) {
       preWarmVertex.setTaskLaunchCmdOpts(preWarmContext.getJavaOpts());

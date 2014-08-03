@@ -40,6 +40,7 @@ INCOMPATIBLE CHANGES
   to require constructors for creation, and remove the initialize methods.
   TEZ-1133. Remove some unused methods from MRHelpers.
   TEZ-1346. Change Processor to require context constructors for creation, and remove the requirement of the initialize method requiring the context.
+  TEZ-1041. Use VertexLocationHint consistently everywhere in the API
 
 Release 0.4.0-incubating: 2014-04-05
 
