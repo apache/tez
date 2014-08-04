@@ -60,7 +60,7 @@ public class MROutput extends AbstractLogicalOutput {
   
   private JobConf jobConf;
   boolean useNewApi;
-  private AtomicBoolean closed = new AtomicBoolean(false);
+  private AtomicBoolean flushed = new AtomicBoolean(false);
 
   @SuppressWarnings("rawtypes")
   org.apache.hadoop.mapreduce.OutputFormat newOutputFormat;
@@ -272,11 +272,21 @@ public class MROutput extends AbstractLogicalOutput {
 
   @Override
   public synchronized List<Event> close() throws IOException {
-    if (closed.getAndSet(true)) {
-      return null;
+    flush();
+    return null;
+  }
+  
+  /**
+   * Call this in the processor before finishing to ensure outputs that 
+   * outputs have been flushed. Must be called before commit.
+   * @throws IOException
+   */
+  public void flush() throws IOException {
+    if (flushed.getAndSet(true)) {
+      return;
     }
 
-    LOG.info("Closing Simple Output");
+    LOG.info("Flushing Simple Output");
     if (useNewApi) {
       try {
         newRecordWriter.close(newApiTaskAttemptContext);
@@ -286,8 +296,7 @@ public class MROutput extends AbstractLogicalOutput {
     } else {
       oldRecordWriter.close(null);
     }
-    LOG.info("Closed Simple Output");
-    return null;
+    LOG.info("Flushed Simple Output");
   }
 
   /**
@@ -296,7 +305,7 @@ public class MROutput extends AbstractLogicalOutput {
    * @throws IOException
    */
   public void commit() throws IOException {
-    close();
+    flush();
     if (useNewApi) {
       committer.commitTask(newApiTaskAttemptContext);
     } else {
@@ -311,7 +320,7 @@ public class MROutput extends AbstractLogicalOutput {
    * @throws IOException
    */
   public void abort() throws IOException {
-    close();
+    flush();
     if (useNewApi) {
       committer.abortTask(newApiTaskAttemptContext);
     } else {

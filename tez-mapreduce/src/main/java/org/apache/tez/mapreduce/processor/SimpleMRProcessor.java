@@ -43,11 +43,20 @@ public abstract class SimpleMRProcessor extends SimpleProcessor {
     }
     List<MROutput> mrOuts = Lists.newLinkedList();
     for (LogicalOutput output : getOutputs().values()) {
-      if ((output instanceof MROutput) && (((MROutput) output).isCommitRequired())) {
-        mrOuts.add((MROutput) output);
+      if (output instanceof MROutput) {
+        MROutput mrOutput = (MROutput) output;
+        mrOutput.flush();
+        if (mrOutput.isCommitRequired()) {
+          mrOuts.add((MROutput) output);
+        }
       }
     }
     if (mrOuts.size() > 0) {
+      // This will loop till the AM asks for the task to be killed. As
+      // against, the AM sending a signal to the task to kill itself
+      // gracefully. The AM waits for the current committer to successfully
+      // complete and then kills us. Until then we wait in case the
+      // current committer fails and we get chosen to commit.
       while (!getContext().canCommit()) {
         Thread.sleep(100);
       }

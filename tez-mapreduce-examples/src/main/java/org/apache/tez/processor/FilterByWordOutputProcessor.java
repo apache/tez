@@ -44,10 +44,6 @@ public class FilterByWordOutputProcessor extends SimpleMRProcessor {
 
 
   @Override
-  public void initialize() throws Exception {
-  }
-
-  @Override
   public void handleEvents(List<Event> processorEvents) {
     throw new UnsupportedOperationException("Not expecting any events to the broadcast output processor");
   }

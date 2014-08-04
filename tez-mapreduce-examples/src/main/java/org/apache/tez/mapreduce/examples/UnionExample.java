@@ -67,14 +67,13 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValuesInput;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
-import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 public class UnionExample {
 
-  public static class TokenProcessor extends SimpleProcessor {
+  public static class TokenProcessor extends SimpleMRProcessor {
     IntWritable one = new IntWritable(1);
     Text word = new Text();
 
@@ -109,14 +108,6 @@ public class UnionExample {
           if (inUnion) {
             partsWriter.write(word, one);
           }
-        }
-      }
-      if (inUnion) {
-        if (parts.isCommitRequired()) {
-          while (!getContext().canCommit()) {
-            Thread.sleep(100);
-          }
-          parts.commit();
         }
       }
     }

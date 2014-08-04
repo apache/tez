@@ -449,7 +449,10 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
     // task can Commit now
     try {
       LOG.info("Task " + taskAttemptId + " is allowed to commit now");
-      output.commit();
+      output.flush();
+      if (output.isCommitRequired()) {
+        output.commit();
+      }
       return;
     } catch (IOException iee) {
       LOG.warn("Failure committing: " +

@@ -43,6 +43,8 @@ INCOMPATIBLE CHANGES
   TEZ-1041. Use VertexLocationHint consistently everywhere in the API
   TEZ-1057. Replace interfaces with abstract classes for
   Processor/Input/Output classes
+  TEZ-1351. MROutput needs a flush method to ensure data is materialized for
+  FileOutputCommitter
 
 Release 0.4.0-incubating: 2014-04-05
 

@@ -59,6 +59,7 @@ import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Reader;
@@ -282,7 +283,7 @@ public class IntersectExample extends Configured implements Tool {
     }
   }
 
-  public static class IntersectProcessor extends SimpleProcessor {
+  public static class IntersectProcessor extends SimpleMRProcessor {
 
     public IntersectProcessor(TezProcessorContext context) {
       super(context);
@@ -316,12 +317,6 @@ public class IntersectExample extends Configured implements Tool {
           writer.write(key, NullWritable.get());
         }
       }
-
-      LOG.info("Completed Processing. Trying to commit");
-      while (!getContext().canCommit()) {
-        Thread.sleep(100l);
-      }
-      output.commit();
     }
   }
 }
