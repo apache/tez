@@ -36,6 +36,7 @@ import org.apache.tez.mapreduce.examples.OrderedWordCount;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -85,6 +86,7 @@ public class TestSecureShuffle {
    * @throws Exception
    */
   @Test(timeout = 60000)
+  @Ignore // TODO TEZ-1368
   public void testSecureShuffle() throws Exception {
     miniTezCluster.getConfig().setBoolean(
       TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, true);
