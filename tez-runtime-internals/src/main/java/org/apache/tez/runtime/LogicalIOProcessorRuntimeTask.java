@@ -48,6 +48,7 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.InputFrameworkInterface;
@@ -105,7 +106,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private ConcurrentHashMap<String, MergedLogicalInput> groupInputsMap;
 
   private final ProcessorDescriptor processorDescriptor;
-  private LogicalIOProcessor processor;
+  private AbstractLogicalIOProcessor processor;
   private TezProcessorContext processorContext;
 
   private final MemoryDistributor initialMemoryDistributor;
@@ -320,8 +321,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
           "Can only run while in INITED state. Current: " + this.state);
       this.state = State.RUNNING;
     }
-    LogicalIOProcessor lioProcessor = (LogicalIOProcessor) processor;
-    lioProcessor.run(runInputMap, runOutputMap);
+    processor.run(runInputMap, runOutputMap);
   }
 
   public void close() throws Exception {
@@ -553,16 +553,16 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     return (LogicalOutput) output;
   }
 
-  private LogicalIOProcessor createProcessor(
+  private AbstractLogicalIOProcessor createProcessor(
       String processorClassName, TezProcessorContext processorContext) {
     Processor processor = ReflectionUtils.createClazzInstance(processorClassName,
         new Class[]{TezProcessorContext.class}, new Object[]{processorContext});
-    if (!(processor instanceof LogicalIOProcessor)) {
+    if (!(processor instanceof AbstractLogicalIOProcessor)) {
       throw new TezUncheckedException(processor.getClass().getName()
-          + " is not a sub-type of LogicalIOProcessor."
-          + " Only LogicalIOProcessor sub-types supported by LogicalIOProcessorRuntimeTask.");
+          + " is not a sub-type of AbstractLogicalIOProcessor."
+          + " Only AbstractLogicalIOProcessor sub-types supported by LogicalIOProcessorRuntimeTask.");
     }
-    return (LogicalIOProcessor) processor;
+    return (AbstractLogicalIOProcessor) processor;
   }
 
   private void sendTaskGeneratedEvents(List<Event> events,

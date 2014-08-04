@@ -33,7 +33,7 @@ import org.apache.tez.runtime.api.Reader;
  * </code>
  *
  */
-public interface KeyValuesReader extends Reader {
+public abstract class KeyValuesReader extends Reader {
 
   /**
    * Moves to the next key/values(s) pair
@@ -42,18 +42,18 @@ public interface KeyValuesReader extends Reader {
    * @throws IOException
    *           if an error occurs
    */
-  public boolean next() throws IOException;
+  public abstract boolean next() throws IOException;
 
   
   /**
    * Returns the current key
    * @return the current key
    */
-  public Object getCurrentKey() throws IOException;
+  public abstract Object getCurrentKey() throws IOException;
   
   /**
    * Returns an Iterable view of the values associated with the current key
    * @return an Iterable view of the values associated with the current key
    */
-  public Iterable<Object> getCurrentValues() throws IOException;
+  public abstract Iterable<Object> getCurrentValues() throws IOException;
 }

@@ -21,6 +21,6 @@ package org.apache.tez.runtime.api;
 /**
  * A <code>Reader</code> represents the data being read in an {@link Input}
  */
-public interface Reader {
+public abstract class Reader {
 
 }

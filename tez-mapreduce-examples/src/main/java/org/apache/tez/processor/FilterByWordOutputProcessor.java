@@ -19,13 +19,12 @@
 package org.apache.tez.processor;
 
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.mapreduce.output.MROutput;
+import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
-import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
@@ -35,7 +34,7 @@ import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 
 
-public class FilterByWordOutputProcessor extends AbstractLogicalIOProcessor {
+public class FilterByWordOutputProcessor extends SimpleMRProcessor {
 
   private static final Log LOG = LogFactory.getLog(MapProcessor.class);
 
@@ -59,8 +58,7 @@ public class FilterByWordOutputProcessor extends AbstractLogicalIOProcessor {
   }
 
   @Override
-  public void run(Map<String, LogicalInput> inputs,
-      Map<String, LogicalOutput> outputs) throws Exception {
+  public void run() throws Exception {
     
     if (inputs.size() != 1) {
       throw new IllegalStateException("FilterByWordOutputProcessor processor can only work with a single input");
@@ -97,11 +95,6 @@ public class FilterByWordOutputProcessor extends AbstractLogicalIOProcessor {
       Object value = kvReader.getCurrentValue();
 
       kvWriter.write(key, value);
-    }
-    if (getContext().canCommit()) {
-      mrOutput.commit();
-    } else {
-      mrOutput.abort();
     }
   }
 }

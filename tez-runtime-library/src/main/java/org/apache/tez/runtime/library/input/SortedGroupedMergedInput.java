@@ -68,7 +68,7 @@ public class SortedGroupedMergedInput extends MergedLogicalInput {
     }
   }
 
-  private static class SortedGroupedMergedKeyValuesReader implements KeyValuesReader {
+  private static class SortedGroupedMergedKeyValuesReader extends KeyValuesReader {
     private final PriorityQueue<KeyValuesReader> pQueue;
     @SuppressWarnings("rawtypes")
     private final RawComparator keyComparator;

@@ -269,7 +269,7 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
   }
 
   @SuppressWarnings("rawtypes")
-  private static class ShuffledMergedKeyValuesReader implements KeyValuesReader {
+  private static class ShuffledMergedKeyValuesReader extends KeyValuesReader {
 
     private final ValuesIterator valuesIter;
 

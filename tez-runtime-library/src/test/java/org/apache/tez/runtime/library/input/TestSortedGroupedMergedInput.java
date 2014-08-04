@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.hadoop.io.RawComparator;
 import org.apache.tez.runtime.InputReadyTracker;
@@ -392,7 +391,7 @@ public class TestSortedGroupedMergedInput {
     }
   }
 
-  private static class SortedTestKeyValuesReader implements KeyValuesReader {
+  private static class SortedTestKeyValuesReader extends KeyValuesReader {
 
     final int[] keys;
     final int[][] values;

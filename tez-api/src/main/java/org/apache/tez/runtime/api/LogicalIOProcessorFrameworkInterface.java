@@ -16,19 +16,28 @@
  * limitations under the License.
  */
 
-package org.apache.tez.mapreduce.lib;
+package org.apache.tez.runtime.api;
 
-import java.io.IOException;
+import java.util.Map;
 
-import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.tez.runtime.library.api.KeyValueReader;
+/**
+ * Represents a processor framework interface which consumes {@link LogicalInput}s and produces
+ * {@link LogicalOutput}s
+ */
+public interface LogicalIOProcessorFrameworkInterface extends ProcessorFrameworkInterface {
 
-@Private
-public abstract class MRReader extends KeyValueReader {
-  public abstract void setSplit(Object split) throws IOException;
-  public abstract boolean isSetup();
-  public abstract float getProgress() throws IOException, InterruptedException;
-  public abstract void close() throws IOException;
-  public abstract Object getSplit();
-  public abstract Object getRecordReader();
+  /**
+   * Runs the {@link Processor}
+   * 
+   * @param inputs
+   *          a map of the source vertex name to {@link LogicalInput} - one per
+   *          incoming edge.
+   * @param outputs
+   *          a map of the destination vertex name to {@link LogicalOutput} -
+   *          one per outgoing edge
+   * @throws Exception TODO
+   */
+  public void run(Map<String, LogicalInput> inputs,
+      Map<String, LogicalOutput> outputs) throws Exception;
+
 }

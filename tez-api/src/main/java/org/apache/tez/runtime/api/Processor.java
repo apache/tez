@@ -18,35 +18,9 @@
 
 package org.apache.tez.runtime.api;
 
-import java.util.List;
-
 /**
  * {@link Processor} represents the <em>Tez</em> entity responsible for
  * consuming {@link Input} and producing {@link Output}.
  */
 public interface Processor {
-
-  /**
-   * Initializes the <code>Processor</code>
-   *
-   * @throws java.lang.Exception
-   *           if an error occurs
-   */
-  public void initialize() throws Exception;
-
-  /**
-   * Handles user and system generated {@link Event}s.
-   *
-   * @param processorEvents
-   *          the list of {@link Event}s
-   */
-  public void handleEvents(List<Event> processorEvents);
-
-  /**
-   * Closes the <code>Processor</code>
-   *
-   * @throws java.io.IOException
-   *           if an error occurs
-   */
-  public void close() throws Exception;
 }

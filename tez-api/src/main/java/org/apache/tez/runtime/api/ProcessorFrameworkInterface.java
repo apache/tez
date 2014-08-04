@@ -18,9 +18,39 @@
 
 package org.apache.tez.runtime.api;
 
-/**
- * A <code>Writer</code> represents the data being written by an {@link Output}
- */
-public abstract class Writer {
+import java.util.List;
 
+/**
+ * Represents the Tez framework part of an {@link org.apache.tez.runtime.api.Processor}.
+ * <p/>
+ *
+ * This interface has methods which are used by the Tez framework to control the Processor.
+ * <p/>
+ */
+public interface ProcessorFrameworkInterface {
+
+  /**
+   * Initializes the <code>Processor</code>
+   *
+   * @param processorContext
+   * @throws java.io.IOException
+   *           if an error occurs
+   */
+  public void initialize() throws Exception;
+
+  /**
+   * Handles user and system generated {@link Event}s.
+   *
+   * @param processorEvents
+   *          the list of {@link Event}s
+   */
+  public void handleEvents(List<Event> processorEvents);
+
+  /**
+   * Closes the <code>Processor</code>
+   *
+   * @throws java.io.IOException
+   *           if an error occurs
+   */
+  public void close() throws Exception;
 }

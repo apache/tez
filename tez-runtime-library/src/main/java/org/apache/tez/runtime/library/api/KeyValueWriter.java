@@ -25,7 +25,7 @@ import org.apache.tez.runtime.api.Writer;
 /**
  * A key/value(s) pair based {@link Writer}
  */
-public interface KeyValueWriter extends Writer {
+public abstract class KeyValueWriter extends Writer {
   /**
    * Writes a key/value pair.
    * 
@@ -36,5 +36,5 @@ public interface KeyValueWriter extends Writer {
    * @throws IOException
    *           if an error occurs
    */
-  public void write(Object key, Object value) throws IOException;
+  public abstract void write(Object key, Object value) throws IOException;
 }

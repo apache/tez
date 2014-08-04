@@ -34,7 +34,6 @@ import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezOutputContext;
-import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -43,7 +42,7 @@ import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 
 @SuppressWarnings("rawtypes")
-public abstract class BaseUnorderedPartitionedKVWriter implements KeyValuesWriter {
+public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
 
   private static final Log LOG = LogFactory.getLog(BaseUnorderedPartitionedKVWriter.class);
   

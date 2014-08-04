@@ -32,7 +32,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 
 import com.google.common.base.Preconditions;
 
-public class MRReaderMapReduce implements MRReader {
+public class MRReaderMapReduce extends MRReader {
 
   private final TezCounter inputRecordCounter;
 

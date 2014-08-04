@@ -18,14 +18,12 @@
 
 package org.apache.tez.runtime.library.api;
 
-import org.apache.tez.runtime.api.Writer;
-
 import java.io.IOException;
 
 /**
  * key/value(s) based {@link KeyValueWriter}
  */
-public interface KeyValuesWriter extends KeyValueWriter {
+public abstract class KeyValuesWriter extends KeyValueWriter {
 
   /**
    * Writes a key and its associated values
@@ -36,5 +34,5 @@ public interface KeyValuesWriter extends KeyValueWriter {
    *          values to write
    * @throws java.io.IOException
    */
-  public void write(Object key, Iterable<Object> values) throws IOException;
+  public abstract void write(Object key, Iterable<Object> values) throws IOException;
 }

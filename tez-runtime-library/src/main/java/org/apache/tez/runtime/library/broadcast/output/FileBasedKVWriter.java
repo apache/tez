@@ -19,7 +19,6 @@
 package org.apache.tez.runtime.library.broadcast.output;
 
 import java.io.IOException;
-import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,7 +34,6 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.TezOutputContext;
-import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
@@ -46,7 +44,7 @@ import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 
 import com.google.common.base.Preconditions;
 
-public class FileBasedKVWriter implements KeyValuesWriter {
+public class FileBasedKVWriter extends KeyValuesWriter {
 
   private static final Log LOG = LogFactory.getLog(FileBasedKVWriter.class);
   

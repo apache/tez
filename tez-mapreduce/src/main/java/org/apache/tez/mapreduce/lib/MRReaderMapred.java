@@ -36,7 +36,7 @@ import org.apache.tez.mapreduce.input.MRInput;
 
 import com.google.common.base.Preconditions;
 
-public class MRReaderMapred implements MRReader {
+public class MRReaderMapred extends MRReader {
 
   private static final Log LOG = LogFactory.getLog(MRReaderMapred.class);
 

@@ -66,17 +66,6 @@ public class ReduceProcessor extends MRTask {
   }
 
   @Override
-  public void initialize()
-      throws IOException {
-    try {
-      super.initialize();
-    } catch (InterruptedException e) {
-      throw new IOException(e);
-    }
-  }
-
-
-  @Override
   public void handleEvents(List<Event> processorEvents) {
     // TODO Auto-generated method stub
 

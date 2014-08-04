@@ -18,26 +18,9 @@
 
 package org.apache.tez.runtime.api;
 
-import java.util.Map;
-
 /**
  * Represents a processor which consumes {@link LogicalInput}s and produces
  * {@link LogicalOutput}s
  */
 public interface LogicalIOProcessor extends Processor {
-
-  /**
-   * Runs the {@link Processor}
-   * 
-   * @param inputs
-   *          a map of the source vertex name to {@link LogicalInput} - one per
-   *          incoming edge.
-   * @param outputs
-   *          a map of the destination vertex name to {@link LogicalOutput} -
-   *          one per outgoing edge
-   * @throws Exception TODO
-   */
-  public void run(Map<String, LogicalInput> inputs,
-      Map<String, LogicalOutput> outputs) throws Exception;
-
 }

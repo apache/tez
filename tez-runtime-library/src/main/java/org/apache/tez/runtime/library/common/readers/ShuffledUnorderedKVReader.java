@@ -37,7 +37,7 @@ import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
 import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleManager;
 import org.apache.tez.runtime.library.shuffle.common.MemoryFetchedInput;
 
-public class ShuffledUnorderedKVReader<K, V> implements KeyValueReader {
+public class ShuffledUnorderedKVReader<K, V> extends KeyValueReader {
 
   private static final Log LOG = LogFactory.getLog(ShuffledUnorderedKVReader.class);
   

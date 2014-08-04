@@ -44,7 +44,6 @@ import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
@@ -53,24 +52,13 @@ import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class MapProcessor extends MRTask {
+public class MapProcessor extends MRTask{
 
   private static final Log LOG = LogFactory.getLog(MapProcessor.class);
 
   public MapProcessor(TezProcessorContext processorContext) {
     super(processorContext, true);
   }
-
-  @Override
-  public void initialize()
-      throws IOException {
-    try {
-      super.initialize();
-    } catch (InterruptedException e) {
-      throw new IOException(e);
-    }
-  }
-
 
   @Override
   public void handleEvents(List<Event> processorEvents) {

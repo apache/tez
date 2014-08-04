@@ -35,7 +35,7 @@ public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
     super(context, inputs);
   }
 
-  public class ConcatenatedMergedKeyValuesReader implements KeyValuesReader {
+  public class ConcatenatedMergedKeyValuesReader extends KeyValuesReader {
     private int currentReaderIndex = 0;
     private KeyValuesReader currentReader;
     

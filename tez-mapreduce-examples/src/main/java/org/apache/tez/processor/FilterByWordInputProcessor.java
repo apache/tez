@@ -101,9 +101,6 @@ public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
       throw new IllegalStateException("FilterByWordInputProcessor processor can only work with OnFileUnorderedKVOutput");
     }
 
-    
-    
-    
     MRInputLegacy mrInput = (MRInputLegacy) li;
     mrInput.init();
     OnFileUnorderedKVOutput kvOutput = (OnFileUnorderedKVOutput) lo;

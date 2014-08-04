@@ -18,7 +18,6 @@
 package org.apache.tez.runtime.api;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
 /**
  * Abstract representation of the interface {@link LogicalIOProcessor}.
  * Implements the base logic of some methods into this class.
@@ -26,8 +25,8 @@ import org.apache.hadoop.classification.InterfaceStability;
  *
  */
 @InterfaceAudience.Public
-@InterfaceStability.Evolving
-public abstract class AbstractLogicalIOProcessor implements LogicalIOProcessor {
+public abstract class AbstractLogicalIOProcessor implements LogicalIOProcessor,
+    LogicalIOProcessorFrameworkInterface {
   private final TezProcessorContext context;
 
   /**
