@@ -19,19 +19,14 @@
 package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
-import java.net.URI;
-import java.util.LinkedList;
-import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
@@ -41,8 +36,6 @@ import org.apache.tez.client.TezClient;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -50,7 +43,6 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
-import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.examples.IntersectExample.ForwardingProcessor;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
@@ -160,7 +152,6 @@ public class IntersectValidate extends Configured implements Tool {
     Path rhsPath = new Path(rhsDir);
 
     DAG dag = createDag(tezConf, lhsPath, rhsPath, numPartitions);
-    setupURIsForCredentials(dag, lhsPath, rhsPath);
 
     tezSession.waitTillReady();
     DAGClient dagClient = tezSession.submitDAG(dag);
@@ -191,18 +182,6 @@ public class IntersectValidate extends Configured implements Tool {
       throws IOException {
     DAG dag = new DAG("IntersectValidate");
 
-    // Configuration for src1
-    Configuration lhsInputConf = new Configuration(tezConf);
-    lhsInputConf.set(FileInputFormat.INPUT_DIR, lhs.toUri().toString());
-    byte[] streamInputPayload = MRInput.createUserPayload(lhsInputConf,
-        TextInputFormat.class.getName(), true, false);
-
-    // Configuration for src2
-    Configuration rhsInputConf = new Configuration(tezConf);
-    rhsInputConf.set(FileInputFormat.INPUT_DIR, rhs.toUri().toString());
-    byte[] hashInputPayload = MRInput.createUserPayload(rhsInputConf,
-        TextInputFormat.class.getName(), true, false);
-
     // Configuration for intermediate output - shared by Vertex1 and Vertex2
     // This should only be setting selective keys from the underlying conf. Fix after there's a
     // better mechanism to configure the IOs.
@@ -213,15 +192,19 @@ public class IntersectValidate extends Configured implements Tool {
     // Change the way resources are setup - no MRHelpers
     Vertex lhsVertex = new Vertex(LHS_INPUT_NAME, new ProcessorDescriptor(
         ForwardingProcessor.class.getName()), -1,
-        MRHelpers.getMapResource(tezConf)).addDataSource("lhs", new InputDescriptor(
-        MRInput.class.getName()).setUserPayload(streamInputPayload),
-        new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
+        MRHelpers.getMapResource(tezConf)).addDataSource(
+        "lhs",
+        MRInput
+        .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
+            lhs.toUri().toString()).groupSplitsInAM(false).create());
 
     Vertex rhsVertex = new Vertex(RHS_INPUT_NAME, new ProcessorDescriptor(
         ForwardingProcessor.class.getName()), -1,
-        MRHelpers.getMapResource(tezConf)).addDataSource("rhs", new InputDescriptor(
-        MRInput.class.getName()).setUserPayload(hashInputPayload),
-        new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
+        MRHelpers.getMapResource(tezConf)).addDataSource(
+        "rhs",
+        MRInput
+        .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
+            rhs.toUri().toString()).groupSplitsInAM(false).create());
 
     Vertex intersectValidateVertex = new Vertex("intersectvalidate",
         new ProcessorDescriptor(IntersectValidateProcessor.class.getName()),
@@ -278,13 +261,4 @@ public class IntersectValidate extends Configured implements Tool {
     }
   }
 
-  private void setupURIsForCredentials(DAG dag, Path... paths) throws IOException {
-    List<URI> uris = new LinkedList<URI>();
-    for (Path path : paths) {
-      FileSystem fs = path.getFileSystem(getConf());
-      Path qPath = fs.makeQualified(path);
-      uris.add(qPath.toUri());
-    }
-    dag.addURIsForCredentials(uris);
-  }
 }

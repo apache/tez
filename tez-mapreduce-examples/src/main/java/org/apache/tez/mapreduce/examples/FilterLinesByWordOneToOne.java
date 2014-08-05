@@ -46,6 +46,8 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
@@ -186,10 +188,12 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     // Configure the Input for stage1
     Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
         : MRInputAMSplitGenerator.class;
-    stage1Vertex.addDataSource("MRInput",
-        new InputDescriptor(MRInputLegacy.class.getName())
-            .setUserPayload(MRHelpers.createMRInputPayload(stage1Payload, null)),
-            (initializerClazz==null ? null : new InputInitializerDescriptor(initializerClazz.getName())));
+    stage1Vertex.addDataSource(
+        "MRInput",
+        new DataSourceDescriptor(new InputDescriptor(MRInputLegacy.class
+            .getName()).setUserPayload(MRHelpers.createMRInputPayload(
+            stage1Payload, null)), (initializerClazz == null ? null
+            : new InputInitializerDescriptor(initializerClazz.getName())), null));
 
     // Setup stage2 Vertex
     Vertex stage2Vertex = new Vertex("stage2", new ProcessorDescriptor(
@@ -199,10 +203,11 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     stage2Vertex.setTaskLocalFiles(commonLocalResources);
 
     // Configure the Output for stage2
-    stage2Vertex.addDataSink("MROutput",
-        new OutputDescriptor(MROutput.class.getName()).setUserPayload(MRHelpers
-            .createUserPayloadFromConf(stage2Conf)),
-            new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
+    stage2Vertex.addDataSink(
+        "MROutput",
+        new DataSinkDescriptor(new OutputDescriptor(MROutput.class.getName())
+            .setUserPayload(MRHelpers.createUserPayloadFromConf(stage2Conf)),
+            new OutputCommitterDescriptor(MROutputCommitter.class.getName()), null));
 
     UnorderedUnpartitionedKVEdgeConfigurer edgeConf = UnorderedUnpartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();

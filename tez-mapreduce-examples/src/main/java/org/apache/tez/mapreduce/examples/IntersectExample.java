@@ -19,10 +19,8 @@
 package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -33,9 +31,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
@@ -44,18 +40,12 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.InputInitializerDescriptor;
-import org.apache.tez.dag.api.OutputCommitterDescriptor;
-import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.committer.MROutputCommitter;
-import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
@@ -168,7 +158,6 @@ public class IntersectExample extends Configured implements Tool {
     }
 
     DAG dag = createDag(tezConf, streamInputPath, hashInputPath, outputPath, numPartitions);
-    setupURIsForCredentials(dag, streamInputPath, hashInputPath, outputPath);
 
     tezSession.waitTillReady();
     DAGClient dagClient = tezSession.submitDAG(dag);
@@ -185,18 +174,6 @@ public class IntersectExample extends Configured implements Tool {
       int numPartitions) throws IOException {
     DAG dag = new DAG("IntersectExample");
 
-    // Configuration for src1
-    Configuration streamInputConf = new Configuration(tezConf);
-    streamInputConf.set(FileInputFormat.INPUT_DIR, streamPath.toUri().toString());
-    byte[] streamInputPayload = MRInput.createUserPayload(streamInputConf,
-        TextInputFormat.class.getName(), true, false);
-
-    // Configuration for src2
-    Configuration hashInputConf = new Configuration(tezConf);
-    hashInputConf.set(FileInputFormat.INPUT_DIR, hashPath.toUri().toString());
-    byte[] hashInputPayload = MRInput.createUserPayload(hashInputConf,
-        TextInputFormat.class.getName(), true, false);
-
     // Configuration for intermediate output - shared by Vertex1 and Vertex2
     // This should only be setting selective keys from the underlying conf. Fix after there's a
     // better mechanism to configure the IOs.
@@ -206,32 +183,26 @@ public class IntersectExample extends Configured implements Tool {
             .newBuilder(Text.class.getName(), NullWritable.class.getName(),
                 HashPartitioner.class.getName(), null).build();
 
-    Configuration finalOutputConf = new Configuration(tezConf);
-    finalOutputConf.set(FileOutputFormat.OUTDIR, outPath.toUri().toString());
-    byte[] finalOutputPayload = MROutput.createUserPayload(finalOutputConf,
-        TextOutputFormat.class.getName(), true);
-
     // Change the way resources are setup - no MRHelpers
-    Vertex streamFileVertex = new Vertex("partitioner1",
-        new ProcessorDescriptor(ForwardingProcessor.class.getName()), -1,
-        MRHelpers.getMapResource(tezConf)).addDataSource("streamfile",
-        new InputDescriptor(MRInput.class.getName())
-            .setUserPayload(streamInputPayload), 
-            new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
+    Vertex streamFileVertex = new Vertex("partitioner1", new ProcessorDescriptor(
+        ForwardingProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf)).addDataSource(
+        "streamfile",
+        MRInput
+            .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
+                streamPath.toUri().toString()).groupSplitsInAM(false).create());
 
     Vertex hashFileVertex = new Vertex("partitioner2", new ProcessorDescriptor(
-        ForwardingProcessor.class.getName()), -1,
-        MRHelpers.getMapResource(tezConf)).addDataSource("hashfile",
-        new InputDescriptor(MRInput.class.getName())
-            .setUserPayload(hashInputPayload), 
-            new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
+        ForwardingProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf)).addDataSource(
+        "hashfile",
+        MRInput
+            .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
+                hashPath.toUri().toString()).groupSplitsInAM(false).create());
 
     Vertex intersectVertex = new Vertex("intersect", new ProcessorDescriptor(
         IntersectProcessor.class.getName()), numPartitions,
         MRHelpers.getReduceResource(tezConf)).addDataSink("finalOutput",
-        new OutputDescriptor(MROutput.class.getName())
-            .setUserPayload(finalOutputPayload), 
-        new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
+        MROutput.createConfigurer(new Configuration(tezConf),
+            TextOutputFormat.class, outPath.toUri().toString()).create());
 
     Edge e1 = new Edge(streamFileVertex, intersectVertex, edgeConf.createDefaultEdgeProperty());
 
@@ -240,16 +211,6 @@ public class IntersectExample extends Configured implements Tool {
     dag.addVertex(streamFileVertex).addVertex(hashFileVertex).addVertex(intersectVertex)
         .addEdge(e1).addEdge(e2);
     return dag;
-  }
-
-  private void setupURIsForCredentials(DAG dag, Path... paths) throws IOException {
-    List<URI> uris = new LinkedList<URI>();
-    for (Path path : paths) {
-      FileSystem fs = path.getFileSystem(getConf());
-      Path qPath = fs.makeQualified(path);
-      uris.add(qPath.toUri());
-    }
-    dag.addURIsForCredentials(uris);
   }
 
   // private void obtainTokens(Credentials credentials, Path... paths) throws IOException {

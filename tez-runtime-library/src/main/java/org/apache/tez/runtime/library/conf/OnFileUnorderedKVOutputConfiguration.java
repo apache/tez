@@ -48,7 +48,7 @@ public class OnFileUnorderedKVOutputConfiguration {
 
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
-  public static class SpecificBuilder<E extends HadoopKeyValuesBasedBaseConf.Builder> implements
+  public static class SpecificBuilder<E extends HadoopKeyValuesBasedBaseEdgeConfigurer.Builder> implements
       SpecificConfigurer<SpecificBuilder> {
 
     private final E edgeBuilder;

@@ -22,8 +22,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -90,11 +88,10 @@ public class VertexGroup {
    * Add an common data sink to the group of vertices.
    * Refer to {@link Vertex#addDataSink(String, OutputDescriptor, OutputCommitterDescriptor)}
    */
-  public VertexGroup addDataSink(String outputName, OutputDescriptor outputDescriptor,
-      @Nullable OutputCommitterDescriptor committerDescriptor) {
+  public VertexGroup addDataSink(String outputName, DataSinkDescriptor dataSinkDescriptor) {
     RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> leafOutput = 
         new RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>(outputName,
-        outputDescriptor, committerDescriptor);
+        dataSinkDescriptor.getOutputDescriptor(), dataSinkDescriptor.getOutputCommitterDescriptor());
     this.groupInfo.outputs.add(outputName);
     
     // also add output to its members

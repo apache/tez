@@ -23,9 +23,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Random;
 
 import org.apache.commons.logging.Log;
@@ -36,7 +33,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
@@ -44,15 +40,12 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
-import org.apache.tez.dag.api.OutputCommitterDescriptor;
-import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
@@ -185,7 +178,6 @@ public class IntersectDataGen extends Configured implements Tool {
 
     DAG dag = createDag(tezConf, largeOutPath, smallOutPath, expectedOutputPath, numTasks,
         largeOutSize, smallOutSize);
-    setupURIsForCredentials(dag, largeOutPath, smallOutPath, expectedOutputPath);
 
     tezSession.waitTillReady();
     DAGClient dagClient = tezSession.submitDAG(dag);
@@ -207,22 +199,18 @@ public class IntersectDataGen extends Configured implements Tool {
 
     DAG dag = new DAG("IntersectDataGen");
 
-    byte[] streamOutputPayload = createPayloadForOutput(largeOutPath, tezConf);
-    byte[] hashOutputPayload = createPayloadForOutput(smallOutPath, tezConf);
-    byte[] expectedOutputPayload = createPayloadForOutput(expectedOutputPath, tezConf);
-
     Vertex genDataVertex = new Vertex("datagen", new ProcessorDescriptor(
         GenDataProcessor.class.getName()).setUserPayload(GenDataProcessor.createConfiguration(
         largeOutSizePerTask, smallOutSizePerTask)), numTasks, MRHelpers.getMapResource(tezConf));
-    genDataVertex.addDataSink(STREAM_OUTPUT_NAME,
-        new OutputDescriptor(MROutput.class.getName()).setUserPayload(streamOutputPayload),
-        new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
-    genDataVertex.addDataSink(HASH_OUTPUT_NAME,
-        new OutputDescriptor(MROutput.class.getName()).setUserPayload(hashOutputPayload),
-        new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
-    genDataVertex.addDataSink(EXPECTED_OUTPUT_NAME,
-        new OutputDescriptor(MROutput.class.getName()).setUserPayload(expectedOutputPayload),
-        new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
+    genDataVertex.addDataSink(STREAM_OUTPUT_NAME, 
+        MROutput.createConfigurer(new Configuration(tezConf),
+            TextOutputFormat.class, largeOutPath.toUri().toString()).create());
+    genDataVertex.addDataSink(HASH_OUTPUT_NAME, 
+        MROutput.createConfigurer(new Configuration(tezConf),
+            TextOutputFormat.class, smallOutPath.toUri().toString()).create());
+    genDataVertex.addDataSink(EXPECTED_OUTPUT_NAME, 
+        MROutput.createConfigurer(new Configuration(tezConf),
+            TextOutputFormat.class, expectedOutputPath.toUri().toString()).create());
 
     dag.addVertex(genDataVertex);
 
@@ -351,16 +339,6 @@ public class IntersectDataGen extends Configured implements Tool {
 
   }
 
-  private void setupURIsForCredentials(DAG dag, Path... paths) throws IOException {
-    List<URI> uris = new LinkedList<URI>();
-    for (Path path : paths) {
-      FileSystem fs = path.getFileSystem(getConf());
-      Path qPath = fs.makeQualified(path);
-      uris.add(qPath.toUri());
-    }
-    dag.addURIsForCredentials(uris);
-  }
-
   private int checkOutputDirectory(FileSystem fs, Path path) throws IOException {
     if (fs.exists(path)) {
       System.err.println("Output directory: " + path + " already exists");
@@ -369,10 +347,4 @@ public class IntersectDataGen extends Configured implements Tool {
     return 0;
   }
 
-  private byte[] createPayloadForOutput(Path outputPath, Configuration srcConf) throws IOException {
-    Configuration conf = new Configuration(srcConf);
-    conf.set(FileOutputFormat.OUTDIR, outputPath.toUri().toString());
-    byte[] payload = MROutput.createUserPayload(conf, TextOutputFormat.class.getName(), true);
-    return payload;
-  }
 }

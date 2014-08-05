@@ -38,6 +38,7 @@ import org.apache.hadoop.yarn.event.DrainDispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -361,8 +362,8 @@ public class TestDAGImpl {
         TotalCountingOutputCommitter.class.getName());
     org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor("output.class");
-    uv12.addDataSink("uvOut", outDesc, ocd);
-    v3.addDataSink("uvOut", outDesc, ocd);
+    uv12.addDataSink("uvOut", new DataSinkDescriptor(outDesc, ocd, null));
+    v3.addDataSink("uvOut", new DataSinkDescriptor(outDesc, ocd, null));
     
     GroupInputEdge e1 = new GroupInputEdge(uv12, v3,
         new EdgeProperty(DataMovementType.SCATTER_GATHER, 

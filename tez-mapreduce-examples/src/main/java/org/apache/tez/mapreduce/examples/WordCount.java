@@ -29,9 +29,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
@@ -40,18 +38,14 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.InputInitializerDescriptor;
-import org.apache.tez.dag.api.OutputCommitterDescriptor;
-import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.committer.MROutputCommitter;
-import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
@@ -123,29 +117,20 @@ public class WordCount extends Configured implements Tool {
       Map<String, LocalResource> localResources, Path stagingDir,
       String inputPath, String outputPath) throws IOException {
 
-    Configuration inputConf = new Configuration(tezConf);
-    inputConf.set(FileInputFormat.INPUT_DIR, inputPath);
-    InputDescriptor id = new InputDescriptor(MRInput.class.getName())
-        .setUserPayload(MRInput.createUserPayload(inputConf,
-            TextInputFormat.class.getName(), true, true));
-    InputInitializerDescriptor iid = new InputInitializerDescriptor(
-        MRInputAMSplitGenerator.class.getName());
+    DataSourceDescriptor dataSource = MRInput.createConfigurer(new Configuration(tezConf),
+        TextInputFormat.class, inputPath).create();
 
-    Configuration outputConf = new Configuration(tezConf);
-    outputConf.set(FileOutputFormat.OUTDIR, outputPath);
-    OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
-      .setUserPayload(MROutput.createUserPayload(
-          outputConf, TextOutputFormat.class.getName(), true));
-    OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(MROutputCommitter.class.getName());
+    DataSinkDescriptor dataSink = MROutput.createConfigurer(new Configuration(tezConf),
+        TextOutputFormat.class, outputPath).create();
 
     Vertex tokenizerVertex = new Vertex("tokenizer", new ProcessorDescriptor(
         TokenProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf));
-    tokenizerVertex.addDataSource("MRInput", id, iid);
+    tokenizerVertex.addDataSource("MRInput", dataSource);
 
     Vertex summerVertex = new Vertex("summer",
         new ProcessorDescriptor(
             SumProcessor.class.getName()), 1, MRHelpers.getReduceResource(tezConf));
-    summerVertex.addDataSink("MROutput", od, ocd);
+    summerVertex.addDataSink("MROutput", dataSink);
 
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),

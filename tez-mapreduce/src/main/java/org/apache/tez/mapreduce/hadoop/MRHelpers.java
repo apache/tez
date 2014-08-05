@@ -63,6 +63,8 @@ import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.common.security.TokenCache;
+import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.OutputCommitterDescriptor;
@@ -983,14 +985,15 @@ public class MRHelpers {
       InputInitializerDescriptor initClazz) {
     InputDescriptor id = new InputDescriptor(MRInputLegacy.class.getName())
         .setUserPayload(userPayload);
-    vertex.addDataSource("MRInput", id, initClazz);
+    vertex.addDataSource("MRInput", new DataSourceDescriptor(id, initClazz, null));
   }
 
   @Private
   public static void addMROutputLegacy(Vertex vertex, byte[] userPayload) {
     OutputDescriptor od = new OutputDescriptor(MROutputLegacy.class.getName())
         .setUserPayload(userPayload);
-    vertex.addDataSink("MROutput", od, new OutputCommitterDescriptor(MROutputCommitter.class.getName()));
+    vertex.addDataSink("MROutput", new DataSinkDescriptor(od,
+        new OutputCommitterDescriptor(MROutputCommitter.class.getName()), null));
   }
 
   @SuppressWarnings("unchecked")

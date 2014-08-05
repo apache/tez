@@ -39,7 +39,7 @@ import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
  */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
-public class UnorderedUnpartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseConf {
+public class UnorderedUnpartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseEdgeConfigurer {
   private final OnFileUnorderedKVOutputConfiguration outputConf;
   private final ShuffledUnorderedKVInputConfiguration inputConf;
 
@@ -140,7 +140,7 @@ public class UnorderedUnpartitionedKVEdgeConfigurer extends HadoopKeyValuesBased
 
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
-  public static class Builder extends HadoopKeyValuesBasedBaseConf.Builder<Builder> {
+  public static class Builder extends HadoopKeyValuesBasedBaseEdgeConfigurer.Builder<Builder> {
 
     private final OnFileUnorderedKVOutputConfiguration.Builder outputBuilder =
         new OnFileUnorderedKVOutputConfiguration.Builder();

@@ -54,6 +54,8 @@ import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
@@ -200,10 +202,13 @@ public class FilterLinesByWord extends Configured implements Tool {
     // Configure the Input for stage1
     Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
         : MRInputAMSplitGenerator.class;
-    stage1Vertex.addDataSource("MRInput",
-        new InputDescriptor(MRInputLegacy.class.getName())
-            .setUserPayload(MRHelpers.createMRInputPayload(stage1Payload, null)),
-        (initializerClazz==null ? null : new InputInitializerDescriptor(initializerClazz.getName())));
+    stage1Vertex.addDataSource(
+        "MRInput",
+        new DataSourceDescriptor(new InputDescriptor(MRInputLegacy.class
+            .getName()).setUserPayload(MRHelpers.createMRInputPayload(
+            stage1Payload, null)), 
+            (initializerClazz == null ? null
+            : new InputInitializerDescriptor(initializerClazz.getName())), null));
 
     // Setup stage2 Vertex
     Vertex stage2Vertex = new Vertex("stage2", new ProcessorDescriptor(
@@ -216,7 +221,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
         .setUserPayload(MRHelpers.createUserPayloadFromConf(stage2Conf));
     OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(MROutputCommitter.class.getName());
-    stage2Vertex.addDataSink("MROutput", od, ocd);
+    stage2Vertex.addDataSink("MROutput", new DataSinkDescriptor(od, ocd, null));
 
     UnorderedUnpartitionedKVEdgeConfigurer edgeConf = UnorderedUnpartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();

@@ -271,6 +271,29 @@ public class TezClientUtils {
     }
     return fs;
   }
+  
+  /**
+   * Populate {@link Credentials} for the URI's to access them from their {@link FileSystem}s
+   * @param uris URIs that need to be accessed
+   * @param credentials Credentials object into which to add the credentials
+   * @param conf Configuration to access the FileSystem
+   * @throws IOException
+   */
+  public static void addFileSystemCredentialsFromURIs(Collection<URI> uris, Credentials credentials,
+      Configuration conf) throws IOException {
+    // Obtain Credentials for any paths that the user may have configured.
+    if (uris != null && !uris.isEmpty()) {
+      Iterator<Path> pathIter = Iterators.transform(uris.iterator(), new Function<URI, Path>() {
+        @Override
+        public Path apply(URI input) {
+          return new Path(input);
+        }
+      });
+
+      Path[] paths = Iterators.toArray(pathIter, Path.class);
+      TokenCache.obtainTokensForFileSystems(credentials, paths, conf);
+    }
+  }
 
   /**
    * Obtains tokens for the DAG based on the list of URIs setup in the DAG. The
@@ -303,18 +326,7 @@ public class TezClientUtils {
     // Add additional credentials based on any URIs that the user may have specified.
     
     // Obtain Credentials for any paths that the user may have configured.
-    Collection<URI> uris = dag.getURIsForCredentials();
-    if (uris != null && !uris.isEmpty()) {
-      Iterator<Path> pathIter = Iterators.transform(uris.iterator(), new Function<URI, Path>() {
-        @Override
-        public Path apply(URI input) {
-          return new Path(input);
-        }
-      });
-
-      Path[] paths = Iterators.toArray(pathIter, Path.class);
-      TokenCache.obtainTokensForFileSystems(dagCredentials, paths, conf);
-    }
+    addFileSystemCredentialsFromURIs(dag.getURIsForCredentials(), dagCredentials, conf);
 
     // Obtain Credentials for the local resources configured on the DAG
     try {

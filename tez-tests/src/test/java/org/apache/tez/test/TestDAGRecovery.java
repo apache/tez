@@ -28,6 +28,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -181,9 +182,12 @@ public class TestDAGRecovery {
   @Test(timeout=120000)
   public void testDelayedInit() throws Exception {
     DAG dag = SimpleVTestDAG.createDAG("DelayedInitDAG", null);
-    dag.getVertex("v1").addDataSource("i1",
-        new InputDescriptor(NoOpInput.class.getName()),
-        new InputInitializerDescriptor(FailingInputInitializer.class.getName()));
+    dag.getVertex("v1").addDataSource(
+        "i1",
+        new DataSourceDescriptor(
+            new InputDescriptor(NoOpInput.class.getName()),
+            new InputInitializerDescriptor(FailingInputInitializer.class
+                .getName()), null));
     runDAGAndVerify(dag, State.SUCCEEDED);
   }
 

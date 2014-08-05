@@ -31,6 +31,8 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
+import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputCommitterDescriptor;
@@ -54,8 +56,8 @@ public class TestDAGUtils {
     org.apache.tez.dag.api.Vertex v1 = new org.apache.tez.dag.api.Vertex("vertex1",
         new ProcessorDescriptor("Processor").setHistoryText("vertex1 Processor HistoryText"),
         dummyTaskCount, dummyTaskResource);
-    v1.addDataSource("input1", new InputDescriptor("input.class").setHistoryText("input HistoryText"),
-        null);
+    v1.addDataSource("input1", new DataSourceDescriptor(new InputDescriptor(
+        "input.class").setHistoryText("input HistoryText"), null, null));
     org.apache.tez.dag.api.Vertex v2 = new org.apache.tez.dag.api.Vertex("vertex2",
         new ProcessorDescriptor("Processor").setHistoryText("vertex2 Processor HistoryText"),
         dummyTaskCount, dummyTaskResource);
@@ -69,8 +71,8 @@ public class TestDAGUtils {
     OutputDescriptor outDesc = new OutputDescriptor("output.class")
         .setHistoryText("uvOut HistoryText");
     OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(OutputCommitter.class.getName());
-    uv12.addDataSink("uvOut", outDesc, ocd);
-    v3.addDataSink("uvOut", outDesc, ocd);
+    uv12.addDataSink("uvOut", new DataSinkDescriptor(outDesc, ocd, null));
+    v3.addDataSink("uvOut", new DataSinkDescriptor(outDesc, ocd, null));
 
     GroupInputEdge e1 = new GroupInputEdge(uv12, v3,
         new EdgeProperty(DataMovementType.SCATTER_GATHER,

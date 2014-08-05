@@ -20,6 +20,7 @@ package org.apache.tez.mapreduce.output;
 
 import java.io.IOException;
 import java.text.NumberFormat;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -35,11 +36,18 @@ import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -51,7 +59,135 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TezOutputContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
+
 public class MROutput extends AbstractLogicalOutput {
+  
+  /**
+   * Helper class to configure {@link MROutput}
+   *
+   */
+  public static class MROutputConfigurer {
+    final Configuration conf;
+    final Class<?> outputFormat;
+    boolean useNewApi;
+    boolean getCredentialsForSinkFilesystem = true;
+    String outputPath;
+    
+    private MROutputConfigurer(Configuration conf, Class<?> outputFormat) {
+      this.conf = conf;
+      this.outputFormat = outputFormat;
+      if (org.apache.hadoop.mapred.OutputFormat.class.isAssignableFrom(outputFormat)) {
+        useNewApi = false;
+      } else if(org.apache.hadoop.mapreduce.OutputFormat.class.isAssignableFrom(outputFormat)) {
+        useNewApi = true;
+      } else {
+        throw new TezUncheckedException("outputFormat must be assignable from either " +
+            "org.apache.hadoop.mapred.OutputFormat or " +
+            "org.apache.hadoop.mapreduce.OutputFormat" +
+            " Given: " + outputFormat.getName());
+      }
+    }
+
+    private MROutputConfigurer setOutputPath(String outputPath) {
+      if (!(org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.class.isAssignableFrom(outputFormat) || 
+          FileOutputFormat.class.isAssignableFrom(outputFormat))) {
+        throw new TezUncheckedException("When setting outputPath the outputFormat must " + 
+            "be assignable from either org.apache.hadoop.mapred.FileOutputFormat or " +
+            "org.apache.hadoop.mapreduce.lib.output.FileOutputFormat. " +
+            "Otherwise use the non-path configurer." + 
+            " Given: " + outputFormat.getName());
+      }
+      conf.set(org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.OUTDIR, outputPath);
+      this.outputPath = outputPath;
+      return this;
+    }
+    
+    /**
+     * Create the {@link DataSinkDescriptor}
+     * @return {@link DataSinkDescriptor}
+     */
+    public DataSinkDescriptor create() {
+      Credentials credentials = null;
+      if (getCredentialsForSinkFilesystem && outputPath != null) {
+        try {
+          Path path = new Path(outputPath);
+          FileSystem fs;
+          fs = path.getFileSystem(conf);
+          Path qPath = fs.makeQualified(path);
+          credentials = new Credentials();
+          TezClientUtils.addFileSystemCredentialsFromURIs(Collections.singletonList(qPath.toUri()),
+              credentials, conf);
+        } catch (IOException e) {
+          throw new TezUncheckedException(e);
+        }
+      }
+      
+      return new DataSinkDescriptor(
+          new OutputDescriptor(MROutput.class.getName()).setUserPayload(createUserPayload(conf,
+              outputFormat.getName(), useNewApi)), new OutputCommitterDescriptor(
+              MROutputCommitter.class.getName()), credentials);
+    }
+    
+    /**
+     * Get the credentials for the output from its {@link FileSystem}s
+     * Use the method to turn this off when not using a {@link FileSystem}
+     * or when {@link Credentials} are not supported
+     * @param value whether to get credentials or not. (true by default)
+     * @return {@link MROutputConfigurer}
+     */
+    public MROutputConfigurer getCredentialsForSinkFileSystem(boolean value) {
+      getCredentialsForSinkFilesystem = value;
+      return this;
+    }
+
+    /**
+     * Creates the user payload to be set on the OutputDescriptor for MROutput
+     * @param conf Configuration for the OutputFormat
+     * @param outputFormatName Name of the class of the OutputFormat
+     * @param useNewApi Use new mapreduce API or old mapred API
+     * @return
+     * @throws IOException
+     */
+    private byte[] createUserPayload(Configuration conf, 
+        String outputFormatName, boolean useNewApi) {
+      Configuration outputConf = new JobConf(conf);
+      outputConf.setBoolean("mapred.reducer.new-api", useNewApi);
+      if (useNewApi) {
+        outputConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, outputFormatName);
+      } else {
+        outputConf.set("mapred.output.format.class", outputFormatName);
+      }
+      MRHelpers.translateVertexConfToTez(outputConf);
+      try {
+        MRHelpers.doJobClientMagic(outputConf);
+        return TezUtils.createUserPayloadFromConf(outputConf);
+      } catch (IOException e) {
+        throw new TezUncheckedException(e);
+      }
+    }
+  }
+  
+  /**
+   * Create an {@link MROutputConfigurer}
+   * @param conf Configuration for the {@link MROutput}
+   * @param outputFormat OutputFormat derived class
+   * @return {@link MROutputConfigurer}
+   */
+  public static MROutputConfigurer createtConfigurer(Configuration conf, Class<?> outputFormat) {
+    return new MROutputConfigurer(conf, outputFormat);
+  }
+
+  /**
+   * Create an {@link MROutputConfigurer} for a FileOutputFormat
+   * @param conf Configuration for the {@link MROutput}
+   * @param outputFormat FileInputFormat derived class
+   * @param outputPath Output path
+   * @return {@link MROutputConfigurer}
+   */
+  public static MROutputConfigurer createConfigurer(Configuration conf, Class<?> outputFormat,
+      String outputPath) {
+    return new MROutputConfigurer(conf, outputFormat).setOutputPath(outputPath);
+  }
 
   private static final Log LOG = LogFactory.getLog(MROutput.class);
 
@@ -83,24 +219,6 @@ public class MROutput extends AbstractLogicalOutput {
 
   public MROutput(TezOutputContext outputContext, int numPhysicalOutputs) {
     super(outputContext, numPhysicalOutputs);
-  }
-
-  /**
-   * Creates the user payload to be set on the OutputDescriptor for MROutput
-   * @param conf Configuration for the OutputFormat
-   * @param outputFormatName Name of the class of the OutputFormat
-   * @param useNewApi Use new mapreduce API or old mapred API
-   * @return
-   * @throws IOException
-   */
-  public static byte[] createUserPayload(Configuration conf, 
-      String outputFormatName, boolean useNewApi) throws IOException {
-    Configuration outputConf = new JobConf(conf);
-    outputConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, outputFormatName);
-    outputConf.setBoolean("mapred.mapper.new-api", useNewApi);
-    MRHelpers.translateVertexConfToTez(outputConf);
-    MRHelpers.doJobClientMagic(outputConf);
-    return TezUtils.createUserPayloadFromConf(outputConf);
   }
 
   @Override

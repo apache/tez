@@ -63,20 +63,21 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint;
+import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
-import org.apache.tez.mapreduce.common.MRInputSplitDistributor;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
+import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
@@ -479,6 +480,8 @@ public class MRRSleepJob extends Configured implements Tool {
       MRHelpers.doJobClientMagic(finalReduceConf);
     }
 
+    DataSourceDescriptor dataSource = null;
+    List<TaskLocationHint> taskLocHint = null;
     InputSplitInfo inputSplitInfo = null;
     if (!generateSplitsInAM) {
       if (writeSplitsToDFS) {
@@ -491,19 +494,19 @@ public class MRRSleepJob extends Configured implements Tool {
         } catch (ClassNotFoundException e) {
           throw new TezUncheckedException("Failed to generate input splits", e);
         }
-      } else {
-        try {
-          LOG.info("Creating in-mem splits");
-          inputSplitInfo = MRHelpers.generateInputSplitsToMem(mapStageConf);
-        } catch (ClassNotFoundException e) {
-          throw new TezUncheckedException("Could not generate input splits", e);
-        } catch (InterruptedException e) {
-          throw new TezUncheckedException("Could not generate input splits", e);
+        if (inputSplitInfo.getCredentials() != null) {
+          this.credentials.addAll(inputSplitInfo.getCredentials());
         }
+        taskLocHint = inputSplitInfo.getTaskLocationHints();
+        byte[] mapInputPayload = MRHelpers.createMRInputPayload(mapStageConf, null);
+        InputDescriptor id = new InputDescriptor(MRInput.class.getName()).setUserPayload(mapInputPayload);
+        dataSource = new DataSourceDescriptor(id, null, null);
+      } else {
+        dataSource = MRInput.createConfigurer(mapStageConf, SleepInputFormat.class).
+            generateSplitsInAM(false).create();
       }
-      if (inputSplitInfo.getCredentials() != null) {
-        this.credentials.addAll(inputSplitInfo.getCredentials());
-      }
+    } else {
+      dataSource = MRInput.createConfigurer(mapStageConf, SleepInputFormat.class).create();
     }
 
     DAG dag = new DAG("MRRSleepJob");
@@ -533,24 +536,15 @@ public class MRRSleepJob extends Configured implements Tool {
     List<Vertex> vertices = new ArrayList<Vertex>();
 
     
-    byte[] mapInputPayload = null;
     byte[] mapUserPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
-    if (writeSplitsToDFS || generateSplitsInAM) {
-      mapInputPayload = MRHelpers.createMRInputPayload(mapUserPayload, null);
-    } else {
-      mapInputPayload = MRHelpers.createMRInputPayload(
-          mapUserPayload, inputSplitInfo.getSplitsProto());
-    }
     int numTasks = generateSplitsInAM ? -1 : numMapper;
     
     Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(mapUserPayload),
         numTasks, MRHelpers.getMapResource(mapStageConf));
-    if (!generateSplitsInAM) {
-      mapVertex.setLocationHint(new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
-    }
-    
+
     if (writeSplitsToDFS) {
+      mapVertex.setLocationHint(new VertexLocationHint(taskLocHint));
       Map<String, LocalResource> mapLocalResources = new HashMap<String, LocalResource>();
       mapLocalResources.putAll(commonLocalResources);
       MRHelpers.updateLocalResourcesForInputSplits(remoteFs, inputSplitInfo,
@@ -560,17 +554,7 @@ public class MRRSleepJob extends Configured implements Tool {
       mapVertex.setTaskLocalFiles(commonLocalResources);
     }
 
-    if (generateSplitsInAM) {
-      MRHelpers.addMRInput(mapVertex, mapInputPayload, 
-          new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()));
-    } else {
-      if (writeSplitsToDFS) {
-        MRHelpers.addMRInput(mapVertex, mapInputPayload, null);
-      } else {
-        MRHelpers.addMRInput(mapVertex, mapInputPayload, 
-            new InputInitializerDescriptor(MRInputSplitDistributor.class.getName()));
-      }
-    }
+    mapVertex.addDataSource("MRInput", dataSource);
     vertices.add(mapVertex);
 
     if (iReduceStagesCount > 0

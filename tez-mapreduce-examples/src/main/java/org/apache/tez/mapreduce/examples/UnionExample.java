@@ -30,21 +30,18 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapred.TextInputFormat;
+import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.GroupInputEdge;
-import org.apache.tez.dag.api.InputInitializerDescriptor;
-import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.VertexGroup;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -52,10 +49,9 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
-import org.apache.tez.mapreduce.committer.MROutputCommitter;
-import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
+import org.apache.tez.mapreduce.input.MRInput.MRInputConfigurer;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -174,27 +170,24 @@ public class UnionExample {
     
     int numMaps = -1;
     Configuration inputConf = new Configuration(tezConf);
-    inputConf.set(FileInputFormat.INPUT_DIR, inputPath);
-    InputDescriptor id = new InputDescriptor(MRInput.class.getName())
-        .setUserPayload(MRInput.createUserPayload(inputConf,
-            TextInputFormat.class.getName(), true, true));
+    MRInputConfigurer configurer = MRInput.createConfigurer(inputConf, TextInputFormat.class,
+        inputPath);
+    DataSourceDescriptor dataSource = configurer.generateSplitsInAM(false).create();
 
     Vertex mapVertex1 = new Vertex("map1", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
         numMaps, MRHelpers.getMapResource(tezConf));
-    InputInitializerDescriptor iid = 
-        new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName());
-    mapVertex1.addDataSource("MRInput", id, iid);
+    mapVertex1.addDataSource("MRInput", dataSource);
 
     Vertex mapVertex2 = new Vertex("map2", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
         numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex2.addDataSource("MRInput", id, iid);
+    mapVertex2.addDataSource("MRInput", dataSource);
 
     Vertex mapVertex3 = new Vertex("map3", new ProcessorDescriptor(
         TokenProcessor.class.getName()),
         numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex3.addDataSource("MRInput", id, iid);
+    mapVertex3.addDataSource("MRInput", dataSource);
 
     Vertex checkerVertex = new Vertex("checker",
         new ProcessorDescriptor(
@@ -202,28 +195,21 @@ public class UnionExample {
                 1, MRHelpers.getReduceResource(tezConf));
 
     Configuration outputConf = new Configuration(tezConf);
-    outputConf.set(FileOutputFormat.OUTDIR, outputPath);
-    OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
-      .setUserPayload(MROutput.createUserPayload(
-          outputConf, TextOutputFormat.class.getName(), true));
-    OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(MROutputCommitter.class.getName());
-    checkerVertex.addDataSink("union", od, ocd);
+    DataSinkDescriptor od = MROutput.createConfigurer(outputConf,
+        TextOutputFormat.class, outputPath).create();
+    checkerVertex.addDataSink("union", od);
+    
 
     Configuration allPartsConf = new Configuration(tezConf);
-    allPartsConf.set(FileOutputFormat.OUTDIR, outputPath+"-all-parts");
-    OutputDescriptor od2 = new OutputDescriptor(MROutput.class.getName())
-      .setUserPayload(MROutput.createUserPayload(
-          allPartsConf, TextOutputFormat.class.getName(), true));
-    checkerVertex.addDataSink("all-parts", od2, ocd);
+    DataSinkDescriptor od2 = MROutput.createConfigurer(allPartsConf,
+        TextOutputFormat.class, outputPath + "-all-parts").create();
+    checkerVertex.addDataSink("all-parts", od2);
 
-    Configuration partsConf = new Configuration(tezConf);
-    partsConf.set(FileOutputFormat.OUTDIR, outputPath+"-parts");
-    
+    Configuration partsConf = new Configuration(tezConf);    
+    DataSinkDescriptor od1 = MROutput.createConfigurer(partsConf,
+        TextOutputFormat.class, outputPath + "-parts").create();
     VertexGroup unionVertex = dag.createVertexGroup("union", mapVertex1, mapVertex2);
-    OutputDescriptor od1 = new OutputDescriptor(MROutput.class.getName())
-      .setUserPayload(MROutput.createUserPayload(
-          partsConf, TextOutputFormat.class.getName(), true));
-    unionVertex.addDataSink("parts", od1, ocd);
+    unionVertex.addDataSink("parts", od1);
 
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),

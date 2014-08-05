@@ -19,10 +19,9 @@
 package org.apache.tez.runtime.library.conf;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.tez.dag.api.EdgeProperty;
 
 @InterfaceAudience.Private
-abstract class HadoopKeyValuesBasedBaseConf {
+abstract class HadoopKeyValuesBasedBaseEdgeConfigurer {
 
   /**
    * Get the payload for the configured Output

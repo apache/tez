@@ -27,8 +27,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.RecordReader;
+import org.apache.tez.mapreduce.input.MRInput.MRInputConfigurer;
 import org.apache.tez.runtime.api.TezInputContext;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 
@@ -42,6 +44,30 @@ public class MRInputLegacy extends MRInput {
   private ReentrantLock eventLock = new ReentrantLock();
   private Condition eventCondition = eventLock.newCondition();
 
+  
+  /**
+   * Create an {@link MRInputConfigurer}
+   * @param conf Configuration for the {@link MRInputLegacy}
+   * @param inputFormat InputFormat derived class
+   * @return {@link MRInputConfigurer}
+   */
+  public static MRInputConfigurer createtConfigurer(Configuration conf, Class<?> inputFormat) {
+    return MRInput.createConfigurer(conf, inputFormat).setInputClassName(MRInputLegacy.class.getName());
+  }
+
+  /**
+   * Create an {@link MRInputConfigurer} for a FileInputFormat
+   * @param conf Configuration for the {@link MRInputLegacy}
+   * @param inputFormat FileInputFormat derived class
+   * @param inputPaths Comma separated input paths
+   * @return {@link MRInputConfigurer}
+   */
+  public static MRInputConfigurer createConfigurer(Configuration conf, Class<?> inputFormat,
+      String inputPaths) {
+    return MRInput.createConfigurer(conf, inputFormat, inputPaths).setInputClassName(
+        MRInputLegacy.class.getName());
+  }
+  
   public MRInputLegacy(TezInputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);
   }

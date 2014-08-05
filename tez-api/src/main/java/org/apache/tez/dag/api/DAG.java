@@ -72,7 +72,7 @@ public class DAG {
   final Set<Edge> edges = Sets.newHashSet();
   final String name;
   final Collection<URI> urisForCredentials = new HashSet<URI>();
-  Credentials credentials;
+  Credentials credentials = new Credentials();
   Set<VertexGroup> vertexGroups = Sets.newHashSet();
   Set<GroupInputEdge> groupInputEdges = Sets.newHashSet();
 
@@ -134,8 +134,9 @@ public class DAG {
    * need to be obtained so that the job can run. An incremental list of URIs
    * can be provided by making multiple calls to the method.
    * 
-   * Currently, credentials can only be fetched for HDFS and other
-   * {@link org.apache.hadoop.fs.FileSystem} implementations.
+   * Currently, @{link credentials} can only be fetched for HDFS and other
+   * {@link org.apache.hadoop.fs.FileSystem} implementations that support
+   * credentials.
    * 
    * @param uris
    *          a list of {@link URI}s
@@ -530,6 +531,28 @@ public class DAG {
     }
 
     for (Vertex vertex : vertices.values()) {
+      // infer credentials and parallelism from data source
+      List<DataSourceDescriptor> dataSources = vertex.getDataSources();
+      for (DataSourceDescriptor dataSource : dataSources) {
+        if (dataSource.getCredentials() != null) {
+          credentials.addAll(dataSource.getCredentials());
+        }
+      }
+      if (dataSources.size() == 1) {
+        DataSourceDescriptor dataSource = dataSources.get(0);
+        if (vertex.getParallelism() == -1 && dataSource.getNumberOfShards() > -1) {
+          vertex.setParallelism(dataSource.getNumberOfShards());
+        }
+        if (vertex.getLocationHint() == null && dataSource.getLocationHint() != null) {
+          vertex.setLocationHint(dataSource.getLocationHint());
+        }
+      }
+      for (DataSinkDescriptor dataSink : vertex.getDataSinks()) {
+        if (dataSink.getCredentials() != null) {
+          credentials.addAll(dataSink.getCredentials());
+        }
+      }
+      
       VertexPlan.Builder vertexBuilder = VertexPlan.newBuilder();
       vertexBuilder.setName(vertex.getName());
       vertexBuilder.setType(PlanVertexType.NORMAL); // vertex type is implicitly NORMAL until  TEZ-46.

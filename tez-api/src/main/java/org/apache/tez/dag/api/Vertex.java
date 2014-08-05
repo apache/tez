@@ -24,17 +24,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.VertexGroup.GroupInfo;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class Vertex {
@@ -58,6 +55,8 @@ public class Vertex {
   private final List<Edge> inputEdges = new ArrayList<Edge>();
   private final List<Edge> outputEdges = new ArrayList<Edge>();
   private final Map<String, GroupInfo> groupInputs = Maps.newHashMap();
+  private final List<DataSourceDescriptor> dataSources = Lists.newLinkedList();
+  private final List<DataSinkDescriptor> dataSinks = Lists.newLinkedList();
   
   private String taskLaunchCmdOpts = "";
 
@@ -232,24 +231,16 @@ public class Vertex {
    * @param inputName
    *          the name of the input. This will be used when accessing the input
    *          in the {@link LogicalIOProcessor}
-   * @param inputDescriptor
-   *          the inputDescriptor for this input
-   * @param inputInitializerDescriptor
-   *          An initializer for this Input which may run within the AM. This
-   *          can be used to set the parallelism for this vertex and generate
-   *          {@link RootInputDataInformationEvent}s for the actual Input.</p>
-   *          If this is not specified, the parallelism must be set for the
-   *          vertex. In addition, the Input should know how to access data for
-   *          each of it's tasks. </p> If a {@link TezRootInputInitializer} is
-   *          meant to determine the parallelism of the vertex, the initial
-   *          vertex parallelism should be set to -1. Can be null.
+   * @param dataSourceDescriptor
+   *          the @{link DataSourceDescriptor} for this input.
    * @return this Vertex
    */
-  public Vertex addDataSource(String inputName, InputDescriptor inputDescriptor,
-      @Nullable InputInitializerDescriptor inputInitializerDescriptor) {
+  public Vertex addDataSource(String inputName, DataSourceDescriptor dataSourceDescriptor) {
     additionalInputs
         .add(new RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>(
-            inputName, inputDescriptor, inputInitializerDescriptor));
+            inputName, dataSourceDescriptor.getInputDescriptor(),
+            dataSourceDescriptor.getInputInitializerDescriptor()));
+    this.dataSources.add(dataSourceDescriptor);
     return this;
   }
 
@@ -267,25 +258,16 @@ public class Vertex {
    * @param outputName
    *          the name of the output. This will be used when accessing the
    *          output in the {@link LogicalIOProcessor}
-   * @param outputDescriptor
-   * @param outputCommitterDescriptor
-   *          Specify committer to be used for the output Can be null. After all
-   *          tasks in the vertex (or in the DAG) have completed, the committer
-   *          (if specified) is invoked to commit the outputs. Commit is a data
-   *          sink specific operation that usually determines the visibility of
-   *          the output to external observers. E.g. moving output files from
-   *          temporary dirs to the real output dir. When there are multiple
-   *          executions of a task, the commit process also helps decide which
-   *          execution will be included in the final output. Users should
-   *          consider whether their application or data sink need a commit
-   *          operation.
+   * @param dataSinkDescriptor
+   *          the {@link DataSinkDescriptor} for this output
    * @return this Vertex
    */
-  public Vertex addDataSink(String outputName, OutputDescriptor outputDescriptor,
-      @Nullable OutputCommitterDescriptor outputCommitterDescriptor) {
+  public Vertex addDataSink(String outputName, DataSinkDescriptor dataSinkDescriptor) {
     additionalOutputs
         .add(new RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>(
-            outputName, outputDescriptor, outputCommitterDescriptor));
+            outputName, dataSinkDescriptor.getOutputDescriptor(),
+            dataSinkDescriptor.getOutputCommitterDescriptor()));
+    this.dataSinks.add(dataSinkDescriptor);
     return this;
   }
   
@@ -347,12 +329,28 @@ public class Vertex {
     outputEdges.add(edge);
   }
   
+  /**
+   * Get the input vertices for this vertex
+   * @return List of input vertices
+   */
   public List<Vertex> getInputVertices() {
     return Collections.unmodifiableList(inputVertices);
   }
 
+  /**
+   * Get the output vertices for this vertex
+   * @return List of output vertices
+   */
   public List<Vertex> getOutputVertices() {
     return Collections.unmodifiableList(outputVertices);
+  }
+  
+  List<DataSourceDescriptor> getDataSources() {
+    return dataSources;
+  }
+  
+  List<DataSinkDescriptor> getDataSinks() {
+    return dataSinks;
   }
 
   List<Edge> getInputEdges() {
