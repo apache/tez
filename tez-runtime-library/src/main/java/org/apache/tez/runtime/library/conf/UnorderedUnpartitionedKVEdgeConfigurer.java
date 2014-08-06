@@ -20,13 +20,13 @@
 
 package org.apache.tez.runtime.library.conf;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -35,17 +35,20 @@ import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
 /**
- * Configure payloads for the OnFileUnorderedKVOutput and ShuffledUnorderedKVInput pair
+ * Configure payloads for the OnFileUnorderedKVOutput and ShuffledUnorderedKVInput pair </p>
+ *
+ * Values will be picked up from tez-site if not specified, otherwise defaults from
+ * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
  */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public class UnorderedUnpartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseEdgeConfigurer {
-  private final OnFileUnorderedKVOutputConfiguration outputConf;
-  private final ShuffledUnorderedKVInputConfiguration inputConf;
+  private final OnFileUnorderedKVOutputConfigurer outputConf;
+  private final ShuffledUnorderedKVInputConfigurer inputConf;
 
   private UnorderedUnpartitionedKVEdgeConfigurer(
-      OnFileUnorderedKVOutputConfiguration outputConfiguration,
-      ShuffledUnorderedKVInputConfiguration inputConfiguration) {
+      OnFileUnorderedKVOutputConfigurer outputConfiguration,
+      ShuffledUnorderedKVInputConfigurer inputConfiguration) {
     this.outputConf = outputConfiguration;
     this.inputConf = inputConfiguration;
 
@@ -142,18 +145,18 @@ public class UnorderedUnpartitionedKVEdgeConfigurer extends HadoopKeyValuesBased
   @InterfaceStability.Evolving
   public static class Builder extends HadoopKeyValuesBasedBaseEdgeConfigurer.Builder<Builder> {
 
-    private final OnFileUnorderedKVOutputConfiguration.Builder outputBuilder =
-        new OnFileUnorderedKVOutputConfiguration.Builder();
-    private final OnFileUnorderedKVOutputConfiguration.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfigurer.Builder>
+    private final OnFileUnorderedKVOutputConfigurer.Builder outputBuilder =
+        new OnFileUnorderedKVOutputConfigurer.Builder();
+    private final OnFileUnorderedKVOutputConfigurer.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfigurer.Builder>
         specificOutputBuilder =
-        new OnFileUnorderedKVOutputConfiguration.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfigurer.Builder>(
+        new OnFileUnorderedKVOutputConfigurer.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfigurer.Builder>(
             this, outputBuilder);
 
-    private final ShuffledUnorderedKVInputConfiguration.Builder inputBuilder =
-        new ShuffledUnorderedKVInputConfiguration.Builder();
-    private final ShuffledUnorderedKVInputConfiguration.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfigurer.Builder>
+    private final ShuffledUnorderedKVInputConfigurer.Builder inputBuilder =
+        new ShuffledUnorderedKVInputConfigurer.Builder();
+    private final ShuffledUnorderedKVInputConfigurer.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfigurer.Builder>
         specificInputBuilder =
-        new ShuffledUnorderedKVInputConfiguration.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfigurer.Builder>(
+        new ShuffledUnorderedKVInputConfigurer.SpecificBuilder<UnorderedUnpartitionedKVEdgeConfigurer.Builder>(
             this, inputBuilder);
 
     @InterfaceAudience.Private
@@ -165,9 +168,9 @@ public class UnorderedUnpartitionedKVEdgeConfigurer extends HadoopKeyValuesBased
     }
 
     @Override
-    public Builder enableCompression(String compressionCodec) {
-      outputBuilder.enableCompression(compressionCodec);
-      inputBuilder.enableCompression(compressionCodec);
+    public Builder setCompression(boolean enabled, @Nullable String compressionCodec) {
+      outputBuilder.setCompression(enabled, compressionCodec);
+      inputBuilder.setCompression(enabled, compressionCodec);
       return this;
     }
 
@@ -221,7 +224,7 @@ public class UnorderedUnpartitionedKVEdgeConfigurer extends HadoopKeyValuesBased
      * Configure the specific output
      * @return a builder to configure the output
      */
-    public OnFileUnorderedKVOutputConfiguration.SpecificBuilder<Builder> configureOutput() {
+    public OnFileUnorderedKVOutputConfigurer.SpecificBuilder<Builder> configureOutput() {
       return specificOutputBuilder;
     }
 
@@ -229,7 +232,7 @@ public class UnorderedUnpartitionedKVEdgeConfigurer extends HadoopKeyValuesBased
      * Configure the specific input
      * @return a builder to configure the input
      */
-    public ShuffledUnorderedKVInputConfiguration.SpecificBuilder<Builder> configureInput() {
+    public ShuffledUnorderedKVInputConfigurer.SpecificBuilder<Builder> configureInput() {
       return specificInputBuilder;
     }
 

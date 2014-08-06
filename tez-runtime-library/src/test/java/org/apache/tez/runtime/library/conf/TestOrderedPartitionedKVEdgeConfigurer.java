@@ -28,6 +28,7 @@ import static org.junit.Assert.fail;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -38,21 +39,21 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
   @Test
   public void testNullParams() {
     try {
-      OrderedPartitionedKVEdgeConfigurer.newBuilder(null, "VALUE", "PARTITIONER", null);
+      OrderedPartitionedKVEdgeConfigurer.newBuilder(null, "VALUE", "PARTITIONER");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      OrderedPartitionedKVEdgeConfigurer.newBuilder("KEY", null, "PARTITIONER", null);
+      OrderedPartitionedKVEdgeConfigurer.newBuilder("KEY", null, "PARTITIONER");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      OrderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", null, null);
+      OrderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
@@ -62,16 +63,16 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
   @Test
   public void testDefaultConfigsUsed() {
     OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder("KEY", "VALUE", "PARTITIONER", null);
+        .newBuilder("KEY", "VALUE", "PARTITIONER");
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
     byte[] outputBytes = configuration.getOutputPayload();
     byte[] inputBytes = configuration.getInputPayload();
 
-    OnFileSortedOutputConfiguration rebuiltOutput = new OnFileSortedOutputConfiguration();
+    OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);
-    ShuffledMergedInputConfiguration rebuiltInput = new ShuffledMergedInputConfiguration();
+    ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
     rebuiltInput.fromByteArray(inputBytes);
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -91,16 +92,16 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
   public void testSpecificIOConfs() {
     // Ensures that Output and Input confs are not mixed.
     OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder("KEY", "VALUE", "PARTITIONER", null);
+        .newBuilder("KEY", "VALUE", "PARTITIONER");
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
     byte[] outputBytes = configuration.getOutputPayload();
     byte[] inputBytes = configuration.getInputPayload();
 
-    OnFileSortedOutputConfiguration rebuiltOutput = new OnFileSortedOutputConfiguration();
+    OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);
-    ShuffledMergedInputConfiguration rebuiltInput = new ShuffledMergedInputConfiguration();
+    ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
     rebuiltInput.fromByteArray(inputBytes);
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -129,7 +130,7 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
     additionalConfs.put("file.shouldExist", "file");
 
     OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder("KEY", "VALUE", "PARTITIONER", null)
+        .newBuilder("KEY", "VALUE", "PARTITIONER")
         .setAdditionalConfiguration("fs.shouldExist", "fs")
         .setAdditionalConfiguration("test.key.1", "key1")
         .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE, "2222")
@@ -143,9 +144,9 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
     byte[] outputBytes = configuration.getOutputPayload();
     byte[] inputBytes = configuration.getInputPayload();
 
-    OnFileSortedOutputConfiguration rebuiltOutput = new OnFileSortedOutputConfiguration();
+    OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);
-    ShuffledMergedInputConfiguration rebuiltInput = new ShuffledMergedInputConfiguration();
+    ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
     rebuiltInput.fromByteArray(inputBytes);
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -186,22 +187,24 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
   @Test
   public void testSetters() {
+    Map<String, String> comparatorConf = Maps.newHashMap();
+    comparatorConf.put("comparator.test.key", "comparatorValue");
     OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder("KEY", "VALUE", "PARTITIONER", null)
-        .setKeyComparatorClass("KEY_COMPARATOR")
+        .newBuilder("KEY", "VALUE", "PARTITIONER")
+        .setKeyComparatorClass("KEY_COMPARATOR", comparatorConf)
         .configureOutput().setSortBufferSize(1111).setSorterNumThreads(2).done()
         .configureInput().setMaxSingleMemorySegmentFraction(0.11f).setMergeFraction(0.22f)
         .setPostMergeBufferFraction(0.33f).setShuffleBufferFraction(0.44f).done()
-        .enableCompression("CustomCodec");
+        .setCompression(true, "CustomCodec");
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
     byte[] outputBytes = configuration.getOutputPayload();
     byte[] inputBytes = configuration.getInputPayload();
 
-    OnFileSortedOutputConfiguration rebuiltOutput = new OnFileSortedOutputConfiguration();
+    OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);
-    ShuffledMergedInputConfiguration rebuiltInput = new ShuffledMergedInputConfiguration();
+    ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
     rebuiltInput.fromByteArray(inputBytes);
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -219,6 +222,7 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
             false));
     assertEquals("KEY_COMPARATOR",
         outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
+    assertEquals("comparatorValue", outputConf.get("comparator.test.key"));
     assertNull(outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT));
     assertNull(outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT));
     assertNull(outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_BUFFER_PERCENT));
@@ -226,6 +230,7 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
 
     assertEquals("KEY_COMPARATOR", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
+    assertEquals("comparatorValue", inputConf.get("comparator.test.key"));
     assertEquals("KEY", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
     assertEquals("VALUE",
         inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
@@ -250,8 +255,8 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
   @Test
   public void testSerialization() {
     OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
-        .newBuilder("KEY", "VALUE", "PARTITIONER", null)
-        .enableCompression("CustomCodec")
+        .newBuilder("KEY", "VALUE", "PARTITIONER")
+        .setCompression(true, "CustomCodec")
         .setKeySerializationClass("serClass1", "SomeComparator1")
         .setValueSerializationClass("serClass2");
 
@@ -260,9 +265,9 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
     byte[] outputBytes = configuration.getOutputPayload();
     byte[] inputBytes = configuration.getInputPayload();
 
-    OnFileSortedOutputConfiguration rebuiltOutput = new OnFileSortedOutputConfiguration();
+    OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);
-    ShuffledMergedInputConfiguration rebuiltInput = new ShuffledMergedInputConfiguration();
+    ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
     rebuiltInput.fromByteArray(inputBytes);
 
     Configuration outputConf = rebuiltOutput.conf;

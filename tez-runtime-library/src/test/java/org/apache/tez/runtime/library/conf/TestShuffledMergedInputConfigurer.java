@@ -28,25 +28,24 @@ import static org.junit.Assert.fail;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
-public class TestOnFileUnorderedKVOutputConfiguration {
+public class TestShuffledMergedInputConfigurer {
 
   @Test
   public void testNullParams() {
     try {
-      OnFileUnorderedKVOutputConfiguration.newBuilder(
-          null, "VALUE");
+      ShuffledMergedInputConfigurer.newBuilder(null, "VALUE");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      OnFileUnorderedKVOutputConfiguration.newBuilder(
-          "KEY", null);
+      ShuffledMergedInputConfigurer.newBuilder("KEY", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
@@ -61,11 +60,16 @@ public class TestOnFileUnorderedKVOutputConfiguration {
     fromConf.set("io.shouldExist", "io");
     Map<String, String> additionalConf = new HashMap<String, String>();
     additionalConf.put("test.key.2", "key2");
-    additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, "2222");
+    additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, "3");
     additionalConf.put("file.shouldExist", "file");
-    OnFileUnorderedKVOutputConfiguration.Builder builder =
-        OnFileUnorderedKVOutputConfiguration.newBuilder("KEY", "VALUE")
-            .enableCompression("CustomCodec")
+    ShuffledMergedInputConfigurer.Builder builder =
+        ShuffledMergedInputConfigurer.newBuilder("KEY", "VALUE")
+            .setKeyComparatorClass("KEY_COMPARATOR", null)
+            .setCompression(true, "CustomCodec")
+            .setMaxSingleMemorySegmentFraction(0.11f)
+            .setMergeFraction(0.22f)
+            .setPostMergeBufferFraction(0.33f)
+            .setShuffleBufferFraction(0.44f)
             .setAdditionalConfiguration("fs.shouldExist", "fs")
             .setAdditionalConfiguration("test.key.1", "key1")
             .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
@@ -73,12 +77,11 @@ public class TestOnFileUnorderedKVOutputConfiguration {
             .setAdditionalConfiguration(additionalConf)
             .setFromConfiguration(fromConf);
 
-    OnFileUnorderedKVOutputConfiguration configuration = builder.build();
+    ShuffledMergedInputConfigurer configuration = builder.build();
 
 
     byte[] confBytes = configuration.toByteArray();
-    OnFileUnorderedKVOutputConfiguration rebuilt =
-        new OnFileUnorderedKVOutputConfiguration();
+    ShuffledMergedInputConfigurer rebuilt = new ShuffledMergedInputConfigurer();
     rebuilt.fromByteArray(confBytes);
 
     Configuration conf = rebuilt.conf;
@@ -90,12 +93,17 @@ public class TestOnFileUnorderedKVOutputConfiguration {
         conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
     assertEquals(true, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
         false));
+    assertEquals(0.11f, conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, 0.0f), 0.001f);
+    assertEquals(0.22f, conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 0.0f), 0.001f);
+    assertEquals(0.33f, conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_BUFFER_PERCENT, 0.0f), 0.001f);
+    assertEquals(0.44f, conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, 0.00f), 0.001f);
 
     // Verify additional configs
     assertEquals(false, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
     assertEquals(1111, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT));
+    assertEquals(3, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, -1));
     assertEquals("io", conf.get("io.shouldExist"));
     assertEquals("file", conf.get("file.shouldExist"));
     assertEquals("fs", conf.get("fs.shouldExist"));
@@ -106,14 +114,12 @@ public class TestOnFileUnorderedKVOutputConfiguration {
 
   @Test
   public void testDefaultConfigsUsed() {
-    OnFileUnorderedKVOutputConfiguration.Builder builder =
-        OnFileUnorderedKVOutputConfiguration
-            .newBuilder("KEY", "VALUE");
-    OnFileUnorderedKVOutputConfiguration configuration = builder.build();
+    ShuffledMergedInputConfigurer.Builder builder =
+        ShuffledMergedInputConfigurer.newBuilder("KEY", "VALUE");
+    ShuffledMergedInputConfigurer configuration = builder.build();
 
     byte[] confBytes = configuration.toByteArray();
-    OnFileUnorderedKVOutputConfiguration rebuilt =
-        new OnFileUnorderedKVOutputConfiguration();
+    ShuffledMergedInputConfigurer rebuilt = new ShuffledMergedInputConfigurer();
     rebuilt.fromByteArray(confBytes);
 
     Configuration conf = rebuilt.conf;
@@ -128,5 +134,30 @@ public class TestOnFileUnorderedKVOutputConfiguration {
     // Verify whatever was configured
     assertEquals("KEY", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
     assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
+  }
+
+  @Test
+  public void testCombinerConfigs() {
+    Map<String, String> combinerConf = Maps.newHashMap();
+    combinerConf.put("combiner.test.key", "COMBINERKEY");
+    combinerConf
+        .put(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
+    ShuffledMergedInputConfigurer.Builder builder =
+        ShuffledMergedInputConfigurer.newBuilder("KEY", "VALUE")
+            .setCombiner("COMBINER", combinerConf);
+
+    ShuffledMergedInputConfigurer configuration = builder.build();
+
+    byte[] confBytes = configuration.toByteArray();
+    ShuffledMergedInputConfigurer rebuilt = new ShuffledMergedInputConfigurer();
+    rebuilt.fromByteArray(confBytes);
+
+    Configuration conf = rebuilt.conf;
+
+    // Default Output property should not be overridden based on partitioner config
+    assertEquals("TestCodec",
+        conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+
+    assertEquals("COMBINERKEY", conf.get("combiner.test.key"));
   }
 }

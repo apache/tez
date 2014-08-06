@@ -38,21 +38,21 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
   @Test
   public void testNullParams() {
     try {
-      UnorderedPartitionedKVEdgeConfigurer.newBuilder(null, "VALUE", "PARTITIONER", null);
+      UnorderedPartitionedKVEdgeConfigurer.newBuilder(null, "VALUE", "PARTITIONER");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", null, "PARTITIONER", null);
+      UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", null, "PARTITIONER");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", null, null);
+      UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
@@ -62,7 +62,7 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
   @Test
   public void testDefaultConfigsUsed() {
     UnorderedPartitionedKVEdgeConfigurer.Builder builder =
-        UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null);
+        UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER");
     builder.setKeySerializationClass("SerClass1");
     builder.setValueSerializationClass("SerClass2");
 
@@ -71,11 +71,11 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
     byte[] outputBytes = configuration.getOutputPayload();
     byte[] inputBytes = configuration.getInputPayload();
 
-    OnFileUnorderedPartitionedKVOutputConfiguration rebuiltOutput =
-        new OnFileUnorderedPartitionedKVOutputConfiguration();
+    OnFileUnorderedPartitionedKVOutputConfigurer rebuiltOutput =
+        new OnFileUnorderedPartitionedKVOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);
-    ShuffledUnorderedKVInputConfiguration rebuiltInput =
-        new ShuffledUnorderedKVInputConfiguration();
+    ShuffledUnorderedKVInputConfigurer rebuiltInput =
+        new ShuffledUnorderedKVInputConfigurer();
     rebuiltInput.fromByteArray(inputBytes);
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -99,18 +99,18 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
   public void testSpecificIOConfs() {
     // Ensures that Output and Input confs are not mixed.
     UnorderedPartitionedKVEdgeConfigurer.Builder builder =
-        UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null);
+        UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER");
 
     UnorderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
     byte[] outputBytes = configuration.getOutputPayload();
     byte[] inputBytes = configuration.getInputPayload();
 
-    OnFileUnorderedPartitionedKVOutputConfiguration rebuiltOutput =
-        new OnFileUnorderedPartitionedKVOutputConfiguration();
+    OnFileUnorderedPartitionedKVOutputConfigurer rebuiltOutput =
+        new OnFileUnorderedPartitionedKVOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);
-    ShuffledUnorderedKVInputConfiguration rebuiltInput =
-        new ShuffledUnorderedKVInputConfiguration();
+    ShuffledUnorderedKVInputConfigurer rebuiltInput =
+        new ShuffledUnorderedKVInputConfigurer();
     rebuiltInput.fromByteArray(inputBytes);
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -140,7 +140,7 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
     additionalConfs.put("file.shouldExist", "file");
 
     UnorderedPartitionedKVEdgeConfigurer.Builder builder = UnorderedPartitionedKVEdgeConfigurer
-        .newBuilder("KEY", "VALUE", "PARTITIONER", null)
+        .newBuilder("KEY", "VALUE", "PARTITIONER")
         .setAdditionalConfiguration("fs.shouldExist", "fs")
         .setAdditionalConfiguration("test.key.1", "key1")
         .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE, "3333")
@@ -153,11 +153,11 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
     byte[] outputBytes = configuration.getOutputPayload();
     byte[] inputBytes = configuration.getInputPayload();
 
-    OnFileUnorderedPartitionedKVOutputConfiguration rebuiltOutput =
-        new OnFileUnorderedPartitionedKVOutputConfiguration();
+    OnFileUnorderedPartitionedKVOutputConfigurer rebuiltOutput =
+        new OnFileUnorderedPartitionedKVOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);
-    ShuffledUnorderedKVInputConfiguration rebuiltInput =
-        new ShuffledUnorderedKVInputConfiguration();
+    ShuffledUnorderedKVInputConfigurer rebuiltInput =
+        new ShuffledUnorderedKVInputConfigurer();
     rebuiltInput.fromByteArray(inputBytes);
 
     Configuration outputConf = rebuiltOutput.conf;

@@ -213,7 +213,7 @@ public class UnionExample {
 
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
-            HashPartitioner.class.getName(), null).build();
+            HashPartitioner.class.getName()).build();
 
     dag.addVertex(mapVertex1)
         .addVertex(mapVertex2)

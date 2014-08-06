@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -84,6 +85,7 @@ import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 
 /**
  * Dummy class for testing MR framefork. Sleeps for a defined period
@@ -587,11 +589,11 @@ public class MRRSleepJob extends Configured implements Tool {
     }
 
 
-    Configuration partitionerConf = new Configuration(false);
-    partitionerConf.set(MRJobConfig.PARTITIONER_CLASS_ATTR, MRRSleepJobPartitioner.class.getName());
+    Map<String, String> partitionerConf = Maps.newHashMap();
+    partitionerConf.put(MRJobConfig.PARTITIONER_CLASS_ATTR, MRRSleepJobPartitioner.class.getName());
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(IntWritable.class.getName(), IntWritable.class.getName(),
-            MRPartitioner.class.getName(), partitionerConf).configureInput().useLegacyInput()
+            HashPartitioner.class.getName(), partitionerConf).configureInput().useLegacyInput()
         .done().build();
 
     for (int i = 0; i < vertices.size(); ++i) {

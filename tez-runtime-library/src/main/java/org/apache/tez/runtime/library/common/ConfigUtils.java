@@ -219,10 +219,10 @@ public class ConfigUtils {
   }
 
   @InterfaceAudience.Private
-  public static void mergeConfsWithExclusions(Configuration destConf, Configuration srcConf, Set<String> excludedKeySet) {
+  public static void mergeConfsWithExclusions(Configuration destConf, Map<String, String> srcConf, Set<String> excludedKeySet) {
     Preconditions.checkState(destConf != null, "Destination conf cannot be null");
     Preconditions.checkState(srcConf != null, "Source conf cannot be null");
-    for (Map.Entry<String, String> entry : srcConf) {
+    for (Map.Entry<String, String> entry : srcConf.entrySet()) {
       if (!excludedKeySet.contains(entry.getKey())) {
         destConf.set(entry.getKey(), entry.getValue());
       }

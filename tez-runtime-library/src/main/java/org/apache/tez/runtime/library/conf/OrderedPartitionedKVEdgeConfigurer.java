@@ -18,13 +18,13 @@
 
 package org.apache.tez.runtime.library.conf;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -32,33 +32,56 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 /**
- * Configure payloads for the OnFileSortedOutput and ShuffledMergedInput pair
+ * Configure payloads for the OnFileSortedOutput and ShuffledMergedInput pair </p>
+ *
+ * Values will be picked up from tez-site if not specified, otherwise defaults from
+ * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
  */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseEdgeConfigurer {
 
-  private final OnFileSortedOutputConfiguration outputConf;
-  private final ShuffledMergedInputConfiguration inputConf;
+  private final OnFileSortedOutputConfigurer outputConf;
+  private final ShuffledMergedInputConfigurer inputConf;
 
   private OrderedPartitionedKVEdgeConfigurer(
-      OnFileSortedOutputConfiguration outputConfiguration,
-      ShuffledMergedInputConfiguration inputConfiguration) {
+      OnFileSortedOutputConfigurer outputConfiguration,
+      ShuffledMergedInputConfigurer inputConfiguration) {
     this.outputConf = outputConfiguration;
     this.inputConf = inputConfiguration;
   }
 
   /**
-   * Create a builder to configure the relevant Input and Output
-   * @param keyClassName the key class name
-   * @param valueClassName the value class name
+   * Create a builder to configure the relevant Input and Output. </p> This method should only be
+   * used when using a custom Partitioner which requires specific Configuration. {@link
+   * #newBuilder(String, String, String)} is the preferred method to crate an instance of the
+   * Builder
+   *
+   * @param keyClassName         the key class name
+   * @param valueClassName       the value class name
    * @param partitionerClassName the partitioner class name
-   * @param  partitionerConf the partitioner configuration. Can be null
+   * @param partitionerConf      the partitioner configuration. This can be null, and is a {@link
+   *                             java.util.Map} of key-value pairs. The keys should be limited to
+   *                             the ones required by the partitioner.
    * @return a builder to configure the edge
    */
   public static Builder newBuilder(String keyClassName, String valueClassName,
-                                   String partitionerClassName, Configuration partitionerConf) {
+                                   String partitionerClassName,
+                                   @Nullable Map<String, String> partitionerConf) {
     return new Builder(keyClassName, valueClassName, partitionerClassName, partitionerConf);
+  }
+
+  /**
+   * Create a builder to configure the relevant Input and Output
+   *
+   * @param keyClassName         the key class name
+   * @param valueClassName       the value class name
+   * @param partitionerClassName the partitioner class name
+   * @return a builder to configure the edge
+   */
+  public static Builder newBuilder(String keyClassName, String valueClassName,
+                                   String partitionerClassName) {
+    return newBuilder(keyClassName, valueClassName, partitionerClassName, null);
   }
 
   @Override
@@ -120,23 +143,23 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
   @InterfaceStability.Evolving
   public static class Builder extends HadoopKeyValuesBasedBaseEdgeConfigurer.Builder<Builder> {
 
-    private final OnFileSortedOutputConfiguration.Builder outputBuilder =
-        new OnFileSortedOutputConfiguration.Builder();
-    private final OnFileSortedOutputConfiguration.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>
+    private final OnFileSortedOutputConfigurer.Builder outputBuilder =
+        new OnFileSortedOutputConfigurer.Builder();
+    private final OnFileSortedOutputConfigurer.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>
         specificOutputBuilder =
-        new OnFileSortedOutputConfiguration.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>(
+        new OnFileSortedOutputConfigurer.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>(
             this, outputBuilder);
 
-    private final ShuffledMergedInputConfiguration.Builder inputBuilder =
-        new ShuffledMergedInputConfiguration.Builder();
-    private final ShuffledMergedInputConfiguration.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>
+    private final ShuffledMergedInputConfigurer.Builder inputBuilder =
+        new ShuffledMergedInputConfigurer.Builder();
+    private final ShuffledMergedInputConfigurer.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>
         specificInputBuilder =
-        new ShuffledMergedInputConfiguration.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>(this,
+        new ShuffledMergedInputConfigurer.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>(this,
             inputBuilder);
 
     @InterfaceAudience.Private
     Builder(String keyClassName, String valueClassName, String partitionerClassName,
-            Configuration partitionerConf) {
+            Map<String, String> partitionerConf) {
       outputBuilder.setKeyClassName(keyClassName);
       outputBuilder.setValueClassName(valueClassName);
       outputBuilder.setPartitioner(partitionerClassName, partitionerConf);
@@ -151,8 +174,25 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
      * @return instance of the current builder
      */
     public Builder setKeyComparatorClass(String comparatorClassName) {
-      outputBuilder.setKeyComparatorClass(comparatorClassName);
-      inputBuilder.setKeyComparatorClass(comparatorClassName);
+      return setKeyComparatorClass(comparatorClassName, null);
+    }
+
+    /**
+     * Set the key comparator class and it's associated configuration. This method should only be
+     * used if the comparator requires some specific configuration, which is typically not the
+     * case. {@link #setKeyComparatorClass(String)} is the preferred method for setting a
+     * comparator.
+     *
+     * @param comparatorClassName the key comparator class name
+     * @param comparatorConf      the comparator configuration. This can be null, and is a {@link
+     *                            java.util.Map} of key-value pairs. The keys should be limited to
+     *                            the ones required by the comparator.
+     * @return instance of the current builder
+     */
+    public Builder setKeyComparatorClass(String comparatorClassName,
+                                         @Nullable Map<String, String> comparatorConf) {
+      outputBuilder.setKeyComparatorClass(comparatorClassName, comparatorConf);
+      inputBuilder.setKeyComparatorClass(comparatorClassName, comparatorConf);
       return this;
     }
 
@@ -186,9 +226,9 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
 
 
     @Override
-    public Builder enableCompression(String compressionCodec) {
-      outputBuilder.enableCompression(compressionCodec);
-      inputBuilder.enableCompression(compressionCodec);
+    public Builder setCompression(boolean enabled, @Nullable String compressionCodec) {
+      outputBuilder.setCompression(enabled, compressionCodec);
+      inputBuilder.setCompression(enabled, compressionCodec);
       return this;
     }
 
@@ -217,7 +257,7 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
      * Configure the specific output
      * @return a builder to configure the output
      */
-    public OnFileSortedOutputConfiguration.SpecificBuilder<Builder> configureOutput() {
+    public OnFileSortedOutputConfigurer.SpecificBuilder<Builder> configureOutput() {
       return specificOutputBuilder;
     }
 
@@ -225,7 +265,7 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
      * Configure the specific input
      * @return a builder to configure the input
      */
-    public ShuffledMergedInputConfiguration.SpecificBuilder<Builder> configureInput() {
+    public ShuffledMergedInputConfigurer.SpecificBuilder<Builder> configureInput() {
       return specificInputBuilder;
     }
 

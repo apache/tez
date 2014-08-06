@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -473,11 +474,18 @@ public class YARNRunner implements ClientProtocol {
       if (i > 0) {
         // Set edge conf based on Input conf (compression etc properties for MapReduce are
         // w.r.t Outputs - MAP_OUTPUT_COMPRESS for example)
+        Map<String, String> partitionerConf = null;
+        if (stageConfs[i-1] != null) {
+          partitionerConf = Maps.newHashMap();
+          for (Map.Entry<String, String> entry : stageConfs[i - 1]) {
+            partitionerConf.put(entry.getKey(), entry.getValue());
+          }
+        }
         OrderedPartitionedKVEdgeConfigurer edgeConf =
             OrderedPartitionedKVEdgeConfigurer.newBuilder(stageConfs[i - 1].get(
                     TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS),
                 stageConfs[i - 1].get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS),
-                MRPartitioner.class.getName(), stageConfs[i - 1])
+                MRPartitioner.class.getName(), partitionerConf)
                 .configureInput().useLegacyInput().done()
                 .setFromConfiguration(stageConfs[i - 1]).build();
         Edge edge = new Edge(vertices[i-1], vertices[i], edgeConf.createDefaultEdgeProperty());

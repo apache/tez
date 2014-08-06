@@ -134,7 +134,7 @@ public class WordCount extends Configured implements Tool {
 
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
-            HashPartitioner.class.getName(), null).build();
+            HashPartitioner.class.getName()).build();
 
     DAG dag = new DAG("WordCount");
     dag.addVertex(tokenizerVertex)

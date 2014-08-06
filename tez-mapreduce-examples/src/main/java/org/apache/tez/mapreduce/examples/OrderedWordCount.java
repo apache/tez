@@ -266,14 +266,14 @@ public class OrderedWordCount extends Configured implements Tool {
 
     OrderedPartitionedKVEdgeConfigurer edgeConf1 = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
-            HashPartitioner.class.getName(), null).configureInput().useLegacyInput().done().build();
+            HashPartitioner.class.getName()).configureInput().useLegacyInput().done().build();
     dag.addEdge(
         new Edge(dag.getVertex("initialmap"), dag.getVertex("intermediate_reducer"),
             edgeConf1.createDefaultEdgeProperty()));
 
     OrderedPartitionedKVEdgeConfigurer edgeConf2 = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(IntWritable.class.getName(), Text.class.getName(),
-            HashPartitioner.class.getName(), null).configureInput().useLegacyInput().done().build();
+            HashPartitioner.class.getName()).configureInput().useLegacyInput().done().build();
     dag.addEdge(
         new Edge(dag.getVertex("intermediate_reducer"), dag.getVertex("finalreduce"),
             edgeConf2.createDefaultEdgeProperty()));

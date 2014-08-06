@@ -20,6 +20,7 @@
 
 package org.apache.tez.runtime.library.conf;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Map;
 
@@ -39,7 +40,13 @@ import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
 
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
-public class ShuffledMergedInputConfiguration {
+/**
+ * Configure {@link org.apache.tez.runtime.library.input.ShuffledMergedInput. </p>
+ *
+ * Values will be picked up from tez-site if not specified, otherwise defaults from
+ * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
+ */
+public class ShuffledMergedInputConfigurer {
 
   /**
    * Configure parameters which are specific to the Input.
@@ -83,9 +90,10 @@ public class ShuffledMergedInputConfiguration {
     /**
      * Enable the memory to memory merger
      *
+     * @param enable whether to enable the memory to memory merger
      * @return
      */
-    public T enableMemToMemMerger(); // Not super useful until additional params are used.
+    public T setMemToMemMerger(boolean enable); // Not super useful until additional params are used.
 
     /**
      * Configure the point at which in memory segments will be merged. This is specified as a
@@ -99,20 +107,25 @@ public class ShuffledMergedInputConfiguration {
     public T setMergeFraction(float mergeFraction);
 
     /**
-     * Enable encrypted data transfer
-     *
-     * @return instance of the current builder
-     */
-    public T enableEncryptedTransfer();
-
-    /**
      * Configure the combiner class
      *
      * @param combinerClassName the combiner class name
-     * @param combinerConf configuration specific to the Combiner. This can be null
      * @return instance of the current builder
      */
-    public T setCombiner(String combinerClassName, Configuration combinerConf);
+    public T setCombiner(String combinerClassName);
+
+    /**
+     * Configure the combiner class and it's associated configuration (specified as key-value
+     * pairs). This method should only be used if the combiner requires some specific configuration.
+     * {@link #setCombiner(String)} is the preferred method for setting a combiner.
+     *
+     * @param combinerClassName the combiner class name
+     * @param combinerConf      the combiner configuration. This can be null, and otherwise
+     *                          is a {@link java.util.Map} of key-value pairs. The keys should
+     *                          be limited to the ones required by the combiner.
+     * @return instance of the current builder
+     */
+    public T setCombiner(String combinerClassName, @Nullable Map<String, String> combinerConf);
 
   }
 
@@ -123,11 +136,11 @@ public class ShuffledMergedInputConfiguration {
       SpecificConfigurer<SpecificBuilder> {
 
     private final E edgeBuilder;
-    private final ShuffledMergedInputConfiguration.Builder builder;
+    private final ShuffledMergedInputConfigurer.Builder builder;
 
 
     @InterfaceAudience.Private
-    SpecificBuilder(E edgeBuilder, ShuffledMergedInputConfiguration.Builder builder) {
+    SpecificBuilder(E edgeBuilder, ShuffledMergedInputConfigurer.Builder builder) {
       this.edgeBuilder = edgeBuilder;
       this.builder = builder;
     }
@@ -156,8 +169,8 @@ public class ShuffledMergedInputConfiguration {
     }
 
     @Override
-    public SpecificBuilder<E> enableMemToMemMerger() {
-      builder.enableMemToMemMerger();
+    public SpecificBuilder<E> setMemToMemMerger(boolean enable) {
+      builder.setMemToMemMerger(enable);
       return this;
     }
 
@@ -168,13 +181,12 @@ public class ShuffledMergedInputConfiguration {
     }
 
     @Override
-    public SpecificBuilder<E> enableEncryptedTransfer() {
-      builder.enableEncryptedTransfer();
-      return this;
+    public SpecificBuilder<E> setCombiner(String combinerClassName) {
+      return setCombiner(combinerClassName, null);
     }
 
     @Override
-    public SpecificBuilder<E> setCombiner(String combinerClassName, Configuration combinerConf) {
+    public SpecificBuilder<E> setCombiner(String combinerClassName, Map<String, String> combinerConf) {
       builder.setCombiner(combinerClassName, combinerConf);
       return this;
     }
@@ -212,10 +224,10 @@ public class ShuffledMergedInputConfiguration {
 
   @InterfaceAudience.Private
   @VisibleForTesting
-  ShuffledMergedInputConfiguration() {
+  ShuffledMergedInputConfigurer() {
   }
 
-  private ShuffledMergedInputConfiguration(Configuration conf, boolean useLegacyInput) {
+  private ShuffledMergedInputConfigurer(Configuration conf, boolean useLegacyInput) {
     this.conf = conf;
     if (useLegacyInput) {
       inputClassName = ShuffledMergedInputLegacy.class.getName();
@@ -323,8 +335,8 @@ public class ShuffledMergedInputConfiguration {
     }
 
     @Override
-    public Builder enableMemToMemMerger() {
-      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM, true);
+    public Builder setMemToMemMerger(boolean enable) {
+      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM, enable);
       return this;
     }
 
@@ -334,14 +346,12 @@ public class ShuffledMergedInputConfiguration {
       return this;
     }
 
-    @Override
-    public Builder enableEncryptedTransfer() {
-      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, true);
-      return this;
+    public Builder setCombiner(String combinerClassName) {
+      return setCombiner(combinerClassName, null);
     }
 
     @Override
-    public Builder setCombiner(String combinerClassName, Configuration combinerConf) {
+    public Builder setCombiner(String combinerClassName, Map<String, String> combinerConf) {
       this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS, combinerClassName);
       if (combinerConf != null) {
         // Merging the confs for now. Change to be specific in the future.
@@ -358,11 +368,33 @@ public class ShuffledMergedInputConfiguration {
      * @return instance of the current builder
      */
     public Builder setKeyComparatorClass(String comparatorClassName) {
-      this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
-          comparatorClassName);
-      return this;
+      return this.setKeyComparatorClass(comparatorClassName, null);
     }
 
+    /**
+     * Set the key comparator class and it's associated configuration. This method should only be
+     * used if the comparator requires some specific configuration, which is typically not the
+     * case. {@link #setKeyComparatorClass(String)} is the preferred method for setting a
+     * comparator.
+     *
+     * @param comparatorClassName the key comparator class name
+     * @param comparatorConf      the comparator configuration. This can be null, and is a {@link
+     *                            java.util.Map} of key-value pairs. The keys should be limited to
+     *                            the ones required by the comparator.
+     * @return instance of the current builder
+     */
+    public Builder setKeyComparatorClass(String comparatorClassName,
+                                         @Nullable Map<String, String> comparatorConf) {
+      Preconditions.checkNotNull(comparatorClassName, "Comparator class name cannot be null");
+      this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS,
+          comparatorClassName);
+      if (comparatorConf != null) {
+        // Merging the confs for now. Change to be specific in the future.
+        ConfigUtils.mergeConfsWithExclusions(this.conf, comparatorConf,
+            TezRuntimeConfiguration.getRuntimeConfigKeySet());
+      }
+      return this;
+    }
     @Override
     public Builder setAdditionalConfiguration(String key, String value) {
       Preconditions.checkNotNull(key, "Key cannot be null");
@@ -400,9 +432,9 @@ public class ShuffledMergedInputConfiguration {
       return this;
     }
 
-    public Builder enableCompression(String compressionCodec) {
-      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, true);
-      if (compressionCodec != null) {
+    public Builder setCompression(boolean enabled, @Nullable String compressionCodec) {
+      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, enabled);
+      if (enabled && compressionCodec != null) {
         this.conf
             .set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, compressionCodec);
       }
@@ -426,7 +458,7 @@ public class ShuffledMergedInputConfiguration {
           "comparator cannot be null");
       this.conf.set(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY, serializationClassName + ","
           + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
-      setKeyComparatorClass(comparatorClassName);
+      setKeyComparatorClass(comparatorClassName, null);
       return this;
     }
 
@@ -449,8 +481,8 @@ public class ShuffledMergedInputConfiguration {
      *
      * @return an instance of the Configuration
      */
-    public ShuffledMergedInputConfiguration build() {
-      return new ShuffledMergedInputConfiguration(this.conf, this.useLegacyInput);
+    public ShuffledMergedInputConfigurer build() {
+      return new ShuffledMergedInputConfigurer(this.conf, this.useLegacyInput);
     }
   }
 

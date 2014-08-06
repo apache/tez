@@ -20,6 +20,7 @@
 
 package org.apache.tez.runtime.library.conf;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Map;
 
@@ -38,7 +39,13 @@ import org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput;
 
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
-public class OnFileUnorderedPartitionedKVOutputConfiguration {
+/**
+ * Configure {@link org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput. </p>
+ *
+ * Values will be picked up from tez-site if not specified, otherwise defaults from
+ * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
+ */
+public class OnFileUnorderedPartitionedKVOutputConfigurer {
   /**
    * Configure parameters which are specific to the Output.
    */
@@ -102,10 +109,10 @@ public class OnFileUnorderedPartitionedKVOutputConfiguration {
 
   @InterfaceAudience.Private
   @VisibleForTesting
-  OnFileUnorderedPartitionedKVOutputConfiguration() {
+  OnFileUnorderedPartitionedKVOutputConfigurer() {
   }
 
-  private OnFileUnorderedPartitionedKVOutputConfiguration(Configuration conf) {
+  private OnFileUnorderedPartitionedKVOutputConfigurer(Configuration conf) {
     this.conf = conf;
   }
 
@@ -130,8 +137,13 @@ public class OnFileUnorderedPartitionedKVOutputConfiguration {
     }
   }
 
+
+  public static Builder newBuilder(String keyClass, String valClass, String partitionerClassName) {
+    return newBuilder(keyClass, valClass, partitionerClassName, null);
+  }
+
   public static Builder newBuilder(String keyClass, String valClass, String partitionerClassName,
-                                   Configuration partitionerConf) {
+                                   Map<String, String> partitionerConf) {
     return new Builder(keyClass, valClass, partitionerClassName, partitionerConf);
   }
 
@@ -147,11 +159,12 @@ public class OnFileUnorderedPartitionedKVOutputConfiguration {
      * @param keyClassName         the key class name
      * @param valueClassName       the value class name
      * @param partitionerClassName the partitioner class name
-     * @param partitionerConf      configuration for the partitioner. This can be null
+     * @param partitionerConf      configuration for the partitioner specified as a map of key-value
+     *                             pairs. This can be null
      */
     @InterfaceAudience.Private
     Builder(String keyClassName, String valueClassName, String partitionerClassName,
-                   Configuration partitionerConf) {
+                   Map<String, String> partitionerConf) {
       this();
       Preconditions.checkNotNull(keyClassName, "Key class name cannot be null");
       Preconditions.checkNotNull(valueClassName, "Value class name cannot be null");
@@ -185,7 +198,7 @@ public class OnFileUnorderedPartitionedKVOutputConfiguration {
     }
 
     @InterfaceAudience.Private
-    Builder setPartitioner(String partitionerClassName, Configuration partitionerConf) {
+    Builder setPartitioner(String partitionerClassName, Map<String, String> partitionerConf) {
       Preconditions.checkNotNull(partitionerClassName, "Partitioner class name cannot be null");
       this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, partitionerClassName);
       if (partitionerConf != null) {
@@ -240,9 +253,9 @@ public class OnFileUnorderedPartitionedKVOutputConfiguration {
       return this;
     }
 
-    public Builder enableCompression(String compressionCodec) {
-      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, true);
-      if (compressionCodec != null) {
+    public Builder setCompression(boolean enabled, @Nullable String compressionCodec) {
+      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, enabled);
+      if (enabled && compressionCodec != null) {
         this.conf
             .set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, compressionCodec);
       }
@@ -282,8 +295,8 @@ public class OnFileUnorderedPartitionedKVOutputConfiguration {
      *
      * @return an instance of the Configuration
      */
-    public OnFileUnorderedPartitionedKVOutputConfiguration build() {
-      return new OnFileUnorderedPartitionedKVOutputConfiguration(this.conf);
+    public OnFileUnorderedPartitionedKVOutputConfigurer build() {
+      return new OnFileUnorderedPartitionedKVOutputConfigurer(this.conf);
     }
   }
 }

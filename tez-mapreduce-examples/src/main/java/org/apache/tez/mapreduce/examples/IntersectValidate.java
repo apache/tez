@@ -187,7 +187,7 @@ public class IntersectValidate extends Configured implements Tool {
     // better mechanism to configure the IOs.
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), NullWritable.class.getName(),
-            HashPartitioner.class.getName(), null).build();
+            HashPartitioner.class.getName()).build();
 
     // Change the way resources are setup - no MRHelpers
     Vertex lhsVertex = new Vertex(LHS_INPUT_NAME, new ProcessorDescriptor(

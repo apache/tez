@@ -28,17 +28,17 @@ import static org.junit.Assert.fail;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
-public class TestOnFileUnorderedPartitionedKVOutput {
+public class TestOnFileSortedOutputConfigurer {
 
   @Test
   public void testNullParams() {
     try {
-      OnFileUnorderedPartitionedKVOutputConfiguration.newBuilder(
+      OnFileSortedOutputConfigurer.newBuilder(
           null, "VALUE", "PARTITIONER", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
@@ -46,7 +46,7 @@ public class TestOnFileUnorderedPartitionedKVOutput {
     }
 
     try {
-      OnFileUnorderedPartitionedKVOutputConfiguration.newBuilder(
+      OnFileSortedOutputConfigurer.newBuilder(
           "KEY", null, "PARTITIONER", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
@@ -54,7 +54,7 @@ public class TestOnFileUnorderedPartitionedKVOutput {
     }
 
     try {
-      OnFileUnorderedPartitionedKVOutputConfiguration.newBuilder(
+      OnFileSortedOutputConfigurer.newBuilder(
           "KEY", "VALUE", null, null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
@@ -67,35 +67,34 @@ public class TestOnFileUnorderedPartitionedKVOutput {
     Configuration fromConf = new Configuration(false);
     fromConf.set("test.conf.key.1", "confkey1");
     fromConf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, 1111);
-    fromConf.set("io.shouldExist", "io");
+    fromConf.set("fs.shouldExist", "fs");
     Map<String, String> additionalConf = new HashMap<String, String>();
     additionalConf.put("test.key.2", "key2");
-    additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, "2222");
-    additionalConf.put("file.shouldExist", "file");
-    OnFileUnorderedPartitionedKVOutputConfiguration.Builder builder =
-        OnFileUnorderedPartitionedKVOutputConfiguration.newBuilder("KEY", "VALUE", "PARTITIONER",
-            null)
-            .enableCompression("CustomCodec")
-            .setAvailableBufferSize(1111)
-            .setAdditionalConfiguration("fs.shouldExist", "fs")
+    additionalConf.put("io.shouldExist", "io");
+    additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, "TestInternalSorter");
+    OnFileSortedOutputConfigurer.Builder builder =
+        OnFileSortedOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null)
+            .setKeyComparatorClass("KEY_COMPARATOR", null)
+            .setCompression(true, "CustomCodec")
+            .setSortBufferSize(2048)
             .setAdditionalConfiguration("test.key.1", "key1")
+            .setAdditionalConfiguration("file.shouldExist", "file")
             .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
                 String.valueOf(false))
             .setAdditionalConfiguration(additionalConf)
             .setFromConfiguration(fromConf);
 
-    OnFileUnorderedPartitionedKVOutputConfiguration configuration = builder.build();
+    OnFileSortedOutputConfigurer configuration = builder.build();
 
 
     byte[] confBytes = configuration.toByteArray();
-    OnFileUnorderedPartitionedKVOutputConfiguration rebuilt =
-        new OnFileUnorderedPartitionedKVOutputConfiguration();
+    OnFileSortedOutputConfigurer rebuilt = new OnFileSortedOutputConfigurer();
     rebuilt.fromByteArray(confBytes);
 
     Configuration conf = rebuilt.conf;
 
     // Verify programmatic API usage
-    assertEquals(1111, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB, 0));
+    assertEquals(2048, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
     assertEquals("KEY", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
     assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("PARTITIONER", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
@@ -103,14 +102,15 @@ public class TestOnFileUnorderedPartitionedKVOutput {
         conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
     assertEquals(true, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
         false));
+    assertEquals("KEY_COMPARATOR", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
 
     // Verify additional configs
     assertEquals(false, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
     assertEquals(1111, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT));
-    assertEquals(2222,
-        conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, 0));
+    assertEquals("TestInternalSorter",
+        conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, ""));
     assertEquals("io", conf.get("io.shouldExist"));
     assertEquals("file", conf.get("file.shouldExist"));
     assertEquals("fs", conf.get("fs.shouldExist"));
@@ -121,16 +121,12 @@ public class TestOnFileUnorderedPartitionedKVOutput {
 
   @Test
   public void testDefaultConfigsUsed() {
-    OnFileUnorderedPartitionedKVOutputConfiguration.Builder builder =
-        OnFileUnorderedPartitionedKVOutputConfiguration
-            .newBuilder("KEY", "VALUE", "PARTITIONER", null)
-            .setKeySerializationClass("SerClass1")
-            .setValueSerializationClass("SerClass2");
-    OnFileUnorderedPartitionedKVOutputConfiguration configuration = builder.build();
+    OnFileSortedOutputConfigurer.Builder builder =
+        OnFileSortedOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null);
+    OnFileSortedOutputConfigurer configuration = builder.build();
 
     byte[] confBytes = configuration.toByteArray();
-    OnFileUnorderedPartitionedKVOutputConfiguration rebuilt =
-        new OnFileUnorderedPartitionedKVOutputConfiguration();
+    OnFileSortedOutputConfigurer rebuilt = new OnFileSortedOutputConfigurer();
     rebuilt.fromByteArray(confBytes);
 
     Configuration conf = rebuilt.conf;
@@ -138,7 +134,7 @@ public class TestOnFileUnorderedPartitionedKVOutput {
     assertEquals(true, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
 
-    // Default property present.
+    // Property present
     assertEquals("TestCodec",
         conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
@@ -146,27 +142,21 @@ public class TestOnFileUnorderedPartitionedKVOutput {
     assertEquals("KEY", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
     assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
     assertEquals("PARTITIONER", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
-    assertTrue(conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY).startsWith("SerClass2," +
-        "SerClass1"));
-    //for unordered paritioned kv output, comparator is not populated
-    assertNull(conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
   }
 
   @Test
   public void testPartitionerConfigs() {
-    Configuration partitionerConf = new Configuration(false);
-    partitionerConf.set("partitioner.test.key", "PARTITIONERKEY");
+    Map<String, String> partitionerConf = Maps.newHashMap();
+    partitionerConf.put("partitioner.test.key", "PARTITIONERKEY");
     partitionerConf
-        .set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
-    OnFileUnorderedPartitionedKVOutputConfiguration.Builder builder =
-        OnFileUnorderedPartitionedKVOutputConfiguration
-            .newBuilder("KEY", "VALUE", "PARTITIONER", partitionerConf);
+        .put(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
+    OnFileSortedOutputConfigurer.Builder builder =
+        OnFileSortedOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", partitionerConf);
 
-    OnFileUnorderedPartitionedKVOutputConfiguration configuration = builder.build();
+    OnFileSortedOutputConfigurer configuration = builder.build();
 
     byte[] confBytes = configuration.toByteArray();
-    OnFileUnorderedPartitionedKVOutputConfiguration rebuilt =
-        new OnFileUnorderedPartitionedKVOutputConfiguration();
+    OnFileSortedOutputConfigurer rebuilt = new OnFileSortedOutputConfigurer();
     rebuilt.fromByteArray(confBytes);
 
     Configuration conf = rebuilt.conf;
@@ -176,5 +166,30 @@ public class TestOnFileUnorderedPartitionedKVOutput {
         conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
 
     assertEquals("PARTITIONERKEY", conf.get("partitioner.test.key"));
+  }
+
+  @Test
+  public void testCombinerConfigs() {
+    Map<String, String> combinerConf = Maps.newHashMap();
+    combinerConf.put("combiner.test.key", "COMBINERKEY");
+    combinerConf
+        .put(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
+    OnFileSortedOutputConfigurer.Builder builder =
+        OnFileSortedOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null)
+            .setCombiner("COMBINER", combinerConf);
+
+    OnFileSortedOutputConfigurer configuration = builder.build();
+
+    byte[] confBytes = configuration.toByteArray();
+    OnFileSortedOutputConfigurer rebuilt = new OnFileSortedOutputConfigurer();
+    rebuilt.fromByteArray(confBytes);
+
+    Configuration conf = rebuilt.conf;
+
+    // Default Output property should not be overridden based on partitioner config
+    assertEquals("TestCodec",
+        conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
+
+    assertEquals("COMBINERKEY", conf.get("combiner.test.key"));
   }
 }

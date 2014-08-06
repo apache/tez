@@ -181,7 +181,7 @@ public class IntersectExample extends Configured implements Tool {
     UnorderedPartitionedKVEdgeConfigurer edgeConf =
         UnorderedPartitionedKVEdgeConfigurer
             .newBuilder(Text.class.getName(), NullWritable.class.getName(),
-                HashPartitioner.class.getName(), null).build();
+                HashPartitioner.class.getName()).build();
 
     // Change the way resources are setup - no MRHelpers
     Vertex streamFileVertex = new Vertex("partitioner1", new ProcessorDescriptor(

@@ -18,6 +18,8 @@
 
 package org.apache.tez.runtime.library.conf;
 
+import javax.annotation.Nullable;
+
 import org.apache.hadoop.classification.InterfaceAudience;
 
 @InterfaceAudience.Private
@@ -52,10 +54,12 @@ abstract class HadoopKeyValuesBasedBaseEdgeConfigurer {
     /**
      * Enable compression for the specific Input / Output / Edge
      *
-     * @param compressionCodec the codec to be used. null implies using the default
+     * @param enabled          whether to enable compression or not
+     * @param compressionCodec the codec to be used if compression is enabled. null implies using
+     *                         the default
      * @return instance of the current builder
      */
-    public T enableCompression(String compressionCodec) {
+    public T setCompression(boolean enabled, @Nullable String compressionCodec) {
       return (T) this;
     }
 
