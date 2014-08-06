@@ -46,8 +46,8 @@ INCOMPATIBLE CHANGES
   TEZ-1351. MROutput needs a flush method to ensure data is materialized for
   FileOutputCommitter
   TEZ-1317. Simplify MRinput/MROutput configuration
-  TEZ-1379. Allow EdgeConfigurers to accept Configuration for Comparators. Change the way partitioner, comparator, combiner confs are set (from Hadoop Configuration to Map). 
-      Rename specific Input/Output classes from *Configuration to *Configurer.
+  TEZ-1379. Allow EdgeConfigurers to accept Configuration for Comparators. Change the way partitioner, comparator, combiner confs are set (from Hadoop Configuration to Map). Rename specific Input/Output classes from *Configuration to *Configurer.
+  TEZ-1382. Change ObjectRegistry API to allow for future extensions
 
 Release 0.4.0-incubating: 2014-04-05
 

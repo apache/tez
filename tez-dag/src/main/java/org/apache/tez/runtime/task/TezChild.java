@@ -61,7 +61,6 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.runtime.api.impl.TaskSpec;
-import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 
@@ -313,10 +312,10 @@ public class TezChild {
         .getVertexID();
     if (lastVertexID != null) {
       if (!lastVertexID.equals(newVertexID)) {
-        objectRegistry.clearCache(ObjectLifeCycle.VERTEX);
+        objectRegistry.clearCache(ObjectRegistryImpl.ObjectLifeCycle.VERTEX);
       }
       if (!lastVertexID.getDAGId().equals(newVertexID.getDAGId())) {
-        objectRegistry.clearCache(ObjectLifeCycle.DAG);
+        objectRegistry.clearCache(ObjectRegistryImpl.ObjectLifeCycle.DAG);
         startedInputsMap = HashMultimap.create();
       }
     }

@@ -47,7 +47,6 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.runtime.api.TezProcessorContext;
-import org.apache.tez.runtime.common.objectregistry.ObjectLifeCycle;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
@@ -78,7 +77,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
         if (doLocalityCheck) {
           ObjectRegistry objectRegistry = getContext().getObjectRegistry();
           String entry = String.valueOf(getContext().getTaskIndex());
-          objectRegistry.add(ObjectLifeCycle.DAG, entry, entry);
+          objectRegistry.cacheForDAG(entry, entry);
         }
       }
     }

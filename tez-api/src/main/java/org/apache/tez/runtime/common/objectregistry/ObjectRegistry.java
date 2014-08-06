@@ -19,25 +19,68 @@
 package org.apache.tez.runtime.common.objectregistry;
 
 /**
- * Preliminary version of a simple shared object cache to re-use
- * objects across multiple tasks within the same container/JVM.
- * This interface is not supposed to be implemented by users
+ * A simple shared object registry to cache objects in the memory of the
+ * container running the task. This registry can be used to avoid re-creating
+ * objects like common hash-tables, dictionaries etc. and provide performance
+ * improvements. The cached objects have different life-cycles. If a task adds
+ * an object to the cache with Vertex life-cycle then that object is in the
+ * cache while the Vertex (to which the task belongs) is running. DAG life-cycle
+ * is while the DAG (to which that task belongs) is running. Session life-cycle
+ * is while the session (to which that task belongs) is running. <br>
+ * This interface is not supposed to be implemented by users.
  */
 public interface ObjectRegistry {
 
   /**
-   * Insert or update object into the registry. This will remove an object
-   * associated with the same key with a different life-cycle as there is only
-   * one instance of an Object stored for a given key irrespective of the
-   * life-cycle attached to the Object.
-   * @param lifeCycle What life-cycle is the Object valid for
-   * @param key Key to identify the Object
-   * @param value Object to be inserted
-   * @return Previous Object associated with the key attached if present
-   * else null. Could return the same object if the object was associated with
-   * the same key for a different life-cycle.
-   */
-  public Object add(ObjectLifeCycle lifeCycle, String key, Object value);
+   * Insert or update object into the registry with Vertex life-cycle. This will
+   * remove an object associated with the same key with a different life-cycle
+   * as there is only one instance of an Object stored for a given key
+   * irrespective of the life-cycle attached to the Object. The object may stay
+   * in the cache while the Vertex (to which the task belongs) is running.
+   * 
+   * @param key
+   *          Key to identify the Object
+   * @param value
+   *          Object to be inserted
+   * @return Previous Object associated with the key attached if present else
+   *         null. Could return the same object if the object was associated
+   *         with the same key for a different life-cycle.
+   */  
+  public Object cacheForVertex(String key, Object value);
+  
+  /**
+   * Insert or update object into the registry with DAG life-cycle. This will
+   * remove an object associated with the same key with a different life-cycle
+   * as there is only one instance of an Object stored for a given key
+   * irrespective of the life-cycle attached to the Object. The object may stay
+   * in the cache while the DAG (to which the task belongs) is running.
+   * 
+   * @param key
+   *          Key to identify the Object
+   * @param value
+   *          Object to be inserted
+   * @return Previous Object associated with the key attached if present else
+   *         null. Could return the same object if the object was associated
+   *         with the same key for a different life-cycle.
+   */  
+  public Object cacheForDAG(String key, Object value);
+  
+  /**
+   * Insert or update object into the registry with Session life-cycle. This
+   * will remove an object associated with the same key with a different
+   * life-cycle as there is only one instance of an Object stored for a given
+   * key irrespective of the life-cycle attached to the Object. The object may stay
+   * in the cache while the Session (to which the task belongs) is running.
+   * 
+   * @param key
+   *          Key to identify the Object
+   * @param value
+   *          Object to be inserted
+   * @return Previous Object associated with the key attached if present else
+   *         null. Could return the same object if the object was associated
+   *         with the same key for a different life-cycle.
+   */  
+  public Object cacheForSession(String key, Object value);
 
   /**
    * Return the object associated with the provided key

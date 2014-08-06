@@ -19,22 +19,29 @@
 package org.apache.tez.runtime.common.objectregistry;
 
 import java.util.AbstractMap;
-
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.google.inject.Singleton;
-
-@Singleton
 public class ObjectRegistryImpl implements ObjectRegistry {
+  
+  public enum ObjectLifeCycle {
+    /** Objects are valid for the lifetime of the Tez JVM/Session
+     */
+    SESSION,
+    /** Objects are valid for the lifetime of the DAG.
+     */
+    DAG,
+    /** Objects are valid for the lifetime of the Vertex.
+     */
+    VERTEX,
+  }
 
   private Map<String, Map.Entry<Object, ObjectLifeCycle>> objectCache =
       new HashMap<String, Entry<Object, ObjectLifeCycle>>();
 
-  @Override
-  public synchronized Object add(ObjectLifeCycle lifeCycle,
+  private synchronized Object add(ObjectLifeCycle lifeCycle,
       String key, Object value) {
     Map.Entry<Object, ObjectLifeCycle> oldEntry =
         objectCache.put(key,
@@ -64,6 +71,21 @@ public class ObjectRegistryImpl implements ObjectRegistry {
         it.remove();
       }
     }
+  }
+
+  @Override
+  public synchronized Object cacheForVertex(String key, Object value) {
+    return add(ObjectLifeCycle.VERTEX, key, value);
+  }
+
+  @Override
+  public synchronized Object cacheForDAG(String key, Object value) {
+    return add(ObjectLifeCycle.DAG, key, value);
+  }
+
+  @Override
+  public synchronized Object cacheForSession(String key, Object value) {
+    return add(ObjectLifeCycle.SESSION, key, value);
   }
 
 }
