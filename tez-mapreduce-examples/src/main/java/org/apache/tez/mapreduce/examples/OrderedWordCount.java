@@ -266,14 +266,16 @@ public class OrderedWordCount extends Configured implements Tool {
 
     OrderedPartitionedKVEdgeConfigurer edgeConf1 = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
-            HashPartitioner.class.getName()).configureInput().useLegacyInput().done().build();
+            HashPartitioner.class.getName()).setFromConfiguration(conf)
+	    .configureInput().useLegacyInput().done().build();
     dag.addEdge(
         new Edge(dag.getVertex("initialmap"), dag.getVertex("intermediate_reducer"),
             edgeConf1.createDefaultEdgeProperty()));
 
     OrderedPartitionedKVEdgeConfigurer edgeConf2 = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(IntWritable.class.getName(), Text.class.getName(),
-            HashPartitioner.class.getName()).configureInput().useLegacyInput().done().build();
+            HashPartitioner.class.getName()).setFromConfiguration(conf)
+            .configureInput().useLegacyInput().done().build();
     dag.addEdge(
         new Edge(dag.getVertex("intermediate_reducer"), dag.getVertex("finalreduce"),
             edgeConf2.createDefaultEdgeProperty()));
@@ -511,9 +513,8 @@ public class OrderedWordCount extends Configured implements Tool {
     if (!useTezSession) {
       ExampleDriver.printDAGStatus(dagClient, vNames);
       LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
-      return dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1;
     }
-    return 0;
+    return dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1;
   }
 
   private static void waitForTezSessionReady(TezClient tezSession)
