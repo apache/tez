@@ -40,13 +40,19 @@ public class FileChunkPath extends Path {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass() || !super.equals(o)) {
+
+    if (o == null) {
       return false;
+    }
+
+    boolean isPathEqual = super.equals(o);
+    if (!isPathEqual || !(o instanceof FileChunkPath)) {
+      return isPathEqual;
     }
 
     FileChunkPath that = (FileChunkPath) o;
 
-    if (offset != that.offset || size != that.size) {
+    if (this.offset != that.offset || this.size != that.size) {
       return false;
     }
 
@@ -63,14 +69,16 @@ public class FileChunkPath extends Path {
 
   @Override
   public int compareTo(Object o) {
-    FileChunkPath that = (FileChunkPath)o;
     int c;
 
-    if ((c = super.compareTo(o)) != 0) {
+    c = super.compareTo(o);
+    if (c != 0 || !(o instanceof FileChunkPath)) {
       return c;
     }
 
     long lc;
+    FileChunkPath that = (FileChunkPath)o;
+
     if ((lc = this.offset - that.offset) != 0) {
       return lc > 0 ? 1 : -1;
     }
