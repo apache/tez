@@ -91,6 +91,8 @@ import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.CountingOutputCommitter;
+import org.apache.tez.dag.app.security.ACLManager;
+import org.apache.tez.dag.app.security.Groups;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -114,6 +116,7 @@ public class TestDAGImpl {
   private DrainDispatcher dispatcher;
   private Credentials fsTokens;
   private AppContext appContext;
+  private ACLManager aclManager;
   private ApplicationAttemptId appAttemptId;
   private DAGImpl dag;
   private TaskEventDispatcher taskEventDispatcher;
@@ -328,7 +331,7 @@ public class TestDAGImpl {
 
     return dag;
   }
-  
+
   public static class TotalCountingOutputCommitter extends CountingOutputCommitter {
     static int totalCommitCounter = 0;
     public TotalCountingOutputCommitter(OutputCommitterContext context) {
@@ -340,7 +343,7 @@ public class TestDAGImpl {
       super.commitOutput();
     }
   }
-  
+
   // Create a plan with 3 vertices: A, B, C. Group(A,B)->C
   private DAGPlan createGroupDAGPlan() {
     LOG.info("Setting up group dag plan");
@@ -355,7 +358,7 @@ public class TestDAGImpl {
     org.apache.tez.dag.api.Vertex v3 = new org.apache.tez.dag.api.Vertex("vertex3",
         new ProcessorDescriptor("Processor"),
         dummyTaskCount, dummyTaskResource);
-    
+
     DAG dag = new DAG("testDag");
     String groupName1 = "uv12";
     OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(
@@ -364,14 +367,14 @@ public class TestDAGImpl {
     OutputDescriptor outDesc = new OutputDescriptor("output.class");
     uv12.addDataSink("uvOut", new DataSinkDescriptor(outDesc, ocd, null));
     v3.addDataSink("uvOut", new DataSinkDescriptor(outDesc, ocd, null));
-    
+
     GroupInputEdge e1 = new GroupInputEdge(uv12, v3,
-        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
+        new EdgeProperty(DataMovementType.SCATTER_GATHER,
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             new OutputDescriptor("dummy output class"),
-            new InputDescriptor("dummy input class")), 
+            new InputDescriptor("dummy input class")),
             new InputDescriptor("merge.class"));
-    
+
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addVertex(v3);
@@ -612,16 +615,19 @@ public class TestDAGImpl {
     fsTokens = new Credentials();
     appContext = mock(AppContext.class);
     historyEventHandler = mock(HistoryEventHandler.class);
+    aclManager = new ACLManager(mock(Groups.class), "amUser");
     doReturn(conf).when(appContext).getAMConf();
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
     doReturn(appAttemptId.getApplicationId()).when(appContext).getApplicationID();
     doReturn(dagId).when(appContext).getCurrentDAGID();
     doReturn(historyEventHandler).when(appContext).getHistoryHandler();
+    doReturn(aclManager).when(appContext).getAMACLManager();
     dag = new DAGImpl(dagId, conf, dagPlan,
         dispatcher.getEventHandler(),  taskAttemptListener,
         fsTokens, clock, "user", thh, appContext);
     doReturn(dag).when(appContext).getCurrentDAG();
     mrrAppContext = mock(AppContext.class);
+    doReturn(aclManager).when(mrrAppContext).getAMACLManager();
     mrrDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 2);
     mrrDagPlan = createTestMRRDAGPlan();
     mrrDag = new DAGImpl(mrrDagId, conf, mrrDagPlan,
@@ -634,6 +640,7 @@ public class TestDAGImpl {
     doReturn(appAttemptId.getApplicationId()).when(mrrAppContext).getApplicationID();
     doReturn(historyEventHandler).when(mrrAppContext).getHistoryHandler();
     groupAppContext = mock(AppContext.class);
+    doReturn(aclManager).when(groupAppContext).getAMACLManager();
     groupDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 3);
     groupDagPlan = createGroupDAGPlan();
     groupDag = new DAGImpl(groupDagId, conf, groupDagPlan,

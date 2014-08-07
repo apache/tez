@@ -26,15 +26,13 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.dag.event.DAGEvent;
-import org.apache.tez.dag.app.dag.event.DAGEventType;
+import org.apache.tez.dag.app.security.ACLManager;
 import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGClientHandler {
@@ -139,6 +137,29 @@ public class DAGClientHandler {
       throw new TezException("DAG App Master is not initialized");
     }
     dagAppMaster.startPreWarmContainers(preWarmContext);
+  }
+
+  public ACLManager getACLManager() {
+    return dagAppMaster.getACLManager();
+  }
+
+  public ACLManager getACLManager(String dagIdStr) throws TezException {
+    TezDAGID dagId = TezDAGID.fromString(dagIdStr);
+    if (dagId == null) {
+      throw new TezException("Bad dagId: " + dagIdStr);
+    }
+    DAG currentDAG = getCurrentDAG();
+    if (currentDAG == null) {
+      throw new TezException("No running dag at present");
+    }
+    if (!currentDAG.getID().toString().equals(dagId.toString())) {
+      LOG.warn("Current DAGID : "
+          + (currentDAG.getID() == null ? "NULL" : currentDAG.getID())
+          + ", Looking for string (not found): " + dagIdStr + ", dagIdObj: "
+          + dagId);
+      throw new TezException("Unknown dagId: " + dagIdStr);
+    }
+    return currentDAG.getACLManager();
   }
 
 }
