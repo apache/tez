@@ -34,7 +34,6 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
-import org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat;
 import org.apache.hadoop.security.Credentials;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.counters.TaskCounter;
@@ -175,7 +174,7 @@ public class MRInput extends MRInputBase {
       Configuration inputConf = new JobConf(conf);
       InputSplitInfo inputSplitInfo;
       try {
-        inputSplitInfo = MRHelpers.generateInputSplitsToMem(inputConf);
+        inputSplitInfo = MRHelpers.generateInputSplitsToMem(inputConf, false, 0);
       } catch (Exception e) {
         throw new TezUncheckedException(e);
       }
@@ -201,25 +200,11 @@ public class MRInput extends MRInputBase {
     
     private DataSourceDescriptor createGeneratorDataSource() throws IOException {
       Configuration inputConf = new JobConf(conf);
-      String wrappedInputFormatClassName = null;
-      String configInputFormatClassName = null;
-      if (groupSplitsInAM) {
-        wrappedInputFormatClassName = inputFormat.getName();
-        if (useNewApi) {
-          configInputFormatClassName = TezGroupedSplitsInputFormat.class.getName();
-        } else {
-          configInputFormatClassName = 
-              org.apache.hadoop.mapred.split.TezGroupedSplitsInputFormat.class.getName();
-        }
-      } else {
-        wrappedInputFormatClassName = null;
-        configInputFormatClassName = inputFormat.getName();
-      }
       inputConf.setBoolean("mapred.mapper.new-api", useNewApi);
       if (useNewApi) {
-        inputConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, configInputFormatClassName);
+        inputConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, inputFormat.getName());
       } else {
-        inputConf.set("mapred.input.format.class", configInputFormatClassName);
+        inputConf.set("mapred.input.format.class", inputFormat.getName());
       }
       MRHelpers.translateVertexConfToTez(inputConf);
       MRHelpers.doJobClientMagic(inputConf);
@@ -244,8 +229,7 @@ public class MRInput extends MRInputBase {
 
       byte[] payload = null;
       if (groupSplitsInAM) {
-        payload = MRHelpers.createMRInputPayloadWithGrouping(inputConf,
-            wrappedInputFormatClassName);
+        payload = MRHelpers.createMRInputPayloadWithGrouping(inputConf);
       } else {
         payload = MRHelpers.createMRInputPayload(inputConf, null);
       }
@@ -348,7 +332,9 @@ public class MRInput extends MRInputBase {
           org.apache.hadoop.mapred.InputSplit oldInputSplit = MRInputUtils
               .getOldSplitDetailsFromDisk(splitMetaInfo, jobConf, getContext().getCounters()
                   .findCounter(TaskCounter.SPLIT_RAW_BYTES));
-          mrReader = new MRReaderMapred(jobConf, oldInputSplit, getContext().getCounters(), inputRecordCounter);
+          mrReader =
+              new MRReaderMapred(jobConf, oldInputSplit, getContext().getCounters(),
+                  inputRecordCounter);
         }
       }
     } finally {

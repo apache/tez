@@ -47,7 +47,6 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
-import org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
@@ -157,13 +156,8 @@ public class OrderedWordCount extends Configured implements Tool {
     Configuration mapStageConf = new JobConf(conf);
     mapStageConf.set(MRJobConfig.MAP_CLASS_ATTR,
         TokenizerMapper.class.getName());
-    if (generateSplitsInClient) {
-      mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
-          TextInputFormat.class.getName());
-    } else {
-      mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, 
-          TezGroupedSplitsInputFormat.class.getName());
-    }
+    mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
+        TextInputFormat.class.getName());
     mapStageConf.set(FileInputFormat.INPUT_DIR, inputPath);
     mapStageConf.setBoolean("mapred.mapper.new-api", true);
 
@@ -208,8 +202,12 @@ public class OrderedWordCount extends Configured implements Tool {
     mapStageConf.writeXml(outputStream);
     String mapStageHistoryText = new String(outputStream.toByteArray(), "UTF-8");
     byte[] mapPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
-    byte[] mapInputPayload = MRHelpers.createMRInputPayloadWithGrouping(mapPayload,
-      TextInputFormat.class.getName());
+    byte[] mapInputPayload;
+    if (generateSplitsInClient) {
+      mapInputPayload = MRHelpers.createMRInputPayload(mapPayload);
+    } else {
+      mapInputPayload = MRHelpers.createMRInputPayloadWithGrouping(mapPayload);
+    }
     int numMaps = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(mapPayload)
@@ -229,8 +227,8 @@ public class OrderedWordCount extends Configured implements Tool {
 
     Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
         : MRInputAMSplitGenerator.class;
-    MRHelpers.addMRInput(mapVertex, mapInputPayload, 
-        (initializerClazz==null) ? null : 
+    MRHelpers.addMRInput(mapVertex, mapInputPayload,
+        (initializerClazz==null) ? null :
           new InputInitializerDescriptor(initializerClazz.getName()));
     vertices.add(mapVertex);
 

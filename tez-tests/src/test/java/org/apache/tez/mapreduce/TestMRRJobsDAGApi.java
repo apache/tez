@@ -462,7 +462,7 @@ public class TestMRRJobsDAGApi {
 
     byte[] stage1Payload = MRHelpers.createUserPayloadFromConf(stage1Conf);
     byte[] stage2Payload = MRHelpers.createUserPayloadFromConf(stage2Conf);
-    byte[] stage1InputPayload = MRHelpers.createMRInputPayload(stage1Payload, null);
+    byte[] stage1InputPayload = MRHelpers.createMRInputPayload(stage1Payload);
     byte[] stage3Payload = MRHelpers.createUserPayloadFromConf(stage3Conf);
     
     DAG dag = new DAG("testMRRSleepJobDagSubmit-" + random.nextInt(1000));

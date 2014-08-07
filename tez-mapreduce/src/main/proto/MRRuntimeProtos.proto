@@ -37,5 +37,5 @@ message MRSplitProto {
 message MRInputUserPayloadProto {
   optional bytes configuration_bytes = 1;
   optional MRSplitsProto splits = 2;
-  optional string input_format_name = 3;
+  optional bool grouping_enabled = 3;
 }

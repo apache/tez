@@ -62,11 +62,23 @@ public abstract class MRInputBase extends AbstractLogicalInput {
     getContext().requestInitialMemory(0l, null); // mandatory call
     MRRuntimeProtos.MRInputUserPayloadProto mrUserPayload =
         MRHelpers.parseMRInputPayload(getContext().getUserPayload());
+    boolean isGrouped = mrUserPayload.getGroupingEnabled();
     Preconditions.checkArgument(mrUserPayload.hasSplits() == false,
         "Split information not expected in " + this.getClass().getName());
     Configuration conf = MRHelpers.createConfFromByteString(mrUserPayload.getConfigurationBytes());
-
     this.jobConf = new JobConf(conf);
+    useNewApi = this.jobConf.getUseNewMapper();
+    if (isGrouped) {
+      if (useNewApi) {
+        jobConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
+            org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat.class.getName());
+      } else {
+        jobConf.set("mapred.input.format.class",
+            org.apache.hadoop.mapred.split.TezGroupedSplitsInputFormat.class.getName());
+      }
+    }
+
+
     // Add tokens to the jobConf - in case they are accessed within the RR / IF
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
 
@@ -85,7 +97,7 @@ public abstract class MRInputBase extends AbstractLogicalInput {
     this.inputRecordCounter = getContext().getCounters().findCounter(
         TaskCounter.INPUT_RECORDS_PROCESSED);
 
-    useNewApi = this.jobConf.getUseNewMapper();
+
     return null;
   }
 }
