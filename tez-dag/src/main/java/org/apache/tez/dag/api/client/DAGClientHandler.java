@@ -135,22 +135,8 @@ public class DAGClientHandler {
   }
 
   public ACLManager getACLManager(String dagIdStr) throws TezException {
-    TezDAGID dagId = TezDAGID.fromString(dagIdStr);
-    if (dagId == null) {
-      throw new TezException("Bad dagId: " + dagIdStr);
-    }
-    DAG currentDAG = getCurrentDAG();
-    if (currentDAG == null) {
-      throw new TezException("No running dag at present");
-    }
-    if (!currentDAG.getID().toString().equals(dagId.toString())) {
-      LOG.warn("Current DAGID : "
-          + (currentDAG.getID() == null ? "NULL" : currentDAG.getID())
-          + ", Looking for string (not found): " + dagIdStr + ", dagIdObj: "
-          + dagId);
-      throw new TezException("Unknown dagId: " + dagIdStr);
-    }
-    return currentDAG.getACLManager();
+    DAG dag = getDAG(dagIdStr);
+    return dag.getACLManager();
   }
 
 }
