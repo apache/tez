@@ -40,25 +40,25 @@ $HADOOP_PREFIX/bin/hadoop jar hadoop-mapreduce-client-jobclient-2.2.0-tests.jar 
 This will use the TEZ DAG ApplicationMaster to run the MR job. This can be
 verified by looking at the AM's logs from the YARN ResourceManager UI.
 
-7) There is a basic example of using an MRR job in the tez-mapreduce-examples.jar. Refer to OrderedWordCount.java
+7) There is a basic example of using an MRR job in the tez-mapreduce-examples.jar. Refer to TestOrderedWordCount.java
 in the source code. To run this example:
 
-$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar orderedwordcount <input> <output>
+$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar testorderedwordcount <input> <output>
 
 This will use the TEZ DAG ApplicationMaster to run the ordered word count job. This job is similar
 to the word count example except that it also orders all words based on the frequency of
 occurrence.
 
-There are multiple variations to run orderedwordcount. You can use it to run multiple
+There are multiple variations to run testorderedwordcount. You can use it to run multiple
 DAGs serially on different inputs/outputs. These DAGs could be run separately as
 different applications or serially within a single TEZ session.
 
-$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar orderedwordcount <input1> <output1> <input2> <output2> <input3> <output3> ...
+$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar testorderedwordcount <input1> <output1> <input2> <output2> <input3> <output3> ...
 
 The above will run multiple DAGs for each input-output pair. To use TEZ sessions,
 set -DUSE_TEZ_SESSION=true
 
-$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar orderedwordcount -DUSE_TEZ_SESSION=true <input1> <output1> <input2> <output2>
+$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar testorderedwordcount -DUSE_TEZ_SESSION=true <input1> <output1> <input2> <output2>
 
 
 

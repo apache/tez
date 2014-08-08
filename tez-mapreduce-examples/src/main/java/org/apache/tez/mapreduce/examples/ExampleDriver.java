@@ -31,6 +31,7 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.Progress;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.examples.OrderedWordCount;
 import org.apache.tez.mapreduce.examples.terasort.TeraGen;
 import org.apache.tez.mapreduce.examples.terasort.TeraSort;
 import org.apache.tez.mapreduce.examples.terasort.TeraValidate;
@@ -78,6 +79,8 @@ public class ExampleDriver {
       pgd.addClass("mrrsleep", MRRSleepJob.class,
           "MRR Sleep Job");
       pgd.addClass("orderedwordcount", OrderedWordCount.class,
+          "Word Count with words sorted on frequency");
+      pgd.addClass("testorderedwordcount", TestOrderedWordCount.class,
           "Word Count with words sorted on frequency");
       pgd.addClass("unionexample", UnionExample.class,
           "Union example");
