@@ -42,6 +42,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -59,13 +60,13 @@ import org.mockito.ArgumentCaptor;
 import com.google.common.collect.Maps;
 import com.google.protobuf.RpcController;
 
-
-
 public class TestTezClient {
 
   class TezClientForTest extends TezClient {
-    TezYarnClient mockYarnClient;
+    TezYarnClient mockTezYarnClient;
     DAGClientAMProtocolBlockingPB sessionAmProxy;
+    YarnClient mockYarnClient;
+    ApplicationId mockAppId;
 
     public TezClientForTest(String name, TezConfiguration tezConf,
         @Nullable Map<String, LocalResource> localResources,
@@ -75,7 +76,7 @@ public class TestTezClient {
     
     @Override
     protected FrameworkClient createFrameworkClient() {
-      return mockYarnClient;
+      return mockTezYarnClient;
     }
     
     @Override
@@ -83,6 +84,19 @@ public class TestTezClient {
         throws TezException, IOException {
       return sessionAmProxy;
     }
+  }
+  
+  static void configure(TezClientForTest client) throws YarnException, IOException {
+    ApplicationId appId1 = ApplicationId.newInstance(0, 1);
+    YarnClient yarnClient = mock(YarnClient.class, RETURNS_DEEP_STUBS);
+    when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId1);
+
+    DAGClientAMProtocolBlockingPB sessionAmProxy = mock(DAGClientAMProtocolBlockingPB.class, RETURNS_DEEP_STUBS);
+
+    client.sessionAmProxy = sessionAmProxy;
+    client.mockTezYarnClient = new TezYarnClient(yarnClient);
+    client.mockYarnClient = yarnClient;
+    client.mockAppId = appId1;
   }
   
   @Test
@@ -107,21 +121,14 @@ public class TestTezClient {
     
     TezClientForTest client = new TezClientForTest("test", conf, lrs, null);
     
-    ApplicationId appId1 = ApplicationId.newInstance(0, 1);
-    YarnClient yarnClient = mock(YarnClient.class, RETURNS_DEEP_STUBS);
-    when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId1);
+    configure(client);
+    
     ArgumentCaptor<ApplicationSubmissionContext> captor = ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
-
-    DAGClientAMProtocolBlockingPB sessionAmProxy = mock(DAGClientAMProtocolBlockingPB.class, RETURNS_DEEP_STUBS);
-    
-    client.sessionAmProxy = sessionAmProxy;
-    client.mockYarnClient = new TezYarnClient(yarnClient);
-    
     client.start();
-    verify(yarnClient, times(1)).init((Configuration)any());
-    verify(yarnClient, times(1)).start();
+    verify(client.mockYarnClient, times(1)).init((Configuration)any());
+    verify(client.mockYarnClient, times(1)).start();
     if (isSession) {
-      verify(yarnClient, times(1)).submitApplication(captor.capture());
+      verify(client.mockYarnClient, times(1)).submitApplication(captor.capture());
       ApplicationSubmissionContext context = captor.getValue();
       Assert.assertEquals(3, context.getAMContainerSpec().getLocalResources().size());
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
@@ -131,20 +138,20 @@ public class TestTezClient {
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
           lrName1));
     } else {
-      verify(yarnClient, times(0)).submitApplication(captor.capture());
+      verify(client.mockYarnClient, times(0)).submitApplication(captor.capture());
     }
     
     DAG dag = new DAG("DAG").addVertex(
         new Vertex("Vertex", new ProcessorDescriptor("P"), 1, Resource.newInstance(1, 1)));
     DAGClient dagClient = client.submitDAG(dag);
     
-    Assert.assertEquals(appId1, dagClient.getApplicationId());
+    Assert.assertEquals(client.mockAppId, dagClient.getApplicationId());
     
     if (isSession) {
-      verify(yarnClient, times(1)).submitApplication(captor.capture());
-      verify(sessionAmProxy, times(1)).submitDAG((RpcController)any(), (SubmitDAGRequestProto) any());
+      verify(client.mockYarnClient, times(1)).submitApplication(captor.capture());
+      verify(client.sessionAmProxy, times(1)).submitDAG((RpcController)any(), (SubmitDAGRequestProto) any());
     } else {
-      verify(yarnClient, times(1)).submitApplication(captor.capture());
+      verify(client.mockYarnClient, times(1)).submitApplication(captor.capture());
       ApplicationSubmissionContext context = captor.getValue();
       Assert.assertEquals(4, context.getAMContainerSpec().getLocalResources().size());
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
@@ -165,7 +172,8 @@ public class TestTezClient {
     client.addAppMasterLocalResources(lrs);
     
     ApplicationId appId2 = ApplicationId.newInstance(0, 2);
-    when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId2);
+    when(client.mockYarnClient.createApplication().getNewApplicationResponse().getApplicationId())
+        .thenReturn(appId2);
     
     dag = new DAG("DAG").addVertex(
         new Vertex("Vertex", new ProcessorDescriptor("P"), 1, Resource.newInstance(1, 1)));
@@ -173,18 +181,18 @@ public class TestTezClient {
     
     if (isSession) {
       // same app master
-      verify(yarnClient, times(1)).submitApplication(captor.capture());
-      Assert.assertEquals(appId1, dagClient.getApplicationId());
+      verify(client.mockYarnClient, times(1)).submitApplication(captor.capture());
+      Assert.assertEquals(client.mockAppId, dagClient.getApplicationId());
       // additional resource is sent
       ArgumentCaptor<SubmitDAGRequestProto> captor1 = ArgumentCaptor.forClass(SubmitDAGRequestProto.class);
-      verify(sessionAmProxy, times(2)).submitDAG((RpcController)any(), captor1.capture());
+      verify(client.sessionAmProxy, times(2)).submitDAG((RpcController)any(), captor1.capture());
       SubmitDAGRequestProto proto = captor1.getValue();
       Assert.assertEquals(1, proto.getAdditionalAmResources().getLocalResourcesCount());
       Assert.assertEquals(lrName2, proto.getAdditionalAmResources().getLocalResources(0).getName());
     } else {
       // new app master
       Assert.assertEquals(appId2, dagClient.getApplicationId());
-      verify(yarnClient, times(2)).submitApplication(captor.capture());
+      verify(client.mockYarnClient, times(2)).submitApplication(captor.capture());
       // additional resource is added
       ApplicationSubmissionContext context = captor.getValue();
       Assert.assertEquals(5, context.getAMContainerSpec().getLocalResources().size());
@@ -200,13 +208,32 @@ public class TestTezClient {
           lrName2));
     }
     
-    
-    
     client.stop();
     if (isSession) {
-      verify(sessionAmProxy, times(1)).shutdownSession((RpcController) any(), (ShutdownSessionRequestProto)any());
+      verify(client.sessionAmProxy, times(1)).shutdownSession((RpcController) any(),
+          (ShutdownSessionRequestProto) any());
     }
-    verify(yarnClient, times(1)).stop();
+    verify(client.mockYarnClient, times(1)).stop();
+  }
+  
+  public void testPreWarm() throws Exception {
+    TezConfiguration conf = new TezConfiguration();
+    conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
+    conf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
+    Map<String, LocalResource> lrs = Maps.newHashMap();
+    final TezClientForTest client = new TezClientForTest("test", conf, lrs, null);
+
+    configure(client);
+    client.start();
+    PreWarmVertex vertex = new PreWarmVertex("PreWarm", 1, Resource.newInstance(1, 1));
+    client.preWarm(vertex);
+    
+    ArgumentCaptor<SubmitDAGRequestProto> captor1 = ArgumentCaptor.forClass(SubmitDAGRequestProto.class);
+    verify(client.sessionAmProxy, times(1)).submitDAG((RpcController)any(), (SubmitDAGRequestProto) any());
+    SubmitDAGRequestProto proto = captor1.getValue();
+    Assert.assertTrue(proto.getDAGPlan().getName().startsWith(TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX));
+
+    client.stop();
   }
   
   @Test(timeout = 5000)
@@ -217,19 +244,12 @@ public class TestTezClient {
     Map<String, LocalResource> lrs = Maps.newHashMap();
     final TezClientForTest client = new TezClientForTest("test", conf, lrs, null);
 
-    ApplicationId appId1 = ApplicationId.newInstance(0, 1);
-    YarnClient yarnClient = mock(YarnClient.class, RETURNS_DEEP_STUBS);
-    when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId1);
-    ArgumentCaptor<ApplicationSubmissionContext> captor = ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
-
-    DAGClientAMProtocolBlockingPB sessionAmProxy = mock(DAGClientAMProtocolBlockingPB.class, RETURNS_DEEP_STUBS);
-
-    client.sessionAmProxy = sessionAmProxy;
-    client.mockYarnClient = new TezYarnClient(yarnClient);
+    configure(client);
 
     client.start();
 
-    when(yarnClient.getApplicationReport(appId1).getYarnApplicationState()).thenReturn(YarnApplicationState.NEW);
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+        .thenReturn(YarnApplicationState.NEW);
     final AtomicReference<Exception> exceptionReference = new AtomicReference<Exception>();
     Thread thread = new Thread() {
       @Override

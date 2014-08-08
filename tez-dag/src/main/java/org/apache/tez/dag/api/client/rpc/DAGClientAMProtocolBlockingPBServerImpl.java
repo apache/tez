@@ -38,8 +38,6 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequ
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusResponseProto;
-import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.PreWarmRequestProto;
-import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.PreWarmResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
@@ -155,20 +153,6 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
           DagTypeConverters.convertTezSessionStatusToProto(sessionStatus))
           .build();
     } catch(TezException e) {
-      throw wrapException(e);
-    }
-  }
-
-  @Override
-  public DAGClientAMProtocolRPC.PreWarmResponseProto preWarm(
-    RpcController controller,
-    PreWarmRequestProto request) throws ServiceException {
-    try {
-      real.preWarmContainers(
-        DagTypeConverters.convertPreWarmContextFromProto(
-          request.getPreWarmContext()));
-      return PreWarmResponseProto.newBuilder().build();
-    } catch (TezException e) {
       throw wrapException(e);
     }
   }

@@ -26,10 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.event.Dispatcher;
-import org.apache.hadoop.yarn.event.Event;
-import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -37,8 +33,6 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.dag.event.DAGEvent;
-import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.records.TezDAGID;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -48,7 +42,6 @@ import org.mockito.internal.util.collections.Sets;
 public class TestDAGClientHandler {
   
   @Test(timeout = 1000)
-  @SuppressWarnings("unchecked")
   public void testDAGClientHandler() throws TezException {
 
     TezDAGID mockTezDAGId = mock(TezDAGID.class);
@@ -112,13 +105,7 @@ public class TestDAGClientHandler {
     assertEquals(TezAppMasterStatus.INITIALIZING, dagClientHandler.getSessionStatus());
     when(mockDagAM.getState()).thenReturn(DAGAppMasterState.ERROR);
     assertEquals(TezAppMasterStatus.SHUTDOWN, dagClientHandler.getSessionStatus());
-    
-    
-    // startPreWarmContainers
-    PreWarmContext mockPreWarnContext = mock(PreWarmContext.class);
-    dagClientHandler.preWarmContainers(mockPreWarnContext);
-    verify(mockDagAM).startPreWarmContainers(mockPreWarnContext);
-    
+        
     // tryKillDAG
     try{
       dagClientHandler.tryKillDAG("dag_9999_0001_2");

@@ -53,7 +53,7 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.tez.client.PreWarmContext;
+import org.apache.tez.client.PreWarmVertex;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
@@ -78,7 +78,6 @@ import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
-import org.apache.tez.runtime.library.processor.SleepProcessor;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -413,32 +412,13 @@ public class TestOrderedWordCount extends Configured implements Tool {
         }
         if (doPreWarm) {
           LOG.info("Pre-warming Session");
-          VertexLocationHint vertexLocationHint =
-              new VertexLocationHint(null);
-          ProcessorDescriptor sleepProcDescriptor =
-            new ProcessorDescriptor(SleepProcessor.class.getName());
-          SleepProcessor.SleepProcessorConfig sleepProcessorConfig =
-            new SleepProcessor.SleepProcessorConfig(4000);
-          sleepProcDescriptor.setUserPayload(
-            sleepProcessorConfig.toUserPayload());
-          PreWarmContext context = new PreWarmContext(sleepProcDescriptor,
-            dag.getVertex("initialmap").getTaskResource(), preWarmNumContainers,
-              vertexLocationHint);
-
-          Map<String, LocalResource> contextLocalRsrcs =
-            new TreeMap<String, LocalResource>();
-          contextLocalRsrcs.putAll(
-            dag.getVertex("initialmap").getTaskLocalFiles());
-          Map<String, String> contextEnv = new TreeMap<String, String>();
-          contextEnv.putAll(dag.getVertex("initialmap").getTaskEnvironment());
-          String contextJavaOpts =
-            dag.getVertex("initialmap").getTaskLaunchCmdOpts();
-          context
-            .setLocalResources(contextLocalRsrcs)
-            .setJavaOpts(contextJavaOpts)
-            .setEnvironment(contextEnv);
-
-          tezSession.preWarm(context);
+          PreWarmVertex preWarmVertex = new PreWarmVertex("PreWarm", preWarmNumContainers, dag
+              .getVertex("initialmap").getTaskResource());
+          preWarmVertex.setTaskLocalFiles(dag.getVertex("initialmap").getTaskLocalFiles());
+          preWarmVertex.setTaskEnvironment(dag.getVertex("initialmap").getTaskEnvironment());
+          preWarmVertex.setTaskLaunchCmdOpts(dag.getVertex("initialmap").getTaskLaunchCmdOpts());
+          
+          tezSession.preWarm(preWarmVertex);
         }
 
         if (useTezSession) {
