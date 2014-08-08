@@ -224,6 +224,8 @@ public class DAGAppMaster extends AbstractService {
 
   private DAGAppMasterShutdownHandler shutdownHandler =
       new DAGAppMasterShutdownHandler();
+  private AtomicBoolean shutdownHandlerRunning = new AtomicBoolean(false);
+  private Object shutdownHandlerLock = new Object();
 
   private DAGAppMasterState state;
 
@@ -291,15 +293,6 @@ public class DAGAppMaster extends AbstractService {
 
   @Override
   public synchronized void serviceInit(final Configuration conf) throws Exception {
-
-    int maxAppAttempts = 1;
-    String maxAppAttemptsEnv = System.getenv(
-        ApplicationConstants.MAX_APP_ATTEMPTS_ENV);
-    if (maxAppAttemptsEnv != null) {
-      maxAppAttempts = Integer.valueOf(maxAppAttemptsEnv);
-    }
-    isLastAMRetry = appAttemptID.getAttemptId() >= maxAppAttempts;
-
     this.amConf = conf;
     this.isLocal = conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
@@ -308,6 +301,8 @@ public class DAGAppMaster extends AbstractService {
        appMasterUgi = UserGroupInformation.getCurrentUser();
     }
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
+    String strAppId = this.appAttemptID.getApplicationId().toString();
+    this.tezSystemStagingDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
 
     dispatcher = createDispatcher();
     context = new RunningAppContext(conf);
@@ -366,12 +361,6 @@ public class DAGAppMaster extends AbstractService {
     this.taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
         clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher);
     addIfService(taskSchedulerEventHandler, true);
-    if (isLastAMRetry) {
-      LOG.info("AM will unregister as this is the last attempt"
-          + ", currentAttempt=" + appAttemptID.getAttemptId()
-          + ", maxAttempts=" + maxAppAttempts);
-      this.taskSchedulerEventHandler.setShouldUnregisterFlag();
-    }
 
     dispatcher.register(AMSchedulerEventType.class,
         taskSchedulerEventHandler);
@@ -387,8 +376,6 @@ public class DAGAppMaster extends AbstractService {
     this.sessionTimeoutInterval = 1000 * amConf.getInt(
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT);
-    String strAppId = this.appAttemptID.getApplicationId().toString();
-    this.tezSystemStagingDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
     recoveryDataDir = TezCommonUtils.getRecoveryPath(tezSystemStagingDir, conf);
     recoveryFS = recoveryDataDir.getFileSystem(conf);
     currentRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,
@@ -578,12 +565,14 @@ public class DAGAppMaster extends AbstractService {
     }
 
     public void shutdown(boolean now) {
+      LOG.info("DAGAppMasterShutdownHandler invoked");
       if(!shutdownHandled.compareAndSet(false, true)) {
         LOG.info("Ignoring multiple shutdown events");
         return;
       }
 
       LOG.info("Handling DAGAppMaster shutdown");
+      shutdownHandlerRunning.set(true);
 
       AMShutdownRunnable r = new AMShutdownRunnable(now);
       Thread t = new Thread(r, "AMShutdownThread");
@@ -603,6 +592,7 @@ public class DAGAppMaster extends AbstractService {
         // final states. Will be removed once RM come on. TEZ-160.
         if (!immediateShutdown) {
           try {
+            LOG.info("Sleeping for 5 seconds before shutting down");
             Thread.sleep(5000);
           } catch (InterruptedException e) {
             e.printStackTrace();
@@ -614,6 +604,11 @@ public class DAGAppMaster extends AbstractService {
           // This will also send the final report to the ResourceManager
           LOG.info("Calling stop for all the services");
           stop();
+
+          synchronized (shutdownHandlerLock) {
+            shutdownHandlerRunning.set(false);
+            shutdownHandlerLock.notify();
+          }
 
           //Bring the process down by force.
           //Not needed after HADOOP-7140
@@ -1446,6 +1441,7 @@ public class DAGAppMaster extends AbstractService {
       }
       Exception ex = ServiceOperations.stopQuietly(LOG, service);
       if (ex != null && firstException == null) {
+        LOG.warn("Failed to stop service, name=" + service.getName(), ex);
         firstException = ex;
       }
     }
@@ -1576,6 +1572,33 @@ public class DAGAppMaster extends AbstractService {
       this.dagSubmissionTimer.cancel();
     }
     stopServices();
+
+    // Given pre-emption, we should delete staging dir only if unregister is
+    // successful
+    boolean deleteStagingDir = this.amConf.getBoolean(
+        TezConfiguration.TEZ_AM_STAGING_DIR_AUTO_DELETE,
+        TezConfiguration.TEZ_AM_STAGING_DIR_AUTO_DELETE_DEFAULT);
+    LOG.info("Checking whether staging dir should be deleted, deleteStagingDir=" + deleteStagingDir);
+    if (deleteStagingDir && this.taskSchedulerEventHandler != null
+        && this.taskSchedulerEventHandler.unregisterSuccessful()) {
+      // Delete staging dir
+      if (this.tezSystemStagingDir != null) {
+        LOG.info("Deleting staging dir, path=" + this.tezSystemStagingDir);
+        try {
+          FileSystem fs = this.tezSystemStagingDir.getFileSystem(this.amConf);
+          boolean deletedStagingDir = fs.delete(this.tezSystemStagingDir, true);
+          if (!deletedStagingDir) {
+            LOG.warn("Failed to delete staging dir, path=" + this.tezSystemStagingDir);
+          } else {
+            LOG.info("Completed deletion of staging dir, path=" + this.tezSystemStagingDir);
+          }
+        } catch (IOException e) {
+          // Best effort to delete staging dir
+          LOG.warn("Failed to delete staging dir", e);
+        }
+      }
+    }
+
     super.serviceStop();
   }
 
@@ -1733,10 +1756,22 @@ public class DAGAppMaster extends AbstractService {
       this.appMaster = appMaster;
     }
     public void run() {
+      LOG.info("DAGAppMasterShutdownHook invoked");
       if(appMaster.getServiceState() == STATE.STOPPED) {
         if(LOG.isDebugEnabled()) {
           LOG.debug("DAGAppMaster already stopped. Ignoring signal");
         }
+        if (appMaster.shutdownHandlerRunning.get()) {
+          LOG.info("The shutdown handler is still running, waiting for it to complete");
+          synchronized (appMaster.shutdownHandlerLock) {
+            try {
+              appMaster.shutdownHandlerLock.wait();
+            } catch (InterruptedException e) {
+              // Ignore
+            }
+          }
+        }
+
         return;
       }
 

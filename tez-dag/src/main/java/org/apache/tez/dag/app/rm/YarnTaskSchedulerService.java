@@ -128,6 +128,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   final int appHostPort;
   final String appTrackingUrl;
   final AppContext appContext;
+  private boolean unregisterSuccess = false;
 
   AtomicBoolean isStopped = new AtomicBoolean(false);
 
@@ -273,6 +274,11 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     this.shouldUnregister.set(true);
   }
 
+  @Override
+  public boolean unregisterSuccess() {
+    return unregisterSuccess;
+  }
+
   // AbstractService methods
   @Override
   public synchronized void serviceInit(Configuration conf) {
@@ -379,6 +385,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
           amRmClient.unregisterApplicationMaster(status.exitStatus,
               status.exitMessage,
               status.postCompletionTrackingUrl);
+          LOG.info("Successfully unregistered application from RM");
+          unregisterSuccess = true;
         }
       }
 
