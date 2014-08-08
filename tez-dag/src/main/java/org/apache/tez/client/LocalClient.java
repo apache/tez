@@ -68,12 +68,12 @@ public class LocalClient extends FrameworkClient {
   }
 
   @Override
-  public void init(Configuration conf) {
-    this.conf = conf;
-    this.conf.set("fs.defaultFS", "file:///");
+  public void init(TezConfiguration tezConf, YarnConfiguration yarnConf) {
+    this.conf = yarnConf;
+    tezConf.set("fs.defaultFS", "file:///");
     // Tez libs already in the client's classpath
-    this.conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
-    isSession = conf.getBoolean(TezConfiguration.TEZ_AM_SESSION_MODE,
+    tezConf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
+    isSession = tezConf.getBoolean(TezConfiguration.TEZ_AM_SESSION_MODE,
         TezConfiguration.TEZ_AM_SESSION_MODE_DEFAULT);
   }
 

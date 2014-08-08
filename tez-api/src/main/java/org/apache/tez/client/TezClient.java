@@ -251,7 +251,7 @@ public class TezClient {
     amConfig.setYarnConfiguration(new YarnConfiguration(amConfig.getTezConfiguration()));
 
     frameworkClient = createFrameworkClient();
-    frameworkClient.init(amConfig.getYarnConfiguration());
+    frameworkClient.init(amConfig.getTezConfiguration(), amConfig.getYarnConfiguration());
     frameworkClient.start();    
 
     if (isSession) {
