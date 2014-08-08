@@ -78,7 +78,7 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
-import org.apache.tez.mapreduce.input.MRInput;
+import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
@@ -500,14 +500,14 @@ public class MRRSleepJob extends Configured implements Tool {
         }
         taskLocHint = inputSplitInfo.getTaskLocationHints();
         byte[] mapInputPayload = MRHelpers.createMRInputPayload(mapStageConf, null);
-        InputDescriptor id = new InputDescriptor(MRInput.class.getName()).setUserPayload(mapInputPayload);
+        InputDescriptor id = new InputDescriptor(MRInputLegacy.class.getName()).setUserPayload(mapInputPayload);
         dataSource = new DataSourceDescriptor(id, null, null);
       } else {
-        dataSource = MRInput.createConfigurer(mapStageConf, SleepInputFormat.class).
+        dataSource = MRInputLegacy.createConfigurer(mapStageConf, SleepInputFormat.class).
             generateSplitsInAM(false).create();
       }
     } else {
-      dataSource = MRInput.createConfigurer(mapStageConf, SleepInputFormat.class).create();
+      dataSource = MRInputLegacy.createConfigurer(mapStageConf, SleepInputFormat.class).create();
     }
 
     DAG dag = new DAG("MRRSleepJob");
