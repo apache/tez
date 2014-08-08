@@ -23,7 +23,6 @@ import org.apache.tez.runtime.api.TezProcessorContext;
 
 /**
  * Built-in convenience {@link Processor} to be used for pre-warming
- * @author bikas
  *
  */
 public class PreWarmProcessor extends SimpleProcessor {
