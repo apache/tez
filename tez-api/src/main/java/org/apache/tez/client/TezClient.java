@@ -47,7 +47,6 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
-import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
@@ -98,6 +97,8 @@ public class TezClient {
   private JobTokenSecretManager jobTokenSecretManager =
       new JobTokenSecretManager();
   private Map<String, LocalResource> additionalLocalResources = Maps.newHashMap();
+  
+  private int preWarmDAGCounter = 0;
 
   /**
    * Create a new TezClient. Session or non-session execution mode will be
@@ -514,59 +515,46 @@ public class TezClient {
     }
     return TezAppMasterStatus.INITIALIZING;
   }
-
+  
   /**
-   * Inform the Session to pre-warm containers for upcoming DAGs.
-   * Can be invoked multiple times on the same session.
-   * A subsequent call will release containers that are not compatible with the
-   * new context.
-   * This function can only be invoked if there is no DAG running on the Session
-   * This function can be a no-op if the Session already holds the required
-   * number of containers.
-   * @param context Context for the pre-warm containers.
+   * API to help pre-allocate containers in session mode. In non-session mode
+   * this is ignored. The pre-allocated containers may be re-used by subsequent 
+   * job DAGs to improve performance. 
+   * The preWarm vertex should be configured and setup exactly
+   * like the other vertices in the job DAGs so that the pre-allocated containers 
+   * may be re-used by the subsequent DAGs to improve performance.
+   * The processor for the preWarmVertex may be used to pre-warm the containers
+   * by pre-loading classes etc. It should be short-running so that pre-warming 
+   * does not block real execution. Users can specify their custom processors or
+   * use the PreWarmProcessor from the runtime library.
+   * The parallelism of the preWarmVertex will determine the number of preWarmed
+   * containers.
+   * Pre-warming is best efforts and among other factors is limited by the free 
+   * resources on the cluster.
+   * @param preWarmVertex
+   * @throws TezException
+   * @throws IOException
+   * @throws InterruptedException
    */
-  @Private
   @InterfaceStability.Unstable
-  public void preWarm(PreWarmContext context)
-      throws IOException, TezException, InterruptedException {
-    verifySessionStateForSubmission();
-
-    try {
-      DAGClientAMProtocolBlockingPB proxy = waitForProxy();
-      if (proxy == null) {
-        throw new SessionNotRunning("Could not connect to Session within client"
-            + " timeout interval, timeoutSecs=" + clientTimeout);
-      }
-
-      Map<String, String> contextEnv = context.getEnvironment();
-      TezYARNUtils.setupDefaultEnv(contextEnv, amConfig.getTezConfiguration(),
-          TezConfiguration.TEZ_TASK_LAUNCH_ENV,
-          TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT,
-          TezClientUtils.usingTezLibsFromArchive(getTezJarResources(sessionCredentials)));
-
-      DAGClientAMProtocolRPC.PreWarmRequestProto.Builder
-        preWarmReqProtoBuilder =
-          DAGClientAMProtocolRPC.PreWarmRequestProto.newBuilder();
-      preWarmReqProtoBuilder.setPreWarmContext(
-        DagTypeConverters.convertPreWarmContextToProto(context));
-      proxy.preWarm(null, preWarmReqProtoBuilder.build());
-      while (true) {
-        try {
-          Thread.sleep(1000);
-          TezAppMasterStatus status = getAppMasterStatus();
-          if (status.equals(TezAppMasterStatus.READY)) {
-            break;
-          } else if (status.equals(TezAppMasterStatus.SHUTDOWN)) {
-            throw new SessionNotRunning("Could not connect to Session");
-          }
-        } catch (InterruptedException e) {
-          return;
-        }
-      }
-    } catch (ServiceException e) {
-      throw new TezException(e);
+  public void preWarm(PreWarmVertex preWarmVertex) throws TezException, IOException, InterruptedException {
+    if (!isSession) {
+      // do nothing for non session mode. This is there to let the code 
+      // work correctly in both modes
+      return;
     }
+    
+    verifySessionStateForSubmission();
+    
+    DAG dag = new org.apache.tez.dag.api.DAG(TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX + "_"
+        + preWarmDAGCounter++);
+    dag.addVertex(preWarmVertex);
+    
+    waitTillReady();
+    
+    submitDAG(dag);
   }
+
   
   /**
    * Wait till the DAG is ready to be submitted.

@@ -205,8 +205,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     stage1Vertex.addDataSource(
         "MRInput",
         new DataSourceDescriptor(new InputDescriptor(MRInputLegacy.class
-            .getName()).setUserPayload(MRHelpers.createMRInputPayload(
-            stage1Payload, null)), 
+            .getName()).setUserPayload(MRHelpers.createMRInputPayload(stage1Payload)),
             (initializerClazz == null ? null
             : new InputInitializerDescriptor(initializerClazz.getName())), null));
 

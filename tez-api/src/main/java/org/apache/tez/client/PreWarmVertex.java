@@ -16,26 +16,22 @@
  * limitations under the License.
  */
 
-option java_package = "org.apache.tez.mapreduce.protos";
-option java_outer_classname = "MRRuntimeProtos";
-option java_generate_equals_and_hash = true;
+package org.apache.tez.client;
 
-// Represents multiple MR splits
-message MRSplitsProto {
-  optional int32 version = 1;
-  repeated MRSplitProto splits = 2;
-  // May be useful to have a single large field to serialize all splits
-  // and use CodedInputStream to read these efficiently (via a Writable/Hadoop serialization wrapper).
-}
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.Vertex;
 
-// Represents a single MRSplit
-message MRSplitProto {
-  optional string split_class_name = 1;
-  optional bytes split_bytes = 2;
-}
+public class PreWarmVertex extends Vertex {
 
-message MRInputUserPayloadProto {
-  optional bytes configuration_bytes = 1;
-  optional MRSplitsProto splits = 2;
-  optional bool grouping_enabled = 3;
+  public PreWarmVertex(String vertexName, ProcessorDescriptor processorDescriptor, int parallelism,
+      Resource taskResource) {
+    super(vertexName, processorDescriptor, parallelism, taskResource);
+  }
+  
+  public PreWarmVertex(String vertexName, int parallelism, Resource taskResource) {
+    this(vertexName, new ProcessorDescriptor(
+        "org.apache.tez.runtime.library.processor.PreWarmProcessor"), parallelism, taskResource);
+  }
+
 }

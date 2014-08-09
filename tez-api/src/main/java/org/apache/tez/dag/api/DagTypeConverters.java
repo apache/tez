@@ -39,7 +39,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUserPayload;
@@ -65,7 +64,6 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceVisibility;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
-import org.apache.tez.dag.api.records.DAGProtos.PreWarmContextProto;
 import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCounterGroupProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCounterProto;
@@ -618,69 +616,6 @@ public class DagTypeConverters {
       }
     }
     return builder.build();
-  }
-
-  public static PreWarmContextProto convertPreWarmContextToProto(
-      PreWarmContext preWarmContext) {
-    PreWarmContextProto.Builder builder = PreWarmContextProto.newBuilder();
-    builder.setProcessorDescriptor(
-      DagTypeConverters.convertToDAGPlan(
-        preWarmContext.getProcessorDescriptor()));
-    builder.setNumTasks(preWarmContext.getNumTasks());
-    builder.setMemoryMb(preWarmContext.getResource().getMemory());
-    builder.setVirtualCores(preWarmContext.getResource().getVirtualCores());
-    if (preWarmContext.getLocalResources() != null) {
-      builder.setLocalResources(
-        DagTypeConverters.convertFromLocalResources(
-          preWarmContext.getLocalResources()));
-    }
-    if (preWarmContext.getEnvironment() != null) {
-      for (Map.Entry<String, String> entry :
-          preWarmContext.getEnvironment().entrySet()) {
-        builder.addEnvironmentSetting(
-          PlanKeyValuePair.newBuilder()
-            .setKey(entry.getKey())
-            .setValue(entry.getValue())
-            .build());
-      }
-    }
-    if (preWarmContext.getLocationHints() != null) {
-      builder.setLocationHints(
-        DagTypeConverters.convertVertexLocationHintToProto(
-          preWarmContext.getLocationHints()));
-    }
-    if (preWarmContext.getJavaOpts() != null) {
-      builder.setJavaOpts(preWarmContext.getJavaOpts());
-    }
-    return builder.build();
-  }
-
-  public static PreWarmContext convertPreWarmContextFromProto(
-      PreWarmContextProto proto) {
-    VertexLocationHint vertexLocationHint = null;
-    if (proto.hasLocationHints()) {
-      vertexLocationHint =
-          DagTypeConverters.convertVertexLocationHintFromProto(
-              proto.getLocationHints());
-    }
-    PreWarmContext context = new PreWarmContext(
-      DagTypeConverters.convertProcessorDescriptorFromDAGPlan(
-        proto.getProcessorDescriptor()),
-        Resource.newInstance(proto.getMemoryMb(), proto.getVirtualCores()),
-        proto.getNumTasks(),
-        vertexLocationHint);
-    if (proto.hasLocalResources()) {
-      context.setLocalResources(
-        DagTypeConverters.convertFromPlanLocalResources(
-          proto.getLocalResources()));
-    }
-    context.setEnvironment(
-      DagTypeConverters.createEnvironmentMapFromDAGPlan(
-        proto.getEnvironmentSettingList()));
-    if (proto.hasJavaOpts()) {
-      context.setJavaOpts(proto.getJavaOpts());
-    }
-    return context;
   }
 
   public static TezUserPayload convertToTezUserPayload(@Nullable byte[] payload) {

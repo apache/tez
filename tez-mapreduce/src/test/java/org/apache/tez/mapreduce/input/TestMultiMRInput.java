@@ -90,7 +90,7 @@ public class TestMultiMRInput {
     FileInputFormat.setInputPaths(jobConf, workDir);
 
     MRInputUserPayloadProto.Builder builder = MRInputUserPayloadProto.newBuilder();
-    builder.setInputFormatName(SequenceFileInputFormat.class.getName());
+    builder.setGroupingEnabled(false);
     builder.setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf));
     byte[] payload = builder.build().toByteArray();
 
@@ -140,7 +140,7 @@ public class TestMultiMRInput {
     FileInputFormat.setInputPaths(jobConf, workDir);
 
     MRInputUserPayloadProto.Builder builder = MRInputUserPayloadProto.newBuilder();
-    builder.setInputFormatName(SequenceFileInputFormat.class.getName());
+    builder.setGroupingEnabled(false);
     builder.setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf));
     byte[] payload = builder.build().toByteArray();
 
@@ -204,7 +204,7 @@ public class TestMultiMRInput {
     FileInputFormat.setInputPaths(jobConf, workDir);
 
     MRInputUserPayloadProto.Builder builder = MRInputUserPayloadProto.newBuilder();
-    builder.setInputFormatName(SequenceFileInputFormat.class.getName());
+    builder.setGroupingEnabled(false);
     builder.setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf));
     byte[] payload = builder.build().toByteArray();
 

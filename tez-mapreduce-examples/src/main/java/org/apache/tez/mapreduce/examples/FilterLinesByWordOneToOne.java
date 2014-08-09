@@ -192,7 +192,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
         "MRInput",
         new DataSourceDescriptor(new InputDescriptor(MRInputLegacy.class
             .getName()).setUserPayload(MRHelpers.createMRInputPayload(
-            stage1Payload, null)), (initializerClazz == null ? null
+            stage1Payload)), (initializerClazz == null ? null
             : new InputInitializerDescriptor(initializerClazz.getName())), null));
 
     // Setup stage2 Vertex

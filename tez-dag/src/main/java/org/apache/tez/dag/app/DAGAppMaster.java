@@ -88,7 +88,6 @@ import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
-import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.TezUtils;
@@ -972,8 +971,8 @@ public class DAGAppMaster extends AbstractService {
 
     // RPC server runs in the context of the job user as it was started in
     // the job user's UGI context
-    LOG.info("Starting DAG submitted via RPC");
-
+    LOG.info("Starting DAG submitted via RPC: " + dagPlan.getName());
+    
     if (LOG.isDebugEnabled()) {
       LOG.debug("Invoked with additional local resources: " + additionalResources);
       
@@ -995,50 +994,6 @@ public class DAGAppMaster extends AbstractService {
     submittedDAGs.incrementAndGet();
     startDAG(dagPlan, additionalResources);
     return currentDAG.getID().toString();
-  }
-
-  public synchronized void startPreWarmContainers(PreWarmContext preWarmContext)
-      throws TezException {
-    // Check if there is a running DAG
-    if(currentDAG != null
-        && !state.equals(DAGAppMasterState.IDLE)) {
-      throw new TezException("App master already running a DAG");
-    }
-
-    // Kill current pre-warm DAG if needed
-    // Launch new pre-warm DAG
-
-    org.apache.tez.dag.api.DAG dag =
-      new org.apache.tez.dag.api.DAG(
-          TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX +
-              Integer.toString(dagCounter.get() + 1));
-    if (preWarmContext.getNumTasks() <= 0) {
-      LOG.warn("Ignoring pre-warm context as invalid numContainers specified: "
-          + preWarmContext.getNumTasks());
-      return;
-    }
-    org.apache.tez.dag.api.Vertex preWarmVertex = new
-        org.apache.tez.dag.api.Vertex("PreWarmVertex",
-      preWarmContext.getProcessorDescriptor(),
-      preWarmContext.getNumTasks(), preWarmContext.getResource());
-    if (preWarmContext.getEnvironment() != null) {
-      preWarmVertex.setTaskEnvironment(preWarmContext.getEnvironment());
-    }
-    if (preWarmContext.getLocalResources() != null) {
-      preWarmVertex.setTaskLocalFiles(preWarmContext.getLocalResources());
-    }
-    if (preWarmContext.getLocationHints() != null) {
-      preWarmVertex.setLocationHint(preWarmContext.getLocationHints());
-    }
-    if (preWarmContext.getJavaOpts() != null) {
-      preWarmVertex.setTaskLaunchCmdOpts(preWarmContext.getJavaOpts());
-    }
-    dag.addVertex(preWarmVertex);
-    LOG.info("Pre-warming containers"
-        + ", processor=" + preWarmContext.getProcessorDescriptor().getClassName()
-        + ", numContainers=" + preWarmContext.getNumTasks()
-        + ", containerResource=" + preWarmContext.getResource());
-    startDAG(dag.createDag(amConf), null);
   }
 
   @SuppressWarnings("unchecked")

@@ -26,7 +26,6 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.tez.client.PreWarmContext;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -129,14 +128,6 @@ public class DAGClientHandler {
       return TezAppMasterStatus.SHUTDOWN;
     }
     return TezAppMasterStatus.INITIALIZING;
-  }
-
-  public synchronized void preWarmContainers(PreWarmContext preWarmContext)
-      throws TezException {
-    if (dagAppMaster == null) {
-      throw new TezException("DAG App Master is not initialized");
-    }
-    dagAppMaster.startPreWarmContainers(preWarmContext);
   }
 
   public ACLManager getACLManager() {
