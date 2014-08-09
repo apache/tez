@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.dag.app.security;
+package org.apache.tez.common.security;
 
 import java.io.IOException;
 import java.util.Collection;

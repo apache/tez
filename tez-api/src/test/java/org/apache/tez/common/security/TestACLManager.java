@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.app.security;
+package org.apache.tez.common.security;
 
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -26,8 +26,10 @@ import java.io.IOException;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.security.ACLManager;
+import org.apache.tez.common.security.Groups;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.app.security.ACLManager.ACLType;
+import org.apache.tez.common.security.ACLManager.ACLType;
 import org.junit.Assert;
 import org.junit.Test;
 

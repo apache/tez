@@ -31,7 +31,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.security.ACLManager;
+import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGClientHandler {

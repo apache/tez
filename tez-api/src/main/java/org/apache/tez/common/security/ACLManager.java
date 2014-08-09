@@ -16,17 +16,19 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.app.security;
+package org.apache.tez.common.security;
 
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.dag.api.TezConfiguration;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -162,6 +164,39 @@ public class ACLManager {
   public boolean checkDAGModifyAccess(String user) {
     return checkAccess(user, ACLType.AM_MODIFY_ACL)
         || checkAccess(user, ACLType.DAG_MODIFY_ACL);
+  }
+
+  public Map<ApplicationAccessType, String> toYARNACls() {
+    Map<ApplicationAccessType, String> acls = new HashMap<ApplicationAccessType, String>(2);
+    if (!this.aclsEnabled) {
+      acls.put(ApplicationAccessType.VIEW_APP, "*");
+      acls.put(ApplicationAccessType.MODIFY_APP, "*");
+      return acls;
+    }
+    boolean viewAclsWildCard = false;
+    boolean modifyAclsWildCard = false;
+    if (users != null && !users.isEmpty()) {
+      for (Entry<ACLType, Set<String>> entry : users.entrySet()) {
+        if (entry.getValue().contains(WILDCARD_ACL_VALUE)) {
+          if (entry.getKey().equals(ACLType.AM_VIEW_ACL)) {
+            viewAclsWildCard = true;
+            acls.put(ApplicationAccessType.VIEW_APP, "*");
+            continue;
+          }
+        } else if (!entry.getValue().isEmpty()) {
+
+
+        }
+      }
+    }
+    if (groups != null && !groups.isEmpty()) {
+      for (Entry<ACLType, Set<String>> entry : groups.entrySet()) {
+        if (viewAclsWildCard &&
+            (entry.getKey().equals(ACLType.AM_VIEW_ACL))
+
+      }
+    }
+    return acls;
   }
 
 }
