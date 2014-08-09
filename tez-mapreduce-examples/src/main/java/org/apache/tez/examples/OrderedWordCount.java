@@ -43,7 +43,6 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.mapreduce.examples.WordCount.TokenProcessor;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
@@ -118,17 +117,15 @@ public class OrderedWordCount extends Configured implements Tool  {
         TextOutputFormat.class, outputPath).create();
 
     Vertex tokenizerVertex = new Vertex("Tokenizer", new ProcessorDescriptor(
-        TokenProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf));
+        TokenProcessor.class.getName()));
     tokenizerVertex.addDataSource("MRInput", dataSource);
 
-    Vertex summationVertex = new Vertex("Summation",
-        new ProcessorDescriptor(
-            SumProcessor.class.getName()), numPartitions, MRHelpers.getReduceResource(tezConf));
+    Vertex summationVertex = new Vertex("Summation", new ProcessorDescriptor(
+        SumProcessor.class.getName()), numPartitions);
     
     // 1 task for global sorted order
-    Vertex sorterVertex = new Vertex("Sorter",
-        new ProcessorDescriptor(
-            NoOpSorter.class.getName()), 1, MRHelpers.getReduceResource(tezConf));
+    Vertex sorterVertex = new Vertex("Sorter", new ProcessorDescriptor(
+        NoOpSorter.class.getName()), 1);
     sorterVertex.addDataSink("MROutput", dataSink);
 
     OrderedPartitionedKVEdgeConfigurer summationEdgeConf = OrderedPartitionedKVEdgeConfigurer

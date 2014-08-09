@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.Shell;
@@ -40,8 +38,6 @@ public class TezYARNUtils {
   
   private static Pattern ENV_VARIABLE_PATTERN = Pattern.compile(Shell.getEnvironmentVariableRegex());
 
-  private static Log LOG = LogFactory.getLog(TezYARNUtils.class);
-  
   public static String getFrameworkClasspath(Configuration conf, boolean usingArchive) {
     Map<String, String> environment = new HashMap<String, String>();
 

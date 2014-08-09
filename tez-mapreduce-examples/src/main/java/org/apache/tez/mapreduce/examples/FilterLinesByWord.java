@@ -52,7 +52,6 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
-import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.DataSourceDescriptor;
@@ -90,7 +89,6 @@ public class FilterLinesByWord extends Configured implements Tool {
 
   public static final String FILTER_PARAM_NAME = "tez.runtime.examples.filterbyword.word";
   
-  private TezCounters counters = null;
   private boolean exitOnCompletion = false;
 
   public FilterLinesByWord(boolean exitOnCompletion) {
@@ -188,7 +186,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     int stage1NumTasks = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex stage1Vertex = new Vertex("stage1", new ProcessorDescriptor(
         FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload),
-        stage1NumTasks, MRHelpers.getMapResource(stage1Conf));
+        stage1NumTasks);
     if (generateSplitsInClient) {
       stage1Vertex.setLocationHint(new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
       Map<String, LocalResource> stage1LocalResources = new HashMap<String, LocalResource>();
@@ -212,8 +210,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     // Setup stage2 Vertex
     Vertex stage2Vertex = new Vertex("stage2", new ProcessorDescriptor(
         FilterByWordOutputProcessor.class.getName()).setUserPayload(MRHelpers
-        .createUserPayloadFromConf(stage2Conf)), 1,
-        MRHelpers.getReduceResource(stage2Conf));
+        .createUserPayloadFromConf(stage2Conf)), 1);
     stage2Vertex.setTaskLocalFiles(commonLocalResources);
 
     // Configure the Output for stage2
@@ -268,7 +265,6 @@ public class FilterLinesByWord extends Configured implements Tool {
       }
       
       dagStatus = dagClient.getDAGStatus(Sets.newHashSet(StatusGetOpts.GET_COUNTERS));
-      counters = dagStatus.getDAGCounters();
       
     } finally {
       fs.delete(stagingDir, true);

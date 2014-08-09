@@ -39,7 +39,6 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
@@ -118,13 +117,11 @@ public class WordCount extends Configured implements Tool {
         TextOutputFormat.class, outputPath).create();
 
     Vertex tokenizerVertex = new Vertex("Tokenizer", new ProcessorDescriptor(
-        TokenProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf));
-    tokenizerVertex.addDataSource("Input", dataSource);
+        TokenProcessor.class.getName())).addDataSource("Input", dataSource);
 
     Vertex summerVertex = new Vertex("Summer",
-        new ProcessorDescriptor(
-            SumProcessor.class.getName()), numPartitions, MRHelpers.getReduceResource(tezConf));
-    summerVertex.addDataSink("Output", dataSink);
+        new ProcessorDescriptor(SumProcessor.class.getName()), numPartitions)
+        .addDataSink("Output", dataSink);
 
     OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),

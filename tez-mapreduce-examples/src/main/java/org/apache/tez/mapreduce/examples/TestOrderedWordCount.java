@@ -210,8 +210,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     int numMaps = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(mapPayload)
-            .setHistoryText(mapStageHistoryText),
-        numMaps, MRHelpers.getMapResource(mapStageConf));
+            .setHistoryText(mapStageHistoryText), numMaps);
     if (generateSplitsInClient) {
       mapVertex.setLocationHint(new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
       Map<String, LocalResource> mapLocalResources =
@@ -237,8 +236,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     Vertex ivertex = new Vertex("intermediate_reducer", new ProcessorDescriptor(
         ReduceProcessor.class.getName())
             .setUserPayload(MRHelpers.createUserPayloadFromConf(iReduceStageConf))
-            .setHistoryText(iReduceStageHistoryText),
-        2, MRHelpers.getReduceResource(iReduceStageConf));
+            .setHistoryText(iReduceStageHistoryText), 2);
     ivertex.setTaskLocalFiles(commonLocalResources);
     vertices.add(ivertex);
 
@@ -250,8 +248,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
         new ProcessorDescriptor(
             ReduceProcessor.class.getName())
                 .setUserPayload(finalReducePayload)
-                .setHistoryText(finalReduceStageHistoryText), 1,
-        MRHelpers.getReduceResource(finalReduceConf));
+                .setHistoryText(finalReduceStageHistoryText), 1);
     finalReduceVertex.setTaskLocalFiles(commonLocalResources);
     MRHelpers.addMROutputLegacy(finalReduceVertex, finalReducePayload);
     vertices.add(finalReduceVertex);

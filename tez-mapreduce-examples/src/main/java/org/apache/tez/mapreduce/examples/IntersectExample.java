@@ -46,7 +46,6 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
@@ -185,22 +184,21 @@ public class IntersectExample extends Configured implements Tool {
 
     // Change the way resources are setup - no MRHelpers
     Vertex streamFileVertex = new Vertex("partitioner1", new ProcessorDescriptor(
-        ForwardingProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf)).addDataSource(
+        ForwardingProcessor.class.getName())).addDataSource(
         "streamfile",
         MRInput
             .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
                 streamPath.toUri().toString()).groupSplitsInAM(false).create());
 
     Vertex hashFileVertex = new Vertex("partitioner2", new ProcessorDescriptor(
-        ForwardingProcessor.class.getName()), -1, MRHelpers.getMapResource(tezConf)).addDataSource(
+        ForwardingProcessor.class.getName())).addDataSource(
         "hashfile",
         MRInput
             .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
                 hashPath.toUri().toString()).groupSplitsInAM(false).create());
 
     Vertex intersectVertex = new Vertex("intersect", new ProcessorDescriptor(
-        IntersectProcessor.class.getName()), numPartitions,
-        MRHelpers.getReduceResource(tezConf)).addDataSink("finalOutput",
+        IntersectProcessor.class.getName()), numPartitions).addDataSink("finalOutput",
         MROutput.createConfigurer(new Configuration(tezConf),
             TextOutputFormat.class, outPath.toUri().toString()).create());
 

@@ -580,7 +580,7 @@ public class TezClientUtils {
       amConfig.getTezConfiguration().set(TezConfiguration.TEZ_AM_PLAN_REMOTE_PATH,
           binaryPath.toUri().toString());
 
-      DAGPlan dagPB = dag.createDag(null);
+      DAGPlan dagPB = dag.createDag(amConfig.getTezConfiguration());
 
       FSDataOutputStream dagPBOutBinaryStream = null;
 
