@@ -18,19 +18,16 @@
 
 package org.apache.tez.mapreduce.common;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.Lists;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfoMem;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -43,9 +40,6 @@ import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.api.TezRootInputInitializerContext;
 import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
-
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.Lists;
 import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
 
 public class MRInputAMSplitGenerator extends TezRootInputInitializer {
@@ -108,59 +102,12 @@ public class MRInputAMSplitGenerator extends TezRootInputInitializer {
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
 
     InputSplitInfoMem inputSplitInfo = null;
-    String realInputFormatName = userPayloadProto.getInputFormatName(); 
-    if ( realInputFormatName != null && !realInputFormatName.isEmpty()) {
-      // split grouping on the AM
-      if (jobConf.getUseNewMapper()) {
-        LOG.info("Grouping mapreduce api input splits");
-        Job job = Job.getInstance(jobConf);
-        org.apache.hadoop.mapreduce.InputSplit[] splits = MRHelpers
-            .generateNewSplits(job, realInputFormatName, numTasks);
-
-        // Move all this into a function
-        List<TaskLocationHint> locationHints = Lists
-            .newArrayListWithCapacity(splits.length);
-        for (org.apache.hadoop.mapreduce.InputSplit split : splits) {
-          String rack = 
-              ((org.apache.hadoop.mapreduce.split.TezGroupedSplit) split).getRack();
-          if (rack == null) {
-            if (split.getLocations() != null) {
-              locationHints.add(new TaskLocationHint(new HashSet<String>(Arrays
-                  .asList(split.getLocations())), null));
-            } else {
-              locationHints.add(new TaskLocationHint(null, null));
-            }
-          } else {
-            locationHints.add(new TaskLocationHint(null, 
-                Collections.singleton(rack)));
-          }
-        }
-        inputSplitInfo = new InputSplitInfoMem(splits, locationHints, splits.length, null, jobConf);
-      } else {
-        LOG.info("Grouping mapred api input splits");
-        org.apache.hadoop.mapred.InputSplit[] splits = MRHelpers
-            .generateOldSplits(jobConf, realInputFormatName, numTasks);
-        List<TaskLocationHint> locationHints = Lists
-            .newArrayListWithCapacity(splits.length);
-        for (org.apache.hadoop.mapred.InputSplit split : splits) {
-          String rack = 
-              ((org.apache.hadoop.mapred.split.TezGroupedSplit) split).getRack();
-          if (rack == null) {
-            if (split.getLocations() != null) {
-              locationHints.add(new TaskLocationHint(new HashSet<String>(Arrays
-                  .asList(split.getLocations())), null));
-            } else {
-              locationHints.add(new TaskLocationHint(null, null));
-            }
-          } else {
-            locationHints.add(new TaskLocationHint(null, 
-                Collections.singleton(rack)));
-          }
-        }
-        inputSplitInfo = new InputSplitInfoMem(splits, locationHints, splits.length, null, jobConf);
-      }
+    boolean groupSplits = userPayloadProto.getGroupingEnabled();
+    if (groupSplits) {
+      LOG.info("Grouping input splits");
+      inputSplitInfo = MRHelpers.generateInputSplitsToMem(jobConf, true, numTasks);
     } else {
-      inputSplitInfo = MRHelpers.generateInputSplitsToMem(jobConf);
+      inputSplitInfo = MRHelpers.generateInputSplitsToMem(jobConf, false, 0);
     }
     if (LOG.isDebugEnabled()) {
       sw.stop();

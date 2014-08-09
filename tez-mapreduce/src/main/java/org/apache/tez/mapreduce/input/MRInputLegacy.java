@@ -51,7 +51,7 @@ public class MRInputLegacy extends MRInput {
    * @param inputFormat InputFormat derived class
    * @return {@link MRInputConfigurer}
    */
-  public static MRInputConfigurer createtConfigurer(Configuration conf, Class<?> inputFormat) {
+  public static MRInputConfigurer createConfigurer(Configuration conf, Class<?> inputFormat) {
     return MRInput.createConfigurer(conf, inputFormat).setInputClassName(MRInputLegacy.class.getName());
   }
 

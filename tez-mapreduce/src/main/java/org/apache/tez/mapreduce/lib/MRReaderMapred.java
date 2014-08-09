@@ -67,6 +67,7 @@ public class MRReaderMapred extends MRReader {
     this.tezCounters = tezCounters;
     this.inputRecordCounter = inputRecordCounter;
     inputFormat = this.jobConf.getInputFormat();
+
     if (inputSplit != null) {
       this.inputSplit = inputSplit;
       setupOldRecordReader();

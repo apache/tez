@@ -48,6 +48,9 @@ INCOMPATIBLE CHANGES
   TEZ-1317. Simplify MRinput/MROutput configuration
   TEZ-1379. Allow EdgeConfigurers to accept Configuration for Comparators. Change the way partitioner, comparator, combiner confs are set (from Hadoop Configuration to Map). Rename specific Input/Output classes from *Configuration to *Configurer.
   TEZ-1382. Change ObjectRegistry API to allow for future extensions
+  TEZ-1386. TezGroupedSplitsInputFormat should not need to be setup to enable grouping.
+  TEZ-1394. Create example code for OrderedWordCount
+  TEZ-1372. Fix preWarm to work after recent API changes
 
 Release 0.4.0-incubating: 2014-04-05
 

@@ -34,7 +34,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.security.ssl.KeyStoreTestUtil;
-import org.apache.tez.mapreduce.examples.OrderedWordCount;
+import org.apache.tez.mapreduce.examples.TestOrderedWordCount;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.After;
 import org.junit.Before;
@@ -141,7 +141,7 @@ public class TestSecureShuffle {
           TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, true);
     }
 
-    OrderedWordCount wordCount = new OrderedWordCount();
+    TestOrderedWordCount wordCount = new TestOrderedWordCount();
     wordCount.setConf(new Configuration(miniTezCluster.getConfig()));
 
     String[] args = new String[] { inputLoc.toString(), outputLoc.toString() };

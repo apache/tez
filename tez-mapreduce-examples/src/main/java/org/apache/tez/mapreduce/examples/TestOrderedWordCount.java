@@ -47,14 +47,13 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
-import org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.tez.client.PreWarmContext;
+import org.apache.tez.client.PreWarmVertex;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
@@ -79,7 +78,6 @@ import org.apache.tez.runtime.api.TezRootInputInitializer;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
-import org.apache.tez.runtime.library.processor.SleepProcessor;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -93,9 +91,9 @@ import com.google.common.annotations.VisibleForTesting;
  * Use -DINTER_JOB_SLEEP_INTERVAL=<N> where N is the sleep interval in seconds
  * between the sequential DAGs.
  */
-public class OrderedWordCount extends Configured implements Tool {
+public class TestOrderedWordCount extends Configured implements Tool {
 
-  private static Log LOG = LogFactory.getLog(OrderedWordCount.class);
+  private static Log LOG = LogFactory.getLog(TestOrderedWordCount.class);
 
   public static class TokenizerMapper
        extends Mapper<Object, Text, Text, IntWritable>{
@@ -157,13 +155,8 @@ public class OrderedWordCount extends Configured implements Tool {
     Configuration mapStageConf = new JobConf(conf);
     mapStageConf.set(MRJobConfig.MAP_CLASS_ATTR,
         TokenizerMapper.class.getName());
-    if (generateSplitsInClient) {
-      mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
-          TextInputFormat.class.getName());
-    } else {
-      mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, 
-          TezGroupedSplitsInputFormat.class.getName());
-    }
+    mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
+        TextInputFormat.class.getName());
     mapStageConf.set(FileInputFormat.INPUT_DIR, inputPath);
     mapStageConf.setBoolean("mapred.mapper.new-api", true);
 
@@ -208,8 +201,12 @@ public class OrderedWordCount extends Configured implements Tool {
     mapStageConf.writeXml(outputStream);
     String mapStageHistoryText = new String(outputStream.toByteArray(), "UTF-8");
     byte[] mapPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
-    byte[] mapInputPayload = MRHelpers.createMRInputPayloadWithGrouping(mapPayload,
-      TextInputFormat.class.getName());
+    byte[] mapInputPayload;
+    if (generateSplitsInClient) {
+      mapInputPayload = MRHelpers.createMRInputPayload(mapPayload);
+    } else {
+      mapInputPayload = MRHelpers.createMRInputPayloadWithGrouping(mapPayload);
+    }
     int numMaps = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(mapPayload)
@@ -229,8 +226,8 @@ public class OrderedWordCount extends Configured implements Tool {
 
     Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
         : MRInputAMSplitGenerator.class;
-    MRHelpers.addMRInput(mapVertex, mapInputPayload, 
-        (initializerClazz==null) ? null : 
+    MRHelpers.addMRInput(mapVertex, mapInputPayload,
+        (initializerClazz==null) ? null :
           new InputInitializerDescriptor(initializerClazz.getName()));
     vertices.add(mapVertex);
 
@@ -285,9 +282,9 @@ public class OrderedWordCount extends Configured implements Tool {
 
   private static void printUsage() {
     String options = " [-generateSplitsInClient true/<false>]";
-    System.err.println("Usage: orderedwordcount <in> <out>" + options);
+    System.err.println("Usage: testorderedwordcount <in> <out>" + options);
     System.err.println("Usage (In Session Mode):"
-        + " orderedwordcount <in1> <out1> ... <inN> <outN>" + options);
+        + " testorderedwordcount <in1> <out1> ... <inN> <outN>" + options);
     ToolRunner.printGenericCommandUsage(System.err);
   }
 
@@ -332,7 +329,7 @@ public class OrderedWordCount extends Configured implements Tool {
     UserGroupInformation.setConfiguration(conf);
 
     TezConfiguration tezConf = new TezConfiguration(conf);
-    OrderedWordCount instance = new OrderedWordCount();
+    TestOrderedWordCount instance = new TestOrderedWordCount();
 
     FileSystem fs = FileSystem.get(conf);
 
@@ -415,32 +412,13 @@ public class OrderedWordCount extends Configured implements Tool {
         }
         if (doPreWarm) {
           LOG.info("Pre-warming Session");
-          VertexLocationHint vertexLocationHint =
-              new VertexLocationHint(null);
-          ProcessorDescriptor sleepProcDescriptor =
-            new ProcessorDescriptor(SleepProcessor.class.getName());
-          SleepProcessor.SleepProcessorConfig sleepProcessorConfig =
-            new SleepProcessor.SleepProcessorConfig(4000);
-          sleepProcDescriptor.setUserPayload(
-            sleepProcessorConfig.toUserPayload());
-          PreWarmContext context = new PreWarmContext(sleepProcDescriptor,
-            dag.getVertex("initialmap").getTaskResource(), preWarmNumContainers,
-              vertexLocationHint);
-
-          Map<String, LocalResource> contextLocalRsrcs =
-            new TreeMap<String, LocalResource>();
-          contextLocalRsrcs.putAll(
-            dag.getVertex("initialmap").getTaskLocalFiles());
-          Map<String, String> contextEnv = new TreeMap<String, String>();
-          contextEnv.putAll(dag.getVertex("initialmap").getTaskEnvironment());
-          String contextJavaOpts =
-            dag.getVertex("initialmap").getTaskLaunchCmdOpts();
-          context
-            .setLocalResources(contextLocalRsrcs)
-            .setJavaOpts(contextJavaOpts)
-            .setEnvironment(contextEnv);
-
-          tezSession.preWarm(context);
+          PreWarmVertex preWarmVertex = new PreWarmVertex("PreWarm", preWarmNumContainers, dag
+              .getVertex("initialmap").getTaskResource());
+          preWarmVertex.setTaskLocalFiles(dag.getVertex("initialmap").getTaskLocalFiles());
+          preWarmVertex.setTaskEnvironment(dag.getVertex("initialmap").getTaskEnvironment());
+          preWarmVertex.setTaskLaunchCmdOpts(dag.getVertex("initialmap").getTaskLaunchCmdOpts());
+          
+          tezSession.preWarm(preWarmVertex);
         }
 
         if (useTezSession) {
@@ -523,7 +501,7 @@ public class OrderedWordCount extends Configured implements Tool {
   }
 
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new OrderedWordCount(), args);
+    int res = ToolRunner.run(new Configuration(), new TestOrderedWordCount(), args);
     System.exit(res);
   }
 }
