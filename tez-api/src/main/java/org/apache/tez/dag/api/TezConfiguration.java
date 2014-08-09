@@ -43,10 +43,10 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_PREFIX = TEZ_PREFIX + "am.";
   public static final String TEZ_TASK_PREFIX = TEZ_PREFIX + "task.";
 
-  /** Whether to delete the staging dir on completion */
-  public static final String TEZ_AM_STAGING_DIR_AUTO_DELETE = TEZ_AM_PREFIX +
-      "staging-dir.auto-delete";
-  public static final boolean TEZ_AM_STAGING_DIR_AUTO_DELETE_DEFAULT = true;
+  /** Whether to delete all the tez framework scratch data in staging dir on completion */
+  public static final String TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE = TEZ_AM_PREFIX +
+      "staging.scratch-data.auto-delete";
+  public static final boolean TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE_DEFAULT = true;
 
   /** The staging dir used while submitting DAGs */
   public static final String TEZ_AM_STAGING_DIR = TEZ_PREFIX + "staging-dir";

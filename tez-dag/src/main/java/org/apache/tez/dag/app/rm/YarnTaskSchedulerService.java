@@ -128,7 +128,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   final int appHostPort;
   final String appTrackingUrl;
   final AppContext appContext;
-  private boolean unregisterSuccess = false;
+  private AtomicBoolean hasUnregistered = new AtomicBoolean(false);
 
   AtomicBoolean isStopped = new AtomicBoolean(false);
 
@@ -275,8 +275,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   }
 
   @Override
-  public boolean unregisterSuccess() {
-    return unregisterSuccess;
+  public boolean hasUnregistered() {
+    return hasUnregistered.get();
   }
 
   // AbstractService methods
@@ -386,7 +386,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
               status.exitMessage,
               status.postCompletionTrackingUrl);
           LOG.info("Successfully unregistered application from RM");
-          unregisterSuccess = true;
+          hasUnregistered.set(true);
         }
       }
 

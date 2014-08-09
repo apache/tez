@@ -292,6 +292,15 @@ public class DAGAppMaster extends AbstractService {
 
   @Override
   public synchronized void serviceInit(final Configuration conf) throws Exception {
+
+    int maxAppAttempts = 1;
+    String maxAppAttemptsEnv = System.getenv(
+        ApplicationConstants.MAX_APP_ATTEMPTS_ENV);
+    if (maxAppAttemptsEnv != null) {
+      maxAppAttempts = Integer.valueOf(maxAppAttemptsEnv);
+    }
+    isLastAMRetry = appAttemptID.getAttemptId() >= maxAppAttempts;
+
     this.amConf = conf;
     this.isLocal = conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
@@ -360,6 +369,12 @@ public class DAGAppMaster extends AbstractService {
     this.taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
         clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher);
     addIfService(taskSchedulerEventHandler, true);
+    if (isLastAMRetry) {
+      LOG.info("AM will unregister as this is the last attempt"
+          + ", currentAttempt=" + appAttemptID.getAttemptId()
+          + ", maxAttempts=" + maxAppAttempts);
+      this.taskSchedulerEventHandler.setShouldUnregisterFlag();
+    }
 
     dispatcher.register(AMSchedulerEventType.class,
         taskSchedulerEventHandler);
@@ -1530,12 +1545,13 @@ public class DAGAppMaster extends AbstractService {
 
     // Given pre-emption, we should delete staging dir only if unregister is
     // successful
-    boolean deleteStagingDir = this.amConf.getBoolean(
-        TezConfiguration.TEZ_AM_STAGING_DIR_AUTO_DELETE,
-        TezConfiguration.TEZ_AM_STAGING_DIR_AUTO_DELETE_DEFAULT);
-    LOG.info("Checking whether staging dir should be deleted, deleteStagingDir=" + deleteStagingDir);
-    if (deleteStagingDir && this.taskSchedulerEventHandler != null
-        && this.taskSchedulerEventHandler.unregisterSuccessful()) {
+    boolean deleteTezScratchData = this.amConf.getBoolean(
+        TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE,
+        TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE_DEFAULT);
+    LOG.info("Checking whether tez scratch data dir should be deleted, deleteTezScratchData="
+        + deleteTezScratchData);
+    if (deleteTezScratchData && this.taskSchedulerEventHandler != null
+        && this.taskSchedulerEventHandler.hasUnregistered()) {
       // Delete staging dir
       if (this.tezSystemStagingDir != null) {
         LOG.info("Deleting staging dir, path=" + this.tezSystemStagingDir);
@@ -1543,9 +1559,10 @@ public class DAGAppMaster extends AbstractService {
           FileSystem fs = this.tezSystemStagingDir.getFileSystem(this.amConf);
           boolean deletedStagingDir = fs.delete(this.tezSystemStagingDir, true);
           if (!deletedStagingDir) {
-            LOG.warn("Failed to delete staging dir, path=" + this.tezSystemStagingDir);
+            LOG.warn("Failed to delete tez scratch data dir, path=" + this.tezSystemStagingDir);
           } else {
-            LOG.info("Completed deletion of staging dir, path=" + this.tezSystemStagingDir);
+            LOG.info("Completed deletion of tez scratch data dir, path="
+                + this.tezSystemStagingDir);
           }
         } catch (IOException e) {
           // Best effort to delete staging dir

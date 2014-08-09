@@ -68,7 +68,7 @@ public abstract class TaskSchedulerService extends AbstractService{
 
   public abstract void setShouldUnregister();
 
-  public abstract boolean unregisterSuccess();
+  public abstract boolean hasUnregistered();
 
   public interface TaskSchedulerAppCallback {
     public class AppFinalStatus {

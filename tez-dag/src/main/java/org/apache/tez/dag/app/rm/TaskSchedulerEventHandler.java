@@ -533,7 +533,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     }
   }
 
-  public boolean unregisterSuccessful() {
-    return this.taskScheduler.unregisterSuccess();
+  public boolean hasUnregistered() {
+    return this.taskScheduler.hasUnregistered();
   }
 }

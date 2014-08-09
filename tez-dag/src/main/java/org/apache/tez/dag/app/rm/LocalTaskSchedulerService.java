@@ -176,7 +176,7 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
   }
 
   @Override
-  public boolean unregisterSuccess() {
+  public boolean hasUnregistered() {
     // Should always return true as no multiple attempts in local mode
     return true;
   }
