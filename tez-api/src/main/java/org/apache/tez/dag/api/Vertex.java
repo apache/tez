@@ -80,15 +80,7 @@ public class Vertex {
       ProcessorDescriptor processorDescriptor,
       int parallelism,
       Resource taskResource) {
-    this.vertexName = vertexName;
-    this.processorDescriptor = processorDescriptor;
-    this.parallelism = parallelism;
-    this.taskResource = taskResource;
-    if (parallelism < -1) {
-      throw new IllegalArgumentException(
-          "Parallelism should be -1 if determined by the AM"
-          + ", otherwise should be >= 0");
-    }
+    this(vertexName, processorDescriptor, parallelism, taskResource, false);
   }
   
   /**
@@ -112,7 +104,7 @@ public class Vertex {
    *          reconfigurations.
    */
   public Vertex(String vertexName, ProcessorDescriptor processorDescriptor, int parallelism) {
-    this(vertexName, processorDescriptor, parallelism, null);
+    this(vertexName, processorDescriptor, parallelism, null, true);
   }
   
   /**
@@ -135,6 +127,25 @@ public class Vertex {
   public Vertex(String vertexName, ProcessorDescriptor processorDescriptor) {
     this(vertexName, processorDescriptor, -1);
   }
+  
+  private Vertex(String vertexName,
+      ProcessorDescriptor processorDescriptor,
+      int parallelism,
+      Resource taskResource,
+      boolean allowIncomplete) {
+    this.vertexName = vertexName;
+    this.processorDescriptor = processorDescriptor;
+    this.parallelism = parallelism;
+    this.taskResource = taskResource;
+    if (parallelism < -1) {
+      throw new IllegalArgumentException(
+          "Parallelism should be -1 if determined by the AM"
+          + ", otherwise should be >= 0");
+    }
+    if (!allowIncomplete && taskResource == null) {
+      throw new IllegalArgumentException("Resource cannot be null");
+    }
+  }  
 
   /**
    * Get the vertex name
