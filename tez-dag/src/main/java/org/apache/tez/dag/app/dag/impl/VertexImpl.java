@@ -134,7 +134,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.dag.utils.JavaProfilerOptions;
+import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.InputSpecUpdate;
@@ -609,14 +609,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   boolean recoveryStartEventSeen = false;
   private VertexStats vertexStats = null;
 
-  private final JavaProfilerOptions profilerOpts;
+  private final TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOpts;
 
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
       String vertexName, Configuration conf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener, Clock clock,
       TaskHeartbeatHandler thh, boolean commitVertexOutputs,
       AppContext appContext, VertexLocationHint vertexLocationHint,
-      Map<String, VertexGroupInfo> dagVertexGroups, JavaProfilerOptions profilerOpts) {
+      Map<String, VertexGroupInfo> dagVertexGroups, TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption) {
     this.vertexId = vertexId;
     this.vertexPlan = vertexPlan;
     this.vertexName = StringInterner.weakIntern(vertexName);
@@ -653,7 +653,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             .getEnvironmentSettingList());
     this.javaOpts = vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan
         .getTaskConfig().getJavaOpts() : null;
-    this.profilerOpts = profilerOpts;
+    this.taskSpecificLaunchCmdOpts = taskSpecificLaunchCmdOption;
     this.containerContext = new ContainerContext(this.localResources,
         appContext.getCurrentDAG().getCredentials(), this.environment, this.javaOpts, this);
 
@@ -1716,8 +1716,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   private ContainerContext getContainerContext(int taskIdx) {
-    if (profilerOpts.shouldProfileJVM(vertexName, taskIdx)) {
-      String jvmOpts = profilerOpts.getProfilerOptions(javaOpts, vertexName, taskIdx);
+    if (taskSpecificLaunchCmdOpts.addTaskSpecificLaunchCmdOption(vertexName, taskIdx)) {
+      String jvmOpts = taskSpecificLaunchCmdOpts.getTaskSpecificOption(javaOpts, vertexName, taskIdx);
       ContainerContext context = new ContainerContext(this.localResources,
           appContext.getCurrentDAG().getCredentials(), this.environment, jvmOpts);
       return context;
