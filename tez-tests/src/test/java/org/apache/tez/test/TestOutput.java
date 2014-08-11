@@ -27,7 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 
@@ -36,7 +36,7 @@ import com.google.common.collect.Lists;
 public class TestOutput extends AbstractLogicalOutput {
   private static final Log LOG = LogFactory.getLog(TestOutput.class);
 
-  public TestOutput(TezOutputContext outputContext, int numPhysicalOutputs) {
+  public TestOutput(OutputContext outputContext, int numPhysicalOutputs) {
     super(outputContext, numPhysicalOutputs);
   }
 

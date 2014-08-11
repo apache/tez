@@ -361,14 +361,14 @@ public class DagTypeConverters {
     return new VertexManagerPluginDescriptor(className).setUserPayload(bb);
   }
 
-  public static EdgeManagerDescriptor convertEdgeManagerDescriptorFromDAGPlan(
+  public static EdgeManagerPluginDescriptor convertEdgeManagerDescriptorFromDAGPlan(
       TezEntityDescriptorProto proto) {
     String className = proto.getClassName();
     byte[] bb = null;
     if (proto.hasUserPayload()) {
       bb = proto.getUserPayload().toByteArray();
     }
-    return new EdgeManagerDescriptor(className).setUserPayload(bb);
+    return new EdgeManagerPluginDescriptor(className).setUserPayload(bb);
   }
 
   public static ProcessorDescriptor convertProcessorDescriptorFromDAGPlan(

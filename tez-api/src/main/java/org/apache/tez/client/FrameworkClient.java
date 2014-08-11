@@ -20,12 +20,12 @@ package org.apache.tez.client;
 
 import java.io.IOException;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -47,7 +47,18 @@ public abstract class FrameworkClient {
     return new TezYarnClient(YarnClient.createYarnClient());
   }
 
-  public abstract void init(Configuration conf);
+  /**
+   * Initialize the framework client. </p>
+   * <p/>
+   * The actual implementation of FramworkClient may modify the configuration instances that are
+   * passed in to configure required functionality
+   *
+   * @param tezConf  the {@link org.apache.tez.dag.api.TezConfiguration} instance being used by the
+   *                 cluster
+   * @param yarnConf the {@link org.apache.hadoop.yarn.conf.YarnConfiguration} instance being used
+   *                 by the cluster
+   */
+  public abstract void init(TezConfiguration tezConf, YarnConfiguration yarnConf);
 
   public abstract void start();
 

@@ -31,20 +31,20 @@ import java.util.List;
 public abstract class AbstractLogicalOutput implements LogicalOutput, LogicalOutputFrameworkInterface {
 
   private final int numPhysicalOutputs;
-  private final TezOutputContext outputContext;
+  private final OutputContext outputContext;
 
   /**
    * Constructor an instance of the LogicalOutput. Classes extending this one to create a
    * LogicalOutput, must provide the same constructor so that Tez can create an instance of the
    * class at runtime.
    *
-   * @param outputContext      the {@link org.apache.tez.runtime.api.TezOutputContext} which
+   * @param outputContext      the {@link org.apache.tez.runtime.api.OutputContext} which
    *                           provides
    *                           the Output with context information within the running task.
    * @param numPhysicalOutputs the number of physical outputs that the logical output will
    *                           generate. This is typically determined by Edge Routing.
    */
-  public AbstractLogicalOutput(TezOutputContext outputContext, int numPhysicalOutputs) {
+  public AbstractLogicalOutput(OutputContext outputContext, int numPhysicalOutputs) {
     this.outputContext = outputContext;
     this.numPhysicalOutputs = numPhysicalOutputs;
   }
@@ -62,12 +62,12 @@ public abstract class AbstractLogicalOutput implements LogicalOutput, LogicalOut
   }
 
   /**
-   * Return ahe {@link org.apache.tez.runtime.api.TezOutputContext} for this specific instance of
+   * Return ahe {@link org.apache.tez.runtime.api.OutputContext} for this specific instance of
    * the LogicalOutput
    *
-   * @return the {@link org.apache.tez.runtime.api.TezOutputContext} for the output
+   * @return the {@link org.apache.tez.runtime.api.OutputContext} for the output
    */
-  public final TezOutputContext getContext() {
+  public final OutputContext getContext() {
     return outputContext;
   }
 }

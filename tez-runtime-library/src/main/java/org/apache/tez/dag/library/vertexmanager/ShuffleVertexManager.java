@@ -30,9 +30,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
-import org.apache.tez.dag.api.EdgeManager;
-import org.apache.tez.dag.api.EdgeManagerContext;
-import org.apache.tez.dag.api.EdgeManagerDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPlugin;
+import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -125,14 +125,14 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     super(context);
   }
 
-  public static class CustomShuffleEdgeManager extends EdgeManager {
+  public static class CustomShuffleEdgeManager extends EdgeManagerPlugin {
     int numSourceTaskOutputs;
     int numDestinationTasks;
     int basePartitionRange;
     int remainderRangeForLastShuffler;
     int numSourceTasks;
 
-    public CustomShuffleEdgeManager(EdgeManagerContext context) {
+    public CustomShuffleEdgeManager(EdgeManagerPluginContext context) {
       super(context);
     }
 
@@ -419,8 +419,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
           
     if(finalTaskParallelism < currentParallelism) {
       // final parallelism is less than actual parallelism
-      Map<String, EdgeManagerDescriptor> edgeManagers =
-          new HashMap<String, EdgeManagerDescriptor>(bipartiteSources.size());
+      Map<String, EdgeManagerPluginDescriptor> edgeManagers =
+          new HashMap<String, EdgeManagerPluginDescriptor>(bipartiteSources.size());
       for(String vertex : bipartiteSources.keySet()) {
         // use currentParallelism for numSourceTasks to maintain original state
         // for the source tasks
@@ -430,8 +430,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
                 getContext().getVertexNumTasks(vertex), basePartitionRange,
                 ((remainderRangeForLastShuffler > 0) ?
                     remainderRangeForLastShuffler : basePartitionRange));
-        EdgeManagerDescriptor edgeManagerDescriptor =
-            new EdgeManagerDescriptor(CustomShuffleEdgeManager.class.getName());
+        EdgeManagerPluginDescriptor edgeManagerDescriptor =
+            new EdgeManagerPluginDescriptor(CustomShuffleEdgeManager.class.getName());
         edgeManagerDescriptor.setUserPayload(edgeManagerConfig.toUserPayload());
         edgeManagers.put(vertex, edgeManagerDescriptor);
       }

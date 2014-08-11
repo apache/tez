@@ -35,10 +35,10 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezEntityDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
-import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.api.TezOutputContext;
-import org.apache.tez.runtime.api.TezProcessorContext;
-import org.apache.tez.runtime.api.TezTaskContext;
+import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.ProcessorContext;
+import org.apache.tez.runtime.api.TaskContext;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -60,8 +60,8 @@ public class MemoryDistributor {
 
   private long totalJvmMemory;
   private final boolean isEnabled;
-  private final Set<TezTaskContext> dupSet = Collections
-      .newSetFromMap(new ConcurrentHashMap<TezTaskContext, Boolean>());
+  private final Set<TaskContext> dupSet = Collections
+      .newSetFromMap(new ConcurrentHashMap<TaskContext, Boolean>());
   private final List<RequestorInfo> requestList;
 
   /**
@@ -93,7 +93,7 @@ public class MemoryDistributor {
    * Used by the Tez framework to request memory on behalf of user requests.
    */
   public void requestMemory(long requestSize, MemoryUpdateCallback callback,
-      TezTaskContext taskContext, TezEntityDescriptor<?> descriptor) {
+      TaskContext taskContext, TezEntityDescriptor<?> descriptor) {
     registerRequest(requestSize, callback, taskContext, descriptor);
   }
   
@@ -154,7 +154,7 @@ public class MemoryDistributor {
   }
 
   private long registerRequest(long requestSize, MemoryUpdateCallback callback,
-      TezTaskContext entityContext, TezEntityDescriptor<?> descriptor) {
+      TaskContext entityContext, TezEntityDescriptor<?> descriptor) {
     Preconditions.checkArgument(requestSize >= 0);
     Preconditions.checkNotNull(callback);
     Preconditions.checkNotNull(entityContext);
@@ -210,19 +210,19 @@ public class MemoryDistributor {
     private final MemoryUpdateCallback callback;
     private final InitialMemoryRequestContext requestContext;
 
-    public RequestorInfo(TezTaskContext taskContext, long requestSize,
+    public RequestorInfo(TaskContext taskContext, long requestSize,
         final MemoryUpdateCallback callback, TezEntityDescriptor<?> descriptor) {
       InitialMemoryRequestContext.ComponentType type;
       String componentVertexName;
-      if (taskContext instanceof TezInputContext) {
+      if (taskContext instanceof InputContext) {
         type = InitialMemoryRequestContext.ComponentType.INPUT;
-        componentVertexName = ((TezInputContext) taskContext).getSourceVertexName();
-      } else if (taskContext instanceof TezOutputContext) {
+        componentVertexName = ((InputContext) taskContext).getSourceVertexName();
+      } else if (taskContext instanceof OutputContext) {
         type = InitialMemoryRequestContext.ComponentType.OUTPUT;
-        componentVertexName = ((TezOutputContext) taskContext).getDestinationVertexName();
-      } else if (taskContext instanceof TezProcessorContext) {
+        componentVertexName = ((OutputContext) taskContext).getDestinationVertexName();
+      } else if (taskContext instanceof ProcessorContext) {
         type = InitialMemoryRequestContext.ComponentType.PROCESSOR;
-        componentVertexName = ((TezProcessorContext) taskContext).getTaskVertexName();
+        componentVertexName = ((ProcessorContext) taskContext).getTaskVertexName();
       } else {
         throw new IllegalArgumentException("Unknown type of entityContext: "
             + taskContext.getClass().getName());

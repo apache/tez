@@ -49,14 +49,13 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.input.MRInput.MRInputConfigurer;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.Output;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
@@ -73,7 +72,7 @@ public class UnionExample {
     IntWritable one = new IntWritable(1);
     Text word = new Text();
 
-    public TokenProcessor(TezProcessorContext context) {
+    public TokenProcessor(ProcessorContext context) {
       super(context);
     }
 
@@ -113,7 +112,7 @@ public class UnionExample {
   public static class UnionProcessor extends SimpleMRProcessor {
     IntWritable one = new IntWritable(1);
 
-    public UnionProcessor(TezProcessorContext context) {
+    public UnionProcessor(ProcessorContext context) {
       super(context);
     }
 
@@ -175,24 +174,16 @@ public class UnionExample {
     DataSourceDescriptor dataSource = configurer.generateSplitsInAM(false).create();
 
     Vertex mapVertex1 = new Vertex("map1", new ProcessorDescriptor(
-        TokenProcessor.class.getName()),
-        numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex1.addDataSource("MRInput", dataSource);
+        TokenProcessor.class.getName()), numMaps).addDataSource("MRInput", dataSource);
 
     Vertex mapVertex2 = new Vertex("map2", new ProcessorDescriptor(
-        TokenProcessor.class.getName()),
-        numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex2.addDataSource("MRInput", dataSource);
+        TokenProcessor.class.getName()), numMaps).addDataSource("MRInput", dataSource);
 
     Vertex mapVertex3 = new Vertex("map3", new ProcessorDescriptor(
-        TokenProcessor.class.getName()),
-        numMaps, MRHelpers.getMapResource(tezConf));
-    mapVertex3.addDataSource("MRInput", dataSource);
+        TokenProcessor.class.getName()), numMaps).addDataSource("MRInput", dataSource);
 
-    Vertex checkerVertex = new Vertex("checker",
-        new ProcessorDescriptor(
-            UnionProcessor.class.getName()),
-                1, MRHelpers.getReduceResource(tezConf));
+    Vertex checkerVertex = new Vertex("checker", new ProcessorDescriptor(
+        UnionProcessor.class.getName()), 1);
 
     Configuration outputConf = new Configuration(tezConf);
     DataSinkDescriptor od = MROutput.createConfigurer(outputConf,

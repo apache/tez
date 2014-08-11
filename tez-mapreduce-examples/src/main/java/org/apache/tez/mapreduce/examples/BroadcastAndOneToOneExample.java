@@ -26,7 +26,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -45,8 +44,7 @@ import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
@@ -60,7 +58,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
   public static class InputProcessor extends SimpleProcessor {
     Text word = new Text();
 
-    public InputProcessor(TezProcessorContext context) {
+    public InputProcessor(ProcessorContext context) {
       super(context);
     }
 
@@ -86,7 +84,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
   public static class OneToOneProcessor extends SimpleProcessor {
     Text word = new Text();
 
-    public OneToOneProcessor(TezProcessorContext context) {
+    public OneToOneProcessor(ProcessorContext context) {
       super(context);
     }
 
@@ -127,8 +125,6 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
   private DAG createDAG(FileSystem fs, TezConfiguration tezConf,
       Path stagingDir, boolean doLocalityCheck) throws IOException, YarnException {
 
-    JobConf mrConf = new JobConf(tezConf);
-
     int numBroadcastTasks = 2;
     int numOneToOneTasks = 3;
     if (doLocalityCheck) {
@@ -148,17 +144,14 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     System.out.println("Using " + numOneToOneTasks + " 1-1 tasks");
 
     Vertex broadcastVertex = new Vertex("Broadcast", new ProcessorDescriptor(
-        InputProcessor.class.getName()),
-        numBroadcastTasks, MRHelpers.getMapResource(mrConf));
+        InputProcessor.class.getName()), numBroadcastTasks);
     
     Vertex inputVertex = new Vertex("Input", new ProcessorDescriptor(
-        InputProcessor.class.getName()).setUserPayload(procPayload),
-        numOneToOneTasks, MRHelpers.getMapResource(mrConf));
+        InputProcessor.class.getName()).setUserPayload(procPayload), numOneToOneTasks);
 
     Vertex oneToOneVertex = new Vertex("OneToOne",
         new ProcessorDescriptor(
-            OneToOneProcessor.class.getName()).setUserPayload(procPayload),
-            -1, MRHelpers.getReduceResource(mrConf));
+            OneToOneProcessor.class.getName()).setUserPayload(procPayload));
     oneToOneVertex.setVertexManagerPlugin(
             new VertexManagerPluginDescriptor(InputReadyVertexManager.class.getName()));
 

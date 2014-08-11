@@ -27,7 +27,7 @@ import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.GenericCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.comparator.TezBytesComparator;
 import org.apache.tez.runtime.library.common.serializer.TezBytesWritableSerialization;
@@ -332,7 +332,7 @@ public class TestValuesIterator {
 
     LocalDirAllocator localDirAllocator =
         new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
-    TezInputContext context = createTezInputContext();
+    InputContext context = createTezInputContext();
     MergeManager mergeManager = new MergeManager(conf, fs, localDirAllocator,
         context, null, null, null, null, null, 1024 * 1024 * 10, null, false, -1);
 
@@ -371,9 +371,9 @@ public class TestValuesIterator {
     return segments;
   }
 
-  private TezInputContext createTezInputContext() {
+  private InputContext createTezInputContext() {
     TezCounters counters = new TezCounters();
-    TezInputContext inputContext = mock(TezInputContext.class);
+    InputContext inputContext = mock(InputContext.class);
     doReturn(1024 * 1024 * 100l).when(inputContext).getTotalMemoryAvailableToTask();
     doReturn(counters).when(inputContext).getCounters();
     doReturn(1).when(inputContext).getInputIndex();

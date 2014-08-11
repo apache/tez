@@ -25,7 +25,7 @@ import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.dag.api.EdgeManagerDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -129,7 +129,7 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
    * @param edgeManagerDescriptor the custom edge specification
    * @return an {@link org.apache.tez.dag.api.EdgeProperty} instance
    */
-  public EdgeProperty createDefaultCustomEdgeProperty(EdgeManagerDescriptor edgeManagerDescriptor) {
+  public EdgeProperty createDefaultCustomEdgeProperty(EdgeManagerPluginDescriptor edgeManagerDescriptor) {
     Preconditions.checkNotNull(edgeManagerDescriptor, "EdgeManagerDescriptor cannot be null");
     EdgeProperty edgeProperty =
         new EdgeProperty(edgeManagerDescriptor, EdgeProperty.DataSourceType.PERSISTED,

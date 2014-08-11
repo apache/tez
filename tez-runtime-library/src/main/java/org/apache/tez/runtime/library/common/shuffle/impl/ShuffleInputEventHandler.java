@@ -35,7 +35,7 @@ import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -53,7 +53,7 @@ public class ShuffleInputEventHandler {
   private static final Log LOG = LogFactory.getLog(ShuffleInputEventHandler.class);
 
   private final ShuffleScheduler scheduler;
-  private final TezInputContext inputContext;
+  private final InputContext inputContext;
 
   private int maxMapRuntime = 0;
   private final MergeManager merger;
@@ -61,7 +61,7 @@ public class ShuffleInputEventHandler {
   private final boolean sslShuffle;
   private final boolean doLocalFetch;
 
-  public ShuffleInputEventHandler(TezInputContext inputContext,
+  public ShuffleInputEventHandler(InputContext inputContext,
       ShuffleScheduler scheduler, MergeManager merger, Configuration conf, boolean sslShuffle) {
     this.inputContext = inputContext;
     this.scheduler = scheduler;

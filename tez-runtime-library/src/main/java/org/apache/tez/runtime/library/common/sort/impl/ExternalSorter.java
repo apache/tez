@@ -44,7 +44,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
@@ -77,7 +77,7 @@ public abstract class ExternalSorter {
   }
 
   protected final Progressable nullProgressable = new NullProgressable();
-  protected final TezOutputContext outputContext;
+  protected final OutputContext outputContext;
   protected final Combiner combiner;
   protected final Partitioner partitioner;
   protected final Configuration conf;
@@ -129,7 +129,7 @@ public abstract class ExternalSorter {
   // spills)
   protected final TezCounter numAdditionalSpills;
 
-  public ExternalSorter(TezOutputContext outputContext, Configuration conf, int numOutputs,
+  public ExternalSorter(OutputContext outputContext, Configuration conf, int numOutputs,
       long initialMemoryAvailable) throws IOException {
     this.outputContext = outputContext;
     this.conf = conf;

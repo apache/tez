@@ -25,12 +25,12 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.TezMergedInputContext;
+import org.apache.tez.runtime.api.MergedInputContext;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 
 public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
 
-  public ConcatenatedMergedKeyValuesInput(TezMergedInputContext context,
+  public ConcatenatedMergedKeyValuesInput(MergedInputContext context,
                                           List<Input> inputs) {
     super(context, inputs);
   }

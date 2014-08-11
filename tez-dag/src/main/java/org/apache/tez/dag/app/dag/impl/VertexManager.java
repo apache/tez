@@ -34,7 +34,7 @@ import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.EdgeManagerDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
@@ -52,8 +52,8 @@ import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.RootInputSpecUpdate;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.tez.runtime.api.InputSpecUpdate;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TezEvent;
@@ -104,8 +104,8 @@ public class VertexManager {
 
     @Override
     public boolean setVertexParallelism(int parallelism, VertexLocationHint vertexLocationHint,
-        Map<String, EdgeManagerDescriptor> sourceEdgeManagers,
-        Map<String, RootInputSpecUpdate> rootInputSpecUpdate) {
+        Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
+        Map<String, InputSpecUpdate> rootInputSpecUpdate) {
       return managedVertex.setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers,
           rootInputSpecUpdate);
     }
@@ -136,12 +136,12 @@ public class VertexManager {
     @SuppressWarnings("unchecked")
     @Override
     public void addRootInputEvents(final String inputName,
-        Collection<RootInputDataInformationEvent> events) {
+        Collection<InputDataInformationEvent> events) {
       verifyIsRootInput(inputName);
       Iterable<TezEvent> tezEvents = Iterables.transform(events,
-          new Function<RootInputDataInformationEvent, TezEvent>() {
+          new Function<InputDataInformationEvent, TezEvent>() {
             @Override
-            public TezEvent apply(RootInputDataInformationEvent riEvent) {
+            public TezEvent apply(InputDataInformationEvent riEvent) {
               TezEvent tezEvent = new TezEvent(riEvent, rootEventSourceMetadata);
               tezEvent.setDestinationInfo(getDestinationMetaData(inputName));
               return tezEvent;

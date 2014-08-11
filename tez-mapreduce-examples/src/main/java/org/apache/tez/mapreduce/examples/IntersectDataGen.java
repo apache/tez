@@ -46,10 +46,9 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
 import com.google.common.base.Preconditions;
@@ -201,7 +200,7 @@ public class IntersectDataGen extends Configured implements Tool {
 
     Vertex genDataVertex = new Vertex("datagen", new ProcessorDescriptor(
         GenDataProcessor.class.getName()).setUserPayload(GenDataProcessor.createConfiguration(
-        largeOutSizePerTask, smallOutSizePerTask)), numTasks, MRHelpers.getMapResource(tezConf));
+        largeOutSizePerTask, smallOutSizePerTask)), numTasks);
     genDataVertex.addDataSink(STREAM_OUTPUT_NAME, 
         MROutput.createConfigurer(new Configuration(tezConf),
             TextOutputFormat.class, largeOutPath.toUri().toString()).create());
@@ -225,7 +224,7 @@ public class IntersectDataGen extends Configured implements Tool {
     long hashOutputFileSize;
     float overlapApprox = 0.2f;
 
-    public GenDataProcessor(TezProcessorContext context) {
+    public GenDataProcessor(ProcessorContext context) {
       super(context);
     }
 

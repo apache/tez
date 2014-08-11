@@ -38,7 +38,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
@@ -69,7 +69,7 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
   private SimpleFetchedInputAllocator inputManager;
   private ShuffleEventHandler inputEventHandler;
 
-  public ShuffledUnorderedKVInput(TezInputContext inputContext, int numPhysicalInputs) {
+  public ShuffledUnorderedKVInput(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);
   }
 

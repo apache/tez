@@ -28,9 +28,9 @@ import java.util.Map.Entry;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
-import org.apache.tez.dag.api.EdgeManager;
-import org.apache.tez.dag.api.EdgeManagerContext;
-import org.apache.tez.dag.api.EdgeManagerDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPlugin;
+import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -116,19 +116,19 @@ public class TestShuffleVertexManager {
           return null;
       }}).when(mockContext).scheduleVertexTasks(anyList());
     
-    final Map<String, EdgeManager> newEdgeManagers =
-        new HashMap<String, EdgeManager>();
+    final Map<String, EdgeManagerPlugin> newEdgeManagers =
+        new HashMap<String, EdgeManagerPlugin>();
     
     doAnswer(new Answer() {
       public Object answer(InvocationOnMock invocation) {
           when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(2);
           newEdgeManagers.clear();
-          for (Entry<String, EdgeManagerDescriptor> entry :
-              ((Map<String, EdgeManagerDescriptor>)invocation.getArguments()[2]).entrySet()) {
+          for (Entry<String, EdgeManagerPluginDescriptor> entry :
+              ((Map<String, EdgeManagerPluginDescriptor>)invocation.getArguments()[2]).entrySet()) {
 
 
             final byte[] userPayload = entry.getValue().getUserPayload();
-            EdgeManagerContext emContext = new EdgeManagerContext() {
+            EdgeManagerPluginContext emContext = new EdgeManagerPluginContext() {
               @Override
               public byte[] getUserPayload() {
                 return userPayload;
@@ -154,9 +154,9 @@ public class TestShuffleVertexManager {
                 return 0;
               }
             };
-            EdgeManager edgeManager = ReflectionUtils
+            EdgeManagerPlugin edgeManager = ReflectionUtils
                 .createClazzInstance(entry.getValue().getClassName(),
-                    new Class[]{EdgeManagerContext.class}, new Object[]{emContext});
+                    new Class[]{EdgeManagerPluginContext.class}, new Object[]{emContext});
             edgeManager.initialize();
             newEdgeManagers.put(entry.getKey(), edgeManager);
           }
@@ -242,7 +242,7 @@ public class TestShuffleVertexManager {
     verify(mockContext).setVertexParallelism(eq(2), any(VertexLocationHint.class), anyMap(), anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     
-    EdgeManager edgeManager = newEdgeManagers.values().iterator().next();
+    EdgeManagerPlugin edgeManager = newEdgeManagers.values().iterator().next();
     Map<Integer, List<Integer>> targets = Maps.newHashMap();
     DataMovementEvent dmEvent = new DataMovementEvent(1, new byte[0]);
     // 4 source task outputs - same as original number of partitions

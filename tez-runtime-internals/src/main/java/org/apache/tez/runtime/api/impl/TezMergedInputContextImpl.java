@@ -12,10 +12,10 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.MergedLogicalInput;
-import org.apache.tez.runtime.api.TezMergedInputContext;
+import org.apache.tez.runtime.api.MergedInputContext;
 
 
-public class TezMergedInputContextImpl implements TezMergedInputContext {
+public class TezMergedInputContextImpl implements MergedInputContext {
 
   private final TezUserPayload userPayload;
   private final String groupInputName;

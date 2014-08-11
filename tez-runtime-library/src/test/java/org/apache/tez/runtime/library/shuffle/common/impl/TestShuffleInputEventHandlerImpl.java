@@ -31,7 +31,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInputAllocator;
@@ -48,7 +48,7 @@ public class TestShuffleInputEventHandlerImpl {
 
   @Test
   public void testSimple() throws IOException {
-    TezInputContext inputContext = mock(TezInputContext.class);
+    InputContext inputContext = mock(InputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
     Configuration conf = mock(Configuration.class);
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
@@ -71,7 +71,7 @@ public class TestShuffleInputEventHandlerImpl {
 
   @Test
   public void testCurrentPartitionEmpty() throws IOException {
-    TezInputContext inputContext = mock(TezInputContext.class);
+    InputContext inputContext = mock(InputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
     Configuration conf = mock(Configuration.class);
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
@@ -93,7 +93,7 @@ public class TestShuffleInputEventHandlerImpl {
 
   @Test
   public void testOtherPartitionEmpty() throws IOException {
-    TezInputContext inputContext = mock(TezInputContext.class);
+    InputContext inputContext = mock(InputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
     Configuration conf = mock(Configuration.class);
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
@@ -114,7 +114,7 @@ public class TestShuffleInputEventHandlerImpl {
 
   @Test
   public void testMultipleEvents1() throws IOException {
-    TezInputContext inputContext = mock(TezInputContext.class);
+    InputContext inputContext = mock(InputContext.class);
     ShuffleManager shuffleManager = mock(ShuffleManager.class);
     Configuration conf = mock(Configuration.class);
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);

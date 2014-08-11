@@ -19,7 +19,7 @@
 package org.apache.tez.runtime.library.processor;
 
 import org.apache.tez.runtime.api.Processor;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 
 /**
  * Built-in convenience {@link Processor} to be used for pre-warming
@@ -27,7 +27,7 @@ import org.apache.tez.runtime.api.TezProcessorContext;
  */
 public class PreWarmProcessor extends SimpleProcessor {
 
-  public PreWarmProcessor(TezProcessorContext context) {
+  public PreWarmProcessor(ProcessorContext context) {
     super(context);
   }
 

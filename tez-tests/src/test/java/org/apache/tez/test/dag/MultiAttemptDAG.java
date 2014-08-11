@@ -45,12 +45,12 @@ import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.api.TezOutputContext;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
-import org.apache.tez.runtime.api.TezRootInputInitializerContext;
+import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.InputInitializer;
+import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.api.Writer;
-import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
+import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.test.TestInput;
 import org.apache.tez.test.TestOutput;
@@ -210,9 +210,9 @@ public class MultiAttemptDAG {
     }
   }
 
-  public static class FailingInputInitializer extends TezRootInputInitializer {
+  public static class FailingInputInitializer extends InputInitializer {
 
-    public FailingInputInitializer(TezRootInputInitializerContext initializerContext) {
+    public FailingInputInitializer(InputInitializerContext initializerContext) {
       super(initializerContext);
     }
 
@@ -231,7 +231,7 @@ public class MultiAttemptDAG {
     }
 
     @Override
-    public void handleInputInitializerEvent(List<RootInputInitializerEvent> events) throws
+    public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws
         Exception {
       throw new UnsupportedOperationException("Not supported");
     }
@@ -239,7 +239,7 @@ public class MultiAttemptDAG {
 
   public static class NoOpInput extends AbstractLogicalInput {
 
-    public NoOpInput(TezInputContext inputContext, int numPhysicalInputs) {
+    public NoOpInput(InputContext inputContext, int numPhysicalInputs) {
       super(inputContext, numPhysicalInputs);
     }
 
@@ -275,7 +275,7 @@ public class MultiAttemptDAG {
 
   public static class NoOpOutput extends AbstractLogicalOutput {
 
-    public NoOpOutput(TezOutputContext outputContext,
+    public NoOpOutput(OutputContext outputContext,
                       int numPhysicalOutputs) {
       super(outputContext, numPhysicalOutputs);
     }

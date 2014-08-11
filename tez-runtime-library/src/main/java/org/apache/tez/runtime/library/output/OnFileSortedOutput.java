@@ -43,7 +43,7 @@ import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
@@ -74,7 +74,7 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
   private boolean sendEmptyPartitionDetails;
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
-  public OnFileSortedOutput(TezOutputContext outputContext, int numPhysicalOutputs) {
+  public OnFileSortedOutput(OutputContext outputContext, int numPhysicalOutputs) {
     super(outputContext, numPhysicalOutputs);
   }
 

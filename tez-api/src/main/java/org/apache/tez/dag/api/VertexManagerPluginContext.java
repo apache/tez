@@ -30,8 +30,8 @@ import org.apache.hadoop.yarn.api.records.Container;
 
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
-import org.apache.tez.runtime.api.RootInputSpecUpdate;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.tez.runtime.api.InputSpecUpdate;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
 import com.google.common.base.Preconditions;
 
@@ -127,8 +127,8 @@ public interface VertexManagerPluginContext {
    */
   public boolean setVertexParallelism(int parallelism,
       @Nullable VertexLocationHint locationHint,
-      @Nullable Map<String, EdgeManagerDescriptor> sourceEdgeManagers,
-      @Nullable Map<String, RootInputSpecUpdate> rootInputSpecUpdate);
+      @Nullable Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
+      @Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate);
   
   /**
    * Allows a VertexManagerPlugin to assign Events for Root Inputs
@@ -143,7 +143,7 @@ public interface VertexManagerPluginContext {
    *          the Vertex. The target index on individual events represents the
    *          task to which events need to be sent.
    */
-  public void addRootInputEvents(String inputName, Collection<RootInputDataInformationEvent> events);
+  public void addRootInputEvents(String inputName, Collection<InputDataInformationEvent> events);
   
   /**
    * Notify the vertex to start the given tasks

@@ -32,7 +32,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.MergedLogicalInput;
-import org.apache.tez.runtime.api.TezMergedInputContext;
+import org.apache.tez.runtime.api.MergedInputContext;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 
 /**
@@ -49,7 +49,7 @@ public class SortedGroupedMergedInput extends MergedLogicalInput {
   private final Set<Input> completedInputs = Collections
       .newSetFromMap(new IdentityHashMap<Input, Boolean>());
 
-  public SortedGroupedMergedInput(TezMergedInputContext context, List<Input> inputs) {
+  public SortedGroupedMergedInput(MergedInputContext context, List<Input> inputs) {
     super(context, inputs);
   }
 

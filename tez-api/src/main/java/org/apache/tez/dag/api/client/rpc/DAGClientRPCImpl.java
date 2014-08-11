@@ -77,7 +77,7 @@ public class DAGClientRPCImpl extends DAGClient {
     this.dagId = dagId;
     this.conf = conf;
     frameworkClient = FrameworkClient.createFrameworkClient(conf);
-    frameworkClient.init(new YarnConfiguration(conf));
+    frameworkClient.init(conf, new YarnConfiguration(conf));
     frameworkClient.start();
     appReport = null;
   }

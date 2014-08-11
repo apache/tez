@@ -22,14 +22,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.tez.dag.api.EdgeManager;
-import org.apache.tez.dag.api.EdgeManagerContext;
+import org.apache.tez.dag.api.EdgeManagerPlugin;
+import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
-public class ScatterGatherEdgeManager extends EdgeManager {
+public class ScatterGatherEdgeManager extends EdgeManagerPlugin {
 
-  public ScatterGatherEdgeManager(EdgeManagerContext context) {
+  public ScatterGatherEdgeManager(EdgeManagerPluginContext context) {
     super(context);
   }
 

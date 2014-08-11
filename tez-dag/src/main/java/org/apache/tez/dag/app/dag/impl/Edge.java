@@ -28,9 +28,9 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.EdgeManager;
-import org.apache.tez.dag.api.EdgeManagerContext;
-import org.apache.tez.dag.api.EdgeManagerDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPlugin;
+import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.dag.Task;
@@ -56,7 +56,7 @@ import com.google.common.collect.Maps;
 
 public class Edge {
 
-  class EdgeManagerContextImpl implements EdgeManagerContext {
+  class EdgeManagerContextImpl implements EdgeManagerPluginContext {
 
     private final TezUserPayload userPayload;
 
@@ -92,8 +92,8 @@ public class Edge {
   }
 
   private EdgeProperty edgeProperty;
-  private EdgeManagerContext edgeManagerContext;
-  private EdgeManager edgeManager;
+  private EdgeManagerPluginContext edgeManagerContext;
+  private EdgeManagerPlugin edgeManager;
   @SuppressWarnings("rawtypes")
   private EventHandler eventHandler;
   private AtomicBoolean bufferEvents = new AtomicBoolean(false);
@@ -133,7 +133,7 @@ public class Edge {
           edgeManagerContext = new EdgeManagerContextImpl(bb);
           String edgeManagerClassName = edgeProperty.getEdgeManagerDescriptor().getClassName();
           edgeManager = ReflectionUtils
-              .createClazzInstance(edgeManagerClassName, new Class[]{EdgeManagerContext.class},
+              .createClazzInstance(edgeManagerClassName, new Class[]{EdgeManagerPluginContext.class},
                   new Object[]{edgeManagerContext});
         }
         break;
@@ -154,7 +154,7 @@ public class Edge {
         null);
   }
 
-  public synchronized void setCustomEdgeManager(EdgeManagerDescriptor descriptor) {
+  public synchronized void setCustomEdgeManager(EdgeManagerPluginDescriptor descriptor) {
     EdgeProperty modifiedEdgeProperty =
         new EdgeProperty(descriptor,
             edgeProperty.getDataSourceType(),
@@ -175,7 +175,7 @@ public class Edge {
     return this.edgeProperty;
   }
   
-  public EdgeManager getEdgeManager() {
+  public EdgeManagerPlugin getEdgeManager() {
     return this.edgeManager;
   }
 

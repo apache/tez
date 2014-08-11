@@ -31,15 +31,15 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.tez.mapreduce.input.MRInput.MRInputConfigurer;
-import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
 @LimitedPrivate("Hive")
 public class MRInputLegacy extends MRInput {
 
   private static final Log LOG = LogFactory.getLog(MRInputLegacy.class);
   
-  private RootInputDataInformationEvent initEvent;
+  private InputDataInformationEvent initEvent;
   private volatile boolean inited = false;
   private ReentrantLock eventLock = new ReentrantLock();
   private Condition eventCondition = eventLock.newCondition();
@@ -68,7 +68,7 @@ public class MRInputLegacy extends MRInput {
         MRInputLegacy.class.getName());
   }
   
-  public MRInputLegacy(TezInputContext inputContext, int numPhysicalInputs) {
+  public MRInputLegacy(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);
   }
 
@@ -111,7 +111,7 @@ public class MRInputLegacy extends MRInput {
   }
   
   @Override
-  void processSplitEvent(RootInputDataInformationEvent event) {
+  void processSplitEvent(InputDataInformationEvent event) {
     eventLock.lock();
     try {
       initEvent = event;

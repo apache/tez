@@ -32,7 +32,7 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
@@ -110,7 +110,7 @@ public class TestInput extends AbstractLogicalInput {
   public static String TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT =
       "tez.failing-input.failing-task-attempt";
 
-  public TestInput(TezInputContext inputContext, int numPhysicalInputs) {
+  public TestInput(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);
     this.completedInputVersion = new int[numPhysicalInputs];
     this.inputValues = new int[numPhysicalInputs];

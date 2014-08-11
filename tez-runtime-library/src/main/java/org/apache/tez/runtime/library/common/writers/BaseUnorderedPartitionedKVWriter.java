@@ -33,7 +33,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -46,7 +46,7 @@ public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
 
   private static final Log LOG = LogFactory.getLog(BaseUnorderedPartitionedKVWriter.class);
   
-  protected final TezOutputContext outputContext;
+  protected final OutputContext outputContext;
   protected final Configuration conf;
   protected final Partitioner partitioner;
   protected final Class keyClass;
@@ -102,7 +102,7 @@ public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
   protected final TezCounter numAdditionalSpillsCounter;
 
   @SuppressWarnings("unchecked")
-  public BaseUnorderedPartitionedKVWriter(TezOutputContext outputContext, Configuration conf, int numOutputs) {
+  public BaseUnorderedPartitionedKVWriter(OutputContext outputContext, Configuration conf, int numOutputs) {
     this.outputContext = outputContext;
     this.conf = conf;
     this.numPartitions = numOutputs;

@@ -46,7 +46,7 @@ import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
@@ -78,7 +78,7 @@ public class Shuffle implements ExceptionReporter {
   private static final int PROGRESS_FREQUENCY = 2000;
   
   private final Configuration conf;
-  private final TezInputContext inputContext;
+  private final InputContext inputContext;
   
   private final ShuffleClientMetrics metrics;
 
@@ -109,7 +109,7 @@ public class Shuffle implements ExceptionReporter {
   private AtomicBoolean schedulerClosed = new AtomicBoolean(false);
   private AtomicBoolean mergerClosed = new AtomicBoolean(false);
 
-  public Shuffle(TezInputContext inputContext, Configuration conf, int numInputs,
+  public Shuffle(InputContext inputContext, Configuration conf, int numInputs,
       long initialMemoryAvailable) throws IOException {
     this.inputContext = inputContext;
     this.conf = conf;

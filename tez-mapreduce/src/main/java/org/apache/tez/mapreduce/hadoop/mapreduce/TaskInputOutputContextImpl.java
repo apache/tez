@@ -30,7 +30,7 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.TaskInputOutputContext;
-import org.apache.tez.runtime.api.TezTaskContext;
+import org.apache.tez.runtime.api.TaskContext;
 
 /**
  * A context object that allows input and output from the task. It is only
@@ -51,7 +51,7 @@ public abstract class TaskInputOutputContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT>
   public TaskInputOutputContextImpl(Configuration conf, TaskAttemptID taskid,
                                     RecordWriter<KEYOUT,VALUEOUT> output,
                                     OutputCommitter committer,
-                                    TezTaskContext context, Reporter reporter) {
+                                    TaskContext context, Reporter reporter) {
     super(conf, taskid, context.getCounters(), reporter);
     this.output = output;
     this.committer = committer;

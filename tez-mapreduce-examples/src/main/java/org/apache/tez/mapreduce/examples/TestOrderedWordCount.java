@@ -74,7 +74,7 @@ import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
+import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -210,8 +210,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     int numMaps = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(mapPayload)
-            .setHistoryText(mapStageHistoryText),
-        numMaps, MRHelpers.getMapResource(mapStageConf));
+            .setHistoryText(mapStageHistoryText), numMaps);
     if (generateSplitsInClient) {
       mapVertex.setLocationHint(new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
       Map<String, LocalResource> mapLocalResources =
@@ -224,7 +223,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
       mapVertex.setTaskLocalFiles(commonLocalResources);
     }
 
-    Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
+    Class<? extends InputInitializer> initializerClazz = generateSplitsInClient ? null
         : MRInputAMSplitGenerator.class;
     MRHelpers.addMRInput(mapVertex, mapInputPayload,
         (initializerClazz==null) ? null :
@@ -237,8 +236,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     Vertex ivertex = new Vertex("intermediate_reducer", new ProcessorDescriptor(
         ReduceProcessor.class.getName())
             .setUserPayload(MRHelpers.createUserPayloadFromConf(iReduceStageConf))
-            .setHistoryText(iReduceStageHistoryText),
-        2, MRHelpers.getReduceResource(iReduceStageConf));
+            .setHistoryText(iReduceStageHistoryText), 2);
     ivertex.setTaskLocalFiles(commonLocalResources);
     vertices.add(ivertex);
 
@@ -250,8 +248,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
         new ProcessorDescriptor(
             ReduceProcessor.class.getName())
                 .setUserPayload(finalReducePayload)
-                .setHistoryText(finalReduceStageHistoryText), 1,
-        MRHelpers.getReduceResource(finalReduceConf));
+                .setHistoryText(finalReduceStageHistoryText), 1);
     finalReduceVertex.setTaskLocalFiles(commonLocalResources);
     MRHelpers.addMROutputLegacy(finalReduceVertex, finalReducePayload);
     vertices.add(finalReduceVertex);

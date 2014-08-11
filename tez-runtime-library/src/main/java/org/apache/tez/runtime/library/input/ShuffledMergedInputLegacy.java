@@ -24,7 +24,7 @@ import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.util.Progress;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
 @LimitedPrivate("mapreduce")
@@ -32,7 +32,7 @@ public class ShuffledMergedInputLegacy extends ShuffledMergedInput {
 
   private final Progress progress = new Progress();
 
-  public ShuffledMergedInputLegacy(TezInputContext inputContext, int numPhysicalInputs) {
+  public ShuffledMergedInputLegacy(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);
   }
 

@@ -71,7 +71,7 @@ import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.processor.FilterByWordInputProcessor;
 import org.apache.tez.processor.FilterByWordOutputProcessor;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
+import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.library.conf.UnorderedUnpartitionedKVEdgeConfigurer;
 
 public class FilterLinesByWordOneToOne extends Configured implements Tool {
@@ -174,7 +174,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     int stage1NumTasks = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex stage1Vertex = new Vertex("stage1", new ProcessorDescriptor(
         FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload),
-        stage1NumTasks, MRHelpers.getMapResource(stage1Conf));
+        stage1NumTasks);
     if (generateSplitsInClient) {
       stage1Vertex.setLocationHint(new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
       Map<String, LocalResource> stage1LocalResources = new HashMap<String, LocalResource>();
@@ -186,7 +186,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     }
 
     // Configure the Input for stage1
-    Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
+    Class<? extends InputInitializer> initializerClazz = generateSplitsInClient ? null
         : MRInputAMSplitGenerator.class;
     stage1Vertex.addDataSource(
         "MRInput",
@@ -198,8 +198,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     // Setup stage2 Vertex
     Vertex stage2Vertex = new Vertex("stage2", new ProcessorDescriptor(
         FilterByWordOutputProcessor.class.getName()).setUserPayload(MRHelpers
-        .createUserPayloadFromConf(stage2Conf)), stage1NumTasks,
-        MRHelpers.getMapResource(stage2Conf));
+        .createUserPayloadFromConf(stage2Conf)), stage1NumTasks);
     stage2Vertex.setTaskLocalFiles(commonLocalResources);
 
     // Configure the Output for stage2

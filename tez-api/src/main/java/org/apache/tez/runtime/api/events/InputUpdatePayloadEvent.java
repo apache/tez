@@ -18,35 +18,29 @@
 
 package org.apache.tez.runtime.api.events;
 
-import java.util.List;
-
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.tez.common.TezUserPayload;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.RootInputSpecUpdate;
+import org.apache.tez.runtime.api.InputInitializer;
 
-public class RootInputConfigureVertexTasksEvent extends Event {
+/**
+ * Events used by {@link InputInitializer} implementations to update the
+ * shared user payload for the Input that is being initialized. </p>
+ *
+ * This event is specific to an Input, and should only be sent once - ideally
+ * before {@link InputDataInformationEvent}s
+ */
+@Unstable
+public class InputUpdatePayloadEvent extends Event {
 
-  private final int numTasks;
-  private final List<TaskLocationHint> taskLocationHints;
-  private final RootInputSpecUpdate rootInputSpecUpdate;
+  private final TezUserPayload userPayload;
 
-  public RootInputConfigureVertexTasksEvent(int numTasks, List<TaskLocationHint> locationHints,
-      RootInputSpecUpdate rootInputSpecUpdate) {
-    this.numTasks = numTasks;
-    this.taskLocationHints = locationHints;
-    this.rootInputSpecUpdate = rootInputSpecUpdate;
+  public InputUpdatePayloadEvent(byte[] userPayload) {
+    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
   }
 
-  public int getNumTasks() {
-    return numTasks;
+  public byte[] getUserPayload() {
+    return userPayload.getPayload();
   }
-
-  public List<TaskLocationHint> getTaskLocationHints() {
-    return taskLocationHints;
-  }
-
-  public RootInputSpecUpdate getRootInputSpecUpdate() {
-    return this.rootInputSpecUpdate;
-  }
-
 }

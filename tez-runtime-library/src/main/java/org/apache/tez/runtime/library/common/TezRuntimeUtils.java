@@ -26,8 +26,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.runtime.api.TezOutputContext;
-import org.apache.tez.runtime.api.TezTaskContext;
+import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.TaskContext;
 import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.combine.Combiner;
@@ -56,7 +56,7 @@ public class TezRuntimeUtils {
   }
 
   @SuppressWarnings("unchecked")
-  public static Combiner instantiateCombiner(Configuration conf, TezTaskContext taskContext) throws IOException {
+  public static Combiner instantiateCombiner(Configuration conf, TaskContext taskContext) throws IOException {
     Class<? extends Combiner> clazz;
     String className = conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS);
     if (className == null) {
@@ -74,7 +74,7 @@ public class TezRuntimeUtils {
     
       Constructor<? extends Combiner> ctor;
       try {
-        ctor = clazz.getConstructor(TezTaskContext.class);
+        ctor = clazz.getConstructor(TaskContext.class);
         combiner = ctor.newInstance(taskContext);
       } catch (SecurityException e) {
         throw new IOException(e);
@@ -135,7 +135,7 @@ public class TezRuntimeUtils {
     return partitioner;
   }
   
-  public static TezTaskOutput instantiateTaskOutputManager(Configuration conf, TezOutputContext outputContext) {
+  public static TezTaskOutput instantiateTaskOutputManager(Configuration conf, OutputContext outputContext) {
     Class<?> clazz = conf.getClass(Constants.TEZ_RUNTIME_TASK_OUTPUT_MANAGER,
         TezTaskOutputFiles.class);
     try {

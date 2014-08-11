@@ -41,9 +41,9 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.api.TezOutputContext;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
@@ -142,7 +142,7 @@ public class TestLogicalIOProcessorRuntimeTask {
 
     public static volatile int runCount = 0;
 
-    public TestProcessor(TezProcessorContext context) {
+    public TestProcessor(ProcessorContext context) {
       super(context);
     }
 
@@ -172,7 +172,7 @@ public class TestLogicalIOProcessorRuntimeTask {
 
     public static volatile int startCount = 0;
 
-    public TestInput(TezInputContext inputContext, int numPhysicalInputs) {
+    public TestInput(InputContext inputContext, int numPhysicalInputs) {
       super(inputContext, numPhysicalInputs);
     }
 
@@ -209,7 +209,7 @@ public class TestLogicalIOProcessorRuntimeTask {
 
     public static volatile int startCount = 0;
 
-    public TestOutput(TezOutputContext outputContext, int numPhysicalOutputs) {
+    public TestOutput(OutputContext outputContext, int numPhysicalOutputs) {
       super(outputContext, numPhysicalOutputs);
     }
 
