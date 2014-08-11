@@ -31,13 +31,17 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.hdfs.server.namenode.EditLogFileOutputStream;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.security.ssl.KeyStoreTestUtil;
 import org.apache.tez.mapreduce.examples.TestOrderedWordCount;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -54,63 +58,69 @@ public class TestSecureShuffle {
   private static Configuration conf = new Configuration();
   private static FileSystem fs;
   private static Path inputLoc = new Path("/tmp/sample.txt");
-  private static Path outputLoc = new Path("/tmp/outPath");
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestSecureShuffle.class.getName() + "-tmpDir";
   private static File keysStoresDir = new File(TEST_ROOT_DIR, "keystores");
 
   private boolean enableSSLInCluster; //To set ssl config in cluster
-  private boolean enableSSLInTez; //To set ssl config in Tez
-  private int expectedResult;
+  private int resultWithTezSSL; //expected result with tez ssl setting
+  private int resultWithoutTezSSL; //expected result without tez ssl setting
 
-  public TestSecureShuffle(boolean sslInCluster, boolean sslInTez, int expectedResult) {
+  public TestSecureShuffle(boolean sslInCluster, int resultWithTezSSL, int resultWithoutTezSSL) {
     this.enableSSLInCluster = sslInCluster;
-    this.enableSSLInTez = sslInTez;
-    this.expectedResult = expectedResult;
+    this.resultWithTezSSL = resultWithTezSSL;
+    this.resultWithoutTezSSL = resultWithoutTezSSL;
   }
 
-  @Parameterized.Parameters(name = "test[sslInCluster:{0}, sslInTez:{1}, expectedResult:{2}]")
+  @Parameterized.Parameters(name = "test[sslInCluster:{0}, resultWithTezSSL:{1}, resultWithoutTezSSL:{2}]")
   public static Collection<Object[]> getParameters() {
     Collection<Object[]> parameters = new ArrayList<Object[]>();
-    //enable ssl in cluster and in tez.
-    parameters.add(new Object[] { true, true, 0 });
-    //disable ssl in cluster and in tez.
-    parameters.add(new Object[] { false, false, 0 });
+    //enable ssl in cluster, succeed with tez-ssl enabled, fail with tez-ssl disabled
+    parameters.add(new Object[] { true, 0, 1 });
 
-    //Negative test cases
-
-    //enable ssl in cluster, but disable in tez side.
-    parameters.add(new Object[] { true, false, 1 });
-    //disable ssl config in cluster, but enable from tez side.
-    parameters.add(new Object[] { false, true, 1 });
+    //Negative testcase
+    // disable ssl in cluster, fail with tez-ssl enabled, succeed with tez-ssl disabled
+    parameters.add(new Object[] { false, 1, 0 });
 
     return parameters;
   }
 
+  @BeforeClass
+  public static void setupDFSCluster() throws Exception {
+    conf = new Configuration();
+    conf.setBoolean(DFSConfigKeys.DFS_NAMENODE_EDITS_NOEDITLOGCHANNELFLUSH, false);
+    EditLogFileOutputStream.setShouldSkipFsyncForTesting(true);
+    conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
+    miniDFSCluster =
+        new MiniDFSCluster.Builder(conf).numDataNodes(1).format(true).build();
+    fs = miniDFSCluster.getFileSystem();
+    conf.set("fs.defaultFS", fs.getUri().toString());
+  }
+
+  @AfterClass
+  public static void shutdownDFSCluster() {
+    if (miniDFSCluster != null) {
+      //shutdown and delete cluster dirs
+      miniDFSCluster.shutdown(true);
+    }
+  }
 
   @Before
-  public void setup() throws Exception {
-    conf = new Configuration();
-    conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
+  public void setupTezCluster() throws Exception {
     if (enableSSLInCluster) {
       // Enable SSL debugging
       System.setProperty("javax.net.debug", "all");
       setupKeyStores();
     }
+    conf.setBoolean(MRConfig.SHUFFLE_SSL_ENABLED_KEY, enableSSLInCluster);
 
-    miniDFSCluster =
-        new MiniDFSCluster.Builder(conf).numDataNodes(3).format(true).build();
-    fs = miniDFSCluster.getFileSystem();
-    conf.set("fs.defaultFS", fs.getUri().toString());
-
-    // 5 seconds should be good enough in local machine
-    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT, 5 * 1000);
-    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 5 * 1000);
+    // 3 seconds should be good enough in local machine
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT, 3 * 1000);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 3 * 1000);
     //set to low value so that it can detect failures quickly
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT, 2);
 
-    miniTezCluster =
-        new MiniTezCluster(TestSecureShuffle.class.getName(), 3, 3, 1);
+    miniTezCluster = new MiniTezCluster(TestSecureShuffle.class.getName(), 1, 1, 1);
 
     miniTezCluster.init(conf);
     miniTezCluster.start();
@@ -118,15 +128,19 @@ public class TestSecureShuffle {
   }
 
   @After
-  public void tearDown() throws IOException {
-    fs.delete(inputLoc, true);
-    fs.delete(outputLoc, true);
+  public void shutdownTezCluster() throws IOException {
     if (miniTezCluster != null) {
       miniTezCluster.stop();
     }
-    if (miniDFSCluster != null) {
-      miniDFSCluster.shutdown();
-    }
+  }
+
+  private void baseTest(int expectedResult) throws Exception {
+    Path outputLoc = new Path("/tmp/outPath_" + System.currentTimeMillis());
+    TestOrderedWordCount wordCount = new TestOrderedWordCount();
+    wordCount.setConf(new Configuration(miniTezCluster.getConfig()));
+
+    String[] args = new String[] { inputLoc.toString(), outputLoc.toString() };
+    assertEquals(expectedResult, wordCount.run(args));
   }
 
   /**
@@ -136,19 +150,15 @@ public class TestSecureShuffle {
    */
   @Test(timeout = 60000)
   public void testSecureShuffle() throws Exception {
-    if (enableSSLInTez) {
-      miniTezCluster.getConfig().setBoolean(
-          TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, true);
-    }
+    //With tez-ssl setting
+    miniTezCluster.getConfig().setBoolean(
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, true);
+    baseTest(this.resultWithTezSSL);
 
-    TestOrderedWordCount wordCount = new TestOrderedWordCount();
-    wordCount.setConf(new Configuration(miniTezCluster.getConfig()));
-
-    String[] args = new String[] { inputLoc.toString(), outputLoc.toString() };
-    assertEquals(this.expectedResult, wordCount.run(args));
-
-    // cleanup output
-    fs.delete(outputLoc, true);
+    //Without tez-ssl setting
+    miniTezCluster.getConfig().setBoolean(
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL, false);
+    baseTest(this.resultWithoutTezSSL);
   }
 
   /**
@@ -161,7 +171,7 @@ public class TestSecureShuffle {
     fs.deleteOnExit(inputLoc);
     FSDataOutputStream out = fs.create(inputLoc);
     BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 10; i++) {
       writer.write("Hello World");
       writer.write("Some other line");
       writer.newLine();
@@ -181,6 +191,5 @@ public class TestSecureShuffle {
 
     KeyStoreTestUtil.setupSSLConfig(keysStoresDir.getAbsolutePath(),
       sslConfsDir, conf, true);
-    conf.setBoolean(MRConfig.SHUFFLE_SSL_ENABLED_KEY, true);
   }
 }
