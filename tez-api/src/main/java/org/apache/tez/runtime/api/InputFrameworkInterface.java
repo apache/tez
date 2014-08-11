@@ -31,13 +31,13 @@ import java.util.List;
  * <p/>
  *
  * During initialization, Inputs must specify an initial memory requirement via
- * {@link TezInputContext}.requestInitialMemory
+ * {@link InputContext}.requestInitialMemory
  * <p/>
  *
  *
  * Inputs must also inform the framework once they are ready to be consumed.
  * This typically means that the Processor will not block when reading from the
- * corresponding Input. This is done via {@link TezInputContext}.inputIsReady.
+ * corresponding Input. This is done via {@link InputContext}.inputIsReady.
  * Inputs choose the policy on when they are ready.
  */
 public interface InputFrameworkInterface {

@@ -20,12 +20,12 @@ package org.apache.tez.runtime.api;
 
 import java.io.IOException;
 import java.util.Collection;
-import javax.annotation.Nullable;
 
 /**
  * Context handle for the Processor to initialize itself.
+ * This interface is not supposed to be implemented by users
  */
-public interface TezProcessorContext extends TezTaskContext {
+public interface ProcessorContext extends TaskContext {
 
   /**
    * Set the overall progress of this Task Attempt

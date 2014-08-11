@@ -28,10 +28,10 @@ import org.apache.tez.dag.api.client.VertexStatus;
 @InterfaceStability.Unstable
 public abstract class OutputCommitter {
 
-  private final OutputCommitterContext outputCommitterContext;
+  private final OutputCommitterContext committerContext;
 
   /**
-   * Constructor an instance of the OutputCommitter. Classes extending this one to create an
+   * Constructor an instance of the OutputCommitter. Classes extending this to create a
    * OutputCommitter, must provide the same constructor so that Tez can create an instance of
    * the class at runtime.
    *
@@ -39,7 +39,7 @@ public abstract class OutputCommitter {
    *                         properties, etc
    */
   public OutputCommitter(OutputCommitterContext committerContext) {
-    this.outputCommitterContext = committerContext;
+    this.committerContext = committerContext;
   }
 
   /**
@@ -108,7 +108,7 @@ public abstract class OutputCommitter {
    * @return the {@link org.apache.tez.runtime.api.OutputCommitterContext} for the input
    */
   public final OutputCommitterContext getContext() {
-    return this.outputCommitterContext;
+    return this.committerContext;
   }
 
 }

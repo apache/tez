@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.EdgeManagerDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -34,7 +34,7 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.EdgeManagerDescriptorProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.RootInputSpecUpdateProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexParallelismUpdatedProto;
-import org.apache.tez.runtime.api.RootInputSpecUpdate;
+import org.apache.tez.runtime.api.InputSpecUpdate;
 
 import com.google.common.collect.Maps;
 
@@ -43,16 +43,16 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
   private TezVertexID vertexID;
   private int numTasks;
   private VertexLocationHint vertexLocationHint;
-  private Map<String, EdgeManagerDescriptor> sourceEdgeManagers;
-  private Map<String, RootInputSpecUpdate> rootInputSpecUpdates;
+  private Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers;
+  private Map<String, InputSpecUpdate> rootInputSpecUpdates;
 
   public VertexParallelismUpdatedEvent() {
   }
 
   public VertexParallelismUpdatedEvent(TezVertexID vertexID,
       int numTasks, VertexLocationHint vertexLocationHint,
-      Map<String, EdgeManagerDescriptor> sourceEdgeManagers,
-      Map<String, RootInputSpecUpdate> rootInputSpecUpdates) {
+      Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
+      Map<String, InputSpecUpdate> rootInputSpecUpdates) {
     this.vertexID = vertexID;
     this.numTasks = numTasks;
     this.vertexLocationHint = vertexLocationHint;
@@ -85,7 +85,7 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
             this.vertexLocationHint));
     }
     if (sourceEdgeManagers != null) {
-      for (Entry<String, EdgeManagerDescriptor> entry :
+      for (Entry<String, EdgeManagerPluginDescriptor> entry :
           sourceEdgeManagers.entrySet()) {
         EdgeManagerDescriptorProto.Builder edgeMgrBuilder =
             EdgeManagerDescriptorProto.newBuilder();
@@ -96,7 +96,7 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
       }
     }
     if (rootInputSpecUpdates != null) {
-      for (Entry<String, RootInputSpecUpdate> entry : rootInputSpecUpdates.entrySet()) {
+      for (Entry<String, InputSpecUpdate> entry : rootInputSpecUpdates.entrySet()) {
         RootInputSpecUpdateProto.Builder rootInputSpecUpdateBuilder = RootInputSpecUpdateProto
             .newBuilder();
         rootInputSpecUpdateBuilder.setInputName(entry.getKey());
@@ -117,11 +117,11 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
           proto.getVertexLocationHint());
     }
     if (proto.getEdgeManagerDescriptorsCount() > 0) {
-      this.sourceEdgeManagers = new HashMap<String, EdgeManagerDescriptor>(
+      this.sourceEdgeManagers = new HashMap<String, EdgeManagerPluginDescriptor>(
           proto.getEdgeManagerDescriptorsCount());
       for (EdgeManagerDescriptorProto edgeManagerProto :
         proto.getEdgeManagerDescriptorsList()) {
-        EdgeManagerDescriptor edgeManagerDescriptor =
+        EdgeManagerPluginDescriptor edgeManagerDescriptor =
             DagTypeConverters.convertEdgeManagerDescriptorFromDAGPlan(
                 edgeManagerProto.getEntityDescriptor());
         sourceEdgeManagers.put(edgeManagerProto.getEdgeName(),
@@ -131,13 +131,13 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
     if (proto.getRootInputSpecUpdatesCount() > 0) {
       this.rootInputSpecUpdates = Maps.newHashMap();
       for (RootInputSpecUpdateProto rootInputSpecUpdateProto : proto.getRootInputSpecUpdatesList()) {
-        RootInputSpecUpdate specUpdate;
+        InputSpecUpdate specUpdate;
         if (rootInputSpecUpdateProto.getForAllWorkUnits()) {
-          specUpdate = RootInputSpecUpdate
-              .createAllTaskRootInputSpecUpdate(rootInputSpecUpdateProto.getNumPhysicalInputs(0));
+          specUpdate = InputSpecUpdate
+              .createAllTaskInputSpecUpdate(rootInputSpecUpdateProto.getNumPhysicalInputs(0));
         } else {
-          specUpdate = RootInputSpecUpdate
-              .createPerTaskRootInputSpecUpdate(rootInputSpecUpdateProto.getNumPhysicalInputsList());
+          specUpdate = InputSpecUpdate
+              .createPerTaskInputSpecUpdate(rootInputSpecUpdateProto.getNumPhysicalInputsList());
         }
         this.rootInputSpecUpdates.put(rootInputSpecUpdateProto.getInputName(), specUpdate);
       }
@@ -182,11 +182,11 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
     return vertexLocationHint;
   }
 
-  public Map<String, EdgeManagerDescriptor> getSourceEdgeManagers() {
+  public Map<String, EdgeManagerPluginDescriptor> getSourceEdgeManagers() {
     return sourceEdgeManagers;
   }
   
-  public Map<String, RootInputSpecUpdate> getRootInputSpecUpdates() {
+  public Map<String, InputSpecUpdate> getRootInputSpecUpdates() {
     return rootInputSpecUpdates;
   }
 }

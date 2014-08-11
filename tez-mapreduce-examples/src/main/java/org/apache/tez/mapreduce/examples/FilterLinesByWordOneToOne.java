@@ -71,7 +71,7 @@ import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.processor.FilterByWordInputProcessor;
 import org.apache.tez.processor.FilterByWordOutputProcessor;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
+import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.library.conf.UnorderedUnpartitionedKVEdgeConfigurer;
 
 public class FilterLinesByWordOneToOne extends Configured implements Tool {
@@ -186,7 +186,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     }
 
     // Configure the Input for stage1
-    Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
+    Class<? extends InputInitializer> initializerClazz = generateSplitsInClient ? null
         : MRInputAMSplitGenerator.class;
     stage1Vertex.addDataSource(
         "MRInput",

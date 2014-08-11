@@ -79,7 +79,7 @@ import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
@@ -95,7 +95,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
 
   // Current counters
   transient TezCounters counters;
-  protected TezProcessorContext processorContext;
+  protected ProcessorContext processorContext;
   protected TaskAttemptID taskAttemptId;
   protected Progress progress = new Progress();
   protected SecretKey jobTokenSecret;
@@ -119,7 +119,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
   protected MRTaskReporter mrReporter;
   protected boolean useNewApi;
 
-  public MRTask(TezProcessorContext processorContext, boolean isMap) {
+  public MRTask(ProcessorContext processorContext, boolean isMap) {
     super(processorContext);
     this.isMap = isMap;
   }
@@ -307,7 +307,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
     }
   }
 
-  public TezProcessorContext getUmbilical() {
+  public ProcessorContext getUmbilical() {
     return this.processorContext;
   }
 

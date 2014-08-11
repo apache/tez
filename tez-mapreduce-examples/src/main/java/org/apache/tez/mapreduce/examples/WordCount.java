@@ -43,7 +43,7 @@ import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.api.Output;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
@@ -60,7 +60,7 @@ public class WordCount extends Configured implements Tool {
     IntWritable one = new IntWritable(1);
     Text word = new Text();
 
-    public TokenProcessor(TezProcessorContext context) {
+    public TokenProcessor(ProcessorContext context) {
       super(context);
     }
 
@@ -84,7 +84,7 @@ public class WordCount extends Configured implements Tool {
   }
 
   public static class SumProcessor extends SimpleMRProcessor {
-    public SumProcessor(TezProcessorContext context) {
+    public SumProcessor(ProcessorContext context) {
       super(context);
     }
 

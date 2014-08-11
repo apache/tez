@@ -46,7 +46,7 @@ import org.apache.tez.mapreduce.examples.WordCount.TokenProcessor;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
@@ -58,7 +58,7 @@ import com.google.common.base.Preconditions;
 public class OrderedWordCount extends Configured implements Tool  {
   
   public static class SumProcessor extends SimpleProcessor {
-    public SumProcessor(TezProcessorContext context) {
+    public SumProcessor(ProcessorContext context) {
       super(context);
     }
 
@@ -86,7 +86,7 @@ public class OrderedWordCount extends Configured implements Tool  {
    */
   public static class NoOpSorter extends SimpleMRProcessor {
 
-    public NoOpSorter(TezProcessorContext context) {
+    public NoOpSorter(ProcessorContext context) {
       super(context);
     }
 

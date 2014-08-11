@@ -22,8 +22,8 @@ import com.google.protobuf.ByteString;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.EventProtos;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
-import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+import org.apache.tez.runtime.api.events.InputInitializerEvent;
 
 public class ProtoConverters {
 
@@ -69,7 +69,7 @@ public class ProtoConverters {
   }
 
   public static EventProtos.RootInputDataInformationEventProto
-      convertRootInputDataInformationEventToProto(RootInputDataInformationEvent event) {
+      convertRootInputDataInformationEventToProto(InputDataInformationEvent event) {
     EventProtos.RootInputDataInformationEventProto.Builder builder =
         EventProtos.RootInputDataInformationEventProto.newBuilder();
     builder.setSourceIndex(event.getSourceIndex());
@@ -80,10 +80,10 @@ public class ProtoConverters {
     return builder.build();
   }
 
-  public static RootInputDataInformationEvent
+  public static InputDataInformationEvent
       convertRootInputDataInformationEventFromProto(
       EventProtos.RootInputDataInformationEventProto proto) {
-    RootInputDataInformationEvent diEvent = new RootInputDataInformationEvent(
+    InputDataInformationEvent diEvent = new InputDataInformationEvent(
         proto.getSourceIndex(), proto.getUserPayload() != null ? proto.getUserPayload()
             .toByteArray() : null);
     diEvent.setTargetIndex(proto.getTargetIndex());
@@ -91,7 +91,7 @@ public class ProtoConverters {
   }
 
   public static EventProtos.RootInputInitializerEventProto convertRootInputInitializerEventToProto(
-      RootInputInitializerEvent event) {
+      InputInitializerEvent event) {
     EventProtos.RootInputInitializerEventProto.Builder builder =
         EventProtos.RootInputInitializerEventProto.newBuilder();
     builder.setTargetVertexName(event.getTargetVertexName());
@@ -103,10 +103,10 @@ public class ProtoConverters {
     return builder.build();
   }
 
-  public static RootInputInitializerEvent convertRootInputInitializerEventFromProto(
+  public static InputInitializerEvent convertRootInputInitializerEventFromProto(
       EventProtos.RootInputInitializerEventProto proto) {
-    RootInputInitializerEvent event =
-        new RootInputInitializerEvent(proto.getTargetVertexName(), proto.getTargetInputName(),
+    InputInitializerEvent event =
+        new InputInitializerEvent(proto.getTargetVertexName(), proto.getTargetInputName(),
             (proto.hasUserPayload() ? proto.getUserPayload().toByteArray() : null),
             proto.getVersion());
     return event;

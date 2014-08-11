@@ -18,14 +18,15 @@
 
 package org.apache.tez.runtime.api.events;
 
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
+import org.apache.tez.runtime.api.InputInitializer;
 
 /**
- * Events used by {@link TezRootInputInitializer} implementations to provide the
+ * Events used by {@link InputInitializer} implementations to provide the
  * user payload for individual tasks running as part of the Vertex for which an
  * Initial Input has been configured.
  * 
@@ -33,13 +34,14 @@ import org.apache.tez.runtime.api.TezRootInputInitializer;
  * Vertex. The event may be processed by a @link {@link VertexManagerPlugin}
  * before being sent to tasks.
  * 
- * A {@link TezRootInputInitializer} may send Events with or without a
+ * A {@link InputInitializer} may send Events with or without a
  * serialized user payload.
  * 
  * Events, after being processed by a {@link VertexManagerPlugin}, must
  * contain the payload in a serialized form.
  */
-public final class RootInputDataInformationEvent extends Event {
+@Unstable
+public final class InputDataInformationEvent extends Event {
 
   private final int sourceIndex;
   private int targetIndex; // TODO Likely to be multiple at a later point.
@@ -51,13 +53,13 @@ public final class RootInputDataInformationEvent extends Event {
    * @param srcIndex the src index
    * @param userPayload the serizlied payload
    */
-  public RootInputDataInformationEvent(int srcIndex, byte[] userPayload) {
+  public InputDataInformationEvent(int srcIndex, byte[] userPayload) {
     this.sourceIndex = srcIndex;
     this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
     this.userPayloadObject = null;
   }
   
-  public RootInputDataInformationEvent(int srcIndex, Object userPayloadDeserialized) {
+  public InputDataInformationEvent(int srcIndex, Object userPayloadDeserialized) {
     this.sourceIndex = srcIndex;
     this.userPayloadObject = userPayloadDeserialized;
     this.userPayload = DagTypeConverters.convertToTezUserPayload(null);
@@ -85,7 +87,7 @@ public final class RootInputDataInformationEvent extends Event {
 
   @Override
   public String toString() {
-    return "RootInputDataInformationEvent [sourceIndex=" + sourceIndex + ", targetIndex="
+    return "InputDataInformationEvent [sourceIndex=" + sourceIndex + ", targetIndex="
         + targetIndex + ", serializedUserPayloadExists=" + (userPayload != null)
         + ", deserializedUserPayloadExists=" + (userPayloadObject != null) + "]";
   } 

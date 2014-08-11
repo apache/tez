@@ -52,7 +52,7 @@ import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.conf.UnorderedPartitionedKVEdgeConfigurer;
@@ -219,7 +219,7 @@ public class IntersectExample extends Configured implements Tool {
    * Reads key-values from the source and forwards the value as the key for the output
    */
   public static class ForwardingProcessor extends SimpleProcessor {
-    public ForwardingProcessor(TezProcessorContext context) {
+    public ForwardingProcessor(ProcessorContext context) {
       super(context);
     }
 
@@ -244,7 +244,7 @@ public class IntersectExample extends Configured implements Tool {
 
   public static class IntersectProcessor extends SimpleMRProcessor {
 
-    public IntersectProcessor(TezProcessorContext context) {
+    public IntersectProcessor(ProcessorContext context) {
       super(context);
     }
 

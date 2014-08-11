@@ -45,7 +45,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.Constants;
@@ -105,7 +105,7 @@ public class MergeManager {
 
   private final ExceptionReporter exceptionReporter;
   
-  private final TezInputContext inputContext;
+  private final InputContext inputContext;
 
   private final TezCounter spilledRecordsCounter;
 
@@ -133,7 +133,7 @@ public class MergeManager {
   public MergeManager(Configuration conf, 
                       FileSystem localFS,
                       LocalDirAllocator localDirAllocator,  
-                      TezInputContext inputContext,
+                      InputContext inputContext,
                       Combiner combiner,
                       TezCounter spilledRecordsCounter,
                       TezCounter reduceCombineInputCounter,

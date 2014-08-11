@@ -74,7 +74,7 @@ import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
+import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -223,7 +223,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
       mapVertex.setTaskLocalFiles(commonLocalResources);
     }
 
-    Class<? extends TezRootInputInitializer> initializerClazz = generateSplitsInClient ? null
+    Class<? extends InputInitializer> initializerClazz = generateSplitsInClient ? null
         : MRInputAMSplitGenerator.class;
     MRHelpers.addMRInput(mapVertex, mapInputPayload,
         (initializerClazz==null) ? null :

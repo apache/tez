@@ -35,21 +35,21 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.RootInputSpecUpdate;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
-import org.apache.tez.runtime.api.TezRootInputInitializerContext;
-import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
-import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
+import org.apache.tez.runtime.api.InputSpecUpdate;
+import org.apache.tez.runtime.api.InputInitializer;
+import org.apache.tez.runtime.api.InputInitializerContext;
+import org.apache.tez.runtime.api.events.InputConfigureVertexTasksEvent;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+import org.apache.tez.runtime.api.events.InputInitializerEvent;
 
-public class MRInputAMSplitGenerator extends TezRootInputInitializer {
+public class MRInputAMSplitGenerator extends InputInitializer {
 
   private boolean sendSerializedEvents;
   
   private static final Log LOG = LogFactory.getLog(MRInputAMSplitGenerator.class);
 
   public MRInputAMSplitGenerator(
-      TezRootInputInitializerContext initializerContext) {
+      InputInitializerContext initializerContext) {
     super(initializerContext);
   }
 
@@ -117,9 +117,9 @@ public class MRInputAMSplitGenerator extends TezRootInputInitializer {
     List<Event> events = Lists.newArrayListWithCapacity(inputSplitInfo
         .getNumTasks() + 1);
     
-    RootInputConfigureVertexTasksEvent configureVertexEvent = new RootInputConfigureVertexTasksEvent(
+    InputConfigureVertexTasksEvent configureVertexEvent = new InputConfigureVertexTasksEvent(
         inputSplitInfo.getNumTasks(), inputSplitInfo.getTaskLocationHints(),
-        RootInputSpecUpdate.getDefaultSinglePhysicalInputSpecUpdate());
+        InputSpecUpdate.getDefaultSinglePhysicalInputSpecUpdate());
     events.add(configureVertexEvent);
 
     if (sendSerializedEvents) {
@@ -127,7 +127,7 @@ public class MRInputAMSplitGenerator extends TezRootInputInitializer {
       int count = 0;
       for (MRSplitProto mrSplit : splitsProto.getSplitsList()) {
         // Unnecessary array copy, can be avoided by using ByteBuffer instead of a raw array.
-        RootInputDataInformationEvent diEvent = new RootInputDataInformationEvent(count++,
+        InputDataInformationEvent diEvent = new InputDataInformationEvent(count++,
             mrSplit.toByteArray());
         events.add(diEvent);
       }
@@ -135,12 +135,12 @@ public class MRInputAMSplitGenerator extends TezRootInputInitializer {
       int count = 0;
       if (inputSplitInfo.holdsNewFormatSplits()) {
         for (org.apache.hadoop.mapreduce.InputSplit split : inputSplitInfo.getNewFormatSplits()) {
-          RootInputDataInformationEvent diEvent = new RootInputDataInformationEvent(count++, split);
+          InputDataInformationEvent diEvent = new InputDataInformationEvent(count++, split);
           events.add(diEvent);
         }
       } else {
         for (org.apache.hadoop.mapred.InputSplit split : inputSplitInfo.getOldFormatSplits()) {
-          RootInputDataInformationEvent diEvent = new RootInputDataInformationEvent(count++, split);
+          InputDataInformationEvent diEvent = new InputDataInformationEvent(count++, split);
           events.add(diEvent);
         }
       }
@@ -150,7 +150,7 @@ public class MRInputAMSplitGenerator extends TezRootInputInitializer {
   }
 
   @Override
-  public void handleInputInitializerEvent(List<RootInputInitializerEvent> events) throws Exception {
+  public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws Exception {
     throw new UnsupportedOperationException("Not expecting to handle any events");
   }
 

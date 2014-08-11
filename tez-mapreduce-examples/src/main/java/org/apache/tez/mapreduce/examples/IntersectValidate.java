@@ -47,7 +47,7 @@ import org.apache.tez.mapreduce.examples.IntersectExample.ForwardingProcessor;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -215,7 +215,7 @@ public class IntersectValidate extends Configured implements Tool {
 
     private static final Log LOG = LogFactory.getLog(IntersectValidateProcessor.class);
 
-    public IntersectValidateProcessor(TezProcessorContext context) {
+    public IntersectValidateProcessor(ProcessorContext context) {
       super(context);
     }
 

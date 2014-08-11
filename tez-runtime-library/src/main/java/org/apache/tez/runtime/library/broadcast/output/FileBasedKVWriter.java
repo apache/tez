@@ -33,7 +33,7 @@ import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
@@ -82,7 +82,7 @@ public class FileBasedKVWriter extends KeyValuesWriter {
   // Time waiting for a write to complete, if that's possible.
   // Size of key-value pairs written.
 
-  public FileBasedKVWriter(TezOutputContext outputContext, Configuration conf) throws IOException {
+  public FileBasedKVWriter(OutputContext outputContext, Configuration conf) throws IOException {
     this.conf = conf;
 
     this.outputRecordsCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_RECORDS);

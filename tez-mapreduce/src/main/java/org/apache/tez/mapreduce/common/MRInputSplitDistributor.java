@@ -32,16 +32,16 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
-import org.apache.tez.runtime.api.TezRootInputInitializerContext;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
-import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
-import org.apache.tez.runtime.api.events.RootInputUpdatePayloadEvent;
+import org.apache.tez.runtime.api.InputInitializer;
+import org.apache.tez.runtime.api.InputInitializerContext;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+import org.apache.tez.runtime.api.events.InputInitializerEvent;
+import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
-public class MRInputSplitDistributor extends TezRootInputInitializer {
+public class MRInputSplitDistributor extends InputInitializer {
 
   private static final Log LOG = LogFactory.getLog(MRInputSplitDistributor.class);
   
@@ -49,7 +49,7 @@ public class MRInputSplitDistributor extends TezRootInputInitializer {
 
   private MRSplitsProto splitsProto;
 
-  public MRInputSplitDistributor(TezRootInputInitializerContext initializerContext) {
+  public MRInputSplitDistributor(InputInitializerContext initializerContext) {
     super(initializerContext);
   }
 
@@ -80,7 +80,7 @@ public class MRInputSplitDistributor extends TezRootInputInitializer {
     updatedPayloadBuilder.clearSplits();
 
     List<Event> events = Lists.newArrayListWithCapacity(this.splitsProto.getSplitsCount() + 1);
-    RootInputUpdatePayloadEvent updatePayloadEvent = new RootInputUpdatePayloadEvent(
+    InputUpdatePayloadEvent updatePayloadEvent = new InputUpdatePayloadEvent(
         updatedPayloadBuilder.build().toByteArray());
 
     events.add(updatePayloadEvent);
@@ -88,21 +88,21 @@ public class MRInputSplitDistributor extends TezRootInputInitializer {
 
     for (MRSplitProto mrSplit : this.splitsProto.getSplitsList()) {
 
-      RootInputDataInformationEvent diEvent;
+      InputDataInformationEvent diEvent;
 
       if (sendSerializedEvents) {
         // Unnecessary array copy, can be avoided by using ByteBuffer instead of
         // a raw array.
-        diEvent = new RootInputDataInformationEvent(count++, mrSplit.toByteArray());
+        diEvent = new InputDataInformationEvent(count++, mrSplit.toByteArray());
       } else {
         if (useNewApi) {
           org.apache.hadoop.mapreduce.InputSplit newInputSplit = MRInputUtils
               .getNewSplitDetailsFromEvent(mrSplit, conf);
-          diEvent = new RootInputDataInformationEvent(count++, newInputSplit);
+          diEvent = new InputDataInformationEvent(count++, newInputSplit);
         } else {
           org.apache.hadoop.mapred.InputSplit oldInputSplit = MRInputUtils
               .getOldSplitDetailsFromEvent(mrSplit, conf);
-          diEvent = new RootInputDataInformationEvent(count++, oldInputSplit);
+          diEvent = new InputDataInformationEvent(count++, oldInputSplit);
         }
       }
       events.add(diEvent);
@@ -112,7 +112,7 @@ public class MRInputSplitDistributor extends TezRootInputInitializer {
   }
 
   @Override
-  public void handleInputInitializerEvent(List<RootInputInitializerEvent> events) throws Exception {
+  public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws Exception {
     throw new UnsupportedOperationException("Not expecting to handle any events");
   }
 }

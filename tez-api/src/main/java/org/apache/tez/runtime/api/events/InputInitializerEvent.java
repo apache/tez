@@ -20,13 +20,16 @@
 
 package org.apache.tez.runtime.api.events;
 
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.common.TezUserPayload;
+import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.Event;
 
 /**
- * An event that is routed to the specified RootInputInitializer.
+ * An event that is routed to the specified {@link InputInitializer}.
  */
-public class RootInputInitializerEvent extends Event {
+@Unstable
+public class InputInitializerEvent extends Event {
 
   private String targetVertexName;
   private String targetInputName;
@@ -36,13 +39,13 @@ public class RootInputInitializerEvent extends Event {
 
   /**
    * @param targetVertexName the vertex on which the targeted Input exists
-   * @param targetInputName  the name of the root input
+   * @param targetInputName  the name of the input
    * @param eventPayload     the payload for the event. It is advisable to limit the size of the
    *                         payload to a few KB at max
    * @param version          version of the event. Multiple versions may be generated in case of
    *                         retries
    */
-  public RootInputInitializerEvent(String targetVertexName, String targetInputName,
+  public InputInitializerEvent(String targetVertexName, String targetInputName,
                                    byte[] eventPayload, int version) {
     this.targetVertexName = targetVertexName;
     this.targetInputName = targetInputName;

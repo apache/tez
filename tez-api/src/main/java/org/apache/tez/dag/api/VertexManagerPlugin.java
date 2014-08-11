@@ -37,13 +37,13 @@ public abstract class VertexManagerPlugin {
   private final VertexManagerPluginContext context;
 
   /**
-   * Crete an instance of the VertexManagerPlugin. Classes extending this one to create a
-   * VertexManagerPlugin, must provide the same constructor so that Tez can create an instance of
-   * the class at runtime.
-   *
-   * @param context vertex manager plugin context which can be used to access the payload,
-   *                        vertex
-   *                        properties, etc
+   * Crete an instance of the VertexManagerPlugin. Classes extending this to
+   * create a VertexManagerPlugin, must provide the same constructor so that Tez
+   * can create an instance of the class at runtime.
+   * 
+   * @param context
+   *          vertex manager plugin context which can be used to access the
+   *          payload, vertex properties, etc
    */
   public VertexManagerPlugin(VertexManagerPluginContext context) {
     this.context = context;

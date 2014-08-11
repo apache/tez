@@ -29,7 +29,7 @@ import java.util.List;
  *
  * <code>Input</code> classes must provide a 2 argument public constructor for Tez to create the
  * Input. The parameters to this constructor are 1) an instance of
- * {@link org.apache.tez.runtime.api.TezInputContext} and 2) an integer which is used to
+ * {@link org.apache.tez.runtime.api.InputContext} and 2) an integer which is used to
  * setup the number of physical inputs that the logical input will see.
  * Tez will take care of initializing and closing the Input after a {@link Processor} completes. </p>
  * <p/>
@@ -38,19 +38,19 @@ import java.util.List;
 public abstract class AbstractLogicalInput implements LogicalInput, LogicalInputFrameworkInterface {
 
   private final int numPhysicalInputs;
-  private final TezInputContext inputContext;
+  private final InputContext inputContext;
 
   /**
    * Constructor an instance of the LogicalInput. Classes extending this one to create a
    * LogicalInput, must provide the same constructor so that Tez can create an instance of the
    * class at runtime.
    *
-   * @param inputContext      the {@link org.apache.tez.runtime.api.TezInputContext} which provides
+   * @param inputContext      the {@link org.apache.tez.runtime.api.InputContext} which provides
    *                          the Input with context information within the running task.
    * @param numPhysicalInputs the number of physical inputs that the logical input will
    *                          receive. This is typically determined by Edge Routing.
    */
-  public AbstractLogicalInput(TezInputContext inputContext, int numPhysicalInputs) {
+  public AbstractLogicalInput(InputContext inputContext, int numPhysicalInputs) {
     this.inputContext = inputContext;
     this.numPhysicalInputs = numPhysicalInputs;
   }
@@ -69,12 +69,12 @@ public abstract class AbstractLogicalInput implements LogicalInput, LogicalInput
   }
 
   /**
-   * Return ahe {@link org.apache.tez.runtime.api.TezInputContext} for this specific instance of
+   * Return ahe {@link org.apache.tez.runtime.api.InputContext} for this specific instance of
    * the LogicalInput
    *
-   * @return the {@link org.apache.tez.runtime.api.TezInputContext} for the input
+   * @return the {@link org.apache.tez.runtime.api.InputContext} for the input
    */
-  public final TezInputContext getContext() {
+  public final InputContext getContext() {
     return inputContext;
   }
 }

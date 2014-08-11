@@ -22,14 +22,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.tez.dag.api.EdgeManager;
-import org.apache.tez.dag.api.EdgeManagerContext;
+import org.apache.tez.dag.api.EdgeManagerPlugin;
+import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
-public class BroadcastEdgeManager extends EdgeManager {
+public class BroadcastEdgeManager extends EdgeManagerPlugin {
 
-  public BroadcastEdgeManager(EdgeManagerContext context) {
+  public BroadcastEdgeManager(EdgeManagerPluginContext context) {
     super(context);
   }
 

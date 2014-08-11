@@ -29,8 +29,8 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
-import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.input.ShuffledMergedInput;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
@@ -65,25 +65,25 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
 
     // First request - ScatterGatherShuffleInput
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
-    TezInputContext e1InputContext1 = createTestInputContext();
+    InputContext e1InputContext1 = createTestInputContext();
     InputDescriptor e1InDesc1 = createTestInputDescriptor(ShuffledMergedInput.class);
     dist.requestMemory(10000, e1Callback, e1InputContext1, e1InDesc1);
 
     // Second request - BroadcastInput
     MemoryUpdateCallbackForTest e2Callback = new MemoryUpdateCallbackForTest();
-    TezInputContext e2InputContext2 = createTestInputContext();
+    InputContext e2InputContext2 = createTestInputContext();
     InputDescriptor e2InDesc2 = createTestInputDescriptor(ShuffledUnorderedKVInput.class);
     dist.requestMemory(10000, e2Callback, e2InputContext2, e2InDesc2);
 
     // Third request - randomOutput (simulates MROutput)
     MemoryUpdateCallbackForTest e3Callback = new MemoryUpdateCallbackForTest();
-    TezOutputContext e3OutputContext1 = createTestOutputContext();
+    OutputContext e3OutputContext1 = createTestOutputContext();
     OutputDescriptor e3OutDesc1 = createTestOutputDescriptor();
     dist.requestMemory(10000, e3Callback, e3OutputContext1, e3OutDesc1);
 
     // Fourth request - OnFileSortedOutput
     MemoryUpdateCallbackForTest e4Callback = new MemoryUpdateCallbackForTest();
-    TezOutputContext e4OutputContext2 = createTestOutputContext();
+    OutputContext e4OutputContext2 = createTestOutputContext();
     OutputDescriptor e4OutDesc2 = createTestOutputDescriptor(OnFileSortedOutput.class);
     dist.requestMemory(10000, e4Callback, e4OutputContext2, e4OutDesc2);
 
@@ -112,25 +112,25 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
 
     // First request - ScatterGatherShuffleInput [weight 6]
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
-    TezInputContext e1InputContext1 = createTestInputContext();
+    InputContext e1InputContext1 = createTestInputContext();
     InputDescriptor e1InDesc1 = createTestInputDescriptor(ShuffledMergedInput.class);
     dist.requestMemory(10000, e1Callback, e1InputContext1, e1InDesc1);
 
     // Second request - BroadcastInput [weight 2]
     MemoryUpdateCallbackForTest e2Callback = new MemoryUpdateCallbackForTest();
-    TezInputContext e2InputContext2 = createTestInputContext();
+    InputContext e2InputContext2 = createTestInputContext();
     InputDescriptor e2InDesc2 = createTestInputDescriptor(ShuffledUnorderedKVInput.class);
     dist.requestMemory(10000, e2Callback, e2InputContext2, e2InDesc2);
 
     // Third request - randomOutput (simulates MROutput) [weight 1]
     MemoryUpdateCallbackForTest e3Callback = new MemoryUpdateCallbackForTest();
-    TezOutputContext e3OutputContext1 = createTestOutputContext();
+    OutputContext e3OutputContext1 = createTestOutputContext();
     OutputDescriptor e3OutDesc1 = createTestOutputDescriptor();
     dist.requestMemory(10000, e3Callback, e3OutputContext1, e3OutDesc1);
 
     // Fourth request - OnFileSortedOutput [weight 3]
     MemoryUpdateCallbackForTest e4Callback = new MemoryUpdateCallbackForTest();
-    TezOutputContext e4OutputContext2 = createTestOutputContext();
+    OutputContext e4OutputContext2 = createTestOutputContext();
     OutputDescriptor e4OutDesc2 = createTestOutputDescriptor(OnFileSortedOutput.class);
     dist.requestMemory(10000, e4Callback, e4OutputContext2, e4OutDesc2);
 

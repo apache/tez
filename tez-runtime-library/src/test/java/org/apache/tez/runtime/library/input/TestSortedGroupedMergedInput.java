@@ -34,14 +34,14 @@ import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.MergedLogicalInput;
-import org.apache.tez.runtime.api.TezMergedInputContext;
+import org.apache.tez.runtime.api.MergedInputContext;
 import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.junit.Test;
 
 public class TestSortedGroupedMergedInput {
 
-  TezMergedInputContext createMergedInputContext() {
+  MergedInputContext createMergedInputContext() {
     return new TezMergedInputContextImpl(null, "mergedInputName", new HashMap<String, MergedLogicalInput>(),
         mock(InputReadyTracker.class), null);
   }

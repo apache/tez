@@ -18,10 +18,10 @@
 
 package org.apache.tez.dag.api;
 
-public class EdgeManagerDescriptor extends TezEntityDescriptor<EdgeManagerDescriptor> {
+public class EdgeManagerPluginDescriptor extends TezEntityDescriptor<EdgeManagerPluginDescriptor> {
 
-  public EdgeManagerDescriptor(String edgeManagerClassName) {
-    super(edgeManagerClassName);
+  public EdgeManagerPluginDescriptor(String edgeManagerPluginClassName) {
+    super(edgeManagerPluginClassName);
   }
 
 }

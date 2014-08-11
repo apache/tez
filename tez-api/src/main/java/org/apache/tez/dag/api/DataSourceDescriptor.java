@@ -22,8 +22,8 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.security.Credentials;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.tez.runtime.api.InputInitializer;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
 /**
  * Defines the input and input initializer for a data source 
@@ -46,10 +46,10 @@ public class DataSourceDescriptor {
    * @param inputInitializerDescriptor
    *          An initializer for this Input which may run within the AM. This
    *          can be used to set the parallelism for this vertex and generate
-   *          {@link RootInputDataInformationEvent}s for the actual Input.</p>
+   *          {@link InputDataInformationEvent}s for the actual Input.</p>
    *          If this is not specified, the parallelism must be set for the
    *          vertex. In addition, the Input should know how to access data for
-   *          each of it's tasks. </p> If a {@link TezRootInputInitializer} is
+   *          each of it's tasks. </p> If a {@link InputInitializer} is
    *          meant to determine the parallelism of the vertex, the initial
    *          vertex parallelism should be set to -1. Can be null.
    */
@@ -67,10 +67,10 @@ public class DataSourceDescriptor {
    * @param inputInitializerDescriptor
    *          An initializer for this Input which may run within the AM. This
    *          can be used to set the parallelism for this vertex and generate
-   *          {@link RootInputDataInformationEvent}s for the actual Input.</p>
+   *          {@link InputDataInformationEvent}s for the actual Input.</p>
    *          If this is not specified, the parallelism must be set for the
    *          vertex. In addition, the Input should know how to access data for
-   *          each of it's tasks. </p> If a {@link TezRootInputInitializer} is
+   *          each of it's tasks. </p> If a {@link InputInitializer} is
    *          meant to determine the parallelism of the vertex, the initial
    *          vertex parallelism should be set to -1. Can be null.
    * @param numShards Number of shards of data

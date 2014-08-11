@@ -34,7 +34,7 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 
 import java.io.IOException;
 import java.util.List;
@@ -46,7 +46,7 @@ public abstract class MRInputBase extends AbstractLogicalInput {
   protected JobConf jobConf;
   protected TezCounter inputRecordCounter;
 
-  public MRInputBase(TezInputContext inputContext, int numPhysicalInputs) {
+  public MRInputBase(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);
   }
 

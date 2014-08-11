@@ -30,7 +30,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.utils.EnvironmentUpdateUtils;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -148,7 +148,7 @@ public class TestOnFileSortedOutput {
   }
 
   private void startSortedOutput(int partitions) throws Exception {
-    TezOutputContext context = createTezOutputContext();
+    OutputContext context = createTezOutputContext();
     sortedOutput = new OnFileSortedOutput(context, partitions);
     sortedOutput.initialize();
     sortedOutput.start();
@@ -231,7 +231,7 @@ public class TestOnFileSortedOutput {
     }
   }
 
-  private TezOutputContext createTezOutputContext() throws IOException {
+  private OutputContext createTezOutputContext() throws IOException {
     String[] workingDirs = { workingDir.toString() };
     byte[] payLoad = TezUtils.createUserPayloadFromConf(conf);
     DataOutputBuffer serviceProviderMetaData = new DataOutputBuffer();
@@ -239,7 +239,7 @@ public class TestOnFileSortedOutput {
 
     TezCounters counters = new TezCounters();
 
-    TezOutputContext context = mock(TezOutputContext.class);
+    OutputContext context = mock(OutputContext.class);
     doReturn(counters).when(context).getCounters();
     doReturn(workingDirs).when(context).getWorkDirs();
     doReturn(payLoad).when(context).getUserPayload();

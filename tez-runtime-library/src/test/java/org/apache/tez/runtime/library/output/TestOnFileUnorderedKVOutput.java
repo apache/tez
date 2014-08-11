@@ -47,7 +47,7 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.impl.TezOutputContextImpl;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
@@ -119,7 +119,7 @@ public class TestOnFileUnorderedKVOutput {
     OutputDescriptor outputDescriptor = mock(OutputDescriptor.class);
     when(outputDescriptor.getClassName()).thenReturn("OutputDescriptor");
 
-    TezOutputContext outputContext = new TezOutputContextImpl(conf, new String[] {workDir.toString()},
+    OutputContext outputContext = new TezOutputContextImpl(conf, new String[] {workDir.toString()},
         appAttemptNumber, tezUmbilical, dagName, taskVertexName, destinationVertexName,
         taskAttemptID, counters, 0, userPayload, runtimeTask,
         null, auxEnv, new MemoryDistributor(1, 1, conf) , outputDescriptor, null);
@@ -154,7 +154,7 @@ public class TestOnFileUnorderedKVOutput {
 
   private static class OnFileUnorderedKVOutputForTest extends OnFileUnorderedKVOutput {
 
-    public OnFileUnorderedKVOutputForTest(TezOutputContext outputContext, int numPhysicalOutputs) {
+    public OnFileUnorderedKVOutputForTest(OutputContext outputContext, int numPhysicalOutputs) {
       super(outputContext, numPhysicalOutputs);
     }
 

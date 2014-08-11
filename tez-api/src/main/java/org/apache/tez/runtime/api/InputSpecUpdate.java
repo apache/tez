@@ -21,59 +21,61 @@ package org.apache.tez.runtime.api;
 import java.util.List;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
 import com.google.common.collect.Lists;
 
 /**
- * Update Input specs for Root Inputs running in a task. Allows setting the number of physical
+ * Update Input specs for Inputs running in a task. Allows setting the number of physical
  * inputs for all work units if they have the same number of physical inputs, or individual
  * numPhysicalInputs for each work unit.
  * 
  */
-public class RootInputSpecUpdate {
+@Unstable
+public class InputSpecUpdate {
 
   private final boolean forAllWorkUnits;
   private final List<Integer> numPhysicalInputs;
 
-  private final static RootInputSpecUpdate DEFAULT_SINGLE_PHYSICAL_INPUT_SPEC = createAllTaskRootInputSpecUpdate(1);
+  private final static InputSpecUpdate DEFAULT_SINGLE_PHYSICAL_INPUT_SPEC = createAllTaskInputSpecUpdate(1);
   
   /**
    * Create an update instance where all work units (typically represented by
-   * {@link RootInputDataInformationEvent}) will have the same number of physical inputs.
+   * {@link InputDataInformationEvent}) will have the same number of physical inputs.
    * 
    * @param numPhysicalInputs
    *          the number of physical inputs for all work units which will use the LogicalInput
    * @return
    */
-  public static RootInputSpecUpdate createAllTaskRootInputSpecUpdate(int numPhysicalInputs) {
-    return new RootInputSpecUpdate(numPhysicalInputs);
+  public static InputSpecUpdate createAllTaskInputSpecUpdate(int numPhysicalInputs) {
+    return new InputSpecUpdate(numPhysicalInputs);
   }
 
   /**
    * Create an update instance where all work units (typically represented by
-   * {@link RootInputDataInformationEvent}) will have the same number of physical inputs.
+   * {@link InputDataInformationEvent}) will have the same number of physical inputs.
    * 
    * @param perWorkUnitNumPhysicalInputs
    *          A list containing one entry per work unit. The order in the list corresponds to task
-   *          index or equivalently the order of RootInputDataInformationEvents being sent.
+   *          index or equivalently the order of {@link InputDataInformationEvent}s being sent.
    * @return
    */
-  public static RootInputSpecUpdate createPerTaskRootInputSpecUpdate(
+  public static InputSpecUpdate createPerTaskInputSpecUpdate(
       List<Integer> perWorkUnitNumPhysicalInputs) {
-    return new RootInputSpecUpdate(perWorkUnitNumPhysicalInputs);
+    return new InputSpecUpdate(perWorkUnitNumPhysicalInputs);
   }
   
-  public static RootInputSpecUpdate getDefaultSinglePhysicalInputSpecUpdate() {
+  public static InputSpecUpdate getDefaultSinglePhysicalInputSpecUpdate() {
     return DEFAULT_SINGLE_PHYSICAL_INPUT_SPEC;
   }
 
-  private RootInputSpecUpdate(int numPhysicalInputs) {
+  private InputSpecUpdate(int numPhysicalInputs) {
     this.forAllWorkUnits = true;
     this.numPhysicalInputs = Lists.newArrayList(numPhysicalInputs);
   }
 
-  private RootInputSpecUpdate(List<Integer> perWorkUnitNumPhysicalInputs) {
+  private InputSpecUpdate(List<Integer> perWorkUnitNumPhysicalInputs) {
     this.forAllWorkUnits = false;
     this.numPhysicalInputs = Lists.newArrayList(perWorkUnitNumPhysicalInputs);
   }

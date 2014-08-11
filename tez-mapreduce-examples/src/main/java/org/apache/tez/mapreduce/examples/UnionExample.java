@@ -55,7 +55,7 @@ import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.Output;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
@@ -72,7 +72,7 @@ public class UnionExample {
     IntWritable one = new IntWritable(1);
     Text word = new Text();
 
-    public TokenProcessor(TezProcessorContext context) {
+    public TokenProcessor(ProcessorContext context) {
       super(context);
     }
 
@@ -112,7 +112,7 @@ public class UnionExample {
   public static class UnionProcessor extends SimpleMRProcessor {
     IntWritable one = new IntWritable(1);
 
-    public UnionProcessor(TezProcessorContext context) {
+    public UnionProcessor(ProcessorContext context) {
       super(context);
     }
 

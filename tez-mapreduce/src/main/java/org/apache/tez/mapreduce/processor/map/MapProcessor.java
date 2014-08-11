@@ -46,7 +46,7 @@ import org.apache.tez.mapreduce.processor.MRTaskReporter;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
@@ -56,7 +56,7 @@ public class MapProcessor extends MRTask{
 
   private static final Log LOG = LogFactory.getLog(MapProcessor.class);
 
-  public MapProcessor(TezProcessorContext processorContext) {
+  public MapProcessor(ProcessorContext processorContext) {
     super(processorContext, true);
   }
 

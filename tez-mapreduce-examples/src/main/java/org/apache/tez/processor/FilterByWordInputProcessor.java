@@ -36,7 +36,7 @@ import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
@@ -47,7 +47,7 @@ public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
 
   private String filterWord;
 
-  public FilterByWordInputProcessor(TezProcessorContext context) {
+  public FilterByWordInputProcessor(ProcessorContext context) {
     super(context);
   }
 

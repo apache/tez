@@ -20,15 +20,15 @@ package org.apache.tez.runtime.api;
 
 import javax.annotation.Nullable;
 
-import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
 /**
  * Context through which the OutputCommitter can access all the relevant
- * information that it needs.
+ * information that it needs. This interface is not supposed to be implemented
+ * by users
  */
-
+@Unstable
 public interface OutputCommitterContext {
 
   /**
@@ -77,8 +77,6 @@ public interface OutputCommitterContext {
    * Get Vertex Index in the DAG
    * @return Vertex index
    */
-  @Unstable
-  @Evolving
   public int getVertexIndex();
 
 }

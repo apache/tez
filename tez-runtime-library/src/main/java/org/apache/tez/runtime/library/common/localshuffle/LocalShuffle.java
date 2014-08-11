@@ -31,7 +31,7 @@ import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger;
@@ -44,7 +44,7 @@ public class LocalShuffle {
 
   // TODO NEWTEZ This is broken.
 
-  private final TezInputContext inputContext;
+  private final InputContext inputContext;
   private final Configuration conf;
   private final int numInputs;
 
@@ -63,7 +63,7 @@ public class LocalShuffle {
   private final int ifileReadAheadLength;
   private final int ifileBufferSize;
 
-  public LocalShuffle(TezInputContext inputContext, Configuration conf, int numInputs) throws IOException {
+  public LocalShuffle(InputContext inputContext, Configuration conf, int numInputs) throws IOException {
     this.inputContext = inputContext;
     this.conf = conf;
     this.numInputs = numInputs;

@@ -65,7 +65,7 @@ public class TestDAGVerify {
         new ProcessorDescriptor("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     Edge e1 = new Edge(v1, v2,
-        new EdgeProperty(new EdgeManagerDescriptor("emClass"),
+        new EdgeProperty(new EdgeManagerPluginDescriptor("emClass"),
             DataSourceType.PERSISTED,
             SchedulingType.SEQUENTIAL, 
             new OutputDescriptor(dummyOutputClassName),

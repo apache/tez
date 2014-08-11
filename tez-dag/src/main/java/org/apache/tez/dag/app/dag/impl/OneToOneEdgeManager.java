@@ -22,17 +22,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.tez.dag.api.EdgeManager;
-import org.apache.tez.dag.api.EdgeManagerContext;
+import org.apache.tez.dag.api.EdgeManagerPlugin;
+import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
-public class OneToOneEdgeManager extends EdgeManager {
+public class OneToOneEdgeManager extends EdgeManagerPlugin {
 
   List<Integer> destinationInputIndices = 
       Collections.unmodifiableList(Collections.singletonList(0));
 
-  public OneToOneEdgeManager(EdgeManagerContext context) {
+  public OneToOneEdgeManager(EdgeManagerPluginContext context) {
     super(context);
   }
 

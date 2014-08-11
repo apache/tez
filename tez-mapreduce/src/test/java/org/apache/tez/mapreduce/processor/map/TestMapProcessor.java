@@ -43,7 +43,7 @@ import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.MapUtils;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -137,7 +137,7 @@ public class TestMapProcessor {
     task.run();
     task.close();
     
-    TezInputContext inputContext = task.getInputContexts().iterator().next();
+    InputContext inputContext = task.getInputContexts().iterator().next();
     TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles(jobConf, inputContext.getUniqueIdentifier());
     
     

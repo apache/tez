@@ -48,7 +48,7 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
 import com.google.common.base.Preconditions;
@@ -224,7 +224,7 @@ public class IntersectDataGen extends Configured implements Tool {
     long hashOutputFileSize;
     float overlapApprox = 0.2f;
 
-    public GenDataProcessor(TezProcessorContext context) {
+    public GenDataProcessor(ProcessorContext context) {
       super(context);
     }
 

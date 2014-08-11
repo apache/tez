@@ -44,7 +44,7 @@ import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
@@ -58,7 +58,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
   public static class InputProcessor extends SimpleProcessor {
     Text word = new Text();
 
-    public InputProcessor(TezProcessorContext context) {
+    public InputProcessor(ProcessorContext context) {
       super(context);
     }
 
@@ -84,7 +84,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
   public static class OneToOneProcessor extends SimpleProcessor {
     Text word = new Text();
 
-    public OneToOneProcessor(TezProcessorContext context) {
+    public OneToOneProcessor(ProcessorContext context) {
       super(context);
     }
 

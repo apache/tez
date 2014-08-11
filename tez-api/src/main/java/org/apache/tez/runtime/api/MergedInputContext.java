@@ -18,23 +18,16 @@
 
 package org.apache.tez.runtime.api;
 
-/**
- * Context handle for the Input to initialize itself.
- */
-public interface TezInputContext extends TezTaskContext {
+import javax.annotation.Nullable;
 
-  /**
-   * Get the Vertex Name of the Source that generated data for this Input
-   * @return Name of the Source Vertex
-   */
-  public String getSourceVertexName();
-  
-  /**
-   * Get the index of the input in the set of all inputs for the task. The 
-   * index will be consistent and valid only among the tasks of this vertex.
-   * @return index
-   */
-  public int getInputIndex();
+/**
+ * Context for {@link MergedLogicalInput}
+ * This interface is not supposed to be implemented by users
+ */
+public interface MergedInputContext {
+
+  @Nullable
+  public byte[] getUserPayload();
   
   /**
    * Inform the framework that the specific Input is ready for consumption.
@@ -42,4 +35,10 @@ public interface TezInputContext extends TezTaskContext {
    * This method can be invoked multiple times.
    */
   public void inputIsReady();
+  
+  /**
+   * Get the work directories for the Input
+   * @return an array of work dirs
+   */
+  public String[] getWorkDirs();
 }

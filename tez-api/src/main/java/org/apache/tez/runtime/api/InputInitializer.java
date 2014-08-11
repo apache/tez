@@ -21,39 +21,41 @@ package org.apache.tez.runtime.api;
 import java.util.List;
 
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
+import org.apache.tez.runtime.api.events.InputInitializerEvent;
 
 /**
- * <code>TezRootInputInitializer</code>s are used to initialize root vertices
- * within the AM. They can be used to distribute data across the tasks for the
- * vertex, determine the number of tasks at runtime, update the Input payload
- * etc.
+ * <code>InputInitializer</code>s are typically used to initialize vertices
+ * connected to data sources. They run in the App Master and can be used to
+ * distribute data across the tasks for the vertex, determine the number of
+ * tasks at runtime, update the Input payload etc.
  */
 @InterfaceStability.Unstable
-public abstract class TezRootInputInitializer {
+public abstract class InputInitializer {
 
-  private final TezRootInputInitializerContext initializerContext;
+  private final InputInitializerContext initializerContext;
 
   /**
-   * Constructor an instance of the RootInputInitializer. Classes extending this one to create a
-   * RootInputInitializer, must provide the same constructor so that Tez can create an instance of
+   * Constructor an instance of the InputInitializer. Classes extending this to create a
+   * InputInitializer, must provide the same constructor so that Tez can create an instance of
    * the class at runtime.
    *
    * @param initializerContext initializer context which can be used to access the payload, vertex
    *                           properties, etc
    */
-  public TezRootInputInitializer(TezRootInputInitializerContext initializerContext) {
+  public InputInitializer(InputInitializerContext initializerContext) {
     this.initializerContext = initializerContext;
   }
 
   /**
-   * Run the root input initializer. This is the main method where initialization takes place. If an
-   * Initializer is written to accept events, a notification mechanism should be setup, with the
-   * heavy lifting of processing the event being done via this method. The moment this method
-   * returns a list of events, RootInputInitialization is considered to be complete.
-   *
-   * @return a list of events which are eventually routed to a {@link org.apache.tez.dag.api.VertexManagerPlugin}
-   * for routing
+   * Run the initializer. This is the main method where
+   * initialization takes place. If an Initializer is written to accept events,
+   * a notification mechanism should be setup, with the heavy lifting of
+   * processing the event being done via this method. The moment this method
+   * returns a list of events, input initialization is considered to be
+   * complete.
+   * 
+   * @return a list of events which are eventually routed to a
+   *         {@link org.apache.tez.dag.api.VertexManagerPlugin} for routing
    * @throws Exception
    */
   public abstract List<Event> initialize()
@@ -68,15 +70,17 @@ public abstract class TezRootInputInitializer {
    * @param events list of events
    * @throws Exception
    */
-  public abstract void handleInputInitializerEvent(List<RootInputInitializerEvent> events) throws Exception;
+  public abstract void handleInputInitializerEvent(List<InputInitializerEvent> events)
+      throws Exception;
 
   /**
-   * Return ahe {@link org.apache.tez.runtime.api.TezRootInputInitializerContext} for this specific instance of
-   * the Initializer.
-   *
-   * @return the {@link org.apache.tez.runtime.api.TezRootInputInitializerContext} for the input
+   * Return ahe {@link org.apache.tez.runtime.api.InputInitializerContext}
+   * for this specific instance of the Initializer.
+   * 
+   * @return the {@link org.apache.tez.runtime.api.InputInitializerContext}
+   *         for the initializer
    */
-  public final TezRootInputInitializerContext getContext() {
+  public final InputInitializerContext getContext() {
     return this.initializerContext;
   }
   

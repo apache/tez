@@ -27,10 +27,10 @@ import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.runtime.api.TezRootInputInitializerContext;
+import org.apache.tez.runtime.api.InputInitializerContext;
 
 public class TezRootInputInitializerContextImpl implements
-    TezRootInputInitializerContext {
+    InputInitializerContext {
 
   private RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input;
   private final Vertex vertex;
