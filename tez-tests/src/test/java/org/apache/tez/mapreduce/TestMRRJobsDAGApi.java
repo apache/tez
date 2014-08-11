@@ -112,8 +112,8 @@ import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
-import org.apache.tez.runtime.api.TezRootInputInitializerContext;
+import org.apache.tez.runtime.api.InputInitializer;
+import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
@@ -594,7 +594,7 @@ public class TestMRRJobsDAGApi {
       boolean closeSessionBeforeSubmit,
       TezClient reUseTezSession,
       boolean genSplitsInAM,
-      Class<? extends TezRootInputInitializer> initializerClass,
+      Class<? extends InputInitializer> initializerClass,
       Map<String, LocalResource> additionalLocalResources) throws IOException,
       InterruptedException, TezException, ClassNotFoundException,
       YarnException {
@@ -664,7 +664,7 @@ public class TestMRRJobsDAGApi {
     
     DAG dag = new DAG("testMRRSleepJobDagSubmit-" + random.nextInt(1000));
     int stage1NumTasks = genSplitsInAM ? -1 : inputSplitInfo.getNumTasks();
-    Class<? extends TezRootInputInitializer> inputInitializerClazz =
+    Class<? extends InputInitializer> inputInitializerClazz =
         genSplitsInAM ? (initializerClass == null ? MRInputAMSplitGenerator.class : initializerClass)
         : null;
     LOG.info("Using initializer class: " + initializerClass);
@@ -867,7 +867,7 @@ public class TestMRRJobsDAGApi {
   public static class MRInputAMSplitGeneratorRelocalizationTest extends MRInputAMSplitGenerator {
 
     public MRInputAMSplitGeneratorRelocalizationTest(
-        TezRootInputInitializerContext initializerContext) {
+        InputInitializerContext initializerContext) {
       super(initializerContext);
     }
 

@@ -38,7 +38,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -62,7 +62,7 @@ public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
   private boolean dataViaEventsEnabled;
   private int dataViaEventsMaxSize;
 
-  public OnFileUnorderedKVOutput(TezOutputContext outputContext, int numPhysicalOutputs) {
+  public OnFileUnorderedKVOutput(OutputContext outputContext, int numPhysicalOutputs) {
     super(outputContext, numPhysicalOutputs);
   }
 

@@ -39,13 +39,13 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
 public class TezOutputContextImpl extends TezTaskContextImpl
-    implements TezOutputContext {
+    implements OutputContext {
 
   private final TezUserPayload userPayload;
   private final String destinationVertexName;

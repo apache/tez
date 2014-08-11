@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p/>
  * <code>MergedLogicalInput</code> implementations must provide a 2 argument public constructor for
  * Tez to create the Input. The parameters to this constructor are 1) an instance of {@link
- * org.apache.tez.runtime.api.TezMergedInputContext} and 2) a list of constituent inputs. Tez will
+ * org.apache.tez.runtime.api.MergedInputContext} and 2) a list of constituent inputs. Tez will
  * take care of initializing and closing the Input after a {@link Processor} completes. </p>
  * <p/>
  */
@@ -40,7 +40,7 @@ public abstract class MergedLogicalInput implements LogicalInput {
   private AtomicBoolean notifiedInputReady = new AtomicBoolean(false);
   private List<Input> inputs;
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
-  private final TezMergedInputContext context;
+  private final MergedInputContext context;
 
   /**
    * Constructor an instance of the MergedLogicalInputs. Classes extending this one to create a
@@ -48,11 +48,11 @@ public abstract class MergedLogicalInput implements LogicalInput {
    * the
    * class at runtime.
    *
-   * @param context the {@link org.apache.tez.runtime.api.TezMergedInputContext} which provides
+   * @param context the {@link org.apache.tez.runtime.api.MergedInputContext} which provides
    *                the Input with context information within the running task.
    * @param inputs  the list of constituen Inputs.
    */
-  public MergedLogicalInput(TezMergedInputContext context, List<Input> inputs) {
+  public MergedLogicalInput(MergedInputContext context, List<Input> inputs) {
     this.inputs = Collections.unmodifiableList(inputs);
     this.context = context;
   }
@@ -61,7 +61,7 @@ public abstract class MergedLogicalInput implements LogicalInput {
     return inputs;
   }
   
-  public final TezMergedInputContext getContext() {
+  public final MergedInputContext getContext() {
     return context;
   }
   

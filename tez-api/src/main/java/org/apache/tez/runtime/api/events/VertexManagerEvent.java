@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.api.events;
 
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.runtime.api.Event;
@@ -29,6 +30,7 @@ import com.google.common.base.Preconditions;
  * This may be used to send statistics like samples etc to the VertexManager for
  * automatic plan recofigurations based on observed statistics
  */
+@Unstable
 public class VertexManagerEvent extends Event {
 
   /**

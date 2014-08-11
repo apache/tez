@@ -37,7 +37,7 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexDataMovementEven
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.TezEvent;
@@ -131,7 +131,7 @@ public class VertexDataMovementEventsGeneratedEvent implements HistoryEvent {
         } else if (event.getEventType().equals(EventType.ROOT_INPUT_DATA_INFORMATION_EVENT)) {
           evtBuilder.setRootInputDataInformationEvent(
               ProtoConverters.convertRootInputDataInformationEventToProto(
-                  (RootInputDataInformationEvent) event.getEvent()));
+                  (InputDataInformationEvent) event.getEvent()));
         }
         if (event.getSourceInfo() != null) {
           evtBuilder.setSourceInfo(convertEventMetaDataToProto(event.getSourceInfo()));

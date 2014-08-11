@@ -541,8 +541,7 @@ public class MRRSleepJob extends Configured implements Tool {
     int numTasks = generateSplitsInAM ? -1 : numMapper;
     
     Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
-        MapProcessor.class.getName()).setUserPayload(mapUserPayload),
-        numTasks, MRHelpers.getMapResource(mapStageConf));
+        MapProcessor.class.getName()).setUserPayload(mapUserPayload), numTasks);
 
     if (writeSplitsToDFS) {
       mapVertex.setLocationHint(new VertexLocationHint(taskLocHint));
@@ -566,8 +565,7 @@ public class MRRSleepJob extends Configured implements Tool {
         byte[] iReduceUserPayload = MRHelpers.createUserPayloadFromConf(iconf);
         Vertex ivertex = new Vertex("ireduce" + (i+1),
                 new ProcessorDescriptor(ReduceProcessor.class.getName()).
-                setUserPayload(iReduceUserPayload), numIReducer,
-                MRHelpers.getReduceResource(iconf));
+                setUserPayload(iReduceUserPayload), numIReducer);
         ivertex.setTaskLocalFiles(commonLocalResources);
         vertices.add(ivertex);
       }
@@ -577,8 +575,7 @@ public class MRRSleepJob extends Configured implements Tool {
     if (numReducer > 0) {
       byte[] reducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
       finalReduceVertex = new Vertex("reduce", new ProcessorDescriptor(
-          ReduceProcessor.class.getName()).setUserPayload(reducePayload),
-          numReducer, MRHelpers.getReduceResource(finalReduceConf));
+          ReduceProcessor.class.getName()).setUserPayload(reducePayload), numReducer);
       finalReduceVertex.setTaskLocalFiles(commonLocalResources);
       MRHelpers.addMROutputLegacy(finalReduceVertex, reducePayload);
       vertices.add(finalReduceVertex);

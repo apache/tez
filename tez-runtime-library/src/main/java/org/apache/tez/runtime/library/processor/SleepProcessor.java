@@ -24,7 +24,7 @@ import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 
 import java.util.List;
 import java.util.Map;
@@ -41,7 +41,7 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
 
   private int timeToSleepMS;
 
-  public SleepProcessor(TezProcessorContext context) {
+  public SleepProcessor(ProcessorContext context) {
     super(context);
   }
 

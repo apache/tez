@@ -62,8 +62,8 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.EdgeManager;
-import org.apache.tez.dag.api.EdgeManagerDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPlugin;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
@@ -134,15 +134,15 @@ import org.apache.tez.dag.utils.JavaProfilerOptions;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
-import org.apache.tez.runtime.api.RootInputSpecUpdate;
-import org.apache.tez.runtime.api.TezRootInputInitializer;
-import org.apache.tez.runtime.api.TezRootInputInitializerContext;
+import org.apache.tez.runtime.api.InputSpecUpdate;
+import org.apache.tez.runtime.api.InputInitializer;
+import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
-import org.apache.tez.runtime.api.events.RootInputConfigureVertexTasksEvent;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
-import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
-import org.apache.tez.runtime.api.events.RootInputUpdatePayloadEvent;
+import org.apache.tez.runtime.api.events.InputConfigureVertexTasksEvent;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+import org.apache.tez.runtime.api.events.InputInitializerEvent;
+import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.test.EdgeManagerForTest;
 import org.apache.tez.test.VertexManagerPluginForTest;
@@ -169,7 +169,7 @@ public class TestVertexImpl {
   private static final Log LOG = LogFactory.getLog(TestVertexImpl.class);
 
   private boolean useCustomInitializer = false;
-  private TezRootInputInitializer customInitializer = null;
+  private InputInitializer customInitializer = null;
   
   private TezDAGID dagId;
   private ApplicationAttemptId appAttemptId;
@@ -1859,10 +1859,10 @@ public class TestVertexImpl {
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
-    EdgeManagerDescriptor mockEdgeManagerDescriptor =
-        new EdgeManagerDescriptor(EdgeManagerForTest.class.getName());
+    EdgeManagerPluginDescriptor mockEdgeManagerDescriptor =
+        new EdgeManagerPluginDescriptor(EdgeManagerForTest.class.getName());
 
-    Map<String, EdgeManagerDescriptor> edgeManagerDescriptors =
+    Map<String, EdgeManagerPluginDescriptor> edgeManagerDescriptors =
         Collections.singletonMap(
        v1.getName(), mockEdgeManagerDescriptor);
     Assert.assertTrue(v3.setParallelism(1, null, edgeManagerDescriptors, null));
@@ -1916,28 +1916,28 @@ public class TestVertexImpl {
   public void testSetCustomEdgeManager() throws UnsupportedEncodingException {
     initAllVertices(VertexState.INITED);
     Edge edge = edges.get("e4");
-    EdgeManager em = edge.getEdgeManager();
+    EdgeManagerPlugin em = edge.getEdgeManager();
     EdgeManagerForTest originalEm = (EdgeManagerForTest) em;
     Assert.assertTrue(Arrays.equals(edgePayload, originalEm.getEdgeManagerContext()
         .getUserPayload()));
 
     byte[] userPayload = new String("foo").getBytes();
-    EdgeManagerDescriptor edgeManagerDescriptor =
-        new EdgeManagerDescriptor(EdgeManagerForTest.class.getName());
+    EdgeManagerPluginDescriptor edgeManagerDescriptor =
+        new EdgeManagerPluginDescriptor(EdgeManagerForTest.class.getName());
     edgeManagerDescriptor.setUserPayload(userPayload);
 
     Vertex v3 = vertices.get("vertex3");
     Vertex v5 = vertices.get("vertex5"); // Vertex5 linked to v3 (v3 src, v5
                                          // dest)
 
-    Map<String, EdgeManagerDescriptor> edgeManagerDescriptors =
+    Map<String, EdgeManagerPluginDescriptor> edgeManagerDescriptors =
         Collections.singletonMap(v3.getName(), edgeManagerDescriptor);
     Assert.assertTrue(v5.setParallelism(v5.getTotalTasks() - 1, null,
         edgeManagerDescriptors, null)); // Must decrease.
 
     VertexImpl v5Impl = (VertexImpl) v5;
 
-    EdgeManager modifiedEdgeManager = v5Impl.sourceVertices.get(v3)
+    EdgeManagerPlugin modifiedEdgeManager = v5Impl.sourceVertices.get(v3)
         .getEdgeManager();
     Assert.assertNotNull(modifiedEdgeManager);
     Assert.assertTrue(modifiedEdgeManager instanceof EdgeManagerForTest);
@@ -2635,8 +2635,8 @@ public class TestVertexImpl {
     
     // setting the edge manager should vertex1 should not INIT/START it since
     // input initialization is not complete. v5 should be inited
-    EdgeManagerDescriptor mockEdgeManagerDescriptor =
-        new EdgeManagerDescriptor(EdgeManagerForTest.class.getName());
+    EdgeManagerPluginDescriptor mockEdgeManagerDescriptor =
+        new EdgeManagerPluginDescriptor(EdgeManagerForTest.class.getName());
     Edge e = v5.sourceVertices.get(v1);
     Assert.assertNull(e.getEdgeManager());
     e.setCustomEdgeManager(mockEdgeManagerDescriptor);
@@ -2677,7 +2677,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITIALIZING, vertices.get("vertex4").getState());
     
     mockEdgeManagerDescriptor =
-        new EdgeManagerDescriptor(EdgeManagerForTest.class.getName());
+        new EdgeManagerPluginDescriptor(EdgeManagerForTest.class.getName());
     e = vertices.get("vertex6").sourceVertices.get(vertices.get("vertex4"));
     Assert.assertNull(e.getEdgeManager());
     e.setCustomEdgeManager(mockEdgeManagerDescriptor);
@@ -2843,7 +2843,7 @@ public class TestVertexImpl {
     Assert.assertFalse(initializer.initComplete.get());
 
     // Signal the initializer by sending an event - via vertex1
-    RootInputInitializerEvent event = new RootInputInitializerEvent("vertex2", "input1", null, 0);
+    InputInitializerEvent event = new InputInitializerEvent("vertex2", "input1", null, 0);
     TezEvent tezEvent = new TezEvent(event,
         new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex1", null, null));
 
@@ -2910,7 +2910,7 @@ public class TestVertexImpl {
         new VertexManagerEvent("vertex2", new byte[0]), new EventMetaData(
             EventProducerConsumerType.PROCESSOR, "vertex1", "vertex2",
             ta0_t0_v1)));
-    events.add(new TezEvent(new RootInputDataInformationEvent(0, new byte[0]),
+    events.add(new TezEvent(new InputDataInformationEvent(0, new byte[0]),
         new EventMetaData(EventProducerConsumerType.INPUT, "vertex2",
             "NULL_VERTEX", null)));
     dispatcher.getEventHandler().handle(
@@ -2963,8 +2963,8 @@ public class TestVertexImpl {
     Assert.assertEquals(true, initializerManager1.hasShutDown);
     Assert.assertEquals(2, v1.getTotalTasks());
     Assert.assertEquals(payload, v1.getInputSpecList(0).get(0).getInputDescriptor().getUserPayload());
-    EdgeManagerDescriptor mockEdgeManagerDescriptor =
-        new EdgeManagerDescriptor(EdgeManagerForTest.class.getName());
+    EdgeManagerPluginDescriptor mockEdgeManagerDescriptor =
+        new EdgeManagerPluginDescriptor(EdgeManagerForTest.class.getName());
     Edge e = v2.sourceVertices.get(v1);
     Assert.assertNull(e.getEdgeManager());
     e.setCustomEdgeManager(mockEdgeManagerDescriptor);
@@ -3076,7 +3076,7 @@ public class TestVertexImpl {
   private static class VertexImplWithRunningInputInitializer extends VertexImpl {
 
     private RootInputInitializerManagerWithRunningInitializer rootInputInitializerManager;
-    private final TezRootInputInitializer presetInitializer;
+    private final InputInitializer presetInitializer;
 
     public VertexImplWithRunningInputInitializer(TezVertexID vertexId,
                                                  VertexPlan vertexPlan, String vertexName,
@@ -3087,7 +3087,7 @@ public class TestVertexImpl {
                                                  AppContext appContext,
                                                  VertexLocationHint vertexLocationHint,
                                                  DrainDispatcher dispatcher,
-                                                 TezRootInputInitializer presetInitializer) {
+                                                 InputInitializer presetInitializer) {
       super(vertexId, vertexPlan, vertexName, conf, eventHandler,
           taskAttemptListener, clock, thh, true,
           appContext, vertexLocationHint, null, javaProfilerOptions);
@@ -3155,10 +3155,10 @@ public class TestVertexImpl {
   private static class RootInputInitializerManagerWithRunningInitializer
       extends RootInputInitializerManager {
 
-    private final TezRootInputInitializer presetInitializer;
+    private final InputInitializer presetInitializer;
 
     public RootInputInitializerManagerWithRunningInitializer(Vertex vertex, AppContext appContext,
-                                                             TezRootInputInitializer presetInitializer) throws
+                                                             InputInitializer presetInitializer) throws
         IOException {
       super(vertex, appContext, UserGroupInformation.getCurrentUser());
       this.presetInitializer = presetInitializer;
@@ -3166,9 +3166,9 @@ public class TestVertexImpl {
 
 
     @Override
-    protected TezRootInputInitializer createInitializer(
+    protected InputInitializer createInitializer(
         RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input,
-        TezRootInputInitializerContext context) {
+        InputInitializerContext context) {
       return presetInitializer;
     }
   }
@@ -3200,11 +3200,11 @@ public class TestVertexImpl {
     }
 
     @Override
-    protected TezRootInputInitializer createInitializer(
+    protected InputInitializer createInitializer(
         RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input,
-        TezRootInputInitializerContext context) {
+        InputInitializerContext context) {
 
-      return new TezRootInputInitializer(context) {
+      return new InputInitializer(context) {
         @Override
         public List<Event> initialize() throws
             Exception {
@@ -3212,7 +3212,7 @@ public class TestVertexImpl {
         }
 
         @Override
-        public void handleInputInitializerEvent(List<RootInputInitializerEvent> events) throws
+        public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws
             Exception {
         }
       };
@@ -3239,7 +3239,7 @@ public class TestVertexImpl {
 
     public void completeInputDistribution(byte[] payload) {
       List<Event> events = Lists.newArrayListWithCapacity(1);
-      RootInputUpdatePayloadEvent event = new RootInputUpdatePayloadEvent(payload);
+      InputUpdatePayloadEvent event = new InputUpdatePayloadEvent(payload);
       events.add(event);
       eventHandler.handle(new VertexEventRootInputInitialized(vertexID, inputs
           .get(0).getName(), events));
@@ -3250,11 +3250,11 @@ public class TestVertexImpl {
         List<TaskLocationHint> locationHints) {
       List<Event> events = Lists.newArrayListWithCapacity(targetTasks + 1);
 
-      RootInputConfigureVertexTasksEvent configEvent = new RootInputConfigureVertexTasksEvent(
+      InputConfigureVertexTasksEvent configEvent = new InputConfigureVertexTasksEvent(
           targetTasks, locationHints, null);
       events.add(configEvent);
       for (int i = 0; i < targetTasks; i++) {
-        RootInputDataInformationEvent diEvent = new RootInputDataInformationEvent(
+        InputDataInformationEvent diEvent = new InputDataInformationEvent(
             i, null);
         events.add(diEvent);
       }
@@ -3316,8 +3316,8 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITIALIZING, vC.getState());
     
     // setting the edge manager should vA to start
-    EdgeManagerDescriptor mockEdgeManagerDescriptor =
-        new EdgeManagerDescriptor(EdgeManagerForTest.class.getName());
+    EdgeManagerPluginDescriptor mockEdgeManagerDescriptor =
+        new EdgeManagerPluginDescriptor(EdgeManagerForTest.class.getName());
     Edge e = vC.sourceVertices.get(vA);
     Assert.assertNull(e.getEdgeManager());
     e.setCustomEdgeManager(mockEdgeManagerDescriptor);
@@ -3326,7 +3326,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITIALIZING, vB.getState());
     Assert.assertEquals(VertexState.INITIALIZING, vC.getState());
     
-    Map<String, EdgeManagerDescriptor> edges = Maps.newHashMap();
+    Map<String, EdgeManagerPluginDescriptor> edges = Maps.newHashMap();
     edges.put("B", mockEdgeManagerDescriptor);
     vC.setParallelism(2, vertexLocationHint, edges, null);
 
@@ -3419,22 +3419,22 @@ public class TestVertexImpl {
     @Override
     public void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor,
         List<Event> events) {
-      Map<String, RootInputSpecUpdate> map = new HashMap<String, RootInputSpecUpdate>();
+      Map<String, InputSpecUpdate> map = new HashMap<String, InputSpecUpdate>();
       if (getContext().getUserPayload()[0] == 0) {
-        map.put("input3", RootInputSpecUpdate.createAllTaskRootInputSpecUpdate(4));
+        map.put("input3", InputSpecUpdate.createAllTaskInputSpecUpdate(4));
       } else {
         List<Integer> pInputList = new LinkedList<Integer>();
         for (int i = 1; i <= NUM_TASKS; i++) {
           pInputList.add(i);
         }
-        map.put("input4", RootInputSpecUpdate.createPerTaskRootInputSpecUpdate(pInputList));
+        map.put("input4", InputSpecUpdate.createPerTaskInputSpecUpdate(pInputList));
       }
       getContext().setVertexParallelism(NUM_TASKS, null, null, map);
     }
   }
 
   @InterfaceAudience.Private
-  public static class EventHandlingRootInputInitializer extends TezRootInputInitializer {
+  public static class EventHandlingRootInputInitializer extends InputInitializer {
 
     final AtomicBoolean initStarted = new AtomicBoolean(false);
     final AtomicBoolean eventReceived = new AtomicBoolean(false);
@@ -3444,7 +3444,7 @@ public class TestVertexImpl {
     private final Condition eventCondition = lock.newCondition();
 
     public EventHandlingRootInputInitializer(
-        TezRootInputInitializerContext initializerContext) {
+        InputInitializerContext initializerContext) {
       super(initializerContext);
     }
 
@@ -3458,14 +3458,14 @@ public class TestVertexImpl {
         lock.unlock();
       }
       initComplete.set(true);
-      RootInputDataInformationEvent diEvent = new RootInputDataInformationEvent(0, new byte[]{0});
+      InputDataInformationEvent diEvent = new InputDataInformationEvent(0, new byte[]{0});
       List<Event> eventList = new LinkedList<Event>();
       eventList.add(diEvent);
       return eventList;
     }
 
     @Override
-    public void handleInputInitializerEvent(List<RootInputInitializerEvent> events) throws
+    public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws
         Exception {
       eventReceived.set(true);
       lock.lock();

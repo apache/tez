@@ -31,7 +31,7 @@ import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 
 import com.google.common.collect.Sets;
 
@@ -92,10 +92,10 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
    * LogicalProcessor, must provide the same constructor so that Tez can create an instance of the
    * class at runtime.
    *
-   * @param context the {@link org.apache.tez.runtime.api.TezProcessorContext} which provides
+   * @param context the {@link org.apache.tez.runtime.api.ProcessorContext} which provides
    *                the Processor with context information within the running task.
    */
-  public TestProcessor(TezProcessorContext context) {
+  public TestProcessor(ProcessorContext context) {
     super(context);
   }
 

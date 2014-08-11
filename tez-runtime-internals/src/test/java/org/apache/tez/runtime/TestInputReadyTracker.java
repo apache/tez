@@ -33,7 +33,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.TezMergedInputContext;
+import org.apache.tez.runtime.api.MergedInputContext;
 import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
 import org.junit.Test;
 
@@ -156,8 +156,8 @@ public class TestInputReadyTracker {
     group2Inputs.add(input4);
 
     Map<String, MergedLogicalInput> mergedInputMap = new HashMap<String, MergedLogicalInput>();
-    TezMergedInputContext mergedInputContext1 = new TezMergedInputContextImpl(null, "group1", mergedInputMap, inputReadyTracker, null);
-    TezMergedInputContext mergedInputContext2 = new TezMergedInputContextImpl(null, "group2", mergedInputMap, inputReadyTracker, null);
+    MergedInputContext mergedInputContext1 = new TezMergedInputContextImpl(null, "group1", mergedInputMap, inputReadyTracker, null);
+    MergedInputContext mergedInputContext2 = new TezMergedInputContextImpl(null, "group2", mergedInputMap, inputReadyTracker, null);
 
     AnyOneMergedInputForTest group1 = new AnyOneMergedInputForTest(mergedInputContext1, group1Inputs);
     AllMergedInputForTest group2 = new AllMergedInputForTest(mergedInputContext2, group2Inputs);
@@ -291,7 +291,7 @@ public class TestInputReadyTracker {
 
     private volatile boolean isReady = false;
 
-    public AnyOneMergedInputForTest(TezMergedInputContext context, List<Input> inputs) {
+    public AnyOneMergedInputForTest(MergedInputContext context, List<Input> inputs) {
       super(context, inputs);
     }
 
@@ -312,7 +312,7 @@ public class TestInputReadyTracker {
     private volatile boolean isReady = false;
     private Set<Input> readyInputs = Sets.newHashSet();
 
-    public AllMergedInputForTest(TezMergedInputContext context, List<Input> inputs) {
+    public AllMergedInputForTest(MergedInputContext context, List<Input> inputs) {
       super(context, inputs);
     }
 

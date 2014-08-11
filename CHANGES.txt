@@ -51,6 +51,7 @@ INCOMPATIBLE CHANGES
   TEZ-1386. TezGroupedSplitsInputFormat should not need to be setup to enable grouping.
   TEZ-1394. Create example code for OrderedWordCount
   TEZ-1372. Fix preWarm to work after recent API changes
+  TEZ-1237. Consolidate naming of API classes
 
 Release 0.4.0-incubating: 2014-04-05
 

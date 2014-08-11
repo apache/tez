@@ -40,7 +40,7 @@ import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.common.TezUtils;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
@@ -111,7 +111,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   private final int indexCacheMemoryLimit;
   private int totalIndexCacheMemory;
 
-  public DefaultSorter(TezOutputContext outputContext, Configuration conf, int numOutputs,
+  public DefaultSorter(OutputContext outputContext, Configuration conf, int numOutputs,
       long initialMemoryAvailable) throws IOException {
     super(outputContext, conf, numOutputs, initialMemoryAvailable);
     // sanity checks

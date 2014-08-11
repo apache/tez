@@ -48,8 +48,8 @@ import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.junit.Before;
 import org.junit.Test;
@@ -94,7 +94,7 @@ public class TestMultiMRInput {
     builder.setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf));
     byte[] payload = builder.build().toByteArray();
 
-    TezInputContext inputContext = createTezInputContext(payload);
+    InputContext inputContext = createTezInputContext(payload);
 
     MultiMRInput input = new MultiMRInput(inputContext, 1);
     input.initialize();
@@ -109,7 +109,7 @@ public class TestMultiMRInput {
     assertEquals(1, splits.length);
 
     MRSplitProto splitProto = MRHelpers.createSplitProto(splits[0]);
-    RootInputDataInformationEvent event = new RootInputDataInformationEvent(0,
+    InputDataInformationEvent event = new InputDataInformationEvent(0,
         splitProto.toByteArray());
 
     eventList.clear();
@@ -144,7 +144,7 @@ public class TestMultiMRInput {
     builder.setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf));
     byte[] payload = builder.build().toByteArray();
 
-    TezInputContext inputContext = createTezInputContext(payload);
+    InputContext inputContext = createTezInputContext(payload);
 
     MultiMRInput input = new MultiMRInput(inputContext, 2);
     input.initialize();
@@ -169,11 +169,11 @@ public class TestMultiMRInput {
     assertEquals(2, splits.length);
 
     MRSplitProto splitProto1 = MRHelpers.createSplitProto(splits[0]);
-    RootInputDataInformationEvent event1 = new RootInputDataInformationEvent(0,
+    InputDataInformationEvent event1 = new InputDataInformationEvent(0,
         splitProto1.toByteArray());
 
     MRSplitProto splitProto2 = MRHelpers.createSplitProto(splits[1]);
-    RootInputDataInformationEvent event2 = new RootInputDataInformationEvent(0,
+    InputDataInformationEvent event2 = new InputDataInformationEvent(0,
         splitProto2.toByteArray());
 
     eventList.clear();
@@ -208,7 +208,7 @@ public class TestMultiMRInput {
     builder.setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf));
     byte[] payload = builder.build().toByteArray();
 
-    TezInputContext inputContext = createTezInputContext(payload);
+    InputContext inputContext = createTezInputContext(payload);
 
     MultiMRInput input = new MultiMRInput(inputContext, 1);
     input.initialize();
@@ -222,9 +222,9 @@ public class TestMultiMRInput {
     assertEquals(1, splits.length);
 
     MRSplitProto splitProto = MRHelpers.createSplitProto(splits[0]);
-    RootInputDataInformationEvent event1 = new RootInputDataInformationEvent(0,
+    InputDataInformationEvent event1 = new InputDataInformationEvent(0,
         splitProto.toByteArray());
-    RootInputDataInformationEvent event2 = new RootInputDataInformationEvent(1,
+    InputDataInformationEvent event2 = new InputDataInformationEvent(1,
         splitProto.toByteArray());
 
     eventList.clear();
@@ -239,11 +239,11 @@ public class TestMultiMRInput {
     }
   }
 
-  private TezInputContext createTezInputContext(byte[] payload) {
+  private InputContext createTezInputContext(byte[] payload) {
     ApplicationId applicationId = ApplicationId.newInstance(10000, 1);
     TezCounters counters = new TezCounters();
 
-    TezInputContext inputContext = mock(TezInputContext.class);
+    InputContext inputContext = mock(InputContext.class);
     doReturn(applicationId).when(inputContext).getApplicationId();
     doReturn(counters).when(inputContext).getCounters();
     doReturn(1).when(inputContext).getDAGAttemptNumber();

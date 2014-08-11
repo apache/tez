@@ -18,23 +18,24 @@
 
 package org.apache.tez.runtime.api;
 
-import javax.annotation.Nullable;
+/**
+ * Context handle for the Output to initialize itself.
+ * This interface is not supposed to be implemented by users
+ */
+public interface OutputContext extends TaskContext {
 
-public interface TezMergedInputContext {
-
-  @Nullable
-  public byte[] getUserPayload();
+  /**
+   * Get the Vertex Name of the Destination that is the recipient of this
+   * Output's data
+   * @return Name of the Destination Vertex
+   */
+  public String getDestinationVertexName();
   
   /**
-   * Inform the framework that the specific Input is ready for consumption.
-   * 
-   * This method can be invoked multiple times.
+   * Get the index of the output in the set of all outputs for the task. The 
+   * index will be consistent and valid only among the tasks of this vertex.
+   * @return index
    */
-  public void inputIsReady();
-  
-  /**
-   * Get the work directories for the Input
-   * @return an array of work dirs
-   */
-  public String[] getWorkDirs();
+  public int getOutputIndex();
+
 }

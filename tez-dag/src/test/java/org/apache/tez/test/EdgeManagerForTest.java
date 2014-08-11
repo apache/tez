@@ -21,20 +21,20 @@ package org.apache.tez.test;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.tez.dag.api.EdgeManager;
-import org.apache.tez.dag.api.EdgeManagerContext;
+import org.apache.tez.dag.api.EdgeManagerPlugin;
+import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
-public class EdgeManagerForTest extends EdgeManager {
+public class EdgeManagerForTest extends EdgeManagerPlugin {
 
   private byte[] userPayload;
 
-  public EdgeManagerForTest(EdgeManagerContext context) {
+  public EdgeManagerForTest(EdgeManagerPluginContext context) {
     super(context);
   }
 
-  public EdgeManagerContext getEdgeManagerContext() {
+  public EdgeManagerPluginContext getEdgeManagerContext() {
     return getContext();
   }
 

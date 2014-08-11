@@ -41,7 +41,7 @@ public class Vertex {
 
   private int parallelism;
   private VertexLocationHint locationHint;
-  private final Resource taskResource;
+  private Resource taskResource;
   private Map<String, LocalResource> taskLocalResources = new HashMap<String, LocalResource>();
   private Map<String, String> taskEnvironment = new HashMap<String, String>();
   private final List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs 
@@ -74,12 +74,65 @@ public class Vertex {
    *          reconfigurations.
    * @param taskResource
    *          Physical resources like memory/cpu thats used by each task of this
-   *          vertex
+   *          vertex.
    */
   public Vertex(String vertexName,
       ProcessorDescriptor processorDescriptor,
       int parallelism,
       Resource taskResource) {
+    this(vertexName, processorDescriptor, parallelism, taskResource, false);
+  }
+  
+  /**
+   * Create a new vertex with the given name and parallelism. <br>
+   * The vertex task resource will be picked from configuration
+   * {@link TezConfiguration#TEZ_TASK_RESOURCE_MEMORY_MB} &
+   * {@link TezConfiguration#TEZ_TASK_RESOURCE_CPU_VCORES} Applications that
+   * want more control over their task resource specification may create their
+   * own logic to determine task resources and use
+   * {@link Vertex#Vertex(String, ProcessorDescriptor, int, Resource)} to create
+   * the Vertex.
+   * 
+   * @param vertexName
+   *          Name of the vertex
+   * @param processorDescriptor
+   *          Description of the processor that is executed in every task of
+   *          this vertex
+   * @param parallelism
+   *          Number of tasks in this vertex. Set to -1 if this is going to be
+   *          decided at runtime. Parallelism may change at runtime due to graph
+   *          reconfigurations.
+   */
+  public Vertex(String vertexName, ProcessorDescriptor processorDescriptor, int parallelism) {
+    this(vertexName, processorDescriptor, parallelism, null, true);
+  }
+  
+  /**
+   * Create a new vertex with the given name. <br>
+   * The vertex task resource will be picked from configuration <br>
+   * The vertex parallelism will be inferred. If it cannot be inferred then an
+   * error will be reported. This constructor may be used for vertices that have
+   * data sources, or connected via 1-1 edges or have runtime parallelism
+   * estimation via data source initializers or vertex managers. Calling this
+   * constructor is equivalent to calling
+   * {@link Vertex#Vertex(String, ProcessorDescriptor, int)} with the
+   * parallelism set to -1.
+   * 
+   * @param vertexName
+   *          Name of the vertex
+   * @param processorDescriptor
+   *          Description of the processor that is executed in every task of
+   *          this vertex
+   */
+  public Vertex(String vertexName, ProcessorDescriptor processorDescriptor) {
+    this(vertexName, processorDescriptor, -1);
+  }
+  
+  private Vertex(String vertexName,
+      ProcessorDescriptor processorDescriptor,
+      int parallelism,
+      Resource taskResource,
+      boolean allowIncomplete) {
     this.vertexName = vertexName;
     this.processorDescriptor = processorDescriptor;
     this.parallelism = parallelism;
@@ -89,10 +142,10 @@ public class Vertex {
           "Parallelism should be -1 if determined by the AM"
           + ", otherwise should be >= 0");
     }
-    if (taskResource == null) {
+    if (!allowIncomplete && taskResource == null) {
       throw new IllegalArgumentException("Resource cannot be null");
     }
-  }
+  }  
 
   /**
    * Get the vertex name
@@ -120,6 +173,10 @@ public class Vertex {
     return parallelism;
   }
   
+  /**
+   * Set the number of tasks for this vertex
+   * @param parallelism Parallelism for this vertex
+   */
   void setParallelism(int parallelism) {
     this.parallelism = parallelism;
   }
@@ -345,6 +402,14 @@ public class Vertex {
     return Collections.unmodifiableList(outputVertices);
   }
   
+  /**
+   * Set the cpu/memory etc resources used by tasks of this vertex
+   * @param resource {@link Resource} for the tasks of this vertex
+   */
+  void setTaskResource(Resource resource) {
+    this.taskResource = resource;
+  }
+
   List<DataSourceDescriptor> getDataSources() {
     return dataSources;
   }

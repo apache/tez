@@ -531,7 +531,14 @@ public class DAG {
     }
 
     for (Vertex vertex : vertices.values()) {
-      // infer credentials and parallelism from data source
+      // infer credentials, resources and parallelism from data source
+      if (vertex.getTaskResource() == null) {
+        vertex.setTaskResource(Resource.newInstance(dagConf.getInt(
+            TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB,
+            TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT), dagConf.getInt(
+            TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES,
+            TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT)));
+      }
       List<DataSourceDescriptor> dataSources = vertex.getDataSources();
       for (DataSourceDescriptor dataSource : dataSources) {
         if (dataSource.getCredentials() != null) {

@@ -33,7 +33,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.impl.MapOutput.Type;
 import org.apache.tez.runtime.library.shuffle.common.HttpConnection;
@@ -85,7 +85,7 @@ class Fetcher extends Thread {
       ShuffleClientMetrics metrics,
       Shuffle shuffle, SecretKey jobTokenSecret,
       boolean ifileReadAhead, int ifileReadAheadLength, CompressionCodec codec,
-      TezInputContext inputContext) throws IOException {
+      InputContext inputContext) throws IOException {
     setDaemon(true);
     this.scheduler = scheduler;
     this.merger = merger;

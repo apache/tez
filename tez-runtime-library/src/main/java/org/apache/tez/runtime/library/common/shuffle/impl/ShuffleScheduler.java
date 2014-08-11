@@ -42,7 +42,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
@@ -79,7 +79,7 @@ class ShuffleScheduler {
     new HashMap<InputAttemptIdentifier,IntWritable>(); 
   private final Map<String,IntWritable> hostFailures = 
     new HashMap<String,IntWritable>();
-  private final TezInputContext inputContext;
+  private final InputContext inputContext;
   private final Shuffle shuffle;
   private final TezCounter shuffledInputsCounter;
   private final TezCounter skippedInputCounter;
@@ -102,7 +102,7 @@ class ShuffleScheduler {
   private long totalBytesShuffledTillNow = 0;
   private DecimalFormat  mbpsFormat = new DecimalFormat("0.00");
   
-  public ShuffleScheduler(TezInputContext inputContext,
+  public ShuffleScheduler(InputContext inputContext,
                           Configuration conf,
                           int numberOfInputs,
                           Shuffle shuffle,

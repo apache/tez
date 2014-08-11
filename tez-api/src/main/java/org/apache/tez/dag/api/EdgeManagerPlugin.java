@@ -29,34 +29,33 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
  * This interface defines the routing of the event between tasks of producer and 
  * consumer vertices. The routing is bi-directional. Users can customize the 
  * routing by providing an implementation of this interface.
- * 
- * Implementations must provide a 0 argument public constructor.
  */
 @InterfaceStability.Unstable
-public abstract class EdgeManager {
+public abstract class EdgeManagerPlugin {
 
-  private final EdgeManagerContext context;
+  private final EdgeManagerPluginContext context;
 
   /**
-   * Crete an instance of the VertexManagerPlugin. Classes extending this one to create a
-   * VertexManagerPlugin, must provide the same constructor so that Tez can create an instance of
-   * the class at runtime.
-   *
-   * @param context the context within which this EdgeManager will run. Includes
-   *                  information like configuration which the user may have specified
-   *                  while setting up the edge.
+   * Create an instance of the EdgeManagerPlugin. Classes extending this to
+   * create a EdgeManagerPlugin, must provide the same constructor so that Tez
+   * can create an instance of the class at runtime.
+   * 
+   * @param context
+   *          the context within which this EdgeManagerPlugin will run. Includes
+   *          information like configuration which the user may have specified
+   *          while setting up the edge.
    */
-  public EdgeManager(EdgeManagerContext context) {
+  public EdgeManagerPlugin(EdgeManagerPluginContext context) {
     this.context = context;
   }
 
   /**
-   * Initializes the EdgeManager. This method is called in the following
-   * circumstances </p> 1. when initializing an Edge Manager for the first time.
-   * </p> 2. When an EdgeManager is replaced at runtime. At this point, an
-   * EdgeManager instance is created and setup by the user. The initialize
-   * method will be called with the original {@link EdgeManagerContext} when the
-   * edgeManager is replaced.
+   * Initializes the EdgeManagerPlugin. This method is called in the following
+   * circumstances </p> 1. when initializing an EdgeManagerPlugin for the first time.
+   * </p> 2. When an EdgeManagerPlugin is replaced at runtime. At this point, an
+   * EdgeManagerPlugin instance is created and setup by the user. The initialize
+   * method will be called with the original {@link EdgeManagerPluginContext} when the
+   * EdgeManagerPlugin is replaced.
    *
    */
   public abstract void initialize();
@@ -137,12 +136,12 @@ public abstract class EdgeManager {
       int destinationTaskIndex, int destinationFailedInputIndex);
 
   /**
-   * Return ahe {@link org.apache.tez.dag.api.EdgeManagerContext} for this specific instance of
+   * Return ahe {@link org.apache.tez.dag.api.EdgeManagerPluginContext} for this specific instance of
    * the vertex manager.
    *
-   * @return the {@link org.apache.tez.dag.api.EdgeManagerContext} for the input
+   * @return the {@link org.apache.tez.dag.api.EdgeManagerPluginContext} for the input
    */
-  public EdgeManagerContext getContext() {
+  public EdgeManagerPluginContext getContext() {
     return this.context;
   }
 }

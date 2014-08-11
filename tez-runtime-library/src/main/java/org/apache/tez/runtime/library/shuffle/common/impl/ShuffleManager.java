@@ -49,7 +49,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
@@ -83,7 +83,7 @@ public class ShuffleManager implements FetcherCallback {
 
   private static final Log LOG = LogFactory.getLog(ShuffleManager.class);
   
-  private final TezInputContext inputContext;
+  private final InputContext inputContext;
   private final int numInputs;
 
   private final FetchedInputAllocator inputManager;
@@ -136,7 +136,7 @@ public class ShuffleManager implements FetcherCallback {
   
   // TODO More counters - FetchErrors, speed?
   
-  public ShuffleManager(TezInputContext inputContext, Configuration conf, int numInputs,
+  public ShuffleManager(InputContext inputContext, Configuration conf, int numInputs,
       int bufferSize, boolean ifileReadAheadEnabled, int ifileReadAheadLength,
       CompressionCodec codec, FetchedInputAllocator inputAllocator) throws IOException {
     this.inputContext = inputContext;

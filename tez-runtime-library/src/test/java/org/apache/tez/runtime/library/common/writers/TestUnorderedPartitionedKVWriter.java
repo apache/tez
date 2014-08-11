@@ -64,7 +64,7 @@ import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -131,7 +131,7 @@ public class TestUnorderedPartitionedKVWriter {
     ApplicationId appId = ApplicationId.newInstance(10000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
-    TezOutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
+    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
 
     int maxSingleBufferSizeBytes = 2047;
     Configuration conf = createConfiguration(outputContext, IntWritable.class, LongWritable.class,
@@ -221,7 +221,7 @@ public class TestUnorderedPartitionedKVWriter {
     ApplicationId appId = ApplicationId.newInstance(10000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
-    TezOutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
+    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
     Random random = new Random();
 
     Configuration conf = createConfiguration(outputContext, Text.class, Text.class, shouldCompress,
@@ -393,7 +393,7 @@ public class TestUnorderedPartitionedKVWriter {
     ApplicationId appId = ApplicationId.newInstance(10000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
-    TezOutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
+    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
 
     Configuration conf = createConfiguration(outputContext, IntWritable.class, LongWritable.class,
         shouldCompress, -1);
@@ -594,9 +594,9 @@ public class TestUnorderedPartitionedKVWriter {
     return sb.toString();
   }
 
-  private TezOutputContext createMockOutputContext(TezCounters counters, ApplicationId appId,
+  private OutputContext createMockOutputContext(TezCounters counters, ApplicationId appId,
       String uniqueId) {
-    TezOutputContext outputContext = mock(TezOutputContext.class);
+    OutputContext outputContext = mock(OutputContext.class);
     doReturn(counters).when(outputContext).getCounters();
     doReturn(appId).when(outputContext).getApplicationId();
     doReturn(1).when(outputContext).getDAGAttemptNumber();
@@ -620,14 +620,14 @@ public class TestUnorderedPartitionedKVWriter {
     return outputContext;
   }
 
-  private Configuration createConfiguration(TezOutputContext outputContext,
+  private Configuration createConfiguration(OutputContext outputContext,
       Class<? extends Writable> keyClass, Class<? extends Writable> valClass,
       boolean shouldCompress, int maxSingleBufferSizeBytes) {
     return createConfiguration(outputContext, keyClass, valClass, shouldCompress,
         maxSingleBufferSizeBytes, PartitionerForTest.class);
   }
 
-  private Configuration createConfiguration(TezOutputContext outputContext,
+  private Configuration createConfiguration(OutputContext outputContext,
       Class<? extends Writable> keyClass, Class<? extends Writable> valClass,
       boolean shouldCompress, int maxSingleBufferSizeBytes,
       Class<? extends Partitioner> partitionerClass) {
@@ -662,7 +662,7 @@ public class TestUnorderedPartitionedKVWriter {
 
   private static class UnorderedPartitionedKVWriterForTest extends UnorderedPartitionedKVWriter {
 
-    public UnorderedPartitionedKVWriterForTest(TezOutputContext outputContext, Configuration conf,
+    public UnorderedPartitionedKVWriterForTest(OutputContext outputContext, Configuration conf,
         int numOutputs, long availableMemoryBytes) throws IOException {
       super(outputContext, conf, numOutputs, availableMemoryBytes);
     }

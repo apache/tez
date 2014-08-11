@@ -60,10 +60,10 @@ import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.Output;
 import org.apache.tez.runtime.api.OutputFrameworkInterface;
 import org.apache.tez.runtime.api.Processor;
-import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.api.TezMergedInputContext;
-import org.apache.tez.runtime.api.TezOutputContext;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.MergedInputContext;
+import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.GroupInputSpec;
@@ -96,18 +96,18 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   /** Responsible for maintaining order of Inputs */
   private final List<InputSpec> inputSpecs;
   private final ConcurrentHashMap<String, LogicalInput> inputsMap;
-  private final ConcurrentHashMap<String, TezInputContext> inputContextMap;
+  private final ConcurrentHashMap<String, InputContext> inputContextMap;
   /** Responsible for maintaining order of Outputs */
   private final List<OutputSpec> outputSpecs;
   private final ConcurrentHashMap<String, LogicalOutput> outputsMap;
-  private final ConcurrentHashMap<String, TezOutputContext> outputContextMap;
+  private final ConcurrentHashMap<String, OutputContext> outputContextMap;
 
   private final List<GroupInputSpec> groupInputSpecs;
   private ConcurrentHashMap<String, MergedLogicalInput> groupInputsMap;
 
   private final ProcessorDescriptor processorDescriptor;
   private AbstractLogicalIOProcessor processor;
-  private TezProcessorContext processorContext;
+  private ProcessorContext processorContext;
 
   private final MemoryDistributor initialMemoryDistributor;
 
@@ -146,10 +146,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.localDirs = localDirs;
     this.inputSpecs = taskSpec.getInputs();
     this.inputsMap = new ConcurrentHashMap<String, LogicalInput>(numInputs);
-    this.inputContextMap = new ConcurrentHashMap<String, TezInputContext>(numInputs);
+    this.inputContextMap = new ConcurrentHashMap<String, InputContext>(numInputs);
     this.outputSpecs = taskSpec.getOutputs();
     this.outputsMap = new ConcurrentHashMap<String, LogicalOutput>(numOutputs);
-    this.outputContextMap = new ConcurrentHashMap<String, TezOutputContext>(numOutputs);
+    this.outputContextMap = new ConcurrentHashMap<String, OutputContext>(numOutputs);
 
     this.runInputMap = new LinkedHashMap<String, LogicalInput>();
     this.runOutputMap = new LinkedHashMap<String, LogicalOutput>();
@@ -372,7 +372,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     public Void call() throws Exception {
       LOG.info("Initializing Input using InputSpec: " + inputSpec);
       String edgeName = inputSpec.getSourceVertexName();
-      TezInputContext inputContext = createInputContext(inputsMap, inputSpec, inputIndex);
+      InputContext inputContext = createInputContext(inputsMap, inputSpec, inputIndex);
       LogicalInput input = createInput(inputSpec, inputContext);
 
       inputsMap.put(edgeName, input);
@@ -420,7 +420,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     public Void call() throws Exception {
       LOG.info("Initializing Output using OutputSpec: " + outputSpec);
       String edgeName = outputSpec.getDestinationVertexName();
-      TezOutputContext outputContext = createOutputContext(outputSpec, outputIndex);
+      OutputContext outputContext = createOutputContext(outputSpec, outputIndex);
       LogicalOutput output = createOutput(outputSpec, outputContext);
 
       outputsMap.put(edgeName, output);
@@ -449,7 +449,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
      groupInputsMap = new ConcurrentHashMap<String, MergedLogicalInput>(groupInputSpecs.size());
      for (GroupInputSpec groupInputSpec : groupInputSpecs) {
         LOG.info("Initializing GroupInput using GroupInputSpec: " + groupInputSpec);
-       TezMergedInputContext mergedInputContext =
+       MergedInputContext mergedInputContext =
            new TezMergedInputContextImpl(groupInputSpec.getMergedInputDescriptor().getUserPayload(),
                groupInputSpec.getGroupName(), groupInputsMap, inputReadyTracker, localDirs);
        List<Input> inputs = Lists.newArrayListWithCapacity(groupInputSpec.getGroupVertices().size());
@@ -474,9 +474,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         + processorDescriptor.getClassName());
   }
 
-  private TezInputContext createInputContext(Map<String, LogicalInput> inputMap,
+  private InputContext createInputContext(Map<String, LogicalInput> inputMap,
                                              InputSpec inputSpec, int inputIndex) {
-    TezInputContext inputContext = new TezInputContextImpl(tezConf, localDirs,
+    InputContext inputContext = new TezInputContextImpl(tezConf, localDirs,
         appAttemptNumber, tezUmbilical,
         taskSpec.getDAGName(), taskSpec.getVertexName(),
         inputSpec.getSourceVertexName(), taskSpec.getTaskAttemptID(),
@@ -487,8 +487,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     return inputContext;
   }
 
-  private TezOutputContext createOutputContext(OutputSpec outputSpec, int outputIndex) {
-    TezOutputContext outputContext = new TezOutputContextImpl(tezConf, localDirs,
+  private OutputContext createOutputContext(OutputSpec outputSpec, int outputIndex) {
+    OutputContext outputContext = new TezOutputContextImpl(tezConf, localDirs,
         appAttemptNumber, tezUmbilical,
         taskSpec.getDAGName(), taskSpec.getVertexName(),
         outputSpec.getDestinationVertexName(), taskSpec.getTaskAttemptID(),
@@ -499,8 +499,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     return outputContext;
   }
 
-  private TezProcessorContext createProcessorContext() {
-    TezProcessorContext processorContext = new TezProcessorContextImpl(tezConf, localDirs,
+  private ProcessorContext createProcessorContext() {
+    ProcessorContext processorContext = new TezProcessorContextImpl(tezConf, localDirs,
         appAttemptNumber, tezUmbilical,
         taskSpec.getDAGName(), taskSpec.getVertexName(),
         taskSpec.getTaskAttemptID(),
@@ -510,11 +510,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     return processorContext;
   }
 
-  private LogicalInput createInput(InputSpec inputSpec, TezInputContext inputContext) {
+  private LogicalInput createInput(InputSpec inputSpec, InputContext inputContext) {
     LOG.info("Creating Input");
     InputDescriptor inputDesc = inputSpec.getInputDescriptor();
     Input input = ReflectionUtils.createClazzInstance(inputDesc.getClassName(),
-        new Class[]{TezInputContext.class, Integer.TYPE},
+        new Class[]{InputContext.class, Integer.TYPE},
         new Object[]{inputContext, inputSpec.getPhysicalEdgeCount()});
     if (!(input instanceof LogicalInput)) {
       throw new TezUncheckedException(inputDesc.getClass().getName()
@@ -525,10 +525,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private LogicalInput createMergedInput(InputDescriptor inputDesc,
-                                         TezMergedInputContext mergedInputContext,
+                                         MergedInputContext mergedInputContext,
                                          List<Input> constituentInputs) {
     LogicalInput input = ReflectionUtils.createClazzInstance(inputDesc.getClassName(),
-        new Class[]{TezMergedInputContext.class, List.class},
+        new Class[]{MergedInputContext.class, List.class},
         new Object[]{mergedInputContext, constituentInputs});
     if (!(input instanceof LogicalInput)) {
       throw new TezUncheckedException(inputDesc.getClass().getName()
@@ -538,11 +538,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     return input;
   }
 
-  private LogicalOutput createOutput(OutputSpec outputSpec, TezOutputContext outputContext) {
+  private LogicalOutput createOutput(OutputSpec outputSpec, OutputContext outputContext) {
     LOG.info("Creating Output");
     OutputDescriptor outputDesc = outputSpec.getOutputDescriptor();
     Output output = ReflectionUtils.createClazzInstance(outputDesc.getClassName(),
-        new Class[]{TezOutputContext.class, Integer.TYPE},
+        new Class[]{OutputContext.class, Integer.TYPE},
         new Object[]{outputContext, outputSpec.getPhysicalEdgeCount()});
 
     if (!(output instanceof LogicalOutput)) {
@@ -554,9 +554,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private AbstractLogicalIOProcessor createProcessor(
-      String processorClassName, TezProcessorContext processorContext) {
+      String processorClassName, ProcessorContext processorContext) {
     Processor processor = ReflectionUtils.createClazzInstance(processorClassName,
-        new Class[]{TezProcessorContext.class}, new Object[]{processorContext});
+        new Class[]{ProcessorContext.class}, new Object[]{processorContext});
     if (!(processor instanceof AbstractLogicalIOProcessor)) {
       throw new TezUncheckedException(processor.getClass().getName()
           + " is not a sub-type of AbstractLogicalIOProcessor."
@@ -695,19 +695,19 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   
   @Private
   @VisibleForTesting
-  public Collection<TezInputContext> getInputContexts() {
+  public Collection<InputContext> getInputContexts() {
     return this.inputContextMap.values();
   }
   
   @Private
   @VisibleForTesting
-  public Collection<TezOutputContext> getOutputContexts() {
+  public Collection<OutputContext> getOutputContexts() {
     return this.outputContextMap.values();
   }
 
   @Private
   @VisibleForTesting
-  public TezProcessorContext getProcessorContext() {
+  public ProcessorContext getProcessorContext() {
     return this.processorContext;
   }
   

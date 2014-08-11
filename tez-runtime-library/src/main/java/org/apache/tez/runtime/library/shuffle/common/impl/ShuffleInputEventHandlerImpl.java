@@ -35,7 +35,7 @@ import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -65,7 +65,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   private final boolean doLocalFetch;
   
   
-  public ShuffleInputEventHandlerImpl(TezInputContext inputContext,
+  public ShuffleInputEventHandlerImpl(InputContext inputContext,
                                       ShuffleManager shuffleManager,
                                       FetchedInputAllocator inputAllocator, CompressionCodec codec,
                                       boolean ifileReadAhead, int ifileReadAheadLength,

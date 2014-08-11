@@ -55,8 +55,8 @@ import org.apache.tez.mapreduce.lib.MRReaderMapred;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
-import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 
 import com.google.common.base.Preconditions;
@@ -279,7 +279,7 @@ public class MRInput extends MRInputBase {
   @Private
   volatile boolean splitInfoViaEvents;
 
-  public MRInput(TezInputContext inputContext, int numPhysicalInputs) {
+  public MRInput(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);
   }
 
@@ -369,12 +369,12 @@ public class MRInput extends MRInputBase {
               + eventReceived);
     }
     Event event = inputEvents.iterator().next();
-    Preconditions.checkArgument(event instanceof RootInputDataInformationEvent,
+    Preconditions.checkArgument(event instanceof InputDataInformationEvent,
         getClass().getSimpleName()
             + " can only handle a single event of type: "
-            + RootInputDataInformationEvent.class.getSimpleName());
+            + InputDataInformationEvent.class.getSimpleName());
 
-    processSplitEvent((RootInputDataInformationEvent)event);
+    processSplitEvent((InputDataInformationEvent)event);
   }
 
   @Override
@@ -402,7 +402,7 @@ public class MRInput extends MRInputBase {
     return mrReader.getProgress();
   }
 
-  void processSplitEvent(RootInputDataInformationEvent event)
+  void processSplitEvent(InputDataInformationEvent event)
       throws IOException {
     rrLock.lock();
     try {
@@ -429,7 +429,7 @@ public class MRInput extends MRInputBase {
   }
 
   @Private
-  void initFromEvent(RootInputDataInformationEvent initEvent)
+  void initFromEvent(InputDataInformationEvent initEvent)
       throws IOException {
     rrLock.lock();
     try {
@@ -439,7 +439,7 @@ public class MRInput extends MRInputBase {
     }
   }
   
-  private void initFromEventInternal(RootInputDataInformationEvent initEvent) throws IOException {
+  private void initFromEventInternal(InputDataInformationEvent initEvent) throws IOException {
     LOG.info("Initializing RecordReader from event");
     Preconditions.checkState(initEvent != null, "InitEvent must be specified");
     MRSplitProto splitProto = MRSplitProto.parseFrom(initEvent.getUserPayload());

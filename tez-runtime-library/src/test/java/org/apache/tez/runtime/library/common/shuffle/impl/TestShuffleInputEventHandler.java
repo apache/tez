@@ -6,7 +6,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezInputContext;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
@@ -52,9 +52,9 @@ public class TestShuffleInputEventHandler {
   private ShuffleInputEventHandler handler;
   private ShuffleScheduler scheduler;
 
-  private TezInputContext createTezInputContext() {
+  private InputContext createTezInputContext() {
     ApplicationId applicationId = ApplicationId.newInstance(1, 1);
-    TezInputContext inputContext = mock(TezInputContext.class);
+    InputContext inputContext = mock(InputContext.class);
     doReturn(applicationId).when(inputContext).getApplicationId();
     return inputContext;
   }
@@ -78,7 +78,7 @@ public class TestShuffleInputEventHandler {
 
   @Before
   public void setup() throws Exception {
-    TezInputContext inputContext = createTezInputContext();
+    InputContext inputContext = createTezInputContext();
     scheduler = mock(ShuffleScheduler.class);
     Configuration conf = mock(Configuration.class);
     MergeManager merger = mock(MergeManager.class);

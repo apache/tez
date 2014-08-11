@@ -19,22 +19,28 @@
 package org.apache.tez.runtime.api;
 
 /**
- * Context handle for the Output to initialize itself.
+ * Context handle for the Input to initialize itself.
+ * This interface is not supposed to be implemented by users
  */
-public interface TezOutputContext extends TezTaskContext {
+public interface InputContext extends TaskContext {
 
   /**
-   * Get the Vertex Name of the Destination that is the recipient of this
-   * Output's data
-   * @return Name of the Destination Vertex
+   * Get the Vertex Name of the Source that generated data for this Input
+   * @return Name of the Source Vertex
    */
-  public String getDestinationVertexName();
+  public String getSourceVertexName();
   
   /**
-   * Get the index of the output in the set of all outputs for the task. The 
+   * Get the index of the input in the set of all inputs for the task. The 
    * index will be consistent and valid only among the tasks of this vertex.
    * @return index
    */
-  public int getOutputIndex();
-
+  public int getInputIndex();
+  
+  /**
+   * Inform the framework that the specific Input is ready for consumption.
+   * 
+   * This method can be invoked multiple times.
+   */
+  public void inputIsReady();
 }

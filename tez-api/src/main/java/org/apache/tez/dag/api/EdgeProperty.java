@@ -96,7 +96,7 @@ public class EdgeProperty {
   final SchedulingType schedulingType;
   final InputDescriptor inputDescriptor;
   final OutputDescriptor outputDescriptor;
-  final EdgeManagerDescriptor edgeManagerDescriptor;
+  final EdgeManagerPluginDescriptor edgeManagerDescriptor;
   
   /**
    * @param dataMovementType
@@ -135,7 +135,7 @@ public class EdgeProperty {
    * @param edgeDestination
    *          The {@link InputDescriptor} which will consume data from the edge.
    */
-  public EdgeProperty(EdgeManagerDescriptor edgeManagerDescriptor,
+  public EdgeProperty(EdgeManagerPluginDescriptor edgeManagerDescriptor,
                       DataSourceType dataSourceType,
                       SchedulingType schedulingType,
                       OutputDescriptor edgeSource,
@@ -176,10 +176,10 @@ public class EdgeProperty {
   
   /**
    * Returns the Edge Manager specifications for this edge.  
-   * @return @link {@link EdgeManagerDescriptor} if a custom edge was setup, null otherwise.
+   * @return @link {@link EdgeManagerPluginDescriptor} if a custom edge was setup, null otherwise.
    */
   @Private
-  public EdgeManagerDescriptor getEdgeManagerDescriptor() {
+  public EdgeManagerPluginDescriptor getEdgeManagerDescriptor() {
     return edgeManagerDescriptor;
   }
   

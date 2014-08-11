@@ -37,8 +37,8 @@ import org.apache.tez.runtime.api.events.EventProtos.RootInputDataInformationEve
 import org.apache.tez.runtime.api.events.EventProtos.VertexManagerEventProto;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
-import org.apache.tez.runtime.api.events.RootInputInitializerEvent;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
@@ -80,9 +80,9 @@ public class TezEvent implements Writable {
       eventType = EventType.INPUT_FAILED_EVENT;
     } else if (event instanceof TaskStatusUpdateEvent) {
       eventType = EventType.TASK_STATUS_UPDATE_EVENT;
-    } else if (event instanceof RootInputDataInformationEvent) {
+    } else if (event instanceof InputDataInformationEvent) {
       eventType = EventType.ROOT_INPUT_DATA_INFORMATION_EVENT;
-    } else if (event instanceof RootInputInitializerEvent) {
+    } else if (event instanceof InputInitializerEvent) {
       eventType = EventType.ROOT_INPUT_INITIALIZER_EVENT;
     } else {
       throw new TezUncheckedException("Unknown event, event="
@@ -173,11 +173,11 @@ public class TezEvent implements Writable {
         break;
       case ROOT_INPUT_DATA_INFORMATION_EVENT:
         eventBytes = ProtoConverters.convertRootInputDataInformationEventToProto(
-            (RootInputDataInformationEvent) event).toByteArray();
+            (InputDataInformationEvent) event).toByteArray();
         break;
       case ROOT_INPUT_INITIALIZER_EVENT:
         eventBytes = ProtoConverters
-            .convertRootInputInitializerEventToProto((RootInputInitializerEvent) event)
+            .convertRootInputInitializerEventToProto((InputInitializerEvent) event)
             .toByteArray();
         break;
       default:

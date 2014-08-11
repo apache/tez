@@ -206,11 +206,20 @@ public class TezConfiguration extends Configuration {
   /** The amount of memory to be used by the AppMaster */
   public static final String TEZ_AM_RESOURCE_MEMORY_MB = TEZ_AM_PREFIX
       + "resource.memory.mb";
-  public static final int TEZ_AM_RESOURCE_MEMORY_MB_DEFAULT = 1536;
+  public static final int TEZ_AM_RESOURCE_MEMORY_MB_DEFAULT = 1024;
 
   public static final String TEZ_AM_RESOURCE_CPU_VCORES = TEZ_AM_PREFIX
       + "resource.cpu.vcores";
   public static final int TEZ_AM_RESOURCE_CPU_VCORES_DEFAULT = 1;
+  
+  /** The amount of memory to be used by the AppMaster */
+  public static final String TEZ_TASK_RESOURCE_MEMORY_MB = TEZ_TASK_PREFIX
+      + "resource.memory.mb";
+  public static final int TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT = 1024;
+
+  public static final String TEZ_TASK_RESOURCE_CPU_VCORES = TEZ_TASK_PREFIX
+      + "resource.cpu.vcores";
+  public static final int TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT = 1; 
 
   public static final String
           TEZ_AM_SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION = TEZ_AM_PREFIX

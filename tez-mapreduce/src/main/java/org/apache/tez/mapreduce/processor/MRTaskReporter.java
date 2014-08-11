@@ -26,10 +26,10 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
 import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
-import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.api.TezOutputContext;
-import org.apache.tez.runtime.api.TezProcessorContext;
-import org.apache.tez.runtime.api.TezTaskContext;
+import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.ProcessorContext;
+import org.apache.tez.runtime.api.TaskContext;
 
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
@@ -37,25 +37,25 @@ public class MRTaskReporter
     extends org.apache.hadoop.mapreduce.StatusReporter
     implements Reporter {
 
-  private final TezTaskContext context;
+  private final TaskContext context;
   private final boolean isProcessorContext;
   private final MRReporter reporter;
 
   private InputSplit split = null;
 
-  public MRTaskReporter(TezProcessorContext context) {
+  public MRTaskReporter(ProcessorContext context) {
     this.context = context;
     this.reporter = new MRReporter(context.getCounters());
     this.isProcessorContext = true;
   }
 
-  public MRTaskReporter(TezOutputContext context) {
+  public MRTaskReporter(OutputContext context) {
     this.context = context;
     this.reporter = new MRReporter(context.getCounters());
     this.isProcessorContext = false;
   }
   
-  public MRTaskReporter(TezInputContext context) {
+  public MRTaskReporter(InputContext context) {
     this.context= context;
     this.reporter = new MRReporter(context.getCounters());
     this.isProcessorContext = false;
@@ -64,7 +64,7 @@ public class MRTaskReporter
   public void setProgress(float progress) {
     reporter.setProgress(progress);
     if (isProcessorContext) {
-      ((TezProcessorContext)context).setProgress(progress);
+      ((ProcessorContext)context).setProgress(progress);
     } else {
       // TODO FIXME NEWTEZ - will MROutput's reporter use this api?
     }

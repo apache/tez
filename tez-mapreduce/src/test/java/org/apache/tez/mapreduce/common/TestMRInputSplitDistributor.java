@@ -40,9 +40,9 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezRootInputInitializerContext;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
-import org.apache.tez.runtime.api.events.RootInputUpdatePayloadEvent;
+import org.apache.tez.runtime.api.InputInitializerContext;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
 import org.junit.Test;
 
 import com.google.protobuf.ByteString;
@@ -67,18 +67,18 @@ public class TestMRInputSplitDistributor {
     payloadProto.setConfigurationBytes(confByteString);
     byte[] userPayload = payloadProto.build().toByteArray();
 
-    TezRootInputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
+    InputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
     MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
 
     List<Event> events = splitDist.initialize();
 
     assertEquals(3, events.size());
-    assertTrue(events.get(0) instanceof RootInputUpdatePayloadEvent);
-    assertTrue(events.get(1) instanceof RootInputDataInformationEvent);
-    assertTrue(events.get(2) instanceof RootInputDataInformationEvent);
+    assertTrue(events.get(0) instanceof InputUpdatePayloadEvent);
+    assertTrue(events.get(1) instanceof InputDataInformationEvent);
+    assertTrue(events.get(2) instanceof InputDataInformationEvent);
 
-    RootInputDataInformationEvent diEvent1 = (RootInputDataInformationEvent) (events.get(1));
-    RootInputDataInformationEvent diEvent2 = (RootInputDataInformationEvent) (events.get(2));
+    InputDataInformationEvent diEvent1 = (InputDataInformationEvent) (events.get(1));
+    InputDataInformationEvent diEvent2 = (InputDataInformationEvent) (events.get(2));
 
     assertNull(diEvent1.getDeserializedUserPayload());
     assertNull(diEvent2.getDeserializedUserPayload());
@@ -115,18 +115,18 @@ public class TestMRInputSplitDistributor {
     payloadProto.setConfigurationBytes(confByteString);
     byte[] userPayload = payloadProto.build().toByteArray();
 
-    TezRootInputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
+    InputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
     MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
 
     List<Event> events = splitDist.initialize();
 
     assertEquals(3, events.size());
-    assertTrue(events.get(0) instanceof RootInputUpdatePayloadEvent);
-    assertTrue(events.get(1) instanceof RootInputDataInformationEvent);
-    assertTrue(events.get(2) instanceof RootInputDataInformationEvent);
+    assertTrue(events.get(0) instanceof InputUpdatePayloadEvent);
+    assertTrue(events.get(1) instanceof InputDataInformationEvent);
+    assertTrue(events.get(2) instanceof InputDataInformationEvent);
 
-    RootInputDataInformationEvent diEvent1 = (RootInputDataInformationEvent) (events.get(1));
-    RootInputDataInformationEvent diEvent2 = (RootInputDataInformationEvent) (events.get(2));
+    InputDataInformationEvent diEvent1 = (InputDataInformationEvent) (events.get(1));
+    InputDataInformationEvent diEvent2 = (InputDataInformationEvent) (events.get(2));
 
     assertNull(diEvent1.getUserPayload());
     assertNull(diEvent2.getUserPayload());
@@ -142,7 +142,7 @@ public class TestMRInputSplitDistributor {
   }
 
   private static class TezRootInputInitializerContextForTest implements
-      TezRootInputInitializerContext {
+      InputInitializerContext {
 
     private final ApplicationId appId;
     private final byte[] payload;

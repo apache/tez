@@ -30,7 +30,7 @@ import java.util.List;
  * <p/>
  *
  * During initialization, Outputs must specify an initial memory requirement via
- * {@link TezOutputContext}.requestInitialMemory
+ * {@link OutputContext}.requestInitialMemory
  * <p/>
  *
  */

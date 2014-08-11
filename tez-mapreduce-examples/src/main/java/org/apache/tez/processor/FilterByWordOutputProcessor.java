@@ -28,7 +28,7 @@ import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
@@ -38,7 +38,7 @@ public class FilterByWordOutputProcessor extends SimpleMRProcessor {
 
   private static final Log LOG = LogFactory.getLog(MapProcessor.class);
 
-  public FilterByWordOutputProcessor(TezProcessorContext context) {
+  public FilterByWordOutputProcessor(ProcessorContext context) {
     super(context);
   }
 

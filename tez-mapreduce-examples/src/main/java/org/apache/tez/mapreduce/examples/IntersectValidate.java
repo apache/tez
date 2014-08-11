@@ -44,11 +44,10 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.mapreduce.examples.IntersectExample.ForwardingProcessor;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -189,26 +188,20 @@ public class IntersectValidate extends Configured implements Tool {
         .newBuilder(Text.class.getName(), NullWritable.class.getName(),
             HashPartitioner.class.getName()).build();
 
-    // Change the way resources are setup - no MRHelpers
     Vertex lhsVertex = new Vertex(LHS_INPUT_NAME, new ProcessorDescriptor(
-        ForwardingProcessor.class.getName()), -1,
-        MRHelpers.getMapResource(tezConf)).addDataSource(
-        "lhs",
+        ForwardingProcessor.class.getName())).addDataSource("lhs",
         MRInput
-        .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
-            lhs.toUri().toString()).groupSplitsInAM(false).create());
+            .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
+                lhs.toUri().toString()).groupSplitsInAM(false).create());
 
     Vertex rhsVertex = new Vertex(RHS_INPUT_NAME, new ProcessorDescriptor(
-        ForwardingProcessor.class.getName()), -1,
-        MRHelpers.getMapResource(tezConf)).addDataSource(
-        "rhs",
+        ForwardingProcessor.class.getName())).addDataSource("rhs",
         MRInput
-        .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
-            rhs.toUri().toString()).groupSplitsInAM(false).create());
+            .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
+                rhs.toUri().toString()).groupSplitsInAM(false).create());
 
-    Vertex intersectValidateVertex = new Vertex("intersectvalidate",
-        new ProcessorDescriptor(IntersectValidateProcessor.class.getName()),
-        numPartitions, MRHelpers.getReduceResource(tezConf));
+    Vertex intersectValidateVertex = new Vertex("intersectvalidate", new ProcessorDescriptor(
+        IntersectValidateProcessor.class.getName()), numPartitions);
 
     Edge e1 = new Edge(lhsVertex, intersectValidateVertex, edgeConf.createDefaultEdgeProperty());
     Edge e2 = new Edge(rhsVertex, intersectValidateVertex, edgeConf.createDefaultEdgeProperty());
@@ -222,7 +215,7 @@ public class IntersectValidate extends Configured implements Tool {
 
     private static final Log LOG = LogFactory.getLog(IntersectValidateProcessor.class);
 
-    public IntersectValidateProcessor(TezProcessorContext context) {
+    public IntersectValidateProcessor(ProcessorContext context) {
       super(context);
     }
 

@@ -19,14 +19,15 @@
 package org.apache.tez.dag.api;
 
 /**
- * Context information provided to Edge plugins on initialization.
+ * Context information provided to {@link EdgeManagerPlugin}s
+ * This interface is not supposed to be implemented by users
  *
  */
-public interface EdgeManagerContext {
+public interface EdgeManagerPluginContext {
   
   /**
-   * Returns the byte payload specified by the user for the edge.
-   * @return the byte payload specified by the user
+   * Returns the payload specified by the user for the edge.
+   * @return the payload specified by the user
    */
   public byte[] getUserPayload();
   

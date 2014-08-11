@@ -27,7 +27,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.EdgeManagerDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -44,7 +44,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
-import org.apache.tez.runtime.api.RootInputSpecUpdate;
+import org.apache.tez.runtime.api.InputSpecUpdate;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
@@ -265,11 +265,11 @@ public class TestHistoryEventsProtoConversion {
 
   private void testVertexParallelismUpdatedEvent() throws Exception {
     {
-      RootInputSpecUpdate rootInputSpecUpdateBulk = RootInputSpecUpdate
-          .createAllTaskRootInputSpecUpdate(2);
-      RootInputSpecUpdate rootInputSpecUpdatePerTask = RootInputSpecUpdate
-          .createPerTaskRootInputSpecUpdate(Lists.newArrayList(1, 2, 3));
-      Map<String, RootInputSpecUpdate> rootInputSpecUpdates = new HashMap<String, RootInputSpecUpdate>();
+      InputSpecUpdate rootInputSpecUpdateBulk = InputSpecUpdate
+          .createAllTaskInputSpecUpdate(2);
+      InputSpecUpdate rootInputSpecUpdatePerTask = InputSpecUpdate
+          .createPerTaskInputSpecUpdate(Lists.newArrayList(1, 2, 3));
+      Map<String, InputSpecUpdate> rootInputSpecUpdates = new HashMap<String, InputSpecUpdate>();
       rootInputSpecUpdates.put("input1", rootInputSpecUpdateBulk);
       rootInputSpecUpdates.put("input2", rootInputSpecUpdatePerTask);
       VertexParallelismUpdatedEvent event =
@@ -287,8 +287,8 @@ public class TestHistoryEventsProtoConversion {
           deserializedEvent.getVertexLocationHint());
       Assert.assertEquals(event.getRootInputSpecUpdates().size(), deserializedEvent
           .getRootInputSpecUpdates().size());
-      RootInputSpecUpdate deserializedBulk = deserializedEvent.getRootInputSpecUpdates().get("input1");
-      RootInputSpecUpdate deserializedPerTask = deserializedEvent.getRootInputSpecUpdates().get("input2");
+      InputSpecUpdate deserializedBulk = deserializedEvent.getRootInputSpecUpdates().get("input1");
+      InputSpecUpdate deserializedPerTask = deserializedEvent.getRootInputSpecUpdates().get("input2");
       Assert.assertEquals(rootInputSpecUpdateBulk.isForAllWorkUnits(),
           deserializedBulk.isForAllWorkUnits());
       Assert.assertEquals(rootInputSpecUpdateBulk.getAllNumPhysicalInputs(),
@@ -300,10 +300,10 @@ public class TestHistoryEventsProtoConversion {
       logEvents(event, deserializedEvent);
     }
     {
-      Map<String,EdgeManagerDescriptor> sourceEdgeManagers
-          = new LinkedHashMap<String, EdgeManagerDescriptor>();
-      sourceEdgeManagers.put("foo", new EdgeManagerDescriptor("bar"));
-      sourceEdgeManagers.put("foo1", new EdgeManagerDescriptor("bar1").setUserPayload(
+      Map<String,EdgeManagerPluginDescriptor> sourceEdgeManagers
+          = new LinkedHashMap<String, EdgeManagerPluginDescriptor>();
+      sourceEdgeManagers.put("foo", new EdgeManagerPluginDescriptor("bar"));
+      sourceEdgeManagers.put("foo1", new EdgeManagerPluginDescriptor("bar1").setUserPayload(
           new String("payload").getBytes()));
       VertexParallelismUpdatedEvent event =
           new VertexParallelismUpdatedEvent(

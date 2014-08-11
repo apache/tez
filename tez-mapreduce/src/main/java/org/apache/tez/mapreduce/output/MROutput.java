@@ -56,7 +56,7 @@ import org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.TezOutputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
 
@@ -217,7 +217,7 @@ public class MROutput extends AbstractLogicalOutput {
 
   protected OutputCommitter committer;
 
-  public MROutput(TezOutputContext outputContext, int numPhysicalOutputs) {
+  public MROutput(OutputContext outputContext, int numPhysicalOutputs) {
     super(outputContext, numPhysicalOutputs);
   }
 

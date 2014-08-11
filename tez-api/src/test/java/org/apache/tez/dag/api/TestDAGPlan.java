@@ -116,7 +116,7 @@ public class TestDAGPlan {
     OutputDescriptor outputDescriptor = new OutputDescriptor("output").setUserPayload("outputBytes"
         .getBytes());
     Edge edge = new Edge(v1, v2, new EdgeProperty(
-        new EdgeManagerDescriptor("emClass").setUserPayload("emPayload".getBytes()),
+        new EdgeManagerPluginDescriptor("emClass").setUserPayload("emPayload".getBytes()),
         DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, outputDescriptor, inputDescriptor));
 
     dag.addVertex(v1).addVertex(v2).addEdge(edge);
@@ -126,7 +126,7 @@ public class TestDAGPlan {
     EdgeProperty edgeProperty = DagTypeConverters.createEdgePropertyMapFromDAGPlan(dagProto
         .getEdgeList().get(0));
 
-    EdgeManagerDescriptor emDesc = edgeProperty.getEdgeManagerDescriptor();
+    EdgeManagerPluginDescriptor emDesc = edgeProperty.getEdgeManagerDescriptor();
     Assert.assertNotNull(emDesc);
     Assert.assertEquals("emClass", emDesc.getClassName());
     Assert.assertTrue(Arrays.equals("emPayload".getBytes(), emDesc.getUserPayload()));

@@ -38,15 +38,15 @@ import org.apache.tez.mapreduce.lib.MRReaderMapred;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.TezInputContext;
-import org.apache.tez.runtime.api.events.RootInputDataInformationEvent;
+import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 
 public class MultiMRInput extends MRInputBase {
 
   private static final Log LOG = LogFactory.getLog(MultiMRInput.class);
 
-  public MultiMRInput(TezInputContext inputContext, int numPhysicalInputs) {
+  public MultiMRInput(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);
   }
 
@@ -94,7 +94,7 @@ public class MultiMRInput extends MRInputBase {
       Preconditions.checkState(eventCount.get() + inputEvents.size() <= getNumPhysicalInputs(),
           "Unexpected event. All physical sources already initialized");
       for (Event event : inputEvents) {
-        MRReader reader = initFromEvent((RootInputDataInformationEvent) event);
+        MRReader reader = initFromEvent((InputDataInformationEvent) event);
         readers.add(reader);
         if (eventCount.incrementAndGet() == getNumPhysicalInputs()) {
           getContext().inputIsReady();
@@ -106,7 +106,7 @@ public class MultiMRInput extends MRInputBase {
     }
   }
 
-  private MRReader initFromEvent(RootInputDataInformationEvent event) throws IOException {
+  private MRReader initFromEvent(InputDataInformationEvent event) throws IOException {
     Preconditions.checkState(event != null, "Event must be specified");
     LOG.info("Initializing Reader: " + eventCount.get());
     MRSplitProto splitProto = MRSplitProto.parseFrom(event.getUserPayload());

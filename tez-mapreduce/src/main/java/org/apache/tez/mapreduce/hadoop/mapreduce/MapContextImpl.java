@@ -31,7 +31,7 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
-import org.apache.tez.runtime.api.TezTaskContext;
+import org.apache.tez.runtime.api.TaskContext;
 
 /**
  * The context that is given to the {@link Mapper}.
@@ -52,7 +52,7 @@ public class MapContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT>
                         RecordReader<KEYIN,VALUEIN> reader,
                         RecordWriter<KEYOUT,VALUEOUT> writer,
                         OutputCommitter committer,
-                        TezTaskContext context,
+                        TaskContext context,
                         InputSplit split, Reporter reporter) {
     super(conf, taskid, writer, committer, context, reporter);
     this.reader = reader;
