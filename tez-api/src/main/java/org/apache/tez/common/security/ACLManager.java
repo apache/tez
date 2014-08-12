@@ -19,6 +19,7 @@
 package org.apache.tez.common.security;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -173,32 +174,76 @@ public class ACLManager {
       acls.put(ApplicationAccessType.MODIFY_APP, "*");
       return acls;
     }
+    acls.put(ApplicationAccessType.VIEW_APP, amUser);
+    acls.put(ApplicationAccessType.MODIFY_APP, amUser);
     boolean viewAclsWildCard = false;
     boolean modifyAclsWildCard = false;
     if (users != null && !users.isEmpty()) {
       for (Entry<ACLType, Set<String>> entry : users.entrySet()) {
-        if (entry.getValue().contains(WILDCARD_ACL_VALUE)) {
-          if (entry.getKey().equals(ACLType.AM_VIEW_ACL)) {
-            viewAclsWildCard = true;
+        if (entry.getKey().equals(ACLType.AM_VIEW_ACL)) {
+          if (entry.getValue().contains(WILDCARD_ACL_VALUE)) {
             acls.put(ApplicationAccessType.VIEW_APP, "*");
+            viewAclsWildCard = true;
             continue;
+          } else if (!entry.getValue().isEmpty()) {
+            String aclsStr = acls.get(ApplicationAccessType.VIEW_APP);
+            String commaSepList = toCommaSeparatedString(entry.getValue());
+            if (!commaSepList.isEmpty()) {
+              aclsStr += "," + commaSepList;
+            }
+            acls.put(ApplicationAccessType.VIEW_APP, aclsStr);
           }
-        } else if (!entry.getValue().isEmpty()) {
-
-
+        } else if (entry.getKey().equals(ACLType.AM_MODIFY_ACL)) {
+          if (entry.getValue().contains(WILDCARD_ACL_VALUE)) {
+            acls.put(ApplicationAccessType.MODIFY_APP, "*");
+            modifyAclsWildCard = true;
+            continue;
+          } else if (!entry.getValue().isEmpty()) {
+            String aclsStr = acls.get(ApplicationAccessType.MODIFY_APP);
+            String commaSepList = toCommaSeparatedString(entry.getValue());
+            if (!commaSepList.isEmpty()) {
+              aclsStr += "," + commaSepList;
+            }
+            acls.put(ApplicationAccessType.MODIFY_APP, aclsStr);
+          }
         }
       }
     }
     if (groups != null && !groups.isEmpty()) {
       for (Entry<ACLType, Set<String>> entry : groups.entrySet()) {
-        if (viewAclsWildCard &&
-            (entry.getKey().equals(ACLType.AM_VIEW_ACL))
-
+        if (entry.getKey().equals(ACLType.AM_VIEW_ACL)
+          && !viewAclsWildCard && !entry.getValue().isEmpty()) {
+          // Append groups only if wild card not set
+          String aclsStr = acls.containsKey(ApplicationAccessType.VIEW_APP) ?
+              acls.get(ApplicationAccessType.VIEW_APP) : "";
+          aclsStr += " " + toCommaSeparatedString(entry.getValue());
+          acls.put(ApplicationAccessType.VIEW_APP, aclsStr);
+        } else if (entry.getKey().equals(ACLType.AM_MODIFY_ACL)
+            && !modifyAclsWildCard && !entry.getValue().isEmpty()) {
+          // Append groups only if wild card not set
+          String aclsStr = acls.containsKey(ApplicationAccessType.MODIFY_APP) ?
+              acls.get(ApplicationAccessType.MODIFY_APP) : "";
+          aclsStr += " " + toCommaSeparatedString(entry.getValue());
+          acls.put(ApplicationAccessType.MODIFY_APP, aclsStr);
+        }
       }
     }
     return acls;
   }
 
+  private String toCommaSeparatedString(Collection<String> collection) {
+    StringBuilder sb = new StringBuilder();
+    boolean first = true;
+    for (String s : collection) {
+      if (!first) {
+        sb.append(",");
+      } else {
+        first = false;
+      }
+      sb.append(s);
+    }
+    return sb.toString();
+  }
 }
 
 

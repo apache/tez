@@ -19,6 +19,7 @@
 package org.apache.tez.common.security;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.tez.common.security.ACLConfigurationParser;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.common.security.ACLManager.ACLType;
@@ -31,8 +32,8 @@ public class TestACLConfigurationParser {
   public void testACLConfigParser() {
 
     Configuration conf = new Configuration(false);
-    String viewACLs = "  user1,user4,       grp3,grp4,grp5  ";
-    String modifyACLs = "  user3 ";
+    String viewACLs = "user1,user4,       grp3,grp4,grp5  ";
+    String modifyACLs = "user3 ";
     conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
 
     ACLConfigurationParser parser = new ACLConfigurationParser(conf);
@@ -63,6 +64,20 @@ public class TestACLConfigurationParser {
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp5"));
     Assert.assertNull(parser.getAllowedGroups().get(ACLType.AM_MODIFY_ACL));
 
+  }
+
+  @Test
+  public void testGroupsOnly() {
+    Configuration conf = new Configuration(false);
+    String viewACLs = "     grp3,grp4,grp5";
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
+    ACLConfigurationParser parser = new ACLConfigurationParser(conf);
+    Assert.assertTrue(parser.getAllowedUsers().isEmpty());
+    Assert.assertFalse(parser.getAllowedGroups().isEmpty());
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp3"));
+    Assert.assertFalse(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp6"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp4"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp5"));
   }
 
 }

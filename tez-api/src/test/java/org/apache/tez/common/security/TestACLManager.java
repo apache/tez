@@ -23,9 +23,11 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.common.security.Groups;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -100,7 +102,7 @@ public class TestACLManager {
     String viewACLs = user1 + "," + user4
         + "   " + "grp3,grp4  ";
     // Modify ACLs: user3, grp6, grp7
-    String modifyACLs = "  " + user3 + "  " + "grp6,grp7";
+    String modifyACLs = user3 + "  " + "grp6,grp7";
     conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
     conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, modifyACLs);
 
@@ -147,9 +149,9 @@ public class TestACLManager {
 
     Configuration conf = new Configuration(false);
     // View ACLs: user1, user4
-    String viewACLs = " " + user1 + "," + user4 + " ";
+    String viewACLs = user1 + "," + user4 + " ";
     // Modify ACLs: user3
-    String modifyACLs = "  " + user3 + "  ";
+    String modifyACLs = "user3  ";
     conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
     conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, modifyACLs);
 
@@ -195,9 +197,9 @@ public class TestACLManager {
 
     Configuration conf = new Configuration(false);
     // View ACLs: user1, user4, grp3, grp4.
-    String viewACLs = "   user1,user4,,   grp3,grp4  ";
+    String viewACLs = "user1,user4,,   grp3,grp4  ";
     // Modify ACLs: user3, grp6, grp7
-    String modifyACLs = "   user3   grp6,grp7";
+    String modifyACLs = "user3   grp6,grp7";
     conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
     conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, modifyACLs);
 
@@ -261,16 +263,16 @@ public class TestACLManager {
 
     Configuration conf = new Configuration(false);
     // View ACLs: user1, user4, grp3, grp4.
-    String viewACLs = "   user1,user4,,   grp3,grp4  ";
+    String viewACLs = "user1,user4,,   grp3,grp4  ";
     // Modify ACLs: user3, grp6, grp7
-    String modifyACLs = "   user3   grp6,grp7";
+    String modifyACLs = "user3   grp6,grp7";
     conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
     conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, modifyACLs);
 
     // DAG View ACLs: user1, user4, grp3, grp4.
-    String dagViewACLs = "   user6,   grp5  ";
+    String dagViewACLs = "user6,   grp5  ";
     // DAG Modify ACLs: user3, grp6, grp7
-    String dagModifyACLs = "   user6,user5 ";
+    String dagModifyACLs = "user6,user5 ";
     conf.set(TezConfiguration.TEZ_DAG_VIEW_ACLS, dagViewACLs);
     conf.set(TezConfiguration.TEZ_DAG_MODIFY_ACLS, dagModifyACLs);
 
@@ -342,8 +344,8 @@ public class TestACLManager {
     Groups groups = mock(Groups.class);
     Configuration conf = new Configuration(false);
     conf.setBoolean(TezConfiguration.TEZ_AM_ACLS_ENABLED, false);
-    String viewACLs = " a2,u2  ";
-    String modifyACLs = " a2,u2 ";
+    String viewACLs = "a2,u2  ";
+    String modifyACLs = "a2,u2 ";
     conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
     conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, modifyACLs);
     ACLManager aclManager = new ACLManager(groups, "a1", conf);
@@ -365,6 +367,33 @@ public class TestACLManager {
     Assert.assertTrue(dagAclManager.checkDAGViewAccess("u1"));
     Assert.assertTrue(dagAclManager.checkDAGModifyAccess("a1"));
     Assert.assertTrue(dagAclManager.checkDAGModifyAccess("u1"));
+  }
+
+  @Test
+  public void testConvertToYARNACLs() {
+    Groups groups = mock(Groups.class);
+    String currentUser = "c1";
+    Configuration conf = new Configuration(false);
+    String viewACLs = "user1,user4,,   grp3,grp4  ";
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
+    conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, "   * ");
+    ACLManager aclManager = new ACLManager(groups, currentUser, conf);
+
+    Map<ApplicationAccessType, String> yarnAcls = aclManager.toYARNACls();
+    Assert.assertTrue(yarnAcls.containsKey(ApplicationAccessType.VIEW_APP));
+    Assert.assertEquals("c1,user1,user4 grp3,grp4",
+        yarnAcls.get(ApplicationAccessType.VIEW_APP));
+    Assert.assertTrue(yarnAcls.containsKey(ApplicationAccessType.MODIFY_APP));
+    Assert.assertEquals("*",
+        yarnAcls.get(ApplicationAccessType.MODIFY_APP));
+
+    viewACLs = "   grp3,grp4  ";
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
+    ACLManager aclManager1 = new ACLManager(groups, currentUser, conf);
+    yarnAcls = aclManager1.toYARNACls();
+    Assert.assertEquals("c1 grp3,grp4",
+        yarnAcls.get(ApplicationAccessType.VIEW_APP));
+
   }
 
 }

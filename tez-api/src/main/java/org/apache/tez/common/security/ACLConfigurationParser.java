@@ -64,18 +64,29 @@ public class ACLConfigurationParser {
     }
   }
 
+  private boolean isWildCard(String aclStr) {
+    return aclStr.trim().equals(ACLManager.WILDCARD_ACL_VALUE);
+  }
+
   private void parseACLType(String configProperty, ACLType aclType) {
     String aclsStr = conf.get(configProperty);
     if (aclsStr == null || aclsStr.isEmpty()) {
       return;
     }
+    if (isWildCard(aclsStr)) {
+      allowedUsers.put(aclType, Sets.newHashSet(ACLManager.WILDCARD_ACL_VALUE));
+      return;
+    }
+
     final String[] splits = splitPattern.split(aclsStr);
     int counter = -1;
     String userListStr = null;
     String groupListStr = null;
     for (String s : splits) {
       if (s.isEmpty()) {
-        continue;
+        if (userListStr != null) {
+          continue;
+        }
       }
       ++counter;
       if (counter == 0) {
@@ -91,17 +102,13 @@ public class ACLConfigurationParser {
     if (userListStr == null) {
       return;
     }
-    if (userListStr.equals(ACLManager.WILDCARD_ACL_VALUE)) {
-      allowedUsers.put(aclType, Sets.newHashSet(ACLManager.WILDCARD_ACL_VALUE));
-    } else {
-      if (userListStr.length() >= 1) {
-        allowedUsers.put(aclType,
-            Sets.newHashSet(StringUtils.getTrimmedStringCollection(userListStr)));
-      }
-      if (groupListStr != null && groupListStr.length() >= 1) {
-        allowedGroups.put(aclType,
-            Sets.newHashSet(StringUtils.getTrimmedStringCollection(groupListStr)));
-      }
+    if (userListStr.length() >= 1) {
+      allowedUsers.put(aclType,
+          Sets.newHashSet(StringUtils.getTrimmedStringCollection(userListStr)));
+    }
+    if (groupListStr != null && groupListStr.length() >= 1) {
+      allowedGroups.put(aclType,
+          Sets.newHashSet(StringUtils.getTrimmedStringCollection(groupListStr)));
     }
   }
 
