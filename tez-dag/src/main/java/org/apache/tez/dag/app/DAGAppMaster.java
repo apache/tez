@@ -223,8 +223,7 @@ public class DAGAppMaster extends AbstractService {
 
   private DAGAppMasterShutdownHandler shutdownHandler =
       new DAGAppMasterShutdownHandler();
-  private AtomicBoolean shutdownHandlerRunning = new AtomicBoolean(false);
-  private Object shutdownHandlerLock = new Object();
+  private final AtomicBoolean shutdownHandlerRunning = new AtomicBoolean(false);
 
   private DAGAppMasterState state;
 
@@ -585,8 +584,8 @@ public class DAGAppMaster extends AbstractService {
         return;
       }
 
-      LOG.info("Handling DAGAppMaster shutdown");
       shutdownHandlerRunning.set(true);
+      LOG.info("Handling DAGAppMaster shutdown");
 
       AMShutdownRunnable r = new AMShutdownRunnable(now);
       Thread t = new Thread(r, "AMShutdownThread");
@@ -619,9 +618,9 @@ public class DAGAppMaster extends AbstractService {
           LOG.info("Calling stop for all the services");
           stop();
 
-          synchronized (shutdownHandlerLock) {
+          synchronized (shutdownHandlerRunning) {
             shutdownHandlerRunning.set(false);
-            shutdownHandlerLock.notify();
+            shutdownHandlerRunning.notify();
           }
 
           //Bring the process down by force.
@@ -1734,17 +1733,16 @@ public class DAGAppMaster extends AbstractService {
         if(LOG.isDebugEnabled()) {
           LOG.debug("DAGAppMaster already stopped. Ignoring signal");
         }
-        if (appMaster.shutdownHandlerRunning.get()) {
-          LOG.info("The shutdown handler is still running, waiting for it to complete");
-          synchronized (appMaster.shutdownHandlerLock) {
-            try {
-              appMaster.shutdownHandlerLock.wait();
-            } catch (InterruptedException e) {
-              // Ignore
+        synchronized (appMaster.shutdownHandlerRunning) {
+          try {
+            if (appMaster.shutdownHandlerRunning.get()) {
+              LOG.info("The shutdown handler is still running, waiting for it to complete");
+              appMaster.shutdownHandlerRunning.wait();
             }
+          } catch (InterruptedException e) {
+            // Ignore
           }
         }
-
         return;
       }
 
@@ -1764,8 +1762,6 @@ public class DAGAppMaster extends AbstractService {
       }
 
       appMaster.stop();
-
-
 
     }
   }
