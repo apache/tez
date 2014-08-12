@@ -559,9 +559,7 @@ public class TezClientUtils {
 
     Groups groups = null;
     ACLManager aclManager = new ACLManager(groups, user, finalTezConf);
-
     Map<ApplicationAccessType, String> acls = aclManager.toYARNACls();
-
 
     if(dag != null) {
 
@@ -617,9 +615,6 @@ public class TezClientUtils {
                 LocalResourceVisibility.APPLICATION));
       }
     }
-
-
-
 
     // Setup ContainerLaunchContext for AM container
     ContainerLaunchContext amContainer =
