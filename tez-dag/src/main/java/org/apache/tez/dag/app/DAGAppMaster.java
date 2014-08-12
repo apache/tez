@@ -225,6 +225,7 @@ public class DAGAppMaster extends AbstractService {
 
   private DAGAppMasterShutdownHandler shutdownHandler =
       new DAGAppMasterShutdownHandler();
+  private final AtomicBoolean shutdownHandlerRunning = new AtomicBoolean(false);
 
   private DAGAppMasterState state;
 
@@ -310,6 +311,8 @@ public class DAGAppMaster extends AbstractService {
        appMasterUgi = UserGroupInformation.getCurrentUser();
     }
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
+    String strAppId = this.appAttemptID.getApplicationId().toString();
+    this.tezSystemStagingDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
 
     dispatcher = createDispatcher();
     context = new RunningAppContext(conf);
@@ -392,8 +395,6 @@ public class DAGAppMaster extends AbstractService {
     this.sessionTimeoutInterval = 1000 * amConf.getInt(
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT);
-    String strAppId = this.appAttemptID.getApplicationId().toString();
-    this.tezSystemStagingDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
     recoveryDataDir = TezCommonUtils.getRecoveryPath(tezSystemStagingDir, conf);
     recoveryFS = recoveryDataDir.getFileSystem(conf);
     currentRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,
@@ -587,11 +588,13 @@ public class DAGAppMaster extends AbstractService {
     }
 
     public void shutdown(boolean now) {
+      LOG.info("DAGAppMasterShutdownHandler invoked");
       if(!shutdownHandled.compareAndSet(false, true)) {
         LOG.info("Ignoring multiple shutdown events");
         return;
       }
 
+      shutdownHandlerRunning.set(true);
       LOG.info("Handling DAGAppMaster shutdown");
 
       AMShutdownRunnable r = new AMShutdownRunnable(now);
@@ -612,6 +615,7 @@ public class DAGAppMaster extends AbstractService {
         // final states. Will be removed once RM come on. TEZ-160.
         if (!immediateShutdown) {
           try {
+            LOG.info("Sleeping for 5 seconds before shutting down");
             Thread.sleep(5000);
           } catch (InterruptedException e) {
             e.printStackTrace();
@@ -623,6 +627,11 @@ public class DAGAppMaster extends AbstractService {
           // This will also send the final report to the ResourceManager
           LOG.info("Calling stop for all the services");
           stop();
+
+          synchronized (shutdownHandlerRunning) {
+            shutdownHandlerRunning.set(false);
+            shutdownHandlerRunning.notify();
+          }
 
           //Bring the process down by force.
           //Not needed after HADOOP-7140
@@ -1416,6 +1425,7 @@ public class DAGAppMaster extends AbstractService {
       }
       Exception ex = ServiceOperations.stopQuietly(LOG, service);
       if (ex != null && firstException == null) {
+        LOG.warn("Failed to stop service, name=" + service.getName(), ex);
         firstException = ex;
       }
     }
@@ -1546,6 +1556,36 @@ public class DAGAppMaster extends AbstractService {
       this.dagSubmissionTimer.cancel();
     }
     stopServices();
+
+    // Given pre-emption, we should delete tez scratch dir only if unregister is
+    // successful
+    boolean deleteTezScratchData = this.amConf.getBoolean(
+        TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE,
+        TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE_DEFAULT);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Checking whether tez scratch data dir should be deleted, deleteTezScratchData="
+          + deleteTezScratchData);
+    }
+    if (deleteTezScratchData && this.taskSchedulerEventHandler != null
+        && this.taskSchedulerEventHandler.hasUnregistered()) {
+      // Delete tez scratch data dir
+      if (this.tezSystemStagingDir != null) {
+        try {
+          FileSystem fs = this.tezSystemStagingDir.getFileSystem(this.amConf);
+          boolean deletedStagingDir = fs.delete(this.tezSystemStagingDir, true);
+          if (!deletedStagingDir) {
+            LOG.warn("Failed to delete tez scratch data dir, path=" + this.tezSystemStagingDir);
+          } else {
+            LOG.info("Completed deletion of tez scratch data dir, path="
+                + this.tezSystemStagingDir);
+          }
+        } catch (IOException e) {
+          // Best effort to delete tez scratch data dir
+          LOG.warn("Failed to delete tez scratch data dir", e);
+        }
+      }
+    }
+
     super.serviceStop();
   }
 
@@ -1703,9 +1743,20 @@ public class DAGAppMaster extends AbstractService {
       this.appMaster = appMaster;
     }
     public void run() {
+      LOG.info("DAGAppMasterShutdownHook invoked");
       if(appMaster.getServiceState() == STATE.STOPPED) {
         if(LOG.isDebugEnabled()) {
           LOG.debug("DAGAppMaster already stopped. Ignoring signal");
+        }
+        synchronized (appMaster.shutdownHandlerRunning) {
+          try {
+            if (appMaster.shutdownHandlerRunning.get()) {
+              LOG.info("The shutdown handler is still running, waiting for it to complete");
+              appMaster.shutdownHandlerRunning.wait();
+            }
+          } catch (InterruptedException e) {
+            // Ignore
+          }
         }
         return;
       }
@@ -1726,8 +1777,6 @@ public class DAGAppMaster extends AbstractService {
       }
 
       appMaster.stop();
-
-
 
     }
   }

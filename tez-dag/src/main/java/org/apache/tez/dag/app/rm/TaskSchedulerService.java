@@ -67,7 +67,9 @@ public abstract class TaskSchedulerService extends AbstractService{
   public abstract Object deallocateContainer(ContainerId containerId);
 
   public abstract void setShouldUnregister();
-  
+
+  public abstract boolean hasUnregistered();
+
   public interface TaskSchedulerAppCallback {
     public class AppFinalStatus {
       public final FinalApplicationStatus exitStatus;
@@ -102,5 +104,6 @@ public abstract class TaskSchedulerService extends AbstractService{
     public float getProgress();
     public void preemptContainer(ContainerId containerId);
     public AppFinalStatus getFinalAppStatus();
+
   }
 }

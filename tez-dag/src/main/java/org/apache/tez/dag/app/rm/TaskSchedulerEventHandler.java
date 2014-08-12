@@ -533,4 +533,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     }
   }
 
+  public boolean hasUnregistered() {
+    return this.taskScheduler.hasUnregistered();
+  }
 }
