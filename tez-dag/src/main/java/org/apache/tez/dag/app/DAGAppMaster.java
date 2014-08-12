@@ -1566,7 +1566,7 @@ public class DAGAppMaster extends AbstractService {
           }
         } catch (IOException e) {
           // Best effort to delete tez scratch data dir
-          LOG.warn("Failed to tez scratch data dir", e);
+          LOG.warn("Failed to delete tez scratch data dir", e);
         }
       }
     }
