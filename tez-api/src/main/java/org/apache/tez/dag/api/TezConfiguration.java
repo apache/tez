@@ -543,24 +543,30 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_GENERATE_DAG_VIZ_DEFAULT = true;
 
   /**
-   * Set of tasks that should be profiled.
+   * Set of tasks for which specific launch command options need to be added.
    * Format: "vertexName[csv of task ids];vertexName[csv of task ids].."
    * Valid e.g:
-   * v[0,1,2]  - Profile tasks 0,1,2 of vertex v
-   * v[1,2,3];v2[5,6,7] - Profile specified tasks of vertices v and v2.
-   * v[1:5,20,30];v2[2:5,60,7] - Profile 1,2,3,4,5,20,30 of vertex v; 2,3,4,5,60,7 of vertex v2
+   * v[0,1,2]  - Additional launch-cmd options for tasks 0,1,2 of vertex v
+   * v[1,2,3];v2[5,6,7] - Additional launch-cmd options specified for tasks of vertices v and v2.
+   * v[1:5,20,30];v2[2:5,60,7] - Additional launch-cmd options for 1,2,3,4,5,20,30 of vertex v; 2,
+   * 3,4,5,60,7 of vertex v2
    * Partial ranges like :5, 1: are not supported.
-   * v[] - Profile all tasks in vertex v
+   * v[] - Additional launch-cmd options for all tasks in vertex v
    */
-  public static final String TEZ_PROFILE_TASK_LIST = TEZ_PREFIX + "profile.task.list";
+  @Unstable
+  public static final String TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS_LIST = TEZ_PREFIX + "task-specific" +
+      ".launch.cmd-opts.list";
 
   /**
-   * Additional string to be added to the JVM options for tasks being profiled.
+   * Additional launch command options to be added for specific tasks.
    * __VERTEX_NAME__ and __TASK_INDEX__ can be specified, which would be replaced at
-   * runtime by vertex name and task index being profiled.
-   * e.g tez.profiler.jvm.opts=--agentpath:libpagent.so,dir=/tmp/__VERTEX_NAME__/__TASK_INDEX__"
+   * runtime by vertex name and task index.
+   * e.g tez.task-specific.launch.cmd-opts=
+   * "-agentpath:libpagent.so,dir=/tmp/__VERTEX_NAME__/__TASK_INDEX__"
    */
-  public static final String TEZ_PROFILE_JVM_OPTS = TEZ_PREFIX + "profile.jvm.opts";
+  @Unstable
+  public static final String TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS = TEZ_PREFIX + "task-specific" +
+      ".launch.cmd-opts";
 
   /**
    * The service id for the NodeManager plugin used to share intermediate data

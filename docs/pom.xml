@@ -230,6 +230,18 @@
         </organization>
       </developer>
       <developer>
+        <id>jeagles</id>
+        <name>Jonathan Eagles</name>
+        <email>jeagles@apache.org</email>
+        <timezone>-6</timezone>
+        <roles>
+          <role>Committer</role>
+        </roles>
+        <organization>
+          Yahoo!
+        </organization>
+      </developer>
+      <developer>
         <id>jghoman</id>
         <name>Jakob Homan</name>
         <email>jghoman@apache.org</email>
