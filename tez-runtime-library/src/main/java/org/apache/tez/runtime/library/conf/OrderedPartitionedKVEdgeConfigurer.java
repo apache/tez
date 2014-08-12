@@ -19,9 +19,11 @@
 package org.apache.tez.runtime.library.conf;
 
 import javax.annotation.Nullable;
+
 import java.util.Map;
 
 import com.google.common.base.Preconditions;
+
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
@@ -29,6 +31,7 @@ import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 /**
@@ -85,8 +88,8 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
   }
 
   @Override
-  public byte[] getOutputPayload() {
-    return outputConf.toByteArray();
+  public UserPayload getOutputPayload() {
+    return new UserPayload(outputConf.toByteArray());
   }
 
   @Override
@@ -95,8 +98,8 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
   }
 
   @Override
-  public byte[] getInputPayload() {
-    return inputConf.toByteArray();
+  public UserPayload getInputPayload() {
+    return new UserPayload(inputConf.toByteArray());
   }
 
   @Override

@@ -20,6 +20,7 @@ package org.apache.tez.test.dag;
 
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -32,6 +33,7 @@ import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
@@ -111,7 +113,7 @@ public class MultiAttemptDAG {
       if (numCompletions.get() >= numSourceTasks
           && !tasksScheduled) {
         tasksScheduled = true;
-        String payload = new String(getContext().getUserPayload());
+        String payload = new String(getContext().getUserPayload().getPayload());
         int successAttemptId = Integer.valueOf(payload);
         LOG.info("Checking whether to crash AM or schedule tasks"
             + ", successfulAttemptID=" + successAttemptId
@@ -162,7 +164,7 @@ public class MultiAttemptDAG {
     public void initialize() throws Exception {
       FailingOutputCommitterConfig config = new
           FailingOutputCommitterConfig();
-      config.fromUserPayload(getContext().getOutputUserPayload());
+      config.fromUserPayload(getContext().getOutputUserPayload().getPayload());
       failOnCommit = config.failOnCommit;
     }
 
@@ -316,7 +318,7 @@ public class MultiAttemptDAG {
 
   public static DAG createDAG(String name,
       Configuration conf) throws Exception {
-    byte[] payload = null;
+    UserPayload payload = new UserPayload(null);
     int taskCount = MULTI_ATTEMPT_DAG_VERTEX_NUM_TASKS_DEFAULT;
     if (conf != null) {
       taskCount = conf.getInt(MULTI_ATTEMPT_DAG_VERTEX_NUM_TASKS, MULTI_ATTEMPT_DAG_VERTEX_NUM_TASKS_DEFAULT);
@@ -330,13 +332,13 @@ public class MultiAttemptDAG {
     // Make each vertex manager fail on appropriate attempt
     v1.setVertexManagerPlugin(new VertexManagerPluginDescriptor(
         FailOnAttemptVertexManagerPlugin.class.getName())
-        .setUserPayload(new String("1").getBytes()));
+        .setUserPayload(new UserPayload(new String("1").getBytes())));
     v2.setVertexManagerPlugin(new VertexManagerPluginDescriptor(
         FailOnAttemptVertexManagerPlugin.class.getName())
-        .setUserPayload(new String("2").getBytes()));
+        .setUserPayload(new UserPayload(new String("2").getBytes())));
     v3.setVertexManagerPlugin(new VertexManagerPluginDescriptor(
         FailOnAttemptVertexManagerPlugin.class.getName())
-        .setUserPayload(new String("3").getBytes()));
+        .setUserPayload(new UserPayload(new String("3").getBytes())));
     dag.addVertex(v1).addVertex(v2).addVertex(v3);
     dag.addEdge(new Edge(v1, v2,
         new EdgeProperty(DataMovementType.SCATTER_GATHER,

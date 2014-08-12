@@ -20,7 +20,7 @@ package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
-public class OutputCommitterDescriptor extends TezEntityDescriptor<OutputCommitterDescriptor> {
+public class OutputCommitterDescriptor extends EntityDescriptor<OutputCommitterDescriptor> {
 
   @Private // for Writable
   public OutputCommitterDescriptor() {

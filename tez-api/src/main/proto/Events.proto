@@ -53,6 +53,7 @@ message CompositeEventProto {
   optional int32 start_index = 1;
   optional int32 count = 2;
   optional bytes user_payload = 3;
+  optional int32 version = 4;
 }
 
 message RootInputInitializerEventProto {

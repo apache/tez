@@ -70,8 +70,7 @@ public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
   @Override
   public synchronized List<Event> initialize()
       throws Exception {
-    this.conf = TezUtils.createConfFromUserPayload(getContext()
-        .getUserPayload());
+    this.conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
     this.conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS,
         getContext().getWorkDirs());
 
@@ -148,8 +147,7 @@ public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
     }
     DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
 
-    DataMovementEvent dmEvent = new DataMovementEvent(0,
-        payloadProto.toByteArray());
+    DataMovementEvent dmEvent = new DataMovementEvent(0, payloadProto.toByteArray());
     List<Event> events = Lists.newArrayListWithCapacity(1);
     events.add(dmEvent);
     return events;

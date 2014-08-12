@@ -46,8 +46,6 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptCompletedEventProto;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptFailedEventProto;
 
-import com.google.protobuf.ByteString;
-
 public class TezEvent implements Writable {
 
   private EventType eventType;
@@ -139,13 +137,8 @@ public class TezEvent implements Writable {
                 (CompositeDataMovementEvent) event).toByteArray();
         break;
       case VERTEX_MANAGER_EVENT:
-        VertexManagerEvent vmEvt = (VertexManagerEvent) event;
-        VertexManagerEventProto.Builder vmBuilder = VertexManagerEventProto.newBuilder();
-        vmBuilder.setTargetVertexName(vmEvt.getTargetVertexName());
-        if (vmEvt.getUserPayload() != null) {
-          vmBuilder.setUserPayload(ByteString.copyFrom(vmEvt.getUserPayload()));
-        }
-        eventBytes = vmBuilder.build().toByteArray();
+        eventBytes = ProtoConverters.convertVertexManagerEventToProto((VertexManagerEvent) event)
+            .toByteArray();
         break;
       case INPUT_READ_ERROR_EVENT:
         InputReadErrorEvent ideEvt = (InputReadErrorEvent) event;
@@ -214,10 +207,8 @@ public class TezEvent implements Writable {
         event = ProtoConverters.convertCompositeDataMovementEventFromProto(cProto);
         break;
       case VERTEX_MANAGER_EVENT:
-        VertexManagerEventProto vmProto =
-            VertexManagerEventProto.parseFrom(eventBytes);
-        event = new VertexManagerEvent(vmProto.getTargetVertexName(),
-            vmProto.getUserPayload() != null ? vmProto.getUserPayload().toByteArray() : null);
+        VertexManagerEventProto vmProto = VertexManagerEventProto.parseFrom(eventBytes);
+        event = ProtoConverters.convertVertexManagerEventFromProto(vmProto);
         break;
       case INPUT_READ_ERROR_EVENT:
         InputReadErrorEventProto ideProto =

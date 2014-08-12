@@ -87,7 +87,8 @@ public class TestEdge {
     EventMetaData srcMeta = new EventMetaData(EventProducerConsumerType.OUTPUT, "consumerVertex", "producerVertex", srcTAID);
     
     // Verification via a CompositeEvent
-    CompositeDataMovementEvent cdmEvent = new CompositeDataMovementEvent(0, destTasks.size(), "bytes".getBytes());
+    CompositeDataMovementEvent cdmEvent = new CompositeDataMovementEvent(0, destTasks.size(),
+        "bytes".getBytes());
     cdmEvent.setVersion(2); // AttemptNum
     TezEvent tezEvent = new TezEvent(cdmEvent, srcMeta);
     // Event setup to look like it would after the Vertex is done with it.

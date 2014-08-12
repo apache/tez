@@ -18,7 +18,7 @@
 
 package org.apache.tez.runtime.api;
 
-import javax.annotation.Nullable;
+import org.apache.tez.dag.api.UserPayload;
 
 /**
  * Context for {@link MergedLogicalInput}
@@ -26,8 +26,11 @@ import javax.annotation.Nullable;
  */
 public interface MergedInputContext {
 
-  @Nullable
-  public byte[] getUserPayload();
+  /**
+   * Get the user payload for this input
+   * @return {@link UserPayload}
+   */
+  public UserPayload getUserPayload();
   
   /**
    * Inform the framework that the specific Input is ready for consumption.

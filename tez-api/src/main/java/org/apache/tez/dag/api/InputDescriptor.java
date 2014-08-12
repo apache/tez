@@ -20,7 +20,7 @@ package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
-public class InputDescriptor extends TezEntityDescriptor<InputDescriptor> {
+public class InputDescriptor extends EntityDescriptor<InputDescriptor> {
 
   @Private // for Writable
   public InputDescriptor() {

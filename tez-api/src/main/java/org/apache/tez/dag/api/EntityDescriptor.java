@@ -25,25 +25,26 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.tez.common.TezUserPayload;
+
+import com.google.common.base.Preconditions;
 
 @SuppressWarnings("unchecked")
-public abstract class TezEntityDescriptor<T extends TezEntityDescriptor<T>> implements Writable {
+public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements Writable {
 
-  protected TezUserPayload userPayload;
+  private UserPayload userPayload = null;
   private String className;
   protected String historyText;
 
   @Private // for Writable
-  public TezEntityDescriptor() {
+  public EntityDescriptor() {
   }
   
-  public TezEntityDescriptor(String className) {
+  public EntityDescriptor(String className) {
     this.className = className;
   }
 
-  public byte[] getUserPayload() {
-    return (userPayload == null) ? null : userPayload.getPayload();
+  public UserPayload getUserPayload() {
+    return userPayload;
   }
 
   /**
@@ -51,8 +52,9 @@ public abstract class TezEntityDescriptor<T extends TezEntityDescriptor<T>> impl
    * @param userPayload User Payload
    * @return
    */
-  public T setUserPayload(byte[] userPayload) {
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
+  public T setUserPayload(UserPayload userPayload) {
+    Preconditions.checkNotNull(userPayload);
+    this.userPayload = userPayload;
     return (T) this;
   }
 
@@ -85,6 +87,7 @@ public abstract class TezEntityDescriptor<T extends TezEntityDescriptor<T>> impl
     } else {
       out.writeInt(bb.length);
       out.write(bb);
+      out.writeInt(userPayload.getVersion());
     }
   }
 
@@ -95,7 +98,8 @@ public abstract class TezEntityDescriptor<T extends TezEntityDescriptor<T>> impl
     if (payloadLength != -1) {
       byte[] bb = new byte[payloadLength];
       in.readFully(bb);
-      this.userPayload = DagTypeConverters.convertToTezUserPayload(bb);
+      int version =in.readInt();
+      this.userPayload = DagTypeConverters.convertToTezUserPayload(bb, version);
     }
   }
 }

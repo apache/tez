@@ -20,6 +20,7 @@ package org.apache.tez.runtime.library.processor;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -110,8 +111,8 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
       return Integer.toString(timeToSleepMS).getBytes();
     }
 
-    public void fromUserPayload(byte[] userPayload) {
-      timeToSleepMS = Integer.valueOf(new String(userPayload)).intValue();
+    public void fromUserPayload(UserPayload userPayload) {
+      timeToSleepMS = Integer.valueOf(new String(userPayload.getPayload())).intValue();
     }
 
     public int getTimeToSleepMS() {

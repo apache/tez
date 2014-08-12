@@ -31,11 +31,10 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.Event;
@@ -47,7 +46,7 @@ import org.apache.tez.runtime.common.resources.MemoryDistributor;
 public class TezOutputContextImpl extends TezTaskContextImpl
     implements OutputContext {
 
-  private final TezUserPayload userPayload;
+  private final UserPayload userPayload;
   private final String destinationVertexName;
   private final EventMetaData sourceInfo;
   private final int outputIndex;
@@ -58,7 +57,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       String taskVertexName,
       String destinationVertexName,
       TezTaskAttemptID taskAttemptID, TezCounters counters, int outputIndex,
-      @Nullable byte[] userPayload, RuntimeTask runtimeTask,
+      @Nullable UserPayload userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       OutputDescriptor outputDescriptor, ObjectRegistry objectRegistry) {
@@ -68,7 +67,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
         auxServiceEnv, memDist, outputDescriptor, objectRegistry);
     checkNotNull(outputIndex, "outputIndex is null");
     checkNotNull(destinationVertexName, "destinationVertexName is null");
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
+    this.userPayload = userPayload == null ? new UserPayload(null) : userPayload;
     this.outputIndex = outputIndex;
     this.destinationVertexName = destinationVertexName;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.OUTPUT,
@@ -96,10 +95,9 @@ public class TezOutputContextImpl extends TezTaskContextImpl
     tezUmbilical.addEvents(tezEvents);
   }
 
-  @Nullable
   @Override
-  public byte[] getUserPayload() {
-    return userPayload.getPayload();
+  public UserPayload getUserPayload() {
+    return userPayload;
   }
 
   @Override

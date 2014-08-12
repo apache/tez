@@ -68,6 +68,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
@@ -141,7 +142,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
             processorContext.getTaskIndex()),
         processorContext.getTaskAttemptNumber());
 
-    byte[] userPayload = processorContext.getUserPayload();
+    UserPayload userPayload = processorContext.getUserPayload();
     Configuration conf = TezUtils.createConfFromUserPayload(userPayload);
     if (conf instanceof JobConf) {
       this.jobConf = (JobConf)conf;

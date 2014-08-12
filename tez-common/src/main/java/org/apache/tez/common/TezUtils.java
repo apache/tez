@@ -45,6 +45,7 @@ import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.log4j.Appender;
 import org.apache.log4j.Logger;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 
@@ -113,8 +114,8 @@ public class TezUtils {
    * @return compressed pay load
    * @throws IOException
    */
-  public static byte[] createUserPayloadFromConf(Configuration conf) throws IOException {
-    return createByteStringFromConf(conf).toByteArray();
+  public static UserPayload createUserPayloadFromConf(Configuration conf) throws IOException {
+    return new UserPayload(createByteStringFromConf(conf).toByteArray());
   }
 
   /**
@@ -141,13 +142,13 @@ public class TezUtils {
    * Convert compressed pay load in byte[] to a Configuration object using
    * protocol buffer
    * 
-   * @param bb
+   * @param payload
    *          : compressed pay load
    * @return Configuration
    * @throws IOException
    */
-  public static Configuration createConfFromUserPayload(byte[] bb) throws IOException {
-    return createConfFromByteString(ByteString.copyFrom(bb));
+  public static Configuration createConfFromUserPayload(UserPayload payload) throws IOException {
+    return createConfFromByteString(ByteString.copyFrom(payload.getPayload()));
   }
 
   private static void writeConfInPB(OutputStream dos, Configuration conf) throws IOException {

@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -105,7 +106,7 @@ public class TestOnFileUnorderedKVOutput {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
     TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 1);
     TezCounters counters = new TezCounters();
-    byte[] userPayload = TezUtils.createUserPayloadFromConf(conf);
+    UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
     RuntimeTask runtimeTask = mock(RuntimeTask.class);
     
     int shufflePort = 2112;

@@ -35,6 +35,7 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
@@ -127,11 +128,11 @@ public class TestShuffleVertexManager {
               ((Map<String, EdgeManagerPluginDescriptor>)invocation.getArguments()[2]).entrySet()) {
 
 
-            final byte[] userPayload = entry.getValue().getUserPayload();
+            final UserPayload userPayload = entry.getValue().getUserPayload();
             EdgeManagerPluginContext emContext = new EdgeManagerPluginContext() {
               @Override
               public byte[] getUserPayload() {
-                return userPayload;
+                return userPayload == null ? null : userPayload.getPayload();
               }
 
               @Override
@@ -486,12 +487,12 @@ public class TestShuffleVertexManager {
     Assert.assertTrue(manager.numSourceTasksCompleted == 4);
 
   }
-  
+
   private ShuffleVertexManager createManager(Configuration conf, 
       VertexManagerPluginContext context, float min, float max) {
     conf.setFloat(ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, min);
     conf.setFloat(ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, max);
-    byte[] payload;
+    UserPayload payload;
     try {
       payload = TezUtils.createUserPayloadFromConf(conf);
     } catch (IOException e) {

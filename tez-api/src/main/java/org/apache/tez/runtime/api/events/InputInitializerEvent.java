@@ -21,7 +21,6 @@
 package org.apache.tez.runtime.api.events;
 
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
-import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.Event;
 
@@ -35,7 +34,7 @@ public class InputInitializerEvent extends Event {
   private String targetInputName;
 
   private int version;
-  private TezUserPayload eventPayload;
+  private byte[] eventPayload;
 
   /**
    * @param targetVertexName the vertex on which the targeted Input exists
@@ -50,7 +49,7 @@ public class InputInitializerEvent extends Event {
     this.targetVertexName = targetVertexName;
     this.targetInputName = targetInputName;
     this.version = version;
-    this.eventPayload = new TezUserPayload(eventPayload);
+    this.eventPayload = eventPayload;
   }
 
   /**
@@ -81,6 +80,6 @@ public class InputInitializerEvent extends Event {
    * @return a byte representation of the payload
    */
   public byte[] getUserPayload() {
-    return this.eventPayload.getPayload();
+    return this.eventPayload;
   }
 }

@@ -47,6 +47,7 @@ import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
@@ -154,7 +155,7 @@ public class MROutput extends AbstractLogicalOutput {
      * @return
      * @throws IOException
      */
-    private byte[] createUserPayload(Configuration conf, 
+    private UserPayload createUserPayload(Configuration conf,
         String outputFormatName, boolean useNewApi) {
       Configuration outputConf = new JobConf(conf);
       outputConf.setBoolean("mapred.reducer.new-api", useNewApi);
@@ -235,8 +236,7 @@ public class MROutput extends AbstractLogicalOutput {
     taskNumberFormat.setGroupingUsed(false);
     nonTaskNumberFormat.setMinimumIntegerDigits(3);
     nonTaskNumberFormat.setGroupingUsed(false);
-    Configuration conf = TezUtils.createConfFromUserPayload(
-        getContext().getUserPayload());
+    Configuration conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
     this.jobConf = new JobConf(conf);
     // Add tokens to the jobConf - in case they are accessed within the RW / OF
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());

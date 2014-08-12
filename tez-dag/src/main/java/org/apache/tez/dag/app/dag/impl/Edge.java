@@ -23,16 +23,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.Nullable;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
-import org.apache.tez.common.TezUserPayload;
-import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
@@ -56,12 +54,12 @@ import com.google.common.collect.Maps;
 
 public class Edge {
 
-  class EdgeManagerContextImpl implements EdgeManagerPluginContext {
+  class EdgeManagerPluginContextImpl implements EdgeManagerPluginContext {
 
-    private final TezUserPayload userPayload;
+    private final UserPayload userPayload;
 
-    EdgeManagerContextImpl(@Nullable byte[] userPayload) {
-      this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
+    EdgeManagerPluginContextImpl(UserPayload userPayload) {
+      this.userPayload = userPayload;
     }
 
     @Override
@@ -113,24 +111,27 @@ public class Edge {
   private void createEdgeManager() {
     switch (edgeProperty.getDataMovementType()) {
       case ONE_TO_ONE:
-        edgeManagerContext = new EdgeManagerContextImpl(null);
+        edgeManagerContext = new EdgeManagerPluginContextImpl(new UserPayload(null));
         edgeManager = new OneToOneEdgeManager(edgeManagerContext);
         break;
       case BROADCAST:
-        edgeManagerContext = new EdgeManagerContextImpl(null);
+        edgeManagerContext = new EdgeManagerPluginContextImpl(new UserPayload(null));
         edgeManager = new BroadcastEdgeManager(edgeManagerContext);
         break;
       case SCATTER_GATHER:
-        edgeManagerContext = new EdgeManagerContextImpl(null);
+        edgeManagerContext = new EdgeManagerPluginContextImpl(new UserPayload(null));
         edgeManager = new ScatterGatherEdgeManager(edgeManagerContext);
         break;
       case CUSTOM:
         if (edgeProperty.getEdgeManagerDescriptor() != null) {
-          byte []bb = null;
-          if (edgeProperty.getEdgeManagerDescriptor().getUserPayload() != null) {
-            bb = edgeProperty.getEdgeManagerDescriptor().getUserPayload();
+          UserPayload payload = null;
+          if (edgeProperty.getEdgeManagerDescriptor().getUserPayload() != null &&
+              edgeProperty.getEdgeManagerDescriptor().getUserPayload().hasPayload()) {
+            payload = edgeProperty.getEdgeManagerDescriptor().getUserPayload();
+          } else {
+            payload = new UserPayload(null);
           }
-          edgeManagerContext = new EdgeManagerContextImpl(bb);
+          edgeManagerContext = new EdgeManagerPluginContextImpl(payload);
           String edgeManagerClassName = edgeProperty.getEdgeManagerDescriptor().getClassName();
           edgeManager = ReflectionUtils
               .createClazzInstance(edgeManagerClassName, new Class[]{EdgeManagerPluginContext.class},

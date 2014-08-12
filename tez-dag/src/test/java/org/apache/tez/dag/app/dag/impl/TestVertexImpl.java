@@ -73,6 +73,7 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -214,7 +215,7 @@ public class TestVertexImpl {
 
     @Override
     public void initialize() throws IOException {
-      if (getContext().getUserPayload() != null) {
+      if (getContext().getUserPayload().hasPayload()) {
         CountingOutputCommitterConfig conf =
             new CountingOutputCommitterConfig(getContext().getUserPayload());
         this.throwError = conf.throwError;
@@ -269,8 +270,8 @@ public class TestVertexImpl {
         this.throwRuntimeException = throwRuntimeException;
       }
 
-      public CountingOutputCommitterConfig(byte[] payload) throws IOException {
-        DataInput in = new DataInputStream(new ByteArrayInputStream(payload));
+      public CountingOutputCommitterConfig(UserPayload payload) throws IOException {
+        DataInput in = new DataInputStream(new ByteArrayInputStream(payload.getPayload()));
         this.readFields(in);
       }
 
@@ -1892,10 +1893,10 @@ public class TestVertexImpl {
 
     List<TezEvent> taskEvents = Lists.newLinkedList();
     TezEvent tezEvent1 = new TezEvent(
-        new CompositeDataMovementEvent(0, 1, new byte[0]), 
+        new CompositeDataMovementEvent(0, 1, new byte[0]),
         new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex2", "vertex3", ta0_t0_v2));
     TezEvent tezEvent2 = new TezEvent(
-        new DataMovementEvent(0, new byte[0]), 
+        new DataMovementEvent(0, new byte[0]),
         new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex2", "vertex3", ta0_t0_v2));
     taskEvents.add(tezEvent1);
     taskEvents.add(tezEvent2);
@@ -1923,7 +1924,7 @@ public class TestVertexImpl {
     Assert.assertTrue(Arrays.equals(edgePayload, originalEm.getEdgeManagerContext()
         .getUserPayload()));
 
-    byte[] userPayload = new String("foo").getBytes();
+    UserPayload userPayload = new UserPayload(new String("foo").getBytes());
     EdgeManagerPluginDescriptor edgeManagerDescriptor =
         new EdgeManagerPluginDescriptor(EdgeManagerForTest.class.getName());
     edgeManagerDescriptor.setUserPayload(userPayload);
@@ -1945,7 +1946,7 @@ public class TestVertexImpl {
     Assert.assertTrue(modifiedEdgeManager instanceof EdgeManagerForTest);
 
     // Ensure initialize() is called with the correct payload
-    Assert.assertTrue(Arrays.equals(userPayload,
+    Assert.assertTrue(Arrays.equals(userPayload.getPayload(),
         ((EdgeManagerForTest) modifiedEdgeManager).getUserPayload()));
   }
 
@@ -2964,7 +2965,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
     Assert.assertEquals(true, initializerManager1.hasShutDown);
     Assert.assertEquals(2, v1.getTotalTasks());
-    Assert.assertEquals(payload, v1.getInputSpecList(0).get(0).getInputDescriptor().getUserPayload());
+    Assert.assertEquals(payload, v1.getInputSpecList(0).get(0).getInputDescriptor().getUserPayload().getPayload());
     EdgeManagerPluginDescriptor mockEdgeManagerDescriptor =
         new EdgeManagerPluginDescriptor(EdgeManagerForTest.class.getName());
     Edge e = v2.sourceVertices.get(v1);
@@ -3256,8 +3257,7 @@ public class TestVertexImpl {
           targetTasks, locationHints, null);
       events.add(configEvent);
       for (int i = 0; i < targetTasks; i++) {
-        InputDataInformationEvent diEvent = new InputDataInformationEvent(
-            i, null);
+        InputDataInformationEvent diEvent = new InputDataInformationEvent(i, null);
         events.add(diEvent);
       }
       eventHandler.handle(new VertexEventRootInputInitialized(vertexID, inputs
@@ -3422,7 +3422,7 @@ public class TestVertexImpl {
     public void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor,
         List<Event> events) {
       Map<String, InputSpecUpdate> map = new HashMap<String, InputSpecUpdate>();
-      if (getContext().getUserPayload()[0] == 0) {
+      if (getContext().getUserPayload().getPayload()[0] == 0) {
         map.put("input3", InputSpecUpdate.createAllTaskInputSpecUpdate(4));
       } else {
         List<Integer> pInputList = new LinkedList<Integer>();

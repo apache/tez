@@ -27,6 +27,7 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.utils.EnvironmentUpdateUtils;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
@@ -233,7 +234,7 @@ public class TestOnFileSortedOutput {
 
   private OutputContext createTezOutputContext() throws IOException {
     String[] workingDirs = { workingDir.toString() };
-    byte[] payLoad = TezUtils.createUserPayloadFromConf(conf);
+    UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
     DataOutputBuffer serviceProviderMetaData = new DataOutputBuffer();
     serviceProviderMetaData.writeInt(PORT);
 

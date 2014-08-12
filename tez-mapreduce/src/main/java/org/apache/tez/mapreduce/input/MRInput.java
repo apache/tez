@@ -41,6 +41,7 @@ import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.common.MRInputSplitDistributor;
@@ -207,8 +208,7 @@ public class MRInput extends MRInputBase {
       }
       MRHelpers.translateVertexConfToTez(inputConf);
       MRHelpers.doJobClientMagic(inputConf);
-      byte[] payload = MRInputHelpersInternal.createMRInputPayload(inputConf,
-          inputSplitInfo.getSplitsProto());
+      UserPayload payload = MRInputHelpersInternal.createMRInputPayload(inputConf, inputSplitInfo.getSplitsProto());
       Credentials credentials = null;
       if (getCredentialsForSourceFilesystem && inputSplitInfo.getCredentials() != null) {
         credentials = inputSplitInfo.getCredentials();
@@ -229,7 +229,7 @@ public class MRInput extends MRInputBase {
 
       Credentials credentials = maybeGetCredentials();
 
-      byte[] payload = null;
+      UserPayload payload = null;
       if (groupSplitsInAM) {
         payload = MRInputHelpersInternal.createMRInputPayloadWithGrouping(inputConf);
       } else {
@@ -248,7 +248,7 @@ public class MRInput extends MRInputBase {
       
       Credentials credentials = maybeGetCredentials();
 
-      byte[] payload = null;
+      UserPayload payload = null;
       if (groupSplitsInAM) {
         payload = MRInputHelpersInternal.createMRInputPayloadWithGrouping(inputConf);
       } else {
@@ -512,12 +512,12 @@ public class MRInput extends MRInputBase {
 
   private static class MRInputHelpersInternal extends MRInputHelpers {
 
-    protected static byte[] createMRInputPayloadWithGrouping(Configuration conf) throws
+    protected static UserPayload createMRInputPayloadWithGrouping(Configuration conf) throws
         IOException {
       return MRInputHelpers.createMRInputPayloadWithGrouping(conf);
     }
 
-    protected static byte[] createMRInputPayload(Configuration conf,
+    protected static UserPayload createMRInputPayload(Configuration conf,
                                                  MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
         IOException {
       return MRInputHelpers.createMRInputPayload(conf, mrSplitsProto);

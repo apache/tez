@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputContext;
@@ -40,9 +41,12 @@ public class TestOutput extends AbstractLogicalOutput {
     super(outputContext, numPhysicalOutputs);
   }
 
-  public static OutputDescriptor getOutputDesc(byte[] payload) {
-    return new OutputDescriptor(TestOutput.class.getName()).
-        setUserPayload(payload);
+  public static OutputDescriptor getOutputDesc(UserPayload payload) {
+    OutputDescriptor desc = new OutputDescriptor(TestOutput.class.getName());
+    if (payload != null) {
+      desc.setUserPayload(payload);
+    }
+    return desc;
   }
   
   int output;

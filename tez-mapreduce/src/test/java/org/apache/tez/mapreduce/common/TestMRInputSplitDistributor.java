@@ -18,6 +18,8 @@
 
 package org.apache.tez.mapreduce.common;
 
+import org.apache.tez.dag.api.UserPayload;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -66,7 +68,7 @@ public class TestMRInputSplitDistributor {
     MRInputUserPayloadProto.Builder payloadProto = MRInputUserPayloadProto.newBuilder();
     payloadProto.setSplits(splitsProtoBuilder.build());
     payloadProto.setConfigurationBytes(confByteString);
-    byte[] userPayload = payloadProto.build().toByteArray();
+    UserPayload userPayload = new UserPayload(payloadProto.build().toByteArray());
 
     InputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
     MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
@@ -114,7 +116,7 @@ public class TestMRInputSplitDistributor {
     MRInputUserPayloadProto.Builder payloadProto = MRInputUserPayloadProto.newBuilder();
     payloadProto.setSplits(splitsProtoBuilder.build());
     payloadProto.setConfigurationBytes(confByteString);
-    byte[] userPayload = payloadProto.build().toByteArray();
+    UserPayload userPayload = new UserPayload(payloadProto.build().toByteArray());
 
     InputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
     MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
@@ -146,11 +148,11 @@ public class TestMRInputSplitDistributor {
       InputInitializerContext {
 
     private final ApplicationId appId;
-    private final byte[] payload;
+    private final UserPayload payload;
 
-    TezRootInputInitializerContextForTest(byte[] payload) throws IOException {
+    TezRootInputInitializerContextForTest(UserPayload payload) throws IOException {
       appId = ApplicationId.newInstance(1000, 200);
-      this.payload = payload;
+      this.payload = payload == null ? new UserPayload(null) : payload;
     }
 
     @Override
@@ -169,7 +171,7 @@ public class TestMRInputSplitDistributor {
     }
 
     @Override
-    public byte[] getInputUserPayload() {
+    public UserPayload getInputUserPayload() {
       return payload;
     }
 
@@ -204,7 +206,7 @@ public class TestMRInputSplitDistributor {
     }
 
     @Override
-    public byte[] getUserPayload() {
+    public UserPayload getUserPayload() {
       throw new UnsupportedOperationException("getUserPayload not implemented in this mock");
     }
 

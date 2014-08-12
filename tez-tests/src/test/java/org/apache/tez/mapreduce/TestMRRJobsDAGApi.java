@@ -89,6 +89,7 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
@@ -185,7 +186,7 @@ public class TestMRRJobsDAGApi {
 
     DAG dag = new DAG("TezSleepProcessor");
     Vertex vertex = new Vertex("SleepVertex", new ProcessorDescriptor(
-        SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
+        SleepProcessor.class.getName()).setUserPayload(new UserPayload(spConf.toUserPayload())), 1,
         Resource.newInstance(1024, 1));
     dag.addVertex(vertex);
 
@@ -234,7 +235,7 @@ public class TestMRRJobsDAGApi {
       for (int dagIndex = 1; dagIndex <= 2; dagIndex++) {
         DAG dag = new DAG("TezSleepProcessor");
         Vertex vertex = new Vertex("SleepVertex", new ProcessorDescriptor(
-            SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
+            SleepProcessor.class.getName()).setUserPayload(new UserPayload(spConf.toUserPayload())), 1,
             Resource.newInstance(1024, 1));
         dag.addVertex(vertex);
 
@@ -273,7 +274,7 @@ public class TestMRRJobsDAGApi {
 
     DAG dag = new DAG("TezSleepProcessor");
     Vertex vertex = new Vertex("SleepVertex", new ProcessorDescriptor(
-        SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
+        SleepProcessor.class.getName()).setUserPayload(new UserPayload(spConf.toUserPayload())), 1,
         Resource.newInstance(1024, 1));
     dag.addVertex(vertex);
 
@@ -315,7 +316,7 @@ public class TestMRRJobsDAGApi {
 
     DAG dag = new DAG("TezSleepProcessorHistoryLogging");
     Vertex vertex = new Vertex("SleepVertex", new ProcessorDescriptor(
-        SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 2,
+        SleepProcessor.class.getName()).setUserPayload(new UserPayload(spConf.toUserPayload())), 2,
         Resource.newInstance(1024, 1));
     dag.addVertex(vertex);
 
@@ -652,9 +653,9 @@ public class TestMRRJobsDAGApi {
         .valueOf(new Random().nextInt(100000))));
     TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
 
-    byte[] stage1Payload = MRHelpers.createUserPayloadFromConf(stage1Conf);
-    byte[] stage2Payload = MRHelpers.createUserPayloadFromConf(stage2Conf);
-    byte[] stage3Payload = MRHelpers.createUserPayloadFromConf(stage3Conf);
+    UserPayload stage1Payload = MRHelpers.createUserPayloadFromConf(stage1Conf);
+    UserPayload stage2Payload = MRHelpers.createUserPayloadFromConf(stage2Conf);
+    UserPayload stage3Payload = MRHelpers.createUserPayloadFromConf(stage3Conf);
     
     DAG dag = new DAG("testMRRSleepJobDagSubmit-" + random.nextInt(1000));
 

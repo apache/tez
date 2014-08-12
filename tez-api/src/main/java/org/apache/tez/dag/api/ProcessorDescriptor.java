@@ -20,7 +20,7 @@ package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
-public class ProcessorDescriptor extends TezEntityDescriptor<ProcessorDescriptor> {
+public class ProcessorDescriptor extends EntityDescriptor<ProcessorDescriptor> {
 
   @Private // for Writable
   public ProcessorDescriptor() {

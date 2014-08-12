@@ -25,6 +25,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.runtime.api.InputInitializerContext;
@@ -65,12 +66,12 @@ public class TezRootInputInitializerContextImpl implements
   }
 
   @Override
-  public byte[] getInputUserPayload() {
+  public UserPayload getInputUserPayload() {
     return this.input.getIODescriptor().getUserPayload();
   }
   
   @Override
-  public byte[] getUserPayload() {
+  public UserPayload getUserPayload() {
     return this.input.getControllerDescriptor().getUserPayload();
   }
   

@@ -56,6 +56,7 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -395,7 +396,7 @@ public class TestTaskExecution {
 
     @Override
     public void initialize() throws Exception {
-      parseConf(getContext().getUserPayload());
+      parseConf(getContext().getUserPayload().getPayload());
     }
 
     private void parseConf(byte[] bytes) {
@@ -692,7 +693,7 @@ public class TestTaskExecution {
     TezTaskID taskId = TezTaskID.getInstance(vertexId, 1);
     TezTaskAttemptID taskAttemptId = TezTaskAttemptID.getInstance(taskId, 1);
     ProcessorDescriptor processorDescriptor = new ProcessorDescriptor(processorClass)
-        .setUserPayload(processorConf);
+        .setUserPayload(new UserPayload(processorConf));
     TaskSpec taskSpec = new TaskSpec(taskAttemptId, "dagName", "vertexName", processorDescriptor,
         new ArrayList<InputSpec>(), new ArrayList<OutputSpec>(), null);
 

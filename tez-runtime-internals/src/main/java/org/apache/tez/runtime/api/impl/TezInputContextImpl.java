@@ -31,11 +31,10 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezUserPayload;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.RuntimeTask;
@@ -49,7 +48,7 @@ import org.apache.tez.runtime.common.resources.MemoryDistributor;
 public class TezInputContextImpl extends TezTaskContextImpl
     implements InputContext {
 
-  private final TezUserPayload userPayload;
+  private final UserPayload userPayload;
   private final String sourceVertexName;
   private final EventMetaData sourceInfo;
   private final int inputIndex;
@@ -61,7 +60,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
                              int appAttemptNumber,
                              TezUmbilical tezUmbilical, String dagName, String taskVertexName,
                              String sourceVertexName, TezTaskAttemptID taskAttemptID,
-                             TezCounters counters, int inputIndex, @Nullable byte[] userPayload,
+                             TezCounters counters, int inputIndex, @Nullable UserPayload userPayload,
                              RuntimeTask runtimeTask,
                              Map<String, ByteBuffer> serviceConsumerMetadata,
                              Map<String, String> auxServiceEnv, MemoryDistributor memDist,
@@ -75,7 +74,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
     checkNotNull(sourceVertexName, "sourceVertexName is null");
     checkNotNull(inputs, "input map is null");
     checkNotNull(inputReadyTracker, "inputReadyTracker is null");
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
+    this.userPayload = userPayload == null ? new UserPayload(null) : userPayload;
     this.inputIndex = inputIndex;
     this.sourceVertexName = sourceVertexName;
     this.sourceInfo = new EventMetaData(
@@ -106,10 +105,9 @@ public class TezInputContextImpl extends TezTaskContextImpl
     tezUmbilical.addEvents(tezEvents);
   }
 
-  @Nullable
   @Override
-  public byte[] getUserPayload() {
-    return userPayload.getPayload();
+  public UserPayload getUserPayload() {
+    return userPayload;
   }
   
   @Override

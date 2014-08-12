@@ -18,11 +18,10 @@
 
 package org.apache.tez.runtime.api;
 
-import javax.annotation.Nullable;
-
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.dag.api.UserPayload;
 
 /**
  * A context that provides information to the {@link InputInitializer}
@@ -52,13 +51,13 @@ public interface InputInitializerContext {
    * Get the user payload for the input
    * @return User payload
    */
-  @Nullable byte[] getInputUserPayload();
+  UserPayload getInputUserPayload();
   
   /**
    * Get the user payload for the initializer
    * @return User payload
    */
-  @Nullable byte[] getUserPayload();
+  UserPayload getUserPayload();
   
   /**
    * Get the number of tasks in this vertex. Maybe -1 if the vertex has not been

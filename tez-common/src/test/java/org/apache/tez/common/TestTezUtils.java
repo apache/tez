@@ -22,6 +22,7 @@ import java.util.BitSet;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.dag.api.UserPayload;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -44,7 +45,7 @@ public class TestTezUtils {
   public void testPayloadToAndFromConf() throws IOException {
     Configuration conf = getConf();
     Assert.assertEquals(conf.size(), 6);
-    byte[] bConf = TezUtils.createUserPayloadFromConf(conf);
+    UserPayload bConf = TezUtils.createUserPayloadFromConf(conf);
     conf.clear();
     Assert.assertEquals(conf.size(), 0);
     conf = TezUtils.createConfFromUserPayload(bConf);

@@ -40,6 +40,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezYARNUtils;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -338,7 +339,7 @@ public class MRHelpers {
 
   @LimitedPrivate("Hive, Pig")
   @Unstable
-  public static byte[] createUserPayloadFromConf(Configuration conf)
+  public static UserPayload createUserPayloadFromConf(Configuration conf)
       throws IOException {
     return TezUtils.createUserPayloadFromConf(conf);
   }
@@ -351,9 +352,9 @@ public class MRHelpers {
 
   @LimitedPrivate("Hive, Pig")
   @Unstable
-  public static Configuration createConfFromUserPayload(byte[] bb)
+  public static Configuration createConfFromUserPayload(UserPayload payload)
       throws IOException {
-    return TezUtils.createConfFromUserPayload(bb);
+    return TezUtils.createConfFromUserPayload(payload);
   }
 
   @LimitedPrivate("Hive, Pig")
@@ -361,7 +362,6 @@ public class MRHelpers {
       throws IOException {
     return TezUtils.createConfFromByteString(bs);
   }
-
 
   /**
    * Extract the map task's container resource requirements from the

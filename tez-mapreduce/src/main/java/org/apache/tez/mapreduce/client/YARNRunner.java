@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import com.google.common.collect.Maps;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -90,6 +91,7 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -411,9 +413,8 @@ public class YARNRunner implements ClientProtocol {
     
     stageConf.set(MRJobConfig.MROUTPUT_FILE_NAME_PREFIX, "part");
     
-    byte[] vertexUserPayload = MRHelpers.createUserPayloadFromConf(stageConf);
-    Vertex vertex = new Vertex(vertexName, new ProcessorDescriptor(processorName).
-        setUserPayload(vertexUserPayload),
+    UserPayload vertexUserPayload = MRHelpers.createUserPayloadFromConf(stageConf);
+    Vertex vertex = new Vertex(vertexName, new ProcessorDescriptor(processorName).setUserPayload(vertexUserPayload),
         numTasks, taskResource);
     if (isMap) {
       vertex.addDataSource("MRInput",
@@ -807,7 +808,7 @@ public class YARNRunner implements ClientProtocol {
 
   private static class MRInputHelpersInternal extends MRInputHelpers {
 
-    protected static byte[] createMRInputPayload(Configuration conf,
+    protected static UserPayload createMRInputPayload(Configuration conf,
                                                  MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
         IOException {
       return MRInputHelpers.createMRInputPayload(conf, mrSplitsProto);
