@@ -175,6 +175,12 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
   public void setShouldUnregister() {
   }
 
+  @Override
+  public boolean hasUnregistered() {
+    // Should always return true as no multiple attempts in local mode
+    return true;
+  }
+
   static class LocalContainerFactory {
     final AppContext appContext;
     AtomicInteger nextId;
