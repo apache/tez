@@ -1548,13 +1548,14 @@ public class DAGAppMaster extends AbstractService {
     boolean deleteTezScratchData = this.amConf.getBoolean(
         TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE,
         TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE_DEFAULT);
-    LOG.info("Checking whether tez scratch data dir should be deleted, deleteTezScratchData="
-        + deleteTezScratchData);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Checking whether tez scratch data dir should be deleted, deleteTezScratchData="
+          + deleteTezScratchData);
+    }
     if (deleteTezScratchData && this.taskSchedulerEventHandler != null
         && this.taskSchedulerEventHandler.hasUnregistered()) {
       // Delete tez scratch data dir
       if (this.tezSystemStagingDir != null) {
-        LOG.info("Deleting tez scratch data dir, path=" + this.tezSystemStagingDir);
         try {
           FileSystem fs = this.tezSystemStagingDir.getFileSystem(this.amConf);
           boolean deletedStagingDir = fs.delete(this.tezSystemStagingDir, true);
