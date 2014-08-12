@@ -383,13 +383,13 @@ public class TezChild {
   }
 
   public static TezChild newTezChild(Configuration conf, String host, int port, String containerIdentifier,
-      String tokenIdentifier, int attemptNumber, String[] localDirs)
+      String tokenIdentifier, int attemptNumber, String[] localDirs, String workingDirectory)
       throws IOException, InterruptedException, TezException {
 
     // Pull in configuration specified for the session.
     // TODO TEZ-1233. This needs to be moved over the wire rather than localizing the file
     // for each and every task, and reading it back from disk. Also needs to be per vertex.
-    TezUtils.addUserSpecifiedTezConfiguration(conf);
+    TezUtils.addUserSpecifiedTezConfiguration(workingDirectory, conf);
     UserGroupInformation.setConfiguration(conf);
     Limits.setConfiguration(conf);
 
@@ -428,7 +428,7 @@ public class TezChild {
     final String[] localDirs = StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS
         .name()));
     TezChild tezChild = newTezChild(defaultConf, host, port, containerIdentifier,
-        tokenIdentifier, attemptNumber, localDirs);
+        tokenIdentifier, attemptNumber, localDirs, System.getenv(Environment.PWD.name()));
     tezChild.run();
   }
 

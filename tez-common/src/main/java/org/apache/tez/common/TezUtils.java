@@ -57,11 +57,13 @@ public class TezUtils {
   private static final Log LOG = LogFactory.getLog(TezUtils.class);
   private static final Random RANDOM = new Random();
 
-  public static void addUserSpecifiedTezConfiguration(Configuration conf) throws IOException {
+  public static void addUserSpecifiedTezConfiguration(String baseDir, Configuration conf) throws
+      IOException {
     FileInputStream confPBBinaryStream = null;
     ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
     try {
-      confPBBinaryStream = new FileInputStream(new File(TezConfiguration.TEZ_PB_BINARY_CONF_NAME).getAbsolutePath());
+      confPBBinaryStream =
+          new FileInputStream(new File(baseDir, TezConfiguration.TEZ_PB_BINARY_CONF_NAME));
       confProtoBuilder.mergeFrom(confPBBinaryStream);
     } finally {
       if (confPBBinaryStream != null) {

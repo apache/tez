@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.log4j.Logger;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -219,11 +220,10 @@ public class LocalClient extends FrameworkClient {
 
           // Set up working directory for DAGAppMaster
           Path userDir = TezCommonUtils.getTezSystemStagingPath(conf, appId.toString());
-          LOG.info("Setting current directory: " + userDir.toUri().getPath());
-          System.setProperty("user.dir", userDir.toUri().getPath());
+          LOG.info("Using staging directory: " + userDir.toUri().getPath());
+
           FileSystem fs = FileSystem.get(conf);
           fs.mkdirs(userDir);
-          fs.setWorkingDirectory(userDir);
 
           // Prepare Environment
           Path logDir = new Path(userDir, "localmode-log-dir");
@@ -255,7 +255,10 @@ public class LocalClient extends FrameworkClient {
           int nmHttpPort = YarnConfiguration.DEFAULT_NM_WEBAPP_PORT;
           long appSubmitTime = System.currentTimeMillis();
 
-          dagAppMaster = new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort, appSubmitTime, isSession);
+          dagAppMaster =
+              new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
+                  new SystemClock(),
+                  appSubmitTime, isSession, userDir.toUri().getPath());
           clientHandler = new DAGClientHandler(dagAppMaster);
           DAGAppMaster.initAndStartAppMaster(dagAppMaster, currentUser.getShortUserName());
 

@@ -197,6 +197,7 @@ public class DAGAppMaster extends AbstractService {
   private final String nmHost;
   private final int nmPort;
   private final int nmHttpPort;
+  private final String workingDirectory;
   private ContainerSignatureMatcher containerSignatureMatcher;
   private AMContainerMap containers;
   private AMNodeMap nodes;
@@ -265,14 +266,7 @@ public class DAGAppMaster extends AbstractService {
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      long appSubmitTime, boolean isSession) {
-    this(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort,
-        new SystemClock(), appSubmitTime, isSession);
-  }
-
-  public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
-      ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      Clock clock, long appSubmitTime, boolean isSession) {
+      Clock clock, long appSubmitTime, boolean isSession, String workingDirectory) {
     super(DAGAppMaster.class.getName());
     this.clock = clock;
     this.startTime = clock.getTime();
@@ -284,6 +278,7 @@ public class DAGAppMaster extends AbstractService {
     this.nmHttpPort = nmHttpPort;
     this.state = DAGAppMasterState.NEW;
     this.isSession = isSession;
+    this.workingDirectory = workingDirectory;
     // TODO Metrics
     //this.metrics = DAGAppMetrics.create();
     LOG.info("Created DAGAppMaster for application " + applicationAttemptId);
@@ -402,7 +397,7 @@ public class DAGAppMaster extends AbstractService {
       FileInputStream sessionResourcesStream = null;
       try {
         sessionResourcesStream = new FileInputStream(
-          new File(TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME).getAbsolutePath());
+          new File(workingDirectory, TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME));
         PlanLocalResourcesProto sessionLocalResourcesProto =
           PlanLocalResourcesProto.parseDelimitedFrom(sessionResourcesStream);
         PlanLocalResourcesProto amLocalResourceProto = PlanLocalResourcesProto
@@ -816,7 +811,7 @@ public class DAGAppMaster extends AbstractService {
   protected ContainerLauncher
       createContainerLauncher(final AppContext context) throws UnknownHostException {
     if(isLocal){
-      return new LocalContainerLauncher(context, taskAttemptListener);
+      return new LocalContainerLauncher(context, taskAttemptListener, workingDirectory);
     } else {
       return new ContainerLauncherImpl(context);
     }
@@ -1707,8 +1702,9 @@ public class DAGAppMaster extends AbstractService {
       DAGAppMaster appMaster =
           new DAGAppMaster(applicationAttemptId, containerId, nodeHostString,
               Integer.parseInt(nodePortString),
-              Integer.parseInt(nodeHttpPortString), appSubmitTime,
-              cliParser.hasOption(TezConstants.TEZ_SESSION_MODE_CLI_OPTION));
+              Integer.parseInt(nodeHttpPortString), new SystemClock(), appSubmitTime,
+              cliParser.hasOption(TezConstants.TEZ_SESSION_MODE_CLI_OPTION),
+              System.getenv(Environment.PWD.name()));
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 
@@ -1772,8 +1768,8 @@ public class DAGAppMaster extends AbstractService {
       DAGPlan dagPlan = null;
 
       // Read the protobuf DAG
-      dagPBBinaryStream = new FileInputStream(new File(
-          TezConfiguration.TEZ_PB_PLAN_BINARY_NAME).getAbsolutePath());
+      dagPBBinaryStream = new FileInputStream(new File(workingDirectory,
+          TezConfiguration.TEZ_PB_PLAN_BINARY_NAME));
       dagPlan = DAGPlan.parseFrom(dagPBBinaryStream);
 
       startDAG(dagPlan, null);
@@ -1870,7 +1866,7 @@ public class DAGAppMaster extends AbstractService {
       InterruptedException {
 
     final Configuration conf = new Configuration(new YarnConfiguration());
-    TezUtils.addUserSpecifiedTezConfiguration(conf);
+    TezUtils.addUserSpecifiedTezConfiguration(appMaster.workingDirectory, conf);
 
     // Do not automatically close FileSystem objects so that in case of
     // SIGTERM I have a chance to write out the job history. I'll be closing
