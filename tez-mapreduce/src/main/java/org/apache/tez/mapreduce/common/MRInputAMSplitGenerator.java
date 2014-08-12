@@ -30,6 +30,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfoMem;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
@@ -59,7 +60,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
     if (LOG.isDebugEnabled()) {
       sw = new Stopwatch().start();
     }
-    MRInputUserPayloadProto userPayloadProto = MRHelpers
+    MRInputUserPayloadProto userPayloadProto = MRInputHelpers
         .parseMRInputPayload(getContext().getInputUserPayload());
     if (LOG.isDebugEnabled()) {
       sw.stop();
@@ -105,9 +106,9 @@ public class MRInputAMSplitGenerator extends InputInitializer {
     boolean groupSplits = userPayloadProto.getGroupingEnabled();
     if (groupSplits) {
       LOG.info("Grouping input splits");
-      inputSplitInfo = MRHelpers.generateInputSplitsToMem(jobConf, true, numTasks);
+      inputSplitInfo = MRInputHelpers.generateInputSplitsToMem(jobConf, true, numTasks);
     } else {
-      inputSplitInfo = MRHelpers.generateInputSplitsToMem(jobConf, false, 0);
+      inputSplitInfo = MRInputHelpers.generateInputSplitsToMem(jobConf, false, 0);
     }
     if (LOG.isDebugEnabled()) {
       sw.stop();

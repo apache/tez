@@ -42,7 +42,7 @@ public class Vertex {
   private int parallelism;
   private VertexLocationHint locationHint;
   private Resource taskResource;
-  private Map<String, LocalResource> taskLocalResources = new HashMap<String, LocalResource>();
+  private final Map<String, LocalResource> taskLocalResources = new HashMap<String, LocalResource>();
   private Map<String, String> taskEnvironment = new HashMap<String, String>();
   private final List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs 
                       = new ArrayList<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>();
@@ -192,7 +192,7 @@ public class Vertex {
   /**
    * Specify location hints for the tasks of this vertex. Hints must be specified 
    * for all tasks as defined by the parallelism
-   * @param locations list of locations for each task in the vertex
+   * @param locationHint list of locations for each task in the vertex
    * @return this Vertex
    */
   public Vertex setLocationHint(VertexLocationHint locationHint) {
@@ -220,10 +220,8 @@ public class Vertex {
    * @return this Vertex
    */
   public Vertex setTaskLocalFiles(Map<String, LocalResource> localFiles) {
-    if (localFiles == null) {
-      this.taskLocalResources = new HashMap<String, LocalResource>();
-    } else {
-      this.taskLocalResources = localFiles;
+    if (localFiles != null) {
+      this.taskLocalResources.putAll(localFiles);
     }
     return this;
   }
@@ -401,7 +399,19 @@ public class Vertex {
   public List<Vertex> getOutputVertices() {
     return Collections.unmodifiableList(outputVertices);
   }
-  
+
+  void addAdditionalLocalResources(Map<String, LocalResource> additionalLrs) {
+    if (additionalLrs != null && !additionalLrs.isEmpty()) {
+      for (Map.Entry<String, LocalResource> lr : additionalLrs.entrySet()) {
+        if (taskLocalResources.containsKey(lr.getKey())) {
+          throw new TezUncheckedException("Attempting to add duplicate resource: " + lr.getKey());
+        } else {
+          taskLocalResources.put(lr.getKey(), lr.getValue());
+        }
+      }
+    }
+  }
+
   /**
    * Set the cpu/memory etc resources used by tasks of this vertex
    * @param resource {@link Resource} for the tasks of this vertex

@@ -76,6 +76,7 @@ import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.counters.FileSystemCounter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -89,7 +90,6 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -105,9 +105,11 @@ import org.apache.tez.mapreduce.examples.MRRSleepJob.SleepInputFormat;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.SleepMapper;
 import org.apache.tez.mapreduce.examples.MRRSleepJob.SleepReducer;
 import org.apache.tez.mapreduce.examples.UnionExample;
-import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+import org.apache.tez.mapreduce.input.MRInputLegacy;
+import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
@@ -637,8 +639,6 @@ public class TestMRRJobsDAGApi {
         IntWritable.class.getName());
     stage3Conf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
         IntWritable.class.getName());
-    stage3Conf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
-        NullOutputFormat.class.getName());
 
     MRHelpers.translateVertexConfToTez(stage1Conf);
     MRHelpers.translateVertexConfToTez(stage2Conf);
@@ -651,53 +651,47 @@ public class TestMRRJobsDAGApi {
     Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String
         .valueOf(new Random().nextInt(100000))));
     TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
-    InputSplitInfo inputSplitInfo = null;
-    if (!genSplitsInAM) {
-      inputSplitInfo = MRHelpers.generateInputSplits(stage1Conf,
-        remoteStagingDir);
-    }
 
     byte[] stage1Payload = MRHelpers.createUserPayloadFromConf(stage1Conf);
     byte[] stage2Payload = MRHelpers.createUserPayloadFromConf(stage2Conf);
-    byte[] stage1InputPayload = MRHelpers.createMRInputPayload(stage1Payload);
     byte[] stage3Payload = MRHelpers.createUserPayloadFromConf(stage3Conf);
     
     DAG dag = new DAG("testMRRSleepJobDagSubmit-" + random.nextInt(1000));
-    int stage1NumTasks = genSplitsInAM ? -1 : inputSplitInfo.getNumTasks();
+
     Class<? extends InputInitializer> inputInitializerClazz =
-        genSplitsInAM ? (initializerClass == null ? MRInputAMSplitGenerator.class : initializerClass)
-        : null;
+        genSplitsInAM ?
+            (initializerClass == null ? MRInputAMSplitGenerator.class : initializerClass)
+            : null;
     LOG.info("Using initializer class: " + initializerClass);
+
+
+    DataSourceDescriptor dsd;
+    if (!genSplitsInAM) {
+      dsd = MRInputHelpers
+          .configureMRInputWithLegacySplitGeneration(stage1Conf, remoteStagingDir, true);
+    } else {
+      if (initializerClass == null) {
+        dsd = MRInputLegacy.createConfigurer(stage1Conf, SleepInputFormat.class).create();
+      } else {
+        InputInitializerDescriptor iid = new InputInitializerDescriptor(inputInitializerClazz.getName());
+        dsd = MRInputLegacy.createConfigurer(stage1Conf, SleepInputFormat.class)
+            .setCustomInitializerDescriptor(iid).create();
+      }
+    }
+
     Vertex stage1Vertex = new Vertex("map", new ProcessorDescriptor(
         MapProcessor.class.getName()).setUserPayload(stage1Payload),
-        stage1NumTasks, Resource.newInstance(256, 1));
-    MRHelpers.addMRInput(stage1Vertex, stage1InputPayload, 
-        (inputInitializerClazz==null) ? null : 
-          new InputInitializerDescriptor(inputInitializerClazz.getName()));
+        dsd.getNumberOfShards(), Resource.newInstance(256, 1));
+    stage1Vertex.addDataSource("MRInput", dsd);
     Vertex stage2Vertex = new Vertex("ireduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName()).setUserPayload(stage2Payload),
         1, Resource.newInstance(256, 1));
     Vertex stage3Vertex = new Vertex("reduce", new ProcessorDescriptor(
         ReduceProcessor.class.getName()).setUserPayload(stage3Payload),
         1, Resource.newInstance(256, 1));
-    MRHelpers.addMROutputLegacy(stage3Vertex, stage3Payload);
+    stage3Vertex.addDataSink("MROutput",
+        MROutputLegacy.createConfigurer(stage3Conf, NullOutputFormat.class).create());
 
-    if (!genSplitsInAM) {
-      // TODO Use utility method post TEZ-205.
-      Map<String, LocalResource> stage1LocalResources = new HashMap<String, LocalResource>();
-      stage1LocalResources.put(
-          inputSplitInfo.getSplitsFile().getName(),
-          createLocalResource(remoteFs, inputSplitInfo.getSplitsFile(),
-              LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
-      stage1LocalResources.put(
-          inputSplitInfo.getSplitsMetaInfoFile().getName(),
-          createLocalResource(remoteFs, inputSplitInfo.getSplitsMetaInfoFile(),
-              LocalResourceType.FILE, LocalResourceVisibility.APPLICATION));
-
-      stage1Vertex.setTaskLocalFiles(stage1LocalResources);
-      stage1Vertex.setLocationHint(new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
-    }
-    
     // TODO env, resources
 
     dag.addVertex(stage1Vertex);
@@ -873,7 +867,7 @@ public class TestMRRJobsDAGApi {
 
     @Override
     public List<Event> initialize()  throws Exception {
-      MRInputUserPayloadProto userPayloadProto = MRHelpers
+      MRInputUserPayloadProto userPayloadProto = MRInputHelpers
           .parseMRInputPayload(getContext().getInputUserPayload());
       Configuration conf = MRHelpers.createConfFromByteString(userPayloadProto
           .getConfigurationBytes());

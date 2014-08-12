@@ -20,7 +20,11 @@ package org.apache.tez.dag.api;
 
 import javax.annotation.Nullable;
 
+import java.util.Map;
+
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
@@ -36,6 +40,7 @@ public class DataSourceDescriptor {
   private final Credentials credentials;
   private final int numShards;
   private final VertexLocationHint locationHint;
+  private final Map<String, LocalResource> additionalLocalResources;
 
   /**
    * Create a {@link DataSourceDescriptor} when the data shard calculation 
@@ -43,7 +48,7 @@ public class DataSourceDescriptor {
    * @param inputDescriptor
    *          An {@link InputDescriptor} for the Input
    * @param credentials Credentials needed to access the data
-   * @param inputInitializerDescriptor
+   * @param initializerDescriptor
    *          An initializer for this Input which may run within the AM. This
    *          can be used to set the parallelism for this vertex and generate
    *          {@link InputDataInformationEvent}s for the actual Input.</p>
@@ -56,35 +61,42 @@ public class DataSourceDescriptor {
   public DataSourceDescriptor(InputDescriptor inputDescriptor,
       @Nullable InputInitializerDescriptor initializerDescriptor, 
       @Nullable Credentials credentials) {
-    this(inputDescriptor, initializerDescriptor, -1, credentials, null);
+    this(inputDescriptor, initializerDescriptor, -1, credentials, null, null);
   }
-  
+
   /**
    * Create a {@link DataSourceDescriptor} when the data shard calculation
    * happens in the client at compile time
-   * @param inputDescriptor
-   *          An {@link InputDescriptor} for the Input
-   * @param inputInitializerDescriptor
-   *          An initializer for this Input which may run within the AM. This
-   *          can be used to set the parallelism for this vertex and generate
-   *          {@link InputDataInformationEvent}s for the actual Input.</p>
-   *          If this is not specified, the parallelism must be set for the
-   *          vertex. In addition, the Input should know how to access data for
-   *          each of it's tasks. </p> If a {@link InputInitializer} is
-   *          meant to determine the parallelism of the vertex, the initial
-   *          vertex parallelism should be set to -1. Can be null.
-   * @param numShards Number of shards of data
-   * @param credentials Credentials needed to access the data
-   * @param locationHint Location hints for the vertex tasks
+   *
+   * @param inputDescriptor          An {@link InputDescriptor} for the Input
+   * @param initializerDescriptor    An initializer for this Input which may run within the AM.
+   *                                 This can be used to set the parallelism for this vertex and
+   *                                 generate {@link org.apache.tez.runtime.api.events.InputDataInformationEvent}s
+   *                                 for the actual Input.</p>
+   *                                 If this is not specified, the parallelism must be set for the
+   *                                 vertex. In addition, the Input should know how to access data
+   *                                 for each of it's tasks. </p> If a {@link org.apache.tez.runtime.api.InputInitializer}
+   *                                 is
+   *                                 meant to determine the parallelism of the vertex, the initial
+   *                                 vertex parallelism should be set to -1. Can be null.
+   * @param numShards                Number of shards of data
+   * @param credentials              Credentials needed to access the data
+   * @param locationHint             Location hints for the vertex tasks
+   * @param additionalLocalResources additional local resources required by this Input. An attempt
+   *                                 will be made to add these resources to the Vertex as Private
+   *                                 resources. If a name conflict occurs, a {@link
+   *                                 org.apache.tez.dag.api.TezException} will be thrown
    */
   public DataSourceDescriptor(InputDescriptor inputDescriptor,
       @Nullable InputInitializerDescriptor initializerDescriptor, int numShards,
-      @Nullable Credentials credentials, @Nullable VertexLocationHint locationHint) {
+      @Nullable Credentials credentials, @Nullable VertexLocationHint locationHint,
+      @Nullable Map<String, LocalResource> additionalLocalResources) {
     this.inputDescriptor = inputDescriptor;
     this.initializerDescriptor = initializerDescriptor;
     this.numShards = numShards;
     this.credentials = credentials;
     this.locationHint = locationHint;
+    this.additionalLocalResources = additionalLocalResources;
   }
 
   public InputDescriptor getInputDescriptor() {
@@ -102,6 +114,7 @@ public class DataSourceDescriptor {
    * Returns -1 when this is determined at runtime in the AM.
    * @return number of tasks
    */
+  @InterfaceAudience.Private
   public int getNumberOfShards() {
     return numShards;
   }
@@ -111,6 +124,7 @@ public class DataSourceDescriptor {
    * Is null when this calculation happens on the AppMaster (default)
    * @return credentials.
    */
+  @InterfaceAudience.Private
   public @Nullable Credentials getCredentials() {
     return credentials;
   }
@@ -120,8 +134,19 @@ public class DataSourceDescriptor {
    * Is null when shard calculation happens on the AppMaster (default)
    * @return List of {@link TaskLocationHint}
    */
+  @InterfaceAudience.Private
   public @Nullable VertexLocationHint getLocationHint() {
     return locationHint;
   }
+
+  /**
+   * Get the list of additional local resources which were specified during creation.
+   * @return
+   */
+  @InterfaceAudience.Private
+  public @Nullable Map<String, LocalResource> getAdditionalLocalResources() {
+    return additionalLocalResources;
+  }
+
 
 }

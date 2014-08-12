@@ -36,7 +36,7 @@ import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 
 /**
@@ -57,7 +57,7 @@ public class MRInputUtils {
   public static org.apache.hadoop.mapreduce.InputSplit getNewSplitDetailsFromEvent(
       MRSplitProto splitProto, Configuration conf) throws IOException {
     SerializationFactory serializationFactory = new SerializationFactory(conf);
-    return MRHelpers.createNewFormatSplitFromUserPayload(
+    return MRInputHelpers.createNewFormatSplitFromUserPayload(
         splitProto, serializationFactory);
   }
   
@@ -133,6 +133,6 @@ public class MRInputUtils {
   public static InputSplit getOldSplitDetailsFromEvent(MRSplitProto splitProto, Configuration conf)
       throws IOException {
     SerializationFactory serializationFactory = new SerializationFactory(conf);
-    return MRHelpers.createOldFormatSplitFromUserPayload(splitProto, serializationFactory);
+    return MRInputHelpers.createOldFormatSplitFromUserPayload(splitProto, serializationFactory);
   }
 }
