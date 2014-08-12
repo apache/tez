@@ -29,6 +29,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
@@ -61,7 +62,7 @@ public abstract class MRInputBase extends AbstractLogicalInput {
   public List<Event> initialize() throws IOException {
     getContext().requestInitialMemory(0l, null); // mandatory call
     MRRuntimeProtos.MRInputUserPayloadProto mrUserPayload =
-        MRHelpers.parseMRInputPayload(getContext().getUserPayload());
+        MRInputHelpers.parseMRInputPayload(getContext().getUserPayload());
     boolean isGrouped = mrUserPayload.getGroupingEnabled();
     Preconditions.checkArgument(mrUserPayload.hasSplits() == false,
         "Split information not expected in " + this.getClass().getName());

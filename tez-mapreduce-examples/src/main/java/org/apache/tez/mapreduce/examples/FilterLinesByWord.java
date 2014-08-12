@@ -21,7 +21,6 @@ package org.apache.tez.mapreduce.examples;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -38,6 +37,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
@@ -56,8 +56,6 @@ import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -65,20 +63,17 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
-import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.examples.helpers.SplitsInClientOptionParser;
-import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.processor.FilterByWordInputProcessor;
 import org.apache.tez.processor.FilterByWordOutputProcessor;
-import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.library.conf.UnorderedUnpartitionedKVEdgeConfigurer;
 
 import com.google.common.collect.Sets;
@@ -165,17 +160,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     tezSession.start(); // Why do I need to start the TezSession.
 
     Configuration stage1Conf = new JobConf(conf);
-    stage1Conf.set(FileInputFormat.INPUT_DIR, inputPath);
-    stage1Conf.setBoolean("mapred.mapper.new-api", false);
     stage1Conf.set(FILTER_PARAM_NAME, filterWord);
-
-    InputSplitInfo inputSplitInfo = null;
-    if (generateSplitsInClient) {
-      inputSplitInfo = MRHelpers.generateInputSplits(stage1Conf, stagingDir);
-      if (inputSplitInfo.getCredentials() != null) {
-        credentials.addAll(inputSplitInfo.getCredentials());
-      }
-    }
 
     Configuration stage2Conf = new JobConf(conf);
     stage2Conf.set(FileOutputFormat.OUTDIR, outputPath);
@@ -183,29 +168,21 @@ public class FilterLinesByWord extends Configured implements Tool {
 
     byte[] stage1Payload = MRHelpers.createUserPayloadFromConf(stage1Conf);
     // Setup stage1 Vertex
-    int stage1NumTasks = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
     Vertex stage1Vertex = new Vertex("stage1", new ProcessorDescriptor(
-        FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload),
-        stage1NumTasks);
-    if (generateSplitsInClient) {
-      stage1Vertex.setLocationHint(new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
-      Map<String, LocalResource> stage1LocalResources = new HashMap<String, LocalResource>();
-      stage1LocalResources.putAll(commonLocalResources);
-      MRHelpers.updateLocalResourcesForInputSplits(fs, inputSplitInfo, stage1LocalResources);
-      stage1Vertex.setTaskLocalFiles(stage1LocalResources);
-    } else {
-      stage1Vertex.setTaskLocalFiles(commonLocalResources);
-    }
+        FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload))
+        .setTaskLocalFiles(commonLocalResources);
 
-    // Configure the Input for stage1
-    Class<? extends InputInitializer> initializerClazz = generateSplitsInClient ? null
-        : MRInputAMSplitGenerator.class;
-    stage1Vertex.addDataSource(
-        "MRInput",
-        new DataSourceDescriptor(new InputDescriptor(MRInputLegacy.class
-            .getName()).setUserPayload(MRHelpers.createMRInputPayload(stage1Payload)),
-            (initializerClazz == null ? null
-            : new InputInitializerDescriptor(initializerClazz.getName())), null));
+    DataSourceDescriptor dsd;
+    if (generateSplitsInClient) {
+      // TODO TEZ-1406. Dont' use MRInputLegacy
+      stage1Conf.set(FileInputFormat.INPUT_DIR, inputPath);
+      stage1Conf.setBoolean("mapred.mapper.new-api", false);
+      dsd = MRInputHelpers.configureMRInputWithLegacySplitGeneration(stage1Conf, stagingDir, true);
+    } else {
+      dsd = MRInputLegacy.createConfigurer(stage1Conf, TextInputFormat.class, inputPath)
+          .groupSplitsInAM(false).create();
+    }
+    stage1Vertex.addDataSource("MRInput", dsd);
 
     // Setup stage2 Vertex
     Vertex stage2Vertex = new Vertex("stage2", new ProcessorDescriptor(

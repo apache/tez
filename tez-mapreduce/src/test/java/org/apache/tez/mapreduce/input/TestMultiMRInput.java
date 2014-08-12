@@ -44,7 +44,7 @@ import org.apache.hadoop.mapred.SequenceFileInputFormat;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.runtime.api.Event;
@@ -108,7 +108,7 @@ public class TestMultiMRInput {
     InputSplit[] splits = format.getSplits(jobConf, 1);
     assertEquals(1, splits.length);
 
-    MRSplitProto splitProto = MRHelpers.createSplitProto(splits[0]);
+    MRSplitProto splitProto = MRInputHelpers.createSplitProto(splits[0]);
     InputDataInformationEvent event = new InputDataInformationEvent(0,
         splitProto.toByteArray());
 
@@ -168,11 +168,11 @@ public class TestMultiMRInput {
     InputSplit[] splits = format.getSplits(jobConf, 2);
     assertEquals(2, splits.length);
 
-    MRSplitProto splitProto1 = MRHelpers.createSplitProto(splits[0]);
+    MRSplitProto splitProto1 = MRInputHelpers.createSplitProto(splits[0]);
     InputDataInformationEvent event1 = new InputDataInformationEvent(0,
         splitProto1.toByteArray());
 
-    MRSplitProto splitProto2 = MRHelpers.createSplitProto(splits[1]);
+    MRSplitProto splitProto2 = MRInputHelpers.createSplitProto(splits[1]);
     InputDataInformationEvent event2 = new InputDataInformationEvent(0,
         splitProto2.toByteArray());
 
@@ -221,7 +221,7 @@ public class TestMultiMRInput {
     InputSplit[] splits = format.getSplits(jobConf, 1);
     assertEquals(1, splits.length);
 
-    MRSplitProto splitProto = MRHelpers.createSplitProto(splits[0]);
+    MRSplitProto splitProto = MRInputHelpers.createSplitProto(splits[0]);
     InputDataInformationEvent event1 = new InputDataInformationEvent(0,
         splitProto.toByteArray());
     InputDataInformationEvent event2 = new InputDataInformationEvent(1,

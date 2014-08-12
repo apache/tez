@@ -46,12 +46,14 @@ import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.common.MRInputSplitDistributor;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.base.MRInputBase;
 import org.apache.tez.mapreduce.lib.MRInputUtils;
 import org.apache.tez.mapreduce.lib.MRReader;
 import org.apache.tez.mapreduce.lib.MRReaderMapReduce;
 import org.apache.tez.mapreduce.lib.MRReaderMapred;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
@@ -87,7 +89,8 @@ public class MRInput extends MRInputBase {
     String inputClassName = MRInput.class.getName();
     boolean getCredentialsForSourceFilesystem = true;
     String inputPaths = null;
-    
+    InputInitializerDescriptor customInitializerDescriptor = null;
+
     private MRInputConfigurer(Configuration conf, Class<?> inputFormat) {
       this.conf = conf;
       this.inputFormat = inputFormat;
@@ -141,7 +144,7 @@ public class MRInput extends MRInputBase {
       generateSplitsInAM = value;
       return this;
     }
-    
+
     /**
      * Get the credentials for the inputPaths from their {@link FileSystem}s
      * Use the method to turn this off when not using a {@link FileSystem}
@@ -153,40 +156,59 @@ public class MRInput extends MRInputBase {
       getCredentialsForSourceFilesystem = value;
       return this;
     }
-        
+
+    /**
+     * This method is intended to be used in case a custom {@link org.apache.tez.runtime.api.InputInitializer}
+     * is being used along with MRInput. If a custom descriptor is used, the configurer will not be
+     * able to setup location hints, parallelism, etc, and configuring the {@link
+     * org.apache.tez.dag.api.Vertex} on which this Input is used is the responsibility of the user.
+     *
+     * Credential fetching can be controlled via the {@link #getCredentialsForSourceFilesystem} method.
+     * Whether grouping is enabled or not can be controlled via {@link #groupSplitsInAM} method.
+     *
+     * @param customInitializerDescriptor the initializer descriptor
+     * @return {@link MRInputConfigurer}
+     */
+    public MRInputConfigurer setCustomInitializerDescriptor(
+        InputInitializerDescriptor customInitializerDescriptor) {
+      this.customInitializerDescriptor = customInitializerDescriptor;
+      return this;
+    }
+
     /**
      * Create the {@link DataSourceDescriptor}
+     *
      * @return {@link DataSourceDescriptor}
      */
     public DataSourceDescriptor create() {
       try {
-        if (generateSplitsInAM) {
-          return createGeneratorDataSource();
+        if (this.customInitializerDescriptor != null) {
+          return createCustomDataSource();
         } else {
-          return createDistributorDataSource();
+          if (generateSplitsInAM) {
+            return createGeneratorDataSource();
+          } else {
+            return createDistributorDataSource();
+          }
         }
       } catch (Exception e) {
         throw new TezUncheckedException(e);
-      } 
+      }
     }
     
     private DataSourceDescriptor createDistributorDataSource() throws IOException {
       Configuration inputConf = new JobConf(conf);
       InputSplitInfo inputSplitInfo;
+      setupBasicConf(inputConf);
       try {
-        inputSplitInfo = MRHelpers.generateInputSplitsToMem(inputConf, false, 0);
+        inputSplitInfo = MRInputHelpers.generateInputSplitsToMem(inputConf, false, 0);
       } catch (Exception e) {
         throw new TezUncheckedException(e);
       }
-      inputConf.setBoolean("mapred.mapper.new-api", useNewApi);
-      if (useNewApi) {
-        inputConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, inputFormat.getName());
-      } else {
-        inputConf.set("mapred.input.format.class", inputFormat.getName());
-      }
       MRHelpers.translateVertexConfToTez(inputConf);
       MRHelpers.doJobClientMagic(inputConf);
-      byte[] payload = MRHelpers.createMRInputPayload(inputConf, inputSplitInfo.getSplitsProto());
+      byte[] payload = MRInputHelpersInternal.createMRInputPayload(inputConf,
+          inputSplitInfo.getSplitsProto());
       Credentials credentials = null;
       if (getCredentialsForSourceFilesystem && inputSplitInfo.getCredentials() != null) {
         credentials = inputSplitInfo.getCredentials();
@@ -195,20 +217,58 @@ public class MRInput extends MRInputBase {
           new InputDescriptor(inputClassName).setUserPayload(payload),
           new InputInitializerDescriptor(MRInputSplitDistributor.class.getName()),
           inputSplitInfo.getNumTasks(), credentials, 
-          new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
+          new VertexLocationHint(inputSplitInfo.getTaskLocationHints()), null);
     }
-    
+
+    private DataSourceDescriptor createCustomDataSource() throws IOException {
+      Configuration inputConf = new JobConf(conf);
+      setupBasicConf(inputConf);
+
+      MRHelpers.translateVertexConfToTez(inputConf);
+      MRHelpers.doJobClientMagic(inputConf);
+
+      Credentials credentials = maybeGetCredentials();
+
+      byte[] payload = null;
+      if (groupSplitsInAM) {
+        payload = MRInputHelpersInternal.createMRInputPayloadWithGrouping(inputConf);
+      } else {
+        payload = MRInputHelpersInternal.createMRInputPayload(inputConf, null);
+      }
+
+      return new DataSourceDescriptor(new InputDescriptor(inputClassName).setUserPayload(payload),
+          customInitializerDescriptor, credentials);
+    }
+
     private DataSourceDescriptor createGeneratorDataSource() throws IOException {
       Configuration inputConf = new JobConf(conf);
+      setupBasicConf(inputConf);
+      MRHelpers.translateVertexConfToTez(inputConf);
+      MRHelpers.doJobClientMagic(inputConf);
+      
+      Credentials credentials = maybeGetCredentials();
+
+      byte[] payload = null;
+      if (groupSplitsInAM) {
+        payload = MRInputHelpersInternal.createMRInputPayloadWithGrouping(inputConf);
+      } else {
+        payload = MRInputHelpersInternal.createMRInputPayload(inputConf, null);
+      }
+      return new DataSourceDescriptor(
+          new InputDescriptor(inputClassName).setUserPayload(payload),
+          new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()), credentials);
+    }
+
+    private void setupBasicConf(Configuration inputConf) {
       inputConf.setBoolean("mapred.mapper.new-api", useNewApi);
       if (useNewApi) {
         inputConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, inputFormat.getName());
       } else {
         inputConf.set("mapred.input.format.class", inputFormat.getName());
       }
-      MRHelpers.translateVertexConfToTez(inputConf);
-      MRHelpers.doJobClientMagic(inputConf);
-      
+    }
+
+    private Credentials maybeGetCredentials() {
       Credentials credentials = null;
       if (getCredentialsForSourceFilesystem && inputPaths != null) {
         try {
@@ -226,17 +286,9 @@ public class MRInput extends MRInputBase {
           throw new TezUncheckedException(e);
         }
       }
-
-      byte[] payload = null;
-      if (groupSplitsInAM) {
-        payload = MRHelpers.createMRInputPayloadWithGrouping(inputConf);
-      } else {
-        payload = MRHelpers.createMRInputPayload(inputConf, null);
-      }
-      return new DataSourceDescriptor(
-          new InputDescriptor(inputClassName).setUserPayload(payload),
-          new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()), credentials);
+      return credentials;
     }
+
   }
   
   /**
@@ -260,7 +312,7 @@ public class MRInput extends MRInputBase {
       String inputPaths) {
     return new MRInputConfigurer(conf, inputFormat).setInputPaths(inputPaths);
   }
-  
+
   private static final Log LOG = LogFactory.getLog(MRInput.class);
   
   private final ReentrantLock rrLock = new ReentrantLock();
@@ -457,4 +509,19 @@ public class MRInput extends MRInputBase {
     mrReader.setSplit(split);
     LOG.info("Initialized RecordReader from event");
   }
+
+  private static class MRInputHelpersInternal extends MRInputHelpers {
+
+    protected static byte[] createMRInputPayloadWithGrouping(Configuration conf) throws
+        IOException {
+      return MRInputHelpers.createMRInputPayloadWithGrouping(conf);
+    }
+
+    protected static byte[] createMRInputPayload(Configuration conf,
+                                                 MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
+        IOException {
+      return MRInputHelpers.createMRInputPayload(conf, mrSplitsProto);
+    }
+  }
+
 }

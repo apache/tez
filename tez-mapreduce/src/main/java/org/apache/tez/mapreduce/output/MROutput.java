@@ -71,6 +71,7 @@ public class MROutput extends AbstractLogicalOutput {
     final Class<?> outputFormat;
     boolean useNewApi;
     boolean getCredentialsForSinkFilesystem = true;
+    String outputClassName = MROutput.class.getName();
     String outputPath;
     
     private MROutputConfigurer(Configuration conf, Class<?> outputFormat) {
@@ -123,7 +124,7 @@ public class MROutput extends AbstractLogicalOutput {
       }
       
       return new DataSinkDescriptor(
-          new OutputDescriptor(MROutput.class.getName()).setUserPayload(createUserPayload(conf,
+          new OutputDescriptor(outputClassName).setUserPayload(createUserPayload(conf,
               outputFormat.getName(), useNewApi)), new OutputCommitterDescriptor(
               MROutputCommitter.class.getName()), credentials);
     }
@@ -137,6 +138,11 @@ public class MROutput extends AbstractLogicalOutput {
      */
     public MROutputConfigurer getCredentialsForSinkFileSystem(boolean value) {
       getCredentialsForSinkFilesystem = value;
+      return this;
+    }
+
+    MROutputConfigurer setOutputClassName(String outputClassName) {
+      this.outputClassName = outputClassName;
       return this;
     }
 
@@ -173,7 +179,7 @@ public class MROutput extends AbstractLogicalOutput {
    * @param outputFormat OutputFormat derived class
    * @return {@link MROutputConfigurer}
    */
-  public static MROutputConfigurer createtConfigurer(Configuration conf, Class<?> outputFormat) {
+  public static MROutputConfigurer createConfigurer(Configuration conf, Class<?> outputFormat) {
     return new MROutputConfigurer(conf, outputFormat);
   }
 

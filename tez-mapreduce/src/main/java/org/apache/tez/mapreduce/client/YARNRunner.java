@@ -80,10 +80,16 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.client.MRTezClient;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -91,14 +97,20 @@ import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.MRDAGClient;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
+import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.hadoop.DeprecatedKeys;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfToTezTranslator;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
+import org.apache.tez.mapreduce.input.MRInput;
+import org.apache.tez.mapreduce.input.MRInputLegacy;
+import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 
@@ -404,12 +416,15 @@ public class YARNRunner implements ClientProtocol {
         setUserPayload(vertexUserPayload),
         numTasks, taskResource);
     if (isMap) {
-      byte[] mapInputPayload = MRHelpers.createMRInputPayload(vertexUserPayload);
-      MRHelpers.addMRInput(vertex, mapInputPayload, null);
+      vertex.addDataSource("MRInput",
+          configureMRInputWithLegacySplitsGenerated(stageConf, true));
     }
     // Map only jobs.
     if (stageNum == totalStages -1) {
-      MRHelpers.addMROutputLegacy(vertex, vertexUserPayload);
+      OutputDescriptor od = new OutputDescriptor(MROutputLegacy.class.getName())
+          .setUserPayload(vertexUserPayload);
+      vertex.addDataSink("MROutput", new DataSinkDescriptor(od,
+          new OutputCommitterDescriptor(MROutputCommitter.class.getName()), null));
     }
 
     Map<String, String> taskEnv = new HashMap<String, String>();
@@ -770,6 +785,32 @@ public class YARNRunner implements ClientProtocol {
                "are used. These values should be set as part of the " +
                "LD_LIBRARY_PATH in the " + component + " JVM env using " +
                envConf + " config settings.");
+    }
+  }
+
+  @Private
+  private static DataSourceDescriptor configureMRInputWithLegacySplitsGenerated(Configuration conf,
+                                                                                boolean useLegacyInput) {
+    InputDescriptor inputDescriptor;
+
+    try {
+      inputDescriptor = new InputDescriptor(useLegacyInput ? MRInputLegacy.class
+          .getName() : MRInput.class.getName())
+          .setUserPayload(MRInputHelpersInternal.createMRInputPayload(conf, null));
+    } catch (IOException e) {
+      throw new TezUncheckedException(e);
+    }
+
+    DataSourceDescriptor dsd = new DataSourceDescriptor(inputDescriptor, null, null);
+    return dsd;
+  }
+
+  private static class MRInputHelpersInternal extends MRInputHelpers {
+
+    protected static byte[] createMRInputPayload(Configuration conf,
+                                                 MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
+        IOException {
+      return MRInputHelpers.createMRInputPayload(conf, mrSplitsProto);
     }
   }
 

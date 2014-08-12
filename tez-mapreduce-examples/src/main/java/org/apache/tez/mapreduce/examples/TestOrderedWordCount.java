@@ -22,7 +22,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,7 +43,6 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.security.Credentials;
@@ -56,25 +54,25 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.PreWarmVertex;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
-import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.examples.helpers.SplitsInClientOptionParser;
-import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+import org.apache.tez.mapreduce.input.MRInputLegacy;
+import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
-import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -155,16 +153,6 @@ public class TestOrderedWordCount extends Configured implements Tool {
     Configuration mapStageConf = new JobConf(conf);
     mapStageConf.set(MRJobConfig.MAP_CLASS_ATTR,
         TokenizerMapper.class.getName());
-    mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
-        TextInputFormat.class.getName());
-    mapStageConf.set(FileInputFormat.INPUT_DIR, inputPath);
-    mapStageConf.setBoolean("mapred.mapper.new-api", true);
-
-    InputSplitInfo inputSplitInfo = null;
-    if (generateSplitsInClient) {
-      inputSplitInfo = MRHelpers.generateInputSplits(mapStageConf, stagingDir);
-      mapStageConf.setInt(MRJobConfig.NUM_MAPS, inputSplitInfo.getNumTasks());
-    }
 
     MRHelpers.translateVertexConfToTez(mapStageConf);
 
@@ -183,10 +171,6 @@ public class TestOrderedWordCount extends Configured implements Tool {
     finalReduceConf.setInt(MRJobConfig.NUM_REDUCES, 1);
     finalReduceConf.set(MRJobConfig.REDUCE_CLASS_ATTR,
         MyOrderByNoOpReducer.class.getName());
-    finalReduceConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
-        TextOutputFormat.class.getName());
-    finalReduceConf.set(FileOutputFormat.OUTDIR, outputPath);
-    finalReduceConf.setBoolean("mapred.mapper.new-api", true);
     finalReduceConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, IntWritable.class.getName());
     finalReduceConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, Text.class.getName());
     MRHelpers.translateVertexConfToTez(finalReduceConf);
@@ -200,34 +184,22 @@ public class TestOrderedWordCount extends Configured implements Tool {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream(4096);
     mapStageConf.writeXml(outputStream);
     String mapStageHistoryText = new String(outputStream.toByteArray(), "UTF-8");
-    byte[] mapPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
-    byte[] mapInputPayload;
+
+    DataSourceDescriptor dsd;
     if (generateSplitsInClient) {
-      mapInputPayload = MRHelpers.createMRInputPayload(mapPayload);
+      mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
+          TextInputFormat.class.getName());
+      mapStageConf.set(FileInputFormat.INPUT_DIR, inputPath);
+      mapStageConf.setBoolean("mapred.mapper.new-api", true);
+      dsd = MRInputHelpers.configureMRInputWithLegacySplitGeneration(mapStageConf, stagingDir, true);
     } else {
-      mapInputPayload = MRHelpers.createMRInputPayloadWithGrouping(mapPayload);
-    }
-    int numMaps = generateSplitsInClient ? inputSplitInfo.getNumTasks() : -1;
-    Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
-        MapProcessor.class.getName()).setUserPayload(mapPayload)
-            .setHistoryText(mapStageHistoryText), numMaps);
-    if (generateSplitsInClient) {
-      mapVertex.setLocationHint(new VertexLocationHint(inputSplitInfo.getTaskLocationHints()));
-      Map<String, LocalResource> mapLocalResources =
-          new HashMap<String, LocalResource>();
-      mapLocalResources.putAll(commonLocalResources);
-      MRHelpers.updateLocalResourcesForInputSplits(fs, inputSplitInfo,
-          mapLocalResources);
-      mapVertex.setTaskLocalFiles(mapLocalResources);
-    } else {
-      mapVertex.setTaskLocalFiles(commonLocalResources);
+      dsd = MRInputLegacy.createConfigurer(mapStageConf, TextInputFormat.class, inputPath).create();
     }
 
-    Class<? extends InputInitializer> initializerClazz = generateSplitsInClient ? null
-        : MRInputAMSplitGenerator.class;
-    MRHelpers.addMRInput(mapVertex, mapInputPayload,
-        (initializerClazz==null) ? null :
-          new InputInitializerDescriptor(initializerClazz.getName()));
+    Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
+        MapProcessor.class.getName()).setUserPayload(TezUtils.createUserPayloadFromConf(mapStageConf))
+        .setHistoryText(mapStageHistoryText)).setTaskLocalFiles(commonLocalResources);
+    mapVertex.addDataSource("MRInput", dsd);
     vertices.add(mapVertex);
 
     ByteArrayOutputStream iROutputStream = new ByteArrayOutputStream(4096);
@@ -250,7 +222,9 @@ public class TestOrderedWordCount extends Configured implements Tool {
                 .setUserPayload(finalReducePayload)
                 .setHistoryText(finalReduceStageHistoryText), 1);
     finalReduceVertex.setTaskLocalFiles(commonLocalResources);
-    MRHelpers.addMROutputLegacy(finalReduceVertex, finalReducePayload);
+    finalReduceVertex.addDataSink("MROutput",
+        MROutputLegacy.createConfigurer(finalReduceConf, TextOutputFormat.class, outputPath)
+            .create());
     vertices.add(finalReduceVertex);
 
     DAG dag = new DAG("OrderedWordCount" + dagIndex);

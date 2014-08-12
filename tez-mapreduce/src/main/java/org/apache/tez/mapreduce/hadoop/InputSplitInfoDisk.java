@@ -21,6 +21,7 @@ package org.apache.tez.mapreduce.hadoop;
 import java.util.List;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.security.Credentials;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
@@ -105,6 +106,24 @@ public class InputSplitInfoDisk implements InputSplitInfo {
   @Override
   public Credentials getCredentials() {
     return this.credentials;
+  }
+
+  @Override
+  public boolean holdsNewFormatSplits() {
+    throw new UnsupportedOperationException("Not supported for Type: "
+        + getType());
+  }
+
+  @Override
+  public InputSplit[] getNewFormatSplits() {
+    throw new UnsupportedOperationException("Not supported for Type: "
+        + getType());
+  }
+
+  @Override
+  public org.apache.hadoop.mapred.InputSplit[] getOldFormatSplits() {
+    throw new UnsupportedOperationException("Not supported for Type: "
+        + getType());
   }
 
 }

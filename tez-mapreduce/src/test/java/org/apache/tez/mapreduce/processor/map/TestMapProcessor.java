@@ -42,6 +42,7 @@ import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.MapUtils;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.impl.InputSpec;
@@ -119,10 +120,12 @@ public class TestMapProcessor {
     
     
     MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput);
-    
+
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
         new InputDescriptor(MRInputLegacy.class.getName())
-            .setUserPayload(MRHelpers.createMRInputPayload(jobConf, null)),
+            .setUserPayload(MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
+                .setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf)).build()
+                .toByteArray()),
         1);
     OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", 
         new OutputDescriptor(LocalOnFileSorterOutput.class.getName())

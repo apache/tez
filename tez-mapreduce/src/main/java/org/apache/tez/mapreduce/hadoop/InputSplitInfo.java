@@ -79,4 +79,22 @@ public interface InputSplitInfo {
    * @return {@link Credentials} which may be required to access the splits.
    */
   public abstract Credentials getCredentials();
+
+  /**
+   * Check whether the current instance is using old / new format splits
+   * @return true if using new format splits, false otherwise
+   */
+  public boolean holdsNewFormatSplits();
+
+  /**
+   * Get new format splits. Should only be used if the mapreduce API is being used
+   * @return
+   */
+  public org.apache.hadoop.mapreduce.InputSplit[] getNewFormatSplits();
+
+  /**
+   * Get old format splits. Should only be used if the mapred API is being used
+   * @return
+   */
+  public org.apache.hadoop.mapred.InputSplit[] getOldFormatSplits();
 }

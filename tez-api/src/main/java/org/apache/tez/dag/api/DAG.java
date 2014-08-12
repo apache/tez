@@ -544,6 +544,7 @@ public class DAG {
         if (dataSource.getCredentials() != null) {
           credentials.addAll(dataSource.getCredentials());
         }
+        vertex.addAdditionalLocalResources(dataSource.getAdditionalLocalResources());
       }
       if (dataSources.size() == 1) {
         DataSourceDescriptor dataSource = dataSources.get(0);
