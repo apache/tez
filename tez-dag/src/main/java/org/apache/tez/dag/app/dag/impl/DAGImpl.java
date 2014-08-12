@@ -104,7 +104,7 @@ import org.apache.tez.dag.history.events.VertexGroupCommitFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.dag.utils.JavaProfilerOptions;
+import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.runtime.api.OutputCommitter;
@@ -169,7 +169,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   boolean recoveryInitEventSeen = false;
   boolean recoveryStartEventSeen = false;
 
-  private JavaProfilerOptions profilerOptions;
+  private TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption;
 
   private static final DiagnosticsUpdateTransition
       DIAGNOSTIC_UPDATE_TRANSITION = new DiagnosticsUpdateTransition();
@@ -429,7 +429,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     this.aclManager = new ACLManager(appContext.getAMACLManager(), dagUGI.getShortUserName(),
         this.conf);
 
-    this.profilerOptions = new JavaProfilerOptions(conf);
+    this.taskSpecificLaunchCmdOption = new TaskSpecificLaunchCmdOption(conf);
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
@@ -1242,7 +1242,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         dag.eventHandler, dag.taskAttemptListener,
         dag.clock, dag.taskHeartbeatHandler,
         !dag.commitAllOutputsOnSuccess, dag.appContext, vertexLocationHint,
-        dag.vertexGroups, dag.profilerOptions);
+        dag.vertexGroups, dag.taskSpecificLaunchCmdOption);
     return v;
   }
 
