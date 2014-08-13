@@ -682,14 +682,11 @@ public class DAG {
       dagBuilder.addEdge(edgeBuilder);
     }
 
-    if (dagAccessControls != null) {
-      dagAccessControls.serializeToConfiguration(dagConf);
-    }
 
+    ConfigurationProto.Builder confProtoBuilder =
+        ConfigurationProto.newBuilder();
     if (dagConf != null) {
       Iterator<Entry<String, String>> iter = dagConf.iterator();
-      ConfigurationProto.Builder confProtoBuilder =
-        ConfigurationProto.newBuilder();
       while (iter.hasNext()) {
         Entry<String, String> entry = iter.next();
         PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
@@ -697,8 +694,21 @@ public class DAG {
         kvp.setValue(entry.getValue());
         confProtoBuilder.addConfKeyValues(kvp);
       }
-      dagBuilder.setDagKeyValues(confProtoBuilder);
     }
+    if (dagAccessControls != null) {
+      Configuration aclConf = new Configuration(false);
+      dagAccessControls.serializeToConfiguration(aclConf);
+      Iterator<Entry<String, String>> aclConfIter = aclConf.iterator();
+      while (aclConfIter.hasNext()) {
+        Entry<String, String> entry = aclConfIter.next();
+        PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
+        kvp.setKey(entry.getKey());
+        kvp.setValue(entry.getValue());
+        confProtoBuilder.addConfKeyValues(kvp);
+      }
+    }
+    dagBuilder.setDagKeyValues(confProtoBuilder);
+
     if (credentials != null) {
       dagBuilder.setCredentialsBinary(DagTypeConverters.convertCredentialsToProto(credentials));
       LogUtils.logCredentials(LOG, credentials, "dag");

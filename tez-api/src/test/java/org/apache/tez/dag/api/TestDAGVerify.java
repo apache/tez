@@ -18,10 +18,17 @@
 
 package org.apache.tez.dag.api;
 
+import java.util.Arrays;
+
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
+import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -886,6 +893,44 @@ public class TestDAGVerify {
     dag.addVertex(v1);
 
     dag.createDag(new TezConfiguration());
+  }
+
+
+  @Test(timeout = 5000)
+  public void testDAGAccessControls() {
+    DAG dag = new DAG("testDag");
+    ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1")
+        .setUserPayload(new UserPayload("processor1Bytes".getBytes()));
+    Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
+    dag.addVertex(v1);
+
+    DAGAccessControls dagAccessControls = new DAGAccessControls();
+    dagAccessControls.setUsersWithViewACLs(Arrays.asList("u1"))
+        .setUsersWithModifyACLs(Arrays.asList("*"))
+        .setGroupsWithViewACLs(Arrays.asList("g1"))
+        .setGroupsWithModifyACLs(Arrays.asList("g2"));
+    dag.setAccessControls(dagAccessControls);
+
+    Configuration conf = new Configuration(false);
+    DAGPlan dagPlan = dag.createDag(conf);
+    Assert.assertNull(conf.get(TezConfiguration.TEZ_DAG_VIEW_ACLS));
+    Assert.assertNull(conf.get(TezConfiguration.TEZ_DAG_MODIFY_ACLS));
+
+    ConfigurationProto confProto = dagPlan.getDagKeyValues();
+    boolean foundViewAcls = false;
+    boolean foundModifyAcls = false;
+
+    for (PlanKeyValuePair pair : confProto.getConfKeyValuesList()) {
+      if (pair.getKey().equals(TezConfiguration.TEZ_DAG_VIEW_ACLS)) {
+        foundViewAcls = true;
+        Assert.assertEquals("u1 g1", pair.getValue());
+      } else if (pair.getKey().equals(TezConfiguration.TEZ_DAG_MODIFY_ACLS)) {
+        foundModifyAcls = true;
+        Assert.assertEquals("*", pair.getValue());
+      }
+    }
+    Assert.assertTrue(foundViewAcls);
+    Assert.assertTrue(foundModifyAcls);
   }
 
 }
