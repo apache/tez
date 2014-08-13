@@ -62,7 +62,8 @@ public class MRPartitioner implements org.apache.tez.runtime.library.api.Partiti
       if (partitions > 1) {
         oldPartitioner = (org.apache.hadoop.mapred.Partitioner) ReflectionUtils.newInstance(
             (Class<? extends org.apache.hadoop.mapred.Partitioner>) conf.getClass(
-                "mapred.partitioner.class", org.apache.hadoop.mapred.lib.HashPartitioner.class), conf);
+                "mapred.partitioner.class", org.apache.hadoop.mapred.lib.HashPartitioner.class),
+            new JobConf(conf));
       } else {
         oldPartitioner = new org.apache.hadoop.mapred.Partitioner() {
           @Override
