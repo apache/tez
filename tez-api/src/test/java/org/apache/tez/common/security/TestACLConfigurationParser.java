@@ -19,10 +19,7 @@
 package org.apache.tez.common.security;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.authorize.AccessControlList;
-import org.apache.tez.common.security.ACLConfigurationParser;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.common.security.ACLManager.ACLType;
 import org.junit.Assert;
 import org.junit.Test;
 

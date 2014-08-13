@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.impl.LogUtils;
+import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
@@ -75,6 +76,7 @@ public class DAG {
   Credentials credentials = new Credentials();
   Set<VertexGroup> vertexGroups = Sets.newHashSet();
   Set<GroupInputEdge> groupInputEdges = Sets.newHashSet();
+  private DAGAccessControls dagAccessControls;
 
   public DAG(String name) {
     this.name = name;
@@ -121,6 +123,12 @@ public class DAG {
   @Private
   public synchronized Credentials getCredentials() {
     return this.credentials;
+  }
+
+
+  public synchronized DAG setAccessControls(DAGAccessControls accessControls) {
+    this.dagAccessControls = accessControls;
+    return this;
   }
 
   /**
@@ -672,6 +680,10 @@ public class DAG {
         } // else the AM will deal with this.
       }
       dagBuilder.addEdge(edgeBuilder);
+    }
+
+    if (dagAccessControls != null) {
+      dagAccessControls.serializeToConfiguration(dagConf);
     }
 
     if (dagConf != null) {

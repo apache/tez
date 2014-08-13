@@ -28,10 +28,7 @@ import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
-import org.apache.tez.common.security.ACLManager;
-import org.apache.tez.common.security.Groups;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.common.security.ACLManager.ACLType;
 import org.junit.Assert;
 import org.junit.Test;
 

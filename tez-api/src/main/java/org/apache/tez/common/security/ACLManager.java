@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -38,17 +39,11 @@ import com.google.common.annotations.VisibleForTesting;
  * Class to manage ACLs for the Tez AM and DAGs and provides functionality to check whether
  * a user is authorized to take certain actions.
  */
+@Private
 public class ACLManager {
 
   private static final Log LOG = LogFactory.getLog(ACLManager.class);
   static final String WILDCARD_ACL_VALUE = "*";
-
-  static enum ACLType {
-    AM_VIEW_ACL,
-    AM_MODIFY_ACL,
-    DAG_VIEW_ACL,
-    DAG_MODIFY_ACL
-  }
 
   private final String dagUser;
   private final String amUser;
@@ -231,7 +226,7 @@ public class ACLManager {
     return acls;
   }
 
-  private String toCommaSeparatedString(Collection<String> collection) {
+  static String toCommaSeparatedString(Collection<String> collection) {
     StringBuilder sb = new StringBuilder();
     boolean first = true;
     for (String s : collection) {
