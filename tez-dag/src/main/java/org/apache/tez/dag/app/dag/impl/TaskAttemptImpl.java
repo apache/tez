@@ -1413,8 +1413,8 @@ public class TaskAttemptImpl implements TaskAttempt,
           // should be handled differently
           // TODO abort taskattempt
           taskAttempt.sendEvent(new TaskEventTAUpdate(taskAttempt.attemptId,
-              TaskEventType.T_ATTEMPT_FAILED));
-          endState = TaskAttemptStateInternal.FAILED;
+              TaskEventType.T_ATTEMPT_KILLED));
+          endState = TaskAttemptStateInternal.KILLED;
           break;
         case SUCCEEDED:
           // Do not inform Task as it already knows about completed attempts

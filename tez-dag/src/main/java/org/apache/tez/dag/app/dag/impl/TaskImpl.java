@@ -309,7 +309,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   private TezTaskAttemptID successfulAttempt;
 
-  private int failedAttempts;
+  @VisibleForTesting
+  int failedAttempts;
   private int finishedAttempts;//finish are total of success, failed and killed
 
   private final boolean leafVertex;
@@ -591,6 +592,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         if (taskAttemptState.equals(TaskAttemptState.SUCCEEDED)) {
           recoveredState = TaskState.SUCCEEDED;
           successfulAttempt = taskAttempt.getID();
+        } else if (taskAttemptState.equals(TaskAttemptState.FAILED)){
+          failedAttempts++;
         }
         return recoveredState;
       }
@@ -854,7 +857,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   protected void internalError(TaskEventType type) {
-    LOG.error("Invalid event " + type + " on Task " + this.taskId);
+    LOG.error("Invalid event " + type + " on Task " + this.taskId + " in state:"
+        + getInternalState());
     eventHandler.handle(new DAGEventDiagnosticsUpdate(
         this.taskId.getVertexID().getDAGId(), "Invalid event " + type +
         " on Task " + this.taskId));
@@ -1188,7 +1192,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           }
 
           if (endState != TaskStateInternal.SUCCEEDED &&
-              task.attempts.size() >= task.maxFailedAttempts) {
+              task.failedAttempts >= task.maxFailedAttempts) {
             // Exceeded max attempts
             task.finished(TaskStateInternal.FAILED);
             endState = TaskStateInternal.FAILED;
