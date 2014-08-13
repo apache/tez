@@ -74,6 +74,7 @@ public class MROutput extends AbstractLogicalOutput {
     boolean getCredentialsForSinkFilesystem = true;
     String outputClassName = MROutput.class.getName();
     String outputPath;
+    boolean doCommit = true;
     
     private MROutputConfigurer(Configuration conf, Class<?> outputFormat) {
       this.conf = conf;
@@ -126,8 +127,8 @@ public class MROutput extends AbstractLogicalOutput {
       
       return new DataSinkDescriptor(
           new OutputDescriptor(outputClassName).setUserPayload(createUserPayload(conf,
-              outputFormat.getName(), useNewApi)), new OutputCommitterDescriptor(
-              MROutputCommitter.class.getName()), credentials);
+              outputFormat.getName(), useNewApi)), (doCommit ? new OutputCommitterDescriptor(
+              MROutputCommitter.class.getName()) : null), credentials);
     }
     
     /**
@@ -139,6 +140,16 @@ public class MROutput extends AbstractLogicalOutput {
      */
     public MROutputConfigurer getCredentialsForSinkFileSystem(boolean value) {
       getCredentialsForSinkFilesystem = value;
+      return this;
+    }
+    
+    /**
+     * Disable commit operations for the output (default: true)
+     * If the value is set to false then no {@link org.apache.tez.runtime.api.OutputCommitter} will
+     * be specified for the output
+     */
+    public MROutputConfigurer setDoCommit(boolean value) {
+      doCommit = value;
       return this;
     }
 
