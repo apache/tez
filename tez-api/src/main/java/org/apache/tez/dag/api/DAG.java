@@ -126,6 +126,14 @@ public class DAG {
   }
 
 
+  /**
+   * Set Access controls for the DAG. Which user/groups can view the DAG progess/history and
+   * who can modify the DAG i.e. kill the DAG.
+   * The owner of the Tez Session and the user submitting the DAG are super-users and have access
+   * to all operations on the DAG.
+   * @param accessControls Access Controls
+   * @return
+   */
   public synchronized DAG setAccessControls(DAGAccessControls accessControls) {
     this.dagAccessControls = accessControls;
     return this;
