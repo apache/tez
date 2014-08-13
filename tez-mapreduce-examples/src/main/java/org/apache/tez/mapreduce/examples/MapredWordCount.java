@@ -43,6 +43,7 @@ import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.tez.examples.WordCount;
 
 /**
  * This is an example Hadoop Map/Reduce application using the mapred apis.

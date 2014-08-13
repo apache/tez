@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -41,9 +42,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.examples.OrderedWordCount;
+import org.apache.tez.examples.SimpleSessionExample;
 import org.apache.tez.mapreduce.examples.IntersectDataGen;
 import org.apache.tez.mapreduce.examples.IntersectExample;
 import org.apache.tez.mapreduce.examples.IntersectValidate;
@@ -260,7 +264,36 @@ public class TestTezJobs {
 
     Assert.assertEquals(0, currentCounter);
   }
-
+  
+  private void verifyOutput(Path outputDir) throws IOException {
+    FileStatus[] fileStatuses = remoteFs.listStatus(outputDir);
+    Path resultFile = null;
+    boolean foundResult = false;
+    boolean foundSuccessFile = false;
+    for (FileStatus fileStatus : fileStatuses) {
+      if (!fileStatus.isFile()) {
+        continue;
+      }
+      if (fileStatus.getPath().getName().equals("_SUCCESS")) {
+        foundSuccessFile = true;
+        continue;
+      }
+      if (fileStatus.getPath().getName().startsWith("part-")) {
+        if (foundResult) {
+          fail("Found 2 part files instead of 1"
+              + ", paths=" + resultFile + "," + fileStatus.getPath());
+        }
+        foundResult = true;
+        resultFile = fileStatus.getPath();
+        LOG.info("Found output at " + resultFile);
+      }
+    }
+    assertTrue(foundResult);
+    assertTrue(resultFile != null);
+    assertTrue(foundSuccessFile);
+    verifyOrderedWordCountOutput(resultFile);
+  }
+  
   @Test(timeout = 60000)
   public void testOrderedWordCount() throws Exception {
     String inputDirStr = "/tmp/owc-input/";
@@ -281,38 +314,67 @@ public class TestTezJobs {
 
       OrderedWordCount job = new OrderedWordCount();
       Assert.assertTrue("OrderedWordCount failed", job.run(inputDirStr, outputDirStr, tezConf, 2));
+      verifyOutput(outputDir);
 
-
-      FileStatus[] fileStatuses = remoteFs.listStatus(outputDir);
-      Path resultFile = null;
-      boolean foundResult = false;
-      boolean foundSuccessFile = false;
-      for (FileStatus fileStatus : fileStatuses) {
-        if (!fileStatus.isFile()) {
-          continue;
-        }
-        if (fileStatus.getPath().getName().equals("_SUCCESS")) {
-          foundSuccessFile = true;
-          continue;
-        }
-        if (fileStatus.getPath().getName().startsWith("part-")) {
-          if (foundResult) {
-            fail("Found 2 part files instead of 1"
-                + ", paths=" + resultFile + "," + fileStatus.getPath());
-          }
-          foundResult = true;
-          resultFile = fileStatus.getPath();
-          LOG.info("Found output at " + resultFile);
-        }
-      }
-      assertTrue(foundResult);
-      assertTrue(resultFile != null);
-      assertTrue(foundSuccessFile);
-      verifyOrderedWordCountOutput(resultFile);
     } finally {
       remoteFs.delete(stagingDirPath, true);
       if (tezSession != null) {
         tezSession.stop();
+      }
+    }
+
+  }
+  
+  @Test(timeout = 60000)
+  public void testSimpleSessionExample() throws Exception {
+    Path stagingDirPath = new Path("/tmp/owc-staging-dir");
+    remoteFs.mkdirs(stagingDirPath);
+
+    int numIterations = 2;
+    String[] inputPaths = new String[numIterations];
+    String[] outputPaths = new String[numIterations];
+    Path[] outputDirs = new Path[numIterations];
+    for (int i=0; i<numIterations; ++i) {
+      String inputDirStr = "/tmp/owc-input-" + i + "/";
+      inputPaths[i] = inputDirStr;
+      Path inputDir = new Path(inputDirStr);
+      remoteFs.mkdirs(inputDir);
+      generateOrderedWordCountInput(inputDir);
+      String outputDirStr = "/tmp/owc-output-" + i + "/"; 
+      outputPaths[i] = outputDirStr;
+      Path outputDir = new Path(outputDirStr);
+      outputDirs[i] = outputDir;
+    }
+
+
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+    YarnClient yarnClient = YarnClient.createYarnClient();
+
+    try {
+      
+      yarnClient.init(mrrTezCluster.getConfig());
+      yarnClient.start();
+      
+      List<ApplicationReport> apps = yarnClient.getApplications();
+      int appsBeforeCount = apps != null ? apps.size() : 0;
+
+      SimpleSessionExample job = new SimpleSessionExample();
+      Assert.assertTrue("SimpleSessionExample failed", job.run(inputPaths, outputPaths, tezConf, 2));
+
+      for (int i=0; i<numIterations; ++i) {
+        verifyOutput(outputDirs[i]);
+      }
+      
+      apps = yarnClient.getApplications();
+      int appsAfterCount = apps != null ? apps.size() : 0;
+      
+      // Running in session mode. So should only create 1 more app.
+      Assert.assertEquals(appsBeforeCount + 1, appsAfterCount);
+    } finally {
+      remoteFs.delete(stagingDirPath, true);
+      if (yarnClient != null) {
+        yarnClient.stop();
       }
     }
 

@@ -19,8 +19,6 @@
 package org.apache.tez.examples;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.TreeMap;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -31,7 +29,6 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSinkDescriptor;
@@ -42,7 +39,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.mapreduce.examples.WordCount.TokenProcessor;
+import org.apache.tez.examples.WordCount.TokenProcessor;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
@@ -55,8 +52,17 @@ import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * Simple example that extends the WordCount example to show a chain of processing.
+ * The example extends WordCount by sorting the words by their count.
+ */
 public class OrderedWordCount extends Configured implements Tool  {
   
+  /*
+   * SumProcessor similar to WordCount except that it writes the count as key and the 
+   * word as value. This is because we can and ordered partitioned key value edge to group the 
+   * words with the same count (as key) and order the counts.
+   */
   public static class SumProcessor extends SimpleProcessor {
     public SumProcessor(ProcessorContext context) {
       super(context);
@@ -67,22 +73,22 @@ public class OrderedWordCount extends Configured implements Tool  {
       Preconditions.checkArgument(getInputs().size() == 1);
       Preconditions.checkArgument(getOutputs().size() == 1);
       KeyValueWriter kvWriter = (KeyValueWriter) getOutputs().values().iterator().next().getWriter();
-      KeyValuesReader kvReader = (KeyValuesReader) getInputs().values().iterator().next()
-          .getReader();
+      KeyValuesReader kvReader = (KeyValuesReader) getInputs().values().iterator().next().getReader();
       while (kvReader.next()) {
         Text word = (Text) kvReader.getCurrentKey();
         int sum = 0;
         for (Object value : kvReader.getCurrentValues()) {
           sum += ((IntWritable) value).get();
         }
+        // write the sum as the key and the word as the value
         kvWriter.write(new IntWritable(sum), word);
       }
     }
   }
   
   /**
-   * OrderPartitionedEdge ensures that we get the data sorted by
-   * the sum key which means that the result is totally ordered
+   * No-op sorter processor. It does not need to apply any logic since the ordered partitioned edge 
+   * ensures that we get the data sorted and grouped by the the sum key.
    */
   public static class NoOpSorter extends SimpleMRProcessor {
 
@@ -95,8 +101,7 @@ public class OrderedWordCount extends Configured implements Tool  {
       Preconditions.checkArgument(getInputs().size() == 1);
       Preconditions.checkArgument(getOutputs().size() == 1);
       KeyValueWriter kvWriter = (KeyValueWriter) getOutputs().values().iterator().next().getWriter();
-      KeyValuesReader kvReader = (KeyValuesReader) getInputs().values().iterator().next()
-          .getReader();
+      KeyValuesReader kvReader = (KeyValuesReader) getInputs().values().iterator().next().getReader();
       while (kvReader.next()) {
         Object sum = kvReader.getCurrentKey();
         for (Object word : kvReader.getCurrentValues()) {
@@ -107,8 +112,8 @@ public class OrderedWordCount extends Configured implements Tool  {
     }
   }
   
-  private DAG createDAG(TezConfiguration tezConf, Map<String, LocalResource> localResources,
-      String inputPath, String outputPath, int numPartitions) throws IOException {
+  public static DAG createDAG(TezConfiguration tezConf, String inputPath, String outputPath,
+      int numPartitions, String dagName) throws IOException {
 
     DataSourceDescriptor dataSource = MRInput.createConfigurer(new Configuration(tezConf),
         TextInputFormat.class, inputPath).create();
@@ -120,25 +125,31 @@ public class OrderedWordCount extends Configured implements Tool  {
         TokenProcessor.class.getName()));
     tokenizerVertex.addDataSource("MRInput", dataSource);
 
-    Vertex summationVertex = new Vertex("Summation", new ProcessorDescriptor(
-        SumProcessor.class.getName()), numPartitions);
-    
-    // 1 task for global sorted order
-    Vertex sorterVertex = new Vertex("Sorter", new ProcessorDescriptor(
-        NoOpSorter.class.getName()), 1);
-    sorterVertex.addDataSink("MROutput", dataSink);
-
+    // Use Text key and IntWritable value to bring counts for each word in the same partition
     OrderedPartitionedKVEdgeConfigurer summationEdgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
             HashPartitioner.class.getName()).build();
 
+    // This vertex will be reading intermediate data via an input edge and writing intermediate data
+    // via an output edge.
+    Vertex summationVertex = new Vertex("Summation", new ProcessorDescriptor(
+        SumProcessor.class.getName()), numPartitions);
+    
+    // Use IntWritable key and Text value to bring all words with the same count in the same 
+    // partition. The data will be ordered by count and words grouped by count.
     OrderedPartitionedKVEdgeConfigurer sorterEdgeConf = OrderedPartitionedKVEdgeConfigurer
         .newBuilder(IntWritable.class.getName(), Text.class.getName(),
             HashPartitioner.class.getName()).build();
 
+    // Use 1 task to bring all the data in one place for global sorted order. Essentially the number
+    // of partitions is 1. So the NoOpSorter can be used to produce the globally ordered output
+    Vertex sorterVertex = new Vertex("Sorter", new ProcessorDescriptor(
+        NoOpSorter.class.getName()), 1);
+    sorterVertex.addDataSink("MROutput", dataSink);
+
     // No need to add jar containing this class as assumed to be part of the tez jars.
     
-    DAG dag = new DAG("OrderedWordCount");
+    DAG dag = new DAG(dagName);
     dag.addVertex(tokenizerVertex)
         .addVertex(summationVertex)
         .addVertex(sorterVertex)
@@ -168,10 +179,7 @@ public class OrderedWordCount extends Configured implements Tool  {
     tezClient.start();
 
     try {
-        Map<String, LocalResource> localResources =
-          new TreeMap<String, LocalResource>();
-        
-        DAG dag = createDAG(tezConf, localResources, inputPath, outputPath, numPartitions);
+        DAG dag = createDAG(tezConf, inputPath, outputPath, numPartitions, "OrderedWordCount");
 
         tezClient.waitTillReady();
         DAGClient dagClient = tezClient.submitDAG(dag);
