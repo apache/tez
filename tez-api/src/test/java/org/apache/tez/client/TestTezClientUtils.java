@@ -39,6 +39,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -221,7 +222,7 @@ public class TestTezClientUtils {
         && javaOpts.contains(TezConfiguration.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE));
   }
 
-  @Test (timeout = 5000)
+  @Ignore @Test (timeout = 5000)
   public void testLocalResourceVisibility() throws Exception {
 
     Assume.assumeFalse(Shell.WINDOWS);
