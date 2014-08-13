@@ -20,11 +20,9 @@ package org.apache.tez.test.dag;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
-import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.test.TestProcessor;
-import org.apache.tez.test.dag.TwoLevelsFailingDAG;
 
 /**
  * A DAG with vertices divided into 3 levels.

@@ -100,6 +100,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
+@Private
 public class TezClientUtils {
 
   private static Log LOG = LogFactory.getLog(TezClientUtils.class);

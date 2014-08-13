@@ -49,11 +49,10 @@ import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.tez.common.MRFrameworkConfigs;
-import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
@@ -201,7 +200,8 @@ public class MapUtils {
     jobConf.setInputFormat(SequenceFileInputFormat.class);
 
     ProcessorDescriptor mapProcessorDesc = new ProcessorDescriptor(
-        MapProcessor.class.getName()).setUserPayload(TezUtils.createUserPayloadFromConf(jobConf));
+        MapProcessor.class.getName()).setUserPayload(
+        TezUtils.createUserPayloadFromConf(jobConf));
     
     Token<JobTokenIdentifier> shuffleToken = new Token<JobTokenIdentifier>();
 

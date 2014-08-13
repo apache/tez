@@ -4,7 +4,7 @@ import com.google.protobuf.ByteString;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezCommonUtils;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
@@ -168,7 +168,7 @@ public class TestShuffleInputEventHandler {
     for (int i : emptyPartitions) {
       bitSet.set(i);
     }
-    return TezCommonUtils.compressByteArrayToByteString(TezUtils.toByteArray(bitSet));
+    return TezCommonUtils.compressByteArrayToByteString(TezUtilsInternal.toByteArray(bitSet));
   }
 
 }

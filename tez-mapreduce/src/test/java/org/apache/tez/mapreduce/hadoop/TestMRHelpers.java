@@ -27,7 +27,6 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
@@ -48,7 +47,7 @@ public class TestMRHelpers {
   @Test
   public void testMapJavaOptions() {
     Configuration conf = createConfForJavaOptsTest();
-    String opts = MRHelpers.getMapJavaOpts(conf);
+    String opts = MRHelpers.getJavaOptsForMRMapper(conf);
 
     Assert.assertTrue(opts.contains("fooMapAdminOpts"));
     Assert.assertTrue(opts.contains(" fooMapJavaOpts "));
@@ -65,7 +64,7 @@ public class TestMRHelpers {
   @Test
   public void testReduceJavaOptions() {
     Configuration conf = createConfForJavaOptsTest();
-    String opts = MRHelpers.getReduceJavaOpts(conf);
+    String opts = MRHelpers.getJavaOptsForMRReducer(conf);
 
     Assert.assertFalse(opts.contains("fooMapAdminOpts"));
     Assert.assertFalse(opts.contains(" fooMapJavaOpts "));
@@ -82,8 +81,8 @@ public class TestMRHelpers {
   @Test
   public void testContainerResourceConstruction() {
     JobConf conf = new JobConf(new Configuration());
-    Resource mapResource = MRHelpers.getMapResource(conf);
-    Resource reduceResource = MRHelpers.getReduceResource(conf);
+    Resource mapResource = MRHelpers.getResourceForMRMapper(conf);
+    Resource reduceResource = MRHelpers.getResourceForMRReducer(conf);
 
     Assert.assertEquals(MRJobConfig.DEFAULT_MAP_CPU_VCORES,
         mapResource.getVirtualCores());
@@ -99,8 +98,8 @@ public class TestMRHelpers {
     conf.setInt(MRJobConfig.REDUCE_CPU_VCORES, 20);
     conf.setInt(MRJobConfig.REDUCE_MEMORY_MB, 1234);
 
-    mapResource = MRHelpers.getMapResource(conf);
-    reduceResource = MRHelpers.getReduceResource(conf);
+    mapResource = MRHelpers.getResourceForMRMapper(conf);
+    reduceResource = MRHelpers.getResourceForMRReducer(conf);
 
     Assert.assertEquals(2, mapResource.getVirtualCores());
     Assert.assertEquals(123, mapResource.getMemory());
@@ -139,7 +138,7 @@ public class TestMRHelpers {
   public void testMREnvSetupForMap() {
     Configuration conf = setupConfigForMREnvTest();
     Map<String, String> env = new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRTasks(conf, env, true);
+    MRHelpers.updateEnvBasedOnMRTaskEnv(conf, env, true);
     testCommonEnvSettingsForMRTasks(env);
     Assert.assertEquals("map1", env.get("foo"));
     Assert.assertEquals("map2", env.get("bar"));
@@ -149,18 +148,10 @@ public class TestMRHelpers {
   public void testMREnvSetupForReduce() {
     Configuration conf = setupConfigForMREnvTest();
     Map<String, String> env = new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRTasks(conf, env, false);
+    MRHelpers.updateEnvBasedOnMRTaskEnv(conf, env, false);
     testCommonEnvSettingsForMRTasks(env);
     Assert.assertEquals("red1", env.get("foo"));
     Assert.assertEquals("red2", env.get("bar"));
-  }
-
-  @Test
-  public void testGetBaseMRConf() {
-    Configuration conf = MRHelpers.getBaseMRConfiguration();
-    Assert.assertNotNull(conf);
-    conf = MRHelpers.getBaseMRConfiguration(new YarnConfiguration());
-    Assert.assertNotNull(conf);
   }
 
   @Test
@@ -168,7 +159,7 @@ public class TestMRHelpers {
     Configuration conf = new Configuration();
     conf.set(MRJobConfig.MR_AM_ADMIN_COMMAND_OPTS, " -Dadminfoobar   ");
     conf.set(MRJobConfig.MR_AM_COMMAND_OPTS, "  -Duserfoo  ");
-    String opts = MRHelpers.getMRAMJavaOpts(conf);
+    String opts = MRHelpers.getJavaOptsForMRAM(conf);
     Assert.assertEquals("-Dadminfoobar -Duserfoo", opts);
   }
 
@@ -179,7 +170,7 @@ public class TestMRHelpers {
     conf.set(MRJobConfig.MR_AM_ENV, "foo=bar2,user=foo2");
     Map<String, String> env =
         new HashMap<String, String>();
-    MRHelpers.updateEnvironmentForMRAM(conf, env);
+    MRHelpers.updateEnvBasedOnMRAMEnv(conf, env);
     Assert.assertEquals("foo1", env.get("admin1"));
     Assert.assertEquals("foo2", env.get("user"));
     Assert.assertEquals(("bar" + File.pathSeparator + "bar2"), env.get("foo"));

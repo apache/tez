@@ -31,7 +31,7 @@ import javax.crypto.SecretKey;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
@@ -115,7 +115,8 @@ class Fetcher extends Thread {
       this.codec = null;
     }
 
-    this.logIdentifier = "fetcher [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "] #" + id;
+    this.logIdentifier = "fetcher [" + TezUtilsInternal
+        .cleanVertexName(inputContext.getSourceVertexName()) + "] #" + id;
     setName(logIdentifier);
     setDaemon(true);
   }  

@@ -20,6 +20,7 @@
 
 package org.apache.tez.runtime.api.events;
 
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.Event;
@@ -46,6 +47,8 @@ public class InputInitializerEvent extends Event {
    */
   public InputInitializerEvent(String targetVertexName, String targetInputName,
                                    byte[] eventPayload, int version) {
+    Preconditions.checkNotNull(targetVertexName, "TargetVertexName cannot be null");
+    Preconditions.checkNotNull(targetInputName, "TargetInputName cannot be null");
     this.targetVertexName = targetVertexName;
     this.targetInputName = targetInputName;
     this.version = version;

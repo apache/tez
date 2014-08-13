@@ -38,7 +38,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.Event;
@@ -545,7 +545,7 @@ class ShuffleScheduler {
   private class Referee extends Thread {
     public Referee() {
       setName("ShufflePenaltyReferee ["
-          + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "]");
+          + TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName()) + "]");
       setDaemon(true);
     }
 

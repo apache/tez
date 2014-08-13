@@ -18,7 +18,7 @@
 
 package org.apache.tez.runtime.api.impl;
 
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
@@ -31,8 +31,8 @@ public class TezCountersDelegate extends TezCounters {
   public TezCountersDelegate(TezCounters original, String taskVertexName, String edgeVertexName,
       String type) {
     this.original = original;
-    this.groupModifier = TezUtils.cleanVertexName(taskVertexName) + "_" + type + "_"
-        + TezUtils.cleanVertexName(edgeVertexName);
+    this.groupModifier = TezUtilsInternal.cleanVertexName(taskVertexName) + "_" + type + "_"
+        + TezUtilsInternal.cleanVertexName(edgeVertexName);
   }
 
   // Should only be called while setting up Inputs / Outputs - rather than being

@@ -32,7 +32,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
@@ -114,7 +114,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     if (shufflePayload.hasEmptyPartitions()) {
       byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload
           .getEmptyPartitions());
-      BitSet emptyPartionsBitSet = TezUtils.fromByteArray(emptyPartitions);
+      BitSet emptyPartionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
       if (emptyPartionsBitSet.get(srcIndex)) {
         InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dme.getTargetIndex(),
             dme.getVersion());

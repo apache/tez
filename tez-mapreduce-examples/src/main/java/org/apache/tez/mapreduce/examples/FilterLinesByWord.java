@@ -52,6 +52,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.DataSourceDescriptor;
@@ -69,7 +70,6 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.examples.helpers.SplitsInClientOptionParser;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
@@ -167,7 +167,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     stage2Conf.set(FileOutputFormat.OUTDIR, outputPath);
     stage2Conf.setBoolean("mapred.mapper.new-api", false);
 
-    UserPayload stage1Payload = MRHelpers.createUserPayloadFromConf(stage1Conf);
+    UserPayload stage1Payload = TezUtils.createUserPayloadFromConf(stage1Conf);
     // Setup stage1 Vertex
     Vertex stage1Vertex = new Vertex("stage1", new ProcessorDescriptor(
         FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload))
@@ -188,12 +188,12 @@ public class FilterLinesByWord extends Configured implements Tool {
     // Setup stage2 Vertex
     Vertex stage2Vertex = new Vertex("stage2", new ProcessorDescriptor(
         FilterByWordOutputProcessor.class.getName()).setUserPayload(
-        MRHelpers.createUserPayloadFromConf(stage2Conf)), 1);
+        TezUtils.createUserPayloadFromConf(stage2Conf)), 1);
     stage2Vertex.setTaskLocalFiles(commonLocalResources);
 
     // Configure the Output for stage2
     OutputDescriptor od = new OutputDescriptor(MROutput.class.getName())
-        .setUserPayload(MRHelpers.createUserPayloadFromConf(stage2Conf));
+        .setUserPayload(TezUtils.createUserPayloadFromConf(stage2Conf));
     OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(MROutputCommitter.class.getName());
     stage2Vertex.addDataSink("MROutput", new DataSinkDescriptor(od, ocd, null));
 

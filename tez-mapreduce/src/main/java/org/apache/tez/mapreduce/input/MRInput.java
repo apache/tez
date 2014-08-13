@@ -206,8 +206,8 @@ public class MRInput extends MRInputBase {
       } catch (Exception e) {
         throw new TezUncheckedException(e);
       }
-      MRHelpers.translateVertexConfToTez(inputConf);
-      MRHelpers.doJobClientMagic(inputConf);
+      MRHelpers.translateMRConfToTez(inputConf);
+      MRHelpers.configureMRApiUsage(inputConf);
       UserPayload payload = MRInputHelpersInternal.createMRInputPayload(inputConf, inputSplitInfo.getSplitsProto());
       Credentials credentials = null;
       if (getCredentialsForSourceFilesystem && inputSplitInfo.getCredentials() != null) {
@@ -224,8 +224,8 @@ public class MRInput extends MRInputBase {
       Configuration inputConf = new JobConf(conf);
       setupBasicConf(inputConf);
 
-      MRHelpers.translateVertexConfToTez(inputConf);
-      MRHelpers.doJobClientMagic(inputConf);
+      MRHelpers.translateMRConfToTez(inputConf);
+      MRHelpers.configureMRApiUsage(inputConf);
 
       Credentials credentials = maybeGetCredentials();
 
@@ -243,8 +243,8 @@ public class MRInput extends MRInputBase {
     private DataSourceDescriptor createGeneratorDataSource() throws IOException {
       Configuration inputConf = new JobConf(conf);
       setupBasicConf(inputConf);
-      MRHelpers.translateVertexConfToTez(inputConf);
-      MRHelpers.doJobClientMagic(inputConf);
+      MRHelpers.translateMRConfToTez(inputConf);
+      MRHelpers.configureMRApiUsage(inputConf);
       
       Credentials credentials = maybeGetCredentials();
 

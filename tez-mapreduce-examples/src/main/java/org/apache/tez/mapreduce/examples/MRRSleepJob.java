@@ -64,6 +64,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
@@ -428,7 +429,7 @@ public class MRRSleepJob extends Configured implements Tool {
           NullOutputFormat.class.getName());
     }
 
-    MRHelpers.translateVertexConfToTez(mapStageConf);
+    MRHelpers.translateMRConfToTez(mapStageConf);
 
     Configuration[] intermediateReduceStageConfs = null;
     if (iReduceStagesCount > 0
@@ -449,7 +450,7 @@ public class MRRSleepJob extends Configured implements Tool {
             MRRSleepJobPartitioner.class.getName());
 
 
-        MRHelpers.translateVertexConfToTez(iReduceStageConf);
+        MRHelpers.translateMRConfToTez(iReduceStageConf);
         intermediateReduceStageConfs[i-1] = iReduceStageConf;
       }
     }
@@ -468,18 +469,18 @@ public class MRRSleepJob extends Configured implements Tool {
       finalReduceConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
           NullOutputFormat.class.getName());
 
-      MRHelpers.translateVertexConfToTez(finalReduceConf);
+      MRHelpers.translateMRConfToTez(finalReduceConf);
     }
 
-    MRHelpers.doJobClientMagic(mapStageConf);
+    MRHelpers.configureMRApiUsage(mapStageConf);
     if (iReduceStagesCount > 0
         && numIReducer > 0) {
       for (int i = 0; i < iReduceStagesCount; ++i) {
-        MRHelpers.doJobClientMagic(intermediateReduceStageConfs[i]);
+        MRHelpers.configureMRApiUsage(intermediateReduceStageConfs[i]);
       }
     }
     if (numReducer > 0) {
-      MRHelpers.doJobClientMagic(finalReduceConf);
+      MRHelpers.configureMRApiUsage(finalReduceConf);
     }
 
     DataSourceDescriptor dataSource = null;
@@ -520,7 +521,7 @@ public class MRRSleepJob extends Configured implements Tool {
     List<Vertex> vertices = new ArrayList<Vertex>();
 
     
-    UserPayload mapUserPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
+    UserPayload mapUserPayload = TezUtils.createUserPayloadFromConf(mapStageConf);
     int numTasks = generateSplitsInAM ? -1 : numMapper;
 
     Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
@@ -534,7 +535,7 @@ public class MRRSleepJob extends Configured implements Tool {
       for (int i = 0; i < iReduceStagesCount; ++i) {
         Configuration iconf =
             intermediateReduceStageConfs[i];
-        UserPayload iReduceUserPayload = MRHelpers.createUserPayloadFromConf(iconf);
+        UserPayload iReduceUserPayload = TezUtils.createUserPayloadFromConf(iconf);
         Vertex ivertex = new Vertex("ireduce" + (i+1),
                 new ProcessorDescriptor(ReduceProcessor.class.getName()).
                 setUserPayload(iReduceUserPayload), numIReducer);
@@ -545,7 +546,7 @@ public class MRRSleepJob extends Configured implements Tool {
 
     Vertex finalReduceVertex = null;
     if (numReducer > 0) {
-      UserPayload reducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
+      UserPayload reducePayload = TezUtils.createUserPayloadFromConf(finalReduceConf);
       finalReduceVertex = new Vertex("reduce", new ProcessorDescriptor(
           ReduceProcessor.class.getName()).setUserPayload(reducePayload), numReducer);
       finalReduceVertex.setTaskLocalFiles(commonLocalResources);

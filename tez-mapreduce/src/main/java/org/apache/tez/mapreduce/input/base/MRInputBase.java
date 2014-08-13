@@ -27,10 +27,9 @@ import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
@@ -68,7 +67,8 @@ public abstract class MRInputBase extends AbstractLogicalInput {
     boolean isGrouped = mrUserPayload.getGroupingEnabled();
     Preconditions.checkArgument(mrUserPayload.hasSplits() == false,
         "Split information not expected in " + this.getClass().getName());
-    Configuration conf = MRHelpers.createConfFromByteString(mrUserPayload.getConfigurationBytes());
+    Configuration conf = TezUtils
+        .createConfFromByteString(mrUserPayload.getConfigurationBytes());
     this.jobConf = new JobConf(conf);
     useNewApi = this.jobConf.getUseNewMapper();
     if (isGrouped) {

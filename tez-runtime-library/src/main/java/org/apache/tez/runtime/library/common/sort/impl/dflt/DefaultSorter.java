@@ -39,7 +39,7 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
@@ -161,7 +161,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     minSpillsForCombine = this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINE_MIN_SPILLS, 3);
     spillThread.setDaemon(true);
     spillThread.setName("SpillThread ["
-        + TezUtils.cleanVertexName(outputContext.getDestinationVertexName() + "]"));
+        + TezUtilsInternal.cleanVertexName(outputContext.getDestinationVertexName() + "]"));
     spillLock.lock();
     try {
       spillThread.start();

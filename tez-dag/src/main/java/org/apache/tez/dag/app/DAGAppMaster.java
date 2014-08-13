@@ -90,7 +90,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezConverterUtils;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.impl.LogUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -546,7 +546,7 @@ public class DAGAppMaster extends AbstractService {
 
   private void _updateLoggers(DAG dag, String appender) {
     try {
-      TezUtils.updateLoggers(dag.getID().toString() + appender);
+      TezUtilsInternal.updateLoggers(dag.getID().toString() + appender);
     } catch (FileNotFoundException e) {
       LOG.warn("Unable to update the logger. Continue with the old logger", e );
     }
@@ -1866,7 +1866,7 @@ public class DAGAppMaster extends AbstractService {
       InterruptedException {
 
     final Configuration conf = new Configuration(new YarnConfiguration());
-    TezUtils.addUserSpecifiedTezConfiguration(appMaster.workingDirectory, conf);
+    TezUtilsInternal.addUserSpecifiedTezConfiguration(appMaster.workingDirectory, conf);
 
     // Do not automatically close FileSystem objects so that in case of
     // SIGTERM I have a chance to write out the job history. I'll be closing

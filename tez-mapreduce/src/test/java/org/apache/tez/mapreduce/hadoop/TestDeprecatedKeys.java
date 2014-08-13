@@ -42,7 +42,7 @@ public class TestDeprecatedKeys {
     jobConf.setBoolean(MRJobConfig.REDUCE_MEMTOMEM_ENABLED, true);
     jobConf.setFloat(MRJobConfig.REDUCE_INPUT_BUFFER_PERCENT, 0.33f);
 
-    MRHelpers.translateVertexConfToTez(jobConf);
+    MRHelpers.translateMRConfToTez(jobConf);
 
     assertEquals(0.4f, jobConf.getFloat(
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, 0f), 0.01f);
@@ -101,7 +101,7 @@ public class TestDeprecatedKeys {
     jobConf.setBoolean(MRJobConfig.MAP_OUTPUT_COMPRESS, false);
     jobConf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, true);
 
-    MRHelpers.translateVertexConfToTez(jobConf);
+    MRHelpers.translateMRConfToTez(jobConf);
 
     assertEquals(1000, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, 0));
     assertEquals(200, jobConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 100));

@@ -80,6 +80,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.client.MRTezClient;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.DataSourceDescriptor;
@@ -379,7 +380,7 @@ public class YARNRunner implements ClientProtocol {
           MRJobConfig.MAPRED_ADMIN_USER_ENV);
     }
 
-    MRHelpers.updateEnvironmentForMRTasks(jobConf, environment, isMap);
+    MRHelpers.updateEnvBasedOnMRTaskEnv(jobConf, environment, isMap);
   }
 
   private Vertex createVertexForStage(Configuration stageConf,
@@ -408,12 +409,12 @@ public class YARNRunner implements ClientProtocol {
       }
     }
 
-    Resource taskResource = isMap ? MRHelpers.getMapResource(stageConf)
-        : MRHelpers.getReduceResource(stageConf);
+    Resource taskResource = isMap ? MRHelpers.getResourceForMRMapper(stageConf)
+        : MRHelpers.getResourceForMRReducer(stageConf);
     
     stageConf.set(MRJobConfig.MROUTPUT_FILE_NAME_PREFIX, "part");
     
-    UserPayload vertexUserPayload = MRHelpers.createUserPayloadFromConf(stageConf);
+    UserPayload vertexUserPayload = TezUtils.createUserPayloadFromConf(stageConf);
     Vertex vertex = new Vertex(vertexName, new ProcessorDescriptor(processorName).setUserPayload(vertexUserPayload),
         numTasks, taskResource);
     if (isMap) {
@@ -437,8 +438,8 @@ public class YARNRunner implements ClientProtocol {
     // here
     taskLocalResources.putAll(jobLocalResources);
 
-    String taskJavaOpts = isMap ? MRHelpers.getMapJavaOpts(stageConf)
-        : MRHelpers.getReduceJavaOpts(stageConf);
+    String taskJavaOpts = isMap ? MRHelpers.getJavaOptsForMRMapper(stageConf)
+        : MRHelpers.getJavaOptsForMRReducer(stageConf);
 
     vertex.setTaskEnvironment(taskEnv)
         .setTaskLocalFiles(taskLocalResources)
@@ -561,7 +562,7 @@ public class YARNRunner implements ClientProtocol {
 
     // Transform all confs to use Tez keys
     for (int i = 0; i < stageConfs.length; i++) {
-      MRHelpers.translateVertexConfToTez(stageConfs[i]);
+      MRHelpers.translateMRConfToTez(stageConfs[i]);
     }
 
     // create inputs to tezClient.submit()
@@ -600,7 +601,7 @@ public class YARNRunner implements ClientProtocol {
     Map<String, String> environment = new HashMap<String, String>();
 
     // Setup the environment variables for AM
-    MRHelpers.updateEnvironmentForMRAM(conf, environment);
+    MRHelpers.updateEnvBasedOnMRAMEnv(conf, environment);
     StringBuilder envStrBuilder = new StringBuilder();
     boolean first = true;
     for (Entry<String, String> entry : environment.entrySet()) {

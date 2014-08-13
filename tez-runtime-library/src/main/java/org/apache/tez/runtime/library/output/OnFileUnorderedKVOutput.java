@@ -31,9 +31,10 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
@@ -132,7 +133,7 @@ public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
       BitSet emptyPartitions = new BitSet();
       emptyPartitions.set(0);
       ByteString emptyPartitionsBytesString =
-          TezCommonUtils.compressByteArrayToByteString(TezUtils.toByteArray(emptyPartitions));
+          TezCommonUtils.compressByteArrayToByteString(TezUtilsInternal.toByteArray(emptyPartitions));
       payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
     }
     if (outputGenerated) {

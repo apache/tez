@@ -31,8 +31,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.tez.common.MRFrameworkConfigs;
-import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.UserPayload;
@@ -109,7 +109,7 @@ public class TestMapProcessor {
     JobConf jobConf = new JobConf(defaultConf);
     setUpJobConf(jobConf);
 
-    MRHelpers.translateVertexConfToTez(jobConf);
+    MRHelpers.translateMRConfToTez(jobConf);
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
 
     jobConf.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);

@@ -175,9 +175,9 @@ public class MROutput extends AbstractLogicalOutput {
       } else {
         outputConf.set("mapred.output.format.class", outputFormatName);
       }
-      MRHelpers.translateVertexConfToTez(outputConf);
+      MRHelpers.translateMRConfToTez(outputConf);
+      MRHelpers.configureMRApiUsage(outputConf);
       try {
-        MRHelpers.doJobClientMagic(outputConf);
         return TezUtils.createUserPayloadFromConf(outputConf);
       } catch (IOException e) {
         throw new TezUncheckedException(e);

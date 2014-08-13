@@ -38,6 +38,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 
 import com.google.protobuf.ByteString;
 
+@Private
 public class TezCommonUtils {
   public static final FsPermission TEZ_AM_DIR_PERMISSION = FsPermission
       .createImmutable((short) 0700); // rwx--------

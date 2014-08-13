@@ -37,8 +37,8 @@ import org.apache.hadoop.mapred.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.security.token.Token;
 import org.apache.tez.common.MRFrameworkConfigs;
-import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -121,7 +121,7 @@ public class TestReduceProcessor {
     JobConf jobConf = new JobConf(defaultConf);
     setUpJobConf(jobConf);
     
-    MRHelpers.translateVertexConfToTez(jobConf);
+    MRHelpers.translateMRConfToTez(jobConf);
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
 
     jobConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
@@ -159,7 +159,8 @@ public class TestReduceProcessor {
         "localized-resources").toUri().toString());
     FileOutputFormat.setOutputPath(jobConf, new Path(workDir, "output"));
     ProcessorDescriptor reduceProcessorDesc = new ProcessorDescriptor(
-        ReduceProcessor.class.getName()).setUserPayload(TezUtils.createUserPayloadFromConf(jobConf));
+        ReduceProcessor.class.getName()).setUserPayload(
+        TezUtils.createUserPayloadFromConf(jobConf));
     
     InputSpec reduceInputSpec = new InputSpec(mapVertexName,
         new InputDescriptor(LocalMergedInput.class.getName())

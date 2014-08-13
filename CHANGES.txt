@@ -54,6 +54,7 @@ INCOMPATIBLE CHANGES
   TEZ-1237. Consolidate naming of API classes
   TEZ-1407. Move MRInput related methods out of MRHelpers and consolidate.
   TEZ-1194. Make TezUserPayload user facing for payload specification
+  TEZ-1347. Consolidate MRHelpers.
 
 Release 0.4.0-incubating: 2014-04-05
 

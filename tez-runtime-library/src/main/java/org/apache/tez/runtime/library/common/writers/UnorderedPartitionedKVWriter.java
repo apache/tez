@@ -49,10 +49,9 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezCommonUtils;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
@@ -162,7 +161,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
             .setDaemon(true)
             .setNameFormat(
                 "UnorderedOutSpiller ["
-                    + TezUtils.cleanVertexName(outputContext.getDestinationVertexName()) + "]")
+                    + TezUtilsInternal.cleanVertexName(outputContext.getDestinationVertexName()) + "]")
             .build());
     spillExecutor = MoreExecutors.listeningDecorator(executor);
     numRecordsPerPartition = new int[numPartitions];
@@ -479,7 +478,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     }
     if (emptyPartitions.cardinality() != 0) {
       // Empty partitions exist
-      ByteString emptyPartitionsByteString = TezCommonUtils.compressByteArrayToByteString(TezUtils
+      ByteString emptyPartitionsByteString = TezCommonUtils.compressByteArrayToByteString(
+          TezUtilsInternal
           .toByteArray(emptyPartitions));
       payloadBuidler.setEmptyPartitions(emptyPartitionsByteString);
     }

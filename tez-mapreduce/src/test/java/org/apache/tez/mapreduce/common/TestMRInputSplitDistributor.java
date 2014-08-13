@@ -18,6 +18,7 @@
 
 package org.apache.tez.mapreduce.common;
 
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.UserPayload;
 
 import static org.junit.Assert.assertEquals;
@@ -35,7 +36,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.lib.MRInputUtils;
@@ -57,7 +57,7 @@ public class TestMRInputSplitDistributor {
 
     Configuration conf = new Configuration(false);
     conf.setBoolean(MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD, true);
-    ByteString confByteString = MRHelpers.createByteStringFromConf(conf);
+    ByteString confByteString = TezUtils.createByteStringFromConf(conf);
     InputSplit split1 = new InputSplitForTest(1);
     InputSplit split2 = new InputSplitForTest(2);
     MRSplitProto proto1 = MRInputHelpers.createSplitProto(split1);
@@ -105,7 +105,7 @@ public class TestMRInputSplitDistributor {
 
     Configuration conf = new Configuration(false);
     conf.setBoolean(MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD, false);
-    ByteString confByteString = MRHelpers.createByteStringFromConf(conf);
+    ByteString confByteString = TezUtils.createByteStringFromConf(conf);
     InputSplit split1 = new InputSplitForTest(1);
     InputSplit split2 = new InputSplitForTest(2);
     MRSplitProto proto1 = MRInputHelpers.createSplitProto(split1);

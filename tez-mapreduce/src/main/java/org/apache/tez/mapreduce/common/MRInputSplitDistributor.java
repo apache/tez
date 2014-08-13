@@ -25,7 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.lib.MRInputUtils;
@@ -67,7 +67,7 @@ public class MRInputSplitDistributor extends InputInitializer {
       LOG.debug("Time to parse MRInput payload into prot: "
           + sw.elapsedMillis());  
     }
-    Configuration conf = MRHelpers.createConfFromByteString(userPayloadProto
+    Configuration conf = TezUtils.createConfFromByteString(userPayloadProto
         .getConfigurationBytes());
     JobConf jobConf = new JobConf(conf);
     boolean useNewApi = jobConf.getUseNewMapper();

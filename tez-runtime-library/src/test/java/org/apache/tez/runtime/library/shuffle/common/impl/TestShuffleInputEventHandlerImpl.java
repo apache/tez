@@ -29,7 +29,7 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezCommonUtils;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
@@ -157,7 +157,8 @@ public class TestShuffleInputEventHandlerImpl {
     for (int i : emptyPartitions) {
       bitSet.set(i);
     }
-    ByteString emptyPartitionsBytesString = TezCommonUtils.compressByteArrayToByteString(TezUtils
+    ByteString emptyPartitionsBytesString = TezCommonUtils.compressByteArrayToByteString(
+        TezUtilsInternal
         .toByteArray(bitSet));
     return emptyPartitionsBytesString;
   }

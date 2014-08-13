@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
@@ -106,7 +106,7 @@ public class ShuffleInputEventHandler {
     if (shufflePayload.hasEmptyPartitions()) {
       try {
         byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload.getEmptyPartitions());
-        BitSet emptyPartitionsBitSet = TezUtils.fromByteArray(emptyPartitions);
+        BitSet emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
         if (emptyPartitionsBitSet.get(partitionId)) {
           InputAttemptIdentifier srcAttemptIdentifier =
               new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion());

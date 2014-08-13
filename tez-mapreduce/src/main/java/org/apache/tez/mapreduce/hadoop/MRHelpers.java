@@ -20,57 +20,96 @@ package org.apache.tez.mapreduce.hadoop;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
-import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.yarn.ContainerLogAppender;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezYARNUtils;
-import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
-import com.google.protobuf.ByteString;
 
-
+/**
+ * This class contains helper methods for frameworks which migrate from MapReduce to Tez, and need
+ * to continue to work with existing MapReduce configurations.
+ */
 public class MRHelpers {
 
   private static final Log LOG = LogFactory.getLog(MRHelpers.class);
 
 
-
+  /**
+   * Translate MapReduce configuration keys to the equivalent Tez keys in the provided
+   * configuration. The translation is done in place. </p>
+   * This method is meant to be used by frameworks which rely upon existing MapReduce configuration
+   * instead of setting up their own.
+   *
+   * @param conf mr based configuration to be translated to tez
+   */
+  public static void translateMRConfToTez(Configuration conf) {
+    convertVertexConfToTez(conf);
+  }
 
   /**
-   * Translates MR keys to Tez for the provided conf. The conversion is
-   * done in place.
+   * Update the provided configuration to use the new API (mapreduce) or the old API (mapred) based
+   * on the configured InputFormat, OutputFormat, Partitioner etc. Also ensures that keys not
+   * required by a particular mode are not present. </p>
    *
-   * @param conf
-   *          mr based configuration to be translated to tez
+   * This method should be invoked after completely setting up the configuration. </p>
+   *
+   * Defaults to using the new API if relevant keys are not present.
+   *
    */
-  @LimitedPrivate("Hive, Pig")
-  @Unstable
-  public static void translateVertexConfToTez(Configuration conf) {
-    convertVertexConfToTez(conf);
+  public static void configureMRApiUsage(Configuration conf) {
+    String oldMapperClass = "mapred.mapper.class";
+    conf.setBooleanIfUnset("mapred.mapper.new-api", conf.get(oldMapperClass) == null);
+    try {
+      if (conf.getBoolean("mapred.mapper.new-api", false)) {
+        String mode = "new map API";
+        ensureNotSet(conf, "mapred.input.format.class", mode);
+        ensureNotSet(conf, oldMapperClass, mode);
+      } else {
+        String mode = "map compatability";
+        ensureNotSet(conf, MRJobConfig.INPUT_FORMAT_CLASS_ATTR, mode);
+        ensureNotSet(conf, MRJobConfig.MAP_CLASS_ATTR, mode);
+      }
+    } catch (IOException e) {
+      throw new TezUncheckedException(e);
+    }
   }
 
   private static void convertVertexConfToTez(Configuration vertexConf) {
     setStageKeysFromBaseConf(vertexConf, vertexConf, "unknown");
     processDirectConversion(vertexConf);
+    setupMRComponents(vertexConf);
+  }
+
+  private static void setupMRComponents(Configuration conf) {
+    if (conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS) == null) {
+      conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS,
+          MRPartitioner.class.getName());
+    }
+
+    if (conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS) == null) {
+      boolean useNewApi = conf.getBoolean("mapred.mapper.new-api", false);
+      if (useNewApi) {
+        if (conf.get(MRJobConfig.COMBINE_CLASS_ATTR) != null) {
+          conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS, MRCombiner.class.getName());
+        }
+      } else {
+        if (conf.get("mapred.combiner.class") != null) {
+          conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS, MRCombiner.class.getName());
+        }
+      }
+    }
   }
 
   /**
@@ -153,10 +192,17 @@ public class MRHelpers {
     }
   }
 
+  private static void ensureNotSet(Configuration conf, String attr, String msg)
+      throws IOException {
+    if (conf.get(attr) != null) {
+      throw new IOException(attr + " is incompatible with " + msg + " mode.");
+    }
+  }
+
   private static String getLog4jCmdLineProperties(Configuration conf,
       boolean isMap) {
     Vector<String> logProps = new Vector<String>(4);
-    addLog4jSystemProperties(getChildLogLevel(conf, isMap), logProps);
+    TezUtils.addLog4jSystemProperties(getChildLogLevel(conf, isMap), logProps);
     StringBuilder sb = new StringBuilder();
     for (String str : logProps) {
       sb.append(str).append(" ");
@@ -165,21 +211,34 @@ public class MRHelpers {
   }
 
   /**
-   * Add the JVM system properties necessary to configure
-   * {@link ContainerLogAppender}.
+   * Generate JVM options based on MapReduce AM java options. </p>
+   * <p/>
+   * This is only meant to be used if frameworks are not setting up their own java options or
+   * relying on the defaults specified by Tez, and instead want to use the options which may already
+   * have been configured for an MR AppMaster.
    *
-   * @param logLevel
-   *          the desired log level (eg INFO/WARN/DEBUG)
-   * @param vargs
-   *          the argument list to append to
+   * @param conf Configuration to be used to extract JVM opts specific info
+   * @return JAVA_OPTS string to be used in launching the JVM
    */
-  public static void addLog4jSystemProperties(String logLevel,
-      List<String> vargs) {
-    TezClientUtils.addLog4jSystemProperties(logLevel, vargs);
+  public static String getJavaOptsForMRAM(Configuration conf) {
+    // Admin opts
+    String mrAppMasterAdminOptions = conf.get(
+        MRJobConfig.MR_AM_ADMIN_COMMAND_OPTS,
+        MRJobConfig.DEFAULT_MR_AM_ADMIN_COMMAND_OPTS);
+    // Add AM user command opts
+    String mrAppMasterUserOptions = conf.get(MRJobConfig.MR_AM_COMMAND_OPTS,
+        MRJobConfig.DEFAULT_MR_AM_COMMAND_OPTS);
+
+    return mrAppMasterAdminOptions.trim()
+        + " " + mrAppMasterUserOptions.trim();
   }
 
   /**
-   * Generate JVM options to be used to launch map tasks
+   * Generate JVM options based on MapReduce mapper java options. </p>
+   *
+   * This is only meant to be used if frameworks are not setting up their own java options,
+   * and would like to fallback to using java options which may already be configured for
+   * Hadoop MapReduce mappers.
    *
    * Uses mapreduce.admin.map.child.java.opts, mapreduce.map.java.opts and
    * mapreduce.map.log.level from config to generate the opts.
@@ -188,7 +247,7 @@ public class MRHelpers {
    * @return JAVA_OPTS string to be used in launching the JVM
    */
   @SuppressWarnings("deprecation")
-  public static String getMapJavaOpts(Configuration conf) {
+  public static String getJavaOptsForMRMapper(Configuration conf) {
     String adminOpts = conf.get(
         MRJobConfig.MAPRED_MAP_ADMIN_JAVA_OPTS,
         MRJobConfig.DEFAULT_MAPRED_ADMIN_JAVA_OPTS);
@@ -204,7 +263,11 @@ public class MRHelpers {
   }
 
   /**
-   * Generate JVM options to be used to launch reduce tasks
+   * Generate JVM options based on MapReduce reducer java options. </p>
+   *
+   * This is only meant to be used if frameworks are not setting up their own java options,
+   * and would like to fallback to using java options which may already be configured for
+   * Hadoop MapReduce reducers.
    *
    * Uses mapreduce.admin.reduce.child.java.opts, mapreduce.reduce.java.opts
    * and mapreduce.reduce.log.level from config to generate the opts.
@@ -213,7 +276,7 @@ public class MRHelpers {
    * @return JAVA_OPTS string to be used in launching the JVM
    */
   @SuppressWarnings("deprecation")
-  public static String getReduceJavaOpts(Configuration conf) {
+  public static String getJavaOptsForMRReducer(Configuration conf) {
     String adminOpts = conf.get(
         MRJobConfig.MAPRED_REDUCE_ADMIN_JAVA_OPTS,
         MRJobConfig.DEFAULT_MAPRED_ADMIN_JAVA_OPTS);
@@ -229,146 +292,12 @@ public class MRHelpers {
   }
 
   /**
-   * Sets up parameters which used to be set by the MR JobClient. Includes
-   * setting whether to use the new api or the old api. Note: Must be called
-   * before generating InputSplits
-   *
-   * @param conf
-   *          configuration for the vertex.
-   */
-  public static void doJobClientMagic(Configuration conf) throws IOException {
-    setUseNewAPI(conf);
-    // TODO Maybe add functionality to check output specifications - e.g. fail
-    // early if the output directory exists.
-    InetAddress ip = InetAddress.getLocalHost();
-    if (ip != null) {
-      String submitHostAddress = ip.getHostAddress();
-      String submitHostName = ip.getHostName();
-      conf.set(MRJobConfig.JOB_SUBMITHOST, submitHostName);
-      conf.set(MRJobConfig.JOB_SUBMITHOSTADDR, submitHostAddress);
-    }
-    // conf.set("hadoop.http.filter.initializers",
-    // "org.apache.hadoop.yarn.server.webproxy.amfilter.AmFilterInitializer");
-    // Skipping setting JOB_DIR - not used by AM.
-
-    // Maybe generate SHUFFLE secret. The AM uses the job token generated in
-    // the AM anyway.
-
-    // TODO eventually ACLs
-    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, MRPartitioner.class.getName());
-    
-    boolean useNewApi = conf.getBoolean("mapred.mapper.new-api", false);
-    if (useNewApi) {
-      if (conf.get(MRJobConfig.COMBINE_CLASS_ATTR) != null) {
-        conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS, MRCombiner.class.getName());
-      }
-    } else {
-      if (conf.get("mapred.combiner.class") != null) {
-        conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS, MRCombiner.class.getName());
-      }
-    }
-    
-    setWorkingDirectory(conf);
-  }
-
-  private static void setWorkingDirectory(Configuration conf) {
-    String name = conf.get(JobContext.WORKING_DIR);
-    if (name == null) {
-      try {
-        Path dir = FileSystem.get(conf).getWorkingDirectory();
-        conf.set(JobContext.WORKING_DIR, dir.toString());
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-  }
-
-  /**
-   * Default to the new APIs unless they are explicitly set or the old mapper or
-   * reduce attributes are used.
-   *
-   * @throws IOException
-   *           if the configuration is inconsistant
-   */
-  private static void setUseNewAPI(Configuration conf) throws IOException {
-    int numReduces = conf.getInt(MRJobConfig.NUM_REDUCES, 1);
-    String oldMapperClass = "mapred.mapper.class";
-    String oldReduceClass = "mapred.reducer.class";
-    conf.setBooleanIfUnset("mapred.mapper.new-api",
-        conf.get(oldMapperClass) == null);
-    if (conf.getBoolean("mapred.mapper.new-api", false)) {
-      String mode = "new map API";
-      ensureNotSet(conf, "mapred.input.format.class", mode);
-      ensureNotSet(conf, oldMapperClass, mode);
-      if (numReduces != 0) {
-        ensureNotSet(conf, "mapred.partitioner.class", mode);
-      } else {
-        ensureNotSet(conf, "mapred.output.format.class", mode);
-      }
-    } else {
-      String mode = "map compatability";
-      ensureNotSet(conf, MRJobConfig.INPUT_FORMAT_CLASS_ATTR, mode);
-      ensureNotSet(conf, MRJobConfig.MAP_CLASS_ATTR, mode);
-      if (numReduces != 0) {
-        ensureNotSet(conf, MRJobConfig.PARTITIONER_CLASS_ATTR, mode);
-      } else {
-        ensureNotSet(conf, MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, mode);
-      }
-    }
-    if (numReduces != 0) {
-      conf.setBooleanIfUnset("mapred.reducer.new-api",
-          conf.get(oldReduceClass) == null);
-      if (conf.getBoolean("mapred.reducer.new-api", false)) {
-        String mode = "new reduce API";
-        ensureNotSet(conf, "mapred.output.format.class", mode);
-        ensureNotSet(conf, oldReduceClass, mode);
-      } else {
-        String mode = "reduce compatability";
-        ensureNotSet(conf, MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, mode);
-        ensureNotSet(conf, MRJobConfig.REDUCE_CLASS_ATTR, mode);
-      }
-    }
-  }
-
-  private static void ensureNotSet(Configuration conf, String attr, String msg)
-      throws IOException {
-    if (conf.get(attr) != null) {
-      throw new IOException(attr + " is incompatible with " + msg + " mode.");
-    }
-  }
-
-  @LimitedPrivate("Hive, Pig")
-  @Unstable
-  public static UserPayload createUserPayloadFromConf(Configuration conf)
-      throws IOException {
-    return TezUtils.createUserPayloadFromConf(conf);
-  }
-  
-  @LimitedPrivate("Hive, Pig")
-  public static ByteString createByteStringFromConf(Configuration conf)
-      throws IOException {
-    return TezUtils.createByteStringFromConf(conf);
-  }
-
-  @LimitedPrivate("Hive, Pig")
-  @Unstable
-  public static Configuration createConfFromUserPayload(UserPayload payload)
-      throws IOException {
-    return TezUtils.createConfFromUserPayload(payload);
-  }
-
-  @LimitedPrivate("Hive, Pig")
-  public static Configuration createConfFromByteString(ByteString bs)
-      throws IOException {
-    return TezUtils.createConfFromByteString(bs);
-  }
-
-  /**
-   * Extract the map task's container resource requirements from the
-   * provided configuration.
-   *
-   * Uses mapreduce.map.memory.mb and mapreduce.map.cpu.vcores from the
-   * provided configuration.
+   * Extract the container resource requirements from the provided configuration, which would
+   * otherwise have been used when running a Hadoop MapReduce mapper. </p>
+   * <p/>
+   * This is only meant to be used if frameworks are not setting up their own {@link
+   * org.apache.hadoop.yarn.api.records.Resource} and would like to fallback to using resources
+   * which may already be configured for Hadoop MapReduce mappers.
    *
    * @param conf Configuration with MR specific settings used to extract
    * information from
@@ -376,7 +305,7 @@ public class MRHelpers {
    * @return Resource object used to define requirements for containers
    * running Map tasks
    */
-  public static Resource getMapResource(Configuration conf) {
+  public static Resource getResourceForMRMapper(Configuration conf) {
     return Resource.newInstance(conf.getInt(
         MRJobConfig.MAP_MEMORY_MB, MRJobConfig.DEFAULT_MAP_MEMORY_MB),
         conf.getInt(MRJobConfig.MAP_CPU_VCORES,
@@ -384,33 +313,38 @@ public class MRHelpers {
   }
 
   /**
-   * Extract the reduce task's container resource requirements from the
-   * provided configuration.
-   *
+   * Extract the container resource requirements from the provided configuration, which would
+   * otherwise have been used when running a Hadoop MapReduce reducer. </p>
+   * <p/>
+   * This is only meant to be used if frameworks are not setting up their own {@link
+   * org.apache.hadoop.yarn.api.records.Resource} and would like to fallback to using resources
+   * which may already be configured for Hadoop MapReduce reducers.
+   * <p/>
    * Uses mapreduce.reduce.memory.mb and mapreduce.reduce.cpu.vcores from the
    * provided configuration.
    *
    * @param conf Configuration with MR specific settings used to extract
-   * information from
-   *
+   *             information from
    * @return Resource object used to define requirements for containers
    * running Reduce tasks
    */
-  public static Resource getReduceResource(Configuration conf) {
+  public static Resource getResourceForMRReducer(Configuration conf) {
     return Resource.newInstance(conf.getInt(
-        MRJobConfig.REDUCE_MEMORY_MB, MRJobConfig.DEFAULT_REDUCE_MEMORY_MB),
+            MRJobConfig.REDUCE_MEMORY_MB, MRJobConfig.DEFAULT_REDUCE_MEMORY_MB),
         conf.getInt(MRJobConfig.REDUCE_CPU_VCORES,
             MRJobConfig.DEFAULT_REDUCE_CPU_VCORES));
   }
 
   /**
-   * Setup classpath and other environment variables
-   * @param conf Configuration to retrieve settings from
+   * Setup classpath and other environment variables based on the configured values for MR Mappers
+   * or Reducers
+   *
+   * @param conf        Configuration to retrieve settings from
    * @param environment Environment to update
-   * @param isMap Whether task is a map or reduce task
+   * @param isMap       Whether task is a map or reduce task
    */
-  public static void updateEnvironmentForMRTasks(Configuration conf,
-      Map<String, String> environment, boolean isMap) {
+  public static void updateEnvBasedOnMRTaskEnv(Configuration conf,
+                                               Map<String, String> environment, boolean isMap) {
     // Shell
     environment.put(Environment.SHELL.name(), conf.get(
         MRJobConfig.MAPRED_ADMIN_USER_SHELL, MRJobConfig.DEFAULT_SHELL));
@@ -437,58 +371,16 @@ public class MRHelpers {
         getChildLogLevel(conf, isMap) + ",CLA");
   }
 
-  private static Configuration getBaseJobConf(Configuration conf) {
-    if (conf != null) {
-      return new JobConf(conf);
-    } else {
-      return new JobConf();
-    }
-  }
-
   /**
-   * Get default initialize JobConf-based configuration
-   * @param conf Conf to initialize JobConf with.
-   * @return Base configuration for MR-based jobs
-   */
-  public static Configuration getBaseMRConfiguration(Configuration conf) {
-    return getBaseJobConf(conf);
-  }
-
-  /**
-   * Get default initialize JobConf-based configuration
-   * @return Base configuration for MR-based jobs
-   */
-  static Configuration getBaseMRConfiguration() {
-    return getBaseJobConf(null);
-  }
-
-  /**
-   * Setup environment for the AM based on MR-based configuration
+   * Setup environment variables based on the configured values for the MR AM
    * @param conf Configuration from which to extract information
    * @param environment Environment map to update
    */
-  public static void updateEnvironmentForMRAM(Configuration conf, Map<String, String> environment) {
+  public static void updateEnvBasedOnMRAMEnv(Configuration conf, Map<String, String> environment) {
     TezYARNUtils.appendToEnvFromInputString(environment, conf.get(MRJobConfig.MR_AM_ADMIN_USER_ENV),
         File.pathSeparator);
     TezYARNUtils.appendToEnvFromInputString(environment, conf.get(MRJobConfig.MR_AM_ENV),
         File.pathSeparator);
   }
 
-  /**
-   * Extract Java Opts for the AM based on MR-based configuration
-   * @param conf Configuration from which to extract information
-   * @return Java opts for the AM
-   */
-  public static String getMRAMJavaOpts(Configuration conf) {
-    // Admin opts
-    String mrAppMasterAdminOptions = conf.get(
-        MRJobConfig.MR_AM_ADMIN_COMMAND_OPTS,
-        MRJobConfig.DEFAULT_MR_AM_ADMIN_COMMAND_OPTS);
-    // Add AM user command opts
-    String mrAppMasterUserOptions = conf.get(MRJobConfig.MR_AM_COMMAND_OPTS,
-        MRJobConfig.DEFAULT_MR_AM_COMMAND_OPTS);
-
-    return mrAppMasterAdminOptions.trim()
-        + " " + mrAppMasterUserOptions.trim();
-  }
 }

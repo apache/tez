@@ -41,7 +41,7 @@ import org.apache.hadoop.io.FileChunkPath;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.Progressable;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -481,7 +481,8 @@ public class MergeManager {
     public IntermediateMemoryToMemoryMerger(MergeManager manager, 
                                             int mergeFactor) {
       super(manager, mergeFactor, exceptionReporter);
-      setName("MemToMemMerger [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "]");
+      setName("MemToMemMerger [" + TezUtilsInternal
+          .cleanVertexName(inputContext.getSourceVertexName()) + "]");
       setDaemon(true);
     }
 
@@ -536,7 +537,8 @@ public class MergeManager {
     
     public InMemoryMerger(MergeManager manager) {
       super(manager, Integer.MAX_VALUE, exceptionReporter);
-      setName("MemtoDiskMerger [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "]");
+      setName("MemtoDiskMerger [" + TezUtilsInternal
+          .cleanVertexName(inputContext.getSourceVertexName()) + "]");
       setDaemon(true);
     }
     
@@ -635,7 +637,8 @@ public class MergeManager {
 
     public OnDiskMerger(MergeManager manager) {
       super(manager, ioSortFactor, exceptionReporter);
-      setName("DiskToDiskMerger [" + TezUtils.cleanVertexName(inputContext.getSourceVertexName()) + "]");
+      setName("DiskToDiskMerger [" + TezUtilsInternal
+          .cleanVertexName(inputContext.getSourceVertexName()) + "]");
       setDaemon(true);
     }
     

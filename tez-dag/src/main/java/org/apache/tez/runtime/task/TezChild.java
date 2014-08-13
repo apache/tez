@@ -52,7 +52,7 @@ import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezLocalResource;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
@@ -175,7 +175,7 @@ public class TezChild {
 
     while (!executor.isTerminated()) {
       if (taskCount > 0) {
-        TezUtils.updateLoggers("");
+        TezUtilsInternal.updateLoggers("");
       }
       ListenableFuture<ContainerTask> getTaskFuture = executor.submit(containerReporter);
       ContainerTask containerTask = null;
@@ -201,7 +201,7 @@ public class TezChild {
       } else {
         String loggerAddend = containerTask.getTaskSpec().getTaskAttemptID().toString();
         taskCount++;
-        TezUtils.updateLoggers(loggerAddend);
+        TezUtilsInternal.updateLoggers(loggerAddend);
         FileSystem.clearStatistics();
 
         childUGI = handleNewTaskCredentials(containerTask, childUGI);
@@ -389,7 +389,7 @@ public class TezChild {
     // Pull in configuration specified for the session.
     // TODO TEZ-1233. This needs to be moved over the wire rather than localizing the file
     // for each and every task, and reading it back from disk. Also needs to be per vertex.
-    TezUtils.addUserSpecifiedTezConfiguration(workingDirectory, conf);
+    TezUtilsInternal.addUserSpecifiedTezConfiguration(workingDirectory, conf);
     UserGroupInformation.setConfiguration(conf);
     Limits.setConfiguration(conf);
 

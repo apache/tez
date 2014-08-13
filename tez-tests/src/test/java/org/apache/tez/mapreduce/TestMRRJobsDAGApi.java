@@ -73,6 +73,7 @@ import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.FileSystemCounter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.DAG;
@@ -641,21 +642,20 @@ public class TestMRRJobsDAGApi {
     stage3Conf.set(MRJobConfig.MAP_OUTPUT_VALUE_CLASS,
         IntWritable.class.getName());
 
-    MRHelpers.translateVertexConfToTez(stage1Conf);
-    MRHelpers.translateVertexConfToTez(stage2Conf);
-    MRHelpers.translateVertexConfToTez(stage3Conf);
-
-    MRHelpers.doJobClientMagic(stage1Conf);
-    MRHelpers.doJobClientMagic(stage2Conf);
-    MRHelpers.doJobClientMagic(stage3Conf);
+    MRHelpers.translateMRConfToTez(stage1Conf);
+    MRHelpers.translateMRConfToTez(stage2Conf);
+    MRHelpers.translateMRConfToTez(stage3Conf);
+    MRHelpers.configureMRApiUsage(stage1Conf);
+    MRHelpers.configureMRApiUsage(stage2Conf);
+    MRHelpers.configureMRApiUsage(stage3Conf);
 
     Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String
         .valueOf(new Random().nextInt(100000))));
     TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
 
-    UserPayload stage1Payload = MRHelpers.createUserPayloadFromConf(stage1Conf);
-    UserPayload stage2Payload = MRHelpers.createUserPayloadFromConf(stage2Conf);
-    UserPayload stage3Payload = MRHelpers.createUserPayloadFromConf(stage3Conf);
+    UserPayload stage1Payload = TezUtils.createUserPayloadFromConf(stage1Conf);
+    UserPayload stage2Payload = TezUtils.createUserPayloadFromConf(stage2Conf);
+    UserPayload stage3Payload = TezUtils.createUserPayloadFromConf(stage3Conf);
     
     DAG dag = new DAG("testMRRSleepJobDagSubmit-" + random.nextInt(1000));
 
@@ -870,7 +870,7 @@ public class TestMRRJobsDAGApi {
     public List<Event> initialize()  throws Exception {
       MRInputUserPayloadProto userPayloadProto = MRInputHelpers
           .parseMRInputPayload(getContext().getInputUserPayload());
-      Configuration conf = MRHelpers.createConfFromByteString(userPayloadProto
+      Configuration conf = TezUtils.createConfFromByteString(userPayloadProto
           .getConfigurationBytes());
 
       try {

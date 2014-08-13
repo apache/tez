@@ -59,7 +59,7 @@ import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
-import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
@@ -319,7 +319,7 @@ public class TestUnorderedPartitionedKVWriter {
       assertTrue(eventProto.hasEmptyPartitions());
       byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(eventProto
           .getEmptyPartitions());
-      emptyPartitionBits = TezUtils.fromByteArray(emptyPartitions);
+      emptyPartitionBits = TezUtilsInternal.fromByteArray(emptyPartitions);
       assertEquals(numPartitions - partitionsWithData.cardinality(),
           emptyPartitionBits.cardinality());
     } else {
@@ -508,7 +508,7 @@ public class TestUnorderedPartitionedKVWriter {
       assertTrue(eventProto.hasEmptyPartitions());
       byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(eventProto
           .getEmptyPartitions());
-      emptyPartitionBits = TezUtils.fromByteArray(emptyPartitions);
+      emptyPartitionBits = TezUtilsInternal.fromByteArray(emptyPartitions);
       if (numRecordsWritten == 0) {
         assertEquals(numPartitions, emptyPartitionBits.cardinality());
       } else {

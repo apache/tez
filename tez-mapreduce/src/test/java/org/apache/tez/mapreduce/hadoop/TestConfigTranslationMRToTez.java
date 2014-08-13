@@ -41,7 +41,7 @@ public class TestConfigTranslationMRToTez {
     confVertex1.unset(MRJobConfig.KEY_COMPARATOR);
     confVertex1.unset(MRJobConfig.GROUP_COMPARATOR_CLASS);
     
-    MRHelpers.translateVertexConfToTez(confVertex1);
+    MRHelpers.translateMRConfToTez(confVertex1);
 
     assertEquals(IntWritable.Comparator.class.getName(), ConfigUtils
         .getIntermediateOutputKeyComparator(confVertex1).getClass().getName());
@@ -58,7 +58,7 @@ public class TestConfigTranslationMRToTez {
         LongWritable.class.getName());
     confVertex1.setBoolean(MRJobConfig.MAP_OUTPUT_COMPRESS, true);
 
-    MRHelpers.translateVertexConfToTez(confVertex1);
+    MRHelpers.translateMRConfToTez(confVertex1);
 
     // Verify translation
     assertEquals(IntWritable.class.getName(), ConfigUtils

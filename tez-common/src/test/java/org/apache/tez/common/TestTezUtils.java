@@ -56,10 +56,10 @@ public class TestTezUtils {
   @Test
   public void testCleanVertexName() {
     String testString = "special characters & spaces and longer than "
-        + TezUtils.MAX_VERTEX_NAME_LENGTH + " characters";
-    Assert.assertTrue(testString.length() > TezUtils.MAX_VERTEX_NAME_LENGTH);
-    String cleaned = TezUtils.cleanVertexName(testString);
-    Assert.assertTrue(cleaned.length() <= TezUtils.MAX_VERTEX_NAME_LENGTH);
+        + TezUtilsInternal.MAX_VERTEX_NAME_LENGTH + " characters";
+    Assert.assertTrue(testString.length() > TezUtilsInternal.MAX_VERTEX_NAME_LENGTH);
+    String cleaned = TezUtilsInternal.cleanVertexName(testString);
+    Assert.assertTrue(cleaned.length() <= TezUtilsInternal.MAX_VERTEX_NAME_LENGTH);
     Assert.assertFalse(cleaned.contains("\\s+"));
     Assert.assertTrue(cleaned.matches("\\w+"));
   }
@@ -67,39 +67,39 @@ public class TestTezUtils {
   @Test
   public void testBitSetToByteArray() {
     BitSet bitSet = createBitSet(0);
-    byte[] bytes = TezUtils.toByteArray(bitSet);
+    byte[] bytes = TezUtilsInternal.toByteArray(bitSet);
     Assert.assertTrue(bytes.length == ((bitSet.length() / 8) + 1));
 
     bitSet = createBitSet(1000);
-    bytes = TezUtils.toByteArray(bitSet);
+    bytes = TezUtilsInternal.toByteArray(bitSet);
     Assert.assertTrue(bytes.length == ((bitSet.length() / 8) + 1));
   }
 
   @Test
   public void testBitSetFromByteArray() {
     BitSet bitSet = createBitSet(0);
-    byte[] bytes = TezUtils.toByteArray(bitSet);
-    Assert.assertEquals(TezUtils.fromByteArray(bytes).cardinality(), bitSet.cardinality());
-    Assert.assertTrue(TezUtils.fromByteArray(bytes).equals(bitSet));
+    byte[] bytes = TezUtilsInternal.toByteArray(bitSet);
+    Assert.assertEquals(TezUtilsInternal.fromByteArray(bytes).cardinality(), bitSet.cardinality());
+    Assert.assertTrue(TezUtilsInternal.fromByteArray(bytes).equals(bitSet));
 
     bitSet = createBitSet(1);
-    bytes = TezUtils.toByteArray(bitSet);
-    Assert.assertEquals(TezUtils.fromByteArray(bytes).cardinality(), bitSet.cardinality());
-    Assert.assertTrue(TezUtils.fromByteArray(bytes).equals(bitSet));
+    bytes = TezUtilsInternal.toByteArray(bitSet);
+    Assert.assertEquals(TezUtilsInternal.fromByteArray(bytes).cardinality(), bitSet.cardinality());
+    Assert.assertTrue(TezUtilsInternal.fromByteArray(bytes).equals(bitSet));
     
     bitSet = createBitSet(1000);
-    bytes = TezUtils.toByteArray(bitSet);
-    Assert.assertEquals(TezUtils.fromByteArray(bytes).cardinality(), bitSet.cardinality());
-    Assert.assertTrue(TezUtils.fromByteArray(bytes).equals(bitSet));
+    bytes = TezUtilsInternal.toByteArray(bitSet);
+    Assert.assertEquals(TezUtilsInternal.fromByteArray(bytes).cardinality(), bitSet.cardinality());
+    Assert.assertTrue(TezUtilsInternal.fromByteArray(bytes).equals(bitSet));
   }
 
   @Test
   public void testBitSetConversion() {
     for (int i = 0 ; i < 16 ; i++) {
       BitSet bitSet = createBitSetWithSingleEntry(i);
-      byte[] bytes = TezUtils.toByteArray(bitSet);
+      byte[] bytes = TezUtilsInternal.toByteArray(bitSet);
       
-      BitSet deseraialized = TezUtils.fromByteArray(bytes);
+      BitSet deseraialized = TezUtilsInternal.fromByteArray(bytes);
       Assert.assertEquals(bitSet, deseraialized);
       Assert.assertEquals(bitSet.cardinality(), deseraialized.cardinality());
       Assert.assertEquals(1, deseraialized.cardinality());

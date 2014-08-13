@@ -38,12 +38,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.runtime.library.common.comparator.HashComparator;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.IndexedSorter;
 import org.apache.hadoop.util.Progress;
-import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
@@ -130,7 +130,8 @@ public class PipelinedSorter extends ExternalSorter {
                 TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS_DEFAULT);
     sortmaster = Executors.newFixedThreadPool(sortThreads,
         new ThreadFactoryBuilder().setDaemon(true)
-        .setNameFormat("Sorter [" + TezUtils.cleanVertexName(outputContext.getDestinationVertexName()) + "] #%d")
+        .setNameFormat("Sorter [" + TezUtilsInternal
+            .cleanVertexName(outputContext.getDestinationVertexName()) + "] #%d")
         .build());
 
     // k/v serialization    
