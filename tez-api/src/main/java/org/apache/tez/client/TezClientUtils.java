@@ -45,7 +45,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
@@ -53,6 +55,7 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
@@ -170,22 +173,38 @@ public class TezClientUtils {
         String fileName = tezJarUris[0];
         if (fileName.endsWith(".tar.gz") || fileName.endsWith(".tgz")) {
           FileStatus fStatus = getLRFileStatus(fileName, conf, false)[0];
+          LocalResourceVisibility lrVisibility;
+          if (checkAncestorPermissionsForAllUsers(conf, fileName, FsAction.EXECUTE) &&
+              fStatus.getPermission().getOtherAction().implies(FsAction.READ)) {
+            lrVisibility = LocalResourceVisibility.PUBLIC;
+          } else {
+            lrVisibility = LocalResourceVisibility.PRIVATE;
+          }
           tezJarResources.put(TezConstants.TEZ_TAR_LR_NAME,
               LocalResource.newInstance(
                   ConverterUtils.getYarnUrlFromPath(fStatus.getPath()),
                   LocalResourceType.ARCHIVE,
-                  LocalResourceVisibility.PUBLIC,
+                  lrVisibility,
                   fStatus.getLen(),
                   fStatus.getModificationTime()));
           tezJarPaths.add(fStatus.getPath());
         }
       } else { // Treat as non-archives - each entry being a directory
         for (String tezJarUri : tezJarUris) {
+          boolean ancestorsHavePermission = checkAncestorPermissionsForAllUsers(conf, tezJarUri,
+              FsAction.EXECUTE);
           FileStatus [] fileStatuses = getLRFileStatus(tezJarUri, conf, true);
           for (FileStatus fStatus : fileStatuses) {
             if (fStatus.isDirectory()) {
               // Skip directories - since tez.lib.uris is not recursive.
               continue;
+            }
+            LocalResourceVisibility lrVisibility;
+            if (ancestorsHavePermission &&
+                fStatus.getPermission().getOtherAction().implies(FsAction.READ)) {
+              lrVisibility = LocalResourceVisibility.PUBLIC;
+            } else {
+              lrVisibility = LocalResourceVisibility.PRIVATE;
             }
             String rsrcName = fStatus.getPath().getName();
             // FIXME currently not checking for duplicates due to quirks
@@ -203,7 +222,7 @@ public class TezClientUtils {
                 LocalResource.newInstance(
                     ConverterUtils.getYarnUrlFromPath(fStatus.getPath()),
                     LocalResourceType.FILE,
-                    LocalResourceVisibility.PUBLIC,
+                    lrVisibility,
                     fStatus.getLen(),
                     fStatus.getModificationTime()));
           }
@@ -877,6 +896,33 @@ public class TezClientUtils {
 
     return " -Xmx" + maxMemory + "m "
         + ( javaOpts != null ? javaOpts : "");
+  }
+
+  private static boolean checkAncestorPermissionsForAllUsers(TezConfiguration conf, String uri,
+                                                             FsAction permission) throws IOException {
+    Path pathComponent = new Path(uri);
+    FileSystem fs = pathComponent.getFileSystem(conf);
+
+    if (Shell.WINDOWS && fs instanceof LocalFileSystem) {
+      // Relax the requirement for public cache on LFS on Windows since default permissions are
+      // "700" all the way up to the drive letter. In this model, the only requirement for a user
+      // is to give EVERYONE group permission on the file and the file will be considered public.
+      // This code path is only hit when fs.default.name is file:/// (mainly in tests).
+      return true;
+    }
+
+    if (fs.getFileStatus(pathComponent).isFile()) {
+      pathComponent = pathComponent.getParent();
+    }
+
+    while (pathComponent != null) {
+      if (!fs.getFileStatus(pathComponent).getPermission().getOtherAction().implies(permission)) {
+        return false;
+      }
+      pathComponent = pathComponent.getParent();
+    }
+
+    return true;
   }
 
 }

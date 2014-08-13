@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Map;
@@ -30,11 +31,14 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 /**
@@ -215,6 +219,73 @@ public class TestTezClientUtils {
     Assert.assertNotNull(javaOpts);
     Assert.assertTrue(javaOpts.contains("-D" + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=FOOBAR")
         && javaOpts.contains(TezConfiguration.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE));
+  }
+
+  @Test (timeout = 5000)
+  public void testLocalResourceVisibility() throws Exception {
+
+    Assume.assumeFalse(Shell.WINDOWS);
+
+    File topLevelDir = null;
+    File subDir = null;
+    File publicFile = null;
+    File privateFile = null;
+    File subDirFile = null;
+    try {
+      topLevelDir = createDirectoryOrFile(new File(TEST_ROOT_DIR), "testLRVisibility", true);
+      subDir = createDirectoryOrFile(topLevelDir, "subDir", true);
+      publicFile = createDirectoryOrFile(topLevelDir, "publicFile", false);
+      privateFile = createDirectoryOrFile(topLevelDir, "privateFile", false);
+      subDirFile = createDirectoryOrFile(subDir, "subDirFile", false);
+
+      // no direct way to remove execute permission for others, set all to no execute and then
+      // only the owner to execute. this does not work well on windows
+      Assert.assertTrue(subDir.setExecutable(false, false));
+      Assert.assertTrue(subDir.setExecutable(true));
+
+      Assert.assertTrue(privateFile.setReadable(false, false));
+      Assert.assertTrue(privateFile.setReadable(true));
+
+      String tezLibUris = topLevelDir.toURI().toString() + "," + subDir.toURI().toString();
+
+      TezConfiguration conf = new TezConfiguration();
+      conf.set(TezConfiguration.TEZ_LIB_URIS, tezLibUris);
+      Credentials credentials = new Credentials();
+
+      Map<String, LocalResource> localResourceMap = TezClientUtils.setupTezJarsLocalResources(conf,
+          credentials);
+
+      Assert.assertTrue(localResourceMap.get(publicFile.getName()).getVisibility() ==
+          LocalResourceVisibility.PUBLIC);
+
+      // ancestor directories have execute perms but file does not have read perms for other users.
+      Assert.assertTrue(localResourceMap.get(privateFile.getName()).getVisibility() ==
+          LocalResourceVisibility.PRIVATE);
+
+      // file has read perms but parent dir does not have execute perms for other users
+      Assert.assertTrue(localResourceMap.get(subDirFile.getName()).getVisibility() ==
+          LocalResourceVisibility.PRIVATE);
+    } finally {
+      for(File f : new File[] { subDirFile, privateFile, publicFile, subDir, topLevelDir }) {
+        if (f != null) {
+          f.delete();
+        }
+      }
+    }
+  }
+
+  private File createDirectoryOrFile(File parent, String child, boolean isDir) throws IOException {
+    File file = new File(parent, child);
+    if (!file.exists()) {
+      if (isDir) {
+        Assert.assertTrue(String.format("creating dir %s", file.getPath()), file.mkdirs());
+        file.setWritable(true);
+      } else {
+        Assert.assertTrue(String.format("creating file %s", file.getPath()), file.createNewFile());
+      }
+    }
+
+    return file;
   }
 
 }
