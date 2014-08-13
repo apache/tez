@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -69,6 +70,7 @@ import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
@@ -82,6 +84,7 @@ import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
 
 import com.google.common.annotations.VisibleForTesting;
+
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 
 /**
@@ -517,7 +520,7 @@ public class MRRSleepJob extends Configured implements Tool {
     List<Vertex> vertices = new ArrayList<Vertex>();
 
     
-    byte[] mapUserPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
+    UserPayload mapUserPayload = MRHelpers.createUserPayloadFromConf(mapStageConf);
     int numTasks = generateSplitsInAM ? -1 : numMapper;
 
     Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
@@ -531,7 +534,7 @@ public class MRRSleepJob extends Configured implements Tool {
       for (int i = 0; i < iReduceStagesCount; ++i) {
         Configuration iconf =
             intermediateReduceStageConfs[i];
-        byte[] iReduceUserPayload = MRHelpers.createUserPayloadFromConf(iconf);
+        UserPayload iReduceUserPayload = MRHelpers.createUserPayloadFromConf(iconf);
         Vertex ivertex = new Vertex("ireduce" + (i+1),
                 new ProcessorDescriptor(ReduceProcessor.class.getName()).
                 setUserPayload(iReduceUserPayload), numIReducer);
@@ -542,7 +545,7 @@ public class MRRSleepJob extends Configured implements Tool {
 
     Vertex finalReduceVertex = null;
     if (numReducer > 0) {
-      byte[] reducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
+      UserPayload reducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
       finalReduceVertex = new Vertex("reduce", new ProcessorDescriptor(
           ReduceProcessor.class.getName()).setUserPayload(reducePayload), numReducer);
       finalReduceVertex.setTaskLocalFiles(commonLocalResources);

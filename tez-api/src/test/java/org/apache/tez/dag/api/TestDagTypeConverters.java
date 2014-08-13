@@ -29,14 +29,15 @@ public class TestDagTypeConverters {
 
   @Test
   public void testTezEntityDescriptorSerialization() throws IOException {
-    byte[] payload = new String("Foobar").getBytes();
+    UserPayload payload = new UserPayload(new String("Foobar").getBytes(), 100);
     String historytext = "Bar123";
-    TezEntityDescriptor entityDescriptor =
+    EntityDescriptor entityDescriptor =
         new InputDescriptor("inputClazz").setUserPayload(payload)
         .setHistoryText(historytext);
     TezEntityDescriptorProto proto =
         DagTypeConverters.convertToDAGPlan(entityDescriptor);
-    Assert.assertArrayEquals(payload, proto.getUserPayload().toByteArray());
+    Assert.assertEquals(payload.getVersion(), proto.getVersion());
+    Assert.assertArrayEquals(payload.getPayload(), proto.getUserPayload().toByteArray());
     Assert.assertTrue(proto.hasHistoryText());
     Assert.assertNotEquals(historytext, proto.getHistoryText());
     Assert.assertEquals(historytext, new String(

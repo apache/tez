@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Reader;
@@ -120,9 +121,12 @@ public class TestInput extends AbstractLogicalInput {
     }
   }
 
-  public static InputDescriptor getInputDesc(byte[] payload) {
-    return new InputDescriptor(TestInput.class.getName()).
-        setUserPayload(payload);
+  public static InputDescriptor getInputDesc(UserPayload payload) {
+    InputDescriptor desc = new InputDescriptor(TestInput.class.getName());
+    if (payload != null) {
+      desc.setUserPayload(payload);
+    }
+    return desc;
   }
 
   public int doRead() {
@@ -231,7 +235,7 @@ public class TestInput extends AbstractLogicalInput {
   public List<Event> initialize() throws Exception {
     getContext().requestInitialMemory(0l, null); //Mandatory call.
     getContext().inputIsReady();
-    if (getContext().getUserPayload() != null) {
+    if (getContext().getUserPayload() != null && getContext().getUserPayload().hasPayload()) {
       String vName = getContext().getTaskVertexName();
       conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
       doFail = conf.getBoolean(getVertexConfName(TEZ_FAILING_INPUT_DO_FAIL, vName), false);

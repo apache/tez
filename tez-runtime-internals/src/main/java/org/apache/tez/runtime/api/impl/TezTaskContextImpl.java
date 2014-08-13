@@ -32,7 +32,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.TezEntityDescriptor;
+import org.apache.tez.dag.api.EntityDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
@@ -58,7 +58,7 @@ public abstract class TezTaskContextImpl implements TaskContext {
   private final int appAttemptNumber;
   private final Map<String, String> auxServiceEnv;
   protected final MemoryDistributor initialMemoryDistributor;
-  protected final TezEntityDescriptor<?> descriptor;
+  protected final EntityDescriptor<?> descriptor;
   private final String dagName;
   private final ObjectRegistry objectRegistry;
 
@@ -68,7 +68,7 @@ public abstract class TezTaskContextImpl implements TaskContext {
       TezCounters counters, RuntimeTask runtimeTask,
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
-      TezEntityDescriptor<?> descriptor, ObjectRegistry objectRegistry) {
+      EntityDescriptor<?> descriptor, ObjectRegistry objectRegistry) {
     checkNotNull(conf, "conf is null");
     checkNotNull(dagName, "dagName is null");
     checkNotNull(taskVertexName, "taskVertexName is null");

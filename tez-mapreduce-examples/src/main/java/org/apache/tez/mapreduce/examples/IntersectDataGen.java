@@ -43,6 +43,7 @@ import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
@@ -199,8 +200,8 @@ public class IntersectDataGen extends Configured implements Tool {
     DAG dag = new DAG("IntersectDataGen");
 
     Vertex genDataVertex = new Vertex("datagen", new ProcessorDescriptor(
-        GenDataProcessor.class.getName()).setUserPayload(GenDataProcessor.createConfiguration(
-        largeOutSizePerTask, smallOutSizePerTask)), numTasks);
+        GenDataProcessor.class.getName()).setUserPayload(
+        new UserPayload(GenDataProcessor.createConfiguration(largeOutSizePerTask, smallOutSizePerTask))), numTasks);
     genDataVertex.addDataSink(STREAM_OUTPUT_NAME, 
         MROutput.createConfigurer(new Configuration(tezConf),
             TextOutputFormat.class, largeOutPath.toUri().toString()).create());
@@ -241,7 +242,7 @@ public class IntersectDataGen extends Configured implements Tool {
 
     @Override
     public void initialize() throws Exception {
-      byte[] payload = getContext().getUserPayload();
+      byte[] payload = getContext().getUserPayload().getPayload();
       ByteArrayInputStream bis = new ByteArrayInputStream(payload);
       DataInputStream dis = new DataInputStream(bis);
       streamOutputFileSize = dis.readLong();

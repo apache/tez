@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
 
 /**
@@ -92,8 +93,7 @@ public interface TaskContext {
    * Get the User Payload for the Input/Output/Processor
    * @return User Payload
    */
-  @Nullable
-  public byte[] getUserPayload();
+  public UserPayload getUserPayload();
 
   /**
    * Get the work directories for the Input/Output/Processor
@@ -104,7 +104,7 @@ public interface TaskContext {
   /**
    * Returns an identifier which is unique to the specific Input, Processor or
    * Output
-   *
+   * 
    * @return a unique identifier
    */
   public String getUniqueIdentifier();

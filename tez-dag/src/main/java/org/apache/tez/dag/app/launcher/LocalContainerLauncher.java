@@ -82,6 +82,7 @@ public class LocalContainerLauncher extends AbstractService implements
   private final AppContext context;
   private final TaskAttemptListener taskAttemptListener;
   private final AtomicBoolean serviceStopped = new AtomicBoolean(false);
+  private final String workingDirectory;
 
   private final ConcurrentHashMap<ContainerId, ListenableFuture<TezChild.ContainerExecutionResult>>
       runningContainers =
@@ -100,11 +101,13 @@ public class LocalContainerLauncher extends AbstractService implements
 
 
   public LocalContainerLauncher(AppContext context,
-                                TaskAttemptListener taskAttemptListener) throws
+                                TaskAttemptListener taskAttemptListener,
+                                String workingDirectory) throws
       UnknownHostException {
     super(LocalContainerLauncher.class.getName());
     this.context = context;
     this.taskAttemptListener = taskAttemptListener;
+    this.workingDirectory = workingDirectory;
     EnvironmentUpdateUtils.put("NM_AUX_SERVICE_mapreduce_shuffle",
         Base64.encodeBase64String(ByteBuffer.allocate(4).putInt(0).array()));
     EnvironmentUpdateUtils.put(Environment.NM_HOST.toString(),
@@ -292,7 +295,7 @@ public class LocalContainerLauncher extends AbstractService implements
         // Pull in configuration specified for the session.
         TezChild tezChild =
             TezChild.newTezChild(defaultConf, null, 0, containerId.toString(), tokenIdentifier,
-                attemptNumber, localDirs);
+                attemptNumber, localDirs, workingDirectory);
         tezChild.setUmbilical(tezTaskUmbilicalProtocol);
         return tezChild.run();
       }

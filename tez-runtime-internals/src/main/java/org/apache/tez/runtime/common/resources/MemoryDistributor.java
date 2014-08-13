@@ -32,7 +32,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezEntityDescriptor;
+import org.apache.tez.dag.api.EntityDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.InputContext;
@@ -93,7 +93,7 @@ public class MemoryDistributor {
    * Used by the Tez framework to request memory on behalf of user requests.
    */
   public void requestMemory(long requestSize, MemoryUpdateCallback callback,
-      TaskContext taskContext, TezEntityDescriptor<?> descriptor) {
+      TaskContext taskContext, EntityDescriptor<?> descriptor) {
     registerRequest(requestSize, callback, taskContext, descriptor);
   }
   
@@ -154,7 +154,7 @@ public class MemoryDistributor {
   }
 
   private long registerRequest(long requestSize, MemoryUpdateCallback callback,
-      TaskContext entityContext, TezEntityDescriptor<?> descriptor) {
+      TaskContext entityContext, EntityDescriptor<?> descriptor) {
     Preconditions.checkArgument(requestSize >= 0);
     Preconditions.checkNotNull(callback);
     Preconditions.checkNotNull(entityContext);
@@ -211,7 +211,7 @@ public class MemoryDistributor {
     private final InitialMemoryRequestContext requestContext;
 
     public RequestorInfo(TaskContext taskContext, long requestSize,
-        final MemoryUpdateCallback callback, TezEntityDescriptor<?> descriptor) {
+        final MemoryUpdateCallback callback, EntityDescriptor<?> descriptor) {
       InitialMemoryRequestContext.ComponentType type;
       String componentVertexName;
       if (taskContext instanceof InputContext) {

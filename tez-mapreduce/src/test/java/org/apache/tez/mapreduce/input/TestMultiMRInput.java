@@ -44,6 +44,7 @@ import org.apache.hadoop.mapred.SequenceFileInputFormat;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
@@ -109,8 +110,7 @@ public class TestMultiMRInput {
     assertEquals(1, splits.length);
 
     MRSplitProto splitProto = MRInputHelpers.createSplitProto(splits[0]);
-    InputDataInformationEvent event = new InputDataInformationEvent(0,
-        splitProto.toByteArray());
+    InputDataInformationEvent event = new InputDataInformationEvent(0, splitProto.toByteArray());
 
     eventList.clear();
     eventList.add(event);
@@ -169,12 +169,10 @@ public class TestMultiMRInput {
     assertEquals(2, splits.length);
 
     MRSplitProto splitProto1 = MRInputHelpers.createSplitProto(splits[0]);
-    InputDataInformationEvent event1 = new InputDataInformationEvent(0,
-        splitProto1.toByteArray());
+    InputDataInformationEvent event1 = new InputDataInformationEvent(0, splitProto1.toByteArray());
 
     MRSplitProto splitProto2 = MRInputHelpers.createSplitProto(splits[1]);
-    InputDataInformationEvent event2 = new InputDataInformationEvent(0,
-        splitProto2.toByteArray());
+    InputDataInformationEvent event2 = new InputDataInformationEvent(0, splitProto2.toByteArray());
 
     eventList.clear();
     eventList.add(event1);
@@ -222,10 +220,8 @@ public class TestMultiMRInput {
     assertEquals(1, splits.length);
 
     MRSplitProto splitProto = MRInputHelpers.createSplitProto(splits[0]);
-    InputDataInformationEvent event1 = new InputDataInformationEvent(0,
-        splitProto.toByteArray());
-    InputDataInformationEvent event2 = new InputDataInformationEvent(1,
-        splitProto.toByteArray());
+    InputDataInformationEvent event1 = new InputDataInformationEvent(0, splitProto.toByteArray());
+    InputDataInformationEvent event2 = new InputDataInformationEvent(1, splitProto.toByteArray());
 
     eventList.clear();
     eventList.add(event1);
@@ -254,7 +250,7 @@ public class TestMultiMRInput {
     doReturn(1).when(inputContext).getTaskIndex();
     doReturn(1).when(inputContext).getTaskVertexIndex();
     doReturn("taskVertexName").when(inputContext).getTaskVertexName();
-    doReturn(payload).when(inputContext).getUserPayload();
+    doReturn(new UserPayload(payload)).when(inputContext).getUserPayload();
     return inputContext;
   }
 

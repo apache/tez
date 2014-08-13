@@ -21,6 +21,7 @@
 package org.apache.tez.runtime.library.conf;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -33,6 +34,7 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
@@ -172,7 +174,7 @@ public class OnFileSortedOutputConfigurer {
    */
   public byte[] toByteArray() {
     try {
-      return TezUtils.createUserPayloadFromConf(conf);
+      return TezUtils.createUserPayloadFromConf(conf).getPayload();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -181,7 +183,7 @@ public class OnFileSortedOutputConfigurer {
   @InterfaceAudience.Private
   public void fromByteArray(byte[] payload) {
     try {
-      this.conf = TezUtils.createConfFromUserPayload(payload);
+      this.conf = TezUtils.createConfFromUserPayload(new UserPayload(payload));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

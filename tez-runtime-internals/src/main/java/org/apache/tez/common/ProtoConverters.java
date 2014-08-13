@@ -19,11 +19,14 @@
 package org.apache.tez.common;
 
 import com.google.protobuf.ByteString;
+
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.EventProtos;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.api.events.EventProtos.VertexManagerEventProto;
 
 public class ProtoConverters {
 
@@ -64,8 +67,23 @@ public class ProtoConverters {
       EventProtos.CompositeEventProto proto) {
     return new CompositeDataMovementEvent(proto.getStartIndex(),
         proto.getCount(),
-        proto.hasUserPayload() ?
-            proto.getUserPayload().toByteArray() : null);
+        proto.hasUserPayload() ? proto.getUserPayload().toByteArray() : null);
+  }
+  
+  public static EventProtos.VertexManagerEventProto convertVertexManagerEventToProto(
+      VertexManagerEvent event) {
+    EventProtos.VertexManagerEventProto.Builder vmBuilder = VertexManagerEventProto.newBuilder();
+    vmBuilder.setTargetVertexName(event.getTargetVertexName());
+    if (event.getUserPayload() != null) {
+      vmBuilder.setUserPayload(ByteString.copyFrom(event.getUserPayload()));
+    }
+    return vmBuilder.build();
+  }
+  
+  public static VertexManagerEvent convertVertexManagerEventFromProto(
+      EventProtos.VertexManagerEventProto vmProto) {
+    return new VertexManagerEvent(vmProto.getTargetVertexName(),
+        vmProto.hasUserPayload() ? vmProto.getUserPayload().toByteArray() : null);
   }
 
   public static EventProtos.RootInputDataInformationEventProto
@@ -84,8 +102,7 @@ public class ProtoConverters {
       convertRootInputDataInformationEventFromProto(
       EventProtos.RootInputDataInformationEventProto proto) {
     InputDataInformationEvent diEvent = new InputDataInformationEvent(
-        proto.getSourceIndex(), proto.getUserPayload() != null ? proto.getUserPayload()
-            .toByteArray() : null);
+        proto.getSourceIndex(), proto.hasUserPayload() ? proto.getUserPayload().toByteArray() : null);
     diEvent.setTargetIndex(proto.getTargetIndex());
     return diEvent;
   }

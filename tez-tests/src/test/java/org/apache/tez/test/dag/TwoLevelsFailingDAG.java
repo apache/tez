@@ -23,6 +23,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
@@ -49,7 +50,7 @@ import org.apache.tez.test.TestProcessor;
 public class TwoLevelsFailingDAG {
     static Resource defaultResource = Resource.newInstance(100, 0);
     protected static DAG dag;
-    protected static byte[] payload;
+    protected static UserPayload payload = new UserPayload(null);
     protected static Vertex l1v1, l1v2, l1v3, l1v4;
     protected static Vertex l2v1, l2v2, l2v3, l2v4;
 

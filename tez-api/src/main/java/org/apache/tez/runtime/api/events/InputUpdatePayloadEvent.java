@@ -19,10 +19,10 @@
 package org.apache.tez.runtime.api.events;
 
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
-import org.apache.tez.common.TezUserPayload;
-import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Events used by {@link InputInitializer} implementations to update the
@@ -34,13 +34,14 @@ import org.apache.tez.runtime.api.InputInitializer;
 @Unstable
 public class InputUpdatePayloadEvent extends Event {
 
-  private final TezUserPayload userPayload;
+  private final byte[] userPayload;
 
   public InputUpdatePayloadEvent(byte[] userPayload) {
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
+    Preconditions.checkNotNull(userPayload);
+    this.userPayload = userPayload;
   }
 
   public byte[] getUserPayload() {
-    return userPayload.getPayload();
+    return userPayload;
   }
 }

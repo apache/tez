@@ -32,6 +32,7 @@ import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatus.State;
@@ -176,9 +177,8 @@ public class TestDAGRecovery2 {
     DAG dag = SimpleVTestDAG.createDAG("FailingCommitterDAG", null);
     OutputDescriptor od =
         new OutputDescriptor(MultiAttemptDAG.NoOpOutput.class.getName());
-    od.setUserPayload(new
-        MultiAttemptDAG.FailingOutputCommitter.FailingOutputCommitterConfig(true)
-            .toUserPayload());
+    od.setUserPayload(new UserPayload(
+        new MultiAttemptDAG.FailingOutputCommitter.FailingOutputCommitterConfig(true).toUserPayload()));
     OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(
         MultiAttemptDAG.FailingOutputCommitter.class.getName());
     dag.getVertex("v3").addDataSink("FailingOutput", new DataSinkDescriptor(od, ocd, null));

@@ -27,6 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -99,9 +100,9 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
     super(context);
   }
 
-  public static ProcessorDescriptor getProcDesc(byte[] payload) {
-    return new ProcessorDescriptor(TestProcessor.class.getName()).
-        setUserPayload(payload);
+  public static ProcessorDescriptor getProcDesc(UserPayload payload) {
+    return new ProcessorDescriptor(TestProcessor.class.getName()).setUserPayload(
+        payload == null ? new UserPayload (null) : payload);
   }
 
   void throwException(String msg) {
@@ -121,7 +122,7 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
   
   @Override
   public void initialize() throws Exception {
-    if (getContext().getUserPayload() != null) {
+    if (getContext().getUserPayload() != null && getContext().getUserPayload().hasPayload()) {
       String vName = getContext().getTaskVertexName();
       conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
       verifyValue = conf.getInt(

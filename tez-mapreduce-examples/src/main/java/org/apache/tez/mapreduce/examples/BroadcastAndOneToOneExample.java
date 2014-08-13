@@ -39,6 +39,7 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.DAGClient;
@@ -69,7 +70,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
           .next();
       KeyValueWriter kvWriter = (KeyValueWriter) output.getWriter();
       kvWriter.write(word, new IntWritable(getContext().getTaskIndex()));
-      byte[] userPayload = getContext().getUserPayload();
+      byte[] userPayload = getContext().getUserPayload().getPayload();
       if (userPayload != null) {
         boolean doLocalityCheck = userPayload[0] > 0 ? true : false;
         if (doLocalityCheck) {
@@ -101,8 +102,8 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
       while (inputKvReader.next()) {
         sum += ((IntWritable) inputKvReader.getCurrentValue()).get();
       }
-      boolean doLocalityCheck = getContext().getUserPayload()[0] > 0 ? true : false;
-      int broadcastSum = getContext().getUserPayload()[1];
+      boolean doLocalityCheck = getContext().getUserPayload().getPayload()[0] > 0 ? true : false;
+      int broadcastSum = getContext().getUserPayload().getPayload()[1];
       int expectedSum = broadcastSum + getContext().getTaskIndex();
       System.out.println("Index: " + getContext().getTaskIndex() + 
           " sum: " + sum + " expectedSum: " + expectedSum + " broadcastSum: " + broadcastSum);
@@ -139,7 +140,8 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
         numOneToOneTasks = 1;
       }
     }
-    byte[] procPayload = {(byte) (doLocalityCheck ? 1 : 0), 1};
+    byte[] procByte = {(byte) (doLocalityCheck ? 1 : 0), 1};
+    UserPayload procPayload = new UserPayload(procByte);
 
     System.out.println("Using " + numOneToOneTasks + " 1-1 tasks");
 

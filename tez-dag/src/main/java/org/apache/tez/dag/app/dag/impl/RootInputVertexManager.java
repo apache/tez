@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
@@ -96,8 +97,8 @@ public class RootInputVertexManager extends VertexManagerPlugin {
       if (event instanceof InputUpdatePayloadEvent) {
         // No tasks should have been started yet. Checked by initial state check.
         Preconditions.checkState(dataInformationEventSeen == false);
-        inputDescriptor.setUserPayload(((InputUpdatePayloadEvent) event)
-            .getUserPayload());
+        inputDescriptor.setUserPayload(new UserPayload(((InputUpdatePayloadEvent) event)
+            .getUserPayload()));
       } else if (event instanceof InputDataInformationEvent) {
         dataInformationEventSeen = true;
         // # Tasks should have been set by this point.

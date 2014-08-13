@@ -19,8 +19,6 @@
 package org.apache.tez.runtime.api.events;
 
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
-import org.apache.tez.common.TezUserPayload;
-import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.runtime.api.Event;
 
 import com.google.common.base.Preconditions;
@@ -41,7 +39,7 @@ public class VertexManagerEvent extends Event {
   /**
    * User payload to be sent
    */
-  private final TezUserPayload userPayload;
+  private final byte[] userPayload;
   
   /**
    * Create a new VertexManagerEvent
@@ -52,7 +50,7 @@ public class VertexManagerEvent extends Event {
     Preconditions.checkArgument(vertexName != null);
     Preconditions.checkArgument(userPayload != null);
     this.targetVertexName = vertexName;
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
+    this.userPayload = userPayload;
   }
   
   public String getTargetVertexName() {
@@ -60,6 +58,6 @@ public class VertexManagerEvent extends Event {
   }
   
   public byte[] getUserPayload() {
-    return userPayload.getPayload();
+    return userPayload;
   }
 }

@@ -122,7 +122,7 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
       for (EdgeManagerDescriptorProto edgeManagerProto :
         proto.getEdgeManagerDescriptorsList()) {
         EdgeManagerPluginDescriptor edgeManagerDescriptor =
-            DagTypeConverters.convertEdgeManagerDescriptorFromDAGPlan(
+            DagTypeConverters.convertEdgeManagerPluginDescriptorFromDAGPlan(
                 edgeManagerProto.getEntityDescriptor());
         sourceEdgeManagers.put(edgeManagerProto.getEdgeName(),
             edgeManagerDescriptor);

@@ -18,10 +18,9 @@
 
 package org.apache.tez.runtime.api;
 
-import javax.annotation.Nullable;
-
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.dag.api.UserPayload;
 
 /**
  * Context through which the OutputCommitter can access all the relevant
@@ -65,13 +64,13 @@ public interface OutputCommitterContext {
    * Get the User Payload for the Output
    * @return User Payload
    */
-  @Nullable public byte[] getOutputUserPayload();
+  public UserPayload getOutputUserPayload();
 
   /**
    * Get the User Payload for the OutputCommitter
    * @return User Payload
    */
-  @Nullable public byte[] getUserPayload();
+  public UserPayload getUserPayload();
   
   /**
    * Get Vertex Index in the DAG

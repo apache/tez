@@ -19,8 +19,6 @@
 package org.apache.tez.runtime.api.events;
 
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
-import org.apache.tez.common.TezUserPayload;
-import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
@@ -45,24 +43,24 @@ public final class InputDataInformationEvent extends Event {
 
   private final int sourceIndex;
   private int targetIndex; // TODO Likely to be multiple at a later point.
-  private final TezUserPayload userPayload;
+  private final byte[] userPayload;
   private final Object userPayloadObject;
   
   /**
-   * Provide a serialzied form of the payload
+   * Provide a serialized form of the payload
    * @param srcIndex the src index
-   * @param userPayload the serizlied payload
+   * @param userPayload the serialized payload
    */
   public InputDataInformationEvent(int srcIndex, byte[] userPayload) {
     this.sourceIndex = srcIndex;
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(userPayload);
+    this.userPayload = userPayload;
     this.userPayloadObject = null;
   }
   
   public InputDataInformationEvent(int srcIndex, Object userPayloadDeserialized) {
     this.sourceIndex = srcIndex;
     this.userPayloadObject = userPayloadDeserialized;
-    this.userPayload = DagTypeConverters.convertToTezUserPayload(null);
+    this.userPayload = null;
   }
 
   public int getSourceIndex() {
@@ -78,7 +76,7 @@ public final class InputDataInformationEvent extends Event {
   }
   
   public byte[] getUserPayload() {
-    return userPayload.getPayload();
+    return userPayload;
   }
   
   public Object getDeserializedUserPayload() {

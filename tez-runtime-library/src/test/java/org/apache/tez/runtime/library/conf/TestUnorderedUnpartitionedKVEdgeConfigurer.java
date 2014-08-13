@@ -60,8 +60,8 @@ public class TestUnorderedUnpartitionedKVEdgeConfigurer {
 
     UnorderedUnpartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload();
-    byte[] inputBytes = configuration.getInputPayload();
+    byte[] outputBytes = configuration.getOutputPayload().getPayload();
+    byte[] inputBytes = configuration.getInputPayload().getPayload();
 
     OnFileUnorderedKVOutputConfigurer rebuiltOutput =
         new OnFileUnorderedKVOutputConfigurer();
@@ -95,8 +95,8 @@ public class TestUnorderedUnpartitionedKVEdgeConfigurer {
 
     UnorderedUnpartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload();
-    byte[] inputBytes = configuration.getInputPayload();
+    byte[] outputBytes = configuration.getOutputPayload().getPayload();
+    byte[] inputBytes = configuration.getInputPayload().getPayload();
 
     OnFileUnorderedKVOutputConfigurer rebuiltOutput =
         new OnFileUnorderedKVOutputConfigurer();
@@ -140,8 +140,8 @@ public class TestUnorderedUnpartitionedKVEdgeConfigurer {
 
     UnorderedUnpartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload();
-    byte[] inputBytes = configuration.getInputPayload();
+    byte[] outputBytes = configuration.getOutputPayload().getPayload();
+    byte[] inputBytes = configuration.getInputPayload().getPayload();
 
     OnFileUnorderedKVOutputConfigurer rebuiltOutput =
         new OnFileUnorderedKVOutputConfigurer();

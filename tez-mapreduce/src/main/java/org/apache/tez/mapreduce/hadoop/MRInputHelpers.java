@@ -34,6 +34,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -61,6 +62,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
@@ -132,9 +134,9 @@ public class MRInputHelpers {
    * @throws IOException
    */
   @InterfaceStability.Evolving
-  public static MRRuntimeProtos.MRInputUserPayloadProto parseMRInputPayload(byte[] bytes)
+  public static MRRuntimeProtos.MRInputUserPayloadProto parseMRInputPayload(UserPayload payload)
       throws IOException {
-    return MRRuntimeProtos.MRInputUserPayloadProto.parseFrom(bytes);
+    return MRRuntimeProtos.MRInputUserPayloadProto.parseFrom(payload.getPayload());
   }
 
   /**
@@ -147,6 +149,7 @@ public class MRInputHelpers {
    * @return an instance of the split
    * @throws java.io.IOException
    */
+  @SuppressWarnings("unchecked")
   @InterfaceStability.Evolving
   public static InputSplit createOldFormatSplitFromUserPayload(
       MRRuntimeProtos.MRSplitProto splitProto, SerializationFactory serializationFactory)
@@ -657,7 +660,7 @@ public class MRInputHelpers {
    * or {@link org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat}
    */
   @InterfaceAudience.Private
-  protected static byte[] createMRInputPayloadWithGrouping(Configuration conf) throws IOException {
+  protected static UserPayload createMRInputPayloadWithGrouping(Configuration conf) throws IOException {
     Preconditions
         .checkArgument(conf != null, "Configuration must be specified");
     return createMRInputPayload(TezUtils.createByteStringFromConf(conf),
@@ -665,7 +668,7 @@ public class MRInputHelpers {
   }
 
   @InterfaceAudience.Private
-  protected static byte[] createMRInputPayload(Configuration conf,
+  protected static UserPayload createMRInputPayload(Configuration conf,
                                                MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
       IOException {
     Preconditions
@@ -675,7 +678,7 @@ public class MRInputHelpers {
         mrSplitsProto, false);
   }
 
-  private static byte[] createMRInputPayload(ByteString bytes,
+  private static UserPayload createMRInputPayload(ByteString bytes,
                                              MRRuntimeProtos.MRSplitsProto mrSplitsProto,
                                              boolean isGrouped) throws IOException {
     MRRuntimeProtos.MRInputUserPayloadProto.Builder userPayloadBuilder =
@@ -688,7 +691,7 @@ public class MRInputHelpers {
     userPayloadBuilder.setGroupingEnabled(isGrouped);
     // TODO Should this be a ByteBuffer or a byte array ? A ByteBuffer would be
     // more efficient.
-    return userPayloadBuilder.build().toByteArray();
+    return new UserPayload(userPayloadBuilder.build().toByteArray());
   }
 
 }

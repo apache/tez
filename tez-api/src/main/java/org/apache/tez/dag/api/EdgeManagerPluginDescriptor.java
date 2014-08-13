@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.api;
 
-public class EdgeManagerPluginDescriptor extends TezEntityDescriptor<EdgeManagerPluginDescriptor> {
+public class EdgeManagerPluginDescriptor extends EntityDescriptor<EdgeManagerPluginDescriptor> {
 
   public EdgeManagerPluginDescriptor(String edgeManagerPluginClassName) {
     super(edgeManagerPluginClassName);

@@ -1326,8 +1326,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               if (!entry.getValue().booleanValue()) {
                 LOG.info("Found a pending Vertex Group commit"
                     + ", vertexGroup=" + entry.getKey());
+                groupCommitInProgress = true;
+                break;
               }
-              groupCommitInProgress = true;
             }
           }
 

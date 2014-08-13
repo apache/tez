@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.library.processor;
 
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.runtime.api.Processor;
 import org.apache.tez.runtime.api.ProcessorContext;
 
@@ -25,6 +26,7 @@ import org.apache.tez.runtime.api.ProcessorContext;
  * Built-in convenience {@link Processor} to be used for pre-warming
  *
  */
+@Unstable
 public class PreWarmProcessor extends SimpleProcessor {
 
   public PreWarmProcessor(ProcessorContext context) {

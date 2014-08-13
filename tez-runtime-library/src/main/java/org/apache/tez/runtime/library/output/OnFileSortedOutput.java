@@ -188,7 +188,7 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
 
     payloadBuilder.setRunDuration((int) ((endTime - startTime) / 1000));
     DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
-    byte[] payloadBytes = payloadProto.toByteArray();
+    byte[] payload = payloadProto.toByteArray();
 
     long outputSize = getContext().getCounters()
         .findCounter(TaskCounter.OUTPUT_BYTES).getValue();
@@ -201,7 +201,7 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
     List<Event> events = Lists.newArrayListWithCapacity(getNumPhysicalOutputs() + 1);
     events.add(vmEvent);
 
-    CompositeDataMovementEvent csdme = new CompositeDataMovementEvent(0, getNumPhysicalOutputs(), payloadBytes);
+    CompositeDataMovementEvent csdme = new CompositeDataMovementEvent(0, getNumPhysicalOutputs(), payload);
     events.add(csdme);
 
     return events;

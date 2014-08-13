@@ -43,6 +43,7 @@ import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.mapreduce.TestUmbilical;
 import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.IDConverter;
@@ -132,9 +133,9 @@ public class TestReduceProcessor {
 
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
         new InputDescriptor(MRInputLegacy.class.getName())
-            .setUserPayload(MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
+            .setUserPayload(new UserPayload(MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
                 .setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf)).build()
-                .toByteArray()),
+                .toByteArray())),
         1);
     OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", 
         new OutputDescriptor(LocalOnFileSorterOutput.class.getName()).

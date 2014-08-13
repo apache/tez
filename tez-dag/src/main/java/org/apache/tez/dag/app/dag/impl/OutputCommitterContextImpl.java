@@ -24,6 +24,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 
 public class OutputCommitterContextImpl implements OutputCommitterContext {
@@ -79,12 +80,12 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
   }
 
   @Override
-  public byte[] getOutputUserPayload() {
+  public UserPayload getOutputUserPayload() {
     return output.getIODescriptor().getUserPayload();
   }
   
   @Override
-  public byte[] getUserPayload() {
+  public UserPayload getUserPayload() {
     return output.getControllerDescriptor().getUserPayload();
   }
 

@@ -61,6 +61,7 @@ import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
@@ -184,7 +185,6 @@ public class TestOrderedWordCount extends Configured implements Tool {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream(4096);
     mapStageConf.writeXml(outputStream);
     String mapStageHistoryText = new String(outputStream.toByteArray(), "UTF-8");
-
     DataSourceDescriptor dsd;
     if (generateSplitsInClient) {
       mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
@@ -215,7 +215,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     ByteArrayOutputStream finalReduceOutputStream = new ByteArrayOutputStream(4096);
     finalReduceConf.writeXml(finalReduceOutputStream);
     String finalReduceStageHistoryText = new String(finalReduceOutputStream.toByteArray(), "UTF-8");
-    byte[] finalReducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
+    UserPayload finalReducePayload = MRHelpers.createUserPayloadFromConf(finalReduceConf);
     Vertex finalReduceVertex = new Vertex("finalreduce",
         new ProcessorDescriptor(
             ReduceProcessor.class.getName())

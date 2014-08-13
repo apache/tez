@@ -2,6 +2,7 @@ package org.apache.tez.runtime.library.common;
 
 import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -27,6 +28,7 @@ import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.GenericCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.comparator.TezBytesComparator;
@@ -379,7 +381,7 @@ public class TestValuesIterator {
     doReturn(1).when(inputContext).getInputIndex();
     doReturn("srcVertex").when(inputContext).getSourceVertexName();
     doReturn(1).when(inputContext).getTaskVertexIndex();
-    doReturn(new byte[1024]).when(inputContext).getUserPayload();
+    doReturn(new UserPayload(new byte[1024])).when(inputContext).getUserPayload();
     return inputContext;
   }
 

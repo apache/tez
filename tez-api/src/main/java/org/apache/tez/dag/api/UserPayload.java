@@ -16,19 +16,37 @@
  * limitations under the License.
  */
 
-package org.apache.tez.common;
+package org.apache.tez.dag.api;
+
+import javax.annotation.Nullable;
 
 /**
- * Helper class to hold user payload.
+ * Wrapper class to hold user payloads
+ * Provides a version to help in evolving the payloads
  */
-public class TezUserPayload {
+public final class UserPayload {
   private final byte[] payload;
+  private final int version;
 
-  public TezUserPayload(byte[] payload) {
-    this.payload = payload;
+  public UserPayload(@Nullable byte[] payload) {
+    this(payload, 0);
   }
 
+  public UserPayload(@Nullable byte[] payload, int version) {
+    this.payload = payload;
+    this.version = version;
+  }
+
+  @Nullable
   public byte[] getPayload() {
     return payload;
+  }
+
+  public int getVersion() {
+    return version;
+  }
+
+  public boolean hasPayload() {
+    return payload != null;
   }
 }

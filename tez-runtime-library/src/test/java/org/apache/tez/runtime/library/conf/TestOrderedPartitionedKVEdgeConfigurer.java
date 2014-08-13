@@ -67,8 +67,8 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload();
-    byte[] inputBytes = configuration.getInputPayload();
+    byte[] outputBytes = configuration.getOutputPayload().getPayload();
+    byte[] inputBytes = configuration.getInputPayload().getPayload();
 
     OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);
@@ -96,8 +96,8 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload();
-    byte[] inputBytes = configuration.getInputPayload();
+    byte[] outputBytes = configuration.getOutputPayload().getPayload();
+    byte[] inputBytes = configuration.getInputPayload().getPayload();
 
     OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);
@@ -141,8 +141,8 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload();
-    byte[] inputBytes = configuration.getInputPayload();
+    byte[] outputBytes = configuration.getOutputPayload().getPayload();
+    byte[] inputBytes = configuration.getInputPayload().getPayload();
 
     OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);
@@ -199,8 +199,8 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload();
-    byte[] inputBytes = configuration.getInputPayload();
+    byte[] outputBytes = configuration.getOutputPayload().getPayload();
+    byte[] inputBytes = configuration.getInputPayload().getPayload();
 
     OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);
@@ -262,8 +262,8 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload();
-    byte[] inputBytes = configuration.getInputPayload();
+    byte[] outputBytes = configuration.getOutputPayload().getPayload();
+    byte[] inputBytes = configuration.getInputPayload().getPayload();
 
     OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
     rebuiltOutput.fromByteArray(outputBytes);

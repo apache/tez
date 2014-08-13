@@ -27,7 +27,6 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.Container;
-
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.runtime.api.InputSpecUpdate;
@@ -75,8 +74,7 @@ public interface VertexManagerPluginContext {
    * Get the payload set for the plugin
    * @return user payload
    */
-  @Nullable
-  public byte[] getUserPayload();
+  public UserPayload getUserPayload();
   
   /**
    * Get the number of tasks in the given vertex

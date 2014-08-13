@@ -21,6 +21,7 @@ package org.apache.tez.runtime.library.conf;
 import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.tez.dag.api.UserPayload;
 
 @InterfaceAudience.Private
 abstract class HadoopKeyValuesBasedBaseEdgeConfigurer {
@@ -29,7 +30,7 @@ abstract class HadoopKeyValuesBasedBaseEdgeConfigurer {
    * Get the payload for the configured Output
    * @return output configuration as a byte array
    */
-  public abstract byte[] getOutputPayload();
+  public abstract UserPayload getOutputPayload();
 
   /**
    * Get the output class name
@@ -41,7 +42,7 @@ abstract class HadoopKeyValuesBasedBaseEdgeConfigurer {
    * Get the payload for the configured Input
    * @return input configuration as a byte array
    */
-  public abstract byte[] getInputPayload();
+  public abstract UserPayload getInputPayload();
 
   /**
    * Get the input class name

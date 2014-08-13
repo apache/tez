@@ -20,7 +20,7 @@ package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
-public class VertexManagerPluginDescriptor extends TezEntityDescriptor<VertexManagerPluginDescriptor> {
+public class VertexManagerPluginDescriptor extends EntityDescriptor<VertexManagerPluginDescriptor> {
 
   @Private // for Writable
   public VertexManagerPluginDescriptor() {

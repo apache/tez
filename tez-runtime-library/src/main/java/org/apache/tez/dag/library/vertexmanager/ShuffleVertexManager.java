@@ -36,6 +36,7 @@ import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -432,7 +433,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
                     remainderRangeForLastShuffler : basePartitionRange));
         EdgeManagerPluginDescriptor edgeManagerDescriptor =
             new EdgeManagerPluginDescriptor(CustomShuffleEdgeManager.class.getName());
-        edgeManagerDescriptor.setUserPayload(edgeManagerConfig.toUserPayload());
+        edgeManagerDescriptor.setUserPayload(new UserPayload(edgeManagerConfig.toUserPayload()));
         edgeManagers.put(vertex, edgeManagerDescriptor);
       }
       

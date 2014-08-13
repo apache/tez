@@ -34,6 +34,7 @@ import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
@@ -59,14 +60,14 @@ public class MROutputCommitter extends OutputCommitter {
 
   @Override
   public void initialize() throws IOException {
-    byte[] userPayload = getContext().getOutputUserPayload();
-    if (userPayload == null) {
+    UserPayload userPayload = getContext().getOutputUserPayload();
+    if (!userPayload.hasPayload()) {
       jobConf = new JobConf();
     } else {
       jobConf = new JobConf(
-          MRHelpers.createConfFromUserPayload(getContext().getOutputUserPayload()));
+          MRHelpers.createConfFromUserPayload(userPayload));
     }
-
+    
     // Read all credentials into the credentials instance stored in JobConf.
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
@@ -112,12 +113,6 @@ public class MROutputCommitter extends OutputCommitter {
       newApiCommitter = true;
       LOG.info("Using mapred newApiCommitter.");
     }
-
-    LOG.info("OutputCommitter set in config for outputName="
-        + context.getOutputName()
-        + ", vertexName=" + context.getVertexName()
-        + ", outputCommitterClass="
-        + jobConf.get("mapred.output.committer.class"));
 
     if (newApiCommitter) {
       TaskAttemptID taskAttemptID = new TaskAttemptID(
