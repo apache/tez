@@ -52,6 +52,7 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
+import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -836,7 +837,7 @@ public class TezClientUtils {
   public static DAGClientAMProtocolBlockingPB getAMProxy(final Configuration conf, String amHost,
       int amRpcPort, org.apache.hadoop.yarn.api.records.Token clientToAMToken) throws IOException {
 
-    final InetSocketAddress serviceAddr = new InetSocketAddress(amHost, amRpcPort);
+    final InetSocketAddress serviceAddr = NetUtils.createSocketAddrForHost(amHost, amRpcPort);
     UserGroupInformation userUgi = UserGroupInformation.createRemoteUser(UserGroupInformation
         .getCurrentUser().getUserName());
     if (clientToAMToken != null) {
