@@ -18,9 +18,12 @@
 
 package org.apache.tez.dag.api.client.rpc;
 
+import java.io.IOException;
+import java.security.AccessControlException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -57,9 +60,21 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     this.real = real;
   }
 
+  private String getRPCUserName() throws ServiceException {
+    try {
+      return UserGroupInformation.getCurrentUser().getShortUserName();
+    } catch (IOException e) {
+      throw wrapException(e);
+    }
+  }
+
   @Override
   public GetAllDAGsResponseProto getAllDAGs(RpcController controller,
       GetAllDAGsRequestProto request) throws ServiceException {
+    String user = getRPCUserName();
+    if (!real.getACLManager().checkAMViewAccess(user)) {
+      throw new AccessControlException("User " + user + " cannot perform AM view operation");
+    }
     try{
       List<String> dagIds = real.getAllDAGs();
       return GetAllDAGsResponseProto.newBuilder().addAllDagId(dagIds).build();
@@ -71,8 +86,12 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public GetDAGStatusResponseProto getDAGStatus(RpcController controller,
       GetDAGStatusRequestProto request) throws ServiceException {
+    String user = getRPCUserName();
     try {
       String dagId = request.getDagId();
+      if (!real.getACLManager(dagId).checkDAGViewAccess(user)) {
+        throw new AccessControlException("User " + user + " cannot perform DAG view operation");
+      }
       DAGStatus status;
       status = real.getDAGStatus(dagId,
         DagTypeConverters.convertStatusGetOptsFromProto(
@@ -89,8 +108,12 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public GetVertexStatusResponseProto getVertexStatus(RpcController controller,
       GetVertexStatusRequestProto request) throws ServiceException {
+    String user = getRPCUserName();
     try {
       String dagId = request.getDagId();
+      if (!real.getACLManager(dagId).checkDAGViewAccess(user)) {
+        throw new AccessControlException("User " + user + " cannot perform DAG view operation");
+      }
       String vertexName = request.getVertexName();
       VertexStatus status = real.getVertexStatus(dagId, vertexName,
         DagTypeConverters.convertStatusGetOptsFromProto(
@@ -107,8 +130,12 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public TryKillDAGResponseProto tryKillDAG(RpcController controller,
       TryKillDAGRequestProto request) throws ServiceException {
+    String user = getRPCUserName();
     try {
       String dagId = request.getDagId();
+      if (!real.getACLManager(dagId).checkDAGModifyAccess(user)) {
+        throw new AccessControlException("User " + user + " cannot perform DAG modify operation");
+      }
       real.tryKillDAG(dagId);
       return TryKillDAGResponseProto.newBuilder().build();
     } catch (TezException e) {
@@ -119,6 +146,10 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public SubmitDAGResponseProto submitDAG(RpcController controller,
       SubmitDAGRequestProto request) throws ServiceException {
+    String user = getRPCUserName();
+    if (!real.getACLManager().checkAMModifyAccess(user)) {
+      throw new AccessControlException("User " + user + " cannot perform AM modify operation");
+    }
     try{
       DAGPlan dagPlan = request.getDAGPlan();
       Map<String, LocalResource> additionalResources = null;
@@ -140,6 +171,10 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public ShutdownSessionResponseProto shutdownSession(RpcController arg0,
       ShutdownSessionRequestProto arg1) throws ServiceException {
+    String user = getRPCUserName();
+    if (!real.getACLManager().checkAMModifyAccess(user)) {
+      throw new AccessControlException("User " + user + " cannot perform AM modify operation");
+    }
     real.shutdownAM();
     return ShutdownSessionResponseProto.newBuilder().build();
   }
@@ -147,6 +182,10 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public GetAMStatusResponseProto getAMStatus(RpcController controller,
       GetAMStatusRequestProto request) throws ServiceException {
+    String user = getRPCUserName();
+    if (!real.getACLManager().checkAMViewAccess(user)) {
+      throw new AccessControlException("User " + user + " cannot perform AM view operation");
+    }
     try {
       TezAppMasterStatus sessionStatus = real.getSessionStatus();
       return GetAMStatusResponseProto.newBuilder().setStatus(
@@ -156,4 +195,5 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
       throw wrapException(e);
     }
   }
+
 }

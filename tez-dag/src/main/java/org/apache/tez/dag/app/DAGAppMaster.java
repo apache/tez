@@ -140,6 +140,8 @@ import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
 import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.node.AMNodeEventType;
 import org.apache.tez.dag.app.rm.node.AMNodeMap;
+import org.apache.tez.common.security.ACLManager;
+import org.apache.tez.common.security.Groups;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
@@ -259,6 +261,7 @@ public class DAGAppMaster extends AbstractService {
   private final AtomicInteger successfulDAGs = new AtomicInteger();
   private final AtomicInteger failedDAGs = new AtomicInteger();
   private final AtomicInteger killedDAGs = new AtomicInteger();
+  private ACLManager aclManager;
 
   // must be LinkedHashMap to preserve order of service addition
   Map<Service, ServiceWithDependency> services =
@@ -308,6 +311,9 @@ public class DAGAppMaster extends AbstractService {
 
     dispatcher = createDispatcher();
     context = new RunningAppContext(conf);
+    Groups userGroupMapping = new Groups(this.amConf);
+    this.aclManager = new ACLManager(userGroupMapping, appMasterUgi.getShortUserName(),
+        this.amConf);
 
     clientHandler = new DAGClientHandler(this);
 
@@ -555,6 +561,10 @@ public class DAGAppMaster extends AbstractService {
   public void setCurrentDAG(DAG currentDAG) {
     this.currentDAG = currentDAG;
     context.setDAG(currentDAG);
+  }
+
+  public ACLManager getACLManager() {
+    return this.aclManager;
   }
 
   private class DAGAppMasterEventHandler implements
@@ -1210,6 +1220,11 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public boolean isRecoveryEnabled() {
       return recoveryEnabled;
+    }
+
+    @Override
+    public ACLManager getAMACLManager() {
+      return aclManager;
     }
 
     @Override

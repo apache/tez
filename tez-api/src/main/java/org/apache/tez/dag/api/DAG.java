@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.impl.LogUtils;
+import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
@@ -75,6 +76,7 @@ public class DAG {
   Credentials credentials = new Credentials();
   Set<VertexGroup> vertexGroups = Sets.newHashSet();
   Set<GroupInputEdge> groupInputEdges = Sets.newHashSet();
+  private DAGAccessControls dagAccessControls;
 
   public DAG(String name) {
     this.name = name;
@@ -121,6 +123,20 @@ public class DAG {
   @Private
   public synchronized Credentials getCredentials() {
     return this.credentials;
+  }
+
+
+  /**
+   * Set Access controls for the DAG. Which user/groups can view the DAG progess/history and
+   * who can modify the DAG i.e. kill the DAG.
+   * The owner of the Tez Session and the user submitting the DAG are super-users and have access
+   * to all operations on the DAG.
+   * @param accessControls Access Controls
+   * @return
+   */
+  public synchronized DAG setAccessControls(DAGAccessControls accessControls) {
+    this.dagAccessControls = accessControls;
+    return this;
   }
 
   /**
@@ -674,10 +690,11 @@ public class DAG {
       dagBuilder.addEdge(edgeBuilder);
     }
 
+
+    ConfigurationProto.Builder confProtoBuilder =
+        ConfigurationProto.newBuilder();
     if (dagConf != null) {
       Iterator<Entry<String, String>> iter = dagConf.iterator();
-      ConfigurationProto.Builder confProtoBuilder =
-        ConfigurationProto.newBuilder();
       while (iter.hasNext()) {
         Entry<String, String> entry = iter.next();
         PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
@@ -685,8 +702,21 @@ public class DAG {
         kvp.setValue(entry.getValue());
         confProtoBuilder.addConfKeyValues(kvp);
       }
-      dagBuilder.setDagKeyValues(confProtoBuilder);
     }
+    if (dagAccessControls != null) {
+      Configuration aclConf = new Configuration(false);
+      dagAccessControls.serializeToConfiguration(aclConf);
+      Iterator<Entry<String, String>> aclConfIter = aclConf.iterator();
+      while (aclConfIter.hasNext()) {
+        Entry<String, String> entry = aclConfIter.next();
+        PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
+        kvp.setKey(entry.getKey());
+        kvp.setValue(entry.getValue());
+        confProtoBuilder.addConfKeyValues(kvp);
+      }
+    }
+    dagBuilder.setDagKeyValues(confProtoBuilder);
+
     if (credentials != null) {
       dagBuilder.setCredentialsBinary(DagTypeConverters.convertCredentialsToProto(credentials));
       LogUtils.logCredentials(LOG, credentials, "dag");

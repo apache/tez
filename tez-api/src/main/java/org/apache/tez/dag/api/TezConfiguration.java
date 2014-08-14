@@ -649,4 +649,47 @@ public class TezConfiguration extends Configuration {
    */
   public static final int TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT = 1;
 
+
+  // ACLs related configuration
+  // Format supports a comma-separated list of users and groups with the users and groups separated
+  // by whitespace. e.g. "user1,user2 group1,group2"
+  // All users/groups that have access to do operations on the AM also have access to similar
+  // operations on all DAGs within that AM/session.
+  // By default, the "owner" i.e. the user who started the session will always have full admin
+  // access to the AM. Also, the user that submitted the DAG has full admin access to all operations
+  // on that DAG.
+  //
+  // If no value is specified or an invalid configuration is specified,
+  // only the user who submitted the AM and/or DAG can do the appropriate operations.
+  // For example, "user1,user2 group1, group2" is an invalid configuration value as splitting by
+  // whitespace produces 3 lists instead of 2.
+
+  // If the value specified is "*", all users are allowed to do the operation.
+
+  /**
+   * Configuration to enable/disable ACL checks.
+   */
+  public static final String TEZ_AM_ACLS_ENABLED = TEZ_AM_PREFIX + "acls.enabled";
+  public static final boolean TEZ_AM_ACLS_ENABLED_DEFAULT = true;
+
+  /**
+   * AM view ACLs. This allows the specified users/groups to view the status of the AM and all DAGs
+   * that run within this AM.
+   */
+  public static final String TEZ_AM_VIEW_ACLS = TEZ_AM_PREFIX + "view-acls";
+  /**
+   * AM modify ACLs. This allows the specified users/groups to run modify operations on the AM
+   * such as submitting DAGs, pre-warming the session, killing DAGs or shutting down the session.
+   */
+  public static final String TEZ_AM_MODIFY_ACLS = TEZ_AM_PREFIX + "modify-acls";
+  /**
+   * DAG view ACLs. This allows the specified users/groups to view the status of the given DAG.
+   */
+  public static final String TEZ_DAG_VIEW_ACLS = TEZ_AM_PREFIX + "dag.view-acls";
+  /**
+   * DAG modify ACLs. This allows the specified users/groups to run modify operations on the DAG
+   * such as killing the DAG.
+   */
+  public static final String TEZ_DAG_MODIFY_ACLS = TEZ_AM_PREFIX + "dag.modify-acls";
+
 }
