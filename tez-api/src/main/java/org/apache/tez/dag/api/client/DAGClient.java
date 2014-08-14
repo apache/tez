@@ -21,6 +21,7 @@ package org.apache.tez.dag.api.client;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Set;
+
 import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -79,8 +80,9 @@ public abstract class DAGClient implements Closeable {
    * @return Final DAG Status
    * @throws IOException
    * @throws TezException
+   * @throws InterruptedException 
    */
-  public abstract DAGStatus waitForCompletion() throws IOException, TezException;
+  public abstract DAGStatus waitForCompletion() throws IOException, TezException, InterruptedException;
 
   /**
    * Wait for DAG to complete and periodically print *all* vertices' status.
@@ -91,7 +93,8 @@ public abstract class DAGClient implements Closeable {
    * @return Final DAG Status
    * @throws IOException
    * @throws TezException
+   * @throws InterruptedException 
    */
   public abstract DAGStatus waitForCompletionWithStatusUpdates(@Nullable Set<StatusGetOpts> statusGetOpts)
-      throws IOException, TezException;
+      throws IOException, TezException, InterruptedException;
 }

@@ -21,6 +21,7 @@
 package org.apache.tez.dag.api.client;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.Set;
 
@@ -72,13 +73,13 @@ public class MRDAGClient extends DAGClient {
   }
 
   @Override
-  public DAGStatus waitForCompletion() throws IOException, TezException {
+  public DAGStatus waitForCompletion() throws IOException, TezException, InterruptedException {
     return realClient.waitForCompletion();
   }
 
   @Override
   public DAGStatus waitForCompletionWithStatusUpdates(
-      @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException {
+      @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException, InterruptedException {
     return realClient.waitForCompletionWithStatusUpdates(statusGetOpts);
   }
 

@@ -318,19 +318,19 @@ public class DAGClientRPCImpl extends DAGClient {
   }
 
   @Override
-  public DAGStatus waitForCompletion() throws IOException, TezException {
+  public DAGStatus waitForCompletion() throws IOException, TezException, InterruptedException {
     return _waitForCompletionWithStatusUpdates(null, EnumSet.noneOf(StatusGetOpts.class));
   }
 
   @Override
   public DAGStatus waitForCompletionWithStatusUpdates(@Nullable Set<StatusGetOpts> statusGetOpts)
-      throws IOException, TezException {
+      throws IOException, TezException, InterruptedException {
     Set<String> vertexSet = getDAGStatus(statusGetOpts).getVertexProgress().keySet();
     return _waitForCompletionWithStatusUpdates(vertexSet, statusGetOpts);
   }
 
   private DAGStatus _waitForCompletionWithStatusUpdates(@Nullable Set<String> vertexNames,
-      @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException {
+      @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException, InterruptedException {
     DAGStatus dagStatus;
     boolean initPrinted = false;
     double dagProgress = -1.0; // Print the first one
@@ -349,20 +349,13 @@ public class DAGClientRPCImpl extends DAGClient {
           || dagStatus.getState() == DAGStatus.State.ERROR) {
         break;
       }
-      try {
-        Thread.sleep(SLEEP_FOR_COMPLETION);
-      } catch (InterruptedException e) {
-        // continue;
-      }
+      Thread.sleep(SLEEP_FOR_COMPLETION);
     }// End of while(true)
     while (dagStatus.getState() == DAGStatus.State.RUNNING) {
       if (vertexNames != null) {
         dagProgress = monitorProgress(vertexNames, dagProgress, null, dagStatus);
       }
-      try {
-        Thread.sleep(SLEEP_FOR_COMPLETION);
-      } catch (InterruptedException e) {
-      }
+      Thread.sleep(SLEEP_FOR_COMPLETION);
       dagStatus = getDAGStatus(statusGetOpts);
     }// end of while
     if (vertexNames != null) {
