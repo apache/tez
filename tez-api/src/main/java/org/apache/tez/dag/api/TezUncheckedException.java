@@ -18,9 +18,12 @@
 
 package org.apache.tez.dag.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
- * Base Tez Unchecked Exception
+ * Unchecked Exception thrown upon error
  */
+@Public
 public class TezUncheckedException extends RuntimeException {
 
   private static final long serialVersionUID = -4956339297375386184L;

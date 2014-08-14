@@ -33,7 +33,7 @@ import com.google.common.collect.Iterators;
 
 /**
  * An abstract class to provide common implementation of the
- * generic counter group in both mapred and mapreduce package.
+ * generic counter group
  *
  * @param <T> type of the counter for the group
  */

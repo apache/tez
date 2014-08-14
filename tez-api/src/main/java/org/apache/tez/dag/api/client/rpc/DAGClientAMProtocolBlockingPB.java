@@ -18,9 +18,11 @@
 
 package org.apache.tez.dag.api.client.rpc;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.ipc.ProtocolInfo;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.DAGClientAMProtocol;
 
+@Private
 @ProtocolInfo(
     protocolName = "org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB",
     protocolVersion = 1)

@@ -22,10 +22,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * Describes the placements hints for tasks in a vertex.
+ * The system will make a best-effort attempt to run the tasks 
+ * close to the specified locations.
+ */
+@Public
 public class VertexLocationHint  {
 
   private final List<TaskLocationHint> taskLocationHints;

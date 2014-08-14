@@ -3254,7 +3254,7 @@ public class TestVertexImpl {
       List<Event> events = Lists.newArrayListWithCapacity(targetTasks + 1);
 
       InputConfigureVertexTasksEvent configEvent = new InputConfigureVertexTasksEvent(
-          targetTasks, locationHints, null);
+          targetTasks, new VertexLocationHint(locationHints), null);
       events.add(configEvent);
       for (int i = 0; i < targetTasks; i++) {
         InputDataInformationEvent diEvent = new InputDataInformationEvent(i, null);

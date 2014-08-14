@@ -19,7 +19,13 @@
 package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.tez.runtime.api.Processor;
 
+/**
+ * Describes the {@link Processor}
+ */
+@Public
 public class ProcessorDescriptor extends EntityDescriptor<ProcessorDescriptor> {
 
   @Private // for Writable

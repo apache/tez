@@ -23,7 +23,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 
 /**
  * An abstract counter class to provide common implementation of
- * the counter interface in both mapred and mapreduce packages.
+ * the counter interface
  */
 @InterfaceAudience.Private
 public abstract class AbstractCounter implements TezCounter {

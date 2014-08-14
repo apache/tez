@@ -16,26 +16,27 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.api;
+package org.apache.tez.common;
 
-/**
- * This exception is thrown when there are duplicate DAG names in a session.
- * 
- */
-public class DuplicateDAGName extends TezException {
+import org.apache.commons.logging.Log;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.token.Token;
 
-  private static final long serialVersionUID = -6405001382308895028L;
+@Private
+public class LogUtils {
 
-  public DuplicateDAGName(Throwable cause) {
-    super(cause);
+  public static void logCredentials(Log log, Credentials credentials, String identifier) {
+    if (log.isDebugEnabled()) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("#" + identifier + "Tokens=").append(credentials.numberOfTokens());
+      if (credentials.numberOfTokens() > 0) {
+        sb.append(", Services: ");
+        for (Token<?> t : credentials.getAllTokens()) {
+          sb.append(t.getService()).append(",");
+        }
+      }
+      log.debug(sb.toString());
+    }
   }
-
-  public DuplicateDAGName(String message) {
-    super(message);
-  }
-
-  public DuplicateDAGName(String message, Throwable cause) {
-    super(message, cause);
-  }
-
 }

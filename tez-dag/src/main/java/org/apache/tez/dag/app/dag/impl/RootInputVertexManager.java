@@ -24,7 +24,6 @@ import java.util.Map;
 
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
@@ -92,7 +91,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
             cEvent.getInputSpecUpdate() == null ? InputSpecUpdate
                 .getDefaultSinglePhysicalInputSpecUpdate() : cEvent.getInputSpecUpdate());
         getContext().setVertexParallelism(cEvent.getNumTasks(),
-            new VertexLocationHint(cEvent.getTaskLocationHints()), null, rootInputSpecUpdate);
+            cEvent.getLocationHint(), null, rootInputSpecUpdate);
       }
       if (event instanceof InputUpdatePayloadEvent) {
         // No tasks should have been started yet. Checked by initial state check.

@@ -20,6 +20,7 @@ package org.apache.tez.runtime.api.events;
 
 import java.util.Iterator;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.runtime.api.Event;
 
 /**
@@ -34,6 +35,7 @@ import org.apache.tez.runtime.api.Event;
  * the Physical Outputs that it generates.
  * 
  */
+@Public
 public class CompositeDataMovementEvent extends Event {
 
   protected final int sourceIndexStart;

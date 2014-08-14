@@ -25,15 +25,17 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 
-/*
- * Interface class for monitoring the <code>DAG</code> running in a Tez DAG
+/**
+ * Class for monitoring the <code>DAG</code> running in a Tez DAG
  * Application Master.
  */
+@Public
 public abstract class DAGClient implements Closeable {
 
   /**

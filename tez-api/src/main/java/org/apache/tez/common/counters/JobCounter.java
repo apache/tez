@@ -18,12 +18,10 @@
 
 package org.apache.tez.common.counters;
 
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 
 // Per-job counters
-@InterfaceAudience.Public
-@InterfaceStability.Evolving
+@Private
 public enum JobCounter {
   NUM_FAILED_MAPS, 
   NUM_FAILED_REDUCES,

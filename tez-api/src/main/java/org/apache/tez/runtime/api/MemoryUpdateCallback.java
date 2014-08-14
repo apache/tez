@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 
 /**
@@ -28,6 +29,7 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
  * 
  */
 @Unstable
+@Public
 public abstract class MemoryUpdateCallback {
 
   public abstract void memoryAssigned(long assignedSize);

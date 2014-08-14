@@ -30,6 +30,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfoMem;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -120,7 +121,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
         .getNumTasks() + 1);
     
     InputConfigureVertexTasksEvent configureVertexEvent = new InputConfigureVertexTasksEvent(
-        inputSplitInfo.getNumTasks(), inputSplitInfo.getTaskLocationHints(),
+        inputSplitInfo.getNumTasks(), new VertexLocationHint(inputSplitInfo.getTaskLocationHints()),
         InputSpecUpdate.getDefaultSinglePhysicalInputSpecUpdate());
     events.add(configureVertexEvent);
 

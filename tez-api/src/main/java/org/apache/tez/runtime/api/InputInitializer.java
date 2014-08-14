@@ -20,7 +20,8 @@ package org.apache.tez.runtime.api;
 
 import java.util.List;
 
-import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 
 /**
@@ -29,7 +30,8 @@ import org.apache.tez.runtime.api.events.InputInitializerEvent;
  * distribute data across the tasks for the vertex, determine the number of
  * tasks at runtime, update the Input payload etc.
  */
-@InterfaceStability.Unstable
+@Unstable
+@Public
 public abstract class InputInitializer {
 
   private final InputInitializerContext initializerContext;

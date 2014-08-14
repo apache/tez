@@ -21,9 +21,12 @@ package org.apache.tez.common.counters;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+
 /**
  * Helper class to handle resource bundles in a saner way
  */
+@Private
 public class ResourceBundles {
 
   /**

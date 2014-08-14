@@ -16,7 +16,10 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.common.objectregistry;
+package org.apache.tez.runtime.api;
+
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 
 /**
  * A simple shared object registry to cache objects in the memory of the
@@ -29,6 +32,8 @@ package org.apache.tez.runtime.common.objectregistry;
  * is while the session (to which that task belongs) is running. <br>
  * This interface is not supposed to be implemented by users.
  */
+@Public
+@Evolving
 public interface ObjectRegistry {
 
   /**

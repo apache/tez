@@ -26,6 +26,10 @@ import org.apache.hadoop.classification.InterfaceAudience;
 @InterfaceAudience.Private
 public class TezConstants {
 
+
+  public static final String TEZ_APPLICATION_MASTER_CLASS =
+      "org.apache.tez.dag.app.DAGAppMaster";
+  
   /**
    * Command-line argument to be set when running the Tez AM in session mode.
    */

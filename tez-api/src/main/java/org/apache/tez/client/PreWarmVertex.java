@@ -18,6 +18,7 @@
 
 package org.apache.tez.client;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -52,18 +53,57 @@ import org.apache.tez.runtime.api.Processor;
  * for the actual processing to reduce latency.
  */
 @Unstable
+@Public
 public class PreWarmVertex extends Vertex {
 
+  /**
+   * Create a {@link PreWarmVertex} to be used in
+   * {@link TezClient#preWarm(PreWarmVertex)} It may be necessary to call more
+   * methods to add local files etc on the pre-warm vertex post creation so that
+   * it matches the real DAG vertices.
+   * 
+   * @param vertexName
+   *          Name of the vertex
+   * @param processorDescriptor
+   *          Descriptor of the processor to be run
+   * @param parallelism
+   *          Number of containers to be pre-warmed
+   * @param taskResource
+   *          Execution cpu/memory resources etc needed
+   */
   public PreWarmVertex(String vertexName, ProcessorDescriptor processorDescriptor, int parallelism,
       Resource taskResource) {
     super(vertexName, processorDescriptor, parallelism, taskResource);
   }
   
+  /**
+   * Create a {@link PreWarmVertex} to be used in @link
+   * {@link TezClient#preWarm(PreWarmVertex)} This uses a built in pre-warm
+   * processor that implements common functionality. Users may derive from this
+   * processor to add custom functionality but then they must add the jar for
+   * that class to the prewarm vertex and other vertices in their DAG for which
+   * they want the containers to be reused. It may be necessary to call more
+   * methods to add local files etc on the pre-warm vertex post creation so that
+   * it matches the real DAG vertices.
+   * 
+   * @param vertexName
+   *          Name of the vertex
+   * @param parallelism
+   *          Number of containers to be pre-warmed
+   * @param taskResource
+   *          Execution cpu/memory resources etc needed
+   */
   public PreWarmVertex(String vertexName, int parallelism, Resource taskResource) {
     this(vertexName, new ProcessorDescriptor(
         "org.apache.tez.runtime.library.processor.PreWarmProcessor"), parallelism, taskResource);
   }
   
+  /**
+   * Create a configurer for the @link {@link PreWarmVertex}. This may be used to construct the 
+   * pre-warm vertex more flexibly.
+   * @param conf
+   * @return
+   */
   public static PreWarmVertexConfigurer createConfigurer(Configuration conf) {
     return new PreWarmVertexConfigurer(conf);
   }

@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.VertexGroup.GroupInfo;
@@ -34,6 +35,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+/**
+ * Defines a vertex in the DAG. It represents the application logic that 
+ * processes and transforms the input data to create the output data. The 
+ * vertex represents the template from which tasks are created to execute 
+ * the application in parallel across a distributed execution environment.
+ */
+@Public
 public class Vertex {
 
   private final String vertexName;

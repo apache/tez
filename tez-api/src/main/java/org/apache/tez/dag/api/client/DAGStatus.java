@@ -23,13 +23,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProtoOrBuilder;
 import org.apache.tez.dag.api.records.DAGProtos.StringProgressPairProto;
 import org.apache.tez.dag.api.TezUncheckedException;
 
+/**
+ * Describes the status of the {@link DAG}
+ */
+@Public
 public class DAGStatus {
 
   private static final String LINE_SEPARATOR = System

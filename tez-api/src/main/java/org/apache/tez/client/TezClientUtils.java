@@ -75,9 +75,9 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Level;
+import org.apache.tez.common.LogUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezYARNUtils;
-import org.apache.tez.common.impl.LogUtils;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.common.security.Groups;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -462,7 +462,7 @@ public class TezClientUtils {
     // FIX sun bug mentioned in TEZ-327
     vargs.add("-Dsun.nio.ch.bugLevel=''");
 
-    vargs.add(TezConfiguration.TEZ_APPLICATION_MASTER_CLASS);
+    vargs.add(TezConstants.TEZ_APPLICATION_MASTER_CLASS);
     if (dag == null) {
       vargs.add("--" + TezConstants.TEZ_SESSION_MODE_CLI_OPTION);
     }
@@ -870,8 +870,7 @@ public class TezClientUtils {
     return proxy;
   }
 
-  @Private
-  public static void createSessionToken(String tokenIdentifier,
+  static void createSessionToken(String tokenIdentifier,
       JobTokenSecretManager jobTokenSecretManager,
       Credentials credentials) {
     JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
@@ -882,6 +881,7 @@ public class TezClientUtils {
     TokenCache.setSessionToken(sessionToken, credentials);
   }
 
+  @Private
   /**
    * Add computed Xmx value to java opts if both -Xms and -Xmx are not specified
    * @param javaOpts Current java opts

@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -57,6 +58,7 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ServiceException;
 
+@Private
 public class DAGClientRPCImpl extends DAGClient {
   private static final Log LOG = LogFactory.getLog(DAGClientRPCImpl.class);
 

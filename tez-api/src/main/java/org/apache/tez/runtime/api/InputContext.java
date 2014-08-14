@@ -18,10 +18,13 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
  * Context handle for the Input to initialize itself.
  * This interface is not supposed to be implemented by users
  */
+@Public
 public interface InputContext extends TaskContext {
 
   /**

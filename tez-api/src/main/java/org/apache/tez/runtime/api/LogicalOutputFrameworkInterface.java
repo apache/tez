@@ -20,5 +20,12 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
+/**
+ * Framework facing interface for the {@link LogicalOutput}
+ * Users are expected to derive from {@link AbstractLogicalOutput}
+ */
+@Public
 public interface LogicalOutputFrameworkInterface extends OutputFrameworkInterface {
 }

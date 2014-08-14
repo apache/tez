@@ -18,7 +18,16 @@
 package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 
+/**
+ * Edge defines the connection between a producer and consumer vertex in the DAG.
+ * @link {@link EdgeProperty} defines the relationship between them. The producer
+ * vertex provides input to the edge and the consumer vertex reads output from the 
+ * edge.
+ * 
+ */
+@Public
 public class Edge {
 
   private final Vertex inputVertex;
@@ -34,15 +43,26 @@ public class Edge {
     this.edgeProperty = edgeProperty;
   }
   
-  // RENAME to source and destination
+  /**
+   * The @link {@link Vertex} that provides input to the edge
+   * @return  {@link Vertex}
+   */
   public Vertex getInputVertex() {
     return inputVertex;
   }
 
+  /**
+   * The @link {@link Vertex} that reads output from the edge
+   * @retur {@link Vertex} 
+   */
   public Vertex getOutputVertex() {
     return outputVertex;
   }
 
+  /**
+   * The @link {@link EdgeProperty} for this edge
+   * @return {@link EdgeProperty}
+   */
   public EdgeProperty getEdgeProperty() {
     return edgeProperty;
   }

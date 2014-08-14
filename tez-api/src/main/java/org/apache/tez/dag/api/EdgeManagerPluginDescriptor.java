@@ -18,6 +18,12 @@
 
 package org.apache.tez.dag.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
+/**
+ * Describes the @link {@link EdgeManagerPlugin}
+ */
+@Public
 public class EdgeManagerPluginDescriptor extends EntityDescriptor<EdgeManagerPluginDescriptor> {
 
   public EdgeManagerPluginDescriptor(String edgeManagerPluginClassName) {

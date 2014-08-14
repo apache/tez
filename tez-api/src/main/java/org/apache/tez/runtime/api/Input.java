@@ -18,14 +18,18 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
- * Represents an input through which a TezProcessor receives data on an edge.
+ * Represents an input through which a {@link Processor} receives data on an edge.
  * </p>
  *
  * This interface has methods which can be used by a {@link org.apache.tez.runtime.api.Processor}
  * to control execution of this Input and read data from it.
- *
+ * 
+ * Actual implementations are expected to derive from {@link AbstractLogicalInput}
  */
+@Public
 public interface Input {
 
 

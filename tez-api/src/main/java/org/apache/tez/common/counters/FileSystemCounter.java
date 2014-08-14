@@ -18,9 +18,9 @@
 
 package org.apache.tez.common.counters;
 
-import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 
-@InterfaceAudience.Private
+@Private
 public enum FileSystemCounter {
   BYTES_READ,
   BYTES_WRITTEN,

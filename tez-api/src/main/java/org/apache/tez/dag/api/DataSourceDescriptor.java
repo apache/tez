@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
@@ -33,6 +34,7 @@ import org.apache.tez.runtime.api.events.InputDataInformationEvent;
  * Defines the input and input initializer for a data source 
  *
  */
+@Public
 public class DataSourceDescriptor {
   private final InputDescriptor inputDescriptor;
   private final InputInitializerDescriptor initializerDescriptor;

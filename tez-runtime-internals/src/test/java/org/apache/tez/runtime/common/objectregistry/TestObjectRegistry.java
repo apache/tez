@@ -18,7 +18,7 @@
 
 package org.apache.tez.runtime.common.objectregistry;
 
-import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
+import org.apache.tez.runtime.api.ObjectRegistry;
 import org.junit.Assert;
 import org.junit.Test;
 

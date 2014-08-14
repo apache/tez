@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.api.events;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
@@ -32,6 +33,7 @@ import com.google.common.base.Preconditions;
  * before {@link InputDataInformationEvent}s
  */
 @Unstable
+@Public
 public class InputUpdatePayloadEvent extends Event {
 
   private final byte[] userPayload;

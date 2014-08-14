@@ -19,7 +19,13 @@
 package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.tez.runtime.api.InputInitializer;
 
+/**
+ * Describes the {@link InputInitializer}
+ */
+@Public
 public class InputInitializerDescriptor extends EntityDescriptor<InputInitializerDescriptor> {
 
   @Private // for Writable

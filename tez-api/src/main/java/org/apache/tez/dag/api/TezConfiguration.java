@@ -19,10 +19,15 @@
 package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 
+/**
+ * Defines the configurations for Tez
+ */
+@Public
 public class TezConfiguration extends Configuration {
 
   public final static String TEZ_SITE_XML = "tez-site.xml";
@@ -39,8 +44,11 @@ public class TezConfiguration extends Configuration {
     super(conf);
   }
 
+  @Private
   public static final String TEZ_PREFIX = "tez.";
+  @Private
   public static final String TEZ_AM_PREFIX = TEZ_PREFIX + "am.";
+  @Private
   public static final String TEZ_TASK_PREFIX = TEZ_PREFIX + "task.";
 
   /** Whether to delete all the tez framework scratch data in staging dir on completion */
@@ -58,9 +66,6 @@ public class TezConfiguration extends Configuration {
    * name.
    */
   public static final String TEZ_CREDENTIALS_PATH = TEZ_PREFIX + "credentials.path";
-
-  public static final String TEZ_APPLICATION_MASTER_CLASS =
-      "org.apache.tez.dag.app.DAGAppMaster";
   
   /** Execution mode for submitting DAG's to the AM */
   public static final String TEZ_AM_SESSION_MODE = TEZ_AM_PREFIX + "mode.session";
@@ -119,6 +124,7 @@ public class TezConfiguration extends Configuration {
       + "launch.env";
   public static final String TEZ_TASK_LAUNCH_ENV_DEFAULT = "";
 
+  @Private
   public static final String TEZ_AM_CANCEL_DELEGATION_TOKEN = TEZ_AM_PREFIX +
       "am.complete.cancel.delegation.tokens";
   public static final boolean TEZ_AM_CANCEL_DELEGATION_TOKEN_DEFAULT = true;
@@ -226,18 +232,13 @@ public class TezConfiguration extends Configuration {
       + "resource.cpu.vcores";
   public static final int TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT = 1; 
 
-  public static final String
-          TEZ_AM_SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION = TEZ_AM_PREFIX
-          + "slowstart-dag-scheduler.min-resource-fraction";
-  public static final float
-          TEZ_AM_SLOWSTART_DAG_SCHEDULER_MIN_SHUFFLE_RESOURCE_FRACTION_DEFAULT = 0.5f;
-
   /**
    * The complete path to the serialized dag plan file
    * <code>TEZ_AM_PLAN_PB_BINARY</code>. Used to make the plan available to
    * individual tasks if needed. This will typically be a path in the job submit
    * directory.
    */
+  @Private
   public static final String TEZ_AM_PLAN_REMOTE_PATH = TEZ_AM_PREFIX
       + "dag-am-plan.remote.path";
 
@@ -377,12 +378,12 @@ public class TezConfiguration extends Configuration {
       TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS =
       TEZ_AM_PREFIX + "container.reuse.locality.delay-allocation-millis";
   public static final long
-    TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS_DEFAULT = 1000l;
+    TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS_DEFAULT = 250l;
 
   /**
    * The minimum amount of time to hold on to a container if no task can be
    * assigned to it immediately. Only active when reuse is enabled. Set to -1 to
-   * never release a container in a session.
+   * never release a container.
    */
   public static final String TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS = 
     TEZ_AM_PREFIX + "container.idle.release-timeout-min.millis";
@@ -464,6 +465,7 @@ public class TezConfiguration extends Configuration {
 
   public static final String TEZ_APPLICATION_TYPE = "TEZ";
 
+  // TODO move this to TEZGrouper which is in runtime-library
   public static final String TEZ_AM_GROUPING_SPLIT_COUNT = TEZ_AM_PREFIX +
       "grouping.split-count";
   public static final String TEZ_AM_GROUPING_SPLIT_BY_LENGTH = TEZ_AM_PREFIX + 
@@ -504,6 +506,7 @@ public class TezConfiguration extends Configuration {
   public static final float TEZ_AM_GROUPING_RACK_SPLIT_SIZE_REDUCTION_DEFAULT = 0.75f;
 
 
+  @Private
   /**
    * Session-related properties
    */
@@ -538,9 +541,9 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_QUEUE_NAME = 
       TEZ_PREFIX + "queue.name";
 
-  public static final String TEZ_GENERATE_DAG_VIZ =
-      TEZ_PREFIX + "generate.dag.viz";
-  public static final boolean TEZ_GENERATE_DAG_VIZ_DEFAULT = true;
+  public static final String TEZ_GENERATE_DEBUG_ARTIFACTS =
+      TEZ_PREFIX + "generate.debug.artifacts";
+  public static final boolean TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT = true;
 
   /**
    * Set of tasks for which specific launch command options need to be added.
@@ -630,6 +633,7 @@ public class TezConfiguration extends Configuration {
   /**
    *  Tez AM Inline Mode flag. Not valid till Tez-684 get checked-in
    */
+  @Private
   public static final String TEZ_AM_INLINE_TASK_EXECUTION_ENABLED =
     TEZ_AM_PREFIX + "inline.task.execution.enabled";
 

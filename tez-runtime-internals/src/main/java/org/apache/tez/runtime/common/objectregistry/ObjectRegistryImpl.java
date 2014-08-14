@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.tez.runtime.api.ObjectRegistry;
+
 public class ObjectRegistryImpl implements ObjectRegistry {
   
   public enum ObjectLifeCycle {

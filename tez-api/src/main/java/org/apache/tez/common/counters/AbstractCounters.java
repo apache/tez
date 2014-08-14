@@ -32,7 +32,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
@@ -48,8 +49,8 @@ import com.google.common.collect.Maps;
  * @param <C> type of counter inside the counters
  * @param <G> type of group inside the counters
  */
-@InterfaceAudience.Public
-@InterfaceStability.Stable
+@Public
+@Unstable
 public abstract class AbstractCounters<C extends TezCounter,
                                        G extends CounterGroupBase<C>>
     implements Writable, Iterable<G> {

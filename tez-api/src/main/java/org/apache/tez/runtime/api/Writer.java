@@ -18,9 +18,15 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
+
 /**
  * A <code>Writer</code> represents the data being written by an {@link Output}
- */
+ * It encapsulates the data type etc of the data being provided by the {@link Output}
+ * E.g. There can be Key-Value writers, byte writers etc. */
+@Public
+@Evolving
 public abstract class Writer {
 
 }

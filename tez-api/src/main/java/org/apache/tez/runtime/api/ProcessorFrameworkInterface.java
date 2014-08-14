@@ -20,13 +20,17 @@ package org.apache.tez.runtime.api;
 
 import java.util.List;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
  * Represents the Tez framework part of an {@link org.apache.tez.runtime.api.Processor}.
  * <p/>
  *
  * This interface has methods which are used by the Tez framework to control the Processor.
  * <p/>
+ * Users are expected to derive from {@link AbstractLogicalIOProcessor}
  */
+@Public
 public interface ProcessorFrameworkInterface {
 
   /**

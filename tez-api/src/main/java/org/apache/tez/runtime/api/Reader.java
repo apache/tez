@@ -18,9 +18,16 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
+
 /**
  * A <code>Reader</code> represents the data being read in an {@link Input}
+ * It encapsulates the data type etc of the data being provided by the {@link Input}
+ * E.g. There can be Key-Value readers, byte readers etc.
  */
+@Public
+@Evolving
 public abstract class Reader {
 
 }

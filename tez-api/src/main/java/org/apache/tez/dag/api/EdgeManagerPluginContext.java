@@ -18,11 +18,16 @@
 
 package org.apache.tez.dag.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
+
 /**
  * Context information provided to {@link EdgeManagerPlugin}s
  * This interface is not supposed to be implemented by users
  *
  */
+@Public
+@Unstable
 public interface EdgeManagerPluginContext {
   
   /**

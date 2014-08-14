@@ -18,7 +18,17 @@
 package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.tez.runtime.api.MergedLogicalInput;
 
+/**
+ * A composite edge that represents a common connection between a 
+ * group of input vertices and a single output vertex. This can be 
+ * used to perform e.g. an efficient union of the data produced by 
+ * the input vertices. The output vertex tasks see a unified/merged
+ * view of the data from all the input vertices.
+ */
+@Public
 public class GroupInputEdge {
 
   private final VertexGroup inputVertexGroup;
@@ -28,17 +38,23 @@ public class GroupInputEdge {
 
   // InputVertex(EdgeInput) ----- Edge ----- OutputVertex(EdgeOutput)]
   /**
-   * An Edge that connects a VertexGroup to a destination Vertex. The framework
-   * takes care of connecting the VertexGroup members with the destination
-   * vertex. The tasks of the destination vertex see only 1 input named after
-   * the VertexGroup instead of individual inputs from group members. These
-   * individual inputs are merged using the mergedInput before presenting them
-   * to the destination task.
+   * An Edge that connects a {@link VertexGroup} to a destination Vertex. The
+   * framework takes care of connecting the {@link VertexGroup} members with the
+   * destination vertex. The tasks of the destination vertex see only 1 input
+   * named after the VertexGroup instead of individual inputs from group
+   * members. These individual inputs are merged using the mergedInput before
+   * presenting them to the destination task.
    * 
-   * @param inputVertexGroup source VertexGroup
-   * @param outputVertex destination Vertex
-   * @param edgeProperty edge properties
-   * @param mergedInput MergedLogicalInput 
+   * @param inputVertexGroup
+   *          source {@link VertexGroup}
+   * @param outputVertex
+   *          destination Vertex
+   * @param edgeProperty
+   *          the common {@link EdgeProperty} for this {@link GroupInputEdge}
+   * @param mergedInput
+   *          {@link MergedLogicalInput} This input is responsible for merging
+   *          the data from the input vertex tasks to create a single input for
+   *          the output vertex tasks
    */
   public GroupInputEdge(VertexGroup inputVertexGroup, 
       Vertex outputVertex, 

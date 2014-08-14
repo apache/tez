@@ -19,7 +19,13 @@
 package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.tez.runtime.api.OutputCommitter;
 
+/**
+ * Describes the {@link OutputCommitter}
+ */
+@Public
 public class OutputCommitterDescriptor extends EntityDescriptor<OutputCommitterDescriptor> {
 
   @Private // for Writable

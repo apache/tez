@@ -20,10 +20,13 @@ package org.apache.tez.dag.api;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
  * Wrapper class to hold user payloads
  * Provides a version to help in evolving the payloads
  */
+@Public
 public final class UserPayload {
   private final byte[] payload;
   private final int version;

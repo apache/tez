@@ -88,15 +88,14 @@ import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.tez.common.LogUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.Limits;
-import org.apache.tez.common.impl.LogUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.DuplicateDAGName;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
@@ -687,8 +686,8 @@ public class DAGAppMaster extends AbstractService {
       LOG.warn("Failed to generate json for DAG", e);
     }
 
-    if (dagConf.getBoolean(TezConfiguration.TEZ_GENERATE_DAG_VIZ,
-        TezConfiguration.TEZ_GENERATE_DAG_VIZ_DEFAULT)) {
+    if (dagConf.getBoolean(TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS,
+        TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT)) {
       generateDAGVizFile(dagId, dagPB);
     }
 
@@ -1802,7 +1801,7 @@ public class DAGAppMaster extends AbstractService {
     this.state = DAGAppMasterState.RUNNING;
     this.appName = dagPlan.getName();
     if (dagNames.contains(dagPlan.getName())) {
-      throw new DuplicateDAGName("Duplicate dag name '" + dagPlan.getName() + "'");
+      throw new TezException("Duplicate dag name '" + dagPlan.getName() + "'");
     }
     dagNames.add(dagPlan.getName());
 

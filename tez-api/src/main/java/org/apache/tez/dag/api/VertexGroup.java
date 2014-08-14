@@ -22,6 +22,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -36,6 +38,7 @@ import com.google.common.collect.Sets;
  * member vertices of the VertexGroup.
  * A VertexGroup is not part of the final DAG.
  */
+@Public
 public class VertexGroup {
 
   static class GroupInfo {

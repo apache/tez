@@ -18,12 +18,14 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.dag.api.UserPayload;
 
 /**
  * Context for {@link MergedLogicalInput}
  * This interface is not supposed to be implemented by users
  */
+@Public
 public interface MergedInputContext {
 
   /**

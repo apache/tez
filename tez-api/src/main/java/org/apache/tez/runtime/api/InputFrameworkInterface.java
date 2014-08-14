@@ -22,6 +22,8 @@ package org.apache.tez.runtime.api;
 
 import java.util.List;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 
 /**
  * Represents an input through which a TezProcessor receives data on an edge.
@@ -39,7 +41,10 @@ import java.util.List;
  * This typically means that the Processor will not block when reading from the
  * corresponding Input. This is done via {@link InputContext}.inputIsReady.
  * Inputs choose the policy on when they are ready.
+ * 
+ * Input implementations are expected to derive from {@link AbstractLogicalInput}
  */
+@Public
 public interface InputFrameworkInterface {
   /**
    * Initializes the <code>Input</code>.

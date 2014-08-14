@@ -21,10 +21,13 @@ package org.apache.tez.runtime.api;
 import java.io.IOException;
 import java.util.Collection;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
  * Context handle for the Processor to initialize itself.
  * This interface is not supposed to be implemented by users
  */
+@Public
 public interface ProcessorContext extends TaskContext {
 
   /**

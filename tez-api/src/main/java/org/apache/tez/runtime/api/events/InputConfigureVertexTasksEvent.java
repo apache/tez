@@ -18,24 +18,30 @@
 
 package org.apache.tez.runtime.api.events;
 
-import java.util.List;
-
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputSpecUpdate;
 
+/**
+ * An event typically sent by the {@link InputInitializer} of a vertex 
+ * to configure the tasks of the vertex. It could change the task 
+ * placement hints or input specification for the inputs of the tasks
+ */
 @Unstable
+@Public
 public class InputConfigureVertexTasksEvent extends Event {
 
   private final int numTasks;
-  private final List<TaskLocationHint> taskLocationHints;
+  private final VertexLocationHint locationHint;
   private final InputSpecUpdate inputSpecUpdate;
 
-  public InputConfigureVertexTasksEvent(int numTasks, List<TaskLocationHint> locationHints,
+  public InputConfigureVertexTasksEvent(int numTasks, VertexLocationHint locationHint,
       InputSpecUpdate inputSpecUpdate) {
     this.numTasks = numTasks;
-    this.taskLocationHints = locationHints;
+    this.locationHint = locationHint;
     this.inputSpecUpdate = inputSpecUpdate;
   }
 
@@ -43,8 +49,8 @@ public class InputConfigureVertexTasksEvent extends Event {
     return numTasks;
   }
 
-  public List<TaskLocationHint> getTaskLocationHints() {
-    return taskLocationHints;
+  public VertexLocationHint getLocationHint() {
+    return locationHint;
   }
 
   public InputSpecUpdate getInputSpecUpdate() {

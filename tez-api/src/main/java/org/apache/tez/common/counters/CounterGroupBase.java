@@ -18,9 +18,9 @@
 
 package org.apache.tez.common.counters;
 
-import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.io.Writable;
 
 /**
@@ -28,8 +28,8 @@ import org.apache.hadoop.io.Writable;
  *
  * @param <T> type of the counter for the group
  */
-@InterfaceAudience.Public
-@InterfaceStability.Evolving
+@Public
+@Unstable
 public interface CounterGroupBase<T extends TezCounter>
     extends Writable, Iterable<T> {
 

@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.api.events;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.runtime.api.Event;
 
@@ -29,6 +30,7 @@ import com.google.common.base.Preconditions;
  * automatic plan recofigurations based on observed statistics
  */
 @Unstable
+@Public
 public class VertexManagerEvent extends Event {
 
   /**

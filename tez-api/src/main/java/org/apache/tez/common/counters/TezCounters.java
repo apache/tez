@@ -17,19 +17,19 @@
  */
 package org.apache.tez.common.counters;
 
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 
 /**
  * <p><code>Counters</code> holds per job/task counters, defined either by the
- * Map-Reduce framework or applications. Each <code>Counter</code> can be of
+ * framework or applications. Each <code>Counter</code> can be of
  * any {@link Enum} type.</p>
  *
  * <p><code>Counters</code> are bunched into {@link CounterGroup}s, each
  * comprising of counters from a particular <code>Enum</code> class.
  */
-@InterfaceAudience.Public
-@InterfaceStability.Stable
+@Public
+@Unstable
 public class TezCounters extends AbstractCounters<TezCounter, CounterGroup> {
 
   // Mix framework group implementation into CounterGroup interface

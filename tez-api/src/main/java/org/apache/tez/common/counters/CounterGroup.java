@@ -18,15 +18,15 @@
 
 package org.apache.tez.common.counters;
 
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 
 /**
  * A group of {@link TezCounter}s that logically belong together. Typically,
  * it is an {@link Enum} subclass and the counters are the values.
  */
-@InterfaceAudience.Public
-@InterfaceStability.Stable
+@Public
+@Unstable
 public interface CounterGroup extends CounterGroupBase<TezCounter> {
   // essentially a typedef so user doesn't have to use generic syntax
 }

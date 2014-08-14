@@ -21,14 +21,18 @@
 package org.apache.tez.runtime.api.events;
 
 import com.google.common.base.Preconditions;
+
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.Event;
 
 /**
  * An event that is routed to the specified {@link InputInitializer}.
+ * This can be used to send information/metadata to the {@link InputInitializer}
  */
 @Unstable
+@Public
 public class InputInitializerEvent extends Event {
 
   private String targetVertexName;

@@ -18,10 +18,13 @@
 
 package org.apache.tez.dag.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
  * Exception thrown when the client cannot communicate with the Tez Session
  * as the Tez Session is no longer running.
  */
+@Public
 public class SessionNotRunning extends TezException {
 
   private static final long serialVersionUID = -287996170505550316L;

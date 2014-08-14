@@ -20,6 +20,7 @@ package org.apache.tez.common.security;
 
 import java.lang.annotation.Annotation;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.KerberosInfo;
 import org.apache.hadoop.security.SecurityInfo;
@@ -29,6 +30,7 @@ import org.apache.hadoop.security.token.TokenSelector;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSelector;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 
+@Private
 public class DAGClientSecurityInfo extends SecurityInfo {
 
   @Override

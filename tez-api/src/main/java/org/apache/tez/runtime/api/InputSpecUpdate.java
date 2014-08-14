@@ -21,6 +21,7 @@ package org.apache.tez.runtime.api;
 import java.util.List;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
@@ -33,6 +34,7 @@ import com.google.common.collect.Lists;
  * 
  */
 @Unstable
+@Public
 public class InputSpecUpdate {
 
   private final boolean forAllWorkUnits;

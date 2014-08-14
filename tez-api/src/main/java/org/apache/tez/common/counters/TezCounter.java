@@ -18,23 +18,23 @@
 
 package org.apache.tez.common.counters;
 
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.io.Writable;
 
 /**
- * A named counter that tracks the progress of a map/reduce job.
+ * A named counter that tracks the progress of a job.
  *
  * <p><code>Counters</code> represent global counters, defined either by the
- * Map-Reduce framework or applications. Each <code>Counter</code> is named by
+ * framework or applications. Each <code>Counter</code> is named by
  * an {@link Enum} and has a long for the value.</p>
  *
  * <p><code>Counters</code> are bunched into Groups, each comprising of
  * counters from a particular <code>Enum</code> class.
  */
-@InterfaceAudience.Public
-@InterfaceStability.Stable
+@Public
+@Unstable
 public interface TezCounter extends Writable {
 
   /**

@@ -27,6 +27,7 @@ import org.apache.tez.runtime.api.Event;
  * source.
  * Users are not expected to send this event.
  */
+@Private
 public class InputFailedEvent extends Event{
 
   /**

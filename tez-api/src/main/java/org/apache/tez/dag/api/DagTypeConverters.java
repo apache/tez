@@ -30,6 +30,7 @@ import java.util.TreeSet;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.security.Credentials;
@@ -74,6 +75,7 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexLocationHintProto;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ByteString.Output;
 
+@Private
 public class DagTypeConverters {
 
   public static PlanLocalResourceVisibility convertToDAGPlan(LocalResourceVisibility visibility){

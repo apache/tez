@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.api.events;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.runtime.api.Event;
 
 /**
@@ -27,6 +28,7 @@ import org.apache.tez.runtime.api.Event;
  * ( such as URI for file-based output data, port info in case of
  * streaming-based data transfers ) to the Input on the destination vertex.
  */
+@Public
 public final class DataMovementEvent extends Event {
 
   /**

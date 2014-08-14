@@ -22,6 +22,8 @@ package org.apache.tez.runtime.api;
 
 import java.util.List;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
  * Represents the Tez framework part of an {@link org.apache.tez.runtime.api.Output}.
  * <p/>
@@ -32,8 +34,11 @@ import java.util.List;
  * During initialization, Outputs must specify an initial memory requirement via
  * {@link OutputContext}.requestInitialMemory
  * <p/>
+ * 
+ * Users are expected to derive from {@link AbstractLogicalOutput}
  *
  */
+@Public
 public interface OutputFrameworkInterface {
 
   /**

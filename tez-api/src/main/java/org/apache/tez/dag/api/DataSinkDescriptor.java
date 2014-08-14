@@ -20,12 +20,14 @@ package org.apache.tez.dag.api;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.security.Credentials;
 
 /**
  * Defines the output and output committer for a data sink 
  *
  */
+@Public
 public class DataSinkDescriptor {
   private final OutputDescriptor outputDescriptor;
   private final OutputCommitterDescriptor committerDescriptor;

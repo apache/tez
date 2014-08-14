@@ -18,10 +18,16 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
  * An {@link Input} which handles all incoming physical connections on an
  * edge. A {@link LogicalIOProcessor} sees a single Logical Input per incoming
- * edge.
+ * edge. It provides a unified view that hides the details of the actual physical
+ * inputs
+ * 
+ * User implementations are expected to derive from {@link AbstractLogicalInput}
  */
+@Public
 public interface LogicalInput extends Input {
 }

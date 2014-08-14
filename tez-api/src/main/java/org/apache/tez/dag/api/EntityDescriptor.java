@@ -23,11 +23,20 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * Describes a given user code entity. Consists of the name of the class implementing
+ * the user logic and a payload that can be used to configure an object instance of 
+ * that class. In addition some history information can be set for logging/debugging.
+  * <br>This is not supposed to be extended by users. Users are expected to use the derived
+  * classes for specific entities
+ */
+@Public
 @SuppressWarnings("unchecked")
 public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements Writable {
 

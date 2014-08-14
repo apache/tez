@@ -18,9 +18,20 @@
 package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * An @link {@link EdgeProperty} defines the relation between the source and
+ * destination vertices of an edge. The relation consists of defining their
+ * communication pattern and dependencies. It also defines the user code that
+ * actually does the job of writing out data at the source and reading that data
+ * at the destination via the @link {@link InputDescriptor} and @link
+ * {@link OutputDescriptor}
+ */
+@Public
 public class EdgeProperty {
   
   /**
@@ -64,14 +75,16 @@ public class EdgeProperty {
      */
     PERSISTED,
     /**
-     * Source data is stored reliably and will always be available
+     * Source data is stored reliably and will always be available. This is not supported yet.
      */
+    @Unstable
     PERSISTED_RELIABLE,
     /**
      * Data produced by the source task is available only while the source task
      * is running. This requires the destination task to run concurrently with 
-     * the source task.
+     * the source task. This is not supported yet.
      */
+    @Unstable
     EPHEMERAL
   }
   
@@ -86,8 +99,10 @@ public class EdgeProperty {
      */
     SEQUENTIAL,
     /**
-     * Destination task must run concurrently with the source task
+     * Destination task must run concurrently with the source task.
+     *  This is not supported yet.
      */
+    @Unstable
     CONCURRENT
   }
   
@@ -148,14 +163,26 @@ public class EdgeProperty {
     this.outputDescriptor = edgeSource;
   }
   
+  /**
+   * Get the {@link DataMovementType}
+   * @return {@link DataMovementType}
+   */
   public DataMovementType getDataMovementType() {
     return dataMovementType;
   }
   
+  /**
+   * Get the {@link DataSourceType}
+   * @return {@link DataSourceType}
+   */
   public DataSourceType getDataSourceType() {
     return dataSourceType;
   }
   
+  /**
+   * Get the {@link SchedulingType}
+   * @return {@link SchedulingType}
+   */
   public SchedulingType getSchedulingType() {
     return schedulingType;
   }

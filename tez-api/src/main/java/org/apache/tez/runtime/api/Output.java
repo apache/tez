@@ -18,14 +18,19 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
  * Represents an Output through which a TezProcessor writes information to an edge.
  * </p>
  *
  * This interface has methods which can be used by a {@link org.apache.tez.runtime.api.Processor}
  * to control execution of this Output and write data to it.
+ * 
+ * Users are expected to derive from {@link AbstractLogicalOutput}
  *
  */
+@Public
 public interface Output {
 
 

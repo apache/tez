@@ -18,9 +18,12 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
  * Represents a processor which consumes {@link LogicalInput}s and produces
  * {@link LogicalOutput}s
  */
+@Public
 public interface LogicalIOProcessor extends Processor {
 }

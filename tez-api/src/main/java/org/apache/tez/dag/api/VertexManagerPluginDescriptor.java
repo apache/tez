@@ -19,7 +19,12 @@
 package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 
+/**
+ * Describes the {@link VertexManagerPlugin} 
+ */
+@Public
 public class VertexManagerPluginDescriptor extends EntityDescriptor<VertexManagerPluginDescriptor> {
 
   @Private // for Writable

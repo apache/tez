@@ -23,21 +23,18 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.runtime.common.objectregistry.ObjectRegistry;
 
 /**
  * Base interface for Context classes used to initialize the Input, Output
  * and Processor instances.
  * This interface is not supposed to be implemented by users
  */
+@Public
 public interface TaskContext {
-  // Scale the maximum events we fetch per RPC call to mitigate OOM issues
-  // on the ApplicationMaster when a thundering herd of reducers fetch events
-  // This should not be necessary after HADOOP-8942. TEZ-1398
-
   /**
    * Get the {@link ApplicationId} for the running app
    * @return the {@link ApplicationId}

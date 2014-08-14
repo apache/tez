@@ -19,6 +19,8 @@ package org.apache.tez.runtime.api;
 
 import java.util.List;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
  * An abstract class which should be the base class for all implementations of LogicalInput.
  *
@@ -35,6 +37,7 @@ import java.util.List;
  * <p/>
  *
  */
+@Public
 public abstract class AbstractLogicalInput implements LogicalInput, LogicalInputFrameworkInterface {
 
   private final int numPhysicalInputs;

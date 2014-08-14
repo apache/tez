@@ -25,6 +25,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -34,10 +35,11 @@ import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
 import com.google.common.base.Preconditions;
 
-@Unstable
 /**
  * Object with API's to interact with the Tez execution engine
  */
+@Unstable
+@Public
 public interface VertexManagerPluginContext {
   
   public class TaskWithLocationHint {

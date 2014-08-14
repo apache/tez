@@ -18,9 +18,12 @@
 
 package org.apache.tez.dag.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
  * Exception thrown when DAG submission to a Tez Session times out.
  */
+@Public
 public class DAGSubmissionTimedOut extends TezException {
 
   private static final long serialVersionUID = 8521202283261990622L;

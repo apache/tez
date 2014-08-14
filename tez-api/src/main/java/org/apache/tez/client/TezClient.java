@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -77,6 +78,7 @@ import com.google.protobuf.ServiceException;
  * session mode configuration, the same application can be running in session or
  * non-session mode.
  */
+@Public
 public class TezClient {
 
   private static final Log LOG = LogFactory.getLog(TezClient.class);
@@ -584,11 +586,14 @@ public class TezClient {
     }
   }
   
+  @VisibleForTesting
   // for testing
+  @Private
   protected FrameworkClient createFrameworkClient() {
     return FrameworkClient.createFrameworkClient(amConfig.getTezConfiguration());
   }
 
+  @VisibleForTesting
   // for testing
   protected DAGClientAMProtocolBlockingPB getSessionAMProxy(ApplicationId appId) 
       throws TezException, IOException {

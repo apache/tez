@@ -18,8 +18,15 @@
 
 package org.apache.tez.dag.api.client;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.tez.dag.api.records.DAGProtos.ProgressProtoOrBuilder;
 
+/**
+ * Describes the progress made by DAG execution
+ */
+@Public
+@Evolving
 public class Progress {
   
   ProgressProtoOrBuilder proxy = null;

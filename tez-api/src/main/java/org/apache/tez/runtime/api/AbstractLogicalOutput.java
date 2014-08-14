@@ -19,6 +19,8 @@ package org.apache.tez.runtime.api;
 
 import java.util.List;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+
 /**
  * An abstract class which should be the base class for all implementations of LogicalOutput.
  *
@@ -28,6 +30,7 @@ import java.util.List;
  * This includes default implementations of a new method for convenience.
  *
  */
+@Public
 public abstract class AbstractLogicalOutput implements LogicalOutput, LogicalOutputFrameworkInterface {
 
   private final int numPhysicalOutputs;
@@ -62,7 +65,7 @@ public abstract class AbstractLogicalOutput implements LogicalOutput, LogicalOut
   }
 
   /**
-   * Return ahe {@link org.apache.tez.runtime.api.OutputContext} for this specific instance of
+   * Return the {@link org.apache.tez.runtime.api.OutputContext} for this specific instance of
    * the LogicalOutput
    *
    * @return the {@link org.apache.tez.runtime.api.OutputContext} for the output
