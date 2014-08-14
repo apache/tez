@@ -65,12 +65,12 @@ $HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar testorderedwordcount -D
 
 
 Alternate machanism to setup Tez to use Hadoop libraries from the cluster.
-Step 3 changes as follows. Also subsequent steps would use tez-dist/target/tez-0.5.0-SNAPSHOT-partial.tar.gz instead of tez-dist/target/tez-0.5.0-SNAPSHOT.tar.gz
-   - A tez build without Hadoop dependencies will be available at tez-dist/target/tez-0.5.0-SNAPSHOT-partial.tar.gz
+Step 3 changes as follows. Also subsequent steps would use tez-dist/target/tez-0.5.0-SNAPSHOT-minimal.tar.gz instead of tez-dist/target/tez-0.5.0-SNAPSHOT.tar.gz
+   - A tez build without Hadoop dependencies will be available at tez-dist/target/tez-0.5.0-SNAPSHOT-minimal.tar.gz
    - Assuming that the tez jars are put in /apps/ on HDFS, the command would be
      "hadoop dfs -mkdir /apps/tez-0.5.0-SNAPSHOT"
-     "hadoop dfs -copyFromLocal tez-dist/target/tez-0.5.0-SNAPSHOT-archive-partial.tar.gz /apps/tez-0.5.0-SNAPSHOT"
+     "hadoop dfs -copyFromLocal tez-dist/target/tez-0.5.0-SNAPSHOT-archive-minimal.tar.gz /apps/tez-0.5.0-SNAPSHOT"
    - tez-site.xml configuration
      - Set tez.lib.uris to point to the paths in HDFS containing the tez jars. Assuming the steps mentioned so far were followed,
-     set tez.lib.uris to "${fs.default.name}/apps/tez-0.5.0-SNAPSHOT/tez-0.5.0-SNAPSHOT-partial.tar.gz
+     set tez.lib.uris to "${fs.default.name}/apps/tez-0.5.0-SNAPSHOT/tez-0.5.0-SNAPSHOT-minimal.tar.gz
      - Also set tez.use.cluster.hadoop-libs to true

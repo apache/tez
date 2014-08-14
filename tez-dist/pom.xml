@@ -92,7 +92,8 @@
                 <descriptor>src/main/assembly/tez-dist.xml</descriptor>
               </descriptors>
               <formats>
-                <format>${package.format}</format>
+                <format>dir</format>
+                <format>tar.gz</format>
               </formats>
             </configuration>
             <phase>prepare-package</phase>
@@ -101,11 +102,11 @@
             </goals>
           </execution>
           <execution>
-            <id>package-tez-partial</id>
+            <id>package-tez-minimal</id>
             <configuration>
-              <finalName>tez-${project.version}-partial</finalName>
+              <finalName>tez-${project.version}-minimal</finalName>
               <descriptors>
-                <descriptor>src/main/assembly/tez-dist-partial.xml</descriptor>
+                <descriptor>src/main/assembly/tez-dist-minimal.xml</descriptor>
               </descriptors>
               <formats>
                 <format>${package.format}</format>
