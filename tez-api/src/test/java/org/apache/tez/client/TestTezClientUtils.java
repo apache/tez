@@ -22,24 +22,26 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -222,71 +224,83 @@ public class TestTezClientUtils {
         && javaOpts.contains(TezConfiguration.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE));
   }
 
-  @Ignore @Test (timeout = 5000)
-  public void testLocalResourceVisibility() throws Exception {
+  // To run this test case see TestTezCommonUtils::testLocalResourceVisibility
+  // We do not have much control over the directory structure, cannot mock as the functions are
+  // static and do not want to spin up a minitez cluster just for this.
+  public static void testLocalResourceVisibility(DistributedFileSystem remoteFs, Configuration conf)
+      throws Exception {
 
-    Assume.assumeFalse(Shell.WINDOWS);
-
-    File topLevelDir = null;
-    File subDir = null;
-    File publicFile = null;
-    File privateFile = null;
-    File subDirFile = null;
+    Path topLevelDir = null;
     try {
-      topLevelDir = createDirectoryOrFile(new File(TEST_ROOT_DIR), "testLRVisibility", true);
-      subDir = createDirectoryOrFile(topLevelDir, "subDir", true);
-      publicFile = createDirectoryOrFile(topLevelDir, "publicFile", false);
-      privateFile = createDirectoryOrFile(topLevelDir, "privateFile", false);
-      subDirFile = createDirectoryOrFile(subDir, "subDirFile", false);
+      FsPermission publicDirPerms = new FsPermission((short) 0755);   // rwxr-xr-x
+      FsPermission privateDirPerms = new FsPermission((short) 0754);  // rwxr-xr--
+      FsPermission publicFilePerms = new FsPermission((short) 0554);  // r-xr-xr--
+      FsPermission privateFilePerms = new FsPermission((short) 0550); // r-xr-x---
 
-      // no direct way to remove execute permission for others, set all to no execute and then
-      // only the owner to execute. this does not work well on windows
-      Assert.assertTrue(subDir.setExecutable(false, false));
-      Assert.assertTrue(subDir.setExecutable(true));
+      String fsURI = remoteFs.getUri().toString();
 
-      Assert.assertTrue(privateFile.setReadable(false, false));
-      Assert.assertTrue(privateFile.setReadable(true));
+      topLevelDir = new Path(fsURI, "/testLRVisibility");
+      Assert.assertTrue(remoteFs.mkdirs(topLevelDir, publicDirPerms));
 
-      String tezLibUris = topLevelDir.toURI().toString() + "," + subDir.toURI().toString();
+      Path publicSubDir = new Path(topLevelDir, "public_sub_dir");
+      Assert.assertTrue(remoteFs.mkdirs(publicSubDir, publicDirPerms));
 
-      TezConfiguration conf = new TezConfiguration();
-      conf.set(TezConfiguration.TEZ_LIB_URIS, tezLibUris);
-      Credentials credentials = new Credentials();
+      Path privateSubDir = new Path(topLevelDir, "private_sub_dir");
+      Assert.assertTrue(remoteFs.mkdirs(privateSubDir, privateDirPerms));
 
-      Map<String, LocalResource> localResourceMap = TezClientUtils.setupTezJarsLocalResources(conf,
-          credentials);
+      Path publicFile = new Path(publicSubDir, "public_file");
+      Assert.assertTrue(remoteFs.createNewFile(publicFile));
+      remoteFs.setPermission(publicFile, publicFilePerms);
 
-      Assert.assertTrue(localResourceMap.get(publicFile.getName()).getVisibility() ==
-          LocalResourceVisibility.PUBLIC);
+      Path privateFile = new Path(publicSubDir, "private_file");
+      Assert.assertTrue(remoteFs.createNewFile(privateFile));
+      remoteFs.setPermission(privateFile, privateFilePerms);
 
-      // ancestor directories have execute perms but file does not have read perms for other users.
-      Assert.assertTrue(localResourceMap.get(privateFile.getName()).getVisibility() ==
-          LocalResourceVisibility.PRIVATE);
+      Path publicFileInPrivateSubdir = new Path(privateSubDir, "public_file_in_private_subdir");
+      Assert.assertTrue(remoteFs.createNewFile(publicFileInPrivateSubdir));
+      remoteFs.setPermission(publicFileInPrivateSubdir, publicFilePerms);
 
-      // file has read perms but parent dir does not have execute perms for other users
-      Assert.assertTrue(localResourceMap.get(subDirFile.getName()).getVisibility() ==
-          LocalResourceVisibility.PRIVATE);
+      TezConfiguration tezConf = new TezConfiguration(conf);
+      String tmpTezLibUris = String.format("%s,%s,%s,%s", topLevelDir, publicSubDir, privateSubDir,
+          conf.get(TezConfiguration.TEZ_LIB_URIS, ""));
+      tezConf.set(TezConfiguration.TEZ_LIB_URIS, tmpTezLibUris);
+
+      Map<String, LocalResource> lrMap =
+          TezClientUtils.setupTezJarsLocalResources(tezConf, new Credentials());
+
+      Assert.assertEquals(publicFile.getName(), LocalResourceVisibility.PUBLIC,
+          lrMap.get(publicFile.getName()).getVisibility());
+
+      Assert.assertEquals(privateFile.getName(), LocalResourceVisibility.PRIVATE,
+          lrMap.get(privateFile.getName()).getVisibility());
+
+      Assert.assertEquals(publicFileInPrivateSubdir.getName(), LocalResourceVisibility.PRIVATE,
+          lrMap.get(publicFileInPrivateSubdir.getName()).getVisibility());
+
+      // test tar.gz
+      tezConf = new TezConfiguration(conf);
+      Path tarFile = new Path(topLevelDir, "foo.tar.gz");
+      Assert.assertTrue(remoteFs.createNewFile(tarFile));
+
+      //public
+      remoteFs.setPermission(tarFile, publicFilePerms);
+      tezConf.set(TezConfiguration.TEZ_LIB_URIS, tarFile.toString());
+      lrMap = TezClientUtils.setupTezJarsLocalResources(tezConf, new Credentials());
+
+      Assert.assertEquals(LocalResourceVisibility.PUBLIC,
+          lrMap.get(TezConstants.TEZ_TAR_LR_NAME).getVisibility());
+
+      //private
+      remoteFs.setPermission(tarFile, privateFilePerms);
+      lrMap = TezClientUtils.setupTezJarsLocalResources(tezConf, new Credentials());
+      Assert.assertEquals(LocalResourceVisibility.PRIVATE,
+          lrMap.get(TezConstants.TEZ_TAR_LR_NAME).getVisibility());
+
     } finally {
-      for(File f : new File[] { subDirFile, privateFile, publicFile, subDir, topLevelDir }) {
-        if (f != null) {
-          f.delete();
-        }
+      if (topLevelDir != null) {
+        remoteFs.delete(topLevelDir, true);
       }
     }
-  }
-
-  private File createDirectoryOrFile(File parent, String child, boolean isDir) throws IOException {
-    File file = new File(parent, child);
-    if (!file.exists()) {
-      if (isDir) {
-        Assert.assertTrue(String.format("creating dir %s", file.getPath()), file.mkdirs());
-        file.setWritable(true);
-      } else {
-        Assert.assertTrue(String.format("creating file %s", file.getPath()), file.createNewFile());
-      }
-    }
-
-    return file;
   }
 
 }

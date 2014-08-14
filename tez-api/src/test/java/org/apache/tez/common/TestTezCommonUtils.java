@@ -27,10 +27,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.client.TestTezClientUtils;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.common.TezCommonUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -226,4 +224,11 @@ public class TestTezCommonUtils {
         + TezConfiguration.DAG_RECOVERY_SUMMARY_FILE_SUFFIX;
     Assert.assertEquals(summaryRecoveryPathj.toString(), expectedDir);
   }
+
+  // This test is running here to leverage existing mini cluster
+  @Test
+  public void testLocalResourceVisibility() throws Exception {
+    TestTezClientUtils.testLocalResourceVisibility(dfsCluster.getFileSystem(), conf);
+  }
+
 }
