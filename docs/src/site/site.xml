@@ -107,7 +107,7 @@
     </menu>
 
     <menu name="Releases">
-      <item name="0.4.1-incubating" href="http://www.apache.org/dyn/closer.cgi/incubator/tez/tez-0.4.1-incubating/"/>
+      <item name="0.4.1-incubating" href="http://archive.apache.org/dist/incubator/tez/tez-0.4.1-incubating/"/>
     </menu>
 
     <menu name="Contribute">
