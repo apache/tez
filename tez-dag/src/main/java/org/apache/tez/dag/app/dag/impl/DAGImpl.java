@@ -43,9 +43,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
 import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
@@ -95,6 +93,7 @@ import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventRecoverVertex;
 import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.events.DAGCommitStartedEvent;
@@ -129,7 +128,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   //final fields
   private final TezDAGID dagId;
   private final Clock clock;
-  private final ApplicationACLsManager aclsManager;
 
   // TODO Recovery
   //private final List<AMInfo> amInfos;
@@ -153,6 +151,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final String userName;
   private final AppContext appContext;
   private final UserGroupInformation dagUGI;
+  private final ACLManager aclManager;
 
   volatile Map<TezVertexID, Vertex> vertices = new HashMap<TezVertexID, Vertex>();
   private Map<String, Edge> edges = new HashMap<String, Edge>();
@@ -427,7 +426,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       dagUGI.addCredentials(this.credentials);
     }
 
-    this.aclsManager = new ApplicationACLsManager(conf);
+    this.aclManager = new ACLManager(appContext.getAMACLManager(), dagUGI.getShortUserName(),
+        this.conf);
 
     this.taskSpecificLaunchCmdOption = new TaskSpecificLaunchCmdOption(conf);
     // This "this leak" is okay because the retained pointer is in an
@@ -457,13 +457,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   EventHandler getEventHandler() {
     return this.eventHandler;
-  }
-
-  @Override
-  public boolean checkAccess(UserGroupInformation callerUGI,
-      ApplicationAccessType jobOperation) {
-    return aclsManager.checkAccess(callerUGI, jobOperation, userName,
-        this.dagId.getApplicationId());
   }
 
   @Override
@@ -532,6 +525,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         throw new RuntimeException("Unexpected event received for restoring"
             + " state, eventType=" + historyEvent.getEventType());
     }
+  }
+
+  @Override
+  public ACLManager getACLManager() {
+    return this.aclManager;
   }
 
   @Override
@@ -1132,16 +1130,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     } finally {
       readLock.unlock();
     }
-  }
-
-  /*
-   * (non-Javadoc)
-   * @see org.apache.hadoop.mapreduce.v2.app2.job.Job#getJobACLs()
-   */
-  @Override
-  public Map<ApplicationAccessType, String> getJobACLs() {
-    // TODO ApplicationACLs
-    return null;
   }
 
   public DAGState initializeDAG() {

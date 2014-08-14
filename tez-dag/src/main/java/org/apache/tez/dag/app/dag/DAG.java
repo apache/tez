@@ -25,12 +25,12 @@ import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
@@ -75,16 +75,12 @@ public interface DAG {
 
   boolean isComplete();
 
-  /**
-   * @return the ACLs for this job for each type of JobACL given.
-   */
-  Map<ApplicationAccessType, String> getJobACLs();
-
-  boolean checkAccess(UserGroupInformation callerUGI, ApplicationAccessType jobOperation);
-  
   Credentials getCredentials();
   
   UserGroupInformation getDagUGI();
 
   DAGState restoreFromEvent(HistoryEvent historyEvent);
+
+  ACLManager getACLManager();
+
 }

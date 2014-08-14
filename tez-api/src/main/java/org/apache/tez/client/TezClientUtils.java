@@ -78,6 +78,8 @@ import org.apache.log4j.Level;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.common.impl.LogUtils;
+import org.apache.tez.common.security.ACLManager;
+import org.apache.tez.common.security.Groups;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.common.security.TokenCache;
@@ -574,6 +576,12 @@ public class TezClientUtils {
       TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME,
       sessionJarsPBLRsrc);
 
+    String user = UserGroupInformation.getCurrentUser().getShortUserName();
+
+    Groups groups = null;
+    ACLManager aclManager = new ACLManager(groups, user, finalTezConf);
+    Map<ApplicationAccessType, String> acls = aclManager.toYARNACls();
+
     if(dag != null) {
 
       for (Vertex v : dag.getVertices()) {
@@ -628,8 +636,6 @@ public class TezClientUtils {
                 LocalResourceVisibility.APPLICATION));
       }
     }
-    Map<ApplicationAccessType, String> acls
-        = new HashMap<ApplicationAccessType, String>();
 
     // Setup ContainerLaunchContext for AM container
     ContainerLaunchContext amContainer =
@@ -651,7 +657,7 @@ public class TezClientUtils {
         TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN,
         TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN_DEFAULT));
     appContext.setAMContainerSpec(amContainer);
-    
+
     appContext.setMaxAppAttempts(
       finalTezConf.getInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS,
         TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT));

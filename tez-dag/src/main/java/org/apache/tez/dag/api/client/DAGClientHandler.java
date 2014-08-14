@@ -31,6 +31,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGClientHandler {
@@ -127,6 +128,15 @@ public class DAGClientHandler {
       return TezAppMasterStatus.SHUTDOWN;
     }
     return TezAppMasterStatus.INITIALIZING;
+  }
+
+  public ACLManager getACLManager() {
+    return dagAppMaster.getACLManager();
+  }
+
+  public ACLManager getACLManager(String dagIdStr) throws TezException {
+    DAG dag = getDAG(dagIdStr);
+    return dag.getACLManager();
   }
 
 }
