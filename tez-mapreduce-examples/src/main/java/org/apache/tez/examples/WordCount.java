@@ -218,7 +218,7 @@ public class WordCount extends Configured implements Tool {
         DAGClient dagClient = tezClient.submitDAG(dag);
 
         // monitor the progress and wait for completion. This method blocks until the dag is done.
-        DAGStatus dagStatus = dagClient.waitForCompletionWithAllStatusUpdates(null);
+        DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
         // check success or failure and print diagnostics
         if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
           System.out.println("WordCount failed with diagnostics: " + dagStatus.getDiagnostics());

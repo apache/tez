@@ -181,7 +181,7 @@ public class IntersectDataGen extends Configured implements Tool {
 
     tezSession.waitTillReady();
     DAGClient dagClient = tezSession.submitDAG(dag);
-    DAGStatus dagStatus = dagClient.waitForCompletionWithAllStatusUpdates(null);
+    DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
     if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
       LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
       return -1;

@@ -78,15 +78,8 @@ public class MRDAGClient extends DAGClient {
 
   @Override
   public DAGStatus waitForCompletionWithStatusUpdates(
-      @Nullable Set<Vertex> vertices,
       @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException {
-    return realClient.waitForCompletionWithStatusUpdates(vertices, statusGetOpts);
-  }
-
-  @Override
-  public DAGStatus waitForCompletionWithAllStatusUpdates(
-      @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException {
-    return realClient.waitForCompletionWithAllStatusUpdates(statusGetOpts);
+    return realClient.waitForCompletionWithStatusUpdates(statusGetOpts);
   }
 
   @Override

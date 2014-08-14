@@ -83,22 +83,6 @@ public abstract class DAGClient implements Closeable {
   public abstract DAGStatus waitForCompletion() throws IOException, TezException;
 
   /**
-   * Wait for DAG to complete and print the selected vertex status periodically.
-   * 
-   * @param vertices
-   *          which vertex details to print; null mean no vertex status and it
-   *          is equivalent to call <code>waitForCompletion()</code>
-   * @param statusGetOpts
-   *          : status get options. For example, to get counter pass
-   *          <code>EnumSet.of(StatusGetOpts.GET_COUNTERS)</code>
-   * @return Final DAG Status
-   * @throws IOException
-   * @throws TezException
-   */
-  public abstract DAGStatus waitForCompletionWithStatusUpdates(@Nullable Set<Vertex> vertices,
-      @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException;
-
-  /**
    * Wait for DAG to complete and periodically print *all* vertices' status.
    * 
    * @param statusGetOpts
@@ -108,6 +92,6 @@ public abstract class DAGClient implements Closeable {
    * @throws IOException
    * @throws TezException
    */
-  public abstract DAGStatus waitForCompletionWithAllStatusUpdates(@Nullable Set<StatusGetOpts> statusGetOpts)
+  public abstract DAGStatus waitForCompletionWithStatusUpdates(@Nullable Set<StatusGetOpts> statusGetOpts)
       throws IOException, TezException;
 }

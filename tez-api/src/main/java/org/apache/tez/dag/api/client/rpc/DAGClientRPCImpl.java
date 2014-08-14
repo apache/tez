@@ -319,26 +319,14 @@ public class DAGClientRPCImpl extends DAGClient {
 
   @Override
   public DAGStatus waitForCompletion() throws IOException, TezException {
-    return waitForCompletionWithStatusUpdates(null, EnumSet.noneOf(StatusGetOpts.class));
+    return _waitForCompletionWithStatusUpdates(null, EnumSet.noneOf(StatusGetOpts.class));
   }
 
   @Override
-  public DAGStatus waitForCompletionWithAllStatusUpdates(@Nullable Set<StatusGetOpts> statusGetOpts)
+  public DAGStatus waitForCompletionWithStatusUpdates(@Nullable Set<StatusGetOpts> statusGetOpts)
       throws IOException, TezException {
     Set<String> vertexSet = getDAGStatus(statusGetOpts).getVertexProgress().keySet();
     return _waitForCompletionWithStatusUpdates(vertexSet, statusGetOpts);
-  }
-
-  @Override
-  public DAGStatus waitForCompletionWithStatusUpdates(@Nullable Set<Vertex> vertices,
-      @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException {
-    Set<String> vertexNames = new HashSet<String>();
-    if (vertices != null) {
-      for (Vertex vertex : vertices) {
-        vertexNames.add(vertex.getName());
-      }
-    }
-    return _waitForCompletionWithStatusUpdates(vertexNames, statusGetOpts);
   }
 
   private DAGStatus _waitForCompletionWithStatusUpdates(@Nullable Set<String> vertexNames,

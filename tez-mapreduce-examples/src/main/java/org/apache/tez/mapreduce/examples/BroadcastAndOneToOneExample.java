@@ -213,7 +213,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
         dagClient = tezSession.submitDAG(dag);
 
         // monitoring
-        DAGStatus dagStatus = dagClient.waitForCompletionWithAllStatusUpdates(null);
+        DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
         if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
           System.out.println("DAG diagnostics: " + dagStatus.getDiagnostics());
           return false;

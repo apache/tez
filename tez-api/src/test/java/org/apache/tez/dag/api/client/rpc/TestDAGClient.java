@@ -252,33 +252,9 @@ public class TestDAGClient {
     verify(mockProxy, times(2)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
       .setDagId(dagIdStr).build());
   }
-  
+
   @Test
   public void testWaitForCompletionWithStatusUpdates() throws Exception{
-    // first time return DAG_RUNNING, second time return DAG_SUCCEEDED
-    when(mockProxy.getDAGStatus(isNull(RpcController.class), any(GetDAGStatusRequestProto.class)))
-      .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(dagStatusProtoWithoutCounters).build())
-      .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus
-                  (DAGStatusProto.newBuilder(dagStatusProtoWithoutCounters).setState(DAGStatusStateProto.DAG_SUCCEEDED).build())
-               .build());
-    dagClient.waitForCompletionWithStatusUpdates(null, null);
-    verify(mockProxy, times(2)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
-        .setDagId(dagIdStr).build());
-    
-    // first time return DAG_RUNNING, second time return DAG_SUCCEEDED
-    when(mockProxy.getDAGStatus(isNull(RpcController.class), any(GetDAGStatusRequestProto.class)))
-    .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(dagStatusProtoWithCounters).build())
-    .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus
-                (DAGStatusProto.newBuilder(dagStatusProtoWithCounters).setState(DAGStatusStateProto.DAG_SUCCEEDED).build())
-             .build());
-    dagClient.waitForCompletionWithStatusUpdates(Sets.newSet(new Vertex("v1",null, 1, Resource.newInstance(1024, 1))), 
-        Sets.newSet(StatusGetOpts.GET_COUNTERS));
-    verify(mockProxy, times(2)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
-        .setDagId(dagIdStr).addStatusOptions(StatusGetOptsProto.GET_COUNTERS).build());
-  }
-  
-  @Test
-  public void testWaitForCompletionWithAllStatusUpdates() throws Exception{
 
     // first time and second time return DAG_RUNNING, third time return DAG_SUCCEEDED
     when(mockProxy.getDAGStatus(isNull(RpcController.class), any(GetDAGStatusRequestProto.class)))
@@ -290,7 +266,7 @@ public class TestDAGClient {
     
     //  first time for getVertexSet
     //  second & third time for check completion
-    dagClient.waitForCompletionWithAllStatusUpdates(null);
+    dagClient.waitForCompletionWithStatusUpdates(null);
     verify(mockProxy, times(3)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
         .setDagId(dagIdStr).build());
 
@@ -301,7 +277,7 @@ public class TestDAGClient {
       .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus
                 (DAGStatusProto.newBuilder(dagStatusProtoWithCounters).setState(DAGStatusStateProto.DAG_SUCCEEDED).build())
              .build());
-    dagClient.waitForCompletionWithAllStatusUpdates(Sets.newSet(StatusGetOpts.GET_COUNTERS));
+    dagClient.waitForCompletionWithStatusUpdates(Sets.newSet(StatusGetOpts.GET_COUNTERS));
     verify(mockProxy, times(3)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
       .setDagId(dagIdStr).addStatusOptions(StatusGetOptsProto.GET_COUNTERS).build());
   }

@@ -272,7 +272,7 @@ public class UnionExample {
         dagClient = tezSession.submitDAG(dag);
 
         // monitoring
-        DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(dag.getVertices(), EnumSet.of(StatusGetOpts.GET_COUNTERS));
+        DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(EnumSet.of(StatusGetOpts.GET_COUNTERS));
         if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
           System.out.println("DAG diagnostics: " + dagStatus.getDiagnostics());
           return false;

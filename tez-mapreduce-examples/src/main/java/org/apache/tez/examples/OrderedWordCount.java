@@ -185,7 +185,7 @@ public class OrderedWordCount extends Configured implements Tool  {
         DAGClient dagClient = tezClient.submitDAG(dag);
 
         // monitoring
-        DAGStatus dagStatus = dagClient.waitForCompletionWithAllStatusUpdates(null);
+        DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
         if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
           System.out.println("OrderedWordCount failed with diagnostics: " + dagStatus.getDiagnostics());
           return false;
