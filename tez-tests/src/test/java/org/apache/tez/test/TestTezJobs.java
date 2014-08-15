@@ -45,7 +45,10 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.client.DAGClient;
+import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.examples.OrderedWordCount;
 import org.apache.tez.examples.SimpleSessionExample;
 import org.apache.tez.mapreduce.examples.IntersectDataGen;
@@ -380,5 +383,41 @@ public class TestTezJobs {
 
   }
 
+  @Test (timeout=60000)
+  public void testVertexOrder() throws Exception {
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    TezClient tezSession = new TezClient("TestVertexOrder", tezConf, true);
+    tezSession.start();
 
+    DAG dag = SimpleTestDAG.createDAGForVertexOrder("dag1", conf);
+    DAGClient dagClient = tezSession.submitDAG(dag);
+    DAGStatus dagStatus = dagClient.getDAGStatus(null);
+    while (!dagStatus.isCompleted()) {
+      LOG.info("Waiting for dag to complete. Sleeping for 500ms."
+          + " DAG name: " + dag.getName()
+          + " DAG appId: " + dagClient.getApplicationId()
+          + " Current state: " + dagStatus.getState());
+      Thread.sleep(100);
+      dagStatus = dagClient.getDAGStatus(null);
+    }
+
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+
+    // verify vertex order
+    Set<String> resultVertices = dagStatus.getVertexProgress().keySet();
+    Assert.assertEquals(6, resultVertices.size());
+    int i = 0;
+    for (String vertexName : resultVertices){
+      if (i <= 1){
+        Assert.assertTrue( vertexName.equals("v1") || vertexName.equals("v2"));
+      } else if (i == 2){
+        Assert.assertTrue( vertexName.equals("v3"));
+      } else if (i <= 4){
+        Assert.assertTrue( vertexName.equals("v4") || vertexName.equals("v5"));
+      } else {
+        Assert.assertTrue( vertexName.equals("v6"));
+      }
+      i++;
+    }
+  }
 }

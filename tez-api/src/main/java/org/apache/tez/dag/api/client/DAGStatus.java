@@ -19,6 +19,7 @@
 package org.apache.tez.dag.api.client;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -53,7 +54,8 @@ public class DAGStatus {
 
   DAGStatusProtoOrBuilder proxy = null;
   Progress progress = null;
-  Map<String, Progress> vertexProgress = null;
+  // use LinkedHashMap to ensure the vertex order (TEZ-1065)
+  LinkedHashMap<String, Progress> vertexProgress = null;
   TezCounters dagCounters = null;
   AtomicBoolean countersInitialized = new AtomicBoolean(false);
 
@@ -125,7 +127,7 @@ public class DAGStatus {
     if(vertexProgress == null) {
       if(proxy.getVertexProgressList() != null) {
         List<StringProgressPairProto> kvList = proxy.getVertexProgressList();
-        vertexProgress = new HashMap<String, Progress>(kvList.size());
+        vertexProgress = new LinkedHashMap<String, Progress>(kvList.size());
         for(StringProgressPairProto kv : kvList){
           vertexProgress.put(kv.getKey(), new Progress(kv.getProgress()));
         }

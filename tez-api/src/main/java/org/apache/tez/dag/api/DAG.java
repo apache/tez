@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -70,7 +71,7 @@ public class DAG {
   
   private static final Log LOG = LogFactory.getLog(DAG.class);
   
-  final BidiMap<String, Vertex> vertices = 
+  final BidiMap<String, Vertex> vertices =
       new DualLinkedHashBidiMap<String, Vertex>();
   final Set<Edge> edges = Sets.newHashSet();
   final String name;
@@ -79,6 +80,8 @@ public class DAG {
   Set<VertexGroup> vertexGroups = Sets.newHashSet();
   Set<GroupInputEdge> groupInputEdges = Sets.newHashSet();
   private DAGAccessControls dagAccessControls;
+
+  private Stack<String> topologicalVertexStack = new Stack<String>();
 
   public DAG(String name) {
     this.name = name;
@@ -516,6 +519,7 @@ public class DAG {
         message.append(av.v.getName());
         throw new IllegalStateException("DAG contains a cycle: " + message);
       }
+      topologicalVertexStack.push(av.v.getName());
     }
   }
 
@@ -548,7 +552,12 @@ public class DAG {
       }
     }
 
-    for (Vertex vertex : vertices.values()) {
+    Preconditions.checkArgument(topologicalVertexStack.size() == vertices.size(),
+        "size of topologicalVertexStack is:" + topologicalVertexStack.size() +
+        " while size of vertices is:" + vertices.size() +
+        ", make sure they are the same in order to sort the vertices");
+    while(!topologicalVertexStack.isEmpty()) {
+      Vertex vertex = vertices.get(topologicalVertexStack.pop());
       // infer credentials, resources and parallelism from data source
       if (vertex.getTaskResource() == null) {
         vertex.setTaskResource(Resource.newInstance(dagConf.getInt(

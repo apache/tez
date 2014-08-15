@@ -28,6 +28,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1468,7 +1469,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  Map<String, Vertex> vertexMap = new HashMap<String, Vertex>();
+  // use LinkedHashMap to ensure the vertex order (TEZ-1065)
+  LinkedHashMap<String, Vertex> vertexMap = new LinkedHashMap<String, Vertex>();
   void addVertex(Vertex v) {
     vertices.put(v.getVertexId(), v);
     vertexMap.put(v.getName(), v);
