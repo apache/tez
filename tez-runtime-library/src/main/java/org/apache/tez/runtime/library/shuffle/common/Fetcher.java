@@ -36,7 +36,6 @@ import javax.crypto.SecretKey;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;

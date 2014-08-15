@@ -21,7 +21,6 @@ package org.apache.tez.runtime.library.common.combine;
 import java.io.IOException;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;

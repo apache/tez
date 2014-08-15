@@ -18,10 +18,6 @@
 
 package org.apache.tez.dag.api.oldrecords;
 
-import java.util.List;
-
-import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 
 public interface TaskReport {

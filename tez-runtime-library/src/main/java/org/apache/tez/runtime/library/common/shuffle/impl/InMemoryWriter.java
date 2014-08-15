@@ -30,8 +30,6 @@ import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.common.sort.impl.IFileOutputStream;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 
-import static org.apache.tez.runtime.library.common.sort.impl.IFile.*;
-
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class InMemoryWriter extends Writer {

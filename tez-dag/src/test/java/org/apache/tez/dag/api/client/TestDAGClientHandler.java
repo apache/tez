@@ -19,7 +19,6 @@
 package org.apache.tez.dag.api.client;
 
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
 import java.util.HashMap;
