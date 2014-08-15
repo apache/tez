@@ -314,8 +314,7 @@ public class TezClient {
    * @throws DAGSubmissionTimedOut
    *           if submission timed out
    */  
-  public synchronized DAGClient submitDAG(DAG dag) throws TezException, IOException,
-      InterruptedException {
+  public synchronized DAGClient submitDAG(DAG dag) throws TezException, IOException {
     if (isSession) {
       return submitDAGSession(dag);
     } else {
@@ -323,8 +322,7 @@ public class TezClient {
     }
   }
 
-  private DAGClient submitDAGSession(DAG dag)
-    throws TezException, IOException, InterruptedException {
+  private DAGClient submitDAGSession(DAG dag) throws TezException, IOException {
     Preconditions.checkState(isSession == true, 
         "submitDAG with additional resources applies to only session mode. " + 
         "In non-session mode please specify all resources in the initial configuration");
@@ -367,7 +365,12 @@ public class TezClient {
     
     additionalLocalResources.clear();
 
-    DAGClientAMProtocolBlockingPB proxy = waitForProxy();
+    DAGClientAMProtocolBlockingPB proxy = null;
+    try {
+      proxy = waitForProxy();
+    } catch (InterruptedException e) {
+      throw new IOException("Interrupted while trying to create a connection to the AM", e);
+    }
     if (proxy == null) {
       try {
         LOG.warn("DAG submission to session timed out, stopping session");
@@ -536,10 +539,9 @@ public class TezClient {
    * @param preWarmVertex
    * @throws TezException
    * @throws IOException
-   * @throws InterruptedException
    */
   @Unstable
-  public synchronized void preWarm(PreWarmVertex preWarmVertex) throws TezException, IOException, InterruptedException {
+  public synchronized void preWarm(PreWarmVertex preWarmVertex) throws TezException, IOException {
     if (!isSession) {
       // do nothing for non session mode. This is there to let the code 
       // work correctly in both modes
@@ -551,9 +553,12 @@ public class TezClient {
     DAG dag = new org.apache.tez.dag.api.DAG(TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX + "_"
         + preWarmDAGCounter++);
     dag.addVertex(preWarmVertex);
-    
-    waitTillReady();
-    
+
+    try {
+      waitTillReady();
+    } catch (InterruptedException e) {
+      throw new IOException("Interrupted while waiting for AM to become available", e);
+    }
     submitDAG(dag);
   }
 
