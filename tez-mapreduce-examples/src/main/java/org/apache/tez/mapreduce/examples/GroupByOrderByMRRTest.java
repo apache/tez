@@ -199,7 +199,7 @@ public class GroupByOrderByMRRTest extends Configured implements Tool {
     JobID jobId = job.getJobID();
     ApplicationId appId = TypeConverter.toYarn(jobId).getAppId();
 
-    DAGClient dagClient = MRTezClient.getDAGClient(appId, new TezConfiguration(conf));
+    DAGClient dagClient = MRTezClient.getDAGClient(appId, new TezConfiguration(conf), null);
     DAGStatus dagStatus;
     String[] vNames = { "initialmap" , "ireduce1" , "finalreduce" };
     while (true) {

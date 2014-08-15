@@ -702,7 +702,7 @@ public class YARNRunner implements ClientProtocol {
     DAGStatus dagStatus;
     try {
       if(dagClient == null) {
-        dagClient = MRTezClient.getDAGClient(TypeConverter.toYarn(jobID).getAppId(), tezConf);
+        dagClient = MRTezClient.getDAGClient(TypeConverter.toYarn(jobID).getAppId(), tezConf, null);
       }
       dagStatus = dagClient.getDAGStatus(null);
       return new DAGJobStatus(dagClient.getApplicationReport(), dagStatus, jobFile);

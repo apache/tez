@@ -34,17 +34,11 @@ import org.apache.tez.dag.api.TezConfiguration;
 @Private
 public abstract class FrameworkClient {
 
-  private static FrameworkClient localClient = null;
-
   public static FrameworkClient createFrameworkClient(TezConfiguration tezConf) {
 
     boolean isLocal = tezConf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
     if (isLocal) {
-      // Cache local client instance
-      if (localClient == null) {
-        localClient = ReflectionUtils.createClazzInstance("org.apache.tez.client.LocalClient");
-      }
-      return localClient;
+      return ReflectionUtils.createClazzInstance("org.apache.tez.client.LocalClient");
     }
     return new TezYarnClient(YarnClient.createYarnClient());
   }

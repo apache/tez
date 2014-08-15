@@ -78,16 +78,23 @@ public class LocalClient extends FrameworkClient {
         TezConfiguration.TEZ_AM_SESSION_MODE_DEFAULT);
   }
 
+
   @Override
   public void start() {
+    // LocalClients are shared between TezClient and DAGClients, which can cause stop / start / close
+    // to be invoked multiple times. If modifying these methods - this should be factored in.
   }
 
   @Override
   public void stop() {
+    // LocalClients are shared between TezClient and DAGClients, which can cause stop / start / close
+    // to be invoked multiple times. If modifying these methods - this should be factored in.
   }
 
   @Override
   public void close() throws IOException {
+    // LocalClients are shared between TezClient and DAGClients, which can cause stop / start / close
+    // to be invoked multiple times. If modifying these methods - this should be factored in.
   }
 
   @Override

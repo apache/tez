@@ -67,18 +67,23 @@ public class DAGClientRPCImpl extends DAGClient {
   private final TezConfiguration conf;
   @VisibleForTesting
   ApplicationReport appReport;
-  private FrameworkClient frameworkClient;
+  private final FrameworkClient frameworkClient;
   @VisibleForTesting
   DAGClientAMProtocolBlockingPB proxy = null;
 
   public DAGClientRPCImpl(ApplicationId appId, String dagId,
-      TezConfiguration conf) {
+      TezConfiguration conf, @Nullable FrameworkClient frameworkClient) {
     this.appId = appId;
     this.dagId = dagId;
     this.conf = conf;
-    frameworkClient = FrameworkClient.createFrameworkClient(conf);
-    frameworkClient.init(conf, new YarnConfiguration(conf));
-    frameworkClient.start();
+    if (frameworkClient != null &&
+        conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT)) {
+      this.frameworkClient = frameworkClient;
+    } else {
+      this.frameworkClient = FrameworkClient.createFrameworkClient(conf);
+      this.frameworkClient.init(conf, new YarnConfiguration(conf));
+      this.frameworkClient.start();
+    }
     appReport = null;
   }
 

@@ -54,9 +54,9 @@ public abstract class DAGClient implements Closeable {
   /**
    * Get the status of the specified DAG
    * @param statusOptions Optionally, retrieve additional information based on
-   *                      specified options
+   *                      specified options. To retrieve basic information, this can be null
    */
-  public abstract DAGStatus getDAGStatus(Set<StatusGetOpts> statusOptions)
+  public abstract DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions)
       throws IOException, TezException;
 
   /**

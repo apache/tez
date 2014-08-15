@@ -47,8 +47,8 @@ public class MRTezClient extends TezClient {
     return super.submitDAGApplication(appId, dag);
   }
 
-  public static MRDAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf)
+  public static MRDAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf, FrameworkClient frameworkClient)
       throws IOException, TezException {
-    return new MRDAGClient(TezClient.getDAGClient(appId, tezConf));
+    return new MRDAGClient(TezClient.getDAGClient(appId, tezConf, frameworkClient));
   }
 }

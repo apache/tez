@@ -190,7 +190,7 @@ public class TestDAGClient {
    
     
     
-    dagClient = new DAGClientRPCImpl(mockAppId, dagIdStr, new TezConfiguration());
+    dagClient = new DAGClientRPCImpl(mockAppId, dagIdStr, new TezConfiguration(), null);
     dagClient.appReport = mockAppReport;
     ((DAGClientRPCImpl)dagClient).proxy = mockProxy;
   }

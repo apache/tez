@@ -394,7 +394,7 @@ public class TezClient {
         + ", applicationId=" + sessionAppId
         + ", dagName=" + dag.getName());
     return new DAGClientRPCImpl(sessionAppId, dagId,
-        amConfig.getTezConfiguration());
+        amConfig.getTezConfiguration(), frameworkClient);
   }
 
   /**
@@ -668,7 +668,7 @@ public class TezClient {
     } catch (YarnException e) {
       throw new TezException(e);
     }
-    return getDAGClient(appId, amConfig.getTezConfiguration());
+    return getDAGClient(appId, amConfig.getTezConfiguration(), frameworkClient);
   }
 
   private ApplicationId createApplication() throws TezException, IOException {
@@ -690,9 +690,10 @@ public class TezClient {
   }
 
   @Private // Used only for MapReduce compatibility code
-  static DAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf)
+  static DAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf,
+                                FrameworkClient frameworkClient)
       throws IOException, TezException {
-      return new DAGClientRPCImpl(appId, getDefaultTezDAGID(appId), tezConf);
+    return new DAGClientRPCImpl(appId, getDefaultTezDAGID(appId), tezConf, frameworkClient);
   }
 
   // DO NOT CHANGE THIS. This code is replicated from TezDAGID.java
