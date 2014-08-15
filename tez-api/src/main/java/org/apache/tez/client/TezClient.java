@@ -28,7 +28,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
-import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -322,7 +323,7 @@ public class TezClient {
     }
   }
 
-  private synchronized DAGClient submitDAGSession(DAG dag)
+  private DAGClient submitDAGSession(DAG dag)
     throws TezException, IOException, InterruptedException {
     Preconditions.checkState(isSession == true, 
         "submitDAG with additional resources applies to only session mode. " + 
@@ -452,13 +453,11 @@ public class TezClient {
   @Private
   @VisibleForTesting
   public synchronized ApplicationId getAppMasterApplicationId() {
-    ApplicationId appId = null;
     if (isSession) {
-      appId = sessionAppId;
+      return sessionAppId;
     } else {
-      appId = lastSubmittedAppId;
+      return lastSubmittedAppId;
     }
-    return appId;
   }
 
   /**
@@ -470,7 +469,7 @@ public class TezClient {
    * @throws TezException
    * @throws IOException
    */
-  public TezAppMasterStatus getAppMasterStatus() throws TezException, IOException {
+  public synchronized TezAppMasterStatus getAppMasterStatus() throws TezException, IOException {
     // Supporting per-DAG app master case since user may choose to run the same 
     // code in that mode and the code should continue to work. Its easy to provide 
     // the correct view for per-DAG app master too.
@@ -539,8 +538,8 @@ public class TezClient {
    * @throws IOException
    * @throws InterruptedException
    */
-  @InterfaceStability.Unstable
-  public void preWarm(PreWarmVertex preWarmVertex) throws TezException, IOException, InterruptedException {
+  @Unstable
+  public synchronized void preWarm(PreWarmVertex preWarmVertex) throws TezException, IOException, InterruptedException {
     if (!isSession) {
       // do nothing for non session mode. This is there to let the code 
       // work correctly in both modes
@@ -568,8 +567,8 @@ public class TezClient {
    * @throws TezException
    * @throws InterruptedException 
    */
-  @InterfaceStability.Evolving
-  public void waitTillReady() throws IOException, TezException, InterruptedException {
+  @Evolving
+  public synchronized void waitTillReady() throws IOException, TezException, InterruptedException {
     if (!isSession) {
       // nothing to wait for in non-session mode
       return;
