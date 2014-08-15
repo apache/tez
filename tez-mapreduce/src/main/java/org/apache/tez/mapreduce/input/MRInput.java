@@ -17,6 +17,7 @@
  */
 package org.apache.tez.mapreduce.input;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
@@ -30,11 +31,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.InputFormat;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.DataSourceDescriptor;
@@ -84,6 +85,7 @@ public class MRInput extends MRInputBase {
   public static class MRInputConfigurer {
     final Configuration conf;
     final Class<?> inputFormat;
+    final boolean inputFormatProvided;
     boolean useNewApi;
     boolean groupSplitsInAM = true;
     boolean generateSplitsInAM = true;
@@ -94,16 +96,28 @@ public class MRInput extends MRInputBase {
 
     private MRInputConfigurer(Configuration conf, Class<?> inputFormat) {
       this.conf = conf;
-      this.inputFormat = inputFormat;
-      if (org.apache.hadoop.mapred.InputFormat.class.isAssignableFrom(inputFormat)) {
-        useNewApi = false;
-      } else if(org.apache.hadoop.mapreduce.InputFormat.class.isAssignableFrom(inputFormat)) {
-        useNewApi = true;
+      if (inputFormat != null) {
+        inputFormatProvided = true;
+        this.inputFormat = inputFormat;
+        if (org.apache.hadoop.mapred.InputFormat.class.isAssignableFrom(inputFormat)) {
+          useNewApi = false;
+        } else if (org.apache.hadoop.mapreduce.InputFormat.class.isAssignableFrom(inputFormat)) {
+          useNewApi = true;
+        } else {
+          throw new TezUncheckedException("inputFormat must be assignable from either " +
+              "org.apache.hadoop.mapred.InputFormat or " +
+              "org.apache.hadoop.mapreduce.InputFormat" +
+              " Given: " + inputFormat.getName());
+        }
       } else {
-        throw new TezUncheckedException("inputFormat must be assignable from either " +
-            "org.apache.hadoop.mapred.InputFormat or " +
-            "org.apache.hadoop.mapreduce.InputFormat" +
-            " Given: " + inputFormat.getName());
+        inputFormatProvided = false;
+        useNewApi = conf.getBoolean("mapred.mapper.new-api", true);
+        if (useNewApi) {
+          this.inputFormat = ReflectionUtils.getClass(conf.get(MRJobConfig.INPUT_FORMAT_CLASS_ATTR));
+        } else {
+          this.inputFormat = ReflectionUtils.getClass(conf.get("mapred.input.format.class"));
+        }
+        initializeInputPath();
       }
     }
     
@@ -125,13 +139,22 @@ public class MRInput extends MRInputBase {
       this.inputPaths = inputPaths;
       return this;
     }
-    
+
+    private void initializeInputPath() {
+      Preconditions.checkState(inputFormatProvided == false,
+          "Should only be invoked when no inputFormat is provided");
+      if (org.apache.hadoop.mapred.FileInputFormat.class.isAssignableFrom(inputFormat) ||
+          FileInputFormat.class.isAssignableFrom(inputFormat)) {
+        inputPaths = conf.get(FileInputFormat.INPUT_DIR);
+      }
+    }
+
     /**
-     * Set whether splits should be grouped in the Tez App Master (default true)
+     * Set whether splits should be grouped (default true)
      * @param value whether to group splits in the AM or not
      * @return {@link MRInputConfigurer}
      */
-    public MRInputConfigurer groupSplitsInAM(boolean value) {
+    public MRInputConfigurer groupSplits(boolean value) {
       groupSplitsInAM = value;
       return this;
     }
@@ -182,6 +205,15 @@ public class MRInput extends MRInputBase {
      * @return {@link DataSourceDescriptor}
      */
     public DataSourceDescriptor create() {
+      if (org.apache.hadoop.mapred.FileInputFormat.class.isAssignableFrom(inputFormat) ||
+          FileInputFormat.class.isAssignableFrom(inputFormat)) {
+        if (inputPaths == null) {
+          throw new TezUncheckedException(
+              "InputPaths must be specified for InputFormats based on " +
+                  FileInputFormat.class.getName() + " or " +
+                  org.apache.hadoop.mapred.FileInputFormat.class.getName());
+        }
+      }
       try {
         if (this.customInitializerDescriptor != null) {
           return createCustomDataSource();
@@ -198,17 +230,16 @@ public class MRInput extends MRInputBase {
     }
     
     private DataSourceDescriptor createDistributorDataSource() throws IOException {
-      Configuration inputConf = new JobConf(conf);
       InputSplitInfo inputSplitInfo;
-      setupBasicConf(inputConf);
+      setupBasicConf(conf);
       try {
-        inputSplitInfo = MRInputHelpers.generateInputSplitsToMem(inputConf, false, 0);
+        inputSplitInfo = MRInputHelpers.generateInputSplitsToMem(conf, false, 0);
       } catch (Exception e) {
         throw new TezUncheckedException(e);
       }
-      MRHelpers.translateMRConfToTez(inputConf);
-      MRHelpers.configureMRApiUsage(inputConf);
-      UserPayload payload = MRInputHelpersInternal.createMRInputPayload(inputConf, inputSplitInfo.getSplitsProto());
+      MRHelpers.translateMRConfToTez(conf);
+
+      UserPayload payload = MRInputHelpersInternal.createMRInputPayload(conf, inputSplitInfo.getSplitsProto());
       Credentials credentials = null;
       if (getCredentialsForSourceFilesystem && inputSplitInfo.getCredentials() != null) {
         credentials = inputSplitInfo.getCredentials();
@@ -221,19 +252,17 @@ public class MRInput extends MRInputBase {
     }
 
     private DataSourceDescriptor createCustomDataSource() throws IOException {
-      Configuration inputConf = new JobConf(conf);
-      setupBasicConf(inputConf);
+      setupBasicConf(conf);
 
-      MRHelpers.translateMRConfToTez(inputConf);
-      MRHelpers.configureMRApiUsage(inputConf);
+      MRHelpers.translateMRConfToTez(conf);
 
       Credentials credentials = maybeGetCredentials();
 
       UserPayload payload = null;
       if (groupSplitsInAM) {
-        payload = MRInputHelpersInternal.createMRInputPayloadWithGrouping(inputConf);
+        payload = MRInputHelpersInternal.createMRInputPayloadWithGrouping(conf);
       } else {
-        payload = MRInputHelpersInternal.createMRInputPayload(inputConf, null);
+        payload = MRInputHelpersInternal.createMRInputPayload(conf, null);
       }
 
       return new DataSourceDescriptor(new InputDescriptor(inputClassName).setUserPayload(payload),
@@ -241,18 +270,16 @@ public class MRInput extends MRInputBase {
     }
 
     private DataSourceDescriptor createGeneratorDataSource() throws IOException {
-      Configuration inputConf = new JobConf(conf);
-      setupBasicConf(inputConf);
-      MRHelpers.translateMRConfToTez(inputConf);
-      MRHelpers.configureMRApiUsage(inputConf);
+      setupBasicConf(conf);
+      MRHelpers.translateMRConfToTez(conf);
       
       Credentials credentials = maybeGetCredentials();
 
       UserPayload payload = null;
       if (groupSplitsInAM) {
-        payload = MRInputHelpersInternal.createMRInputPayloadWithGrouping(inputConf);
+        payload = MRInputHelpersInternal.createMRInputPayloadWithGrouping(conf);
       } else {
-        payload = MRInputHelpersInternal.createMRInputPayload(inputConf, null);
+        payload = MRInputHelpersInternal.createMRInputPayload(conf, null);
       }
       return new DataSourceDescriptor(
           new InputDescriptor(inputClassName).setUserPayload(payload),
@@ -260,11 +287,13 @@ public class MRInput extends MRInputBase {
     }
 
     private void setupBasicConf(Configuration inputConf) {
-      inputConf.setBoolean("mapred.mapper.new-api", useNewApi);
-      if (useNewApi) {
-        inputConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, inputFormat.getName());
-      } else {
-        inputConf.set("mapred.input.format.class", inputFormat.getName());
+      if (inputFormatProvided) {
+        inputConf.setBoolean("mapred.mapper.new-api", useNewApi);
+        if (useNewApi) {
+          inputConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, inputFormat.getName());
+        } else {
+          inputConf.set("mapred.input.format.class", inputFormat.getName());
+        }
       }
     }
 
@@ -290,27 +319,51 @@ public class MRInput extends MRInputBase {
     }
 
   }
-  
+
   /**
-   * Create an {@link MRInputConfigurer}
-   * @param conf Configuration for the {@link MRInput}
-   * @param inputFormat InputFormat derived class
+   * Create an {@link MRInputConfigurer} </p>
+   * The preferred usage model is to provide all of the parameters, and use methods to configure
+   * the Input.
+   * <p/>
+   * For legacy applications, which may already have a fully configured {@link Configuration}
+   * instance, the inputFormat can be specified as null
+   *
+   * @param conf        Configuration for the {@link MRInput}. This configuration instance will be
+   *                    modified in place
+   * @param inputFormat InputFormat derived class. This can be null. If the InputFormat specified
+   *                    is
+   *                    null, the provided configuration should be complete.
    * @return {@link MRInputConfigurer}
    */
-  public static MRInputConfigurer createConfigurer(Configuration conf, Class<?> inputFormat) {
+  public static MRInputConfigurer createConfigurer(Configuration conf, @Nullable Class<?> inputFormat) {
     return new MRInputConfigurer(conf, inputFormat);
   }
 
   /**
-   * Create an {@link MRInputConfigurer} for a FileInputFormat
-   * @param conf Configuration for the {@link MRInput}
-   * @param inputFormat FileInputFormat derived class
-   * @param inputPaths Comma separated input paths
+   * Create an {@link MRInputConfigurer} for {@link org.apache.hadoop.mapreduce.lib.input.FileInputFormat}
+   * or {@link org.apache.hadoop.mapred.FileInputFormat} format based InputFormats.
+   * <p/>
+   * The preferred usage model is to provide all of the parameters, and use methods to configure
+   * the Input.
+   * <p/>
+   * For legacy applications, which may already have a fully configured {@link Configuration}
+   * instance, the inputFormat and inputPath can be specified as null
+   *
+   * @param conf        Configuration for the {@link MRInput}. This configuration instance will be
+   *                    modified in place
+   * @param inputFormat InputFormat derived class. This can be null. If the InputFormat specified
+   *                    is
+   *                    null, the provided configuration should be complete.
+   * @param inputPaths  Comma separated input paths
    * @return {@link MRInputConfigurer}
    */
-  public static MRInputConfigurer createConfigurer(Configuration conf, Class<?> inputFormat,
-      String inputPaths) {
-    return new MRInputConfigurer(conf, inputFormat).setInputPaths(inputPaths);
+  public static MRInputConfigurer createConfigurer(Configuration conf, @Nullable Class<?> inputFormat,
+      @Nullable String inputPaths) {
+    MRInputConfigurer configurer = new MRInputConfigurer(conf, inputFormat);
+    if (inputPaths != null) {
+      return configurer.setInputPaths(inputPaths);
+    }
+    return configurer;
   }
 
   private static final Log LOG = LogFactory.getLog(MRInput.class);
@@ -426,7 +479,7 @@ public class MRInput extends MRInputBase {
             + " can only handle a single event of type: "
             + InputDataInformationEvent.class.getSimpleName());
 
-    processSplitEvent((InputDataInformationEvent)event);
+    processSplitEvent((InputDataInformationEvent) event);
   }
 
   @Override

@@ -188,14 +188,14 @@ public class IntersectExample extends Configured implements Tool {
         "streamfile",
         MRInput
             .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
-                streamPath.toUri().toString()).groupSplitsInAM(false).create());
+                streamPath.toUri().toString()).groupSplits(false).create());
 
     Vertex hashFileVertex = new Vertex("partitioner2", new ProcessorDescriptor(
         ForwardingProcessor.class.getName())).addDataSource(
         "hashfile",
         MRInput
             .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
-                hashPath.toUri().toString()).groupSplitsInAM(false).create());
+                hashPath.toUri().toString()).groupSplits(false).create());
 
     Vertex intersectVertex = new Vertex("intersect", new ProcessorDescriptor(
         IntersectProcessor.class.getName()), numPartitions).addDataSink("finalOutput",

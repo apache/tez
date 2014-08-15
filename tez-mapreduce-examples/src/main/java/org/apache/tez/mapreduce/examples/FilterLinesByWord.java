@@ -181,7 +181,7 @@ public class FilterLinesByWord extends Configured implements Tool {
       dsd = MRInputHelpers.configureMRInputWithLegacySplitGeneration(stage1Conf, stagingDir, true);
     } else {
       dsd = MRInputLegacy.createConfigurer(stage1Conf, TextInputFormat.class, inputPath)
-          .groupSplitsInAM(false).create();
+          .groupSplits(false).create();
     }
     stage1Vertex.addDataSource("MRInput", dsd);
 

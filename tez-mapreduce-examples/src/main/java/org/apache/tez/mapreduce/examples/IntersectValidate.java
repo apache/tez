@@ -192,13 +192,13 @@ public class IntersectValidate extends Configured implements Tool {
         ForwardingProcessor.class.getName())).addDataSource("lhs",
         MRInput
             .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
-                lhs.toUri().toString()).groupSplitsInAM(false).create());
+                lhs.toUri().toString()).groupSplits(false).create());
 
     Vertex rhsVertex = new Vertex(RHS_INPUT_NAME, new ProcessorDescriptor(
         ForwardingProcessor.class.getName())).addDataSource("rhs",
         MRInput
             .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
-                rhs.toUri().toString()).groupSplitsInAM(false).create());
+                rhs.toUri().toString()).groupSplits(false).create());
 
     Vertex intersectValidateVertex = new Vertex("intersectvalidate", new ProcessorDescriptor(
         IntersectValidateProcessor.class.getName()), numPartitions);
