@@ -18,10 +18,10 @@
 
 package org.apache.hadoop.io;
 
-import java.net.URI;
-
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.fs.Path;
 
+@Private
 public class FileChunkPath extends Path {
 
   private long offset = -1;

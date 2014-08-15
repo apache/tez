@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -38,6 +39,7 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+@Private
 public class InputReadyVertexManager extends VertexManagerPlugin {
   private static final Log LOG = 
       LogFactory.getLog(InputReadyVertexManager.class);

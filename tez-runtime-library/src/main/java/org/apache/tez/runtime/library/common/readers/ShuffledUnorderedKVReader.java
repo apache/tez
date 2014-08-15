@@ -22,6 +22,8 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -37,6 +39,8 @@ import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
 import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleManager;
 import org.apache.tez.runtime.library.shuffle.common.MemoryFetchedInput;
 
+@Unstable
+@Private
 public class ShuffledUnorderedKVReader<K, V> extends KeyValueReader {
 
   private static final Log LOG = LogFactory.getLog(ShuffledUnorderedKVReader.class);

@@ -24,6 +24,7 @@ import java.util.NoSuchElementException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.RawComparator;
@@ -42,6 +43,7 @@ import com.google.common.base.Preconditions;
  * 
  */
 
+@Private
 public class ValuesIterator<KEY,VALUE> {
   private static final Log LOG = LogFactory.getLog(ValuesIterator.class.getName());
   protected TezRawKeyValueIterator in; //input iterator

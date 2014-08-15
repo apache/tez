@@ -40,8 +40,6 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 @InterfaceAudience.Private
 public class ConfigUtils {
 
-
-
   public static Class<? extends CompressionCodec> getIntermediateOutputCompressorClass(
       Configuration conf, Class<DefaultCodec> defaultValue) {
     Class<? extends CompressionCodec> codecClass = defaultValue;

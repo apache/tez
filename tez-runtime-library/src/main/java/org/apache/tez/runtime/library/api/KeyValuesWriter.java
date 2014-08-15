@@ -20,9 +20,14 @@ package org.apache.tez.runtime.library.api;
 
 import java.io.IOException;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
+
 /**
  * key/value(s) based {@link KeyValueWriter}
  */
+@Public
+@Evolving
 public abstract class KeyValuesWriter extends KeyValueWriter {
 
   /**

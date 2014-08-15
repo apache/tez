@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -40,6 +42,8 @@ import org.apache.tez.runtime.library.common.task.local.output.TezLocalTaskOutpu
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 
 @SuppressWarnings({"rawtypes"})
+@Unstable
+@Private
 public class LocalShuffle {
 
   // TODO NEWTEZ This is broken.

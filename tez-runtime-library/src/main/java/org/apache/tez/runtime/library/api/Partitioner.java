@@ -17,6 +17,8 @@
  */
 package org.apache.tez.runtime.library.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 
 /**
@@ -37,6 +39,8 @@ import org.apache.hadoop.conf.Configuration;
  * partitions.
  * 
  */
+@Public
+@Evolving
 public interface Partitioner {
   
   /**

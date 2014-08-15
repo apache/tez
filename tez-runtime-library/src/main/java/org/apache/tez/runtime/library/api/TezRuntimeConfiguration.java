@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
@@ -41,7 +41,7 @@ import org.apache.hadoop.conf.Configuration;
  */
 
 // TODO EVENTUALLY A description for each property.
-@InterfaceAudience.Public
+@Public
 @Evolving
 public class TezRuntimeConfiguration {
 

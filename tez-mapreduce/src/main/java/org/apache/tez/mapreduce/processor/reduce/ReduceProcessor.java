@@ -37,6 +37,7 @@ import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
@@ -267,8 +268,7 @@ public class ReduceProcessor extends MRTask {
       Class keyClass,
       Class valueClass,
       final KeyValueWriter out
-      ) throws IOException,InterruptedException,
-      ClassNotFoundException {
+      ) throws IOException, InterruptedException, ClassNotFoundException, TezException {
 
     // make a task context so we can get the classes
     org.apache.hadoop.mapreduce.TaskAttemptContext taskContext = getTaskAttemptContext();

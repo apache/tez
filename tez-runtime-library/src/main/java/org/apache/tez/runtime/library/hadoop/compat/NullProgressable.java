@@ -18,8 +18,10 @@
 
 package org.apache.tez.runtime.library.hadoop.compat;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.util.Progressable;
 
+@Private
 public class NullProgressable implements Progressable {
 
   public NullProgressable() {

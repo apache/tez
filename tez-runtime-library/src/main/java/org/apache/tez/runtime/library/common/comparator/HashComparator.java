@@ -17,6 +17,11 @@
  */
 package org.apache.tez.runtime.library.common.comparator;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
+
+@Unstable
+@Private
 public interface HashComparator<KEY> {
 
   int getHashCode(KEY key);

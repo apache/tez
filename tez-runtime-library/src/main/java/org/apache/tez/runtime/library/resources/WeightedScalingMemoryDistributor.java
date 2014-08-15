@@ -27,6 +27,8 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.common.resources.InitialMemoryAllocator;
@@ -53,6 +55,8 @@ import com.google.common.collect.Maps;
  * SortedShuffle will be given 20 times more; both may be scaled down to fit within the JVM though.
  * 
  */
+@Public
+@Unstable
 public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator {
 
   private static final Log LOG = LogFactory.getLog(WeightedScalingMemoryDistributor.class);

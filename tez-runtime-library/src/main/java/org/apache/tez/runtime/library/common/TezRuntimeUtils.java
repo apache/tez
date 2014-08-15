@@ -24,6 +24,7 @@ import java.lang.reflect.InvocationTargetException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.OutputContext;
@@ -34,6 +35,7 @@ import org.apache.tez.runtime.library.common.combine.Combiner;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 
+@Private
 public class TezRuntimeUtils {
 
   private static final Log LOG = LogFactory

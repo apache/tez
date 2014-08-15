@@ -37,6 +37,7 @@ import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
@@ -140,7 +141,7 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
    * @throws InterruptedException
    * @throws IOException
    */
-  public synchronized boolean isInputReady() throws IOException, InterruptedException {
+  public synchronized boolean isInputReady() throws IOException, InterruptedException, TezException {
     Preconditions.checkState(isStarted.get(), "Must start input before invoking this method");
     if (getNumPhysicalInputs() == 0) {
       return true;
@@ -153,7 +154,7 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
    * @throws IOException
    * @throws InterruptedException
    */
-  public void waitForInputReady() throws IOException, InterruptedException {
+  public void waitForInputReady() throws IOException, InterruptedException, TezException {
     // Cannot synchronize entire method since this is called form user code and can block.
     Shuffle localShuffleCopy = null;
     synchronized (this) {
@@ -195,7 +196,7 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
    * @return a KVReader over the sorted input.
    */
   @Override
-  public KeyValuesReader getReader() throws IOException {
+  public KeyValuesReader getReader() throws IOException, TezException {
     // Cannot synchronize entire method since this is called form user code and can block.
     TezRawKeyValueIterator rawIterLocal;
     synchronized (this) {

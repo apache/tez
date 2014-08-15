@@ -28,6 +28,8 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeManagerPlugin;
@@ -57,6 +59,8 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * <code>slowStartMinSrcCompletionFraction</code> and schedules all tasks 
  *  when <code>slowStartMaxSrcCompletionFraction</code> is reached
  */
+@Public
+@Evolving
 public class ShuffleVertexManager extends VertexManagerPlugin {
   
   private static final String TEZ_AM_PREFIX = "tez.am.";

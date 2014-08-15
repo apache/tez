@@ -19,7 +19,16 @@
 package org.apache.tez.runtime.library.exceptions;
 
 
-public class InputAlreadyClosedException extends RuntimeException {
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.tez.dag.api.TezException;
+
+@Public
+@Evolving
+/**
+ * Exception invoked when an operation is invoked on an Input that has already been closed.
+ */
+public class InputAlreadyClosedException extends TezException {
 
   private static final long serialVersionUID = 5094990552896724803L;
 

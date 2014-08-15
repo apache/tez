@@ -18,6 +18,9 @@
 
 package org.apache.tez.runtime.library.common;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+
+@Private
 public class InputIdentifier {
 
   private final int inputIndex;

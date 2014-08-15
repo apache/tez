@@ -45,6 +45,7 @@ import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -241,7 +242,7 @@ public class Shuffle implements ExceptionReporter {
    * @throws InputAlreadyClosedException 
    */
   // ZZZ Deal with these methods.
-  public boolean isInputReady() throws IOException, InterruptedException {
+  public boolean isInputReady() throws IOException, InterruptedException, TezException {
     if (isShutDown.get()) {
       throw new InputAlreadyClosedException();
     }
@@ -273,7 +274,8 @@ public class Shuffle implements ExceptionReporter {
    * @throws InterruptedException
    */
   // ZZZ Deal with these methods.
-  public TezRawKeyValueIterator waitForInput() throws IOException, InterruptedException {
+  public TezRawKeyValueIterator waitForInput() throws IOException, InterruptedException,
+      TezException {
     Preconditions.checkState(runShuffleFuture != null,
         "waitForInput can only be called after run");
     TezRawKeyValueIterator kvIter = null;

@@ -17,9 +17,13 @@
  */
 package org.apache.tez.runtime.library.common.comparator;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparator;
 
+@Public
+@Unstable
 public class TezBytesComparator extends WritableComparator {
 
   public TezBytesComparator() {

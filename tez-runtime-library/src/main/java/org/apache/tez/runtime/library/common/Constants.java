@@ -19,7 +19,7 @@ package org.apache.tez.runtime.library.common;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
-
+@Private
 public class Constants {
 
   // TODO NEWTEZ Check which of these constants are expecting specific pieces of information which are being removed - like taskAttemptId

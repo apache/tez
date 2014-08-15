@@ -16,19 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.library.partitioner;
+@Private
+package org.apache.tez.runtime.library.common.shuffle.impl;
 
-import org.apache.hadoop.classification.InterfaceAudience.Public;
-import org.apache.hadoop.classification.InterfaceStability.Evolving;
-import org.apache.tez.runtime.library.api.Partitioner;
-
-@Public
-@Evolving
-public class HashPartitioner implements Partitioner {
-
-  @Override
-  public int getPartition(Object key, Object value, int numPartitions) {
-    return (key.hashCode() & Integer.MAX_VALUE) % numPartitions;
-  }
-
-}
+import org.apache.hadoop.classification.InterfaceAudience.Private;

@@ -20,6 +20,8 @@ package org.apache.tez.runtime.library.api;
 
 import java.io.IOException;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.tez.runtime.api.Reader;
 
 /**
@@ -33,6 +35,8 @@ import org.apache.tez.runtime.api.Reader;
  * </code>
  *
  */
+@Public
+@Evolving
 public abstract class KeyValuesReader extends Reader {
 
   /**

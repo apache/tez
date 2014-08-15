@@ -20,11 +20,9 @@ package org.apache.hadoop.io;
 
 import java.io.IOException;
 
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 
-@InterfaceAudience.LimitedPrivate({"HDFS", "MapReduce"})
-@InterfaceStability.Unstable
+@Private
 public class BufferUtils {
   public static int compare(DataInputBuffer buf1, DataInputBuffer buf2) {
     byte[] b1 = buf1.getData();

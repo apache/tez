@@ -120,7 +120,8 @@ public class TestSecureShuffle {
     //set to low value so that it can detect failures quickly
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT, 2);
 
-    miniTezCluster = new MiniTezCluster(TestSecureShuffle.class.getName(), 1, 1, 1);
+    miniTezCluster = new MiniTezCluster(TestSecureShuffle.class.getName() + "-" +
+        (enableSSLInCluster ? "withssl" : "withoutssl"), 1, 1, 1);
 
     miniTezCluster.init(conf);
     miniTezCluster.start();

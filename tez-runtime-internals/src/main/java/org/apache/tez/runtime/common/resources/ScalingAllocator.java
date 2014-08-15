@@ -23,6 +23,8 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 
@@ -31,6 +33,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+@Public
+@Unstable
 public class ScalingAllocator implements InitialMemoryAllocator {
 
   private static final Log LOG = LogFactory.getLog(ScalingAllocator.class);
