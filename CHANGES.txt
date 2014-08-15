@@ -63,6 +63,7 @@ INCOMPATIBLE CHANGES
   TEZ-1432. Rename property to cancel delegation tokens on app completion (tez.am.am.complete.cancel.delegation.tokens)
   TEZ-1320. Remove getApplicationId from DAGClient
   TEZ-1427. Change remaining classes that are using byte[] to UserPayload
+  TEZ-1418. Provide Default value for TEZ_AM_LAUNCH_ENV and TEZ_TASK_LAUNCH
 
 Release 0.4.0-incubating: 2014-04-05
 

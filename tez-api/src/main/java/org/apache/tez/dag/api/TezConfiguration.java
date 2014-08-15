@@ -22,6 +22,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 
 /**
@@ -104,6 +105,10 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "container.max.java.heap.fraction";
   public static final double TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_DEFAULT = 0.8;
 
+  private static final String NATIVE_LIB_PARAM_DEFAULT = Shell.WINDOWS ?
+    "PATH=%PATH%;%HADOOP_COMMON_HOME%\\bin":
+    "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_COMMON_HOME/lib/native/";
+
   /** Env settings for the Tez AppMaster process.
    * Should be specified as a comma-separated of key-value pairs where each pair
    * is defined as KEY=VAL
@@ -112,8 +117,8 @@ public class TezConfiguration extends Configuration {
   */
   public static final String TEZ_AM_LAUNCH_ENV = TEZ_AM_PREFIX
       + "launch.env";
-  public static final String TEZ_AM_LAUNCH_ENV_DEFAULT = "";
-  
+  public static final String TEZ_AM_LAUNCH_ENV_DEFAULT = NATIVE_LIB_PARAM_DEFAULT;
+
   /** Env settings for the Tez Task processes.
    * Should be specified as a comma-separated of key-value pairs where each pair
    * is defined as KEY=VAL
@@ -122,7 +127,7 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_TASK_LAUNCH_ENV = TEZ_TASK_PREFIX
       + "launch.env";
-  public static final String TEZ_TASK_LAUNCH_ENV_DEFAULT = "";
+  public static final String TEZ_TASK_LAUNCH_ENV_DEFAULT = NATIVE_LIB_PARAM_DEFAULT;
 
   @Private
   public static final String TEZ_CANCEL_DELEGATION_TOKENS_ON_COMPLETION = TEZ_PREFIX +
