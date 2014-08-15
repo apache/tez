@@ -386,11 +386,12 @@ public class TestTezJobs {
   @Test (timeout=60000)
   public void testVertexOrder() throws Exception {
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
-    TezClient tezSession = new TezClient("TestVertexOrder", tezConf, true);
-    tezSession.start();
+    TezClient tezClient = new TezClient("TestVertexOrder", tezConf);
+    tezClient.start();
 
+    try {
     DAG dag = SimpleTestDAG.createDAGForVertexOrder("dag1", conf);
-    DAGClient dagClient = tezSession.submitDAG(dag);
+    DAGClient dagClient = tezClient.submitDAG(dag);
     DAGStatus dagStatus = dagClient.getDAGStatus(null);
     while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for dag to complete. Sleeping for 500ms."
@@ -418,6 +419,11 @@ public class TestTezJobs {
         Assert.assertTrue( vertexName.equals("v6"));
       }
       i++;
+    }
+    } finally {
+      if (tezClient != null) {
+        tezClient.stop();
+      }
     }
   }
 }
