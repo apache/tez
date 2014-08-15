@@ -21,7 +21,7 @@ package org.apache.tez.common.security;
 import java.util.Arrays;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -37,11 +37,11 @@ public class TestDAGAccessControls {
 
     Configuration conf = new Configuration(false);
     dagAccessControls.serializeToConfiguration(conf);
-    Assert.assertNotNull(conf.get(TezConfiguration.TEZ_DAG_VIEW_ACLS));
-    Assert.assertNotNull(conf.get(TezConfiguration.TEZ_DAG_MODIFY_ACLS));
+    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
+    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
 
-    Assert.assertEquals("u1 g1", conf.get(TezConfiguration.TEZ_DAG_VIEW_ACLS));
-    Assert.assertEquals("u2 g2", conf.get(TezConfiguration.TEZ_DAG_MODIFY_ACLS));
+    Assert.assertEquals("u1 g1", conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
+    Assert.assertEquals("u2 g2", conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
   }
 
   @Test
@@ -54,11 +54,11 @@ public class TestDAGAccessControls {
 
     Configuration conf = new Configuration(false);
     dagAccessControls.serializeToConfiguration(conf);
-    Assert.assertNotNull(conf.get(TezConfiguration.TEZ_DAG_VIEW_ACLS));
-    Assert.assertNotNull(conf.get(TezConfiguration.TEZ_DAG_MODIFY_ACLS));
+    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
+    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
 
-    Assert.assertEquals("*", conf.get(TezConfiguration.TEZ_DAG_VIEW_ACLS));
-    Assert.assertEquals("*", conf.get(TezConfiguration.TEZ_DAG_MODIFY_ACLS));
+    Assert.assertEquals("*", conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
+    Assert.assertEquals("*", conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
   }
 
   @Test
@@ -69,11 +69,11 @@ public class TestDAGAccessControls {
 
     Configuration conf = new Configuration(false);
     dagAccessControls.serializeToConfiguration(conf);
-    Assert.assertNotNull(conf.get(TezConfiguration.TEZ_DAG_VIEW_ACLS));
-    Assert.assertNotNull(conf.get(TezConfiguration.TEZ_DAG_MODIFY_ACLS));
+    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
+    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
 
-    Assert.assertEquals(" g1", conf.get(TezConfiguration.TEZ_DAG_VIEW_ACLS));
-    Assert.assertEquals(" g2", conf.get(TezConfiguration.TEZ_DAG_MODIFY_ACLS));
+    Assert.assertEquals(" g1", conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
+    Assert.assertEquals(" g2", conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
   }
 
   @Test
@@ -82,11 +82,11 @@ public class TestDAGAccessControls {
 
     Configuration conf = new Configuration(false);
     dagAccessControls.serializeToConfiguration(conf);
-    Assert.assertNotNull(conf.get(TezConfiguration.TEZ_DAG_VIEW_ACLS));
-    Assert.assertNotNull(conf.get(TezConfiguration.TEZ_DAG_MODIFY_ACLS));
+    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
+    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
 
-    Assert.assertEquals(" ", conf.get(TezConfiguration.TEZ_DAG_VIEW_ACLS));
-    Assert.assertEquals(" ", conf.get(TezConfiguration.TEZ_DAG_MODIFY_ACLS));
+    Assert.assertEquals(" ", conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
+    Assert.assertEquals(" ", conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
   }
 
   @Test

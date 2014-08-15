@@ -30,6 +30,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 
 import com.google.common.collect.Sets;
 
@@ -63,8 +64,8 @@ public class ACLConfigurationParser {
       parseACLType(TezConfiguration.TEZ_AM_VIEW_ACLS, ACLType.AM_VIEW_ACL);
       parseACLType(TezConfiguration.TEZ_AM_MODIFY_ACLS, ACLType.AM_MODIFY_ACL);
     } else {
-      parseACLType(TezConfiguration.TEZ_DAG_VIEW_ACLS, ACLType.DAG_VIEW_ACL);
-      parseACLType(TezConfiguration.TEZ_DAG_MODIFY_ACLS, ACLType.DAG_MODIFY_ACL);
+      parseACLType(TezConstants.TEZ_DAG_VIEW_ACLS, ACLType.DAG_VIEW_ACL);
+      parseACLType(TezConstants.TEZ_DAG_MODIFY_ACLS, ACLType.DAG_MODIFY_ACL);
     }
   }
 

@@ -153,19 +153,6 @@ public class TezConfiguration extends Configuration {
       TEZ_AM_PREFIX + "counters.groups.max.keys";
   public static final int TEZ_AM_COUNTERS_GROUPS_MAX_KEYS_DEFAULT = 500;
 
-  
-  /*
-   * MR AM Service Authorization
-   * These are the same as MR which allows Tez to run in secure
-   * mode without configuring service ACLs
-   */
-  public static final String   
-  TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL =
-      "security.job.task.protocol.acl";
-  public static final String   
-  TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_CLIENT =
-      "security.job.client.protocol.acl";
-
   /**
    * Upper limit on the number of threads user to launch containers in the app
    * master. Expect level config, you shouldn't be needing it in most cases.
@@ -231,16 +218,6 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_RESOURCE_CPU_VCORES = TEZ_TASK_PREFIX
       + "resource.cpu.vcores";
   public static final int TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT = 1; 
-
-  /**
-   * The complete path to the serialized dag plan file
-   * <code>TEZ_AM_PLAN_PB_BINARY</code>. Used to make the plan available to
-   * individual tasks if needed. This will typically be a path in the job submit
-   * directory.
-   */
-  @Private
-  public static final String TEZ_AM_PLAN_REMOTE_PATH = TEZ_AM_PREFIX
-      + "dag-am-plan.remote.path";
 
   /** The maximum heartbeat interval between the AM and RM in milliseconds */
   public static final String TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX = TEZ_AM_PREFIX
@@ -412,21 +389,6 @@ public class TezConfiguration extends Configuration {
       TEZ_AM_PREFIX + "session.min.held-containers";
   public static final int TEZ_AM_SESSION_MIN_HELD_CONTAINERS_DEFAULT = 0;
 
-
-  public static final String TEZ_PB_BINARY_CONF_NAME = "tez-conf.pb";
-  public static final String TEZ_PB_PLAN_BINARY_NAME = "tez-dag.pb";
-  public static final String TEZ_PB_PLAN_TEXT_NAME = "tez-dag.pb.txt";
-
-  /*
-   * Logger properties
-   */
-  public static final String TEZ_CONTAINER_LOG4J_PROPERTIES_FILE = "tez-container-log4j.properties";
-  public static final String TEZ_CONTAINER_LOGGER_NAME = "CLA";
-  public static final String TEZ_ROOT_LOGGER_NAME = "tez.root.logger";
-  public static final String TEZ_CONTAINER_LOG_FILE_NAME = "syslog";
-  public static final String TEZ_CONTAINER_ERR_FILE_NAME = "stderr";
-  public static final String TEZ_CONTAINER_OUT_FILE_NAME = "stdout";
-
   /**
    * The location of the Tez libraries which will be localized for DAGs.
    * This follows the following semantics
@@ -462,8 +424,6 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_USE_CLUSTER_HADOOP_LIBS = TEZ_PREFIX + "use.cluster.hadoop-libs";
   public static final boolean TEZ_USE_CLUSTER_HADOOP_LIBS_DEFAULT = false;
-
-  public static final String TEZ_APPLICATION_TYPE = "TEZ";
 
   // TODO move this to TEZGrouper which is in runtime-library
   public static final String TEZ_AM_GROUPING_SPLIT_COUNT = TEZ_AM_PREFIX +
@@ -506,15 +466,12 @@ public class TezConfiguration extends Configuration {
   public static final float TEZ_AM_GROUPING_RACK_SPLIT_SIZE_REDUCTION_DEFAULT = 0.75f;
 
 
-  @Private
   /**
    * Session-related properties
    */
+  @Private
   public static final String TEZ_SESSION_PREFIX =
       TEZ_PREFIX + "session.";
-
-  public static final String TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME =
-    TEZ_SESSION_PREFIX + "local-resources.pb";
 
   /**
    * Time (in seconds) to wait for AM to come up when trying to submit a DAG
@@ -538,9 +495,9 @@ public class TezConfiguration extends Configuration {
    * The queue name for all jobs being submitted as part of a session, or for
    * non session jobs.
    */
-  public static final String TEZ_QUEUE_NAME = 
-      TEZ_PREFIX + "queue.name";
+  public static final String TEZ_QUEUE_NAME = TEZ_PREFIX + "queue.name";
 
+  @Unstable
   public static final String TEZ_GENERATE_DEBUG_ARTIFACTS =
       TEZ_PREFIX + "generate.debug.artifacts";
   public static final boolean TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT = true;
@@ -570,17 +527,6 @@ public class TezConfiguration extends Configuration {
   @Unstable
   public static final String TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS = TEZ_PREFIX + "task-specific" +
       ".launch.cmd-opts";
-
-  /**
-   * The service id for the NodeManager plugin used to share intermediate data
-   * between vertices.
-   */
-  @Private
-  public static final String TEZ_SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
-
-
-  @Private
-  public static final String TEZ_PREWARM_DAG_NAME_PREFIX = "TezPreWarmDAG";
 
   public static final String TEZ_HISTORY_LOGGING_SERVICE_CLASS =
       TEZ_PREFIX + "history.logging.service.class";
@@ -615,10 +561,6 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "dag.recovery.flush.interval.secs";
   public static final int DAG_RECOVERY_FLUSH_INTERVAL_SECS_DEFAULT = 30;
 
-  public static final String DAG_RECOVERY_DATA_DIR_NAME = "recovery";
-  public static final String DAG_RECOVERY_SUMMARY_FILE_SUFFIX = "summary";
-  public static final String DAG_RECOVERY_RECOVER_FILE_SUFFIX = ".recovery";
-  
   /**
    *  Tez Local Mode flag. Not valid till Tez-684 get checked-in
    */
@@ -686,16 +628,5 @@ public class TezConfiguration extends Configuration {
    * such as submitting DAGs, pre-warming the session, killing DAGs or shutting down the session.
    */
   public static final String TEZ_AM_MODIFY_ACLS = TEZ_AM_PREFIX + "modify-acls";
-  /**
-   * DAG view ACLs. This allows the specified users/groups to view the status of the given DAG.
-   */
-  @Private
-  public static final String TEZ_DAG_VIEW_ACLS = TEZ_AM_PREFIX + "dag.view-acls";
-  /**
-   * DAG modify ACLs. This allows the specified users/groups to run modify operations on the DAG
-   * such as killing the DAG.
-   */
-  @Private
-  public static final String TEZ_DAG_MODIFY_ACLS = TEZ_AM_PREFIX + "dag.modify-acls";
 
 }

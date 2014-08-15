@@ -33,7 +33,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -41,7 +40,6 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 
 /**
@@ -220,8 +218,8 @@ public class TestTezClientUtils {
     String origJavaOpts = null;
     String javaOpts = TezClientUtils.maybeAddDefaultLoggingJavaOpts("FOOBAR", origJavaOpts);
     Assert.assertNotNull(javaOpts);
-    Assert.assertTrue(javaOpts.contains("-D" + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=FOOBAR")
-        && javaOpts.contains(TezConfiguration.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE));
+    Assert.assertTrue(javaOpts.contains("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FOOBAR")
+        && javaOpts.contains(TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE));
   }
 
   // To run this test case see TestTezCommonUtils::testLocalResourceVisibility

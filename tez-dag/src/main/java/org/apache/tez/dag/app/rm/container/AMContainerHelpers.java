@@ -49,6 +49,7 @@ import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.records.TezDAGID;
@@ -123,7 +124,7 @@ public class AMContainerHelpers {
 
       // Add shuffle token
       LOG.info("Putting shuffle token in serviceData");
-      serviceData.put(TezConfiguration.TEZ_SHUFFLE_HANDLER_SERVICE_ID,
+      serviceData.put(TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID,
           serializeServiceData(TokenCache.getSessionToken(containerCredentials)));
     } catch (IOException e) {
       throw new TezUncheckedException(e);

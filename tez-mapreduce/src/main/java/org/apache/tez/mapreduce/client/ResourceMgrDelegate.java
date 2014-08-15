@@ -46,7 +46,7 @@ import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 public class ResourceMgrDelegate {
@@ -85,7 +85,7 @@ public class ResourceMgrDelegate {
   public JobStatus[] getAllJobs() throws IOException, InterruptedException {
     try {
       Set<String> appTypes = new HashSet<String>(1);
-      appTypes.add(TezConfiguration.TEZ_APPLICATION_TYPE);
+      appTypes.add(TezConstants.TEZ_APPLICATION_TYPE);
       return TypeConverter.fromYarnApps(client.getApplications(appTypes),
           this.conf);
     } catch (YarnException e) {

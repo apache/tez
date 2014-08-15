@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
@@ -285,7 +286,7 @@ public class RecoveryParser {
   private Path getDAGRecoveryFilePath(Path recoveryDataDir,
       TezDAGID dagID) {
     return new Path(recoveryDataDir,
-        dagID.toString() + TezConfiguration.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
+        dagID.toString() + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
   }
 
   private FSDataInputStream getDAGRecoveryStream(Path recoveryDataDir,
@@ -302,7 +303,7 @@ public class RecoveryParser {
       TezDAGID dagID)
       throws IOException {
     Path dagRecoveryPath = new Path(recoveryDataDir,
-        dagID.toString() + TezConfiguration.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
+        dagID.toString() + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
     return recoveryFS.create(dagRecoveryPath, true, recoveryBufferSize);
   }
 

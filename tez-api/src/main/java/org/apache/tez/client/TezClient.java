@@ -44,6 +44,7 @@ import org.apache.tez.dag.api.DAGSubmissionTimedOut;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
@@ -548,7 +549,7 @@ public class TezClient {
     
     verifySessionStateForSubmission();
     
-    DAG dag = new org.apache.tez.dag.api.DAG(TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX + "_"
+    DAG dag = new org.apache.tez.dag.api.DAG(TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX + "_"
         + preWarmDAGCounter++);
     dag.addVertex(preWarmVertex);
     

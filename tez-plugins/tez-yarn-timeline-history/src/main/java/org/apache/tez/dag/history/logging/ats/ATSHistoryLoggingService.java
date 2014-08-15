@@ -29,6 +29,7 @@ import org.apache.hadoop.yarn.api.records.timeline.TimelinePutResponse;
 import org.apache.hadoop.yarn.api.records.timeline.TimelinePutResponse.TimelinePutError;
 import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
@@ -166,7 +167,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
       String dagName = dagSubmittedEvent.getDAGName();
       if (dagName != null
           && dagName.startsWith(
-          TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
+              TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
         // Skip recording pre-warm DAG events
         skippedDAGs.add(dagId);
         return;

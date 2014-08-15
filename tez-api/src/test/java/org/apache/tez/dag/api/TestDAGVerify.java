@@ -913,18 +913,18 @@ public class TestDAGVerify {
 
     Configuration conf = new Configuration(false);
     DAGPlan dagPlan = dag.createDag(conf);
-    Assert.assertNull(conf.get(TezConfiguration.TEZ_DAG_VIEW_ACLS));
-    Assert.assertNull(conf.get(TezConfiguration.TEZ_DAG_MODIFY_ACLS));
+    Assert.assertNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
+    Assert.assertNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
 
     ConfigurationProto confProto = dagPlan.getDagKeyValues();
     boolean foundViewAcls = false;
     boolean foundModifyAcls = false;
 
     for (PlanKeyValuePair pair : confProto.getConfKeyValuesList()) {
-      if (pair.getKey().equals(TezConfiguration.TEZ_DAG_VIEW_ACLS)) {
+      if (pair.getKey().equals(TezConstants.TEZ_DAG_VIEW_ACLS)) {
         foundViewAcls = true;
         Assert.assertEquals("u1 g1", pair.getValue());
-      } else if (pair.getKey().equals(TezConfiguration.TEZ_DAG_MODIFY_ACLS)) {
+      } else if (pair.getKey().equals(TezConstants.TEZ_DAG_MODIFY_ACLS)) {
         foundModifyAcls = true;
         Assert.assertEquals("*", pair.getValue());
       }

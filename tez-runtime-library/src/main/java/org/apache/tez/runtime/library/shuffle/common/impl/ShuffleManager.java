@@ -46,7 +46,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
@@ -186,7 +186,7 @@ public class ShuffleManager implements FetcherCallback {
     
     this.shuffleSecret = ShuffleUtils
         .getJobTokenSecretFromTokenBytes(inputContext
-            .getServiceConsumerMetaData(TezConfiguration.TEZ_SHUFFLE_HANDLER_SERVICE_ID));
+            .getServiceConsumerMetaData(TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID));
     httpConnectionParams =
         ShuffleUtils.constructHttpShuffleConnectionParams(conf);
     LOG.info(this.getClass().getSimpleName() + " : numInputs=" + numInputs + ", compressionCodec="

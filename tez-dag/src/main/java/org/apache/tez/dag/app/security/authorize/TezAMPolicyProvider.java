@@ -22,7 +22,7 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.security.authorize.PolicyProvider;
 import org.apache.hadoop.security.authorize.Service;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
-import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 
 /**
@@ -35,10 +35,10 @@ public class TezAMPolicyProvider extends PolicyProvider {
   private static final Service[] tezApplicationMasterServices = 
       new Service[] {
     new Service(
-        TezConfiguration.TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL,
+        TezConstants.TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL,
           TezTaskUmbilicalProtocol.class),
     new Service(
-    	TezConfiguration.TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_CLIENT,
+    	TezConstants.TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_CLIENT,
           DAGClientAMProtocolBlockingPB.class)
   };
 

@@ -537,7 +537,7 @@ public class TezClientUtils {
         TezClientUtils.createLocalResource(fs,
             binaryConfPath, LocalResourceType.FILE,
             LocalResourceVisibility.APPLICATION);
-    localResources.put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
+    localResources.put(TezConstants.TEZ_PB_BINARY_CONF_NAME,
         binaryConfLRsrc);
 
     // Create Session Jars definition to be sent to AM as a local resource
@@ -547,7 +547,7 @@ public class TezClientUtils {
       Map<String, LocalResource> sessionJars =
         new HashMap<String, LocalResource>(tezJarResources.size() + 1);
       sessionJars.putAll(tezJarResources);
-      sessionJars.put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
+      sessionJars.put(TezConstants.TEZ_PB_BINARY_CONF_NAME,
         binaryConfLRsrc);
       DAGProtos.PlanLocalResourcesProto proto =
         DagTypeConverters.convertFromLocalResources(sessionJars);
@@ -573,7 +573,7 @@ public class TezClientUtils {
         sessionJarsPath, LocalResourceType.FILE,
         LocalResourceVisibility.APPLICATION);
     localResources.put(
-      TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME,
+      TezConstants.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME,
       sessionJarsPBLRsrc);
 
     String user = UserGroupInformation.getCurrentUser().getShortUserName();
@@ -588,7 +588,7 @@ public class TezClientUtils {
         if (tezJarResources != null) {
           v.getTaskLocalFiles().putAll(tezJarResources);
         }
-        v.getTaskLocalFiles().put(TezConfiguration.TEZ_PB_BINARY_CONF_NAME,
+        v.getTaskLocalFiles().put(TezConstants.TEZ_PB_BINARY_CONF_NAME,
             binaryConfLRsrc);
 
         Map<String, String> taskEnv = v.getTaskEnvironment();
@@ -606,7 +606,7 @@ public class TezClientUtils {
             + tezSysStagingPath + " binaryConfPath :" + binaryConfPath + " sessionJarsPath :"
             + sessionJarsPath + " binaryPlanPath :" + binaryPath);
       }
-      amConfig.getTezConfiguration().set(TezConfiguration.TEZ_AM_PLAN_REMOTE_PATH,
+      amConfig.getTezConfiguration().set(TezConstants.TEZ_AM_PLAN_REMOTE_PATH,
           binaryPath.toUri().toString());
 
       DAGPlan dagPB = dag.createDag(amConfig.getTezConfiguration());
@@ -623,14 +623,14 @@ public class TezClientUtils {
         }
       }
 
-      localResources.put(TezConfiguration.TEZ_PB_PLAN_BINARY_NAME,
+      localResources.put(TezConstants.TEZ_PB_PLAN_BINARY_NAME,
         TezClientUtils.createLocalResource(fs,
           binaryPath, LocalResourceType.FILE,
           LocalResourceVisibility.APPLICATION));
 
       if (Level.DEBUG.isGreaterOrEqual(Level.toLevel(amLogLevel))) {
         Path textPath = localizeDagPlanAsText(dagPB, fs, amConfig, strAppId, tezSysStagingPath);
-        localResources.put(TezConfiguration.TEZ_PB_PLAN_TEXT_NAME,
+        localResources.put(TezConstants.TEZ_PB_PLAN_TEXT_NAME,
             TezClientUtils.createLocalResource(fs,
                 textPath, LocalResourceType.FILE,
                 LocalResourceVisibility.APPLICATION));
@@ -646,7 +646,7 @@ public class TezClientUtils {
     ApplicationSubmissionContext appContext = Records
         .newRecord(ApplicationSubmissionContext.class);
 
-    appContext.setApplicationType(TezConfiguration.TEZ_APPLICATION_TYPE);
+    appContext.setApplicationType(TezConstants.TEZ_APPLICATION_TYPE);
     appContext.setApplicationId(appId);
     appContext.setResource(capability);
     if (amConfig.getQueueName() != null) {
@@ -670,7 +670,7 @@ public class TezClientUtils {
   static void maybeAddDefaultLoggingJavaOpts(String logLevel, List<String> vargs) {
     if (vargs != null && !vargs.isEmpty()) {
       for (String arg : vargs) {
-        if (arg.contains(TezConfiguration.TEZ_ROOT_LOGGER_NAME)) {
+        if (arg.contains(TezConstants.TEZ_ROOT_LOGGER_NAME)) {
           return ;
         }
       }
@@ -711,11 +711,11 @@ public class TezClientUtils {
   public static void addLog4jSystemProperties(String logLevel,
       List<String> vargs) {
     vargs.add("-Dlog4j.configuration="
-        + TezConfiguration.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
+        + TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
     vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
         + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
-    vargs.add("-D" + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=" + logLevel
-        + "," + TezConfiguration.TEZ_CONTAINER_LOGGER_NAME);
+    vargs.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + logLevel
+        + "," + TezConstants.TEZ_CONTAINER_LOGGER_NAME);
   }
 
   static Configuration createFinalTezConfForApp(TezConfiguration tezConf,

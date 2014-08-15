@@ -29,6 +29,7 @@ import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -270,8 +271,8 @@ public class TestACLManager {
     String dagViewACLs = "user6,   grp5  ";
     // DAG Modify ACLs: user3, grp6, grp7
     String dagModifyACLs = "user6,user5 ";
-    conf.set(TezConfiguration.TEZ_DAG_VIEW_ACLS, dagViewACLs);
-    conf.set(TezConfiguration.TEZ_DAG_MODIFY_ACLS, dagModifyACLs);
+    conf.set(TezConstants.TEZ_DAG_VIEW_ACLS, dagViewACLs);
+    conf.set(TezConstants.TEZ_DAG_MODIFY_ACLS, dagModifyACLs);
 
     String dagUser = "dagUser";
 

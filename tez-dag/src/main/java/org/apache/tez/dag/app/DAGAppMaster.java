@@ -402,7 +402,7 @@ public class DAGAppMaster extends AbstractService {
       FileInputStream sessionResourcesStream = null;
       try {
         sessionResourcesStream = new FileInputStream(
-          new File(workingDirectory, TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME));
+          new File(workingDirectory, TezConstants.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME));
         PlanLocalResourcesProto sessionLocalResourcesProto =
           PlanLocalResourcesProto.parseDelimitedFrom(sessionResourcesStream);
         PlanLocalResourcesProto amLocalResourceProto = PlanLocalResourcesProto
@@ -490,25 +490,25 @@ public class DAGAppMaster extends AbstractService {
         switch(finishEvt.getDAGState()) {
         case SUCCEEDED:
           if (!currentDAG.getName().startsWith(
-              TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
+              TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
             successfulDAGs.incrementAndGet();
           }
           break;
         case FAILED:
           if (!currentDAG.getName().startsWith(
-              TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
+              TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
             failedDAGs.incrementAndGet();
           }
           break;
         case KILLED:
           if (!currentDAG.getName().startsWith(
-              TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
+              TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
             killedDAGs.incrementAndGet();
           }
           break;
         case ERROR:
           if (!currentDAG.getName().startsWith(
-              TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
+              TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
             failedDAGs.incrementAndGet();
           }
         default:
@@ -980,9 +980,9 @@ public class DAGAppMaster extends AbstractService {
       LOG.debug("Invoked with additional local resources: " + additionalResources);
       
       LOG.debug("Writing DAG plan to: "
-          + TezConfiguration.TEZ_PB_PLAN_TEXT_NAME);
+          + TezConstants.TEZ_PB_PLAN_TEXT_NAME);
 
-      File outFile = new File(TezConfiguration.TEZ_PB_PLAN_TEXT_NAME);
+      File outFile = new File(TezConstants.TEZ_PB_PLAN_TEXT_NAME);
       try {
         PrintWriter printWriter = new PrintWriter(outFile);
         String dagPbString = dagPlan.toString();
@@ -1783,7 +1783,7 @@ public class DAGAppMaster extends AbstractService {
 
       // Read the protobuf DAG
       dagPBBinaryStream = new FileInputStream(new File(workingDirectory,
-          TezConfiguration.TEZ_PB_PLAN_BINARY_NAME));
+          TezConstants.TEZ_PB_PLAN_BINARY_NAME));
       dagPlan = DAGPlan.parseFrom(dagPBBinaryStream);
 
       startDAG(dagPlan, null);

@@ -20,6 +20,7 @@ package org.apache.tez.common.security;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -83,7 +84,7 @@ public class TestACLConfigurationParser {
     Configuration conf = new Configuration(false);
     String viewACLs = "user1,user4 grp3,grp4,grp5";
     String modifyACLs = "user3 grp4";
-    conf.set(TezConfiguration.TEZ_DAG_VIEW_ACLS, viewACLs);
+    conf.set(TezConstants.TEZ_DAG_VIEW_ACLS, viewACLs);
 
     ACLConfigurationParser parser = new ACLConfigurationParser(conf, true);
     Assert.assertTrue(parser.getAllowedUsers().containsKey(ACLType.DAG_VIEW_ACL));
@@ -97,7 +98,7 @@ public class TestACLConfigurationParser {
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp4"));
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp5"));
 
-    conf.set(TezConfiguration.TEZ_DAG_MODIFY_ACLS, modifyACLs);
+    conf.set(TezConstants.TEZ_DAG_MODIFY_ACLS, modifyACLs);
     parser = new ACLConfigurationParser(conf, true);
     Assert.assertTrue(parser.getAllowedUsers().containsKey(ACLType.DAG_VIEW_ACL));
     Assert.assertTrue(parser.getAllowedUsers().containsKey(ACLType.DAG_MODIFY_ACL));

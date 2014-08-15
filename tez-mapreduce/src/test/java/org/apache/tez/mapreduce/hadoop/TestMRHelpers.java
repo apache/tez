@@ -27,7 +27,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -56,9 +56,9 @@ public class TestMRHelpers {
     Assert.assertTrue(opts.indexOf("fooMapAdminOpts")
         < opts.indexOf("fooMapJavaOpts"));
     Assert.assertTrue(opts.contains(" -D"
-        + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
+        + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
     Assert.assertFalse(opts.contains(" -D"
-        + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
+        + TezConstants.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
   }
 
   @Test
@@ -73,9 +73,9 @@ public class TestMRHelpers {
     Assert.assertTrue(opts.indexOf("fooReduceAdminOpts")
         < opts.indexOf("fooReduceJavaOpts"));
     Assert.assertFalse(opts.contains(" -D"
-        + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
+        + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FATAL"));
     Assert.assertTrue(opts.contains(" -D"
-        + TezConfiguration.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
+        + TezConstants.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
   }
 
   @Test

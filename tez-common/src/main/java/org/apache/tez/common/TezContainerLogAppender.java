@@ -23,7 +23,7 @@ import java.io.File;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.log4j.FileAppender;
-import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 
 /**
  * A simple log4j-appender for a tez container's logs.
@@ -33,7 +33,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 @Unstable
 public class TezContainerLogAppender extends FileAppender {
   private String containerLogDir;
-  private String logFileName = TezConfiguration.TEZ_CONTAINER_LOG_FILE_NAME;
+  private String logFileName = TezConstants.TEZ_CONTAINER_LOG_FILE_NAME;
   //so that log4j can configure it from the configuration(log4j.properties). 
 
   @Override

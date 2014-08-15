@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -200,7 +201,7 @@ public class RecoveryService extends AbstractService {
       String dagName = dagSubmittedEvent.getDAGName();
       if (dagName != null
           && dagName.startsWith(
-          TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX)) {
+              TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
         // Skip recording pre-warm DAG events
         skippedDAGs.add(dagId);
         return;

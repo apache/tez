@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.tez.client.TestTezClientUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -126,7 +127,7 @@ public class TestTezCommonUtils {
     Path confStageDir = TezCommonUtils.getTezConfStagingPath(stageDir);
     String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
-        + TezConfiguration.TEZ_PB_BINARY_CONF_NAME;
+        + TezConstants.TEZ_PB_BINARY_CONF_NAME;
     Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
 
@@ -138,7 +139,7 @@ public class TestTezCommonUtils {
     Path confStageDir = TezCommonUtils.getTezSessionJarStagingPath(stageDir);
     String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
-        + TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME;
+        + TezConstants.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME;
     Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
 
@@ -150,7 +151,7 @@ public class TestTezCommonUtils {
     Path confStageDir = TezCommonUtils.getTezBinPlanStagingPath(stageDir);
     String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
-        + TezConfiguration.TEZ_PB_PLAN_BINARY_NAME;
+        + TezConstants.TEZ_PB_PLAN_BINARY_NAME;
     Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
 
@@ -162,7 +163,7 @@ public class TestTezCommonUtils {
     Path confStageDir = TezCommonUtils.getTezTextPlanStagingPath(stageDir);
     String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
-        + TezConfiguration.TEZ_PB_PLAN_TEXT_NAME;
+        + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
     Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
 
@@ -174,7 +175,7 @@ public class TestTezCommonUtils {
     Path confStageDir = TezCommonUtils.getRecoveryPath(stageDir, conf);
     String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
-        + TezConfiguration.DAG_RECOVERY_DATA_DIR_NAME;
+        + TezConstants.DAG_RECOVERY_DATA_DIR_NAME;
     Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
 
@@ -188,7 +189,7 @@ public class TestTezCommonUtils {
 
     String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
-        + TezConfiguration.DAG_RECOVERY_DATA_DIR_NAME + File.separator + "2";
+        + TezConstants.DAG_RECOVERY_DATA_DIR_NAME + File.separator + "2";
     Assert.assertEquals(recoveryStageDir.toString(), expectedDir);
   }
 
@@ -204,8 +205,8 @@ public class TestTezCommonUtils {
 
     String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
-        + TezConfiguration.DAG_RECOVERY_DATA_DIR_NAME + File.separator + "2" + File.separator
-        + "dag_123" + TezConfiguration.DAG_RECOVERY_RECOVER_FILE_SUFFIX;
+        + TezConstants.DAG_RECOVERY_DATA_DIR_NAME + File.separator + "2" + File.separator
+        + "dag_123" + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX;
     Assert.assertEquals(dagRecoveryPathj.toString(), expectedDir);
   }
 
@@ -220,8 +221,8 @@ public class TestTezCommonUtils {
 
     String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
-        + TezConfiguration.DAG_RECOVERY_DATA_DIR_NAME + File.separator + "2" + File.separator
-        + TezConfiguration.DAG_RECOVERY_SUMMARY_FILE_SUFFIX;
+        + TezConstants.DAG_RECOVERY_DATA_DIR_NAME + File.separator + "2" + File.separator
+        + TezConstants.DAG_RECOVERY_SUMMARY_FILE_SUFFIX;
     Assert.assertEquals(summaryRecoveryPathj.toString(), expectedDir);
   }
 

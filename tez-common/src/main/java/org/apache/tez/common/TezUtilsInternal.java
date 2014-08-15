@@ -39,7 +39,7 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.log4j.Appender;
 import org.apache.log4j.Logger;
-import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 
@@ -57,7 +57,7 @@ public class TezUtilsInternal {
     ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
     try {
       confPBBinaryStream =
-          new FileInputStream(new File(baseDir, TezConfiguration.TEZ_PB_BINARY_CONF_NAME));
+          new FileInputStream(new File(baseDir, TezConstants.TEZ_PB_BINARY_CONF_NAME));
       confProtoBuilder.mergeFrom(confPBBinaryStream);
     } finally {
       if (confPBBinaryStream != null) {
@@ -157,19 +157,19 @@ public class TezUtilsInternal {
     LOG.info("Redirecting log file based on addend: " + addend);
 
     Appender appender = Logger.getRootLogger().getAppender(
-        TezConfiguration.TEZ_CONTAINER_LOGGER_NAME);
+        TezConstants.TEZ_CONTAINER_LOGGER_NAME);
     if (appender != null) {
       if (appender instanceof TezContainerLogAppender) {
         TezContainerLogAppender claAppender = (TezContainerLogAppender) appender;
         claAppender.setLogFileName(constructLogFileName(
-            TezConfiguration.TEZ_CONTAINER_LOG_FILE_NAME, addend));
+            TezConstants.TEZ_CONTAINER_LOG_FILE_NAME, addend));
         claAppender.activateOptions();
       } else {
         LOG.warn("Appender is a " + appender.getClass() + "; require an instance of "
             + TezContainerLogAppender.class.getName() + " to reconfigure the logger output");
       }
     } else {
-      LOG.warn("Not configured with appender named: " + TezConfiguration.TEZ_CONTAINER_LOGGER_NAME
+      LOG.warn("Not configured with appender named: " + TezConstants.TEZ_CONTAINER_LOGGER_NAME
           + ". Cannot reconfigure logger output");
     }
   }

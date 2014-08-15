@@ -46,6 +46,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
@@ -132,9 +133,9 @@ public class TestTezClient {
       ApplicationSubmissionContext context = captor.getValue();
       Assert.assertEquals(3, context.getAMContainerSpec().getLocalResources().size());
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
-          TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME));
+          TezConstants.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME));
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
-          TezConfiguration.TEZ_PB_BINARY_CONF_NAME));
+          TezConstants.TEZ_PB_BINARY_CONF_NAME));
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
           lrName1));
     } else {
@@ -155,11 +156,11 @@ public class TestTezClient {
       ApplicationSubmissionContext context = captor.getValue();
       Assert.assertEquals(4, context.getAMContainerSpec().getLocalResources().size());
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
-          TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME));
+          TezConstants.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME));
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
-          TezConfiguration.TEZ_PB_BINARY_CONF_NAME));
+          TezConstants.TEZ_PB_BINARY_CONF_NAME));
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
-          TezConfiguration.TEZ_PB_PLAN_BINARY_NAME));
+          TezConstants.TEZ_PB_PLAN_BINARY_NAME));
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
           lrName1));
     }
@@ -197,11 +198,11 @@ public class TestTezClient {
       ApplicationSubmissionContext context = captor.getValue();
       Assert.assertEquals(5, context.getAMContainerSpec().getLocalResources().size());
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
-          TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME));
+          TezConstants.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME));
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
-          TezConfiguration.TEZ_PB_BINARY_CONF_NAME));
+          TezConstants.TEZ_PB_BINARY_CONF_NAME));
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
-          TezConfiguration.TEZ_PB_PLAN_BINARY_NAME));
+          TezConstants.TEZ_PB_PLAN_BINARY_NAME));
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
           lrName1));
       Assert.assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
@@ -231,7 +232,7 @@ public class TestTezClient {
     ArgumentCaptor<SubmitDAGRequestProto> captor1 = ArgumentCaptor.forClass(SubmitDAGRequestProto.class);
     verify(client.sessionAmProxy, times(1)).submitDAG((RpcController)any(), (SubmitDAGRequestProto) any());
     SubmitDAGRequestProto proto = captor1.getValue();
-    Assert.assertTrue(proto.getDAGPlan().getName().startsWith(TezConfiguration.TEZ_PREWARM_DAG_NAME_PREFIX));
+    Assert.assertTrue(proto.getDAGPlan().getName().startsWith(TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX));
 
     client.stop();
   }

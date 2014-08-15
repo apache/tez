@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 
 import com.google.protobuf.ByteString;
@@ -145,7 +146,7 @@ public class TezCommonUtils {
    */
   @Private
   public static Path getTezConfStagingPath(Path tezSysStagingPath) {
-    return new Path(tezSysStagingPath, TezConfiguration.TEZ_PB_BINARY_CONF_NAME);
+    return new Path(tezSysStagingPath, TezConstants.TEZ_PB_BINARY_CONF_NAME);
   }
 
   /**
@@ -159,7 +160,7 @@ public class TezCommonUtils {
    */
   @Private
   public static Path getTezSessionJarStagingPath(Path tezSysStagingPath) {
-    return new Path(tezSysStagingPath, TezConfiguration.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME);
+    return new Path(tezSysStagingPath, TezConstants.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME);
   }
 
   /**
@@ -173,7 +174,7 @@ public class TezCommonUtils {
    */
   @Private
   public static Path getTezBinPlanStagingPath(Path tezSysStagingPath) {
-    return new Path(tezSysStagingPath, TezConfiguration.TEZ_PB_PLAN_BINARY_NAME);
+    return new Path(tezSysStagingPath, TezConstants.TEZ_PB_PLAN_BINARY_NAME);
   }
 
   /**
@@ -187,7 +188,7 @@ public class TezCommonUtils {
    */
   @Private
   public static Path getTezTextPlanStagingPath(Path tezSysStagingPath) {
-    return new Path(tezSysStagingPath, TezConfiguration.TEZ_PB_PLAN_TEXT_NAME);
+    return new Path(tezSysStagingPath, TezConstants.TEZ_PB_PLAN_TEXT_NAME);
   }
 
   /**
@@ -206,7 +207,7 @@ public class TezCommonUtils {
   public static Path getRecoveryPath(Path tezSysStagingPath, Configuration conf)
       throws IOException {
     Path baseReecoveryPath = new Path(tezSysStagingPath,
-        TezConfiguration.DAG_RECOVERY_DATA_DIR_NAME);
+        TezConstants.DAG_RECOVERY_DATA_DIR_NAME);
     FileSystem recoveryFS = baseReecoveryPath.getFileSystem(conf);
     return recoveryFS.makeQualified(baseReecoveryPath);
   }
@@ -240,7 +241,7 @@ public class TezCommonUtils {
    */
   @Private
   public static Path getDAGRecoveryPath(Path attemptRecoverPath, String dagID) {
-    return new Path(attemptRecoverPath, dagID + TezConfiguration.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
+    return new Path(attemptRecoverPath, dagID + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
   }
 
   /**
@@ -254,7 +255,7 @@ public class TezCommonUtils {
    */
   @Private
   public static Path getSummaryRecoveryPath(Path attemptRecoverPath) {
-    return new Path(attemptRecoverPath, TezConfiguration.DAG_RECOVERY_SUMMARY_FILE_SUFFIX);
+    return new Path(attemptRecoverPath, TezConstants.DAG_RECOVERY_SUMMARY_FILE_SUFFIX);
   }
 
   /**
