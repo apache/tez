@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -43,7 +42,6 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.Progress;
@@ -85,8 +83,8 @@ public class DAGClientRPCImpl extends DAGClient {
   }
 
   @Override
-  public ApplicationId getApplicationId() {
-    return appId;
+  public String getExecutionContext() {
+    return new String("Executing on YARN cluster with App id " + appId);
   }
 
   @Override

@@ -26,10 +26,8 @@ import java.io.IOException;
 import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.Vertex;
 
 @InterfaceAudience.Private
 public class MRDAGClient extends DAGClient {
@@ -41,8 +39,8 @@ public class MRDAGClient extends DAGClient {
   }
 
   @Override
-  public ApplicationId getApplicationId() {
-    return realClient.getApplicationId();
+  public String getExecutionContext() {
+    return realClient.getExecutionContext();
   }
 
   @Override

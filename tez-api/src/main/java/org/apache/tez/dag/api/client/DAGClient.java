@@ -26,10 +26,8 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.Vertex;
 
 /**
  * Class for monitoring the <code>DAG</code> running in a Tez DAG
@@ -39,10 +37,10 @@ import org.apache.tez.dag.api.Vertex;
 public abstract class DAGClient implements Closeable {
 
   /**
-   * Get the YARN ApplicationId for the app running the DAG
-   * @return <code>ApplicationId</code>
+   * Gets DAG execution context for use with logging
+   * @return summary of DAG execution
    */
-  public abstract ApplicationId getApplicationId();
+  public abstract String getExecutionContext();
 
   @Private
   /**

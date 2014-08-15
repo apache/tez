@@ -395,7 +395,7 @@ public class TestTezJobs {
     while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for dag to complete. Sleeping for 500ms."
           + " DAG name: " + dag.getName()
-          + " DAG appId: " + dagClient.getApplicationId()
+          + " DAG context: " + dagClient.getExecutionContext()
           + " Current state: " + dagStatus.getState());
       Thread.sleep(100);
       dagStatus = dagClient.getDAGStatus(null);

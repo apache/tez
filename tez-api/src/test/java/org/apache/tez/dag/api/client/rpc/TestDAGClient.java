@@ -19,6 +19,7 @@
 package org.apache.tez.dag.api.client.rpc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -29,11 +30,9 @@ import java.io.IOException;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
@@ -198,7 +197,7 @@ public class TestDAGClient {
   
   @Test
   public void testApp() throws IOException, TezException, ServiceException{
-    assertEquals(mockAppId, dagClient.getApplicationId());
+    assertTrue(dagClient.getExecutionContext().contains(mockAppId.toString()));
     assertEquals(mockAppReport, dagClient.getApplicationReportInternal());
   }
   

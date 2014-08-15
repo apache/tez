@@ -146,7 +146,7 @@ public class TestTezClient {
         new Vertex("Vertex", new ProcessorDescriptor("P"), 1, Resource.newInstance(1, 1)));
     DAGClient dagClient = client.submitDAG(dag);
     
-    Assert.assertEquals(client.mockAppId, dagClient.getApplicationId());
+    Assert.assertTrue(dagClient.getExecutionContext().contains(client.mockAppId.toString()));
     
     if (isSession) {
       verify(client.mockYarnClient, times(1)).submitApplication(captor.capture());
@@ -183,7 +183,7 @@ public class TestTezClient {
     if (isSession) {
       // same app master
       verify(client.mockYarnClient, times(1)).submitApplication(captor.capture());
-      Assert.assertEquals(client.mockAppId, dagClient.getApplicationId());
+      Assert.assertTrue(dagClient.getExecutionContext().contains(client.mockAppId.toString()));
       // additional resource is sent
       ArgumentCaptor<SubmitDAGRequestProto> captor1 = ArgumentCaptor.forClass(SubmitDAGRequestProto.class);
       verify(client.sessionAmProxy, times(2)).submitDAG((RpcController)any(), captor1.capture());
@@ -192,7 +192,7 @@ public class TestTezClient {
       Assert.assertEquals(lrName2, proto.getAdditionalAmResources().getLocalResources(0).getName());
     } else {
       // new app master
-      Assert.assertEquals(appId2, dagClient.getApplicationId());
+      Assert.assertTrue(dagClient.getExecutionContext().contains(appId2.toString()));
       verify(client.mockYarnClient, times(2)).submitApplication(captor.capture());
       // additional resource is added
       ApplicationSubmissionContext context = captor.getValue();
