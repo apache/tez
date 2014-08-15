@@ -131,8 +131,8 @@ public class TestShuffleVertexManager {
             final UserPayload userPayload = entry.getValue().getUserPayload();
             EdgeManagerPluginContext emContext = new EdgeManagerPluginContext() {
               @Override
-              public byte[] getUserPayload() {
-                return userPayload == null ? null : userPayload.getPayload();
+              public UserPayload getUserPayload() {
+                return userPayload == null ? null : userPayload;
               }
 
               @Override

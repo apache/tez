@@ -89,7 +89,7 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
 
   @Override
   public UserPayload getOutputPayload() {
-    return new UserPayload(outputConf.toByteArray());
+    return outputConf.toUserPayload();
   }
 
   @Override
@@ -99,7 +99,7 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
 
   @Override
   public UserPayload getInputPayload() {
-    return new UserPayload(inputConf.toByteArray());
+    return inputConf.toUserPayload();
   }
 
   @Override

@@ -62,6 +62,7 @@ INCOMPATIBLE CHANGES
   TEZ-1388. mvn site is slow and generates errors
   TEZ-1432. Rename property to cancel delegation tokens on app completion (tez.am.am.complete.cancel.delegation.tokens)
   TEZ-1320. Remove getApplicationId from DAGClient
+  TEZ-1427. Change remaining classes that are using byte[] to UserPayload
 
 Release 0.4.0-incubating: 2014-04-05
 

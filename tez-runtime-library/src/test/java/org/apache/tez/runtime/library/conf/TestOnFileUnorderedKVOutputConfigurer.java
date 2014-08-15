@@ -75,11 +75,9 @@ public class TestOnFileUnorderedKVOutputConfigurer {
 
     OnFileUnorderedKVOutputConfigurer configuration = builder.build();
 
-
-    byte[] confBytes = configuration.toByteArray();
     OnFileUnorderedKVOutputConfigurer rebuilt =
         new OnFileUnorderedKVOutputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 
@@ -111,10 +109,9 @@ public class TestOnFileUnorderedKVOutputConfigurer {
             .newBuilder("KEY", "VALUE");
     OnFileUnorderedKVOutputConfigurer configuration = builder.build();
 
-    byte[] confBytes = configuration.toByteArray();
     OnFileUnorderedKVOutputConfigurer rebuilt =
         new OnFileUnorderedKVOutputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 

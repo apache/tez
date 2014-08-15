@@ -30,7 +30,6 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
@@ -185,7 +184,7 @@ public class TestLocalMode {
   private DAG createSimpleDAG(String dagName, String processorName) {
     DAG dag = new DAG(dagName).addVertex(new Vertex("Sleep", new ProcessorDescriptor(
         processorName).setUserPayload(
-        new UserPayload(new SleepProcessor.SleepProcessorConfig(1).toUserPayload())), 1));
+        new SleepProcessor.SleepProcessorConfig(1).toUserPayload()), 1));
     return dag;
 
   }

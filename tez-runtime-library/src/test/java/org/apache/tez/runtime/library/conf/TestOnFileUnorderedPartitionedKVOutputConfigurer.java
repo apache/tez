@@ -87,11 +87,9 @@ public class TestOnFileUnorderedPartitionedKVOutputConfigurer {
 
     OnFileUnorderedPartitionedKVOutputConfigurer configuration = builder.build();
 
-
-    byte[] confBytes = configuration.toByteArray();
     OnFileUnorderedPartitionedKVOutputConfigurer rebuilt =
         new OnFileUnorderedPartitionedKVOutputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 
@@ -129,10 +127,9 @@ public class TestOnFileUnorderedPartitionedKVOutputConfigurer {
             .setValueSerializationClass("SerClass2");
     OnFileUnorderedPartitionedKVOutputConfigurer configuration = builder.build();
 
-    byte[] confBytes = configuration.toByteArray();
     OnFileUnorderedPartitionedKVOutputConfigurer rebuilt =
         new OnFileUnorderedPartitionedKVOutputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 
@@ -165,10 +162,9 @@ public class TestOnFileUnorderedPartitionedKVOutputConfigurer {
 
     OnFileUnorderedPartitionedKVOutputConfigurer configuration = builder.build();
 
-    byte[] confBytes = configuration.toByteArray();
     OnFileUnorderedPartitionedKVOutputConfigurer rebuilt =
         new OnFileUnorderedPartitionedKVOutputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 

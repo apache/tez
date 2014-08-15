@@ -68,15 +68,12 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
 
     UnorderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload().getPayload();
-    byte[] inputBytes = configuration.getInputPayload().getPayload();
-
     OnFileUnorderedPartitionedKVOutputConfigurer rebuiltOutput =
         new OnFileUnorderedPartitionedKVOutputConfigurer();
-    rebuiltOutput.fromByteArray(outputBytes);
+    rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
     ShuffledUnorderedKVInputConfigurer rebuiltInput =
         new ShuffledUnorderedKVInputConfigurer();
-    rebuiltInput.fromByteArray(inputBytes);
+    rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
     assertEquals(true, outputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
@@ -103,15 +100,12 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
 
     UnorderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload().getPayload();
-    byte[] inputBytes = configuration.getInputPayload().getPayload();
-
     OnFileUnorderedPartitionedKVOutputConfigurer rebuiltOutput =
         new OnFileUnorderedPartitionedKVOutputConfigurer();
-    rebuiltOutput.fromByteArray(outputBytes);
+    rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
     ShuffledUnorderedKVInputConfigurer rebuiltInput =
         new ShuffledUnorderedKVInputConfigurer();
-    rebuiltInput.fromByteArray(inputBytes);
+    rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
     assertEquals("TestCodec",
@@ -150,15 +144,12 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
 
     UnorderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload().getPayload();
-    byte[] inputBytes = configuration.getInputPayload().getPayload();
-
     OnFileUnorderedPartitionedKVOutputConfigurer rebuiltOutput =
         new OnFileUnorderedPartitionedKVOutputConfigurer();
-    rebuiltOutput.fromByteArray(outputBytes);
+    rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
     ShuffledUnorderedKVInputConfigurer rebuiltInput =
         new ShuffledUnorderedKVInputConfigurer();
-    rebuiltInput.fromByteArray(inputBytes);
+    rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
     Configuration inputConf = rebuiltInput.conf;

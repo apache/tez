@@ -76,10 +76,8 @@ public class TestShuffledUnorderedKVInputConfigurer {
 
     ShuffledUnorderedKVInputConfigurer configuration = builder.build();
 
-
-    byte[] confBytes = configuration.toByteArray();
     ShuffledUnorderedKVInputConfigurer rebuilt = new ShuffledUnorderedKVInputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 
@@ -114,9 +112,8 @@ public class TestShuffledUnorderedKVInputConfigurer {
         ShuffledUnorderedKVInputConfigurer.newBuilder("KEY", "VALUE");
     ShuffledUnorderedKVInputConfigurer configuration = builder.build();
 
-    byte[] confBytes = configuration.toByteArray();
     ShuffledUnorderedKVInputConfigurer rebuilt = new ShuffledUnorderedKVInputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 

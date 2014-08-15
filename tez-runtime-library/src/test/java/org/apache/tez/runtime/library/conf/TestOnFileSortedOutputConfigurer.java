@@ -86,10 +86,8 @@ public class TestOnFileSortedOutputConfigurer {
 
     OnFileSortedOutputConfigurer configuration = builder.build();
 
-
-    byte[] confBytes = configuration.toByteArray();
     OnFileSortedOutputConfigurer rebuilt = new OnFileSortedOutputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 
@@ -125,9 +123,8 @@ public class TestOnFileSortedOutputConfigurer {
         OnFileSortedOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null);
     OnFileSortedOutputConfigurer configuration = builder.build();
 
-    byte[] confBytes = configuration.toByteArray();
     OnFileSortedOutputConfigurer rebuilt = new OnFileSortedOutputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 
@@ -155,9 +152,8 @@ public class TestOnFileSortedOutputConfigurer {
 
     OnFileSortedOutputConfigurer configuration = builder.build();
 
-    byte[] confBytes = configuration.toByteArray();
     OnFileSortedOutputConfigurer rebuilt = new OnFileSortedOutputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 
@@ -180,9 +176,8 @@ public class TestOnFileSortedOutputConfigurer {
 
     OnFileSortedOutputConfigurer configuration = builder.build();
 
-    byte[] confBytes = configuration.toByteArray();
     OnFileSortedOutputConfigurer rebuilt = new OnFileSortedOutputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 

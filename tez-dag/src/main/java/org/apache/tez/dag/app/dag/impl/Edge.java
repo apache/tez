@@ -63,8 +63,8 @@ public class Edge {
     }
 
     @Override
-    public byte[] getUserPayload() {
-      return userPayload.getPayload();
+    public UserPayload getUserPayload() {
+      return userPayload;
     }
 
     @Override

@@ -110,8 +110,8 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
       this.timeToSleepMS = timeToSleepMS;
     }
 
-    public byte[] toUserPayload() {
-      return Integer.toString(timeToSleepMS).getBytes();
+    public UserPayload toUserPayload() {
+      return new UserPayload(Integer.toString(timeToSleepMS).getBytes());
     }
 
     public void fromUserPayload(UserPayload userPayload) {

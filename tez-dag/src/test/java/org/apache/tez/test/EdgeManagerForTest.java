@@ -23,12 +23,13 @@ import java.util.Map;
 
 import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
 public class EdgeManagerForTest extends EdgeManagerPlugin {
 
-  private byte[] userPayload;
+  private UserPayload userPayload;
 
   public EdgeManagerForTest(EdgeManagerPluginContext context) {
     super(context);
@@ -38,7 +39,7 @@ public class EdgeManagerForTest extends EdgeManagerPlugin {
     return getContext();
   }
 
-  public byte[] getUserPayload() {
+  public UserPayload getUserPayload() {
     return userPayload;
   }
 

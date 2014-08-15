@@ -32,9 +32,9 @@ public interface EdgeManagerPluginContext {
   
   /**
    * Returns the payload specified by the user for the edge.
-   * @return the payload specified by the user
+   * @return the {@link org.apache.tez.dag.api.UserPayload} specified by the user
    */
-  public byte[] getUserPayload();
+  public UserPayload getUserPayload();
   
   /**
    * Returns the source vertex name 

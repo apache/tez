@@ -67,13 +67,10 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload().getPayload();
-    byte[] inputBytes = configuration.getInputPayload().getPayload();
-
     OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
-    rebuiltOutput.fromByteArray(outputBytes);
+    rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
     ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
-    rebuiltInput.fromByteArray(inputBytes);
+    rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
     assertEquals(true, outputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
@@ -96,13 +93,10 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload().getPayload();
-    byte[] inputBytes = configuration.getInputPayload().getPayload();
-
     OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
-    rebuiltOutput.fromByteArray(outputBytes);
+    rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
     ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
-    rebuiltInput.fromByteArray(inputBytes);
+    rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
     assertEquals("TestCodec",
@@ -141,13 +135,10 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload().getPayload();
-    byte[] inputBytes = configuration.getInputPayload().getPayload();
-
     OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
-    rebuiltOutput.fromByteArray(outputBytes);
+    rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
     ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
-    rebuiltInput.fromByteArray(inputBytes);
+    rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
     Configuration inputConf = rebuiltInput.conf;
@@ -199,13 +190,10 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload().getPayload();
-    byte[] inputBytes = configuration.getInputPayload().getPayload();
-
     OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
-    rebuiltOutput.fromByteArray(outputBytes);
+    rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
     ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
-    rebuiltInput.fromByteArray(inputBytes);
+    rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
     Configuration inputConf = rebuiltInput.conf;
@@ -262,13 +250,10 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    byte[] outputBytes = configuration.getOutputPayload().getPayload();
-    byte[] inputBytes = configuration.getInputPayload().getPayload();
-
     OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
-    rebuiltOutput.fromByteArray(outputBytes);
+    rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
     ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
-    rebuiltInput.fromByteArray(inputBytes);
+    rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
     Configuration inputConf = rebuiltInput.conf;

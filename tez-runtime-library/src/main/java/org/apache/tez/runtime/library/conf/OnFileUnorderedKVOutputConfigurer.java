@@ -105,21 +105,21 @@ public class OnFileUnorderedKVOutputConfigurer {
   }
 
   /**
-   * Get a byte array representation of the configuration
-   * @return a byte array which can be used as the payload
+   * Get a UserPayload representation of the Configuration
+   * @return a {@link org.apache.tez.dag.api.UserPayload} instance
    */
-  public byte[] toByteArray() {
+  public UserPayload toUserPayload() {
     try {
-      return TezUtils.createUserPayloadFromConf(conf).getPayload();
+      return TezUtils.createUserPayloadFromConf(conf);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
   @InterfaceAudience.Private
-  public void fromByteArray(byte[] payload) {
+  public void fromUserPayload(UserPayload payload) {
     try {
-      this.conf = TezUtils.createConfFromUserPayload(new UserPayload(payload));
+      this.conf = TezUtils.createConfFromUserPayload(payload);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

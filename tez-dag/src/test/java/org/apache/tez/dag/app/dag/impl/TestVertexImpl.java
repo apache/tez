@@ -1922,7 +1922,7 @@ public class TestVertexImpl {
     EdgeManagerPlugin em = edge.getEdgeManager();
     EdgeManagerForTest originalEm = (EdgeManagerForTest) em;
     Assert.assertTrue(Arrays.equals(edgePayload, originalEm.getEdgeManagerContext()
-        .getUserPayload()));
+        .getUserPayload().getPayload()));
 
     UserPayload userPayload = new UserPayload(new String("foo").getBytes());
     EdgeManagerPluginDescriptor edgeManagerDescriptor =
@@ -1947,7 +1947,7 @@ public class TestVertexImpl {
 
     // Ensure initialize() is called with the correct payload
     Assert.assertTrue(Arrays.equals(userPayload.getPayload(),
-        ((EdgeManagerForTest) modifiedEdgeManager).getUserPayload()));
+        ((EdgeManagerForTest) modifiedEdgeManager).getUserPayload().getPayload()));
   }
 
   @SuppressWarnings("unchecked")

@@ -80,9 +80,8 @@ public class TestShuffledMergedInputConfigurer {
     ShuffledMergedInputConfigurer configuration = builder.build();
 
 
-    byte[] confBytes = configuration.toByteArray();
     ShuffledMergedInputConfigurer rebuilt = new ShuffledMergedInputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 
@@ -118,9 +117,8 @@ public class TestShuffledMergedInputConfigurer {
         ShuffledMergedInputConfigurer.newBuilder("KEY", "VALUE");
     ShuffledMergedInputConfigurer configuration = builder.build();
 
-    byte[] confBytes = configuration.toByteArray();
     ShuffledMergedInputConfigurer rebuilt = new ShuffledMergedInputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 
@@ -148,9 +146,8 @@ public class TestShuffledMergedInputConfigurer {
 
     ShuffledMergedInputConfigurer configuration = builder.build();
 
-    byte[] confBytes = configuration.toByteArray();
     ShuffledMergedInputConfigurer rebuilt = new ShuffledMergedInputConfigurer();
-    rebuilt.fromByteArray(confBytes);
+    rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
 

@@ -144,9 +144,9 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     @Override
     public void initialize() {
       // Nothing to do. This class isn't currently designed to be used at the DAG API level.
-      byte[] userPayload = getContext().getUserPayload();
-      if (userPayload == null
-        || userPayload.length == 0) {
+      UserPayload userPayload = getContext().getUserPayload();
+      if (userPayload == null || userPayload.getPayload() == null ||
+          userPayload.getPayload().length == 0) {
         throw new RuntimeException("Could not initialize CustomShuffleEdgeManager"
             + " from provided user payload");
       }
@@ -275,20 +275,20 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       this.numSourceTasks = numSourceTasks;
     }
 
-    public byte[] toUserPayload() {
-      return ShuffleEdgeManagerConfigPayloadProto.newBuilder()
+    public UserPayload toUserPayload() {
+      return new UserPayload(ShuffleEdgeManagerConfigPayloadProto.newBuilder()
           .setNumSourceTaskOutputs(numSourceTaskOutputs)
           .setNumDestinationTasks(numDestinationTasks)
           .setBasePartitionRange(basePartitionRange)
           .setRemainderRangeForLastShuffler(remainderRangeForLastShuffler)
           .setNumSourceTasks(numSourceTasks)
-          .build().toByteArray();
+          .build().toByteArray());
     }
 
     public static CustomShuffleEdgeManagerConfig fromUserPayload(
-        byte[] userPayload) throws InvalidProtocolBufferException {
+        UserPayload payload) throws InvalidProtocolBufferException {
       ShuffleEdgeManagerConfigPayloadProto proto =
-          ShuffleEdgeManagerConfigPayloadProto.parseFrom(userPayload);
+          ShuffleEdgeManagerConfigPayloadProto.parseFrom(payload.getPayload());
       return new CustomShuffleEdgeManagerConfig(
           proto.getNumSourceTaskOutputs(),
           proto.getNumDestinationTasks(),
@@ -437,7 +437,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
                     remainderRangeForLastShuffler : basePartitionRange));
         EdgeManagerPluginDescriptor edgeManagerDescriptor =
             new EdgeManagerPluginDescriptor(CustomShuffleEdgeManager.class.getName());
-        edgeManagerDescriptor.setUserPayload(new UserPayload(edgeManagerConfig.toUserPayload()));
+        edgeManagerDescriptor.setUserPayload(edgeManagerConfig.toUserPayload());
         edgeManagers.put(vertex, edgeManagerDescriptor);
       }
       
