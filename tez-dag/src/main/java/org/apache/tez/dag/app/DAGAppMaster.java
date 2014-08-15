@@ -304,7 +304,7 @@ public class DAGAppMaster extends AbstractService {
        UserGroupInformation.setConfiguration(conf);
        appMasterUgi = UserGroupInformation.getCurrentUser();
     }
-    conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
+    conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, !isLocal);
     String strAppId = this.appAttemptID.getApplicationId().toString();
     this.tezSystemStagingDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
 
@@ -447,7 +447,9 @@ public class DAGAppMaster extends AbstractService {
    * Exit call. Just in a function call to enable testing.
    */
   protected void sysexit() {
-    System.exit(0);
+    if (!isLocal) {
+      System.exit(0);
+    }
   }
 
   private synchronized void handle(DAGAppMasterEvent event) {
@@ -610,7 +612,7 @@ public class DAGAppMaster extends AbstractService {
         if (!immediateShutdown) {
           try {
             LOG.info("Sleeping for 5 seconds before shutting down");
-            Thread.sleep(5000);
+            Thread.sleep(TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT);
           } catch (InterruptedException e) {
             e.printStackTrace();
           }

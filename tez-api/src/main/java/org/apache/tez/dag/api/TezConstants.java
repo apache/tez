@@ -101,4 +101,6 @@ public class TezConstants {
    * such as killing the DAG.
    */
   public static final String TEZ_DAG_MODIFY_ACLS = TezConfiguration.TEZ_AM_PREFIX + "dag.modify-acls";
+
+  public static final long TEZ_DAG_SLEEP_TIME_BEFORE_EXIT = 5000;
 }

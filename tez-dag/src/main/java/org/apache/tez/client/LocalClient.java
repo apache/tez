@@ -26,6 +26,7 @@ import java.util.List;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -139,6 +140,8 @@ public class LocalClient extends FrameworkClient {
     report.setRpcPort(dagAppMaster.getRpcPort());
     report.setClientToAMToken(null);
     report.setYarnApplicationState(convertDAGAppMasterState(dagAppMaster.getState()));
+    report.setFinalApplicationStatus(convertDAGAppMasterStateToFinalYARNState(dagAppMaster.getState()));
+
 
     List<String> diagnostics = dagAppMaster.getDiagnostics();
     if (diagnostics != null) {
@@ -146,13 +149,34 @@ public class LocalClient extends FrameworkClient {
     }
     report.setTrackingUrl("N/A");
     report.setFinishTime(0);
-    report.setFinalApplicationStatus(null);
     report.setApplicationResourceUsageReport(null);
     report.setOriginalTrackingUrl("N/A");
     report.setProgress(dagAppMaster.getProgress());
     report.setAMRMToken(null);
 
     return report;
+  }
+
+  protected FinalApplicationStatus convertDAGAppMasterStateToFinalYARNState(
+      DAGAppMasterState dagAppMasterState) {
+    switch (dagAppMasterState) {
+      case NEW:
+      case INITED:
+      case RECOVERING:
+      case IDLE:
+      case RUNNING:
+        return FinalApplicationStatus.UNDEFINED;
+      case SUCCEEDED:
+        return FinalApplicationStatus.SUCCEEDED;
+      case FAILED:
+        return FinalApplicationStatus.FAILED;
+      case KILLED:
+        return FinalApplicationStatus.KILLED;
+      case ERROR:
+        return FinalApplicationStatus.FAILED;
+      default:
+        return FinalApplicationStatus.UNDEFINED;
+    }
   }
 
   protected YarnApplicationState convertDAGAppMasterState(DAGAppMasterState dagAppMasterState) {
