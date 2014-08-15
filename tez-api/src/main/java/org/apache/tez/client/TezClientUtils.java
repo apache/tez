@@ -654,8 +654,8 @@ public class TezClientUtils {
     }
     appContext.setApplicationName(amName);
     appContext.setCancelTokensWhenComplete(amConfig.getTezConfiguration().getBoolean(
-        TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN,
-        TezConfiguration.TEZ_AM_CANCEL_DELEGATION_TOKEN_DEFAULT));
+        TezConfiguration.TEZ_CANCEL_DELEGATION_TOKENS_ON_COMPLETION,
+        TezConfiguration.TEZ_CANCEL_DELEGATION_TOKENS_ON_COMPLETION_DEFAULT));
     appContext.setAMContainerSpec(amContainer);
 
     appContext.setMaxAppAttempts(

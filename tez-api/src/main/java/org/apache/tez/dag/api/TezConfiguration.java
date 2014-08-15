@@ -125,9 +125,9 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_LAUNCH_ENV_DEFAULT = "";
 
   @Private
-  public static final String TEZ_AM_CANCEL_DELEGATION_TOKEN = TEZ_AM_PREFIX +
-      "am.complete.cancel.delegation.tokens";
-  public static final boolean TEZ_AM_CANCEL_DELEGATION_TOKEN_DEFAULT = true;
+  public static final String TEZ_CANCEL_DELEGATION_TOKENS_ON_COMPLETION = TEZ_PREFIX +
+      "cancel.delegation.tokens.on.completion";
+  public static final boolean TEZ_CANCEL_DELEGATION_TOKENS_ON_COMPLETION_DEFAULT = true;
 
   public static final String TEZ_AM_TASK_LISTENER_THREAD_COUNT =
       TEZ_AM_PREFIX + "task.listener.thread-count";
