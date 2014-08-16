@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.processor;
+package org.apache.tez.mapreduce.examples.processor;
 
 import java.util.List;
 

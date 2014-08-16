@@ -428,47 +428,6 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_USE_CLUSTER_HADOOP_LIBS = TEZ_PREFIX + "use.cluster.hadoop-libs";
   public static final boolean TEZ_USE_CLUSTER_HADOOP_LIBS_DEFAULT = false;
 
-  // TODO move this to TEZGrouper which is in runtime-library
-  public static final String TEZ_AM_GROUPING_SPLIT_COUNT = TEZ_AM_PREFIX +
-      "grouping.split-count";
-  public static final String TEZ_AM_GROUPING_SPLIT_BY_LENGTH = TEZ_AM_PREFIX + 
-      "grouping.by-length";
-  public static final boolean TEZ_AM_GROUPING_SPLIT_BY_LENGTH_DEFAULT = true;
-  public static final String TEZ_AM_GROUPING_SPLIT_BY_COUNT = TEZ_AM_PREFIX + 
-      "grouping.by-count";
-  public static final boolean TEZ_AM_GROUPING_SPLIT_BY_COUNT_DEFAULT = false;
-  
-  /**
-   * The multiplier for available queue capacity when determining number of
-   * tasks for a Vertex. 1.7 with 100% queue available implies generating a
-   * number of tasks roughly equal to 170% of the available containers on the
-   * queue
-   */
-  public static final String TEZ_AM_GROUPING_SPLIT_WAVES = TEZ_AM_PREFIX +
-      "grouping.split-waves";
-  public static float TEZ_AM_GROUPING_SPLIT_WAVES_DEFAULT = 1.5f;
-  
-  /**
-   * Upper bound on the size (in bytes) of a grouped split, to avoid generating excessively large splits.
-   */
-  public static final String TEZ_AM_GROUPING_SPLIT_MAX_SIZE = TEZ_AM_PREFIX +
-      "grouping.max-size";
-  public static long TEZ_AM_GROUPING_SPLIT_MAX_SIZE_DEFAULT = 
-      1024*1024*1024L;
-
-  /**
-   * Lower bound on the size (in bytes) of a grouped split, to avoid generating too many splits.
-   */
-  public static final String TEZ_AM_GROUPING_SPLIT_MIN_SIZE = TEZ_AM_PREFIX +
-      "grouping.min-size";
-  public static long TEZ_AM_GROUPING_SPLIT_MIN_SIZE_DEFAULT = 
-      50*1024*1024L;
-
-  public static final String TEZ_AM_GROUPING_RACK_SPLIT_SIZE_REDUCTION = 
-      TEZ_AM_PREFIX + "grouping.rack-split-reduction";
-  public static final float TEZ_AM_GROUPING_RACK_SPLIT_SIZE_REDUCTION_DEFAULT = 0.75f;
-
-
   /**
    * Session-related properties
    */

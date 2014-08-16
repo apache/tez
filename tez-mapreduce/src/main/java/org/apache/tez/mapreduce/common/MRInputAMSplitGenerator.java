@@ -29,6 +29,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapreduce.split.TezMapReduceSplitsGrouper;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -102,8 +103,8 @@ public class MRInputAMSplitGenerator extends InputInitializer {
     int totalResource = getContext().getTotalAvailableResource().getMemory();
     int taskResource = getContext().getVertexTaskResource().getMemory();
     float waves = conf.getFloat(
-        TezConfiguration.TEZ_AM_GROUPING_SPLIT_WAVES,
-        TezConfiguration.TEZ_AM_GROUPING_SPLIT_WAVES_DEFAULT);
+        TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_WAVES,
+        TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_WAVES_DEFAULT);
 
     int numTasks = (int)((totalResource*waves)/taskResource);
 

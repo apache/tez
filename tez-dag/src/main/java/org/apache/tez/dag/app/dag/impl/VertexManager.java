@@ -20,7 +20,6 @@ package org.apache.tez.dag.app.dag.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -31,13 +30,11 @@ import javax.annotation.Nullable;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.ReflectionUtils;
-import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
@@ -224,15 +221,6 @@ public class VertexManager {
       plugin = ReflectionUtils.createClazzInstance(pluginDesc.getClassName(),
           new Class[]{VertexManagerPluginContext.class}, new Object[]{pluginContext});
       payload = pluginDesc.getUserPayload();
-    }
-    if (payload == null || payload.getPayload() == null) {
-      // Ease of use. If no payload present then give the common configuration
-      // TODO TEZ-744 Don't do this - AMConf should not be used to configure vertexManagers.
-      try {
-        payload = TezUtils.createUserPayloadFromConf(appContext.getAMConf());
-      } catch (IOException e) {
-        throw new TezUncheckedException(e);
-      }
     }
     plugin.initialize();
   }

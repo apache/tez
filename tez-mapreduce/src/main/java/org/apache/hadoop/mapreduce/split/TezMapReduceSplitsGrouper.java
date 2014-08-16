@@ -33,7 +33,6 @@ import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.yarn.util.RackResolver;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 
 import com.google.common.base.Preconditions;
@@ -47,7 +46,57 @@ import com.google.common.base.Preconditions;
 @Evolving
 public class TezMapReduceSplitsGrouper {
   private static final Log LOG = LogFactory.getLog(TezMapReduceSplitsGrouper.class);
-  
+
+  /**
+   * Specify the number of splits desired to be created
+   */
+  public static final String TEZ_GROUPING_SPLIT_COUNT = "tez.grouping.split-count";
+  /**
+   * Limit the number of splits in a group by the total length of the splits in the group
+   */
+  public static final String TEZ_GROUPING_SPLIT_BY_LENGTH = "tez.grouping.by-length";
+  public static final boolean TEZ_GROUPING_SPLIT_BY_LENGTH_DEFAULT = true;
+  /**
+   * Limit the number of splits in a group by the number of splits in the group
+   */
+  public static final String TEZ_GROUPING_SPLIT_BY_COUNT = "tez.grouping.by-count";
+  public static final boolean TEZ_GROUPING_SPLIT_BY_COUNT_DEFAULT = false;
+
+  /**
+   * The multiplier for available queue capacity when determining number of
+   * tasks for a Vertex. 1.7 with 100% queue available implies generating a
+   * number of tasks roughly equal to 170% of the available containers on the
+   * queue. This enables multiple waves of mappers where the final wave is slightly smaller
+   * than the remaining waves. The gap helps overlap the final wave with any slower tasks
+   * from previous waves and tries to hide the delays from the slower tasks. Good values for 
+   * this are 1.7, 2.7, 3.7 etc. Increase the number of waves to make the tasks smaller or
+   * shorter.
+   */
+  public static final String TEZ_GROUPING_SPLIT_WAVES = "tez.grouping.split-waves";
+  public static float TEZ_GROUPING_SPLIT_WAVES_DEFAULT = 1.7f;
+
+  /**
+   * Upper bound on the size (in bytes) of a grouped split, to avoid generating excessively large splits.
+   */
+  public static final String TEZ_GROUPING_SPLIT_MAX_SIZE = "tez.grouping.max-size";
+  public static long TEZ_GROUPING_SPLIT_MAX_SIZE_DEFAULT = 1024*1024*1024L;
+
+  /**
+   * Lower bound on the size (in bytes) of a grouped split, to avoid generating too many small splits.
+   */
+  public static final String TEZ_GROUPING_SPLIT_MIN_SIZE = "tez.grouping.min-size";
+  public static long TEZ_GROUPING_SPLIT_MIN_SIZE_DEFAULT = 50*1024*1024L;
+
+  /**
+   * This factor is used to decrease the per group desired (length and count) limits for groups
+   * created by combining splits within a rack. Since reading this split involves reading data intra
+   * rack, the group is made smaller to cover up for the increased latencies in doing intra rack 
+   * reads. The value should be a fraction <= 1.
+   */
+  public static final String TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION = 
+                                              "tez.grouping.rack-split-reduction";
+  public static final float TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION_DEFAULT = 0.75f;
+
   class SplitHolder {
     InputSplit split;
     boolean isProcessed = false;
@@ -85,7 +134,7 @@ public class TezMapReduceSplitsGrouper {
       String wrappedInputFormatName) throws IOException, InterruptedException {
     LOG.info("Grouping splits in Tez");
 
-    int configNumSplits = conf.getInt(TezConfiguration.TEZ_AM_GROUPING_SPLIT_COUNT, 0);
+    int configNumSplits = conf.getInt(TEZ_GROUPING_SPLIT_COUNT, 0);
     if (configNumSplits > 0) {
       // always use config override if specified
       desiredNumSplits = configNumSplits;
@@ -109,11 +158,11 @@ public class TezMapReduceSplitsGrouper {
       long lengthPerGroup = totalLength/splitCount;
 
       long maxLengthPerGroup = conf.getLong(
-          TezConfiguration.TEZ_AM_GROUPING_SPLIT_MAX_SIZE,
-          TezConfiguration.TEZ_AM_GROUPING_SPLIT_MAX_SIZE_DEFAULT);
+          TEZ_GROUPING_SPLIT_MAX_SIZE,
+          TEZ_GROUPING_SPLIT_MAX_SIZE_DEFAULT);
       long minLengthPerGroup = conf.getLong(
-          TezConfiguration.TEZ_AM_GROUPING_SPLIT_MIN_SIZE,
-          TezConfiguration.TEZ_AM_GROUPING_SPLIT_MIN_SIZE_DEFAULT);
+          TEZ_GROUPING_SPLIT_MIN_SIZE,
+          TEZ_GROUPING_SPLIT_MIN_SIZE_DEFAULT);
       if (maxLengthPerGroup < minLengthPerGroup || 
           minLengthPerGroup <=0) {
         throw new TezUncheckedException(
@@ -215,16 +264,16 @@ public class TezMapReduceSplitsGrouper {
     }
     
     boolean groupByLength = conf.getBoolean(
-        TezConfiguration.TEZ_AM_GROUPING_SPLIT_BY_LENGTH,
-        TezConfiguration.TEZ_AM_GROUPING_SPLIT_BY_LENGTH_DEFAULT);
+        TEZ_GROUPING_SPLIT_BY_LENGTH,
+        TEZ_GROUPING_SPLIT_BY_LENGTH_DEFAULT);
     boolean groupByCount = conf.getBoolean(
-        TezConfiguration.TEZ_AM_GROUPING_SPLIT_BY_COUNT,
-        TezConfiguration.TEZ_AM_GROUPING_SPLIT_BY_COUNT_DEFAULT);
+        TEZ_GROUPING_SPLIT_BY_COUNT,
+        TEZ_GROUPING_SPLIT_BY_COUNT_DEFAULT);
     if (!(groupByLength || groupByCount)) {
       throw new TezUncheckedException(
           "None of the grouping parameters are true: "
-              + TezConfiguration.TEZ_AM_GROUPING_SPLIT_BY_LENGTH + ", "
-              + TezConfiguration.TEZ_AM_GROUPING_SPLIT_BY_COUNT);
+              + TEZ_GROUPING_SPLIT_BY_LENGTH + ", "
+              + TEZ_GROUPING_SPLIT_BY_COUNT);
     }
     LOG.info("Desired numSplits: " + desiredNumSplits +
         " lengthPerGroup: " + lengthPerGroup +
@@ -379,8 +428,8 @@ public class TezMapReduceSplitsGrouper {
         distinctLocations = rackLocations;
         // adjust split length to be smaller because the data is non local
         float rackSplitReduction = conf.getFloat(
-            TezConfiguration.TEZ_AM_GROUPING_RACK_SPLIT_SIZE_REDUCTION,
-            TezConfiguration.TEZ_AM_GROUPING_RACK_SPLIT_SIZE_REDUCTION_DEFAULT);
+            TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION,
+            TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION_DEFAULT);
         if (rackSplitReduction > 0) {
           long newLengthPerGroup = (long)(lengthPerGroup*rackSplitReduction);
           int newNumSplitsInGroup = (int) (numSplitsInGroup*rackSplitReduction);
@@ -424,6 +473,73 @@ public class TezMapReduceSplitsGrouper {
         " created: " + groupedSplits.size() + 
         " splitsProcessed: " + splitsProcessed);
     return groupedSplits;
+  }
+  
+  /**
+   * Builder that can be used to configure grouping in Tez
+   * 
+   * @param conf
+   *          {@link Configuration} This will be modified in place. If
+   *          configuration values may be changed at runtime via a config file
+   *          then pass in a {@link Configuration} that is initialized from a
+   *          config file. The parameters that are not overridden in code will
+   *          be derived from the Configuration object.
+   * @return {@link TezMRSplitsGrouperConfigurer}
+   */
+  public static TezMRSplitsGrouperConfigurer createConfigurer(Configuration conf) {
+    return new TezMRSplitsGrouperConfigurer(conf);
+  }  
+
+  public static final class TezMRSplitsGrouperConfigurer {
+    private final Configuration conf;
+
+    /**
+     * This configuration will be modified in place
+     */
+    private TezMRSplitsGrouperConfigurer(Configuration conf) {
+      if (conf == null) {
+        conf = new Configuration(false);
+      }
+      this.conf = conf;
+    }
+
+    public TezMRSplitsGrouperConfigurer setGroupSplitCount(int count) {
+      this.conf.setInt(TEZ_GROUPING_SPLIT_COUNT, count);
+      return this;
+    }
+
+    public TezMRSplitsGrouperConfigurer setGroupSplitByCount(boolean enabled) {
+      this.conf.setBoolean(TEZ_GROUPING_SPLIT_BY_COUNT, enabled);
+      return this;
+    }
+
+    public TezMRSplitsGrouperConfigurer setGroupSplitByLength(boolean enabled) {
+      this.conf.setBoolean(TEZ_GROUPING_SPLIT_BY_LENGTH, enabled);
+      return this;
+    }
+
+    public TezMRSplitsGrouperConfigurer setGroupSplitWaves(float multiplier) {
+      this.conf.setFloat(TEZ_GROUPING_SPLIT_WAVES, multiplier);
+      return this;
+    }
+
+    public TezMRSplitsGrouperConfigurer setGroupingRackSplitSizeReduction(float rackSplitSizeReduction) {
+      this.conf.setFloat(TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION, rackSplitSizeReduction);
+      return this;
+    }
+
+    /**
+     * upper and lower bounds for the splits
+     */
+    public TezMRSplitsGrouperConfigurer setGroupingSplitSize(long lowerBound, long upperBound) {
+      this.conf.setLong(TEZ_GROUPING_SPLIT_MIN_SIZE, lowerBound);
+      this.conf.setLong(TEZ_GROUPING_SPLIT_MAX_SIZE, upperBound);
+      return this;
+    }
+
+    public Configuration build() {
+      return this.conf;
+    }
   }
 
 }

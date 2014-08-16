@@ -32,8 +32,8 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapreduce.split.TezMapReduceSplitsGrouper;
 import org.apache.hadoop.yarn.util.RackResolver;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 
 import com.google.common.base.Preconditions;
@@ -85,7 +85,7 @@ public class TezMapredSplitsGrouper {
       String wrappedInputFormatName) throws IOException {
     LOG.info("Grouping splits in Tez");
 
-    int configNumSplits = conf.getInt(TezConfiguration.TEZ_AM_GROUPING_SPLIT_COUNT, 0);
+    int configNumSplits = conf.getInt(TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_COUNT, 0);
     if (configNumSplits > 0) {
       // always use config override if specified
       desiredNumSplits = configNumSplits;
@@ -108,11 +108,11 @@ public class TezMapredSplitsGrouper {
       long lengthPerGroup = totalLength/splitCount;
       
       long maxLengthPerGroup = conf.getLong(
-          TezConfiguration.TEZ_AM_GROUPING_SPLIT_MAX_SIZE,
-          TezConfiguration.TEZ_AM_GROUPING_SPLIT_MAX_SIZE_DEFAULT);
+          TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_MAX_SIZE,
+          TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_MAX_SIZE_DEFAULT);
       long minLengthPerGroup = conf.getLong(
-          TezConfiguration.TEZ_AM_GROUPING_SPLIT_MIN_SIZE,
-          TezConfiguration.TEZ_AM_GROUPING_SPLIT_MIN_SIZE_DEFAULT);
+          TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_MIN_SIZE,
+          TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_MIN_SIZE_DEFAULT);
       if (maxLengthPerGroup < minLengthPerGroup || 
           minLengthPerGroup <=0) {
         throw new TezUncheckedException(
@@ -218,16 +218,16 @@ public class TezMapredSplitsGrouper {
     }
     
     boolean groupByLength = conf.getBoolean(
-        TezConfiguration.TEZ_AM_GROUPING_SPLIT_BY_LENGTH,
-        TezConfiguration.TEZ_AM_GROUPING_SPLIT_BY_LENGTH_DEFAULT);
+        TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_BY_LENGTH,
+        TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_BY_LENGTH_DEFAULT);
     boolean groupByCount = conf.getBoolean(
-        TezConfiguration.TEZ_AM_GROUPING_SPLIT_BY_COUNT,
-        TezConfiguration.TEZ_AM_GROUPING_SPLIT_BY_COUNT_DEFAULT);
+        TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_BY_COUNT,
+        TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_BY_COUNT_DEFAULT);
     if (!(groupByLength || groupByCount)) {
       throw new TezUncheckedException(
           "None of the grouping parameters are true: "
-              + TezConfiguration.TEZ_AM_GROUPING_SPLIT_BY_LENGTH + ", "
-              + TezConfiguration.TEZ_AM_GROUPING_SPLIT_BY_COUNT);
+              + TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_BY_LENGTH + ", "
+              + TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_BY_COUNT);
     }
     LOG.info("Desired numSplits: " + desiredNumSplits +
         " lengthPerGroup: " + lengthPerGroup +
@@ -382,8 +382,8 @@ public class TezMapredSplitsGrouper {
         distinctLocations = rackLocations;
         // adjust split length to be smaller because the data is non local
         float rackSplitReduction = conf.getFloat(
-            TezConfiguration.TEZ_AM_GROUPING_RACK_SPLIT_SIZE_REDUCTION,
-            TezConfiguration.TEZ_AM_GROUPING_RACK_SPLIT_SIZE_REDUCTION_DEFAULT);
+            TezMapReduceSplitsGrouper.TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION,
+            TezMapReduceSplitsGrouper.TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION_DEFAULT);
         if (rackSplitReduction > 0) {
           long newLengthPerGroup = (long)(lengthPerGroup*rackSplitReduction);
           int newNumSplitsInGroup = (int) (numSplitsInGroup*rackSplitReduction);

@@ -55,6 +55,7 @@ import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
@@ -66,6 +67,7 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
@@ -1899,26 +1901,29 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info("Setting vertexManager to RootInputVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            new VertexManagerPluginDescriptor(RootInputVertexManager.class.getName()),
+            new VertexManagerPluginDescriptor(RootInputVertexManager.class.getName())
+            .setUserPayload(new UserPayload(null)),
             this, appContext);
       } else if (hasOneToOne && !hasCustom) {
         LOG.info("Setting vertexManager to InputReadyVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            new VertexManagerPluginDescriptor(InputReadyVertexManager.class.getName()),
+            new VertexManagerPluginDescriptor(InputReadyVertexManager.class.getName())
+            .setUserPayload(new UserPayload(null)),
             this, appContext);
       } else if (hasBipartite && !hasCustom) {
         LOG.info("Setting vertexManager to ShuffleVertexManager for "
             + logIdentifier);
-        vertexManager = new VertexManager(
-            new VertexManagerPluginDescriptor(ShuffleVertexManager.class.getName()),
+        // shuffle vertex manager needs a conf payload
+        vertexManager = new VertexManager(ShuffleVertexManager.createConfigurer(conf).build(),
             this, appContext);
       } else {
         // schedule all tasks upon vertex start. Default behavior.
         LOG.info("Setting vertexManager to ImmediateStartVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            new VertexManagerPluginDescriptor(ImmediateStartVertexManager.class.getName()),
+            new VertexManagerPluginDescriptor(ImmediateStartVertexManager.class.getName())
+            .setUserPayload(new UserPayload(null)),
             this, appContext);
       }
     }

@@ -40,6 +40,7 @@ import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
@@ -59,9 +60,9 @@ public class TestShuffleVertexManager {
   public void testShuffleVertexManagerAutoParallelism() throws IOException {
     Configuration conf = new Configuration();
     conf.setBoolean(
-        ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL,
+        ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL,
         true);
-    conf.setLong(ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE, 1000L);
+    conf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE, 1000L);
     ShuffleVertexManager manager = null;
     
     HashMap<String, EdgeProperty> mockInputVertices = 
@@ -98,7 +99,44 @@ public class TestShuffleVertexManager {
     when(mockContext.getInputVertexEdgeProperties()).thenReturn(mockInputVertices);
     when(mockContext.getVertexName()).thenReturn(mockManagedVertexId);
     when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(4);
-    
+
+    //Check via setters
+    ShuffleVertexManager.ShuffleVertexManagerConfigurer configurer = ShuffleVertexManager
+        .createConfigurer(null);
+    VertexManagerPluginDescriptor pluginDesc = configurer.setAutoReduceParallelism(true)
+        .setDesiredTaskInputSize(1000l)
+        .setMinTaskParallelism(10).setSlowStartMaxSrcCompletionFraction(0.5f).build();
+    when(mockContext.getUserPayload()).thenReturn(pluginDesc.getUserPayload());
+
+
+    manager = ReflectionUtils.createClazzInstance(pluginDesc.getClassName(),
+        new Class[]{VertexManagerPluginContext.class}, new Object[]{mockContext});
+    manager.initialize();
+
+    Assert.assertTrue(manager.enableAutoParallelism == true);
+    Assert.assertTrue(manager.desiredTaskInputDataSize == 1000l);
+    Assert.assertTrue(manager.minTaskParallelism == 10);
+    Assert.assertTrue(manager.slowStartMinSrcCompletionFraction == 0.25f);
+    Assert.assertTrue(manager.slowStartMaxSrcCompletionFraction == 0.5f);
+
+    configurer = ShuffleVertexManager.createConfigurer(null);
+    pluginDesc = configurer.setAutoReduceParallelism(false).build();
+    when(mockContext.getUserPayload()).thenReturn(pluginDesc.getUserPayload());
+
+    manager = ReflectionUtils.createClazzInstance(pluginDesc.getClassName(),
+        new Class[]{VertexManagerPluginContext.class}, new Object[]{mockContext});
+    manager.initialize();
+
+    Assert.assertTrue(manager.enableAutoParallelism == false);
+    Assert.assertTrue(manager.desiredTaskInputDataSize ==
+        ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT);
+    Assert.assertTrue(manager.minTaskParallelism == 1);
+    Assert.assertTrue(manager.slowStartMinSrcCompletionFraction ==
+        ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT);
+    Assert.assertTrue(manager.slowStartMaxSrcCompletionFraction ==
+        ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT);
+
+
     // check initialization
     manager = createManager(conf, mockContext, 0.1f, 0.1f);
     Assert.assertTrue(manager.bipartiteSources.size() == 2);
@@ -490,8 +528,8 @@ public class TestShuffleVertexManager {
 
   private ShuffleVertexManager createManager(Configuration conf, 
       VertexManagerPluginContext context, float min, float max) {
-    conf.setFloat(ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, min);
-    conf.setFloat(ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, max);
+    conf.setFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, min);
+    conf.setFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, max);
     UserPayload payload;
     try {
       payload = TezUtils.createUserPayloadFromConf(conf);

@@ -97,7 +97,6 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
-import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.MRDAGClient;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
@@ -449,8 +448,7 @@ public class YARNRunner implements ClientProtocol {
         .setTaskLaunchCmdOpts(taskJavaOpts);
     
     if (!isMap) {
-      vertex.setVertexManagerPlugin(new VertexManagerPluginDescriptor(
-          ShuffleVertexManager.class.getName()));
+      vertex.setVertexManagerPlugin((ShuffleVertexManager.createConfigurer(stageConf).build()));
     }
 
     if (LOG.isDebugEnabled()) {

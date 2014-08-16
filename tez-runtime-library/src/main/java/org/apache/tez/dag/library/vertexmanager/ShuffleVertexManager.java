@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -43,6 +45,7 @@ import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
@@ -63,48 +66,47 @@ import com.google.protobuf.InvalidProtocolBufferException;
 @Evolving
 public class ShuffleVertexManager extends VertexManagerPlugin {
   
-  private static final String TEZ_AM_PREFIX = "tez.am.";
-  
   /**
    * In case of a ScatterGather connection, the fraction of source tasks which
    * should complete before tasks for the current vertex are scheduled
    */
-  public static final String
-  TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION = TEZ_AM_PREFIX
-  + "shuffle-vertex-manager.min-src-fraction";
-  public static final float
-    TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT = 0.25f;
-  
+  public static final String TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION = 
+                                    "tez.shuffle-vertex-manager.min-src-fraction";
+  public static final float TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT = 0.25f;
+
   /**
    * In case of a ScatterGather connection, once this fraction of source tasks
    * have completed, all tasks on the current vertex can be scheduled. Number of
    * tasks ready for scheduling on the current vertex scales linearly between
    * min-fraction and max-fraction
    */
-  public static final String
-    TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION = TEZ_AM_PREFIX
-    + "shuffle-vertex-manager.max-src-fraction";
-  public static final float
-    TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT = 0.75f;
+  public static final String TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION = 
+                                      "tez.shuffle-vertex-manager.max-src-fraction";
+  public static final float TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT = 0.75f;
   
-  public static final String
-    TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL = TEZ_AM_PREFIX +
-    "shuffle-vertex-manager.enable.auto-parallel";
+  /**
+   * Enables automatic parallelism determination for the vertex. Based on input data
+   * statisitics the parallelism is decreased to a desired level.
+   */
+  public static final String TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL = 
+                                      "tez.shuffle-vertex-manager.enable.auto-parallel";
   public static final boolean
-    TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL_DEFAULT = false;
+    TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL_DEFAULT = false;
   
-  public static final String
-    TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE = TEZ_AM_PREFIX +
-    "shuffle-vertex-manager.desired-task-input-size";
+  /**
+   * The desired size of input per task. Parallelism will be changed to meet this criteria
+   */
+  public static final String TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE = 
+                                     "tez.shuffle-vertex-manager.desired-task-input-size";
   public static final long
-    TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT =
-    1024*1024*100L;
-  
-  public static final String
-    TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM = TEZ_AM_PREFIX +
-    "shuffle-vertex-manager.min-task-parallelism";
-  public static final int
-    TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT = 1;
+    TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT = 1024*1024*100L;
+
+  /**
+   * Automatic parallelism determination will not decrease parallelism below this value
+   */
+  public static final String TEZ_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM = 
+                                    "tez.shuffle-vertex-manager.min-task-parallelism";
+  public static final int TEZ_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT = 1;
 
   
   private static final Log LOG = 
@@ -541,12 +543,12 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
     this.slowStartMinSrcCompletionFraction = conf
         .getFloat(
-            ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION,
-            ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT);
+            ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION,
+            ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT);
     this.slowStartMaxSrcCompletionFraction = conf
         .getFloat(
-            ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION,
-            ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT);
+            ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION,
+            ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT);
 
     if (slowStartMinSrcCompletionFraction < 0
         || slowStartMaxSrcCompletionFraction < slowStartMinSrcCompletionFraction) {
@@ -558,16 +560,16 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
     enableAutoParallelism = conf
         .getBoolean(
-            ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL,
-            ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL_DEFAULT);
+            ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL,
+            ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL_DEFAULT);
     desiredTaskInputDataSize = conf
         .getLong(
-            ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
-            ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT);
+            ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
+            ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE_DEFAULT);
     minTaskParallelism = Math.max(1, conf
         .getInt(
-            ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM,
-            ShuffleVertexManager.TEZ_AM_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT));
+            ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM,
+            ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT));
     LOG.info("Shuffle Vertex Manager: settings" + " minFrac:"
         + slowStartMinSrcCompletionFraction + " maxFrac:"
         + slowStartMaxSrcCompletionFraction + " auto:" + enableAutoParallelism
@@ -594,5 +596,74 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       InputDescriptor inputDescriptor, List<Event> events) {
     // Not allowing this for now. Nothing to do.
   }
+  
+  /**
+   * Create a {@link VertexManagerPluginDescriptor} builder that can be used to
+   * configure the plugin.
+   * 
+   * @param conf
+   *          {@link Configuration} May be modified in place. May be null if the
+   *          configuration parameters are to be set only via code. If
+   *          configuration values may be changed at runtime via a config file
+   *          then pass in a {@link Configuration} that is initialized from a
+   *          config file. The parameters that are not overridden in code will
+   *          be derived from the Configuration object.
+   * @return {@link ShuffleVertexManagerConfigurer}
+   */
+  public static ShuffleVertexManagerConfigurer createConfigurer(@Nullable Configuration conf) {
+    return new ShuffleVertexManagerConfigurer(conf);
+  }
 
+  /**
+   * Helper class to configure ShuffleVertexManager
+   */
+  public static final class ShuffleVertexManagerConfigurer {
+    private final Configuration conf;
+
+    private ShuffleVertexManagerConfigurer(@Nullable Configuration conf) {
+      if (conf == null) {
+        this.conf = new Configuration(false);
+      } else {
+        this.conf = conf;
+      }
+    }
+
+    public ShuffleVertexManagerConfigurer setAutoReduceParallelism(boolean enabled) {
+      conf.setBoolean(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL, enabled);
+      return this;
+    }
+
+    public ShuffleVertexManagerConfigurer setSlowStartMinSrcCompletionFraction(float minFraction) {
+      conf.setFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, minFraction);
+      return this;
+    }
+
+    public ShuffleVertexManagerConfigurer setSlowStartMaxSrcCompletionFraction(float maxFraction) {
+      conf.setFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, maxFraction);
+      return this;
+    }
+
+    public ShuffleVertexManagerConfigurer setDesiredTaskInputSize(long desiredTaskInputSize) {
+      conf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
+          desiredTaskInputSize);
+      return this;
+    }
+
+    public ShuffleVertexManagerConfigurer setMinTaskParallelism(int minTaskParallelism) {
+      conf.setInt(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM,
+          minTaskParallelism);
+      return this;
+    }
+
+    public VertexManagerPluginDescriptor build() {
+      VertexManagerPluginDescriptor desc =
+          new VertexManagerPluginDescriptor(ShuffleVertexManager.class.getName());
+
+      try {
+        return desc.setUserPayload(TezUtils.createUserPayloadFromConf(this.conf));
+      } catch (IOException e) {
+        throw new TezUncheckedException(e);
+      }
+    }
+  }
 }
