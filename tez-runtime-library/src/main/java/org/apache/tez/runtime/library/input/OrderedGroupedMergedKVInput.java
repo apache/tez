@@ -37,19 +37,19 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
 
 /**
  * A {@link MergedLogicalInput} which merges multiple
- * {@link ShuffledMergedInput}s and returns a single view of these by merging
+ * {@link OrderedGroupedKVInput}s and returns a single view of these by merging
  * values which belong to the same key.
  * 
  * Combiners and Secondary Sort are not implemented, so there is no guarantee on
  * the order of values.
  */
-public class SortedGroupedMergedInput extends MergedLogicalInput {
+public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
 
-  private static final Log LOG = LogFactory.getLog(SortedGroupedMergedInput.class);
+  private static final Log LOG = LogFactory.getLog(OrderedGroupedMergedKVInput.class);
   private final Set<Input> completedInputs = Collections
       .newSetFromMap(new IdentityHashMap<Input, Boolean>());
 
-  public SortedGroupedMergedInput(MergedInputContext context, List<Input> inputs) {
+  public OrderedGroupedMergedKVInput(MergedInputContext context, List<Input> inputs) {
     super(context, inputs);
   }
 
@@ -58,7 +58,7 @@ public class SortedGroupedMergedInput extends MergedLogicalInput {
    */
   @Override
   public KeyValuesReader getReader() throws Exception {
-    return new SortedGroupedMergedKeyValuesReader(getInputs());
+    return new OrderedGroupedMergedKeyValuesReader(getInputs());
   }
 
   @Override
@@ -71,7 +71,7 @@ public class SortedGroupedMergedInput extends MergedLogicalInput {
     }
   }
 
-  private static class SortedGroupedMergedKeyValuesReader extends KeyValuesReader {
+  private static class OrderedGroupedMergedKeyValuesReader extends KeyValuesReader {
     private final PriorityQueue<KeyValuesReader> pQueue;
     @SuppressWarnings("rawtypes")
     private final RawComparator keyComparator;
@@ -80,8 +80,8 @@ public class SortedGroupedMergedInput extends MergedLogicalInput {
     private KeyValuesReader nextKVReader;
     private Object currentKey;
 
-    public SortedGroupedMergedKeyValuesReader(List<Input> inputs) throws Exception {
-      keyComparator = ((ShuffledMergedInput) inputs.get(0))
+    public OrderedGroupedMergedKeyValuesReader(List<Input> inputs) throws Exception {
+      keyComparator = ((OrderedGroupedKVInput) inputs.get(0))
           .getInputKeyComparator();
       pQueue = new PriorityQueue<KeyValuesReader>(inputs.size(),
           new KVReaderComparator(keyComparator));

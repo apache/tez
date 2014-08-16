@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.runtime.library.input;
+package org.apache.tez.mapreduce.input;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -26,12 +26,13 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.common.localshuffle.LocalShuffle;
+import org.apache.tez.runtime.library.input.OrderedGroupedInputLegacy;
 
 /**
  * <code>LocalMergedInput</code> in an {@link LogicalInput} which shuffles intermediate
  * sorted data, merges them and provides key/<values> to the consumer. 
  */
-public class LocalMergedInput extends ShuffledMergedInputLegacy {
+public class LocalMergedInput extends OrderedGroupedInputLegacy {
 
   public LocalMergedInput(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);

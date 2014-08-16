@@ -37,7 +37,7 @@ public class TestOnFileUnorderedKVOutputConfigurer {
   @Test
   public void testNullParams() {
     try {
-      OnFileUnorderedKVOutputConfigurer.newBuilder(
+      UnorderedKVOutputConfigurer.newBuilder(
           null, "VALUE");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
@@ -45,7 +45,7 @@ public class TestOnFileUnorderedKVOutputConfigurer {
     }
 
     try {
-      OnFileUnorderedKVOutputConfigurer.newBuilder(
+      UnorderedKVOutputConfigurer.newBuilder(
           "KEY", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
@@ -63,8 +63,8 @@ public class TestOnFileUnorderedKVOutputConfigurer {
     additionalConf.put("test.key.2", "key2");
     additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, "2222");
     additionalConf.put("file.shouldExist", "file");
-    OnFileUnorderedKVOutputConfigurer.Builder builder =
-        OnFileUnorderedKVOutputConfigurer.newBuilder("KEY", "VALUE")
+    UnorderedKVOutputConfigurer.Builder builder =
+        UnorderedKVOutputConfigurer.newBuilder("KEY", "VALUE")
             .setCompression(true, "CustomCodec")
             .setAdditionalConfiguration("fs.shouldExist", "fs")
             .setAdditionalConfiguration("test.key.1", "key1")
@@ -73,10 +73,10 @@ public class TestOnFileUnorderedKVOutputConfigurer {
             .setAdditionalConfiguration(additionalConf)
             .setFromConfiguration(fromConf);
 
-    OnFileUnorderedKVOutputConfigurer configuration = builder.build();
+    UnorderedKVOutputConfigurer configuration = builder.build();
 
-    OnFileUnorderedKVOutputConfigurer rebuilt =
-        new OnFileUnorderedKVOutputConfigurer();
+    UnorderedKVOutputConfigurer rebuilt =
+        new UnorderedKVOutputConfigurer();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
@@ -104,13 +104,13 @@ public class TestOnFileUnorderedKVOutputConfigurer {
 
   @Test
   public void testDefaultConfigsUsed() {
-    OnFileUnorderedKVOutputConfigurer.Builder builder =
-        OnFileUnorderedKVOutputConfigurer
+    UnorderedKVOutputConfigurer.Builder builder =
+        UnorderedKVOutputConfigurer
             .newBuilder("KEY", "VALUE");
-    OnFileUnorderedKVOutputConfigurer configuration = builder.build();
+    UnorderedKVOutputConfigurer configuration = builder.build();
 
-    OnFileUnorderedKVOutputConfigurer rebuilt =
-        new OnFileUnorderedKVOutputConfigurer();
+    UnorderedKVOutputConfigurer rebuilt =
+        new UnorderedKVOutputConfigurer();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;

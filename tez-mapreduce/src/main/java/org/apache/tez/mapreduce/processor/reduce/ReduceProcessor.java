@@ -51,8 +51,8 @@ import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
-import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.input.OrderedGroupedInputLegacy;
+import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 
 @Private
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -123,17 +123,17 @@ public class ReduceProcessor extends MRTask {
         mrReporter.getCounter(TaskCounter.REDUCE_INPUT_RECORDS);
 
     // Sanity check
-    if (!(in instanceof ShuffledMergedInputLegacy)) {
+    if (!(in instanceof OrderedGroupedInputLegacy)) {
       throw new IOException("Illegal input to reduce: " + in.getClass());
     }
-    ShuffledMergedInputLegacy shuffleInput = (ShuffledMergedInputLegacy)in;
+    OrderedGroupedInputLegacy shuffleInput = (OrderedGroupedInputLegacy)in;
     KeyValuesReader kvReader = shuffleInput.getReader();
 
     KeyValueWriter kvWriter = null;
     if((out instanceof MROutputLegacy)) {
       kvWriter = ((MROutputLegacy) out).getWriter();
-    } else if ((out instanceof OnFileSortedOutput)) {
-      kvWriter = ((OnFileSortedOutput) out).getWriter();
+    } else if ((out instanceof OrderedPartitionedKVOutput)) {
+      kvWriter = ((OrderedPartitionedKVOutput) out).getWriter();
     } else {
       throw new IOException("Illegal output to reduce: " + in.getClass());
     }
@@ -264,7 +264,7 @@ public class ReduceProcessor extends MRTask {
 
   void runNewReducer(JobConf job,
       final MRTaskReporter reporter,
-      ShuffledMergedInputLegacy input,
+      OrderedGroupedInputLegacy input,
       RawComparator comparator,
       Class keyClass,
       Class valueClass,

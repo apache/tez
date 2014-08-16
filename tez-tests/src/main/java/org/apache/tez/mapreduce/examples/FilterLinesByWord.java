@@ -75,7 +75,7 @@ import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.processor.FilterByWordInputProcessor;
 import org.apache.tez.processor.FilterByWordOutputProcessor;
-import org.apache.tez.runtime.library.conf.UnorderedUnpartitionedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.conf.UnorderedKVEdgeConfigurer;
 
 import com.google.common.collect.Sets;
 
@@ -197,7 +197,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(MROutputCommitter.class.getName());
     stage2Vertex.addDataSink("MROutput", new DataSinkDescriptor(od, ocd, null));
 
-    UnorderedUnpartitionedKVEdgeConfigurer edgeConf = UnorderedUnpartitionedKVEdgeConfigurer
+    UnorderedKVEdgeConfigurer edgeConf = UnorderedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();
 
     DAG dag = new DAG("FilterLinesByWord");

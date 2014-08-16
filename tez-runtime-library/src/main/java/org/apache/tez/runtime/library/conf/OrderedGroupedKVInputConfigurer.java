@@ -37,18 +37,18 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
-import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
+import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
+import org.apache.tez.runtime.library.input.OrderedGroupedInputLegacy;
 
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 /**
- * Configure {@link org.apache.tez.runtime.library.input.ShuffledMergedInput} </p>
+ * Configure {@link org.apache.tez.runtime.library.input.OrderedGroupedKVInput} </p>
  *
  * Values will be picked up from tez-site if not specified, otherwise defaults from
  * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
  */
-public class ShuffledMergedInputConfigurer {
+public class OrderedGroupedKVInputConfigurer {
 
   /**
    * Configure parameters which are specific to the Input.
@@ -138,11 +138,11 @@ public class ShuffledMergedInputConfigurer {
       SpecificConfigurer<SpecificBuilder> {
 
     private final E edgeBuilder;
-    private final ShuffledMergedInputConfigurer.Builder builder;
+    private final OrderedGroupedKVInputConfigurer.Builder builder;
 
 
     @InterfaceAudience.Private
-    SpecificBuilder(E edgeBuilder, ShuffledMergedInputConfigurer.Builder builder) {
+    SpecificBuilder(E edgeBuilder, OrderedGroupedKVInputConfigurer.Builder builder) {
       this.edgeBuilder = edgeBuilder;
       this.builder = builder;
     }
@@ -226,15 +226,15 @@ public class ShuffledMergedInputConfigurer {
 
   @InterfaceAudience.Private
   @VisibleForTesting
-  ShuffledMergedInputConfigurer() {
+  OrderedGroupedKVInputConfigurer() {
   }
 
-  private ShuffledMergedInputConfigurer(Configuration conf, boolean useLegacyInput) {
+  private OrderedGroupedKVInputConfigurer(Configuration conf, boolean useLegacyInput) {
     this.conf = conf;
     if (useLegacyInput) {
-      inputClassName = ShuffledMergedInputLegacy.class.getName();
+      inputClassName = OrderedGroupedInputLegacy.class.getName();
     } else {
-      inputClassName = ShuffledMergedInput.class.getName();
+      inputClassName = OrderedGroupedKVInput.class.getName();
     }
   }
 
@@ -275,7 +275,7 @@ public class ShuffledMergedInputConfigurer {
     private boolean useLegacyInput = false;
 
     /**
-     * Create a configuration builder for {@link org.apache.tez.runtime.library.input.ShuffledMergedInput}
+     * Create a configuration builder for {@link org.apache.tez.runtime.library.input.OrderedGroupedKVInput}
      *
      * @param keyClassName         the key class name
      * @param valueClassName       the value class name
@@ -293,7 +293,7 @@ public class ShuffledMergedInputConfigurer {
     Builder() {
       Map<String, String> tezDefaults = ConfigUtils
           .extractConfigurationMap(TezRuntimeConfiguration.getTezRuntimeConfigDefaults(),
-              ShuffledMergedInput.getConfigurationKeySet());
+              OrderedGroupedKVInput.getConfigurationKeySet());
       ConfigUtils.addConfigMapToConfiguration(this.conf, tezDefaults);
       ConfigUtils.addConfigMapToConfiguration(this.conf, TezRuntimeConfiguration.getOtherConfigDefaults());
     }
@@ -402,7 +402,7 @@ public class ShuffledMergedInputConfigurer {
     public Builder setAdditionalConfiguration(String key, String value) {
       Preconditions.checkNotNull(key, "Key cannot be null");
       if (ConfigUtils.doesKeyQualify(key,
-          Lists.newArrayList(ShuffledMergedInput.getConfigurationKeySet(),
+          Lists.newArrayList(OrderedGroupedKVInput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()),
           TezRuntimeConfiguration.getAllowedPrefixes())) {
         if (value == null) {
@@ -418,7 +418,7 @@ public class ShuffledMergedInputConfigurer {
     public Builder setAdditionalConfiguration(Map<String, String> confMap) {
       Preconditions.checkNotNull(confMap, "ConfMap cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(confMap,
-          Lists.newArrayList(ShuffledMergedInput.getConfigurationKeySet(),
+          Lists.newArrayList(OrderedGroupedKVInput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
@@ -429,7 +429,7 @@ public class ShuffledMergedInputConfigurer {
       // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
       Preconditions.checkArgument(conf != null, "Configuration cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
-          Lists.newArrayList(ShuffledMergedInput.getConfigurationKeySet(),
+          Lists.newArrayList(OrderedGroupedKVInput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
@@ -484,8 +484,8 @@ public class ShuffledMergedInputConfigurer {
      *
      * @return an instance of the Configuration
      */
-    public ShuffledMergedInputConfigurer build() {
-      return new ShuffledMergedInputConfigurer(this.conf, this.useLegacyInput);
+    public OrderedGroupedKVInputConfigurer build() {
+      return new OrderedGroupedKVInputConfigurer(this.conf, this.useLegacyInput);
     }
   }
 

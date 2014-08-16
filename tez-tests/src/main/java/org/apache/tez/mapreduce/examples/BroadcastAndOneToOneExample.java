@@ -49,8 +49,8 @@ import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
-import org.apache.tez.runtime.library.conf.UnorderedUnpartitionedKVEdgeConfigurer;
-import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
+import org.apache.tez.runtime.library.conf.UnorderedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.output.UnorderedKVOutput;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import com.google.common.base.Preconditions;
@@ -66,7 +66,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     @Override
     public void run() throws Exception {
       Preconditions.checkArgument(getOutputs().size() == 1);
-      OnFileUnorderedKVOutput output = (OnFileUnorderedKVOutput) getOutputs().values().iterator()
+      UnorderedKVOutput output = (UnorderedKVOutput) getOutputs().values().iterator()
           .next();
       KeyValueWriter kvWriter = (KeyValueWriter) output.getWriter();
       kvWriter.write(word, new IntWritable(getContext().getTaskIndex()));
@@ -157,7 +157,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     oneToOneVertex.setVertexManagerPlugin(
             new VertexManagerPluginDescriptor(InputReadyVertexManager.class.getName()));
 
-    UnorderedUnpartitionedKVEdgeConfigurer edgeConf = UnorderedUnpartitionedKVEdgeConfigurer
+    UnorderedKVEdgeConfigurer edgeConf = UnorderedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), IntWritable.class.getName()).build();
 
     DAG dag = new DAG("BroadcastAndOneToOneExample");

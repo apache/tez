@@ -39,7 +39,7 @@ import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
-import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
+import org.apache.tez.runtime.library.output.UnorderedKVOutput;
 
 public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
 
@@ -97,13 +97,13 @@ public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
     }
 
     LogicalOutput lo = outputs.values().iterator().next();
-    if (! (lo instanceof OnFileUnorderedKVOutput)) {
+    if (! (lo instanceof UnorderedKVOutput)) {
       throw new IllegalStateException("FilterByWordInputProcessor processor can only work with OnFileUnorderedKVOutput");
     }
 
     MRInputLegacy mrInput = (MRInputLegacy) li;
     mrInput.init();
-    OnFileUnorderedKVOutput kvOutput = (OnFileUnorderedKVOutput) lo;
+    UnorderedKVOutput kvOutput = (UnorderedKVOutput) lo;
 
     Configuration updatedConf = mrInput.getConfigUpdates();
     Text srcFile = new Text();

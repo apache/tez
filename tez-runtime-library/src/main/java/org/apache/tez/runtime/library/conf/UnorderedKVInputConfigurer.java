@@ -37,35 +37,88 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
-import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
+import org.apache.tez.runtime.library.input.UnorderedKVInput;
 
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 /**
- * Configure {@link org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput} </p>
+ * Configure {@link org.apache.tez.runtime.library.input.UnorderedKVInput} </p>
  *
  * Values will be picked up from tez-site if not specified, otherwise defaults from
  * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
  */
-public class OnFileUnorderedKVOutputConfigurer {
+public class UnorderedKVInputConfigurer {
+
   /**
-   * Configure parameters which are specific to the Output.
+   * Configure parameters which are specific to the Input.
    */
   @InterfaceAudience.Private
   public static interface SpecificConfigurer<T> extends BaseConfigurer<T> {
+
+    /**
+     * Sets the buffer fraction, as a fraction of container size, to be used while fetching remote
+     * data.
+     *
+     * @param shuffleBufferFraction fraction of container size
+     * @return instance of the current builder
+     */
+    public T setShuffleBufferFraction(float shuffleBufferFraction);
+
+    /**
+     * Sets a size limit on the maximum segment size to be shuffled to disk. This is a fraction of
+     * the shuffle buffer.
+     *
+     * @param maxSingleSegmentFraction fraction of memory determined by ShuffleBufferFraction
+     * @return instance of the current builder
+     */
+    public T setMaxSingleMemorySegmentFraction(float maxSingleSegmentFraction);
+
+    /**
+     * Configure the point at which in memory segments will be merged and written out to a single
+     * large disk segment. This is specified as a
+     * fraction of the shuffle buffer. </p> Has no affect at the moment.
+     *
+     * @param mergeFraction fraction of memory determined by ShuffleBufferFraction, which when
+     *                      filled, will
+     *                      trigger a merge
+     * @return instance of the current builder
+     */
+    public T setMergeFraction(float mergeFraction);
+
   }
 
+  @SuppressWarnings("rawtypes")
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
   public static class SpecificBuilder<E extends HadoopKeyValuesBasedBaseEdgeConfigurer.Builder> implements
       SpecificConfigurer<SpecificBuilder> {
 
     private final E edgeBuilder;
-    private final Builder builder;
+    private final UnorderedKVInputConfigurer.Builder builder;
 
-    SpecificBuilder(E edgeBuilder, Builder builder) {
+
+    @InterfaceAudience.Private
+    SpecificBuilder(E edgeBuilder, UnorderedKVInputConfigurer.Builder builder) {
       this.edgeBuilder = edgeBuilder;
       this.builder = builder;
+    }
+
+    @Override
+    public SpecificBuilder<E> setShuffleBufferFraction(float shuffleBufferFraction) {
+      builder.setShuffleBufferFraction(shuffleBufferFraction);
+      return this;
+    }
+
+    @Override
+    public SpecificBuilder<E> setMaxSingleMemorySegmentFraction(float maxSingleSegmentFraction) {
+      builder.setMaxSingleMemorySegmentFraction(maxSingleSegmentFraction);
+      return this;
+    }
+
+    @Override
+    public SpecificBuilder<E> setMergeFraction(float mergeFraction) {
+      builder.setMergeFraction(mergeFraction);
+      return this;
     }
 
     @Override
@@ -89,6 +142,7 @@ public class OnFileUnorderedKVOutputConfigurer {
     public E done() {
       return edgeBuilder;
     }
+
   }
 
   @InterfaceAudience.Private
@@ -97,10 +151,10 @@ public class OnFileUnorderedKVOutputConfigurer {
 
   @InterfaceAudience.Private
   @VisibleForTesting
-  OnFileUnorderedKVOutputConfigurer() {
+  UnorderedKVInputConfigurer() {
   }
 
-  private OnFileUnorderedKVOutputConfigurer(Configuration conf) {
+  private UnorderedKVInputConfigurer(Configuration conf) {
     this.conf = conf;
   }
 
@@ -125,8 +179,8 @@ public class OnFileUnorderedKVOutputConfigurer {
     }
   }
 
-  public static Builder newBuilder(String keyClass, String valClass) {
-    return new Builder(keyClass, valClass);
+  public static Builder newBuilder(String keyClass, String valueClass) {
+    return new Builder(keyClass, valueClass);
   }
 
   @InterfaceAudience.Public
@@ -136,7 +190,7 @@ public class OnFileUnorderedKVOutputConfigurer {
     private final Configuration conf = new Configuration(false);
 
     /**
-     * Create a configuration builder for {@link org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput}
+     * Create a configuration builder for {@link org.apache.tez.runtime.library.input.UnorderedKVInput}
      *
      * @param keyClassName         the key class name
      * @param valueClassName       the value class name
@@ -154,7 +208,7 @@ public class OnFileUnorderedKVOutputConfigurer {
     Builder() {
       Map<String, String> tezDefaults = ConfigUtils
           .extractConfigurationMap(TezRuntimeConfiguration.getTezRuntimeConfigDefaults(),
-              OnFileUnorderedKVOutput.getConfigurationKeySet());
+              UnorderedKVInput.getConfigurationKeySet());
       ConfigUtils.addConfigMapToConfiguration(this.conf, tezDefaults);
       ConfigUtils.addConfigMapToConfiguration(this.conf, TezRuntimeConfiguration.getOtherConfigDefaults());
     }
@@ -174,10 +228,30 @@ public class OnFileUnorderedKVOutputConfigurer {
     }
 
     @Override
+    public Builder setShuffleBufferFraction(float shuffleBufferFraction) {
+      this.conf
+          .setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, shuffleBufferFraction);
+      return this;
+    }
+
+    @Override
+    public Builder setMaxSingleMemorySegmentFraction(float maxSingleSegmentFraction) {
+      this.conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT,
+          maxSingleSegmentFraction);
+      return this;
+    }
+
+    @Override
+    public Builder setMergeFraction(float mergeFraction) {
+      this.conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, mergeFraction);
+      return this;
+    }
+
+    @Override
     public Builder setAdditionalConfiguration(String key, String value) {
       Preconditions.checkNotNull(key, "Key cannot be null");
       if (ConfigUtils.doesKeyQualify(key,
-          Lists.newArrayList(OnFileUnorderedKVOutput.getConfigurationKeySet(),
+          Lists.newArrayList(UnorderedKVInput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()),
           TezRuntimeConfiguration.getAllowedPrefixes())) {
         if (value == null) {
@@ -193,7 +267,7 @@ public class OnFileUnorderedKVOutputConfigurer {
     public Builder setAdditionalConfiguration(Map<String, String> confMap) {
       Preconditions.checkNotNull(confMap, "ConfMap cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(confMap,
-          Lists.newArrayList(OnFileUnorderedKVOutput.getConfigurationKeySet(),
+          Lists.newArrayList(UnorderedKVInput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
@@ -204,14 +278,24 @@ public class OnFileUnorderedKVOutputConfigurer {
       // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
       Preconditions.checkArgument(conf != null, "Configuration cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
-          Lists.newArrayList(OnFileUnorderedKVOutput.getConfigurationKeySet(),
+          Lists.newArrayList(UnorderedKVInput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
     }
 
+    public Builder setCompression(boolean enabled, @Nullable String compressionCodec) {
+      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, enabled);
+      if (enabled && compressionCodec != null) {
+        this.conf
+            .set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, compressionCodec);
+      }
+      return this;
+    }
+
     /**
-     * Set serialization class responsible for providing serializer/deserializer for keys.
+     * Set serialization class responsible for providing serializer/deserializer for key/value and
+     * the corresponding comparator class to be used as key comparator.
      *
      * @param serializationClassName
      * @return
@@ -238,22 +322,13 @@ public class OnFileUnorderedKVOutputConfigurer {
       return this;
     }
 
-    public Builder setCompression(boolean enabled, @Nullable String compressionCodec) {
-      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, enabled);
-      if (enabled && compressionCodec != null) {
-        this.conf
-            .set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, compressionCodec);
-      }
-      return this;
-    }
-
     /**
      * Create the actual configuration instance.
      *
      * @return an instance of the Configuration
      */
-    public OnFileUnorderedKVOutputConfigurer build() {
-      return new OnFileUnorderedKVOutputConfigurer(this.conf);
+    public UnorderedKVInputConfigurer build() {
+      return new UnorderedKVInputConfigurer(this.conf);
     }
   }
 }

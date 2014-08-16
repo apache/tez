@@ -31,9 +31,9 @@ import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.OutputContext;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
-import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
+import org.apache.tez.runtime.library.input.UnorderedKVInput;
+import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 import org.apache.tez.runtime.library.resources.WeightedScalingMemoryDistributor;
 import org.apache.tez.runtime.library.resources.WeightedScalingMemoryDistributor.RequestType;
 import org.junit.Test;
@@ -66,13 +66,13 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
     // First request - ScatterGatherShuffleInput
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
     InputContext e1InputContext1 = createTestInputContext();
-    InputDescriptor e1InDesc1 = createTestInputDescriptor(ShuffledMergedInput.class);
+    InputDescriptor e1InDesc1 = createTestInputDescriptor(OrderedGroupedKVInput.class);
     dist.requestMemory(10000, e1Callback, e1InputContext1, e1InDesc1);
 
     // Second request - BroadcastInput
     MemoryUpdateCallbackForTest e2Callback = new MemoryUpdateCallbackForTest();
     InputContext e2InputContext2 = createTestInputContext();
-    InputDescriptor e2InDesc2 = createTestInputDescriptor(ShuffledUnorderedKVInput.class);
+    InputDescriptor e2InDesc2 = createTestInputDescriptor(UnorderedKVInput.class);
     dist.requestMemory(10000, e2Callback, e2InputContext2, e2InDesc2);
 
     // Third request - randomOutput (simulates MROutput)
@@ -84,7 +84,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
     // Fourth request - OnFileSortedOutput
     MemoryUpdateCallbackForTest e4Callback = new MemoryUpdateCallbackForTest();
     OutputContext e4OutputContext2 = createTestOutputContext();
-    OutputDescriptor e4OutDesc2 = createTestOutputDescriptor(OnFileSortedOutput.class);
+    OutputDescriptor e4OutDesc2 = createTestOutputDescriptor(OrderedPartitionedKVOutput.class);
     dist.requestMemory(10000, e4Callback, e4OutputContext2, e4OutDesc2);
 
     dist.makeInitialAllocations();
@@ -113,13 +113,13 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
     // First request - ScatterGatherShuffleInput [weight 6]
     MemoryUpdateCallbackForTest e1Callback = new MemoryUpdateCallbackForTest();
     InputContext e1InputContext1 = createTestInputContext();
-    InputDescriptor e1InDesc1 = createTestInputDescriptor(ShuffledMergedInput.class);
+    InputDescriptor e1InDesc1 = createTestInputDescriptor(OrderedGroupedKVInput.class);
     dist.requestMemory(10000, e1Callback, e1InputContext1, e1InDesc1);
 
     // Second request - BroadcastInput [weight 2]
     MemoryUpdateCallbackForTest e2Callback = new MemoryUpdateCallbackForTest();
     InputContext e2InputContext2 = createTestInputContext();
-    InputDescriptor e2InDesc2 = createTestInputDescriptor(ShuffledUnorderedKVInput.class);
+    InputDescriptor e2InDesc2 = createTestInputDescriptor(UnorderedKVInput.class);
     dist.requestMemory(10000, e2Callback, e2InputContext2, e2InDesc2);
 
     // Third request - randomOutput (simulates MROutput) [weight 1]
@@ -131,7 +131,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
     // Fourth request - OnFileSortedOutput [weight 3]
     MemoryUpdateCallbackForTest e4Callback = new MemoryUpdateCallbackForTest();
     OutputContext e4OutputContext2 = createTestOutputContext();
-    OutputDescriptor e4OutDesc2 = createTestOutputDescriptor(OnFileSortedOutput.class);
+    OutputDescriptor e4OutDesc2 = createTestOutputDescriptor(OrderedPartitionedKVOutput.class);
     dist.requestMemory(10000, e4Callback, e4OutputContext2, e4OutDesc2);
 
     dist.makeInitialAllocations();

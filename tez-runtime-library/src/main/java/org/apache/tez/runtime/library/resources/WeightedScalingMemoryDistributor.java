@@ -33,11 +33,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.common.resources.InitialMemoryAllocator;
 import org.apache.tez.runtime.common.resources.InitialMemoryRequestContext;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
-import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
-import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
-import org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput;
+import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
+import org.apache.tez.runtime.library.input.OrderedGroupedInputLegacy;
+import org.apache.tez.runtime.library.input.UnorderedKVInput;
+import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
+import org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -180,14 +180,14 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
 
   private RequestType getRequestTypeForClass(String className) {
     RequestType requestType;
-    if (className.equals(OnFileSortedOutput.class.getName())) {
+    if (className.equals(OrderedPartitionedKVOutput.class.getName())) {
       requestType = RequestType.SORTED_OUTPUT;
-    } else if (className.equals(ShuffledMergedInput.class.getName())
-        || className.equals(ShuffledMergedInputLegacy.class.getName())) {
+    } else if (className.equals(OrderedGroupedKVInput.class.getName())
+        || className.equals(OrderedGroupedInputLegacy.class.getName())) {
       requestType = RequestType.SORTED_MERGED_INPUT;
-    } else if (className.equals(ShuffledUnorderedKVInput.class.getName())) {
+    } else if (className.equals(UnorderedKVInput.class.getName())) {
       requestType = RequestType.UNSORTED_INPUT;
-    } else if (className.equals(OnFileUnorderedPartitionedKVOutput.class.getName())) {
+    } else if (className.equals(UnorderedPartitionedKVOutput.class.getName())) {
       requestType = RequestType.PARTITIONED_UNSORTED_OUTPUT;
     } else {
       requestType = RequestType.OTHER;

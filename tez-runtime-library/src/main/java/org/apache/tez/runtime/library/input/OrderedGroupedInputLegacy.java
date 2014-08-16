@@ -28,11 +28,11 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
 @Private
-public class ShuffledMergedInputLegacy extends ShuffledMergedInput {
+public class OrderedGroupedInputLegacy extends OrderedGroupedKVInput {
 
   private final Progress progress = new Progress();
 
-  public ShuffledMergedInputLegacy(InputContext inputContext, int numPhysicalInputs) {
+  public OrderedGroupedInputLegacy(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);
   }
 

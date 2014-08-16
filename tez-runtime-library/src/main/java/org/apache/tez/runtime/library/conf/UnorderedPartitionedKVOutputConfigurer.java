@@ -37,17 +37,17 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
-import org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput;
+import org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput;
 
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 /**
- * Configure {@link org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput} </p>
+ * Configure {@link org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput} </p>
  *
  * Values will be picked up from tez-site if not specified, otherwise defaults from
  * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
  */
-public class OnFileUnorderedPartitionedKVOutputConfigurer {
+public class UnorderedPartitionedKVOutputConfigurer {
   /**
    * Configure parameters which are specific to the Output.
    */
@@ -111,10 +111,10 @@ public class OnFileUnorderedPartitionedKVOutputConfigurer {
 
   @InterfaceAudience.Private
   @VisibleForTesting
-  OnFileUnorderedPartitionedKVOutputConfigurer() {
+  UnorderedPartitionedKVOutputConfigurer() {
   }
 
-  private OnFileUnorderedPartitionedKVOutputConfigurer(Configuration conf) {
+  private UnorderedPartitionedKVOutputConfigurer(Configuration conf) {
     this.conf = conf;
   }
 
@@ -156,7 +156,7 @@ public class OnFileUnorderedPartitionedKVOutputConfigurer {
     private final Configuration conf = new Configuration(false);
 
     /**
-     * Create a configuration builder for {@link org.apache.tez.runtime.library.output.OnFileUnorderedPartitionedKVOutput}
+     * Create a configuration builder for {@link org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput}
      *
      * @param keyClassName         the key class name
      * @param valueClassName       the value class name
@@ -180,7 +180,7 @@ public class OnFileUnorderedPartitionedKVOutputConfigurer {
     Builder() {
       Map<String, String> tezDefaults = ConfigUtils
           .extractConfigurationMap(TezRuntimeConfiguration.getTezRuntimeConfigDefaults(),
-              OnFileUnorderedPartitionedKVOutput.getConfigurationKeySet());
+              UnorderedPartitionedKVOutput.getConfigurationKeySet());
       ConfigUtils.addConfigMapToConfiguration(this.conf, tezDefaults);
       ConfigUtils.addConfigMapToConfiguration(this.conf, TezRuntimeConfiguration.getOtherConfigDefaults());
     }
@@ -222,7 +222,7 @@ public class OnFileUnorderedPartitionedKVOutputConfigurer {
     public Builder setAdditionalConfiguration(String key, String value) {
       Preconditions.checkNotNull(key, "Key cannot be null");
       if (ConfigUtils.doesKeyQualify(key,
-          Lists.newArrayList(OnFileUnorderedPartitionedKVOutput.getConfigurationKeySet(),
+          Lists.newArrayList(UnorderedPartitionedKVOutput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()),
           TezRuntimeConfiguration.getAllowedPrefixes())) {
         if (value == null) {
@@ -238,7 +238,7 @@ public class OnFileUnorderedPartitionedKVOutputConfigurer {
     public Builder setAdditionalConfiguration(Map<String, String> confMap) {
       Preconditions.checkNotNull(confMap, "ConfMap cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(confMap,
-          Lists.newArrayList(OnFileUnorderedPartitionedKVOutput.getConfigurationKeySet(),
+          Lists.newArrayList(UnorderedPartitionedKVOutput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
@@ -249,7 +249,7 @@ public class OnFileUnorderedPartitionedKVOutputConfigurer {
       // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
       Preconditions.checkArgument(conf != null, "Configuration cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
-          Lists.newArrayList(OnFileUnorderedPartitionedKVOutput.getConfigurationKeySet(),
+          Lists.newArrayList(UnorderedPartitionedKVOutput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
@@ -297,8 +297,8 @@ public class OnFileUnorderedPartitionedKVOutputConfigurer {
      *
      * @return an instance of the Configuration
      */
-    public OnFileUnorderedPartitionedKVOutputConfigurer build() {
-      return new OnFileUnorderedPartitionedKVOutputConfigurer(this.conf);
+    public UnorderedPartitionedKVOutputConfigurer build() {
+      return new UnorderedPartitionedKVOutputConfigurer(this.conf);
     }
   }
 }

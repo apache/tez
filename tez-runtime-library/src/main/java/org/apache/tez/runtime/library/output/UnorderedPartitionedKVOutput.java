@@ -43,20 +43,20 @@ import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.writers.UnorderedPartitionedKVWriter;
 
 /**
- * <code>OnFileUnorderedPartitionedKVOutput</code> is a {@link LogicalOutput} which can be used to
+ * {@link UnorderedPartitionedKVOutput} is a {@link LogicalOutput} which can be used to
  * write Key-Value pairs. The key-value pairs are written to the correct partition based on the
  * configured Partitioner.
  */
-public class OnFileUnorderedPartitionedKVOutput extends AbstractLogicalOutput {
+public class UnorderedPartitionedKVOutput extends AbstractLogicalOutput {
 
-  private static final Log LOG = LogFactory.getLog(OnFileUnorderedPartitionedKVOutput.class);
+  private static final Log LOG = LogFactory.getLog(UnorderedPartitionedKVOutput.class);
 
   private Configuration conf;
   private MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;
   private UnorderedPartitionedKVWriter kvWriter;
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
-  public OnFileUnorderedPartitionedKVOutput(OutputContext outputContext, int numPhysicalOutputs) {
+  public UnorderedPartitionedKVOutput(OutputContext outputContext, int numPhysicalOutputs) {
     super(outputContext, numPhysicalOutputs);
   }
 

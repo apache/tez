@@ -53,7 +53,7 @@ import com.google.common.base.Preconditions;
 
 
 /**
- * {@link ShuffledMergedInput} in a {@link AbstractLogicalInput} which shuffles
+ * {@link OrderedGroupedKVInput} in a {@link AbstractLogicalInput} which shuffles
  * intermediate sorted data, merges them and provides key/<values> to the
  * consumer. This is typically used to bring one partition of a set of partitioned
  * distributed data to one consumer. The shuffle operation brings all partitions 
@@ -66,9 +66,9 @@ import com.google.common.base.Preconditions;
  * completion. Attempting to get a reader on a non-complete input will block.
  *
  */
-public class ShuffledMergedInput extends AbstractLogicalInput {
+public class OrderedGroupedKVInput extends AbstractLogicalInput {
 
-  static final Log LOG = LogFactory.getLog(ShuffledMergedInput.class);
+  static final Log LOG = LogFactory.getLog(OrderedGroupedKVInput.class);
 
   protected TezRawKeyValueIterator rawIter = null;
   protected Configuration conf;
@@ -84,7 +84,7 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
 
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
-  public ShuffledMergedInput(InputContext inputContext, int numPhysicalInputs) {
+  public OrderedGroupedKVInput(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);
   }
 
@@ -236,7 +236,7 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
     synchronized(this) {
       valuesIter = vIter;
     }
-    return new ShuffledMergedKeyValuesReader(valuesIter);
+    return new OrderedGroupedKeyValuesReader(valuesIter);
   }
 
   @Override
@@ -273,11 +273,11 @@ public class ShuffledMergedInput extends AbstractLogicalInput {
   }
 
   @SuppressWarnings("rawtypes")
-  private static class ShuffledMergedKeyValuesReader extends KeyValuesReader {
+  private static class OrderedGroupedKeyValuesReader extends KeyValuesReader {
 
     private final ValuesIterator valuesIter;
 
-    ShuffledMergedKeyValuesReader(ValuesIterator valuesIter) {
+    OrderedGroupedKeyValuesReader(ValuesIterator valuesIter) {
       this.valuesIter = valuesIter;
     }
 

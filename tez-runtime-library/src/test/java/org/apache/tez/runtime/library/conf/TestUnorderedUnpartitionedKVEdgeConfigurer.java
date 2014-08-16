@@ -38,14 +38,14 @@ public class TestUnorderedUnpartitionedKVEdgeConfigurer {
   @Test
   public void testNullParams() {
     try {
-      UnorderedUnpartitionedKVEdgeConfigurer.newBuilder(null, "VALUE");
+      UnorderedKVEdgeConfigurer.newBuilder(null, "VALUE");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      UnorderedUnpartitionedKVEdgeConfigurer.newBuilder("KEY", null);
+      UnorderedKVEdgeConfigurer.newBuilder("KEY", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
@@ -54,18 +54,18 @@ public class TestUnorderedUnpartitionedKVEdgeConfigurer {
 
   @Test
   public void testDefaultConfigsUsed() {
-    UnorderedUnpartitionedKVEdgeConfigurer.Builder builder =
-        UnorderedUnpartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE");
+    UnorderedKVEdgeConfigurer.Builder builder =
+        UnorderedKVEdgeConfigurer.newBuilder("KEY", "VALUE");
     builder.setKeySerializationClass("SerClass1").setValueSerializationClass("SerClass2");
 
-    UnorderedUnpartitionedKVEdgeConfigurer configuration = builder.build();
+    UnorderedKVEdgeConfigurer configuration = builder.build();
 
 
-    OnFileUnorderedKVOutputConfigurer rebuiltOutput =
-        new OnFileUnorderedKVOutputConfigurer();
+    UnorderedKVOutputConfigurer rebuiltOutput =
+        new UnorderedKVOutputConfigurer();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    ShuffledUnorderedKVInputConfigurer rebuiltInput =
-        new ShuffledUnorderedKVInputConfigurer();
+    UnorderedKVInputConfigurer rebuiltInput =
+        new UnorderedKVInputConfigurer();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -88,16 +88,16 @@ public class TestUnorderedUnpartitionedKVEdgeConfigurer {
   @Test
   public void testSpecificIOConfs() {
     // Ensures that Output and Input confs are not mixed.
-    UnorderedUnpartitionedKVEdgeConfigurer.Builder builder =
-        UnorderedUnpartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE");
+    UnorderedKVEdgeConfigurer.Builder builder =
+        UnorderedKVEdgeConfigurer.newBuilder("KEY", "VALUE");
 
-    UnorderedUnpartitionedKVEdgeConfigurer configuration = builder.build();
+    UnorderedKVEdgeConfigurer configuration = builder.build();
 
-    OnFileUnorderedKVOutputConfigurer rebuiltOutput =
-        new OnFileUnorderedKVOutputConfigurer();
+    UnorderedKVOutputConfigurer rebuiltOutput =
+        new UnorderedKVOutputConfigurer();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    ShuffledUnorderedKVInputConfigurer rebuiltInput =
-        new ShuffledUnorderedKVInputConfigurer();
+    UnorderedKVInputConfigurer rebuiltInput =
+        new UnorderedKVInputConfigurer();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -123,7 +123,7 @@ public class TestUnorderedUnpartitionedKVEdgeConfigurer {
     additionalConfs.put(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, "0.22f");
     additionalConfs.put("file.shouldExist", "file");
 
-    UnorderedUnpartitionedKVEdgeConfigurer.Builder builder = UnorderedUnpartitionedKVEdgeConfigurer
+    UnorderedKVEdgeConfigurer.Builder builder = UnorderedKVEdgeConfigurer
         .newBuilder("KEY",
             "VALUE")
         .setAdditionalConfiguration("fs.shouldExist", "fs")
@@ -133,13 +133,13 @@ public class TestUnorderedUnpartitionedKVEdgeConfigurer {
         .setAdditionalConfiguration(additionalConfs)
         .setFromConfiguration(fromConf);
 
-    UnorderedUnpartitionedKVEdgeConfigurer configuration = builder.build();
+    UnorderedKVEdgeConfigurer configuration = builder.build();
 
-    OnFileUnorderedKVOutputConfigurer rebuiltOutput =
-        new OnFileUnorderedKVOutputConfigurer();
+    UnorderedKVOutputConfigurer rebuiltOutput =
+        new UnorderedKVOutputConfigurer();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    ShuffledUnorderedKVInputConfigurer rebuiltInput =
-        new ShuffledUnorderedKVInputConfigurer();
+    UnorderedKVInputConfigurer rebuiltInput =
+        new UnorderedKVInputConfigurer();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;

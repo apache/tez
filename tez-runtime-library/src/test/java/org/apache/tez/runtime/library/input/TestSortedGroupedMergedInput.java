@@ -65,7 +65,7 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput1);
     sInputs.add(sInput2);
     sInputs.add(sInput3);
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
+    OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(createMergedInputContext(), sInputs);
 
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
@@ -106,7 +106,7 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
+    OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(createMergedInputContext(), sInputs);
 
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
@@ -149,7 +149,7 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
+    OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(createMergedInputContext(), sInputs);
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
     while (kvsReader.next()) {
@@ -195,7 +195,7 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
+    OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(createMergedInputContext(), sInputs);
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
     while (kvsReader.next()) {
@@ -246,7 +246,7 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
+    OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(createMergedInputContext(), sInputs);
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
     while (kvsReader.next()) {
@@ -301,7 +301,7 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
+    OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(createMergedInputContext(), sInputs);
 
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
@@ -347,13 +347,13 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    SortedGroupedMergedInput input = new SortedGroupedMergedInput(createMergedInputContext(), sInputs);
+    OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(createMergedInputContext(), sInputs);
 
     KeyValuesReader kvsReader = input.getReader();
     assertFalse(kvsReader.next());
   }
 
-  private static class SortedTestInput extends ShuffledMergedInput {
+  private static class SortedTestInput extends OrderedGroupedKVInput {
 
     final SortedTestKeyValuesReader reader;
 

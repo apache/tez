@@ -118,8 +118,8 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputInitializerContext;
-import org.apache.tez.runtime.library.input.ShuffledMergedInputLegacy;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.input.OrderedGroupedInputLegacy;
+import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
 import org.apache.tez.test.MiniTezCluster;
@@ -702,13 +702,13 @@ public class TestMRRJobsDAGApi {
     Edge edge1 = new Edge(stage1Vertex, stage2Vertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL, new OutputDescriptor(
-        OnFileSortedOutput.class.getName()).setUserPayload(stage2Payload), new InputDescriptor(
-                ShuffledMergedInputLegacy.class.getName()).setUserPayload(stage2Payload)));
+        OrderedPartitionedKVOutput.class.getName()).setUserPayload(stage2Payload), new InputDescriptor(
+                OrderedGroupedInputLegacy.class.getName()).setUserPayload(stage2Payload)));
     Edge edge2 = new Edge(stage2Vertex, stage3Vertex, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL, new OutputDescriptor(
-        OnFileSortedOutput.class.getName()).setUserPayload(stage3Payload), new InputDescriptor(
-                ShuffledMergedInputLegacy.class.getName()).setUserPayload(stage3Payload)));
+        OrderedPartitionedKVOutput.class.getName()).setUserPayload(stage3Payload), new InputDescriptor(
+                OrderedGroupedInputLegacy.class.getName()).setUserPayload(stage3Payload)));
 
     dag.addEdge(edge1);
     dag.addEdge(edge2);

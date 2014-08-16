@@ -43,7 +43,7 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
-import org.apache.tez.runtime.library.common.readers.ShuffledUnorderedKVReader;
+import org.apache.tez.runtime.library.common.readers.UnorderedKVReader;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleEventHandler;
 import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleInputEventHandlerImpl;
 import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleManager;
@@ -52,14 +52,14 @@ import org.apache.tez.runtime.library.shuffle.common.impl.SimpleFetchedInputAllo
 import com.google.common.base.Preconditions;
 
 /**
- * {@link ShuffledUnorderedKVInput} provides unordered key value input by
+ * {@link UnorderedKVInput} provides unordered key value input by
  * bringing together (shuffling) a set of distributed data and providing a 
  * unified view to that data. There are no ordering constraints applied by
  * this input.
  */
-public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
+public class UnorderedKVInput extends AbstractLogicalInput {
 
-  private static final Log LOG = LogFactory.getLog(ShuffledUnorderedKVInput.class);
+  private static final Log LOG = LogFactory.getLog(UnorderedKVInput.class);
 
   private Configuration conf;
   private ShuffleManager shuffleManager;
@@ -67,7 +67,7 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
   private long firstEventReceivedTime = -1;
   private MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;
   @SuppressWarnings("rawtypes")
-  private ShuffledUnorderedKVReader kvReader;
+  private UnorderedKVReader kvReader;
 
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
   private TezCounter inputRecordCounter;
@@ -75,7 +75,7 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
   private SimpleFetchedInputAllocator inputManager;
   private ShuffleEventHandler inputEventHandler;
 
-  public ShuffledUnorderedKVInput(InputContext inputContext, int numPhysicalInputs) {
+  public UnorderedKVInput(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);
   }
 
@@ -214,10 +214,10 @@ public class ShuffledUnorderedKVInput extends AbstractLogicalInput {
 
 
   @SuppressWarnings("rawtypes")
-  private ShuffledUnorderedKVReader createReader(TezCounter inputRecordCounter, CompressionCodec codec,
+  private UnorderedKVReader createReader(TezCounter inputRecordCounter, CompressionCodec codec,
       int ifileBufferSize, boolean ifileReadAheadEnabled, int ifileReadAheadLength)
       throws IOException {
-    return new ShuffledUnorderedKVReader(shuffleManager, conf, codec, ifileReadAheadEnabled,
+    return new UnorderedKVReader(shuffleManager, conf, codec, ifileReadAheadEnabled,
         ifileReadAheadLength, ifileBufferSize, inputRecordCounter);
   }
 

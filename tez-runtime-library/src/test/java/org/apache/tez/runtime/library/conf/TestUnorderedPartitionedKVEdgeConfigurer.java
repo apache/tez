@@ -68,11 +68,11 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
 
     UnorderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    OnFileUnorderedPartitionedKVOutputConfigurer rebuiltOutput =
-        new OnFileUnorderedPartitionedKVOutputConfigurer();
+    UnorderedPartitionedKVOutputConfigurer rebuiltOutput =
+        new UnorderedPartitionedKVOutputConfigurer();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    ShuffledUnorderedKVInputConfigurer rebuiltInput =
-        new ShuffledUnorderedKVInputConfigurer();
+    UnorderedKVInputConfigurer rebuiltInput =
+        new UnorderedKVInputConfigurer();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -100,11 +100,11 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
 
     UnorderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    OnFileUnorderedPartitionedKVOutputConfigurer rebuiltOutput =
-        new OnFileUnorderedPartitionedKVOutputConfigurer();
+    UnorderedPartitionedKVOutputConfigurer rebuiltOutput =
+        new UnorderedPartitionedKVOutputConfigurer();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    ShuffledUnorderedKVInputConfigurer rebuiltInput =
-        new ShuffledUnorderedKVInputConfigurer();
+    UnorderedKVInputConfigurer rebuiltInput =
+        new UnorderedKVInputConfigurer();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -144,11 +144,11 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
 
     UnorderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    OnFileUnorderedPartitionedKVOutputConfigurer rebuiltOutput =
-        new OnFileUnorderedPartitionedKVOutputConfigurer();
+    UnorderedPartitionedKVOutputConfigurer rebuiltOutput =
+        new UnorderedPartitionedKVOutputConfigurer();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    ShuffledUnorderedKVInputConfigurer rebuiltInput =
-        new ShuffledUnorderedKVInputConfigurer();
+    UnorderedKVInputConfigurer rebuiltInput =
+        new UnorderedKVInputConfigurer();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;

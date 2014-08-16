@@ -38,7 +38,7 @@ public class TestOnFileSortedOutputConfigurer {
   @Test
   public void testNullParams() {
     try {
-      OnFileSortedOutputConfigurer.newBuilder(
+      OrderedPartitionedKVOutputConfigurer.newBuilder(
           null, "VALUE", "PARTITIONER", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
@@ -46,7 +46,7 @@ public class TestOnFileSortedOutputConfigurer {
     }
 
     try {
-      OnFileSortedOutputConfigurer.newBuilder(
+      OrderedPartitionedKVOutputConfigurer.newBuilder(
           "KEY", null, "PARTITIONER", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
@@ -54,7 +54,7 @@ public class TestOnFileSortedOutputConfigurer {
     }
 
     try {
-      OnFileSortedOutputConfigurer.newBuilder(
+      OrderedPartitionedKVOutputConfigurer.newBuilder(
           "KEY", "VALUE", null, null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
@@ -72,8 +72,8 @@ public class TestOnFileSortedOutputConfigurer {
     additionalConf.put("test.key.2", "key2");
     additionalConf.put("io.shouldExist", "io");
     additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, "TestInternalSorter");
-    OnFileSortedOutputConfigurer.Builder builder =
-        OnFileSortedOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null)
+    OrderedPartitionedKVOutputConfigurer.Builder builder =
+        OrderedPartitionedKVOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null)
             .setKeyComparatorClass("KEY_COMPARATOR", null)
             .setCompression(true, "CustomCodec")
             .setSortBufferSize(2048)
@@ -84,9 +84,9 @@ public class TestOnFileSortedOutputConfigurer {
             .setAdditionalConfiguration(additionalConf)
             .setFromConfiguration(fromConf);
 
-    OnFileSortedOutputConfigurer configuration = builder.build();
+    OrderedPartitionedKVOutputConfigurer configuration = builder.build();
 
-    OnFileSortedOutputConfigurer rebuilt = new OnFileSortedOutputConfigurer();
+    OrderedPartitionedKVOutputConfigurer rebuilt = new OrderedPartitionedKVOutputConfigurer();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
@@ -119,11 +119,11 @@ public class TestOnFileSortedOutputConfigurer {
 
   @Test
   public void testDefaultConfigsUsed() {
-    OnFileSortedOutputConfigurer.Builder builder =
-        OnFileSortedOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null);
-    OnFileSortedOutputConfigurer configuration = builder.build();
+    OrderedPartitionedKVOutputConfigurer.Builder builder =
+        OrderedPartitionedKVOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null);
+    OrderedPartitionedKVOutputConfigurer configuration = builder.build();
 
-    OnFileSortedOutputConfigurer rebuilt = new OnFileSortedOutputConfigurer();
+    OrderedPartitionedKVOutputConfigurer rebuilt = new OrderedPartitionedKVOutputConfigurer();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
@@ -147,12 +147,12 @@ public class TestOnFileSortedOutputConfigurer {
     partitionerConf.put("partitioner.test.key", "PARTITIONERKEY");
     partitionerConf
         .put(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
-    OnFileSortedOutputConfigurer.Builder builder =
-        OnFileSortedOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", partitionerConf);
+    OrderedPartitionedKVOutputConfigurer.Builder builder =
+        OrderedPartitionedKVOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", partitionerConf);
 
-    OnFileSortedOutputConfigurer configuration = builder.build();
+    OrderedPartitionedKVOutputConfigurer configuration = builder.build();
 
-    OnFileSortedOutputConfigurer rebuilt = new OnFileSortedOutputConfigurer();
+    OrderedPartitionedKVOutputConfigurer rebuilt = new OrderedPartitionedKVOutputConfigurer();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
@@ -170,13 +170,13 @@ public class TestOnFileSortedOutputConfigurer {
     combinerConf.put("combiner.test.key", "COMBINERKEY");
     combinerConf
         .put(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
-    OnFileSortedOutputConfigurer.Builder builder =
-        OnFileSortedOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null)
+    OrderedPartitionedKVOutputConfigurer.Builder builder =
+        OrderedPartitionedKVOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null)
             .setCombiner("COMBINER", combinerConf);
 
-    OnFileSortedOutputConfigurer configuration = builder.build();
+    OrderedPartitionedKVOutputConfigurer configuration = builder.build();
 
-    OnFileSortedOutputConfigurer rebuilt = new OnFileSortedOutputConfigurer();
+    OrderedPartitionedKVOutputConfigurer rebuilt = new OrderedPartitionedKVOutputConfigurer();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;

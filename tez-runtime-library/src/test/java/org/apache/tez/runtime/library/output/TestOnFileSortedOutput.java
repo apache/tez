@@ -81,7 +81,7 @@ public class TestOnFileSortedOutput {
   private int sorterThreads;
 
   private KeyValuesWriter writer;
-  private OnFileSortedOutput sortedOutput;
+  private OrderedPartitionedKVOutput sortedOutput;
   private boolean sendEmptyPartitionViaEvent;
   //Partition index for which data should not be written to.
   private int emptyPartitionIdx;
@@ -150,7 +150,7 @@ public class TestOnFileSortedOutput {
 
   private void startSortedOutput(int partitions) throws Exception {
     OutputContext context = createTezOutputContext();
-    sortedOutput = new OnFileSortedOutput(context, partitions);
+    sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
     sortedOutput.initialize();
     sortedOutput.start();
     writer = sortedOutput.getWriter();

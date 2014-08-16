@@ -16,7 +16,7 @@
 * limitations under the License.
 */
 
-package org.apache.tez.runtime.library.output;
+package org.apache.tez.mapreduce.output;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,8 +28,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
+import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 
-public class LocalOnFileSorterOutput extends OnFileSortedOutput {
+public class LocalOnFileSorterOutput extends OrderedPartitionedKVOutput {
 
   private static final Log LOG = LogFactory.getLog(LocalOnFileSorterOutput.class);
 

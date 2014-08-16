@@ -32,10 +32,10 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 
 /**
- * Configure payloads for the OnFileSortedOutput and ShuffledMergedInput pair </p>
+ * Configure payloads for the OrderedPartitionedKVOutput and OrderedGroupedKVInput pair </p>
  *
  * Values will be picked up from tez-site if not specified, otherwise defaults from
  * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
@@ -44,12 +44,12 @@ import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 @InterfaceStability.Evolving
 public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseEdgeConfigurer {
 
-  private final OnFileSortedOutputConfigurer outputConf;
-  private final ShuffledMergedInputConfigurer inputConf;
+  private final OrderedPartitionedKVOutputConfigurer outputConf;
+  private final OrderedGroupedKVInputConfigurer inputConf;
 
   private OrderedPartitionedKVEdgeConfigurer(
-      OnFileSortedOutputConfigurer outputConfiguration,
-      ShuffledMergedInputConfigurer inputConfiguration) {
+      OrderedPartitionedKVOutputConfigurer outputConfiguration,
+      OrderedGroupedKVInputConfigurer inputConfiguration) {
     this.outputConf = outputConfiguration;
     this.inputConf = inputConfiguration;
   }
@@ -94,7 +94,7 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
 
   @Override
   public String getOutputClassName() {
-    return OnFileSortedOutput.class.getName();
+    return OrderedPartitionedKVOutput.class.getName();
   }
 
   @Override
@@ -146,18 +146,18 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
   @InterfaceStability.Evolving
   public static class Builder extends HadoopKeyValuesBasedBaseEdgeConfigurer.Builder<Builder> {
 
-    private final OnFileSortedOutputConfigurer.Builder outputBuilder =
-        new OnFileSortedOutputConfigurer.Builder();
-    private final OnFileSortedOutputConfigurer.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>
+    private final OrderedPartitionedKVOutputConfigurer.Builder outputBuilder =
+        new OrderedPartitionedKVOutputConfigurer.Builder();
+    private final OrderedPartitionedKVOutputConfigurer.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>
         specificOutputBuilder =
-        new OnFileSortedOutputConfigurer.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>(
+        new OrderedPartitionedKVOutputConfigurer.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>(
             this, outputBuilder);
 
-    private final ShuffledMergedInputConfigurer.Builder inputBuilder =
-        new ShuffledMergedInputConfigurer.Builder();
-    private final ShuffledMergedInputConfigurer.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>
+    private final OrderedGroupedKVInputConfigurer.Builder inputBuilder =
+        new OrderedGroupedKVInputConfigurer.Builder();
+    private final OrderedGroupedKVInputConfigurer.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>
         specificInputBuilder =
-        new ShuffledMergedInputConfigurer.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>(this,
+        new OrderedGroupedKVInputConfigurer.SpecificBuilder<OrderedPartitionedKVEdgeConfigurer.Builder>(this,
             inputBuilder);
 
     @InterfaceAudience.Private
@@ -260,7 +260,7 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
      * Configure the specific output
      * @return a builder to configure the output
      */
-    public OnFileSortedOutputConfigurer.SpecificBuilder<Builder> configureOutput() {
+    public OrderedPartitionedKVOutputConfigurer.SpecificBuilder<Builder> configureOutput() {
       return specificOutputBuilder;
     }
 
@@ -268,7 +268,7 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
      * Configure the specific input
      * @return a builder to configure the input
      */
-    public ShuffledMergedInputConfigurer.SpecificBuilder<Builder> configureInput() {
+    public OrderedGroupedKVInputConfigurer.SpecificBuilder<Builder> configureInput() {
       return specificInputBuilder;
     }
 

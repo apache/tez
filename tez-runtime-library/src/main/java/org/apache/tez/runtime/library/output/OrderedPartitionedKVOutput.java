@@ -26,19 +26,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.protobuf.ByteString;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -60,14 +56,18 @@ import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.protobuf.ByteString;
+
 /**
- * {@link OnFileSortedOutput} is an {@link AbstractLogicalOutput} which sorts
+ * {@link OrderedPartitionedKVOutput} is an {@link AbstractLogicalOutput} which sorts
  * key/value pairs written to it. It also partitions the output based on a
  * {@link Partitioner}
  */
-public class OnFileSortedOutput extends AbstractLogicalOutput {
+public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
 
-  private static final Log LOG = LogFactory.getLog(OnFileSortedOutput.class);
+  private static final Log LOG = LogFactory.getLog(OrderedPartitionedKVOutput.class);
 
   protected ExternalSorter sorter;
   protected Configuration conf;
@@ -77,7 +77,7 @@ public class OnFileSortedOutput extends AbstractLogicalOutput {
   private boolean sendEmptyPartitionDetails;
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
-  public OnFileSortedOutput(OutputContext outputContext, int numPhysicalOutputs) {
+  public OrderedPartitionedKVOutput(OutputContext outputContext, int numPhysicalOutputs) {
     super(outputContext, numPhysicalOutputs);
   }
 

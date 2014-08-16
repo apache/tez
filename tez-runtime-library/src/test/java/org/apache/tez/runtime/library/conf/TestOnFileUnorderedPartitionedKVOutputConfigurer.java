@@ -39,7 +39,7 @@ public class TestOnFileUnorderedPartitionedKVOutputConfigurer {
   @Test
   public void testNullParams() {
     try {
-      OnFileUnorderedPartitionedKVOutputConfigurer.newBuilder(
+      UnorderedPartitionedKVOutputConfigurer.newBuilder(
           null, "VALUE", "PARTITIONER", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
@@ -47,7 +47,7 @@ public class TestOnFileUnorderedPartitionedKVOutputConfigurer {
     }
 
     try {
-      OnFileUnorderedPartitionedKVOutputConfigurer.newBuilder(
+      UnorderedPartitionedKVOutputConfigurer.newBuilder(
           "KEY", null, "PARTITIONER", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
@@ -55,7 +55,7 @@ public class TestOnFileUnorderedPartitionedKVOutputConfigurer {
     }
 
     try {
-      OnFileUnorderedPartitionedKVOutputConfigurer.newBuilder(
+      UnorderedPartitionedKVOutputConfigurer.newBuilder(
           "KEY", "VALUE", null, null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
@@ -73,8 +73,8 @@ public class TestOnFileUnorderedPartitionedKVOutputConfigurer {
     additionalConf.put("test.key.2", "key2");
     additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, "2222");
     additionalConf.put("file.shouldExist", "file");
-    OnFileUnorderedPartitionedKVOutputConfigurer.Builder builder =
-        OnFileUnorderedPartitionedKVOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER",
+    UnorderedPartitionedKVOutputConfigurer.Builder builder =
+        UnorderedPartitionedKVOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER",
             null)
             .setCompression(true, "CustomCodec")
             .setAvailableBufferSize(1111)
@@ -85,10 +85,10 @@ public class TestOnFileUnorderedPartitionedKVOutputConfigurer {
             .setAdditionalConfiguration(additionalConf)
             .setFromConfiguration(fromConf);
 
-    OnFileUnorderedPartitionedKVOutputConfigurer configuration = builder.build();
+    UnorderedPartitionedKVOutputConfigurer configuration = builder.build();
 
-    OnFileUnorderedPartitionedKVOutputConfigurer rebuilt =
-        new OnFileUnorderedPartitionedKVOutputConfigurer();
+    UnorderedPartitionedKVOutputConfigurer rebuilt =
+        new UnorderedPartitionedKVOutputConfigurer();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
@@ -120,15 +120,15 @@ public class TestOnFileUnorderedPartitionedKVOutputConfigurer {
 
   @Test
   public void testDefaultConfigsUsed() {
-    OnFileUnorderedPartitionedKVOutputConfigurer.Builder builder =
-        OnFileUnorderedPartitionedKVOutputConfigurer
+    UnorderedPartitionedKVOutputConfigurer.Builder builder =
+        UnorderedPartitionedKVOutputConfigurer
             .newBuilder("KEY", "VALUE", "PARTITIONER", null)
             .setKeySerializationClass("SerClass1")
             .setValueSerializationClass("SerClass2");
-    OnFileUnorderedPartitionedKVOutputConfigurer configuration = builder.build();
+    UnorderedPartitionedKVOutputConfigurer configuration = builder.build();
 
-    OnFileUnorderedPartitionedKVOutputConfigurer rebuilt =
-        new OnFileUnorderedPartitionedKVOutputConfigurer();
+    UnorderedPartitionedKVOutputConfigurer rebuilt =
+        new UnorderedPartitionedKVOutputConfigurer();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
@@ -156,14 +156,14 @@ public class TestOnFileUnorderedPartitionedKVOutputConfigurer {
     partitionerConf.put("partitioner.test.key", "PARTITIONERKEY");
     partitionerConf
         .put(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
-    OnFileUnorderedPartitionedKVOutputConfigurer.Builder builder =
-        OnFileUnorderedPartitionedKVOutputConfigurer
+    UnorderedPartitionedKVOutputConfigurer.Builder builder =
+        UnorderedPartitionedKVOutputConfigurer
             .newBuilder("KEY", "VALUE", "PARTITIONER", partitionerConf);
 
-    OnFileUnorderedPartitionedKVOutputConfigurer configuration = builder.build();
+    UnorderedPartitionedKVOutputConfigurer configuration = builder.build();
 
-    OnFileUnorderedPartitionedKVOutputConfigurer rebuilt =
-        new OnFileUnorderedPartitionedKVOutputConfigurer();
+    UnorderedPartitionedKVOutputConfigurer rebuilt =
+        new UnorderedPartitionedKVOutputConfigurer();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;

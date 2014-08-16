@@ -67,9 +67,9 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
+    OrderedPartitionedKVOutputConfigurer rebuiltOutput = new OrderedPartitionedKVOutputConfigurer();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
+    OrderedGroupedKVInputConfigurer rebuiltInput = new OrderedGroupedKVInputConfigurer();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -93,9 +93,9 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
+    OrderedPartitionedKVOutputConfigurer rebuiltOutput = new OrderedPartitionedKVOutputConfigurer();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
+    OrderedGroupedKVInputConfigurer rebuiltInput = new OrderedGroupedKVInputConfigurer();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -135,9 +135,9 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
+    OrderedPartitionedKVOutputConfigurer rebuiltOutput = new OrderedPartitionedKVOutputConfigurer();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
+    OrderedGroupedKVInputConfigurer rebuiltInput = new OrderedGroupedKVInputConfigurer();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -190,9 +190,9 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
+    OrderedPartitionedKVOutputConfigurer rebuiltOutput = new OrderedPartitionedKVOutputConfigurer();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
+    OrderedGroupedKVInputConfigurer rebuiltInput = new OrderedGroupedKVInputConfigurer();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -250,9 +250,9 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
-    OnFileSortedOutputConfigurer rebuiltOutput = new OnFileSortedOutputConfigurer();
+    OrderedPartitionedKVOutputConfigurer rebuiltOutput = new OrderedPartitionedKVOutputConfigurer();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    ShuffledMergedInputConfigurer rebuiltInput = new ShuffledMergedInputConfigurer();
+    OrderedGroupedKVInputConfigurer rebuiltInput = new OrderedGroupedKVInputConfigurer();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;

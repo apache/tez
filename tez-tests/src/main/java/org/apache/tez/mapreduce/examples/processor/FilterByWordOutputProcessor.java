@@ -31,7 +31,7 @@ import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
-import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
+import org.apache.tez.runtime.library.input.UnorderedKVInput;
 
 
 public class FilterByWordOutputProcessor extends SimpleMRProcessor {
@@ -72,7 +72,7 @@ public class FilterByWordOutputProcessor extends SimpleMRProcessor {
     }
 
     LogicalInput li = inputs.values().iterator().next();
-    if (! (li instanceof ShuffledUnorderedKVInput)) {
+    if (! (li instanceof UnorderedKVInput)) {
       throw new IllegalStateException("FilterByWordOutputProcessor processor can only work with ShuffledUnorderedKVInput");
     }
 
@@ -81,7 +81,7 @@ public class FilterByWordOutputProcessor extends SimpleMRProcessor {
       throw new IllegalStateException("FilterByWordOutputProcessor processor can only work with MROutput");
     }
 
-    ShuffledUnorderedKVInput kvInput = (ShuffledUnorderedKVInput) li;
+    UnorderedKVInput kvInput = (UnorderedKVInput) li;
     MROutput mrOutput = (MROutput) lo;
 
     KeyValueReader kvReader = kvInput.getReader();

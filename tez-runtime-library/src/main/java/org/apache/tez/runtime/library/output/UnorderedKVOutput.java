@@ -54,13 +54,13 @@ import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
 /**
- * {@link OnFileUnorderedKVOutput} is a {@link LogicalOutput} that writes key
+ * {@link UnorderedKVOutput} is a {@link LogicalOutput} that writes key
  * value data without applying any ordering or grouping constraints. This can be
  * used to write raw key value data as is.
  */
-public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
+public class UnorderedKVOutput extends AbstractLogicalOutput {
 
-  private static final Log LOG = LogFactory.getLog(OnFileUnorderedKVOutput.class);
+  private static final Log LOG = LogFactory.getLog(UnorderedKVOutput.class);
 
   private FileBasedKVWriter kvWriter;
   
@@ -69,7 +69,7 @@ public class OnFileUnorderedKVOutput extends AbstractLogicalOutput {
   private boolean dataViaEventsEnabled;
   private int dataViaEventsMaxSize;
 
-  public OnFileUnorderedKVOutput(OutputContext outputContext, int numPhysicalOutputs) {
+  public UnorderedKVOutput(OutputContext outputContext, int numPhysicalOutputs) {
     super(outputContext, numPhysicalOutputs);
   }
 

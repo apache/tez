@@ -37,14 +37,14 @@ public class TestShuffledUnorderedKVInputConfigurer {
   @Test
   public void testNullParams() {
     try {
-      ShuffledUnorderedKVInputConfigurer.newBuilder(null, "VALUE");
+      UnorderedKVInputConfigurer.newBuilder(null, "VALUE");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      ShuffledUnorderedKVInputConfigurer.newBuilder("KEY", null);
+      UnorderedKVInputConfigurer.newBuilder("KEY", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
@@ -61,8 +61,8 @@ public class TestShuffledUnorderedKVInputConfigurer {
     additionalConf.put("test.key.2", "key2");
     additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, "3");
     additionalConf.put("file.shouldExist", "file");
-    ShuffledUnorderedKVInputConfigurer.Builder builder =
-        ShuffledUnorderedKVInputConfigurer.newBuilder("KEY", "VALUE")
+    UnorderedKVInputConfigurer.Builder builder =
+        UnorderedKVInputConfigurer.newBuilder("KEY", "VALUE")
             .setCompression(true, "CustomCodec")
             .setMaxSingleMemorySegmentFraction(0.11f)
             .setMergeFraction(0.22f)
@@ -74,9 +74,9 @@ public class TestShuffledUnorderedKVInputConfigurer {
             .setAdditionalConfiguration(additionalConf)
             .setFromConfiguration(fromConf);
 
-    ShuffledUnorderedKVInputConfigurer configuration = builder.build();
+    UnorderedKVInputConfigurer configuration = builder.build();
 
-    ShuffledUnorderedKVInputConfigurer rebuilt = new ShuffledUnorderedKVInputConfigurer();
+    UnorderedKVInputConfigurer rebuilt = new UnorderedKVInputConfigurer();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
@@ -108,11 +108,11 @@ public class TestShuffledUnorderedKVInputConfigurer {
 
   @Test
   public void testDefaultConfigsUsed() {
-    ShuffledUnorderedKVInputConfigurer.Builder builder =
-        ShuffledUnorderedKVInputConfigurer.newBuilder("KEY", "VALUE");
-    ShuffledUnorderedKVInputConfigurer configuration = builder.build();
+    UnorderedKVInputConfigurer.Builder builder =
+        UnorderedKVInputConfigurer.newBuilder("KEY", "VALUE");
+    UnorderedKVInputConfigurer configuration = builder.build();
 
-    ShuffledUnorderedKVInputConfigurer rebuilt = new ShuffledUnorderedKVInputConfigurer();
+    UnorderedKVInputConfigurer rebuilt = new UnorderedKVInputConfigurer();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;

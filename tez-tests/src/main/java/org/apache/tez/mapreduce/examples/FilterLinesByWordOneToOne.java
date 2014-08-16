@@ -68,7 +68,7 @@ import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.processor.FilterByWordInputProcessor;
 import org.apache.tez.processor.FilterByWordOutputProcessor;
-import org.apache.tez.runtime.library.conf.UnorderedUnpartitionedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.conf.UnorderedKVEdgeConfigurer;
 
 public class FilterLinesByWordOneToOne extends Configured implements Tool {
 
@@ -189,7 +189,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
             .setUserPayload(TezUtils.createUserPayloadFromConf(stage2Conf)),
             new OutputCommitterDescriptor(MROutputCommitter.class.getName()), null));
 
-    UnorderedUnpartitionedKVEdgeConfigurer edgeConf = UnorderedUnpartitionedKVEdgeConfigurer
+    UnorderedKVEdgeConfigurer edgeConf = UnorderedKVEdgeConfigurer
         .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();
 
     DAG dag = new DAG("FilterLinesByWord");

@@ -16,16 +16,13 @@
  * limitations under the License.
  */
 
-package org.apache.tez.client;
+package org.apache.tez.dag.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.client.TezClient;
 import org.apache.tez.runtime.api.Processor;
 
 /**

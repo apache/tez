@@ -20,7 +20,6 @@ package org.apache.tez.common;
 
 import java.io.File;
 
-import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.log4j.FileAppender;
 import org.apache.tez.dag.api.TezConstants;
@@ -29,7 +28,6 @@ import org.apache.tez.dag.api.TezConstants;
  * A simple log4j-appender for a tez container's logs.
  * 
  */
-@Public
 @Unstable
 public class TezContainerLogAppender extends FileAppender {
   private String containerLogDir;

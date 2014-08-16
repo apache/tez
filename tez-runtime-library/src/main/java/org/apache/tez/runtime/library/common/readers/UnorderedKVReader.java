@@ -41,9 +41,9 @@ import org.apache.tez.runtime.library.shuffle.common.MemoryFetchedInput;
 
 @Unstable
 @Private
-public class ShuffledUnorderedKVReader<K, V> extends KeyValueReader {
+public class UnorderedKVReader<K, V> extends KeyValueReader {
 
-  private static final Log LOG = LogFactory.getLog(ShuffledUnorderedKVReader.class);
+  private static final Log LOG = LogFactory.getLog(UnorderedKVReader.class);
   
   private final ShuffleManager shuffleManager;
   private final CompressionCodec codec;
@@ -71,7 +71,7 @@ public class ShuffledUnorderedKVReader<K, V> extends KeyValueReader {
   // the counter at the moment will generate aggregate numbers. 
   private int numRecordsRead = 0;
   
-  public ShuffledUnorderedKVReader(ShuffleManager shuffleManager, Configuration conf,
+  public UnorderedKVReader(ShuffleManager shuffleManager, Configuration conf,
       CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength, int ifileBufferSize,
       TezCounter inputRecordCounter)
       throws IOException {

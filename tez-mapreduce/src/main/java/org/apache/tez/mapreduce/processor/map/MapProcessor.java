@@ -50,7 +50,7 @@ import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 @Private
@@ -113,8 +113,8 @@ public class MapProcessor extends MRTask{
     KeyValueWriter kvWriter = null;
     if ((out instanceof MROutputLegacy)) {
       kvWriter = ((MROutputLegacy)out).getWriter();
-    } else if ((out instanceof OnFileSortedOutput)){
-      kvWriter = ((OnFileSortedOutput)out).getWriter();
+    } else if ((out instanceof OrderedPartitionedKVOutput)){
+      kvWriter = ((OrderedPartitionedKVOutput)out).getWriter();
     } else {
       throw new IOException("Illegal output to map, outputClass="
           + out.getClass());

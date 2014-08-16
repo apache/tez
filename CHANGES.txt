@@ -66,6 +66,7 @@ INCOMPATIBLE CHANGES
   TEZ-1418. Provide Default value for TEZ_AM_LAUNCH_ENV and TEZ_TASK_LAUNCH
   TEZ-1438. Annotate add java doc for tez-runtime-library and tez-mapreduce
   TEZ-1055. Rename tez-mapreduce-examples to tez-examples
+  TEZ-1132. Consistent naming of Input and Outputs
 
 Release 0.4.0-incubating: 2014-04-05
 

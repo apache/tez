@@ -125,7 +125,7 @@ public class TestOnFileUnorderedKVOutput {
         taskAttemptID, counters, 0, userPayload, runtimeTask,
         null, auxEnv, new MemoryDistributor(1, 1, conf) , outputDescriptor, null);
 
-    OnFileUnorderedKVOutput kvOutput = new OnFileUnorderedKVOutputForTest(outputContext, 1);
+    UnorderedKVOutput kvOutput = new OnFileUnorderedKVOutputForTest(outputContext, 1);
 
     List<Event> events = null;
 
@@ -153,7 +153,7 @@ public class TestOnFileUnorderedKVOutput {
     assertEquals("host", shufflePayload.getHost());
   }
 
-  private static class OnFileUnorderedKVOutputForTest extends OnFileUnorderedKVOutput {
+  private static class OnFileUnorderedKVOutputForTest extends UnorderedKVOutput {
 
     public OnFileUnorderedKVOutputForTest(OutputContext outputContext, int numPhysicalOutputs) {
       super(outputContext, numPhysicalOutputs);

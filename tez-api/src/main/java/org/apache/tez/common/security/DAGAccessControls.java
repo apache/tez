@@ -25,12 +25,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConstants;
 
 /**
  * Access controls for the DAG
  */
+@Public
 public class DAGAccessControls {
 
   private final Set<String> usersWithViewACLs;
