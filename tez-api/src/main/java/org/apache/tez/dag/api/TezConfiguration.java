@@ -33,16 +33,14 @@ public class TezConfiguration extends Configuration {
 
   public final static String TEZ_SITE_XML = "tez-site.xml";
 
-  static {
-    addDefaultResource(TEZ_SITE_XML);
-  }
-
   public TezConfiguration() {
     super();
+    addDefaultResource(TEZ_SITE_XML);
   }
 
   public TezConfiguration(Configuration conf) {
     super(conf);
+    addDefaultResource(TEZ_SITE_XML);
   }
 
   @Private
