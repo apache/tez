@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.mapreduce.examples;
+package org.apache.tez.examples;
 
 import java.io.IOException;
 
@@ -43,7 +43,7 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
-import org.apache.tez.mapreduce.examples.IntersectExample.ForwardingProcessor;
+import org.apache.tez.examples.IntersectExample.ForwardingProcessor;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.Reader;

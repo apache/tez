@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.mapreduce.examples;
+package org.apache.tez.examples;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
