@@ -65,7 +65,7 @@ public class TestShuffledMergedInputConfigurer {
     OrderedGroupedKVInputConfigurer.Builder builder =
         OrderedGroupedKVInputConfigurer.newBuilder("KEY", "VALUE")
             .setKeyComparatorClass("KEY_COMPARATOR", null)
-            .setCompression(true, "CustomCodec")
+            .setCompression(true, "CustomCodec", null)
             .setMaxSingleMemorySegmentFraction(0.11f)
             .setMergeFraction(0.22f)
             .setPostMergeBufferFraction(0.33f)

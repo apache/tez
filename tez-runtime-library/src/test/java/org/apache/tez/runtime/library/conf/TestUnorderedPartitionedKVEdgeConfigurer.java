@@ -63,8 +63,8 @@ public class TestUnorderedPartitionedKVEdgeConfigurer {
   public void testDefaultConfigsUsed() {
     UnorderedPartitionedKVEdgeConfigurer.Builder builder =
         UnorderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER");
-    builder.setKeySerializationClass("SerClass1");
-    builder.setValueSerializationClass("SerClass2");
+    builder.setKeySerializationClass("SerClass1", null);
+    builder.setValueSerializationClass("SerClass2", null);
 
     UnorderedPartitionedKVEdgeConfigurer configuration = builder.build();
 

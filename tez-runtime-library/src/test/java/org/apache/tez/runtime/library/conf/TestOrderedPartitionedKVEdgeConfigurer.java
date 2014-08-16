@@ -186,7 +186,7 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
         .configureOutput().setSortBufferSize(1111).setSorterNumThreads(2).done()
         .configureInput().setMaxSingleMemorySegmentFraction(0.11f).setMergeFraction(0.22f)
         .setPostMergeBufferFraction(0.33f).setShuffleBufferFraction(0.44f).done()
-        .setCompression(true, "CustomCodec");
+        .setCompression(true, "CustomCodec", null);
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 
@@ -244,9 +244,9 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
   public void testSerialization() {
     OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
         .newBuilder("KEY", "VALUE", "PARTITIONER")
-        .setCompression(true, "CustomCodec")
-        .setKeySerializationClass("serClass1", "SomeComparator1")
-        .setValueSerializationClass("serClass2");
+        .setCompression(true, "CustomCodec", null)
+        .setKeySerializationClass("serClass1", "SomeComparator1", null)
+        .setValueSerializationClass("serClass2", null);
 
     OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
 

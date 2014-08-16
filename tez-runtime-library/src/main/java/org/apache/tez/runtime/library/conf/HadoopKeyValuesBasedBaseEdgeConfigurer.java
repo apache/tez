@@ -20,6 +20,8 @@ package org.apache.tez.runtime.library.conf;
 
 import javax.annotation.Nullable;
 
+import java.util.Map;
+
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.tez.dag.api.UserPayload;
 
@@ -58,11 +60,13 @@ abstract class HadoopKeyValuesBasedBaseEdgeConfigurer {
      * @param enabled          whether to enable compression or not
      * @param compressionCodec the codec to be used if compression is enabled. null implies using
      *                         the default
+     * @param codecConf        the codec configuration. This can be null, and is a {@link
+     *                         java.util.Map} of key-value pairs. The keys should be limited to
+     *                         the ones required by the comparator.
      * @return instance of the current builder
      */
-    public T setCompression(boolean enabled, @Nullable String compressionCodec) {
-      return (T) this;
-    }
+    public abstract T setCompression(boolean enabled, @Nullable String compressionCodec,
+                            @Nullable Map<String, String> codecConf);
 
   }
 

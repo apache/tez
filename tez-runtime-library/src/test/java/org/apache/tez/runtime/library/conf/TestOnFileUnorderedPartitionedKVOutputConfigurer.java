@@ -76,7 +76,7 @@ public class TestOnFileUnorderedPartitionedKVOutputConfigurer {
     UnorderedPartitionedKVOutputConfigurer.Builder builder =
         UnorderedPartitionedKVOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER",
             null)
-            .setCompression(true, "CustomCodec")
+            .setCompression(true, "CustomCodec", null)
             .setAvailableBufferSize(1111)
             .setAdditionalConfiguration("fs.shouldExist", "fs")
             .setAdditionalConfiguration("test.key.1", "key1")
@@ -123,8 +123,8 @@ public class TestOnFileUnorderedPartitionedKVOutputConfigurer {
     UnorderedPartitionedKVOutputConfigurer.Builder builder =
         UnorderedPartitionedKVOutputConfigurer
             .newBuilder("KEY", "VALUE", "PARTITIONER", null)
-            .setKeySerializationClass("SerClass1")
-            .setValueSerializationClass("SerClass2");
+            .setKeySerializationClass("SerClass1", null)
+            .setValueSerializationClass("SerClass2", null);
     UnorderedPartitionedKVOutputConfigurer configuration = builder.build();
 
     UnorderedPartitionedKVOutputConfigurer rebuilt =

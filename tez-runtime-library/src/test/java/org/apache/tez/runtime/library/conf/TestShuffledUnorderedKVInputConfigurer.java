@@ -63,7 +63,7 @@ public class TestShuffledUnorderedKVInputConfigurer {
     additionalConf.put("file.shouldExist", "file");
     UnorderedKVInputConfigurer.Builder builder =
         UnorderedKVInputConfigurer.newBuilder("KEY", "VALUE")
-            .setCompression(true, "CustomCodec")
+            .setCompression(true, "CustomCodec", null)
             .setMaxSingleMemorySegmentFraction(0.11f)
             .setMergeFraction(0.22f)
             .setShuffleBufferFraction(0.33f)

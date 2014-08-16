@@ -177,9 +177,9 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
     }
 
     @Override
-    public Builder setCompression(boolean enabled, @Nullable String compressionCodec) {
-      outputBuilder.setCompression(enabled, compressionCodec);
-      inputBuilder.setCompression(enabled, compressionCodec);
+    public Builder setCompression(boolean enabled, @Nullable String compressionCodec, @Nullable Map<String, String> codecConf) {
+      outputBuilder.setCompression(enabled, compressionCodec, codecConf);
+      inputBuilder.setCompression(enabled, compressionCodec, codecConf);
       return this;
     }
 
@@ -208,11 +208,15 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
      * Set serialization class responsible for providing serializer/deserializer for keys.
      *
      * @param serializationClassName
+     * @param serializerConf         the serializer configuration. This can be null, and is a
+     *                               {@link java.util.Map} of key-value pairs. The keys should be limited
+     *                               to the ones required by the comparator.
      * @return
      */
-    public Builder setKeySerializationClass(String serializationClassName) {
-      outputBuilder.setKeySerializationClass(serializationClassName);
-      inputBuilder.setKeySerializationClass(serializationClassName);
+    public Builder setKeySerializationClass(String serializationClassName,
+                                            @Nullable Map<String, String> serializerConf) {
+      outputBuilder.setKeySerializationClass(serializationClassName, serializerConf);
+      inputBuilder.setKeySerializationClass(serializationClassName, serializerConf);
       return this;
     }
 
@@ -220,11 +224,14 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
      * Set serialization class responsible for providing serializer/deserializer for values.
      *
      * @param serializationClassName
+     * @param serializerConf         the serializer configuration. This can be null, and is a
+     *                               {@link java.util.Map} of key-value pairs. The keys should be limited
+     *                               to the ones required by the comparator.
      * @return
      */
-    public Builder setValueSerializationClass(String serializationClassName) {
-      outputBuilder.setValueSerializationClass(serializationClassName);
-      inputBuilder.setValueSerializationClass(serializationClassName);
+    public Builder setValueSerializationClass(String serializationClassName, @Nullable Map<String, String> serializerConf) {
+      outputBuilder.setValueSerializationClass(serializationClassName, serializerConf);
+      inputBuilder.setValueSerializationClass(serializationClassName, serializerConf);
       return this;
     }
 

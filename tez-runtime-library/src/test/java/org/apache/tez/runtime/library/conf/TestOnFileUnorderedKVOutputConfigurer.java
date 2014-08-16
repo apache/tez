@@ -65,7 +65,7 @@ public class TestOnFileUnorderedKVOutputConfigurer {
     additionalConf.put("file.shouldExist", "file");
     UnorderedKVOutputConfigurer.Builder builder =
         UnorderedKVOutputConfigurer.newBuilder("KEY", "VALUE")
-            .setCompression(true, "CustomCodec")
+            .setCompression(true, "CustomCodec", null)
             .setAdditionalConfiguration("fs.shouldExist", "fs")
             .setAdditionalConfiguration("test.key.1", "key1")
             .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,

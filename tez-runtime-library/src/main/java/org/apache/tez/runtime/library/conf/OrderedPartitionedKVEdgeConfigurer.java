@@ -206,12 +206,15 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
      *
      * @param serializationClassName
      * @param comparatorClassName
+     * @param serializerConf         the serializer configuration. This can be null, and is a
+     *                               {@link java.util.Map} of key-value pairs. The keys should be limited
+     *                               to the ones required by the comparator.
      * @return
      */
     public Builder setKeySerializationClass(String serializationClassName,
-        String comparatorClassName) {
-      outputBuilder.setKeySerializationClass(serializationClassName, comparatorClassName);
-      inputBuilder.setKeySerializationClass(serializationClassName, comparatorClassName);
+        String comparatorClassName, @Nullable Map<String, String> serializerConf) {
+      outputBuilder.setKeySerializationClass(serializationClassName, comparatorClassName, serializerConf);
+      inputBuilder.setKeySerializationClass(serializationClassName, comparatorClassName, serializerConf);
       return this;
     }
 
@@ -219,19 +222,24 @@ public class OrderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBase
      * Set serialization class responsible for providing serializer/deserializer for values.
      *
      * @param serializationClassName
+     * @param serializerConf         the serializer configuration. This can be null, and is a
+     *                               {@link java.util.Map} of key-value pairs. The keys should be limited
+     *                               to the ones required by the comparator.
      * @return
      */
-    public Builder setValueSerializationClass(String serializationClassName) {
-      outputBuilder.setValueSerializationClass(serializationClassName);
-      inputBuilder.setValueSerializationClass(serializationClassName);
+    public Builder setValueSerializationClass(String serializationClassName,
+                                              @Nullable Map<String, String> serializerConf) {
+      outputBuilder.setValueSerializationClass(serializationClassName, serializerConf);
+      inputBuilder.setValueSerializationClass(serializationClassName, serializerConf);
       return this;
     }
 
 
     @Override
-    public Builder setCompression(boolean enabled, @Nullable String compressionCodec) {
-      outputBuilder.setCompression(enabled, compressionCodec);
-      inputBuilder.setCompression(enabled, compressionCodec);
+    public Builder setCompression(boolean enabled, @Nullable String compressionCodec,
+                                  @Nullable Map<String, String> codecConf) {
+      outputBuilder.setCompression(enabled, compressionCodec, codecConf);
+      inputBuilder.setCompression(enabled, compressionCodec, codecConf);
       return this;
     }
 

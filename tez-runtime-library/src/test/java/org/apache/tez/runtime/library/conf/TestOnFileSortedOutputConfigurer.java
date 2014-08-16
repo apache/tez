@@ -75,7 +75,7 @@ public class TestOnFileSortedOutputConfigurer {
     OrderedPartitionedKVOutputConfigurer.Builder builder =
         OrderedPartitionedKVOutputConfigurer.newBuilder("KEY", "VALUE", "PARTITIONER", null)
             .setKeyComparatorClass("KEY_COMPARATOR", null)
-            .setCompression(true, "CustomCodec")
+            .setCompression(true, "CustomCodec", null)
             .setSortBufferSize(2048)
             .setAdditionalConfiguration("test.key.1", "key1")
             .setAdditionalConfiguration("file.shouldExist", "file")
