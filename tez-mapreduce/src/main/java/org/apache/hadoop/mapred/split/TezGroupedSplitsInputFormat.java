@@ -22,6 +22,8 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputFormat;
@@ -34,6 +36,12 @@ import org.apache.tez.dag.api.TezUncheckedException;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * An InputFormat that provides a generic grouping around the splits
+ * of a real InputFormat
+ */
+@Public
+@Evolving
 public class TezGroupedSplitsInputFormat<K, V> 
   implements InputFormat<K, V>, Configurable{
   

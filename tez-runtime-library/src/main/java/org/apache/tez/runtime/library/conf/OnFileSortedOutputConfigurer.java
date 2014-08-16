@@ -43,7 +43,7 @@ import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 /**
- * Configure {@link org.apache.tez.runtime.library.output.OnFileSortedOutput. </p>
+ * Configure {@link org.apache.tez.runtime.library.output.OnFileSortedOutput} </p>
  *
  * Values will be picked up from tez-site if not specified, otherwise defaults from
  * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.

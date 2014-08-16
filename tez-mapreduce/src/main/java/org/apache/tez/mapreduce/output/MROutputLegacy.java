@@ -18,10 +18,12 @@
 
 package org.apache.tez.mapreduce.output;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.tez.runtime.api.OutputContext;
 
+@Private
 public class MROutputLegacy extends MROutput {
 
   /**

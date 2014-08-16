@@ -33,6 +33,7 @@ import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
 
 import com.google.common.base.Preconditions;
 
+@Private
 public class Utils {
 
   /**

@@ -33,6 +33,7 @@ import com.google.common.collect.Maps;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
@@ -123,6 +124,7 @@ import com.google.common.annotations.VisibleForTesting;
  * This class enables the current JobClient (0.22 hadoop) to run on YARN-TEZ.
  */
 @SuppressWarnings({ "unchecked" })
+@LimitedPrivate("Mapreduce")
 public class YARNRunner implements ClientProtocol {
 
   private static final Log LOG = LogFactory.getLog(YARNRunner.class);

@@ -23,9 +23,12 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.lib.MRInputUtils;
@@ -42,6 +45,16 @@ import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
+/**
+ * Implements an {@link InputInitializer} that distributes Map Reduce 
+ * splits created by the client to tasks in the {@link Vertex}
+ * This can be used when certain reasons (e.g. security) prevent splits
+ * from being produced in the App Master via {@link MRInputAMSplitGenerator}
+ * and splits must be produced at the client. They can still be distributed
+ * intelligently among tasks at runtime using this.
+ */
+@Public
+@Evolving
 public class MRInputSplitDistributor extends InputInitializer {
 
   private static final Log LOG = LogFactory.getLog(MRInputSplitDistributor.class);

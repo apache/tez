@@ -21,11 +21,13 @@ package org.apache.tez.mapreduce.client;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
+import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.protocol.ClientProtocol;
 import org.apache.hadoop.mapreduce.protocol.ClientProtocolProvider;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 
+@LimitedPrivate("Mapreduce")
 public class YarnTezClientProtocolProvider extends ClientProtocolProvider {
 
   @Override

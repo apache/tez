@@ -18,6 +18,7 @@
 package org.apache.tez.mapreduce.input;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -75,7 +77,7 @@ import com.google.common.collect.Lists;
  * 
  * This class is not meant to be extended by external projects.
  */
-
+@Public
 public class MRInput extends MRInputBase {
 
   /**
@@ -448,6 +450,10 @@ public class MRInput extends MRInputBase {
     LOG.info("Initialzed MRInput: " + getContext().getSourceVertexName());
   }
 
+  /**
+   * Returns a {@link KeyValueReader} that can be used to read 
+   * Map Reduce compatible key value data
+   */
   @Override
   public KeyValueReader getReader() throws IOException {
     Preconditions

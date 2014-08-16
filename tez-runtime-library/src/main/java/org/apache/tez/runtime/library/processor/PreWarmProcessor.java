@@ -18,15 +18,20 @@
 
 package org.apache.tez.runtime.library.processor;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.runtime.api.Processor;
 import org.apache.tez.runtime.api.ProcessorContext;
 
 /**
- * Built-in convenience {@link Processor} to be used for pre-warming
+ * Built-in convenience {@link Processor} to be used for pre-warming.
+ * If this is customized by the user then they need to make sure that
+ * the custom class jar is localized for the prewarm vertex and other
+ * vertices that need to take advantage of prewarming
  *
  */
 @Unstable
+@Public
 public class PreWarmProcessor extends SimpleProcessor {
 
   public PreWarmProcessor(ProcessorContext context) {

@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -31,6 +33,12 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 
+/**
+ * Implements an InputSplit that provides a generic wrapper around 
+ * a group of real InputSplits
+ */
+@Public
+@Evolving
 public class TezGroupedSplit implements InputSplit, Configurable {
 
   List<InputSplit> wrappedSplits = null;

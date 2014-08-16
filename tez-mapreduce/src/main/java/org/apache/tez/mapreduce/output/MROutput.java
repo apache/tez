@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce.output;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.Collections;
@@ -26,8 +27,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.base.Preconditions;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -59,10 +62,20 @@ import org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.Output;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
-
+/**
+ * {@link MROutput} is an {@link Output} which allows key/values pairs
+ * to be written by a processor.
+ *
+ * It is compatible with all standard Apache Hadoop MapReduce 
+ * OutputFormat implementations.
+ * 
+ * This class is not meant to be extended by external projects.
+ */
+@Public
 public class MROutput extends AbstractLogicalOutput {
   
   /**
@@ -428,6 +441,9 @@ public class MROutput extends AbstractLogicalOutput {
         "-" + taskNumberFormat.format(getContext().getTaskIndex());
   }
 
+  /**
+   * Get a key value write to write Map Reduce compatible output
+   */
   @Override
   public KeyValueWriter getWriter() throws IOException {
     return new KeyValueWriter() {

@@ -21,12 +21,19 @@ package org.apache.tez.runtime.library.input;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.MergedInputContext;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
+
+/**
+ * Implements a {@link MergedLogicalInput} that merges the incoming inputs
+ * (e.g. from a {@link GroupInputEdge} and provide a unified view of the 
+ * input. It concatenates all the inputs to provide a unified view
+ */
 
 public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
 
@@ -71,9 +78,13 @@ public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
     }
     
   }
-    
+   
+  /**
+   * Provides a {@link KeyValuesReader} that iterates over the 
+   * concatenated input data
+   */
   @Override
-  public Reader getReader() throws Exception {
+  public KeyValuesReader getReader() throws Exception {
     return new ConcatenatedMergedKeyValuesReader();
   }
 

@@ -22,13 +22,23 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.Processor;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import com.google.common.collect.Lists;
 
+/**
+ * A {@link SimpleProcessor} that provides Map Reduce specific post
+ * processing by calling commit (if needed) on all {@link MROutput}s 
+ * connected to this {@link Processor}. 
+ */
+@Public
+@Evolving
 public abstract class SimpleMRProcessor extends SimpleProcessor {
   private static final Log LOG = LogFactory.getLog(SimpleMRProcessor.class);
 

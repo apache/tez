@@ -20,6 +20,7 @@ package org.apache.tez.mapreduce.committer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.mapred.FileOutputCommitter;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
@@ -44,6 +45,11 @@ import org.apache.tez.runtime.api.OutputCommitterContext;
 
 import java.io.IOException;
 
+/**
+ * Implements the {@link OutputCommitter} and provide Map Reduce compatible
+ * output commit operations for Map Reduce compatible data sinks. 
+ */
+@Public
 public class MROutputCommitter extends OutputCommitter {
 
   private static final Log LOG = LogFactory.getLog(MROutputCommitter.class);

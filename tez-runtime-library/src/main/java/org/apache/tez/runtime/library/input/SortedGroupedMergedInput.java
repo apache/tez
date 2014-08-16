@@ -53,6 +53,9 @@ public class SortedGroupedMergedInput extends MergedLogicalInput {
     super(context, inputs);
   }
 
+  /**
+   * Provides an ordered {@link KeyValuesReader}
+   */
   @Override
   public KeyValuesReader getReader() throws Exception {
     return new SortedGroupedMergedKeyValuesReader(getInputs());

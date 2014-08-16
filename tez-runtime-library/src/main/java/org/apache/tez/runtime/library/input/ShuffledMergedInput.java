@@ -53,9 +53,12 @@ import com.google.common.base.Preconditions;
 
 
 /**
- * <code>ShuffleMergedInput</code> in a {@link AbstractLogicalInput} which shuffles
+ * {@link ShuffledMergedInput} in a {@link AbstractLogicalInput} which shuffles
  * intermediate sorted data, merges them and provides key/<values> to the
- * consumer.
+ * consumer. This is typically used to bring one partition of a set of partitioned
+ * distributed data to one consumer. The shuffle operation brings all partitions 
+ * to one place. These partitions are assumed to be sorted and are merged sorted to 
+ * merge them into a single input view.
  *
  * The Copy and Merge will be triggered by the initialization - which is handled
  * by the Tez framework. Input is not consumable until the Copy and Merge are

@@ -28,6 +28,8 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.yarn.util.RackResolver;
@@ -36,6 +38,13 @@ import org.apache.tez.dag.api.TezUncheckedException;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * A Helper that provides grouping logic to group InputSplits
+ * using various parameters. A {@link TezGroupedSplit} is used
+ * to wrap the real InputSplits in a group.
+ */
+@Public
+@Evolving
 public class TezMapredSplitsGrouper {
   private static final Log LOG = LogFactory.getLog(TezMapredSplitsGrouper.class);
 

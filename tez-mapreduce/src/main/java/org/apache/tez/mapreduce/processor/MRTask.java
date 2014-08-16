@@ -85,6 +85,7 @@ import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
 @SuppressWarnings("deprecation")
+@Private
 public abstract class MRTask extends AbstractLogicalIOProcessor {
 
   static final Log LOG = LogFactory.getLog(MRTask.class);

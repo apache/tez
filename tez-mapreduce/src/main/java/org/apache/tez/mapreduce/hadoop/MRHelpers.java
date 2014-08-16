@@ -25,6 +25,8 @@ import java.util.Vector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
@@ -41,6 +43,8 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
  * This class contains helper methods for frameworks which migrate from MapReduce to Tez, and need
  * to continue to work with existing MapReduce configurations.
  */
+@Public
+@Evolving
 public class MRHelpers {
 
   private static final Log LOG = LogFactory.getLog(MRHelpers.class);

@@ -26,8 +26,15 @@ import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.Processor;
 import org.apache.tez.runtime.api.ProcessorContext;
 
+/**
+ * Implements an {@link AbstractLogicalIOProcessor} and provides empty
+ * implementations of most methods and handles input/output initialization.
+ * This can be used to implement simple {@link Processor}s that dont need to 
+ * do event handling etc.
+ */
 @Public
 @Evolving
 public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
@@ -47,8 +54,19 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
     postOp();
   }
 
+  /**
+   * Users must implement this method to provide the main
+   * application logic code
+   * @throws Exception
+   */
   public abstract void run() throws Exception;
 
+  /**
+   * Implements input/output initialization. Can be overriden
+   * to implement custom behavior. Called before {@link #run()}
+   * is called. 
+   * @throws Exception
+   */
   protected void preOp() throws Exception {
     if (getInputs() != null) {
       for (LogicalInput input : getInputs().values()) {
@@ -62,6 +80,11 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
     }
   }
 
+  /**
+   * Called after {@link #run()} is called and can be used to 
+   * do post-processing like committing output etc
+   * @throws Exception
+   */
   protected void postOp() throws Exception {
    //No-op
   }

@@ -25,6 +25,8 @@ import com.google.common.collect.Lists;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -45,6 +47,15 @@ import org.apache.tez.runtime.api.events.InputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 
+/**
+ * Implements an {@link InputInitializer} that generates Map Reduce 
+ * splits in the App Master. This may utilizes the up to date cluster
+ * information to create an optimal distribution of splits. This is the 
+ * recommended {@link InputInitializer} to use when reading Map Reduce 
+ * compatible data sources.
+ */
+@Public
+@Evolving
 public class MRInputAMSplitGenerator extends InputInitializer {
 
   private boolean sendSerializedEvents;
