@@ -22,9 +22,9 @@ Maven main modules:
         - tez-runtime-library .........(Tez runtime library)
         - tez-mapreduce ...............(Tez mapreduce)
         - tez-dag .....................(Tez dag)
-        - tez-mapreduce-examples ......(Tez mapreduce examples)
+        - tez-examples ................(Tez examples)
         - tez-plugins .................(Tez plugins)
-        - tez-tests ...................(Tez tests)
+        - tez-tests ...................(Tez tests and additional test examples)
         - tez-dist ....................(Tez dist)
 
 ----------------------------------------------------------------------------------

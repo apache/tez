@@ -27,7 +27,9 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.mapreduce.examples.terasort.TeraGen;
 import org.apache.tez.mapreduce.examples.terasort.TeraSort;
 import org.apache.tez.mapreduce.examples.terasort.TeraValidate;
+
 import org.junit.Ignore;
+
 @Ignore
 public class TestTeraSort extends HadoopTestCase {
   
@@ -43,7 +45,7 @@ public class TestTeraSort extends HadoopTestCase {
   
   // Input/Output paths for sort
   private static final String TEST_DIR = 
-    new File(System.getProperty("test.build.data", "/tmp"), "terasort")
+    new File(System.getProperty("test.build.data", "/tmp"), "org/apache/tez/mapreduce/examples/terasort")
     .getAbsolutePath();
   private static final Path SORT_INPUT_PATH = new Path(TEST_DIR, "sortin");
   private static final Path SORT_OUTPUT_PATH = new Path(TEST_DIR, "sortout");

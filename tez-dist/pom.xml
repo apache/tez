@@ -35,7 +35,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
-      <artifactId>tez-mapreduce-examples</artifactId>
+      <artifactId>tez-examples</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

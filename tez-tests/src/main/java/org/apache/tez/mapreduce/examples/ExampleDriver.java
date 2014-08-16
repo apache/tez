@@ -31,9 +31,6 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.Progress;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
-import org.apache.tez.examples.OrderedWordCount;
-import org.apache.tez.examples.SimpleSessionExample;
-import org.apache.tez.examples.WordCount;
 import org.apache.tez.mapreduce.examples.terasort.TeraGen;
 import org.apache.tez.mapreduce.examples.terasort.TeraSort;
 import org.apache.tez.mapreduce.examples.terasort.TeraValidate;
@@ -50,7 +47,7 @@ public class ExampleDriver {
     int exitCode = -1;
     ProgramDriver pgd = new ProgramDriver();
     try {
-      pgd.addClass("wordcount", WordCount.class,
+      pgd.addClass("wordcount", MapredWordCount.class,
           "A map/reduce program that counts the words in the input files.");
       pgd.addClass("mapredwordcount", MapredWordCount.class,
           "A map/reduce program that counts the words in the input files"
@@ -80,10 +77,6 @@ public class ExampleDriver {
           + " sorted on employee count");
       pgd.addClass("mrrsleep", MRRSleepJob.class,
           "MRR Sleep Job");
-      pgd.addClass("orderedwordcount", OrderedWordCount.class,
-          "Word Count with words sorted on frequency");
-      pgd.addClass("simplesessionexample", SimpleSessionExample.class,
-          "Example to run multiple dags in a session");
       pgd.addClass("testorderedwordcount", TestOrderedWordCount.class,
           "Word Count with words sorted on frequency");
       pgd.addClass("unionexample", UnionExample.class,

@@ -43,7 +43,6 @@ import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.tez.examples.WordCount;
 
 /**
  * This is an example Hadoop Map/Reduce application using the mapred apis.
@@ -111,7 +110,7 @@ public class MapredWordCount extends Configured implements Tool {
    *                     job tracker.
    */
   public int run(String[] args) throws Exception {
-    JobConf conf = new JobConf(getConf(), WordCount.class);
+    JobConf conf = new JobConf(getConf(), MapredWordCount.class);
     conf.setJobName("wordcount");
     LOG.info("Running WordCount job using mapred apis");
 

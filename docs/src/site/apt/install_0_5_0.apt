@@ -88,22 +88,22 @@ $HADOOP_PREFIX/bin/hadoop jar hadoop-mapreduce-client-jobclient-3.0.0-SNAPSHOT-t
 
     This will use the TEZ DAG ApplicationMaster to run the MR job. This can be verified by looking at the AM's logs from the YARN ResourceManager UI.
 
-  [[i]] There is a basic example of using an MRR job in the tez-mapreduce-examples.jar. Refer to OrderedWordCount.java
+  [[i]] There is a basic example of using an MRR job in the tez-examples.jar. Refer to OrderedWordCount.java
 in the source code. To run this example:
 
 +---+
 
-$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar orderedwordcount <input> <output>
+$HADOOP_PREFIX/bin/hadoop jar tez-examples.jar orderedwordcount <input> <output>
 
 +---+
 
     This will use the TEZ DAG ApplicationMaster to run the ordered word count job. This job is similar to the word count example except that it also orders all words based on the frequency of occurrence.
 
-    There are multiple variations to run orderedwordcount. You can use it to run multiple DAGs serially on different inputs/outputs. These DAGs could be run separately as different applications or serially within a single TEZ session.
+    Tez DAGs could be run separately as different applications or serially within a single TEZ session. There is a different variation of orderedwordcount in tez-tests that supports the use of Sessions and handling multiple input-output pairs. You can use it to run multiple DAGs serially on different inputs/outputs.
 
 +---+
 
-$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar orderedwordcount <input1> <output1> <input2> <output2> <input3> <output3> ...
+$HADOOP_PREFIX/bin/hadoop jar tez-tests.jar testorderedwordcount <input1> <output1> <input2> <output2> <input3> <output3> ...
 
 +---+
 
@@ -113,6 +113,6 @@ $HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar orderedwordcount <input
 
 +---+
 
-$HADOOP_PREFIX/bin/hadoop jar tez-mapreduce-examples.jar orderedwordcount -DUSE_TEZ_SESSION=true <input1> <output1> <input2> <output2>
+$HADOOP_PREFIX/bin/hadoop jar tez-tests.jar testorderedwordcount -DUSE_TEZ_SESSION=true <input1> <output1> <input2> <output2>
 
 +---+

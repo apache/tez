@@ -19,7 +19,9 @@
 package org.apache.tez.mapreduce.examples;
 
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -73,7 +75,7 @@ public class Sort<K,V> extends Configured implements Tool {
   /**
    * The main driver for sort program.
    * Invoke this method to submit the map/reduce job.
-   * @throws IOException When there is communication problems with the 
+   * @throws java.lang.Exception When there is communication problems with the
    *                     job tracker.
    */
   public int run(String[] args) throws Exception {

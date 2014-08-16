@@ -126,7 +126,7 @@
       </dependency>
       <dependency>
         <groupId>org.apache.tez</groupId>
-        <artifactId>tez-mapreduce-examples</artifactId>
+        <artifactId>tez-examples</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -603,7 +603,7 @@
     <module>tez-runtime-library</module>
     <module>tez-runtime-internals</module>
     <module>tez-mapreduce</module>
-    <module>tez-mapreduce-examples</module>
+    <module>tez-examples</module>
     <module>tez-tests</module>
     <module>tez-dag</module>
     <module>tez-plugins</module>
