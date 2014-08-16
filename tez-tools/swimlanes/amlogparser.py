@@ -81,6 +81,7 @@ class Container(object):
 		self.name = self.kvs["containerId"]
 		self.start = int(self.kvs["launchTime"])
 		self.stop = -1 
+		self.status = 0
 		self.node =""
 	def __repr__(self):
 		return "[%s start=%d]" % (self.name, self.start)
@@ -147,6 +148,9 @@ class Attempt(object):
 		self.kvs.update(csv_kv(finish.args))
 		self.name = self.kvs["taskAttemptId"]
 		self.task = self.name[:self.name.rfind("_")].replace("attempt","task")
+		(_, _, amid, dagid, vertexid, taskid, attemptid) = self.name.split("_")
+		self.tasknum = int(taskid)
+		self.attemptnum = int(attemptid)
 		self.vertex = self.kvs["vertexName"]
 		self.start = (int)(self.kvs["startTime"])
 		self.finish = (int)(self.kvs["finishTime"])
@@ -211,6 +215,7 @@ class AMLog(object):
 				kvs = csv_kv(ev.args)
 				if containermap.has_key(kvs["containerId"]):
 					containermap[kvs["containerId"]].stop = int(kvs["stoppedTime"])
+					containermap[kvs["containerId"]].status = int(kvs["exitStatus"])
 		return containers
 				
 	

@@ -25,10 +25,10 @@ of representing failures or data dependency in the diagram.
 The data output format is SVG, which also includes clickable links back to the history logs 
 of each task for further debugging, after a slow task has been located. 
 
-To use tool, generate a trimmed log file by doing
+To use the tool, run
 
-`yarn logs -applicationId <application_...> | grep HISTORY > am.log`
+`./yarn-swimlanes.sh application_..._..`
 
-Generate the diagram with the tool using
+This will generate an svg named the same as the application ID.
 
-`python swimlane.py -o am.svg am.log`
+For more information on using this tool visit - the [tez wiki](https://cwiki.apache.org/confluence/display/TEZ/Using+tez-tools+to+analyze+jobs "Using tez-tools to analyze jobs").

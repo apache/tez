@@ -69,14 +69,21 @@ class SVGHelper(object):
 		else:
 			self.lines = parent.lines
 		self.write("""<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" height="%d" width="%d">""" % (h, w))	
+		self.write("""
+		<script type="text/ecmascript" xlink:href="http://code.jquery.com/jquery-2.1.1.min.js" />
+		""")
 	def line(self, x1, y1, x2, y2, style="stroke: #000", **kwargs):
 		self.write("""<line x1="%d" y1="%d" x2="%d" y2="%d"  style="%s" %s />""" % (x1, y1, x2, y2, style, attrs(kwargs)))
-	def rect(self, left, top, right, bottom, style="", title=""):
+	def rect(self, left, top, right, bottom, style="", title="", link=None):
 		w = (right-left)
 		h = (bottom-top)
+		if link:
+			self.write("<a xlink:href='%s'>" % link)
 		self.write("""<rect x="%d" y="%d" width="%d" height="%d" style="%s"><title>%s</title></rect>""" % (left, top, w, h, style, title))
-	def text(self, x, y, text, style=""):
-		self.write("""<text x="%d" y="%d" style="%s">%s</text>""" % (x, y, style, text))
+		if link:
+			self.write("</a>")
+	def text(self, x, y, text, style="", transform=""):
+		self.write("""<text x="%d" y="%d" style="%s" transform="%s">%s</text>""" % (x, y, style, transform, text))
 	def link(self, x, y, text, link, style=""):
 		self.write("<a xlink:href='%s'>" % link)
 		self.text(x, y, text, style)
@@ -99,8 +106,8 @@ Input files for this tool can be prepared by "yarn logs -applicationId <applicat
 def main(argv):
 	(opts, args) = getopt(argv, "o:t:f:")
 	out = sys.stdout
-	ticks = 20 # precision of 1/tick
-	fraction = 0.95
+	ticks = -1 # precision of 1/tick
+	fraction = -1
 	for k,v in opts:
 		if(k == "-o"):
 			out = open(v, "w")
@@ -118,12 +125,16 @@ def main(argv):
 	laneSize = 24
 	y = len(lanes)*laneSize
 	items = attempts(log)
+	maxx = max([a[4] for a in items])
+	if ticks == -1:
+		ticks = min(1000, (maxx - log.zero)/2048)
 	xdomain = lambda t : (t - log.zero)/ticks 
-	x = max([xdomain(a[4]) for a in items])
-	svg = SVGHelper(x+2*marginRight, y+2*marginTop)
+	x = xdomain(maxx)
+	svg = SVGHelper(x+2*marginRight+256, y+2*marginTop)
 	a = marginTop
 	svg.text(x/2, 32, log.name, style="font-size: 32px; text-anchor: middle")	
-	containerMap = dict(zip(list(lanes), xrange(4096)))
+	containerMap = dict(zip(list(lanes), xrange(8192)))
+	svg.text(marginRight - 16, marginTop - 32, "Container ID", "text-anchor:end; font-size: 16px;")
 	# draw a grid
 	for l in lanes:
 		a += laneSize
@@ -144,7 +155,11 @@ def main(argv):
 		svg.line(x1, y1, x1, y1 + laneSize, style="stroke: green")
 		if c.stop > c.start:
 			x2 = marginRight+xdomain(c.stop)
-			svg.line(x2, y1, x2, y1 + laneSize, style="stroke: red")
+			if (c.status == 0):
+				svg.line(x2, y1, x2, y1 + laneSize, style="stroke: green")
+			else: 
+				svg.line(x2, y1, x2, y1 + laneSize, style="stroke: red")
+				svg.text(x2, y1, "%d" % (c.status), style="text-anchor: right; font-size: 12px; stroke: red", transform="rotate(90, %d, %d)" % (x2, y1)) 
 			svg.rect(x1, y1, x2, y1 + laneSize, style="fill: #ccc; opacity: 0.3")
 		elif c.stop == -1:
 			x2 = marginRight+x 
@@ -155,7 +170,7 @@ def main(argv):
 		x2 = marginRight+xdomain(dag.finish)
 		svg.line(x2, marginTop-24, x2, marginTop+y, "stroke: black;", stroke_dasharray="8,4")
 		svg.line(x1, marginTop-24, x2, marginTop-24, "stroke: black")
-		svg.text((x1+x2)/2, marginTop-32, "%s (%0.1f)" % (dag.name, (dag.finish-dag.start)/1000.0) , "text-anchor: middle; font-size: 12px;")		
+		svg.text((x1+x2)/2, marginTop-32, "%s (%0.1f s)" % (dag.name, (dag.finish-dag.start)/1000.0) , "text-anchor: middle; font-size: 12px;")		
 		vertexes = set([v.name for v in dag.vertexes])
 		colourmap = dict([(v,colourman.next()) for v in list(vertexes)])
 		for c in dag.attempts():
@@ -165,12 +180,16 @@ def main(argv):
 			x2 = marginRight+xdomain(c.finish)
 			y2 = y1 + laneSize - 2
 			locality = (c.kvs.has_key("DATA_LOCAL_TASKS") * 1) + (c.kvs.has_key("RACK_LOCAL_TASKS")*2)
-			svg.rect(x1, y1, x2, y2, title=c.name, style="fill: %s; stroke: #ccc;" % (colour))
+			link = c.kvs["completedLogs"]
+			svg.rect(x1, y1, x2, y2, title=c.name, style="fill: %s; stroke: #ccc;" % (colour), link=link)
 			if locality > 1: # rack-local (no-locality isn't counted)
-				svg.rect(x1, y2-4, x2, y2, style="fill: #f00; fill-opacity: 0.5;")
-			svg.link((x1+x2)/2, y2-12, c.vertex, link=c.kvs["completedLogs"], style="text-anchor: middle; font-size: 9px;")
+				svg.rect(x1, y2-4, x2, y2, style="fill: #f00; fill-opacity: 0.5;", link=link)
+			if x2 - x1 > 64:
+				svg.text((x1+x2)/2, y2-12, "%s (%05d_%d)" % (c.vertex, c.tasknum, c.attemptnum), style="text-anchor: middle; font-size: 9px;")
+			else:
+				svg.text((x1+x2)/2, y2-12, "%s" % c.vertex, style="text-anchor: middle; font-size: 9px;")
 		finishes = sorted([c.finish for c in dag.attempts()])
-		if(len(finishes) > 10):
+		if(len(finishes) > 10 and fraction > 0):
 			percentX = finishes[int(len(finishes)*fraction)]
 			svg.line(marginRight+xdomain(percentX), marginTop, marginRight+xdomain(percentX), y+marginTop, style="stroke: red")
 			svg.text(marginRight+xdomain(percentX), y+marginTop+12, "%d%% (%0.1fs)" % (int(fraction*100), (percentX - dag.start)/1000.0), style="font-size:12px; text-anchor: middle")
