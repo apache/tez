@@ -767,9 +767,9 @@ public class IFile {
 
     public static boolean isCompressedFlagEnabled(InputStream in) throws IOException {
       byte[] header = new byte[HEADER.length];
-      int bytesRead = in.read(header);
+      IOUtils.readFully(in, header, 0, HEADER.length);
 
-      if (bytesRead != HEADER.length || !(header[0] == 'T' && header[1] == 'I'
+      if (!(header[0] == 'T' && header[1] == 'I'
           && header[2] == 'F')) {
         throw new IOException("Not a valid ifile header");
       }

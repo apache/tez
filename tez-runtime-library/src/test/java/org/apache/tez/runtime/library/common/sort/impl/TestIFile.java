@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.library.common.sort.impl;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -100,6 +101,24 @@ public class TestIFile {
   public void testWithEmptyIFile() throws IOException {
     testWriterAndReader(new LinkedList<KVPair>());
     testWithDataBuffer(new LinkedList<KVPair>());
+  }
+
+  @Test
+  public void testCompressedFlag() throws IOException {
+    byte[] HEADER = new byte[] { (byte) 'T', (byte) 'I', (byte) 'F' , (byte) 1};
+    ByteArrayInputStream bin = new ByteArrayInputStream(HEADER);
+    boolean compressed = IFile.Reader.isCompressedFlagEnabled(bin);
+    assert(compressed == true);
+
+    //Negative case: Half cooked header
+    HEADER = new byte[] { (byte) 'T', (byte) 'I' };
+    bin = new ByteArrayInputStream(HEADER);
+    try {
+      compressed = IFile.Reader.isCompressedFlagEnabled(bin);
+      fail("Should not have allowed wrong header");
+    } catch(Exception e) {
+      //correct path.
+    }
   }
 
   @Test
