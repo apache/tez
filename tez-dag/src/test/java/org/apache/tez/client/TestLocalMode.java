@@ -38,6 +38,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.ProcessorContext;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.junit.Test;
 
@@ -49,6 +50,7 @@ public class TestLocalMode {
     TezConfiguration tezConf1 = new TezConfiguration();
     tezConf1.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
     tezConf1.set("fs.defaultFS", "file:///");
+    tezConf1.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     TezClient tezClient1 = new TezClient("commonName", tezConf1, true);
     tezClient1.start();
 
@@ -65,6 +67,7 @@ public class TestLocalMode {
     TezConfiguration tezConf2 = new TezConfiguration();
     tezConf2.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
     tezConf2.set("fs.defaultFS", "file:///");
+    tezConf2.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     DAG dag2 = createSimpleDAG("dag2", SleepProcessor.class.getName());
     TezClient tezClient2 = new TezClient("commonName", tezConf2, true);
     tezClient2.start();
@@ -82,6 +85,7 @@ public class TestLocalMode {
     TezConfiguration tezConf1 = new TezConfiguration();
     tezConf1.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
     tezConf1.set("fs.defaultFS", "file:///");
+    tezConf1.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     TezClient tezClient1 = new TezClient("commonName", tezConf1, false);
     tezClient1.start();
 
@@ -98,6 +102,7 @@ public class TestLocalMode {
     TezConfiguration tezConf2 = new TezConfiguration();
     tezConf2.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
     tezConf2.set("fs.defaultFS", "file:///");
+    tezConf2.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     DAG dag2 = createSimpleDAG("dag2", SleepProcessor.class.getName());
     TezClient tezClient2 = new TezClient("commonName", tezConf2, false);
     tezClient2.start();
@@ -115,6 +120,7 @@ public class TestLocalMode {
     TezConfiguration tezConf1 = new TezConfiguration();
     tezConf1.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
     tezConf1.set("fs.defaultFS", "file:///");
+    tezConf1.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     // Run in non-session mode so that the AM terminates
     TezClient tezClient1 = new TezClient("commonName", tezConf1, false);
     tezClient1.start();
@@ -138,6 +144,7 @@ public class TestLocalMode {
     TezConfiguration tezConf1 = new TezConfiguration();
     tezConf1.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
     tezConf1.set("fs.defaultFS", "file:///");
+    tezConf1.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     // Run in non-session mode so that the AM terminates
     TezClient tezClient1 = new TezClient("commonName", tezConf1, false);
     tezClient1.start();

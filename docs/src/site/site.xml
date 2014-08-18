@@ -93,9 +93,13 @@
 
     <menu name="Getting Started">
       <item name="Overview" href="index.html"/>
-      <item name="Install Guide" href="install.html"/>
       <item name="Talks and Meetup Recordings" href="talks.html"/>
       <item name="Project License" href="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+    </menu>
+
+    <menu name="Documentation">
+      <item name="Install Guide" href="install.html"/>
+      <item name="LocalMode" href="localmode.html"/>
     </menu>
 
     <menu name="Community">
