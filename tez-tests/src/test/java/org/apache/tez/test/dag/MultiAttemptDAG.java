@@ -21,6 +21,7 @@ package org.apache.tez.test.dag;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
 
+import java.nio.ByteBuffer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -113,7 +114,7 @@ public class MultiAttemptDAG {
       if (numCompletions.get() >= numSourceTasks
           && !tasksScheduled) {
         tasksScheduled = true;
-        String payload = new String(getContext().getUserPayload().getPayload());
+        String payload = new String(getContext().getUserPayload().deepCopyAsArray());
         int successAttemptId = Integer.valueOf(payload);
         LOG.info("Checking whether to crash AM or schedule tasks"
             + ", successfulAttemptID=" + successAttemptId
@@ -164,7 +165,8 @@ public class MultiAttemptDAG {
     public void initialize() throws Exception {
       FailingOutputCommitterConfig config = new
           FailingOutputCommitterConfig();
-      config.fromUserPayload(getContext().getOutputUserPayload().getPayload());
+      config.fromUserPayload(
+          getContext().getOutputUserPayload().deepCopyAsArray());
       failOnCommit = config.failOnCommit;
     }
 
@@ -332,13 +334,13 @@ public class MultiAttemptDAG {
     // Make each vertex manager fail on appropriate attempt
     v1.setVertexManagerPlugin(new VertexManagerPluginDescriptor(
         FailOnAttemptVertexManagerPlugin.class.getName())
-        .setUserPayload(new UserPayload(new String("1").getBytes())));
+        .setUserPayload(new UserPayload(ByteBuffer.wrap(new String("1").getBytes()))));
     v2.setVertexManagerPlugin(new VertexManagerPluginDescriptor(
         FailOnAttemptVertexManagerPlugin.class.getName())
-        .setUserPayload(new UserPayload(new String("2").getBytes())));
+        .setUserPayload(new UserPayload(ByteBuffer.wrap(new String("2").getBytes()))));
     v3.setVertexManagerPlugin(new VertexManagerPluginDescriptor(
         FailOnAttemptVertexManagerPlugin.class.getName())
-        .setUserPayload(new UserPayload(new String("3").getBytes())));
+        .setUserPayload(new UserPayload(ByteBuffer.wrap(new String("3").getBytes()))));
     dag.addVertex(v1).addVertex(v2).addVertex(v3);
     dag.addEdge(new Edge(v1, v2,
         new EdgeProperty(DataMovementType.SCATTER_GATHER,

@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Random;
 
 import org.apache.commons.logging.Log;
@@ -201,7 +202,8 @@ public class IntersectDataGen extends Configured implements Tool {
 
     Vertex genDataVertex = new Vertex("datagen", new ProcessorDescriptor(
         GenDataProcessor.class.getName()).setUserPayload(
-        new UserPayload(GenDataProcessor.createConfiguration(largeOutSizePerTask, smallOutSizePerTask))), numTasks);
+        new UserPayload(ByteBuffer.wrap(GenDataProcessor.createConfiguration(largeOutSizePerTask,
+            smallOutSizePerTask)))), numTasks);
     genDataVertex.addDataSink(STREAM_OUTPUT_NAME, 
         MROutput.createConfigurer(new Configuration(tezConf),
             TextOutputFormat.class, largeOutPath.toUri().toString()).create());
@@ -242,7 +244,7 @@ public class IntersectDataGen extends Configured implements Tool {
 
     @Override
     public void initialize() throws Exception {
-      byte[] payload = getContext().getUserPayload().getPayload();
+      byte[] payload = getContext().getUserPayload().deepCopyAsArray();
       ByteArrayInputStream bis = new ByteArrayInputStream(payload);
       DataInputStream dis = new DataInputStream(bis);
       streamOutputFileSize = dis.readLong();

@@ -20,6 +20,7 @@ package org.apache.tez.mapreduce.examples;
 
 import java.io.IOException;
 
+import java.nio.ByteBuffer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -70,9 +71,9 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
           .next();
       KeyValueWriter kvWriter = (KeyValueWriter) output.getWriter();
       kvWriter.write(word, new IntWritable(getContext().getTaskIndex()));
-      byte[] userPayload = getContext().getUserPayload().getPayload();
+      ByteBuffer userPayload = getContext().getUserPayload().getPayload();
       if (userPayload != null) {
-        boolean doLocalityCheck = userPayload[0] > 0 ? true : false;
+        boolean doLocalityCheck = getContext().getUserPayload().getPayload().get(0) > 0 ? true : false;
         if (doLocalityCheck) {
           ObjectRegistry objectRegistry = getContext().getObjectRegistry();
           String entry = String.valueOf(getContext().getTaskIndex());
@@ -102,8 +103,8 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
       while (inputKvReader.next()) {
         sum += ((IntWritable) inputKvReader.getCurrentValue()).get();
       }
-      boolean doLocalityCheck = getContext().getUserPayload().getPayload()[0] > 0 ? true : false;
-      int broadcastSum = getContext().getUserPayload().getPayload()[1];
+      boolean doLocalityCheck = getContext().getUserPayload().getPayload().get(0) > 0 ? true : false;
+      int broadcastSum = getContext().getUserPayload().getPayload().get(1);
       int expectedSum = broadcastSum + getContext().getTaskIndex();
       System.out.println("Index: " + getContext().getTaskIndex() + 
           " sum: " + sum + " expectedSum: " + expectedSum + " broadcastSum: " + broadcastSum);
@@ -141,7 +142,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
       }
     }
     byte[] procByte = {(byte) (doLocalityCheck ? 1 : 0), 1};
-    UserPayload procPayload = new UserPayload(procByte);
+    UserPayload procPayload = new UserPayload(ByteBuffer.wrap(procByte));
 
     System.out.println("Using " + numOneToOneTasks + " 1-1 tasks");
 

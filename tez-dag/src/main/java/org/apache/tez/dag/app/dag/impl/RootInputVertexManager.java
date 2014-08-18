@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,8 +97,8 @@ public class RootInputVertexManager extends VertexManagerPlugin {
       if (event instanceof InputUpdatePayloadEvent) {
         // No tasks should have been started yet. Checked by initial state check.
         Preconditions.checkState(dataInformationEventSeen == false);
-        inputDescriptor.setUserPayload(new UserPayload(((InputUpdatePayloadEvent) event)
-            .getUserPayload()));
+        inputDescriptor.setUserPayload(new UserPayload(
+            ByteBuffer.wrap(((InputUpdatePayloadEvent) event).getUserPayload())));
       } else if (event instanceof InputDataInformationEvent) {
         dataInformationEventSeen = true;
         // # Tasks should have been set by this point.

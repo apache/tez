@@ -68,7 +68,7 @@ public class TestMRInputSplitDistributor {
     MRInputUserPayloadProto.Builder payloadProto = MRInputUserPayloadProto.newBuilder();
     payloadProto.setSplits(splitsProtoBuilder.build());
     payloadProto.setConfigurationBytes(confByteString);
-    UserPayload userPayload = new UserPayload(payloadProto.build().toByteArray());
+    UserPayload userPayload = new UserPayload(payloadProto.build().toByteString().asReadOnlyByteBuffer());
 
     InputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
     MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
@@ -116,7 +116,7 @@ public class TestMRInputSplitDistributor {
     MRInputUserPayloadProto.Builder payloadProto = MRInputUserPayloadProto.newBuilder();
     payloadProto.setSplits(splitsProtoBuilder.build());
     payloadProto.setConfigurationBytes(confByteString);
-    UserPayload userPayload = new UserPayload(payloadProto.build().toByteArray());
+    UserPayload userPayload = new UserPayload(payloadProto.build().toByteString().asReadOnlyByteBuffer());
 
     InputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
     MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);

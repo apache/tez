@@ -18,6 +18,10 @@
 
 package org.apache.tez.runtime.library.processor;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -98,6 +102,7 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
    */
   public static class SleepProcessorConfig {
     private int timeToSleepMS;
+    private final Charset charSet = Charset.forName("UTF-8");
 
     public SleepProcessorConfig() {
     }
@@ -110,11 +115,11 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
     }
 
     public UserPayload toUserPayload() {
-      return new UserPayload(Integer.toString(timeToSleepMS).getBytes());
+      return new UserPayload(ByteBuffer.wrap(Integer.toString(timeToSleepMS).getBytes()));
     }
 
-    public void fromUserPayload(UserPayload userPayload) {
-      timeToSleepMS = Integer.valueOf(new String(userPayload.getPayload())).intValue();
+    public void fromUserPayload(UserPayload userPayload) throws CharacterCodingException {
+      timeToSleepMS = Integer.valueOf(charSet.newDecoder().decode(userPayload.getPayload()).toString()).intValue();
     }
 
     public int getTimeToSleepMS() {

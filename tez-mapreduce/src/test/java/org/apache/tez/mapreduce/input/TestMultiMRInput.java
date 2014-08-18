@@ -18,6 +18,7 @@
 
 package org.apache.tez.mapreduce.input;
 
+import java.nio.ByteBuffer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -250,7 +251,7 @@ public class TestMultiMRInput {
     doReturn(1).when(inputContext).getTaskIndex();
     doReturn(1).when(inputContext).getTaskVertexIndex();
     doReturn("taskVertexName").when(inputContext).getTaskVertexName();
-    doReturn(new UserPayload(payload)).when(inputContext).getUserPayload();
+    doReturn(new UserPayload(ByteBuffer.wrap(payload))).when(inputContext).getUserPayload();
     return inputContext;
   }
 

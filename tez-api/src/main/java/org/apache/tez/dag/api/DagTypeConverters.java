@@ -19,6 +19,7 @@ package org.apache.tez.dag.api;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -319,9 +320,9 @@ public class DagTypeConverters {
       TezEntityDescriptorProto proto) {
     UserPayload userPayload = null;
     if (proto.hasUserPayload()) {
-      userPayload = new UserPayload(proto.getUserPayload().toByteArray(), proto.getVersion());
+      userPayload = new UserPayload(proto.getUserPayload().asReadOnlyByteBuffer(), proto.getVersion());
     } else {
-      userPayload = new UserPayload((byte[]) null, -1);
+      userPayload = new UserPayload(null, -1);
     }
     return userPayload;
   }
@@ -612,12 +613,12 @@ public class DagTypeConverters {
     return builder.build();
   }
 
-  public static UserPayload convertToTezUserPayload(@Nullable byte[] payload, int version) {
+  public static UserPayload convertToTezUserPayload(@Nullable ByteBuffer payload, int version) {
     return new UserPayload(payload, version);
   }
 
   @Nullable
-  public static byte[] convertFromTezUserPayload(@Nullable UserPayload payload) {
+  public static ByteBuffer convertFromTezUserPayload(@Nullable UserPayload payload) {
     if (payload == null) {
       return null;
     }

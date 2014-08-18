@@ -18,16 +18,15 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.nio.ByteBuffer;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
-import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -49,6 +48,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -271,7 +271,8 @@ public class TestVertexImpl {
       }
 
       public CountingOutputCommitterConfig(UserPayload payload) throws IOException {
-        DataInput in = new DataInputStream(new ByteArrayInputStream(payload.getPayload()));
+        DataInputByteBuffer in  = new DataInputByteBuffer();
+        in.reset(payload.getPayload());
         this.readFields(in);
       }
 
@@ -1922,9 +1923,9 @@ public class TestVertexImpl {
     EdgeManagerPlugin em = edge.getEdgeManager();
     EdgeManagerForTest originalEm = (EdgeManagerForTest) em;
     Assert.assertTrue(Arrays.equals(edgePayload, originalEm.getEdgeManagerContext()
-        .getUserPayload().getPayload()));
+        .getUserPayload().deepCopyAsArray()));
 
-    UserPayload userPayload = new UserPayload(new String("foo").getBytes());
+    UserPayload userPayload = new UserPayload(ByteBuffer.wrap(new String("foo").getBytes()));
     EdgeManagerPluginDescriptor edgeManagerDescriptor =
         new EdgeManagerPluginDescriptor(EdgeManagerForTest.class.getName());
     edgeManagerDescriptor.setUserPayload(userPayload);
@@ -1946,8 +1947,8 @@ public class TestVertexImpl {
     Assert.assertTrue(modifiedEdgeManager instanceof EdgeManagerForTest);
 
     // Ensure initialize() is called with the correct payload
-    Assert.assertTrue(Arrays.equals(userPayload.getPayload(),
-        ((EdgeManagerForTest) modifiedEdgeManager).getUserPayload().getPayload()));
+    Assert.assertTrue(Arrays.equals(userPayload.deepCopyAsArray(),
+        ((EdgeManagerForTest) modifiedEdgeManager).getUserPayload().deepCopyAsArray()));
   }
 
   @SuppressWarnings("unchecked")
@@ -2965,7 +2966,8 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
     Assert.assertEquals(true, initializerManager1.hasShutDown);
     Assert.assertEquals(2, v1.getTotalTasks());
-    Assert.assertEquals(payload, v1.getInputSpecList(0).get(0).getInputDescriptor().getUserPayload().getPayload());
+    Assert.assertArrayEquals(payload,
+        v1.getInputSpecList(0).get(0).getInputDescriptor().getUserPayload().deepCopyAsArray());
     EdgeManagerPluginDescriptor mockEdgeManagerDescriptor =
         new EdgeManagerPluginDescriptor(EdgeManagerForTest.class.getName());
     Edge e = v2.sourceVertices.get(v1);
@@ -3422,7 +3424,7 @@ public class TestVertexImpl {
     public void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor,
         List<Event> events) {
       Map<String, InputSpecUpdate> map = new HashMap<String, InputSpecUpdate>();
-      if (getContext().getUserPayload().getPayload()[0] == 0) {
+      if (getContext().getUserPayload().deepCopyAsArray()[0] == 0) {
         map.put("input3", InputSpecUpdate.createAllTaskInputSpecUpdate(4));
       } else {
         List<Integer> pInputList = new LinkedList<Integer>();

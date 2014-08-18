@@ -18,6 +18,7 @@
 
 package org.apache.tez.test;
 
+import java.nio.ByteBuffer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -177,8 +178,8 @@ public class TestDAGRecovery2 {
     DAG dag = SimpleVTestDAG.createDAG("FailingCommitterDAG", null);
     OutputDescriptor od =
         new OutputDescriptor(MultiAttemptDAG.NoOpOutput.class.getName());
-    od.setUserPayload(new UserPayload(
-        new MultiAttemptDAG.FailingOutputCommitter.FailingOutputCommitterConfig(true).toUserPayload()));
+    od.setUserPayload(new UserPayload(ByteBuffer.wrap(
+        new MultiAttemptDAG.FailingOutputCommitter.FailingOutputCommitterConfig(true).toUserPayload())));
     OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(
         MultiAttemptDAG.FailingOutputCommitter.class.getName());
     dag.getVertex("v3").addDataSink("FailingOutput", new DataSinkDescriptor(od, ocd, null));

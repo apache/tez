@@ -132,7 +132,7 @@ public class MRInputHelpers {
   /**
    * Parse the payload used by MRInputPayload
    *
-   * @param bytes the bytes representing the payload
+   * @param payload the {@link org.apache.tez.dag.api.UserPayload} instance
    * @return an instance of {@link org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto},
    * which provides access to the underlying configuration bytes
    * @throws IOException
@@ -140,7 +140,7 @@ public class MRInputHelpers {
   @InterfaceStability.Evolving
   public static MRRuntimeProtos.MRInputUserPayloadProto parseMRInputPayload(UserPayload payload)
       throws IOException {
-    return MRRuntimeProtos.MRInputUserPayloadProto.parseFrom(payload.getPayload());
+    return MRRuntimeProtos.MRInputUserPayloadProto.parseFrom(ByteString.copyFrom(payload.getPayload()));
   }
 
   /**
@@ -693,9 +693,7 @@ public class MRInputHelpers {
       userPayloadBuilder.setSplits(mrSplitsProto);
     }
     userPayloadBuilder.setGroupingEnabled(isGrouped);
-    // TODO Should this be a ByteBuffer or a byte array ? A ByteBuffer would be
-    // more efficient.
-    return new UserPayload(userPayloadBuilder.build().toByteArray());
+    return new UserPayload(userPayloadBuilder.build().toByteString().asReadOnlyByteBuffer());
   }
 
 }

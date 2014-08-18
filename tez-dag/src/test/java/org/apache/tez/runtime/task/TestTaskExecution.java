@@ -395,7 +395,7 @@ public class TestTaskExecution {
 
     @Override
     public void initialize() throws Exception {
-      parseConf(getContext().getUserPayload().getPayload());
+      parseConf(getContext().getUserPayload().deepCopyAsArray());
     }
 
     private void parseConf(byte[] bytes) {
@@ -692,7 +692,7 @@ public class TestTaskExecution {
     TezTaskID taskId = TezTaskID.getInstance(vertexId, 1);
     TezTaskAttemptID taskAttemptId = TezTaskAttemptID.getInstance(taskId, 1);
     ProcessorDescriptor processorDescriptor = new ProcessorDescriptor(processorClass)
-        .setUserPayload(new UserPayload(processorConf));
+        .setUserPayload(new UserPayload(ByteBuffer.wrap(processorConf)));
     TaskSpec taskSpec = new TaskSpec(taskAttemptId, "dagName", "vertexName", processorDescriptor,
         new ArrayList<InputSpec>(), new ArrayList<OutputSpec>(), null);
 

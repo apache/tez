@@ -22,6 +22,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
+import java.nio.ByteBuffer;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.io.Text;
@@ -90,12 +91,22 @@ public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements
   public void write(DataOutput out) throws IOException {
     Text.writeString(out, className);
     // TODO: TEZ-305 - using protobuf serde instead of Writable serde.
-    byte[] bb = DagTypeConverters.convertFromTezUserPayload(userPayload);
+    ByteBuffer bb = DagTypeConverters.convertFromTezUserPayload(userPayload);
     if (bb == null) {
       out.writeInt(-1);
     } else {
-      out.writeInt(bb.length);
-      out.write(bb);
+      int size = bb.limit() - bb.position();
+      if (size == 0) {
+        out.writeInt(-1);
+      } else {
+        out.writeInt(size);
+        byte[] bytes = new byte[size];
+        // This modified the ByteBuffer, and primarily works since UserPayload.getByteBuffer
+        // return a new copy each time
+        bb.get(bytes);
+        // TODO: TEZ-305 - should be more efficient by using protobuf serde.
+        out.write(bytes);
+      }
       out.writeInt(userPayload.getVersion());
     }
   }
@@ -108,7 +119,7 @@ public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements
       byte[] bb = new byte[payloadLength];
       in.readFully(bb);
       int version =in.readInt();
-      this.userPayload = DagTypeConverters.convertToTezUserPayload(bb, version);
+      this.userPayload = DagTypeConverters.convertToTezUserPayload(ByteBuffer.wrap(bb), version);
     }
   }
 }

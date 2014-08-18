@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.api;
 
+import java.nio.ByteBuffer;
 import static org.junit.Assert.*;
 
 import java.io.File;
@@ -101,9 +102,9 @@ public class TestDAGPlan {
   public void testEdgeManagerSerde() {
     DAG dag = new DAG("testDag");
     ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1")
-        .setUserPayload(new UserPayload("processor1Bytes".getBytes()));
+        .setUserPayload(new UserPayload(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = new ProcessorDescriptor("processor2")
-        .setUserPayload(new UserPayload("processor2Bytes".getBytes()));
+        .setUserPayload(new UserPayload(ByteBuffer.wrap("processor2Bytes".getBytes())));
     Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
     Vertex v2 = new Vertex("v2", pd2, 1, Resource.newInstance(1024, 1));
     v1.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
@@ -112,11 +113,12 @@ public class TestDAGPlan {
         .setTaskLocalFiles(new HashMap<String, LocalResource>());
 
     InputDescriptor inputDescriptor = new InputDescriptor("input")
-        .setUserPayload(new UserPayload("inputBytes".getBytes()));
+        .setUserPayload(new UserPayload(ByteBuffer.wrap("inputBytes".getBytes())));
     OutputDescriptor outputDescriptor = new OutputDescriptor("output")
-        .setUserPayload(new UserPayload("outputBytes".getBytes()));
+        .setUserPayload(new UserPayload(ByteBuffer.wrap("outputBytes".getBytes())));
     Edge edge = new Edge(v1, v2, new EdgeProperty(
-        new EdgeManagerPluginDescriptor("emClass").setUserPayload(new UserPayload("emPayload".getBytes())),
+        new EdgeManagerPluginDescriptor("emClass").setUserPayload(
+            new UserPayload(ByteBuffer.wrap("emPayload".getBytes()))),
         DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, outputDescriptor, inputDescriptor));
 
     dag.addVertex(v1).addVertex(v2).addEdge(edge);
@@ -129,16 +131,16 @@ public class TestDAGPlan {
     EdgeManagerPluginDescriptor emDesc = edgeProperty.getEdgeManagerDescriptor();
     Assert.assertNotNull(emDesc);
     Assert.assertEquals("emClass", emDesc.getClassName());
-    Assert.assertTrue(Arrays.equals("emPayload".getBytes(), emDesc.getUserPayload().getPayload()));
+    Assert.assertTrue(Arrays.equals("emPayload".getBytes(), emDesc.getUserPayload().deepCopyAsArray()));
   }
 
   @Test(timeout = 5000)
   public void testUserPayloadSerde() {
     DAG dag = new DAG("testDag");
     ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1").
-        setUserPayload(new UserPayload("processor1Bytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = new ProcessorDescriptor("processor2").
-        setUserPayload(new UserPayload("processor2Bytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("processor2Bytes".getBytes())));
     Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
     Vertex v2 = new Vertex("v2", pd2, 1, Resource.newInstance(1024, 1));
     v1.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
@@ -147,9 +149,9 @@ public class TestDAGPlan {
         .setTaskLocalFiles(new HashMap<String, LocalResource>());
 
     InputDescriptor inputDescriptor = new InputDescriptor("input").
-        setUserPayload(new UserPayload("inputBytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("inputBytes".getBytes())));
     OutputDescriptor outputDescriptor = new OutputDescriptor("output").
-        setUserPayload(new UserPayload("outputBytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("outputBytes".getBytes())));
     Edge edge = new Edge(v1, v2, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL, outputDescriptor, inputDescriptor));
@@ -184,11 +186,11 @@ public class TestDAGPlan {
     EdgeProperty edgeProperty = DagTypeConverters
         .createEdgePropertyMapFromDAGPlan(dagProto.getEdgeList().get(0));
 
-    byte[] ib = edgeProperty.getEdgeDestination().getUserPayload().getPayload();
+    byte[] ib = edgeProperty.getEdgeDestination().getUserPayload().deepCopyAsArray();
     assertEquals("inputBytes", new String(ib));
     assertEquals("input", edgeProperty.getEdgeDestination().getClassName());
 
-    byte[] ob = edgeProperty.getEdgeSource().getUserPayload().getPayload();
+    byte[] ob = edgeProperty.getEdgeSource().getUserPayload().deepCopyAsArray();
     assertEquals("outputBytes", new String(ob));
     assertEquals("output", edgeProperty.getEdgeSource().getClassName());
   }
@@ -197,11 +199,11 @@ public class TestDAGPlan {
   public void userVertexOrderingIsMaintained() {
     DAG dag = new DAG("testDag");
     ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1").
-        setUserPayload(new UserPayload("processor1Bytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = new ProcessorDescriptor("processor2").
-        setUserPayload(new UserPayload("processor2Bytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("processor2Bytes".getBytes())));
     ProcessorDescriptor pd3 = new ProcessorDescriptor("processor3").
-        setUserPayload(new UserPayload("processor3Bytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("processor3Bytes".getBytes())));
     Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
     Vertex v2 = new Vertex("v2", pd2, 1, Resource.newInstance(1024, 1));
     Vertex v3 = new Vertex("v3", pd3, 1, Resource.newInstance(1024, 1));
@@ -213,9 +215,9 @@ public class TestDAGPlan {
         .setTaskLocalFiles(new HashMap<String, LocalResource>());
 
     InputDescriptor inputDescriptor = new InputDescriptor("input").
-        setUserPayload(new UserPayload("inputBytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("inputBytes".getBytes())));
     OutputDescriptor outputDescriptor = new OutputDescriptor("output").
-        setUserPayload(new UserPayload("outputBytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("outputBytes".getBytes())));
     Edge edge = new Edge(v1, v2, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL, outputDescriptor, inputDescriptor));
@@ -257,11 +259,11 @@ public class TestDAGPlan {
     EdgeProperty edgeProperty = DagTypeConverters
         .createEdgePropertyMapFromDAGPlan(dagProto.getEdgeList().get(0));
 
-    byte[] ib = edgeProperty.getEdgeDestination().getUserPayload().getPayload();
+    byte[] ib = edgeProperty.getEdgeDestination().getUserPayload().deepCopyAsArray();
     assertEquals("inputBytes", new String(ib));
     assertEquals("input", edgeProperty.getEdgeDestination().getClassName());
 
-    byte[] ob = edgeProperty.getEdgeSource().getUserPayload().getPayload();
+    byte[] ob = edgeProperty.getEdgeSource().getUserPayload().deepCopyAsArray();
     assertEquals("outputBytes", new String(ob));
     assertEquals("output", edgeProperty.getEdgeSource().getClassName());
   }
@@ -270,9 +272,9 @@ public class TestDAGPlan {
   public void testCredentialsSerde() {
     DAG dag = new DAG("testDag");
     ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1").
-        setUserPayload(new UserPayload("processor1Bytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = new ProcessorDescriptor("processor2").
-        setUserPayload(new UserPayload("processor2Bytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("processor2Bytes".getBytes())));
     Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
     Vertex v2 = new Vertex("v2", pd2, 1, Resource.newInstance(1024, 1));
     v1.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
@@ -281,9 +283,9 @@ public class TestDAGPlan {
         .setTaskLocalFiles(new HashMap<String, LocalResource>());
 
     InputDescriptor inputDescriptor = new InputDescriptor("input").
-        setUserPayload(new UserPayload("inputBytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("inputBytes".getBytes())));
     OutputDescriptor outputDescriptor = new OutputDescriptor("output").
-        setUserPayload(new UserPayload("outputBytes".getBytes()));
+        setUserPayload(new UserPayload(ByteBuffer.wrap("outputBytes".getBytes())));
     Edge edge = new Edge(v1, v2, new EdgeProperty(
         DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL, outputDescriptor, inputDescriptor));

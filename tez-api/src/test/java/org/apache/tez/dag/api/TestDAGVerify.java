@@ -19,6 +19,7 @@
 package org.apache.tez.dag.api;
 
 import java.util.Arrays;
+import java.nio.ByteBuffer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -877,16 +878,16 @@ public class TestDAGVerify {
   public void testMultipleRootInputsAllowed() {
     DAG dag = new DAG("testDag");
     ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1")
-        .setUserPayload(new UserPayload("processor1Bytes".getBytes()));
+        .setUserPayload(new UserPayload(ByteBuffer.wrap("processor1Bytes".getBytes())));
     Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
     VertexManagerPluginDescriptor vertexManagerPluginDescriptor = new VertexManagerPluginDescriptor(
         "TestVertexManager");
     v1.setVertexManagerPlugin(vertexManagerPluginDescriptor);
 
     InputDescriptor inputDescriptor1 = new InputDescriptor("input1")
-        .setUserPayload(new UserPayload("inputBytes".getBytes()));
+        .setUserPayload(new UserPayload(ByteBuffer.wrap("inputBytes".getBytes())));
     InputDescriptor inputDescriptor2 = new InputDescriptor("input2")
-        .setUserPayload(new UserPayload("inputBytes".getBytes()));
+        .setUserPayload(new UserPayload(ByteBuffer.wrap("inputBytes".getBytes())));
     v1.addDataSource("input1", new DataSourceDescriptor(inputDescriptor1, null, null));
     v1.addDataSource("input2", new DataSourceDescriptor(inputDescriptor2, null, null));
 
@@ -900,7 +901,7 @@ public class TestDAGVerify {
   public void testDAGAccessControls() {
     DAG dag = new DAG("testDag");
     ProcessorDescriptor pd1 = new ProcessorDescriptor("processor1")
-        .setUserPayload(new UserPayload("processor1Bytes".getBytes()));
+        .setUserPayload(new UserPayload(ByteBuffer.wrap("processor1Bytes".getBytes())));
     Vertex v1 = new Vertex("v1", pd1, 10, Resource.newInstance(1024, 1));
     dag.addVertex(v1);
 

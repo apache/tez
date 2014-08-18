@@ -3,6 +3,7 @@ package org.apache.tez.runtime.library.common;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
 
+import java.nio.ByteBuffer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -381,7 +382,7 @@ public class TestValuesIterator {
     doReturn(1).when(inputContext).getInputIndex();
     doReturn("srcVertex").when(inputContext).getSourceVertexName();
     doReturn(1).when(inputContext).getTaskVertexIndex();
-    doReturn(new UserPayload(new byte[1024])).when(inputContext).getUserPayload();
+    doReturn(new UserPayload(ByteBuffer.wrap(new byte[1024]))).when(inputContext).getUserPayload();
     return inputContext;
   }
 

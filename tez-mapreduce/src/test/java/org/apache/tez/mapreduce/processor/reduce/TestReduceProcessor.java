@@ -133,9 +133,10 @@ public class TestReduceProcessor {
 
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
         new InputDescriptor(MRInputLegacy.class.getName())
-            .setUserPayload(new UserPayload(MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
-                .setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf)).build()
-                .toByteArray())),
+            .setUserPayload(new UserPayload(ByteBuffer.wrap(
+                MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
+                    .setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf)).build()
+                    .toByteArray()))),
         1);
     OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", 
         new OutputDescriptor(LocalOnFileSorterOutput.class.getName()).

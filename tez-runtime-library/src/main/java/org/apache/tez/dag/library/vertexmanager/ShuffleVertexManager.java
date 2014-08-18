@@ -18,7 +18,9 @@
 
 package org.apache.tez.dag.library.vertexmanager;
 
+import com.google.protobuf.ByteString;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -148,7 +150,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       // Nothing to do. This class isn't currently designed to be used at the DAG API level.
       UserPayload userPayload = getContext().getUserPayload();
       if (userPayload == null || userPayload.getPayload() == null ||
-          userPayload.getPayload().length == 0) {
+          userPayload.getPayload().limit() == 0) {
         throw new RuntimeException("Could not initialize CustomShuffleEdgeManager"
             + " from provided user payload");
       }
@@ -278,19 +280,20 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     }
 
     public UserPayload toUserPayload() {
-      return new UserPayload(ShuffleEdgeManagerConfigPayloadProto.newBuilder()
-          .setNumSourceTaskOutputs(numSourceTaskOutputs)
-          .setNumDestinationTasks(numDestinationTasks)
-          .setBasePartitionRange(basePartitionRange)
-          .setRemainderRangeForLastShuffler(remainderRangeForLastShuffler)
-          .setNumSourceTasks(numSourceTasks)
-          .build().toByteArray());
+      return new UserPayload(
+          ByteBuffer.wrap(ShuffleEdgeManagerConfigPayloadProto.newBuilder()
+              .setNumSourceTaskOutputs(numSourceTaskOutputs)
+              .setNumDestinationTasks(numDestinationTasks)
+              .setBasePartitionRange(basePartitionRange)
+              .setRemainderRangeForLastShuffler(remainderRangeForLastShuffler)
+              .setNumSourceTasks(numSourceTasks)
+              .build().toByteArray()));
     }
 
     public static CustomShuffleEdgeManagerConfig fromUserPayload(
         UserPayload payload) throws InvalidProtocolBufferException {
       ShuffleEdgeManagerConfigPayloadProto proto =
-          ShuffleEdgeManagerConfigPayloadProto.parseFrom(payload.getPayload());
+          ShuffleEdgeManagerConfigPayloadProto.parseFrom(ByteString.copyFrom(payload.getPayload()));
       return new CustomShuffleEdgeManagerConfig(
           proto.getNumSourceTaskOutputs(),
           proto.getNumDestinationTasks(),

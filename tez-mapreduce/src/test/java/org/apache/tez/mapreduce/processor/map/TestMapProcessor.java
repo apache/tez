@@ -19,6 +19,7 @@ package org.apache.tez.mapreduce.processor.map;
 
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 
 import org.apache.commons.logging.Log;
@@ -124,9 +125,9 @@ public class TestMapProcessor {
 
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
         new InputDescriptor(MRInputLegacy.class.getName())
-            .setUserPayload(new UserPayload(MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
-                .setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf)).build()
-                .toByteArray())),
+            .setUserPayload(new UserPayload(ByteBuffer.wrap(
+                MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
+                    .setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf)).build().toByteArray()))),
         1);
     OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", 
         new OutputDescriptor(LocalOnFileSorterOutput.class.getName())
