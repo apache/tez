@@ -590,7 +590,9 @@ public class DAGAppMaster extends AbstractService {
         return;
       }
 
-      shutdownHandlerRunning.set(true);
+      synchronized (shutdownHandlerRunning) {
+        shutdownHandlerRunning.set(true);
+      }
       LOG.info("Handling DAGAppMaster shutdown");
 
       AMShutdownRunnable r = new AMShutdownRunnable(now);
@@ -1750,6 +1752,7 @@ public class DAGAppMaster extends AbstractService {
             if (appMaster.shutdownHandlerRunning.get()) {
               LOG.info("The shutdown handler is still running, waiting for it to complete");
               appMaster.shutdownHandlerRunning.wait();
+              LOG.info("The shutdown handler has completed");
             }
           } catch (InterruptedException e) {
             // Ignore
