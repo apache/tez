@@ -200,9 +200,9 @@ public class TezRuntimeConfiguration {
   public static final boolean TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT = false;
 
 
-  public static final String TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT = TEZ_RUNTIME_PREFIX +
-      "shuffle.input.buffer.percent";
-  public static final float TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT_DEFAULT =
+  public static final String TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT = TEZ_RUNTIME_PREFIX +
+      "shuffle.fetch.buffer.percent";
+  public static final float TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT_DEFAULT =
       0.90f;
 
 
@@ -227,8 +227,8 @@ public class TezRuntimeConfiguration {
       false;
 
 
-  public static final String TEZ_RUNTIME_INPUT_BUFFER_PERCENT = TEZ_RUNTIME_PREFIX +
-      "task.input.buffer.percent";
+  public static final String TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT = TEZ_RUNTIME_PREFIX +
+      "task.input.post-merge.buffer.percent";
   public static final float TEZ_RUNTIME_INPUT_BUFFER_PERCENT_DEFAULT = 0.0f;
 
 
@@ -258,13 +258,17 @@ public class TezRuntimeConfiguration {
           "empty.partitions.info-via-events.enabled";
   public static final boolean TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED_DEFAULT = true;
 
-  public static final String TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED =
-      TEZ_RUNTIME_PREFIX + "broadcast.data-via-events.enabled";
-  public static final boolean TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED_DEFAULT = false;
+  @Private
+  public static final String TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED =
+      TEZ_RUNTIME_PREFIX + "transfer.data-via-events.enabled";
+  @Private
+  public static final boolean TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED_DEFAULT = false;
 
-  public static final String TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_MAX_SIZE =
-      TEZ_RUNTIME_PREFIX + "broadcast.data-via-events.max-size";
-  public static final int TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_MAX_SIZE_DEFAULT = 200 << 10; // 200KB
+  @Private
+  public static final String TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE =
+      TEZ_RUNTIME_PREFIX + "transfer.data-via-events.max-size";
+  @Private
+  public static final int TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE_DEFAULT = 200 << 10; // 200KB
 
   /**
    * If the shuffle input is on the local host bypass the http fetch and access the files directly
@@ -310,12 +314,12 @@ public class TezRuntimeConfiguration {
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT);
+    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INPUT_BUFFER_PERCENT);
+    tezRuntimeKeys.add(TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT);
     tezRuntimeKeys.add(TEZ_RUNTIME_GROUP_COMPARATOR_CLASS);
     tezRuntimeKeys.add(TEZ_RUNTIME_INTERNAL_SORTER_CLASS);
     tezRuntimeKeys.add(TEZ_RUNTIME_KEY_COMPARATOR_CLASS);
@@ -325,8 +329,8 @@ public class TezRuntimeConfiguration {
     tezRuntimeKeys.add(TEZ_RUNTIME_COMPRESS_CODEC);
     tezRuntimeKeys.add(TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS);
     tezRuntimeKeys.add(TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED);
-    tezRuntimeKeys.add(TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED);
-    tezRuntimeKeys.add(TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_MAX_SIZE);
+    tezRuntimeKeys.add(TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED);
+    tezRuntimeKeys.add(TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE);
     tezRuntimeKeys.add(TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS);
     tezRuntimeKeys.add(TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH);
 

@@ -74,6 +74,7 @@ INCOMPATIBLE CHANGES
   TEZ-1390. Replace byte[] with ByteBuffer as the type of user payload in the API
   TEZ-1417. Rename Configurer* to Config/ConfigBuilder
   TEZ-1450. Documentation of TezConfiguration
+  TEZ-1231. Clean up TezRuntimeConfiguration
 
 Release 0.4.0-incubating: 2014-04-05
 

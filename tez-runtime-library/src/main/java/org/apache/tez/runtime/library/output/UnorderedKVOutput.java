@@ -84,11 +84,11 @@ public class UnorderedKVOutput extends AbstractLogicalOutput {
     getContext().requestInitialMemory(0l, null); // mandatory call
 
     this.dataViaEventsEnabled = conf.getBoolean(
-        TezRuntimeConfiguration.TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED,
-        TezRuntimeConfiguration.TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_ENABLED_DEFAULT);
+        TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED,
+        TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED_DEFAULT);
     this.dataViaEventsMaxSize = conf.getInt(
-        TezRuntimeConfiguration.TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_MAX_SIZE,
-        TezRuntimeConfiguration.TEZ_RUNTIME_BROADCAST_DATA_VIA_EVENTS_MAX_SIZE_DEFAULT);
+        TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE,
+        TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE_DEFAULT);
     
     LOG.info(this.getClass().getSimpleName() + " running with params -> "
         + "dataViaEventsEnabled: " + dataViaEventsEnabled
