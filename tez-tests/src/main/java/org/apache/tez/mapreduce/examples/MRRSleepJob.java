@@ -82,7 +82,7 @@ import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
-import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -490,8 +490,8 @@ public class MRRSleepJob extends Configured implements Tool {
       dataSource = MRInputHelpers
           .configureMRInputWithLegacySplitGeneration(mapStageConf, remoteStagingDir, true);
     } else {
-      dataSource = MRInputLegacy.createConfigurer(mapStageConf, SleepInputFormat.class)
-          .generateSplitsInAM(generateSplitsInAM).create();
+      dataSource = MRInputLegacy.createConfigBuilder(mapStageConf, SleepInputFormat.class)
+          .generateSplitsInAM(generateSplitsInAM).build();
     }
 
     DAG dag = new DAG("MRRSleepJob");
@@ -550,19 +550,19 @@ public class MRRSleepJob extends Configured implements Tool {
       finalReduceVertex = new Vertex("reduce", new ProcessorDescriptor(
           ReduceProcessor.class.getName()).setUserPayload(reducePayload), numReducer);
       finalReduceVertex.setTaskLocalFiles(commonLocalResources);
-      finalReduceVertex.addDataSink("MROutput", MROutputLegacy.createConfigurer(finalReduceConf,
-          NullOutputFormat.class).create());
+      finalReduceVertex.addDataSink("MROutput", MROutputLegacy.createConfigBuilder(finalReduceConf,
+          NullOutputFormat.class).build());
       vertices.add(finalReduceVertex);
     } else {
       // Map only job
       mapVertex.addDataSink("MROutput",
-          MROutputLegacy.createConfigurer(mapStageConf, NullOutputFormat.class).create());
+          MROutputLegacy.createConfigBuilder(mapStageConf, NullOutputFormat.class).build());
     }
 
 
     Map<String, String> partitionerConf = Maps.newHashMap();
     partitionerConf.put(MRJobConfig.PARTITIONER_CLASS_ATTR, MRRSleepJobPartitioner.class.getName());
-    OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
         .newBuilder(IntWritable.class.getName(), IntWritable.class.getName(),
             HashPartitioner.class.getName(), partitionerConf).configureInput().useLegacyInput()
         .done().build();

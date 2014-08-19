@@ -101,8 +101,8 @@ public class TestShuffleVertexManager {
     when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(4);
 
     //Check via setters
-    ShuffleVertexManager.ShuffleVertexManagerConfigurer configurer = ShuffleVertexManager
-        .createConfigurer(null);
+    ShuffleVertexManager.ShuffleVertexManagerConfigBuilder configurer = ShuffleVertexManager
+        .createConfigBuilder(null);
     VertexManagerPluginDescriptor pluginDesc = configurer.setAutoReduceParallelism(true)
         .setDesiredTaskInputSize(1000l)
         .setMinTaskParallelism(10).setSlowStartMaxSrcCompletionFraction(0.5f).build();
@@ -119,7 +119,7 @@ public class TestShuffleVertexManager {
     Assert.assertTrue(manager.slowStartMinSrcCompletionFraction == 0.25f);
     Assert.assertTrue(manager.slowStartMaxSrcCompletionFraction == 0.5f);
 
-    configurer = ShuffleVertexManager.createConfigurer(null);
+    configurer = ShuffleVertexManager.createConfigBuilder(null);
     pluginDesc = configurer.setAutoReduceParallelism(false).build();
     when(mockContext.getUserPayload()).thenReturn(pluginDesc.getUserPayload());
 

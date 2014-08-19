@@ -45,14 +45,15 @@ import org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput;
  */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
-public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseEdgeConfigurer {
+public class UnorderedPartitionedKVEdgeConfig
+    extends HadoopKeyValuesBasedBaseEdgeConfig {
 
-  private final UnorderedPartitionedKVOutputConfigurer outputConf;
-  private final UnorderedKVInputConfigurer inputConf;
+  private final UnorderedPartitionedKVOutputConfig outputConf;
+  private final UnorderedKVInputConfig inputConf;
 
-  private UnorderedPartitionedKVEdgeConfigurer(
-      UnorderedPartitionedKVOutputConfigurer outputConfiguration,
-      UnorderedKVInputConfigurer inputConfiguration) {
+  private UnorderedPartitionedKVEdgeConfig(
+      UnorderedPartitionedKVOutputConfig outputConfiguration,
+      UnorderedKVInputConfig inputConfiguration) {
     this.outputConf = outputConfiguration;
     this.inputConf = inputConfiguration;
 
@@ -150,20 +151,20 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
 
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
-  public static class Builder extends HadoopKeyValuesBasedBaseEdgeConfigurer.Builder<Builder> {
+  public static class Builder extends HadoopKeyValuesBasedBaseEdgeConfig.Builder<Builder> {
 
-    private final UnorderedPartitionedKVOutputConfigurer.Builder outputBuilder =
-        new UnorderedPartitionedKVOutputConfigurer.Builder();
-    private final UnorderedPartitionedKVOutputConfigurer.SpecificBuilder<UnorderedPartitionedKVEdgeConfigurer.Builder>
+    private final UnorderedPartitionedKVOutputConfig.Builder outputBuilder =
+        new UnorderedPartitionedKVOutputConfig.Builder();
+    private final UnorderedPartitionedKVOutputConfig.SpecificBuilder<UnorderedPartitionedKVEdgeConfig.Builder>
         specificOutputBuilder =
-        new UnorderedPartitionedKVOutputConfigurer.SpecificBuilder<UnorderedPartitionedKVEdgeConfigurer.Builder>(
+        new UnorderedPartitionedKVOutputConfig.SpecificBuilder<UnorderedPartitionedKVEdgeConfig.Builder>(
             this, outputBuilder);
 
-    private final UnorderedKVInputConfigurer.Builder inputBuilder =
-        new UnorderedKVInputConfigurer.Builder();
-    private final UnorderedKVInputConfigurer.SpecificBuilder<UnorderedPartitionedKVEdgeConfigurer.Builder>
+    private final UnorderedKVInputConfig.Builder inputBuilder =
+        new UnorderedKVInputConfig.Builder();
+    private final UnorderedKVInputConfig.SpecificBuilder<UnorderedPartitionedKVEdgeConfig.Builder>
         specificInputBuilder =
-        new UnorderedKVInputConfigurer.SpecificBuilder<UnorderedPartitionedKVEdgeConfigurer.Builder>(
+        new UnorderedKVInputConfig.SpecificBuilder<UnorderedPartitionedKVEdgeConfig.Builder>(
             this, inputBuilder);
 
     @InterfaceAudience.Private
@@ -240,7 +241,7 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
      *
      * @return a builder to configure the output
      */
-    public UnorderedPartitionedKVOutputConfigurer.SpecificBuilder<Builder> configureOutput() {
+    public UnorderedPartitionedKVOutputConfig.SpecificBuilder<Builder> configureOutput() {
       return specificOutputBuilder;
     }
 
@@ -248,7 +249,7 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
      * Configure the specific input
      * @return a builder to configure the input
      */
-    public UnorderedKVInputConfigurer.SpecificBuilder<Builder> configureInput() {
+    public UnorderedKVInputConfig.SpecificBuilder<Builder> configureInput() {
       return specificInputBuilder;
     }
 
@@ -256,8 +257,8 @@ public class UnorderedPartitionedKVEdgeConfigurer extends HadoopKeyValuesBasedBa
      * Build and return an instance of the configuration
      * @return an instance of the acatual configuration
      */
-    public UnorderedPartitionedKVEdgeConfigurer build() {
-      return new UnorderedPartitionedKVEdgeConfigurer(outputBuilder.build(), inputBuilder.build());
+    public UnorderedPartitionedKVEdgeConfig build() {
+      return new UnorderedPartitionedKVEdgeConfig(outputBuilder.build(), inputBuilder.build());
     }
 
   }

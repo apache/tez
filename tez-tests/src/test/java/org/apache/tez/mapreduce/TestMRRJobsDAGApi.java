@@ -672,11 +672,11 @@ public class TestMRRJobsDAGApi {
           .configureMRInputWithLegacySplitGeneration(stage1Conf, remoteStagingDir, true);
     } else {
       if (initializerClass == null) {
-        dsd = MRInputLegacy.createConfigurer(stage1Conf, SleepInputFormat.class).create();
+        dsd = MRInputLegacy.createConfigBuilder(stage1Conf, SleepInputFormat.class).build();
       } else {
         InputInitializerDescriptor iid = new InputInitializerDescriptor(inputInitializerClazz.getName());
-        dsd = MRInputLegacy.createConfigurer(stage1Conf, SleepInputFormat.class)
-            .setCustomInitializerDescriptor(iid).create();
+        dsd = MRInputLegacy.createConfigBuilder(stage1Conf, SleepInputFormat.class)
+            .setCustomInitializerDescriptor(iid).build();
       }
     }
 
@@ -691,7 +691,7 @@ public class TestMRRJobsDAGApi {
         ReduceProcessor.class.getName()).setUserPayload(stage3Payload),
         1, Resource.newInstance(256, 1));
     stage3Vertex.addDataSink("MROutput",
-        MROutputLegacy.createConfigurer(stage3Conf, NullOutputFormat.class).create());
+        MROutputLegacy.createConfigBuilder(stage3Conf, NullOutputFormat.class).build());
 
     // TODO env, resources
 

@@ -55,7 +55,6 @@ import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.ReflectionUtils;
-import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
@@ -1915,7 +1914,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info("Setting vertexManager to ShuffleVertexManager for "
             + logIdentifier);
         // shuffle vertex manager needs a conf payload
-        vertexManager = new VertexManager(ShuffleVertexManager.createConfigurer(conf).build(),
+        vertexManager = new VertexManager(ShuffleVertexManager.createConfigBuilder(conf).build(),
             this, appContext);
       } else {
         // schedule all tasks upon vertex start. Default behavior.

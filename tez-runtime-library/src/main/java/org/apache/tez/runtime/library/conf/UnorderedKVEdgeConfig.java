@@ -45,13 +45,13 @@ import org.apache.tez.runtime.library.output.UnorderedKVOutput;
  */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
-public class UnorderedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseEdgeConfigurer {
-  private final UnorderedKVOutputConfigurer outputConf;
-  private final UnorderedKVInputConfigurer inputConf;
+public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
+  private final UnorderedKVOutputConfig outputConf;
+  private final UnorderedKVInputConfig inputConf;
 
-  private UnorderedKVEdgeConfigurer(
-      UnorderedKVOutputConfigurer outputConfiguration,
-      UnorderedKVInputConfigurer inputConfiguration) {
+  private UnorderedKVEdgeConfig(
+      UnorderedKVOutputConfig outputConfiguration,
+      UnorderedKVInputConfig inputConfiguration) {
     this.outputConf = outputConfiguration;
     this.inputConf = inputConfiguration;
 
@@ -146,20 +146,20 @@ public class UnorderedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseEdgeConfi
 
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
-  public static class Builder extends HadoopKeyValuesBasedBaseEdgeConfigurer.Builder<Builder> {
+  public static class Builder extends HadoopKeyValuesBasedBaseEdgeConfig.Builder<Builder> {
 
-    private final UnorderedKVOutputConfigurer.Builder outputBuilder =
-        new UnorderedKVOutputConfigurer.Builder();
-    private final UnorderedKVOutputConfigurer.SpecificBuilder<UnorderedKVEdgeConfigurer.Builder>
+    private final UnorderedKVOutputConfig.Builder outputBuilder =
+        new UnorderedKVOutputConfig.Builder();
+    private final UnorderedKVOutputConfig.SpecificBuilder<UnorderedKVEdgeConfig.Builder>
         specificOutputBuilder =
-        new UnorderedKVOutputConfigurer.SpecificBuilder<UnorderedKVEdgeConfigurer.Builder>(
+        new UnorderedKVOutputConfig.SpecificBuilder<UnorderedKVEdgeConfig.Builder>(
             this, outputBuilder);
 
-    private final UnorderedKVInputConfigurer.Builder inputBuilder =
-        new UnorderedKVInputConfigurer.Builder();
-    private final UnorderedKVInputConfigurer.SpecificBuilder<UnorderedKVEdgeConfigurer.Builder>
+    private final UnorderedKVInputConfig.Builder inputBuilder =
+        new UnorderedKVInputConfig.Builder();
+    private final UnorderedKVInputConfig.SpecificBuilder<UnorderedKVEdgeConfig.Builder>
         specificInputBuilder =
-        new UnorderedKVInputConfigurer.SpecificBuilder<UnorderedKVEdgeConfigurer.Builder>(
+        new UnorderedKVInputConfig.SpecificBuilder<UnorderedKVEdgeConfig.Builder>(
             this, inputBuilder);
 
     @InterfaceAudience.Private
@@ -236,7 +236,7 @@ public class UnorderedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseEdgeConfi
      * Configure the specific output
      * @return a builder to configure the output
      */
-    public UnorderedKVOutputConfigurer.SpecificBuilder<Builder> configureOutput() {
+    public UnorderedKVOutputConfig.SpecificBuilder<Builder> configureOutput() {
       return specificOutputBuilder;
     }
 
@@ -244,7 +244,7 @@ public class UnorderedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseEdgeConfi
      * Configure the specific input
      * @return a builder to configure the input
      */
-    public UnorderedKVInputConfigurer.SpecificBuilder<Builder> configureInput() {
+    public UnorderedKVInputConfig.SpecificBuilder<Builder> configureInput() {
       return specificInputBuilder;
     }
 
@@ -252,8 +252,8 @@ public class UnorderedKVEdgeConfigurer extends HadoopKeyValuesBasedBaseEdgeConfi
      * Build and return an instance of the configuration
      * @return an instance of the acatual configuration
      */
-    public UnorderedKVEdgeConfigurer build() {
-      return new UnorderedKVEdgeConfigurer(outputBuilder.build(), inputBuilder.build());
+    public UnorderedKVEdgeConfig build() {
+      return new UnorderedKVEdgeConfig(outputBuilder.build(), inputBuilder.build());
     }
 
   }

@@ -205,14 +205,14 @@ public class IntersectDataGen extends Configured implements Tool {
         new UserPayload(ByteBuffer.wrap(GenDataProcessor.createConfiguration(largeOutSizePerTask,
             smallOutSizePerTask)))), numTasks);
     genDataVertex.addDataSink(STREAM_OUTPUT_NAME, 
-        MROutput.createConfigurer(new Configuration(tezConf),
-            TextOutputFormat.class, largeOutPath.toUri().toString()).create());
+        MROutput.createConfigBuilder(new Configuration(tezConf),
+            TextOutputFormat.class, largeOutPath.toUri().toString()).build());
     genDataVertex.addDataSink(HASH_OUTPUT_NAME, 
-        MROutput.createConfigurer(new Configuration(tezConf),
-            TextOutputFormat.class, smallOutPath.toUri().toString()).create());
+        MROutput.createConfigBuilder(new Configuration(tezConf),
+            TextOutputFormat.class, smallOutPath.toUri().toString()).build());
     genDataVertex.addDataSink(EXPECTED_OUTPUT_NAME, 
-        MROutput.createConfigurer(new Configuration(tezConf),
-            TextOutputFormat.class, expectedOutputPath.toUri().toString()).create());
+        MROutput.createConfigBuilder(new Configuration(tezConf),
+            TextOutputFormat.class, expectedOutputPath.toUri().toString()).build());
 
     dag.addVertex(genDataVertex);
 

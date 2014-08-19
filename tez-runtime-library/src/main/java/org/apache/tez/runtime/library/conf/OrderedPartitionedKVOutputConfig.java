@@ -37,76 +37,32 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
-import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
-import org.apache.tez.runtime.library.input.OrderedGroupedInputLegacy;
+import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
+
 
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 /**
- * Configure {@link org.apache.tez.runtime.library.input.OrderedGroupedKVInput} </p>
- *
+ * Configure {@link org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput} </p>
+ * 
  * Values will be picked up from tez-site if not specified, otherwise defaults from
  * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
  */
-public class OrderedGroupedKVInputConfigurer {
+public class OrderedPartitionedKVOutputConfig {
 
   /**
-   * Configure parameters which are specific to the Input.
+   * Configure parameters which are specific to the Output.
    */
   @InterfaceAudience.Private
-  public static interface SpecificConfigurer<T> extends BaseConfigurer<T> {
-
+  public static interface SpecificConfigBuilder<T> extends BaseConfigBuilder<T> {
     /**
-     * Specifies whether the legacy version of this input should be used.
+     * Set the buffer size to use when sort the output
+     *
+     * @param sortBufferSize the size of the buffer in MB
      * @return instance of the current builder
      */
-    public T useLegacyInput();
-    /**
-     * Sets the buffer fraction, as a fraction of container size, to be used while fetching remote
-     * data.
-     *
-     * @param shuffleBufferFraction fraction of container size
-     * @return instance of the current builder
-     */
-    public T setShuffleBufferFraction(float shuffleBufferFraction);
+    public T setSortBufferSize(int sortBufferSize);
 
-    /**
-     * Sets the buffer fraction, as a fraction of container size, to be used after the fetch and
-     * merge are complete. This buffer is used to cache merged data and avoids writing it out to
-     * disk.
-     *
-     * @param postMergeBufferFraction fraction of container size
-     * @return instance of the current builder
-     */
-    public T setPostMergeBufferFraction(float postMergeBufferFraction);
-
-    /**
-     * Sets a size limit on the maximum segment size to be shuffled to disk. This is a fraction of
-     * the shuffle buffer.
-     *
-     * @param maxSingleSegmentFraction fraction of memory determined by ShuffleBufferFraction
-     * @return instance of the current builder
-     */
-    public T setMaxSingleMemorySegmentFraction(float maxSingleSegmentFraction);
-
-    /**
-     * Enable the memory to memory merger
-     *
-     * @param enable whether to enable the memory to memory merger
-     * @return
-     */
-    public T setMemToMemMerger(boolean enable); // Not super useful until additional params are used.
-
-    /**
-     * Configure the point at which in memory segments will be merged. This is specified as a
-     * fraction of the shuffle buffer.
-     *
-     * @param mergeFraction fraction of memory determined by ShuffleBufferFraction, which when
-     *                      filled, will
-     *                      trigger a merge
-     * @return instance of the current builder
-     */
-    public T setMergeFraction(float mergeFraction);
 
     /**
      * Configure the combiner class
@@ -129,62 +85,39 @@ public class OrderedGroupedKVInputConfigurer {
      */
     public T setCombiner(String combinerClassName, @Nullable Map<String, String> combinerConf);
 
+
+
+    /**
+     * Configure the number of threads to be used by the sorter
+     *
+     * @param numThreads the number of threads
+     * @return instance of the current builder
+     */
+    public T setSorterNumThreads(int numThreads);
   }
 
   @SuppressWarnings("rawtypes")
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
-  public static class SpecificBuilder<E extends HadoopKeyValuesBasedBaseEdgeConfigurer.Builder> implements
-      SpecificConfigurer<SpecificBuilder> {
+  public static class SpecificBuilder<E extends HadoopKeyValuesBasedBaseEdgeConfig.Builder> implements
+      SpecificConfigBuilder<SpecificBuilder> {
 
     private final E edgeBuilder;
-    private final OrderedGroupedKVInputConfigurer.Builder builder;
+    private final Builder builder;
 
-
-    @InterfaceAudience.Private
-    SpecificBuilder(E edgeBuilder, OrderedGroupedKVInputConfigurer.Builder builder) {
+    SpecificBuilder(E edgeBuilder, Builder builder) {
       this.edgeBuilder = edgeBuilder;
       this.builder = builder;
     }
 
-    public SpecificBuilder<E> useLegacyInput() {
-      builder.useLegacyInput();
+    @Override
+    public SpecificBuilder<E> setSortBufferSize(int sortBufferSize) {
+      builder.setSortBufferSize(sortBufferSize);
       return this;
     }
 
-    @Override
-    public SpecificBuilder<E> setShuffleBufferFraction(float shuffleBufferFraction) {
-      builder.setShuffleBufferFraction(shuffleBufferFraction);
-      return this;
-    }
-
-    @Override
-    public SpecificBuilder<E> setPostMergeBufferFraction(float postMergeBufferFraction) {
-      builder.setPostMergeBufferFraction(postMergeBufferFraction);
-      return this;
-    }
-
-    @Override
-    public SpecificBuilder<E> setMaxSingleMemorySegmentFraction(float maxSingleSegmentFraction) {
-      builder.setMaxSingleMemorySegmentFraction(maxSingleSegmentFraction);
-      return this;
-    }
-
-    @Override
-    public SpecificBuilder<E> setMemToMemMerger(boolean enable) {
-      builder.setMemToMemMerger(enable);
-      return this;
-    }
-
-    @Override
-    public SpecificBuilder<E> setMergeFraction(float mergeFraction) {
-      builder.setMergeFraction(mergeFraction);
-      return this;
-    }
-
-    @Override
     public SpecificBuilder<E> setCombiner(String combinerClassName) {
-      return setCombiner(combinerClassName, null);
+      return this.setCombiner(combinerClassName, null);
     }
 
     @Override
@@ -193,6 +126,11 @@ public class OrderedGroupedKVInputConfigurer {
       return this;
     }
 
+    @Override
+    public SpecificBuilder<E> setSorterNumThreads(int numThreads) {
+      builder.setSorterNumThreads(numThreads);
+      return this;
+    }
 
     @Override
     public SpecificBuilder setAdditionalConfiguration(String key, String value) {
@@ -215,27 +153,19 @@ public class OrderedGroupedKVInputConfigurer {
     public E done() {
       return edgeBuilder;
     }
-
   }
 
   @InterfaceAudience.Private
   @VisibleForTesting
   Configuration conf;
 
-  private String inputClassName;
-
   @InterfaceAudience.Private
   @VisibleForTesting
-  OrderedGroupedKVInputConfigurer() {
+  OrderedPartitionedKVOutputConfig() {
   }
 
-  private OrderedGroupedKVInputConfigurer(Configuration conf, boolean useLegacyInput) {
+  private OrderedPartitionedKVOutputConfig(Configuration conf) {
     this.conf = conf;
-    if (useLegacyInput) {
-      inputClassName = OrderedGroupedInputLegacy.class.getName();
-    } else {
-      inputClassName = OrderedGroupedKVInput.class.getName();
-    }
   }
 
   /**
@@ -259,41 +189,48 @@ public class OrderedGroupedKVInputConfigurer {
     }
   }
 
-  public String getInputClassName() {
-    return inputClassName;
+  public static Builder newBuilder(String keyClass, String valueClass, String partitionerClassName) {
+    return newBuilder(keyClass, valueClass, partitionerClassName, null);
   }
 
-  public static Builder newBuilder(String keyClass, String valueClass) {
-    return new Builder(keyClass, valueClass);
+  public static Builder newBuilder(String keyClass, String valueClass, String partitionerClassName,
+                                   Map<String, String> partitionerConf) {
+    return new Builder(keyClass, valueClass, partitionerClassName, partitionerConf);
   }
 
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
-  public static class Builder implements SpecificConfigurer<Builder> {
+  public static class Builder implements SpecificConfigBuilder<Builder> {
 
     private final Configuration conf = new Configuration(false);
-    private boolean useLegacyInput = false;
 
     /**
-     * Create a configuration builder for {@link org.apache.tez.runtime.library.input.OrderedGroupedKVInput}
+     * Create a configuration builder for {@link org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput}
      *
      * @param keyClassName         the key class name
      * @param valueClassName       the value class name
+     * @param partitionerClassName the partitioner class name
+     * @param partitionerConf      the partitioner configuration. This can be null, and is a {@link
+     *                             java.util.Map} of key-value pairs. The keys should be limited to
+     *                             the ones required by the partitioner.
      */
     @InterfaceAudience.Private
-    Builder(String keyClassName, String valueClassName) {
+    Builder(String keyClassName, String valueClassName, String partitionerClassName,
+                   @Nullable Map<String, String> partitionerConf) {
       this();
       Preconditions.checkNotNull(keyClassName, "Key class name cannot be null");
       Preconditions.checkNotNull(valueClassName, "Value class name cannot be null");
+      Preconditions.checkNotNull(partitionerClassName, "Partitioner class name cannot be null");
       setKeyClassName(keyClassName);
       setValueClassName(valueClassName);
+      setPartitioner(partitionerClassName, partitionerConf);
     }
 
     @InterfaceAudience.Private
     Builder() {
       Map<String, String> tezDefaults = ConfigUtils
           .extractConfigurationMap(TezRuntimeConfiguration.getTezRuntimeConfigDefaults(),
-              OrderedGroupedKVInput.getConfigurationKeySet());
+              OrderedPartitionedKVOutput.getConfigurationKeySet());
       ConfigUtils.addConfigMapToConfiguration(this.conf, tezDefaults);
       ConfigUtils.addConfigMapToConfiguration(this.conf, TezRuntimeConfiguration.getOtherConfigDefaults());
     }
@@ -312,45 +249,27 @@ public class OrderedGroupedKVInputConfigurer {
       return this;
     }
 
-    public Builder useLegacyInput() {
-      this.useLegacyInput = true;
+    @InterfaceAudience.Private
+    Builder setPartitioner(String partitionerClassName, @Nullable Map<String, String> partitionerConf) {
+      Preconditions.checkNotNull(partitionerClassName, "Partitioner class name cannot be null");
+      this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, partitionerClassName);
+      if (partitionerConf != null) {
+        // Merging the confs for now. Change to be specific in the future.
+        ConfigUtils.mergeConfsWithExclusions(this.conf, partitionerConf,
+            TezRuntimeConfiguration.getRuntimeConfigKeySet());
+      }
       return this;
     }
 
     @Override
-    public Builder setShuffleBufferFraction(float shuffleBufferFraction) {
-      this.conf
-          .setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, shuffleBufferFraction);
+    public Builder setSortBufferSize(int sortBufferSize) {
+      this.conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, sortBufferSize);
       return this;
     }
 
     @Override
-    public Builder setPostMergeBufferFraction(float postMergeBufferFraction) {
-      this.conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_BUFFER_PERCENT, postMergeBufferFraction);
-      return this;
-    }
-
-    @Override
-    public Builder setMaxSingleMemorySegmentFraction(float maxSingleSegmentFraction) {
-      this.conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT,
-          maxSingleSegmentFraction);
-      return this;
-    }
-
-    @Override
-    public Builder setMemToMemMerger(boolean enable) {
-      this.conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM, enable);
-      return this;
-    }
-
-    @Override
-    public Builder setMergeFraction(float mergeFraction) {
-      this.conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, mergeFraction);
-      return this;
-    }
-
     public Builder setCombiner(String combinerClassName) {
-      return setCombiner(combinerClassName, null);
+      return this.setCombiner(combinerClassName, null);
     }
 
     @Override
@@ -361,6 +280,49 @@ public class OrderedGroupedKVInputConfigurer {
         ConfigUtils.mergeConfsWithExclusions(this.conf, combinerConf,
             TezRuntimeConfiguration.getRuntimeConfigKeySet());
       }
+      return this;
+    }
+
+    @Override
+    public Builder setSorterNumThreads(int numThreads) {
+      this.conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, numThreads);
+      return this;
+    }
+
+    @Override
+    public Builder setAdditionalConfiguration(String key, String value) {
+      Preconditions.checkNotNull(key, "Key cannot be null");
+      if (ConfigUtils.doesKeyQualify(key,
+          Lists.newArrayList(OrderedPartitionedKVOutput.getConfigurationKeySet(),
+              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()),
+          TezRuntimeConfiguration.getAllowedPrefixes())) {
+        if (value == null) {
+          this.conf.unset(key);
+        } else {
+          this.conf.set(key, value);
+        }
+      }
+      return this;
+    }
+
+    @Override
+    public Builder setAdditionalConfiguration(Map<String, String> confMap) {
+      Preconditions.checkNotNull(confMap, "ConfMap cannot be null");
+      Map<String, String> map = ConfigUtils.extractConfigurationMap(confMap,
+          Lists.newArrayList(OrderedPartitionedKVOutput.getConfigurationKeySet(),
+              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
+      ConfigUtils.addConfigMapToConfiguration(this.conf, map);
+      return this;
+    }
+
+    @Override
+    public Builder setFromConfiguration(Configuration conf) {
+      // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
+      Preconditions.checkArgument(conf != null, "Configuration cannot be null");
+      Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
+          Lists.newArrayList(OrderedPartitionedKVOutput.getConfigurationKeySet(),
+              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
+      ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
     }
 
@@ -396,42 +358,6 @@ public class OrderedGroupedKVInputConfigurer {
         ConfigUtils.mergeConfsWithExclusions(this.conf, comparatorConf,
             TezRuntimeConfiguration.getRuntimeConfigKeySet());
       }
-      return this;
-    }
-    @Override
-    public Builder setAdditionalConfiguration(String key, String value) {
-      Preconditions.checkNotNull(key, "Key cannot be null");
-      if (ConfigUtils.doesKeyQualify(key,
-          Lists.newArrayList(OrderedGroupedKVInput.getConfigurationKeySet(),
-              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()),
-          TezRuntimeConfiguration.getAllowedPrefixes())) {
-        if (value == null) {
-          this.conf.unset(key);
-        } else {
-          this.conf.set(key, value);
-        }
-      }
-      return this;
-    }
-
-    @Override
-    public Builder setAdditionalConfiguration(Map<String, String> confMap) {
-      Preconditions.checkNotNull(confMap, "ConfMap cannot be null");
-      Map<String, String> map = ConfigUtils.extractConfigurationMap(confMap,
-          Lists.newArrayList(OrderedGroupedKVInput.getConfigurationKeySet(),
-              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
-      ConfigUtils.addConfigMapToConfiguration(this.conf, map);
-      return this;
-    }
-
-    @Override
-    public Builder setFromConfiguration(Configuration conf) {
-      // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
-      Preconditions.checkArgument(conf != null, "Configuration cannot be null");
-      Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
-          Lists.newArrayList(OrderedGroupedKVInput.getConfigurationKeySet(),
-              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
-      ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
     }
 
@@ -480,7 +406,7 @@ public class OrderedGroupedKVInputConfigurer {
     }
 
     /**
-     * Serialization class to be used for serializing values.
+     * Set serialization class responsible for providing serializer/deserializer for values.
      *
      * @param serializationClassName
      * @param serializerConf         the serializer configuration. This can be null, and is a
@@ -507,9 +433,9 @@ public class OrderedGroupedKVInputConfigurer {
      *
      * @return an instance of the Configuration
      */
-    public OrderedGroupedKVInputConfigurer build() {
-      return new OrderedGroupedKVInputConfigurer(this.conf, this.useLegacyInput);
+    public OrderedPartitionedKVOutputConfig build() {
+      return new OrderedPartitionedKVOutputConfig(this.conf);
     }
   }
-
 }
+

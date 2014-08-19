@@ -37,48 +37,87 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
-import org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput;
+import org.apache.tez.runtime.library.input.UnorderedKVInput;
 
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 /**
- * Configure {@link org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput} </p>
+ * Configure {@link org.apache.tez.runtime.library.input.UnorderedKVInput} </p>
  *
  * Values will be picked up from tez-site if not specified, otherwise defaults from
  * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
  */
-public class UnorderedPartitionedKVOutputConfigurer {
+public class UnorderedKVInputConfig {
+
   /**
-   * Configure parameters which are specific to the Output.
+   * Configure parameters which are specific to the Input.
    */
   @InterfaceAudience.Private
-  public static interface SpecificConfigurer<T> extends BaseConfigurer<T> {
+  public static interface SpecificConfigBuilder<T> extends BaseConfigBuilder<T> {
+
     /**
-     * Set the buffer size to use
+     * Sets the buffer fraction, as a fraction of container size, to be used while fetching remote
+     * data.
      *
-     * @param availableBufferSize the size of the buffer in MB
+     * @param shuffleBufferFraction fraction of container size
      * @return instance of the current builder
      */
-    public T setAvailableBufferSize(int availableBufferSize);
+    public T setShuffleBufferFraction(float shuffleBufferFraction);
+
+    /**
+     * Sets a size limit on the maximum segment size to be shuffled to disk. This is a fraction of
+     * the shuffle buffer.
+     *
+     * @param maxSingleSegmentFraction fraction of memory determined by ShuffleBufferFraction
+     * @return instance of the current builder
+     */
+    public T setMaxSingleMemorySegmentFraction(float maxSingleSegmentFraction);
+
+    /**
+     * Configure the point at which in memory segments will be merged and written out to a single
+     * large disk segment. This is specified as a
+     * fraction of the shuffle buffer. </p> Has no affect at the moment.
+     *
+     * @param mergeFraction fraction of memory determined by ShuffleBufferFraction, which when
+     *                      filled, will
+     *                      trigger a merge
+     * @return instance of the current builder
+     */
+    public T setMergeFraction(float mergeFraction);
+
   }
 
   @SuppressWarnings("rawtypes")
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
-  public static class SpecificBuilder<E extends HadoopKeyValuesBasedBaseEdgeConfigurer.Builder> implements
-      SpecificConfigurer<SpecificBuilder> {
+  public static class SpecificBuilder<E extends HadoopKeyValuesBasedBaseEdgeConfig.Builder> implements
+      SpecificConfigBuilder<SpecificBuilder> {
 
     private final E edgeBuilder;
-    private final Builder builder;
+    private final UnorderedKVInputConfig.Builder builder;
 
-    SpecificBuilder(E edgeBuilder, Builder builder) {
+
+    @InterfaceAudience.Private
+    SpecificBuilder(E edgeBuilder, UnorderedKVInputConfig.Builder builder) {
       this.edgeBuilder = edgeBuilder;
       this.builder = builder;
     }
 
     @Override
-    public SpecificBuilder<E> setAvailableBufferSize(int availableBufferSize) {
-      builder.setAvailableBufferSize(availableBufferSize);
+    public SpecificBuilder<E> setShuffleBufferFraction(float shuffleBufferFraction) {
+      builder.setShuffleBufferFraction(shuffleBufferFraction);
+      return this;
+    }
+
+    @Override
+    public SpecificBuilder<E> setMaxSingleMemorySegmentFraction(float maxSingleSegmentFraction) {
+      builder.setMaxSingleMemorySegmentFraction(maxSingleSegmentFraction);
+      return this;
+    }
+
+    @Override
+    public SpecificBuilder<E> setMergeFraction(float mergeFraction) {
+      builder.setMergeFraction(mergeFraction);
       return this;
     }
 
@@ -103,6 +142,7 @@ public class UnorderedPartitionedKVOutputConfigurer {
     public E done() {
       return edgeBuilder;
     }
+
   }
 
   @InterfaceAudience.Private
@@ -111,10 +151,10 @@ public class UnorderedPartitionedKVOutputConfigurer {
 
   @InterfaceAudience.Private
   @VisibleForTesting
-  UnorderedPartitionedKVOutputConfigurer() {
+  UnorderedKVInputConfig() {
   }
 
-  private UnorderedPartitionedKVOutputConfigurer(Configuration conf) {
+  private UnorderedKVInputConfig(Configuration conf) {
     this.conf = conf;
   }
 
@@ -139,48 +179,36 @@ public class UnorderedPartitionedKVOutputConfigurer {
     }
   }
 
-
-  public static Builder newBuilder(String keyClass, String valClass, String partitionerClassName) {
-    return newBuilder(keyClass, valClass, partitionerClassName, null);
-  }
-
-  public static Builder newBuilder(String keyClass, String valClass, String partitionerClassName,
-                                   Map<String, String> partitionerConf) {
-    return new Builder(keyClass, valClass, partitionerClassName, partitionerConf);
+  public static Builder newBuilder(String keyClass, String valueClass) {
+    return new Builder(keyClass, valueClass);
   }
 
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
-  public static class Builder implements SpecificConfigurer<Builder> {
+  public static class Builder implements SpecificConfigBuilder<Builder> {
 
     private final Configuration conf = new Configuration(false);
 
     /**
-     * Create a configuration builder for {@link org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput}
+     * Create a configuration builder for {@link org.apache.tez.runtime.library.input.UnorderedKVInput}
      *
      * @param keyClassName         the key class name
      * @param valueClassName       the value class name
-     * @param partitionerClassName the partitioner class name
-     * @param partitionerConf      configuration for the partitioner specified as a map of key-value
-     *                             pairs. This can be null
      */
     @InterfaceAudience.Private
-    Builder(String keyClassName, String valueClassName, String partitionerClassName,
-                   Map<String, String> partitionerConf) {
+    Builder(String keyClassName, String valueClassName) {
       this();
       Preconditions.checkNotNull(keyClassName, "Key class name cannot be null");
       Preconditions.checkNotNull(valueClassName, "Value class name cannot be null");
-      Preconditions.checkNotNull(partitionerClassName, "Partitioner class name cannot be null");
       setKeyClassName(keyClassName);
       setValueClassName(valueClassName);
-      setPartitioner(partitionerClassName, partitionerConf);
     }
 
     @InterfaceAudience.Private
     Builder() {
       Map<String, String> tezDefaults = ConfigUtils
           .extractConfigurationMap(TezRuntimeConfiguration.getTezRuntimeConfigDefaults(),
-              UnorderedPartitionedKVOutput.getConfigurationKeySet());
+              UnorderedKVInput.getConfigurationKeySet());
       ConfigUtils.addConfigMapToConfiguration(this.conf, tezDefaults);
       ConfigUtils.addConfigMapToConfiguration(this.conf, TezRuntimeConfiguration.getOtherConfigDefaults());
     }
@@ -199,22 +227,23 @@ public class UnorderedPartitionedKVOutputConfigurer {
       return this;
     }
 
-    @InterfaceAudience.Private
-    Builder setPartitioner(String partitionerClassName, Map<String, String> partitionerConf) {
-      Preconditions.checkNotNull(partitionerClassName, "Partitioner class name cannot be null");
-      this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, partitionerClassName);
-      if (partitionerConf != null) {
-        // Merging the confs for now. Change to be specific in the future.
-        ConfigUtils.mergeConfsWithExclusions(this.conf, partitionerConf,
-            TezRuntimeConfiguration.getRuntimeConfigKeySet());
-      }
+    @Override
+    public Builder setShuffleBufferFraction(float shuffleBufferFraction) {
+      this.conf
+          .setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, shuffleBufferFraction);
       return this;
     }
 
     @Override
-    public Builder setAvailableBufferSize(int availableBufferSize) {
-      this.conf
-          .setInt(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB, availableBufferSize);
+    public Builder setMaxSingleMemorySegmentFraction(float maxSingleSegmentFraction) {
+      this.conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT,
+          maxSingleSegmentFraction);
+      return this;
+    }
+
+    @Override
+    public Builder setMergeFraction(float mergeFraction) {
+      this.conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, mergeFraction);
       return this;
     }
 
@@ -222,7 +251,7 @@ public class UnorderedPartitionedKVOutputConfigurer {
     public Builder setAdditionalConfiguration(String key, String value) {
       Preconditions.checkNotNull(key, "Key cannot be null");
       if (ConfigUtils.doesKeyQualify(key,
-          Lists.newArrayList(UnorderedPartitionedKVOutput.getConfigurationKeySet(),
+          Lists.newArrayList(UnorderedKVInput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()),
           TezRuntimeConfiguration.getAllowedPrefixes())) {
         if (value == null) {
@@ -238,7 +267,7 @@ public class UnorderedPartitionedKVOutputConfigurer {
     public Builder setAdditionalConfiguration(Map<String, String> confMap) {
       Preconditions.checkNotNull(confMap, "ConfMap cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(confMap,
-          Lists.newArrayList(UnorderedPartitionedKVOutput.getConfigurationKeySet(),
+          Lists.newArrayList(UnorderedKVInput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
@@ -249,7 +278,7 @@ public class UnorderedPartitionedKVOutputConfigurer {
       // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
       Preconditions.checkArgument(conf != null, "Configuration cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
-          Lists.newArrayList(UnorderedPartitionedKVOutput.getConfigurationKeySet(),
+          Lists.newArrayList(UnorderedKVInput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
@@ -271,7 +300,8 @@ public class UnorderedPartitionedKVOutputConfigurer {
     }
 
     /**
-     * Set serialization class responsible for providing serializer/deserializer for keys.
+     * Set serialization class responsible for providing serializer/deserializer for key/value and
+     * the corresponding comparator class to be used as key comparator.
      *
      * @param serializationClassName
      * @param serializerConf         the serializer configuration. This can be null, and is a
@@ -289,7 +319,8 @@ public class UnorderedPartitionedKVOutputConfigurer {
         // Merging the confs for now. Change to be specific in the future.
         ConfigUtils.mergeConfsWithExclusions(this.conf, serializerConf,
             TezRuntimeConfiguration.getRuntimeConfigKeySet());
-      }      return this;
+      }
+      return this;
     }
 
     /**
@@ -320,8 +351,8 @@ public class UnorderedPartitionedKVOutputConfigurer {
      *
      * @return an instance of the Configuration
      */
-    public UnorderedPartitionedKVOutputConfigurer build() {
-      return new UnorderedPartitionedKVOutputConfigurer(this.conf);
+    public UnorderedKVInputConfig build() {
+      return new UnorderedKVInputConfig(this.conf);
     }
   }
 }

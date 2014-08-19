@@ -34,26 +34,26 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
-public class TestOrderedPartitionedKVEdgeConfigurer {
+public class TestOrderedPartitionedKVEdgeConfig {
 
   @Test
   public void testNullParams() {
     try {
-      OrderedPartitionedKVEdgeConfigurer.newBuilder(null, "VALUE", "PARTITIONER");
+      OrderedPartitionedKVEdgeConfig.newBuilder(null, "VALUE", "PARTITIONER");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      OrderedPartitionedKVEdgeConfigurer.newBuilder("KEY", null, "PARTITIONER");
+      OrderedPartitionedKVEdgeConfig.newBuilder("KEY", null, "PARTITIONER");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      OrderedPartitionedKVEdgeConfigurer.newBuilder("KEY", "VALUE", null);
+      OrderedPartitionedKVEdgeConfig.newBuilder("KEY", "VALUE", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
@@ -62,14 +62,15 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
   @Test
   public void testDefaultConfigsUsed() {
-    OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig.Builder builder = OrderedPartitionedKVEdgeConfig
         .newBuilder("KEY", "VALUE", "PARTITIONER");
 
-    OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
+    OrderedPartitionedKVEdgeConfig configuration = builder.build();
 
-    OrderedPartitionedKVOutputConfigurer rebuiltOutput = new OrderedPartitionedKVOutputConfigurer();
+    OrderedPartitionedKVOutputConfig
+        rebuiltOutput = new OrderedPartitionedKVOutputConfig();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    OrderedGroupedKVInputConfigurer rebuiltInput = new OrderedGroupedKVInputConfigurer();
+    OrderedGroupedKVInputConfig rebuiltInput = new OrderedGroupedKVInputConfig();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -88,14 +89,15 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
   @Test
   public void testSpecificIOConfs() {
     // Ensures that Output and Input confs are not mixed.
-    OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig.Builder builder = OrderedPartitionedKVEdgeConfig
         .newBuilder("KEY", "VALUE", "PARTITIONER");
 
-    OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
+    OrderedPartitionedKVEdgeConfig configuration = builder.build();
 
-    OrderedPartitionedKVOutputConfigurer rebuiltOutput = new OrderedPartitionedKVOutputConfigurer();
+    OrderedPartitionedKVOutputConfig
+        rebuiltOutput = new OrderedPartitionedKVOutputConfig();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    OrderedGroupedKVInputConfigurer rebuiltInput = new OrderedGroupedKVInputConfigurer();
+    OrderedGroupedKVInputConfig rebuiltInput = new OrderedGroupedKVInputConfig();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -123,7 +125,7 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
     additionalConfs.put(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, "CustomSorter");
     additionalConfs.put("file.shouldExist", "file");
 
-    OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig.Builder builder = OrderedPartitionedKVEdgeConfig
         .newBuilder("KEY", "VALUE", "PARTITIONER")
         .setAdditionalConfiguration("fs.shouldExist", "fs")
         .setAdditionalConfiguration("test.key.1", "key1")
@@ -133,11 +135,12 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
         .setAdditionalConfiguration(additionalConfs)
         .setFromConfiguration(fromConf);
 
-    OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
+    OrderedPartitionedKVEdgeConfig configuration = builder.build();
 
-    OrderedPartitionedKVOutputConfigurer rebuiltOutput = new OrderedPartitionedKVOutputConfigurer();
+    OrderedPartitionedKVOutputConfig
+        rebuiltOutput = new OrderedPartitionedKVOutputConfig();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    OrderedGroupedKVInputConfigurer rebuiltInput = new OrderedGroupedKVInputConfigurer();
+    OrderedGroupedKVInputConfig rebuiltInput = new OrderedGroupedKVInputConfig();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -180,7 +183,7 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
   public void testSetters() {
     Map<String, String> comparatorConf = Maps.newHashMap();
     comparatorConf.put("comparator.test.key", "comparatorValue");
-    OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig.Builder builder = OrderedPartitionedKVEdgeConfig
         .newBuilder("KEY", "VALUE", "PARTITIONER")
         .setKeyComparatorClass("KEY_COMPARATOR", comparatorConf)
         .configureOutput().setSortBufferSize(1111).setSorterNumThreads(2).done()
@@ -188,11 +191,12 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
         .setPostMergeBufferFraction(0.33f).setShuffleBufferFraction(0.44f).done()
         .setCompression(true, "CustomCodec", null);
 
-    OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
+    OrderedPartitionedKVEdgeConfig configuration = builder.build();
 
-    OrderedPartitionedKVOutputConfigurer rebuiltOutput = new OrderedPartitionedKVOutputConfigurer();
+    OrderedPartitionedKVOutputConfig
+        rebuiltOutput = new OrderedPartitionedKVOutputConfig();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    OrderedGroupedKVInputConfigurer rebuiltInput = new OrderedGroupedKVInputConfigurer();
+    OrderedGroupedKVInputConfig rebuiltInput = new OrderedGroupedKVInputConfig();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;
@@ -242,17 +246,18 @@ public class TestOrderedPartitionedKVEdgeConfigurer {
 
   @Test
   public void testSerialization() {
-    OrderedPartitionedKVEdgeConfigurer.Builder builder = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig.Builder builder = OrderedPartitionedKVEdgeConfig
         .newBuilder("KEY", "VALUE", "PARTITIONER")
         .setCompression(true, "CustomCodec", null)
         .setKeySerializationClass("serClass1", "SomeComparator1", null)
         .setValueSerializationClass("serClass2", null);
 
-    OrderedPartitionedKVEdgeConfigurer configuration = builder.build();
+    OrderedPartitionedKVEdgeConfig configuration = builder.build();
 
-    OrderedPartitionedKVOutputConfigurer rebuiltOutput = new OrderedPartitionedKVOutputConfigurer();
+    OrderedPartitionedKVOutputConfig
+        rebuiltOutput = new OrderedPartitionedKVOutputConfig();
     rebuiltOutput.fromUserPayload(configuration.getOutputPayload());
-    OrderedGroupedKVInputConfigurer rebuiltInput = new OrderedGroupedKVInputConfigurer();
+    OrderedGroupedKVInputConfig rebuiltInput = new OrderedGroupedKVInputConfig();
     rebuiltInput.fromUserPayload(configuration.getInputPayload());
 
     Configuration outputConf = rebuiltOutput.conf;

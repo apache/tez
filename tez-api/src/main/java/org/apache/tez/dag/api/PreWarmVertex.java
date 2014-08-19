@@ -96,13 +96,13 @@ public class PreWarmVertex extends Vertex {
   }
   
   /**
-   * Create a configurer for the @link {@link PreWarmVertex}. This may be used to construct the 
+   * Create a config builder for the @link {@link PreWarmVertex}. This may be used to construct the
    * pre-warm vertex more flexibly.
    * @param conf
    * @return
    */
-  public static PreWarmVertexConfigurer createConfigurer(Configuration conf) {
-    return new PreWarmVertexConfigurer(conf);
+  public static PreWarmVertexConfigBuilder createConfigBuilder(Configuration conf) {
+    return new PreWarmVertexConfigBuilder(conf);
   }
   
   /**
@@ -110,38 +110,38 @@ public class PreWarmVertex extends Vertex {
    * PreWarmProcessor and sets up the prewarm container number equal to
    * {@link TezConfiguration#TEZ_AM_SESSION_MIN_HELD_CONTAINERS}
    */
-  public static class PreWarmVertexConfigurer {
+  public static class PreWarmVertexConfigBuilder {
     String name;
     int parallelism;
     ProcessorDescriptor proc;
     Resource resource;
     Configuration conf;
     
-    PreWarmVertexConfigurer(Configuration conf) {
+    PreWarmVertexConfigBuilder(Configuration conf) {
       this.conf = conf;
     }
     
-    public PreWarmVertexConfigurer setName(String name) {
+    public PreWarmVertexConfigBuilder setName(String name) {
       this.name = name;
       return this;
     }
     
-    public PreWarmVertexConfigurer setProcessorDescriptor(ProcessorDescriptor proc) {
+    public PreWarmVertexConfigBuilder setProcessorDescriptor(ProcessorDescriptor proc) {
       this.proc = proc;
       return this;
     }
     
-    public PreWarmVertexConfigurer setResource(Resource resource) {
+    public PreWarmVertexConfigBuilder setResource(Resource resource) {
       this.resource = resource;
       return this;
     }
     
-    public PreWarmVertexConfigurer setParallelism(int parallelism) {
+    public PreWarmVertexConfigBuilder setParallelism(int parallelism) {
       this.parallelism = parallelism;
       return this;
     }
     
-    public PreWarmVertex create() {
+    public PreWarmVertex build() {
       if (name == null) {
         name = "_PreWarm_";
       }

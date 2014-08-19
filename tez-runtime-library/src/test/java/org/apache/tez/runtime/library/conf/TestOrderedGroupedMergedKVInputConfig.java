@@ -33,19 +33,19 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
-public class TestShuffledMergedInputConfigurer {
+public class TestOrderedGroupedMergedKVInputConfig {
 
   @Test
   public void testNullParams() {
     try {
-      OrderedGroupedKVInputConfigurer.newBuilder(null, "VALUE");
+      OrderedGroupedKVInputConfig.newBuilder(null, "VALUE");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      OrderedGroupedKVInputConfigurer.newBuilder("KEY", null);
+      OrderedGroupedKVInputConfig.newBuilder("KEY", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
@@ -62,8 +62,8 @@ public class TestShuffledMergedInputConfigurer {
     additionalConf.put("test.key.2", "key2");
     additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, "3");
     additionalConf.put("file.shouldExist", "file");
-    OrderedGroupedKVInputConfigurer.Builder builder =
-        OrderedGroupedKVInputConfigurer.newBuilder("KEY", "VALUE")
+    OrderedGroupedKVInputConfig.Builder builder =
+        OrderedGroupedKVInputConfig.newBuilder("KEY", "VALUE")
             .setKeyComparatorClass("KEY_COMPARATOR", null)
             .setCompression(true, "CustomCodec", null)
             .setMaxSingleMemorySegmentFraction(0.11f)
@@ -77,10 +77,10 @@ public class TestShuffledMergedInputConfigurer {
             .setAdditionalConfiguration(additionalConf)
             .setFromConfiguration(fromConf);
 
-    OrderedGroupedKVInputConfigurer configuration = builder.build();
+    OrderedGroupedKVInputConfig configuration = builder.build();
 
 
-    OrderedGroupedKVInputConfigurer rebuilt = new OrderedGroupedKVInputConfigurer();
+    OrderedGroupedKVInputConfig rebuilt = new OrderedGroupedKVInputConfig();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
@@ -113,11 +113,11 @@ public class TestShuffledMergedInputConfigurer {
 
   @Test
   public void testDefaultConfigsUsed() {
-    OrderedGroupedKVInputConfigurer.Builder builder =
-        OrderedGroupedKVInputConfigurer.newBuilder("KEY", "VALUE");
-    OrderedGroupedKVInputConfigurer configuration = builder.build();
+    OrderedGroupedKVInputConfig.Builder builder =
+        OrderedGroupedKVInputConfig.newBuilder("KEY", "VALUE");
+    OrderedGroupedKVInputConfig configuration = builder.build();
 
-    OrderedGroupedKVInputConfigurer rebuilt = new OrderedGroupedKVInputConfigurer();
+    OrderedGroupedKVInputConfig rebuilt = new OrderedGroupedKVInputConfig();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
@@ -140,13 +140,13 @@ public class TestShuffledMergedInputConfigurer {
     combinerConf.put("combiner.test.key", "COMBINERKEY");
     combinerConf
         .put(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "InvalidKeyOverride");
-    OrderedGroupedKVInputConfigurer.Builder builder =
-        OrderedGroupedKVInputConfigurer.newBuilder("KEY", "VALUE")
+    OrderedGroupedKVInputConfig.Builder builder =
+        OrderedGroupedKVInputConfig.newBuilder("KEY", "VALUE")
             .setCombiner("COMBINER", combinerConf);
 
-    OrderedGroupedKVInputConfigurer configuration = builder.build();
+    OrderedGroupedKVInputConfig configuration = builder.build();
 
-    OrderedGroupedKVInputConfigurer rebuilt = new OrderedGroupedKVInputConfigurer();
+    OrderedGroupedKVInputConfig rebuilt = new OrderedGroupedKVInputConfig();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;

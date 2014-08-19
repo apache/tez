@@ -26,7 +26,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 
 @InterfaceAudience.Private
-interface BaseConfigurer<T> {
+interface BaseConfigBuilder<T> {
   /**
    * Used to set additional configuration parameters which are not set via API methods. This is
    * primarily meant for rarely used configuration options such as IFile read-ahead, configuring

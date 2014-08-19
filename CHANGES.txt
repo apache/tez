@@ -72,6 +72,7 @@ INCOMPATIBLE CHANGES
   TEZ-1426. Create configuration helpers for ShuffleVertexManager and
   TezGrouping code
   TEZ-1390. Replace byte[] with ByteBuffer as the type of user payload in the API
+  TEZ-1417. Rename Configurer* to Config/ConfigBuilder
 
 Release 0.4.0-incubating: 2014-04-05
 

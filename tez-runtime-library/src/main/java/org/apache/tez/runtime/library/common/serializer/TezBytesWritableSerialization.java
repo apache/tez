@@ -45,11 +45,11 @@ import java.io.OutputStream;
  * spill, merge.
  *
  * Usage e.g:
- *  OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
+ *  OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
  *         .newBuilder(keyClass, valClass, MRPartitioner.class.getName(), partitionerConf)
  *         .setFromConfiguration(conf)
  *         .setKeySerializationClass(TezBytesWritableSerialization.class.getName(),
- *            TezBytesComparator.class.getName()))
+ *            TezBytesComparator.class.getName()).build())
  * </pre>
  */
 @Public

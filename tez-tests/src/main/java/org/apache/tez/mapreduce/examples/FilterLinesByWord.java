@@ -75,7 +75,7 @@ import org.apache.tez.mapreduce.examples.processor.FilterByWordOutputProcessor;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
-import org.apache.tez.runtime.library.conf.UnorderedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.conf.UnorderedKVEdgeConfig;
 
 import com.google.common.collect.Sets;
 
@@ -180,8 +180,8 @@ public class FilterLinesByWord extends Configured implements Tool {
       stage1Conf.setBoolean("mapred.mapper.new-api", false);
       dsd = MRInputHelpers.configureMRInputWithLegacySplitGeneration(stage1Conf, stagingDir, true);
     } else {
-      dsd = MRInputLegacy.createConfigurer(stage1Conf, TextInputFormat.class, inputPath)
-          .groupSplits(false).create();
+      dsd = MRInputLegacy.createConfigBuilder(stage1Conf, TextInputFormat.class, inputPath)
+          .groupSplits(false).build();
     }
     stage1Vertex.addDataSource("MRInput", dsd);
 
@@ -197,7 +197,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(MROutputCommitter.class.getName());
     stage2Vertex.addDataSink("MROutput", new DataSinkDescriptor(od, ocd, null));
 
-    UnorderedKVEdgeConfigurer edgeConf = UnorderedKVEdgeConfigurer
+    UnorderedKVEdgeConfig edgeConf = UnorderedKVEdgeConfig
         .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();
 
     DAG dag = new DAG("FilterLinesByWord");

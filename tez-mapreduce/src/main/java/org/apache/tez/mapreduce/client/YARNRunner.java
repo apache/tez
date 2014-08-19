@@ -115,7 +115,7 @@ import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
-import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -448,7 +448,7 @@ public class YARNRunner implements ClientProtocol {
         .setTaskLaunchCmdOpts(taskJavaOpts);
     
     if (!isMap) {
-      vertex.setVertexManagerPlugin((ShuffleVertexManager.createConfigurer(stageConf).build()));
+      vertex.setVertexManagerPlugin((ShuffleVertexManager.createConfigBuilder(stageConf).build()));
     }
 
     if (LOG.isDebugEnabled()) {
@@ -498,8 +498,8 @@ public class YARNRunner implements ClientProtocol {
             partitionerConf.put(entry.getKey(), entry.getValue());
           }
         }
-        OrderedPartitionedKVEdgeConfigurer edgeConf =
-            OrderedPartitionedKVEdgeConfigurer.newBuilder(stageConfs[i - 1].get(
+        OrderedPartitionedKVEdgeConfig edgeConf =
+            OrderedPartitionedKVEdgeConfig.newBuilder(stageConfs[i - 1].get(
                     TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS),
                 stageConfs[i - 1].get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS),
                 MRPartitioner.class.getName(), partitionerConf)

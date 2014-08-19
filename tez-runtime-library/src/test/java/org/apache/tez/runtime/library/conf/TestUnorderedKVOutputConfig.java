@@ -32,19 +32,21 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
-public class TestShuffledUnorderedKVInputConfigurer {
+public class TestUnorderedKVOutputConfig {
 
   @Test
   public void testNullParams() {
     try {
-      UnorderedKVInputConfigurer.newBuilder(null, "VALUE");
+      UnorderedKVOutputConfig.newBuilder(
+          null, "VALUE");
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
     }
 
     try {
-      UnorderedKVInputConfigurer.newBuilder("KEY", null);
+      UnorderedKVOutputConfig.newBuilder(
+          "KEY", null);
       fail("Expecting a null parameter list to fail");
     } catch (NullPointerException npe) {
       assertTrue(npe.getMessage().contains("cannot be null"));
@@ -59,14 +61,11 @@ public class TestShuffledUnorderedKVInputConfigurer {
     fromConf.set("io.shouldExist", "io");
     Map<String, String> additionalConf = new HashMap<String, String>();
     additionalConf.put("test.key.2", "key2");
-    additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, "3");
+    additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, "2222");
     additionalConf.put("file.shouldExist", "file");
-    UnorderedKVInputConfigurer.Builder builder =
-        UnorderedKVInputConfigurer.newBuilder("KEY", "VALUE")
+    UnorderedKVOutputConfig.Builder builder =
+        UnorderedKVOutputConfig.newBuilder("KEY", "VALUE")
             .setCompression(true, "CustomCodec", null)
-            .setMaxSingleMemorySegmentFraction(0.11f)
-            .setMergeFraction(0.22f)
-            .setShuffleBufferFraction(0.33f)
             .setAdditionalConfiguration("fs.shouldExist", "fs")
             .setAdditionalConfiguration("test.key.1", "key1")
             .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
@@ -74,9 +73,10 @@ public class TestShuffledUnorderedKVInputConfigurer {
             .setAdditionalConfiguration(additionalConf)
             .setFromConfiguration(fromConf);
 
-    UnorderedKVInputConfigurer configuration = builder.build();
+    UnorderedKVOutputConfig configuration = builder.build();
 
-    UnorderedKVInputConfigurer rebuilt = new UnorderedKVInputConfigurer();
+    UnorderedKVOutputConfig rebuilt =
+        new UnorderedKVOutputConfig();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;
@@ -88,16 +88,12 @@ public class TestShuffledUnorderedKVInputConfigurer {
         conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
     assertEquals(true, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS,
         false));
-    assertEquals(0.11f, conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, 0.0f), 0.001f);
-    assertEquals(0.22f, conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 0.0f), 0.001f);
-    assertEquals(0.33f, conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_INPUT_BUFFER_PERCENT, 0.00f), 0.001f);
 
     // Verify additional configs
     assertEquals(false, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT));
     assertEquals(1111, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES,
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT));
-    assertEquals(3, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, -1));
     assertEquals("io", conf.get("io.shouldExist"));
     assertEquals("file", conf.get("file.shouldExist"));
     assertEquals("fs", conf.get("fs.shouldExist"));
@@ -108,11 +104,13 @@ public class TestShuffledUnorderedKVInputConfigurer {
 
   @Test
   public void testDefaultConfigsUsed() {
-    UnorderedKVInputConfigurer.Builder builder =
-        UnorderedKVInputConfigurer.newBuilder("KEY", "VALUE");
-    UnorderedKVInputConfigurer configuration = builder.build();
+    UnorderedKVOutputConfig.Builder builder =
+        UnorderedKVOutputConfig
+            .newBuilder("KEY", "VALUE");
+    UnorderedKVOutputConfig configuration = builder.build();
 
-    UnorderedKVInputConfigurer rebuilt = new UnorderedKVInputConfigurer();
+    UnorderedKVOutputConfig rebuilt =
+        new UnorderedKVOutputConfig();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 
     Configuration conf = rebuilt.conf;

@@ -49,7 +49,7 @@ import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
-import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
@@ -184,21 +184,21 @@ public class IntersectValidate extends Configured implements Tool {
     // Configuration for intermediate output - shared by Vertex1 and Vertex2
     // This should only be setting selective keys from the underlying conf. Fix after there's a
     // better mechanism to configure the IOs.
-    OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
         .newBuilder(Text.class.getName(), NullWritable.class.getName(),
             HashPartitioner.class.getName()).build();
 
     Vertex lhsVertex = new Vertex(LHS_INPUT_NAME, new ProcessorDescriptor(
         ForwardingProcessor.class.getName())).addDataSource("lhs",
         MRInput
-            .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
-                lhs.toUri().toString()).groupSplits(false).create());
+            .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
+                lhs.toUri().toString()).groupSplits(false).build());
 
     Vertex rhsVertex = new Vertex(RHS_INPUT_NAME, new ProcessorDescriptor(
         ForwardingProcessor.class.getName())).addDataSource("rhs",
         MRInput
-            .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
-                rhs.toUri().toString()).groupSplits(false).create());
+            .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
+                rhs.toUri().toString()).groupSplits(false).build());
 
     Vertex intersectValidateVertex = new Vertex("intersectvalidate", new ProcessorDescriptor(
         IntersectValidateProcessor.class.getName()), numPartitions);

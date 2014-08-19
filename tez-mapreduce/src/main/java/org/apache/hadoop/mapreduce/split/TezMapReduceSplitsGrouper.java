@@ -484,46 +484,46 @@ public class TezMapReduceSplitsGrouper {
    *          then pass in a {@link Configuration} that is initialized from a
    *          config file. The parameters that are not overridden in code will
    *          be derived from the Configuration object.
-   * @return {@link TezMRSplitsGrouperConfigurer}
+   * @return {@link org.apache.hadoop.mapreduce.split.TezMapReduceSplitsGrouper.TezMRSplitsGrouperConfigBuilder}
    */
-  public static TezMRSplitsGrouperConfigurer createConfigurer(Configuration conf) {
-    return new TezMRSplitsGrouperConfigurer(conf);
+  public static TezMRSplitsGrouperConfigBuilder createConfigBuilder(Configuration conf) {
+    return new TezMRSplitsGrouperConfigBuilder(conf);
   }  
 
-  public static final class TezMRSplitsGrouperConfigurer {
+  public static final class TezMRSplitsGrouperConfigBuilder {
     private final Configuration conf;
 
     /**
      * This configuration will be modified in place
      */
-    private TezMRSplitsGrouperConfigurer(Configuration conf) {
+    private TezMRSplitsGrouperConfigBuilder(Configuration conf) {
       if (conf == null) {
         conf = new Configuration(false);
       }
       this.conf = conf;
     }
 
-    public TezMRSplitsGrouperConfigurer setGroupSplitCount(int count) {
+    public TezMRSplitsGrouperConfigBuilder setGroupSplitCount(int count) {
       this.conf.setInt(TEZ_GROUPING_SPLIT_COUNT, count);
       return this;
     }
 
-    public TezMRSplitsGrouperConfigurer setGroupSplitByCount(boolean enabled) {
+    public TezMRSplitsGrouperConfigBuilder setGroupSplitByCount(boolean enabled) {
       this.conf.setBoolean(TEZ_GROUPING_SPLIT_BY_COUNT, enabled);
       return this;
     }
 
-    public TezMRSplitsGrouperConfigurer setGroupSplitByLength(boolean enabled) {
+    public TezMRSplitsGrouperConfigBuilder setGroupSplitByLength(boolean enabled) {
       this.conf.setBoolean(TEZ_GROUPING_SPLIT_BY_LENGTH, enabled);
       return this;
     }
 
-    public TezMRSplitsGrouperConfigurer setGroupSplitWaves(float multiplier) {
+    public TezMRSplitsGrouperConfigBuilder setGroupSplitWaves(float multiplier) {
       this.conf.setFloat(TEZ_GROUPING_SPLIT_WAVES, multiplier);
       return this;
     }
 
-    public TezMRSplitsGrouperConfigurer setGroupingRackSplitSizeReduction(float rackSplitSizeReduction) {
+    public TezMRSplitsGrouperConfigBuilder setGroupingRackSplitSizeReduction(float rackSplitSizeReduction) {
       this.conf.setFloat(TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION, rackSplitSizeReduction);
       return this;
     }
@@ -531,7 +531,7 @@ public class TezMapReduceSplitsGrouper {
     /**
      * upper and lower bounds for the splits
      */
-    public TezMRSplitsGrouperConfigurer setGroupingSplitSize(long lowerBound, long upperBound) {
+    public TezMRSplitsGrouperConfigBuilder setGroupingSplitSize(long lowerBound, long upperBound) {
       this.conf.setLong(TEZ_GROUPING_SPLIT_MIN_SIZE, lowerBound);
       this.conf.setLong(TEZ_GROUPING_SPLIT_MAX_SIZE, upperBound);
       return this;

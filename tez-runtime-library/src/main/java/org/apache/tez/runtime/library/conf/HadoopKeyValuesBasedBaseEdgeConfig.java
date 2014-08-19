@@ -26,7 +26,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.tez.dag.api.UserPayload;
 
 @InterfaceAudience.Private
-abstract class HadoopKeyValuesBasedBaseEdgeConfigurer {
+abstract class HadoopKeyValuesBasedBaseEdgeConfig {
 
   /**
    * Get the payload for the configured Output
@@ -52,7 +52,7 @@ abstract class HadoopKeyValuesBasedBaseEdgeConfigurer {
    */
   public abstract String getInputClassName();
 
-  public abstract static class Builder<T extends Builder<T>> implements BaseConfigurer<T> {
+  public abstract static class Builder<T extends Builder<T>> implements BaseConfigBuilder<T> {
 
     /**
      * Enable compression for the specific Input / Output / Edge

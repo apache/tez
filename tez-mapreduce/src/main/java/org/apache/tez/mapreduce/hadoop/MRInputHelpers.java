@@ -85,7 +85,7 @@ public class MRInputHelpers {
    * <p/>
    * Usage of this technique for handling splits is not advised. Instead, splits should be either
    * generated in the AM, or generated in the client and distributed via the AM. See {@link
-   * org.apache.tez.mapreduce.input.MRInput.MRInputConfigurer}
+   * org.apache.tez.mapreduce.input.MRInput.MRInputConfigBuilder}
    * <p/>
    * Note: Attempting to use this method to add multiple Inputs to a Vertex is not supported.
    *

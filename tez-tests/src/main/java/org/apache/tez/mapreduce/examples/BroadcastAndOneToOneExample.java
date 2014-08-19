@@ -50,7 +50,7 @@ import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
-import org.apache.tez.runtime.library.conf.UnorderedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.conf.UnorderedKVEdgeConfig;
 import org.apache.tez.runtime.library.output.UnorderedKVOutput;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
@@ -158,7 +158,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     oneToOneVertex.setVertexManagerPlugin(
             new VertexManagerPluginDescriptor(InputReadyVertexManager.class.getName()));
 
-    UnorderedKVEdgeConfigurer edgeConf = UnorderedKVEdgeConfigurer
+    UnorderedKVEdgeConfig edgeConf = UnorderedKVEdgeConfig
         .newBuilder(Text.class.getName(), IntWritable.class.getName()).build();
 
     DAG dag = new DAG("BroadcastAndOneToOneExample");

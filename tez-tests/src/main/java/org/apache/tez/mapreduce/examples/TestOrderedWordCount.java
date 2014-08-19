@@ -75,7 +75,7 @@ import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
-import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -193,7 +193,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
       mapStageConf.setBoolean("mapred.mapper.new-api", true);
       dsd = MRInputHelpers.configureMRInputWithLegacySplitGeneration(mapStageConf, stagingDir, true);
     } else {
-      dsd = MRInputLegacy.createConfigurer(mapStageConf, TextInputFormat.class, inputPath).create();
+      dsd = MRInputLegacy.createConfigBuilder(mapStageConf, TextInputFormat.class, inputPath).build();
     }
 
     Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
@@ -224,8 +224,8 @@ public class TestOrderedWordCount extends Configured implements Tool {
                 .setHistoryText(finalReduceStageHistoryText), 1);
     finalReduceVertex.setTaskLocalFiles(commonLocalResources);
     finalReduceVertex.addDataSink("MROutput",
-        MROutputLegacy.createConfigurer(finalReduceConf, TextOutputFormat.class, outputPath)
-            .create());
+        MROutputLegacy.createConfigBuilder(finalReduceConf, TextOutputFormat.class, outputPath)
+            .build());
     vertices.add(finalReduceVertex);
 
     DAG dag = new DAG("OrderedWordCount" + dagIndex);
@@ -233,7 +233,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
       dag.addVertex(vertices.get(i));
     }
 
-    OrderedPartitionedKVEdgeConfigurer edgeConf1 = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig edgeConf1 = OrderedPartitionedKVEdgeConfig
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
             HashPartitioner.class.getName()).setFromConfiguration(conf)
 	    .configureInput().useLegacyInput().done().build();
@@ -241,7 +241,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
         new Edge(dag.getVertex("initialmap"), dag.getVertex("intermediate_reducer"),
             edgeConf1.createDefaultEdgeProperty()));
 
-    OrderedPartitionedKVEdgeConfigurer edgeConf2 = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig edgeConf2 = OrderedPartitionedKVEdgeConfig
         .newBuilder(IntWritable.class.getName(), Text.class.getName(),
             HashPartitioner.class.getName()).setFromConfiguration(conf)
             .configureInput().useLegacyInput().done().build();

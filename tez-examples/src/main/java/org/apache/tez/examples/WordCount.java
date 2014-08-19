@@ -46,7 +46,7 @@ import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
-import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 
 import com.google.common.base.Preconditions;
 
@@ -139,13 +139,13 @@ public class WordCount extends Configured implements Tool {
 
     // Create the descriptor that describes the input data to Tez. Using MRInput to read text 
     // data from the given input path. The TextInputFormat is used to read the text data.
-    DataSourceDescriptor dataSource = MRInput.createConfigurer(new Configuration(tezConf),
-        TextInputFormat.class, inputPath).create();
+    DataSourceDescriptor dataSource = MRInput.createConfigBuilder(new Configuration(tezConf),
+        TextInputFormat.class, inputPath).build();
 
     // Create a descriptor that describes the output data to Tez. Using MROoutput to write text
     // data to the given output path. The TextOutputFormat is used to write the text data.
-    DataSinkDescriptor dataSink = MROutput.createConfigurer(new Configuration(tezConf),
-        TextOutputFormat.class, outputPath).create();
+    DataSinkDescriptor dataSink = MROutput.createConfigBuilder(new Configuration(tezConf),
+        TextOutputFormat.class, outputPath).build();
 
     // Create a vertex that reads the data from the data source and tokenizes it using the 
     // TokenProcessor. The number of tasks that will do the work for this vertex will be decided 
@@ -158,13 +158,13 @@ public class WordCount extends Configured implements Tool {
     // parallel the tokenized data will be partitioned by word such that a given word goes to the 
     // same partition. The counts for the words should be grouped together per word. To achieve this
     // we can use an edge that contains an input/output pair that handles partitioning and grouping 
-    // of key value data. We use the helper OrderedPartitionedKVEdgeConfigurer to create such an 
+    // of key value data. We use the helper OrderedPartitionedKVEdgeConfig to create such an
     // edge. Internally, it sets up matching Tez inputs and outputs that can perform this logic.
     // We specify the key, value and partitioner type. Here the key type is Text (for word), the 
     // value type is IntWritable (for count) and we using a hash based partitioner. This is a helper
     // object. The edge can be configured by configuring the input, output etc individually without
     // using this helper.
-    OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
             HashPartitioner.class.getName()).build();
 

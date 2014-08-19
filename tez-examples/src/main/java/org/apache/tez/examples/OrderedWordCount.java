@@ -46,7 +46,7 @@ import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
-import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
@@ -115,18 +115,18 @@ public class OrderedWordCount extends Configured implements Tool  {
   public static DAG createDAG(TezConfiguration tezConf, String inputPath, String outputPath,
       int numPartitions, String dagName) throws IOException {
 
-    DataSourceDescriptor dataSource = MRInput.createConfigurer(new Configuration(tezConf),
-        TextInputFormat.class, inputPath).create();
+    DataSourceDescriptor dataSource = MRInput.createConfigBuilder(new Configuration(tezConf),
+        TextInputFormat.class, inputPath).build();
 
-    DataSinkDescriptor dataSink = MROutput.createConfigurer(new Configuration(tezConf),
-        TextOutputFormat.class, outputPath).create();
+    DataSinkDescriptor dataSink = MROutput.createConfigBuilder(new Configuration(tezConf),
+        TextOutputFormat.class, outputPath).build();
 
     Vertex tokenizerVertex = new Vertex("Tokenizer", new ProcessorDescriptor(
         TokenProcessor.class.getName()));
     tokenizerVertex.addDataSource("MRInput", dataSource);
 
     // Use Text key and IntWritable value to bring counts for each word in the same partition
-    OrderedPartitionedKVEdgeConfigurer summationEdgeConf = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig summationEdgeConf = OrderedPartitionedKVEdgeConfig
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
             HashPartitioner.class.getName()).build();
 
@@ -137,7 +137,7 @@ public class OrderedWordCount extends Configured implements Tool  {
     
     // Use IntWritable key and Text value to bring all words with the same count in the same 
     // partition. The data will be ordered by count and words grouped by count.
-    OrderedPartitionedKVEdgeConfigurer sorterEdgeConf = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig sorterEdgeConf = OrderedPartitionedKVEdgeConfig
         .newBuilder(IntWritable.class.getName(), Text.class.getName(),
             HashPartitioner.class.getName()).build();
 

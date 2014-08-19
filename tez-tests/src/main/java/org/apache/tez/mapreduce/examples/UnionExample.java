@@ -50,7 +50,6 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.mapreduce.input.MRInput;
-import org.apache.tez.mapreduce.input.MRInput.MRInputConfigurer;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -59,7 +58,7 @@ import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
-import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValuesInput;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 
@@ -169,9 +168,10 @@ public class UnionExample {
     
     int numMaps = -1;
     Configuration inputConf = new Configuration(tezConf);
-    MRInputConfigurer configurer = MRInput.createConfigurer(inputConf, TextInputFormat.class,
+    MRInput.MRInputConfigBuilder configurer = MRInput.createConfigBuilder(inputConf,
+        TextInputFormat.class,
         inputPath);
-    DataSourceDescriptor dataSource = configurer.generateSplitsInAM(false).create();
+    DataSourceDescriptor dataSource = configurer.generateSplitsInAM(false).build();
 
     Vertex mapVertex1 = new Vertex("map1", new ProcessorDescriptor(
         TokenProcessor.class.getName()), numMaps).addDataSource("MRInput", dataSource);
@@ -186,23 +186,23 @@ public class UnionExample {
         UnionProcessor.class.getName()), 1);
 
     Configuration outputConf = new Configuration(tezConf);
-    DataSinkDescriptor od = MROutput.createConfigurer(outputConf,
-        TextOutputFormat.class, outputPath).create();
+    DataSinkDescriptor od = MROutput.createConfigBuilder(outputConf,
+        TextOutputFormat.class, outputPath).build();
     checkerVertex.addDataSink("union", od);
     
 
     Configuration allPartsConf = new Configuration(tezConf);
-    DataSinkDescriptor od2 = MROutput.createConfigurer(allPartsConf,
-        TextOutputFormat.class, outputPath + "-all-parts").create();
+    DataSinkDescriptor od2 = MROutput.createConfigBuilder(allPartsConf,
+        TextOutputFormat.class, outputPath + "-all-parts").build();
     checkerVertex.addDataSink("all-parts", od2);
 
     Configuration partsConf = new Configuration(tezConf);    
-    DataSinkDescriptor od1 = MROutput.createConfigurer(partsConf,
-        TextOutputFormat.class, outputPath + "-parts").create();
+    DataSinkDescriptor od1 = MROutput.createConfigBuilder(partsConf,
+        TextOutputFormat.class, outputPath + "-parts").build();
     VertexGroup unionVertex = dag.createVertexGroup("union", mapVertex1, mapVertex2);
     unionVertex.addDataSink("parts", od1);
 
-    OrderedPartitionedKVEdgeConfigurer edgeConf = OrderedPartitionedKVEdgeConfigurer
+    OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
             HashPartitioner.class.getName()).build();
 

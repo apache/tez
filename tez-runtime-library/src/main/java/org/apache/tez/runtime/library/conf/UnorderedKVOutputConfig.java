@@ -47,18 +47,18 @@ import org.apache.tez.runtime.library.output.UnorderedKVOutput;
  * Values will be picked up from tez-site if not specified, otherwise defaults from
  * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
  */
-public class UnorderedKVOutputConfigurer {
+public class UnorderedKVOutputConfig {
   /**
    * Configure parameters which are specific to the Output.
    */
   @InterfaceAudience.Private
-  public static interface SpecificConfigurer<T> extends BaseConfigurer<T> {
+  public static interface SpecificConfigBuilder<T> extends BaseConfigBuilder<T> {
   }
 
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
-  public static class SpecificBuilder<E extends HadoopKeyValuesBasedBaseEdgeConfigurer.Builder> implements
-      SpecificConfigurer<SpecificBuilder> {
+  public static class SpecificBuilder<E extends HadoopKeyValuesBasedBaseEdgeConfig.Builder> implements
+      SpecificConfigBuilder<SpecificBuilder> {
 
     private final E edgeBuilder;
     private final Builder builder;
@@ -97,10 +97,10 @@ public class UnorderedKVOutputConfigurer {
 
   @InterfaceAudience.Private
   @VisibleForTesting
-  UnorderedKVOutputConfigurer() {
+  UnorderedKVOutputConfig() {
   }
 
-  private UnorderedKVOutputConfigurer(Configuration conf) {
+  private UnorderedKVOutputConfig(Configuration conf) {
     this.conf = conf;
   }
 
@@ -131,7 +131,7 @@ public class UnorderedKVOutputConfigurer {
 
   @InterfaceAudience.Public
   @InterfaceStability.Evolving
-  public static class Builder implements SpecificConfigurer<Builder> {
+  public static class Builder implements SpecificConfigBuilder<Builder> {
 
     private final Configuration conf = new Configuration(false);
 
@@ -276,8 +276,8 @@ public class UnorderedKVOutputConfigurer {
      *
      * @return an instance of the Configuration
      */
-    public UnorderedKVOutputConfigurer build() {
-      return new UnorderedKVOutputConfigurer(this.conf);
+    public UnorderedKVOutputConfig build() {
+      return new UnorderedKVOutputConfig(this.conf);
     }
   }
 }

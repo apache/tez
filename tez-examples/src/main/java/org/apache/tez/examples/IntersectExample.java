@@ -55,7 +55,7 @@ import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
-import org.apache.tez.runtime.library.conf.UnorderedPartitionedKVEdgeConfigurer;
+import org.apache.tez.runtime.library.conf.UnorderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
@@ -177,8 +177,8 @@ public class IntersectExample extends Configured implements Tool {
     // This should only be setting selective keys from the underlying conf. Fix after there's a
     // better mechanism to configure the IOs.
 
-    UnorderedPartitionedKVEdgeConfigurer edgeConf =
-        UnorderedPartitionedKVEdgeConfigurer
+    UnorderedPartitionedKVEdgeConfig edgeConf =
+        UnorderedPartitionedKVEdgeConfig
             .newBuilder(Text.class.getName(), NullWritable.class.getName(),
                 HashPartitioner.class.getName()).build();
 
@@ -187,20 +187,20 @@ public class IntersectExample extends Configured implements Tool {
         ForwardingProcessor.class.getName())).addDataSource(
         "streamfile",
         MRInput
-            .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
-                streamPath.toUri().toString()).groupSplits(false).create());
+            .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
+                streamPath.toUri().toString()).groupSplits(false).build());
 
     Vertex hashFileVertex = new Vertex("partitioner2", new ProcessorDescriptor(
         ForwardingProcessor.class.getName())).addDataSource(
         "hashfile",
         MRInput
-            .createConfigurer(new Configuration(tezConf), TextInputFormat.class,
-                hashPath.toUri().toString()).groupSplits(false).create());
+            .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
+                hashPath.toUri().toString()).groupSplits(false).build());
 
     Vertex intersectVertex = new Vertex("intersect", new ProcessorDescriptor(
         IntersectProcessor.class.getName()), numPartitions).addDataSink("finalOutput",
-        MROutput.createConfigurer(new Configuration(tezConf),
-            TextOutputFormat.class, outPath.toUri().toString()).create());
+        MROutput.createConfigBuilder(new Configuration(tezConf),
+            TextOutputFormat.class, outPath.toUri().toString()).build());
 
     Edge e1 = new Edge(streamFileVertex, intersectVertex, edgeConf.createDefaultEdgeProperty());
 

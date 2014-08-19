@@ -299,7 +299,7 @@ public class TestGroupedSplits {
     format.setConf(job);
     format.setInputFormat(mockWrappedFormat);
     
-    job = (JobConf) TezMapReduceSplitsGrouper.createConfigurer(job)
+    job = (JobConf) TezMapReduceSplitsGrouper.createConfigBuilder(job)
         .setGroupingSplitSize(50*1000*1000l, 500*1000*1000l)
         .build();
     InputSplit mockSplit1 = mock(InputSplit.class);

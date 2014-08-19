@@ -27,28 +27,28 @@ import org.apache.tez.runtime.api.OutputContext;
 public class MROutputLegacy extends MROutput {
 
   /**
-   * Create an {@link MROutputConfigurer}
+   * Create an {@link org.apache.tez.mapreduce.output.MROutput.MROutputConfigBuilder}
    *
    * @param conf         Configuration for the {@link MROutput}
    * @param outputFormat OutputFormat derived class
-   * @return {@link MROutputConfigurer}
+   * @return {@link org.apache.tez.mapreduce.output.MROutput.MROutputConfigBuilder}
    */
-  public static MROutputConfigurer createConfigurer(Configuration conf, Class<?> outputFormat) {
-    return MROutput.createConfigurer(conf, outputFormat)
+  public static MROutputConfigBuilder createConfigBuilder(Configuration conf, Class<?> outputFormat) {
+    return MROutput.createConfigBuilder(conf, outputFormat)
         .setOutputClassName(MROutputLegacy.class.getName());
   }
 
   /**
-   * Create an {@link MROutputConfigurer} for a FileOutputFormat
+   * Create an {@link org.apache.tez.mapreduce.output.MROutput.MROutputConfigBuilder} for a FileOutputFormat
    *
    * @param conf         Configuration for the {@link MROutput}
    * @param outputFormat FileInputFormat derived class
    * @param outputPath   Output path
-   * @return {@link MROutputConfigurer}
+   * @return {@link org.apache.tez.mapreduce.output.MROutput.MROutputConfigBuilder}
    */
-  public static MROutputConfigurer createConfigurer(Configuration conf, Class<?> outputFormat,
-                                                    String outputPath) {
-    return MROutput.createConfigurer(conf, outputFormat, outputPath)
+  public static MROutputConfigBuilder createConfigBuilder(Configuration conf, Class<?> outputFormat,
+                                                          String outputPath) {
+    return MROutput.createConfigBuilder(conf, outputFormat, outputPath)
         .setOutputClassName(MROutputLegacy.class.getName());
   }
 
