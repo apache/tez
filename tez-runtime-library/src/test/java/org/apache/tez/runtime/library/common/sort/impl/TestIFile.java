@@ -176,8 +176,8 @@ public class TestIFile {
     testWithDataBuffer(sortedData);
 
     List<KVPair> unsortedData = KVDataGen.generateTestData(false, 1);
-    testWriterAndReader(sortedData);
-    testWithDataBuffer(sortedData);
+    testWriterAndReader(unsortedData);
+    testWithDataBuffer(unsortedData);
   }
 
   @Test
