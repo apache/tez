@@ -65,6 +65,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+/**
+ * Top level entity that defines the DAG (Directed Acyclic Graph) representing 
+ * the data flow graph. Consists of a set of Vertices and Edges connecting the 
+ * vertices. Vertices represent transformations of data and edges represent 
+ * movement of data between vertices.
+ */
 @Public
 public class DAG {
   
@@ -111,13 +117,20 @@ public class DAG {
    * credentials.
    * 
    * @param credentials Credentials for the DAG
-   * @return this
+   * @return {@link DAG}
    */
   public synchronized DAG setCredentials(Credentials credentials) {
     this.credentials = credentials;
     return this;
   }
   
+  /**
+   * Create a group of vertices that share a common output. This can be used to implement 
+   * unions efficiently.
+   * @param name Name of the group.
+   * @param members {@link Vertex} members of the group
+   * @return {@link DAG}
+   */
   public synchronized VertexGroup createVertexGroup(String name, Vertex... members) {
     VertexGroup uv = new VertexGroup(name, members);
     vertexGroups.add(uv);
@@ -136,7 +149,7 @@ public class DAG {
    * The owner of the Tez Session and the user submitting the DAG are super-users and have access
    * to all operations on the DAG.
    * @param accessControls Access Controls
-   * @return
+   * @return {@link DAG}
    */
   public synchronized DAG setAccessControls(DAGAccessControls accessControls) {
     this.dagAccessControls = accessControls;
@@ -160,7 +173,7 @@ public class DAG {
    * 
    * @param uris
    *          a list of {@link URI}s
-   * @return the DAG instance being used
+   * @return {@link DAG}
    */
   public synchronized DAG addURIsForCredentials(Collection<URI> uris) {
     Preconditions.checkNotNull(uris, "URIs cannot be null");
@@ -183,6 +196,11 @@ public class DAG {
     return Collections.unmodifiableSet(this.vertices.values());
   }
 
+  /**
+   * Add an {@link Edge} connecting vertices in the DAG
+   * @param edge The edge to be added
+   * @return {@link DAG}
+   */
   public synchronized DAG addEdge(Edge edge) {
     // Sanity checks
     if (!vertices.containsValue(edge.getInputVertex())) {
@@ -206,6 +224,11 @@ public class DAG {
     return this;
   }
   
+  /**
+   * Add a {@link GroupInputEdge} to the DAG.
+   * @param edge {@link GroupInputEdge}
+   * @return {@link DAG}
+   */
   public synchronized DAG addEdge(GroupInputEdge edge) {
     // Sanity checks
     if (!vertexGroups.contains(edge.getInputVertexGroup())) {
@@ -241,6 +264,10 @@ public class DAG {
     return this;
   }
   
+  /**
+   * Get the DAG name
+   * @return DAG name
+   */
   public String getName() {
     return this.name;
   }

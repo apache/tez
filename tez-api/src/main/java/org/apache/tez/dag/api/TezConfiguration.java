@@ -26,7 +26,9 @@ import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 
 /**
- * Defines the configurations for Tez
+ * Defines the configurations for Tez. These configurations are typically specified in 
+ * tez-site.xml on the client machine where TezClient is used to launch the Tez application.
+ * tez-site.xml is expected to be picked up from the classpath of the client process.
  */
 @Public
 public class TezConfiguration extends Configuration {
@@ -50,23 +52,34 @@ public class TezConfiguration extends Configuration {
   @Private
   public static final String TEZ_TASK_PREFIX = TEZ_PREFIX + "task.";
 
-  /** Whether to delete all the tez framework scratch data in staging dir on completion */
+  /**
+   * Boolean value. If true then Tez will try to automatically delete temporary job 
+   * artifacts that it creates within the specified staging dir. Does not affect any user data.
+   */
   public static final String TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE = TEZ_AM_PREFIX +
       "staging.scratch-data.auto-delete";
   public static final boolean TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE_DEFAULT = true;
 
-  /** The staging dir used while submitting DAGs */
+  /**
+   * String value. Specifies a directory where Tez can create temporary job artifacts.
+   */
   public static final String TEZ_AM_STAGING_DIR = TEZ_PREFIX + "staging-dir";
   public static final String TEZ_AM_STAGING_DIR_DEFAULT = "/tmp/tez/staging";
   
   /**
-   * Path to a credentials file located on the local file system with serialized credentials.
-   * Note: This property does not follow the standard convention of including tez.runtime in it's
-   * name.
+   * String value that is a file path.
+   * Path to a credentials file (with serialized credentials) located on the local file system.
    */
   public static final String TEZ_CREDENTIALS_PATH = TEZ_PREFIX + "credentials.path";
-  
-  /** Execution mode for submitting DAG's to the AM */
+
+  /**
+   * Boolean value. Execution mode for the Tez application. True implies session mode. If the client
+   * code is written according to best practices then the same code can execute in either mode based
+   * on this configuration. Session mode is more aggressive in reserving execution resources and is
+   * typically used for interactive applications where multiple DAGs are submitted in quick succession
+   * by the same user. For long running applications, one-off executions, batch jobs etc non-session 
+   * mode is recommended. If session mode is enabled then container reuse is recommended.
+   */
   public static final String TEZ_AM_SESSION_MODE = TEZ_AM_PREFIX + "mode.session";
   public static boolean TEZ_AM_SESSION_MODE_DEFAULT = false;
 
@@ -74,21 +87,37 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_LOG_LEVEL = TEZ_AM_PREFIX + "log.level";
   public static final String TEZ_AM_LOG_LEVEL_DEFAULT = "INFO";
 
-  /** Root Logging level passed to the Tez app master.*/
+  /** Root Logging level passed to the Tez tasks.*/
   public static final String TEZ_TASK_LOG_LEVEL = TEZ_TASK_PREFIX + "log.level";
   public static final String TEZ_TASK_LOG_LEVEL_DEFAULT = "INFO";
 
+  /**
+   * Boolean value. Determines when the final outputs to data sinks are committed. Commit is an
+   * output specific operation and typically involves making the output visible for consumption. 
+   * If the config is true, then the outputs are committed at the end of DAG completion after all 
+   * constituent vertices have completed. If false, outputs for each vertex are committed after that 
+   * vertex succeeds. Depending on the desired output visibility and downstream consumer dependencies
+   * this value must be appropriately chosen. Defaults to the safe choice of true.
+   */
   public static final String TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS =
       TEZ_AM_PREFIX + "commit-all-outputs-on-dag-success";
   public static final boolean TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT = true;
 
-  /** Command line options for the Tez AppMaster process. */
+  /**
+   * String value. Command line options provided during the launch of the Tez
+   * AppMaster process. Its recommended to not set any Xmx or Xms in these launch opts so that
+   * Tez can determine them automatically.
+   * */
   public static final String TEZ_AM_LAUNCH_CMD_OPTS = TEZ_AM_PREFIX +  "launch.cmd-opts";
   public static final String TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT = 
       "-Djava.net.preferIPv4Stack=true " +
       "-Dhadoop.metrics.log.level=WARN ";
 
-  /** Command line options for the Tez Task processes. */
+  /**
+   * String value. Command line options provided during the launch of Tez Task
+   * processes. Its recommended to not set any Xmx or Xms in these launch opts
+   * so that Tez can determine them automatically.
+   */
   public static final String TEZ_TASK_LAUNCH_CMD_OPTS = TEZ_TASK_PREFIX
       + "launch.cmd-opts";
   public static final String TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT = 
@@ -96,8 +125,13 @@ public class TezConfiguration extends Configuration {
       "-Dhadoop.metrics.log.level=WARN ";
 
   /**
-   * Factor to size Xmx based on container memory size. Value should be greater than 0 and
-   * less than 1.
+   * Double value. Tez automatically determines the Xmx for the JVMs used to run
+   * Tez tasks and app masters. This feature is enabled if the user has not
+   * specified Xmx or Xms values in the launch command opts. Doing automatic Xmx
+   * calculation is preferred because Tez can determine the best value based on
+   * actual allocation of memory to tasks the cluster. The value if used as a
+   * fraction that is applied to the memory allocated Factor to size Xmx based
+   * on container memory size. Value should be greater than 0 and less than 1.
    */
   public static final String TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION =
       TEZ_PREFIX + "container.max.java.heap.fraction";
@@ -107,21 +141,23 @@ public class TezConfiguration extends Configuration {
     "PATH=%PATH%;%HADOOP_COMMON_HOME%\\bin":
     "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_COMMON_HOME/lib/native/";
 
-  /** Env settings for the Tez AppMaster process.
+  /** String value. Env settings for the Tez AppMaster process.
    * Should be specified as a comma-separated of key-value pairs where each pair
    * is defined as KEY=VAL
    * e.g. "LD_LIBRARY_PATH=.,USERNAME=foo"
-   * These take least precedence compared to other methods of setting env
+   * These take least precedence compared to other methods of setting env.
+   * These get added to the app master environment prior to launching it.
   */
   public static final String TEZ_AM_LAUNCH_ENV = TEZ_AM_PREFIX
       + "launch.env";
   public static final String TEZ_AM_LAUNCH_ENV_DEFAULT = NATIVE_LIB_PARAM_DEFAULT;
 
-  /** Env settings for the Tez Task processes.
+  /** String value. Env settings for the Tez Task processes.
    * Should be specified as a comma-separated of key-value pairs where each pair
    * is defined as KEY=VAL
    * e.g. "LD_LIBRARY_PATH=.,USERNAME=foo"
    * These take least precedence compared to other methods of setting env
+   * These get added to the task environment prior to launching it.
    */
   public static final String TEZ_TASK_LAUNCH_ENV = TEZ_TASK_PREFIX
       + "launch.env";
@@ -132,136 +168,214 @@ public class TezConfiguration extends Configuration {
       "cancel.delegation.tokens.on.completion";
   public static final boolean TEZ_CANCEL_DELEGATION_TOKENS_ON_COMPLETION_DEFAULT = true;
 
+  /**
+   * Int value. The number of threads used to listen to task heartbeat requests.
+   * Expert level setting.
+   */
   public static final String TEZ_AM_TASK_LISTENER_THREAD_COUNT =
       TEZ_AM_PREFIX + "task.listener.thread-count";
   public static final int TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
 
   /**
-   * Configuration to limit the counters per AM
+   * Int value. Configuration to limit the counters per app master. This can be used to
+   * limit the amount of memory being used in the app master to store the
+   * counters. Expert level setting.
    */
+  @Unstable
   public static final String TEZ_AM_COUNTERS_MAX_KEYS = TEZ_AM_PREFIX + "counters.max.keys";
   public static final int TEZ_AM_COUNTERS_MAX_KEYS_DEFAULT = 1200;
 
+  /**
+   * Int value. Configuration to limit the counter group names per app master. This can be used to
+   * limit the amount of memory being used in the app master to store the
+   * counters. Expert level setting.
+   */
+  @Unstable
   public static final String TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS =
       TEZ_AM_PREFIX + "counters.group-name.max.keys";
   public static final int TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS_DEFAULT = 128;
 
 
+  /**
+   * Int value. Configuration to limit the counter names per app master. This can be used to
+   * limit the amount of memory being used in the app master to store the
+   * counters. Expert level setting.
+   */
+  @Unstable
   public static final String TEZ_AM_COUNTERS_NAME_MAX_KEYS =
       TEZ_AM_PREFIX + "counters.name.max.keys";
   public static final int TEZ_AM_COUNTERS_NAME_MAX_KEYS_DEFAULT = 64;
 
 
+  /**
+   * Int value. Configuration to limit the counter groups per app master. This can be used to
+   * limit the amount of memory being used in the app master to store the
+   * counters. Expert level setting.
+   */
+  @Unstable
   public static final String TEZ_AM_COUNTERS_GROUPS_MAX_KEYS =
       TEZ_AM_PREFIX + "counters.groups.max.keys";
   public static final int TEZ_AM_COUNTERS_GROUPS_MAX_KEYS_DEFAULT = 500;
 
   /**
-   * Upper limit on the number of threads user to launch containers in the app
-   * master. Expect level config, you shouldn't be needing it in most cases.
+   * Int value. Upper limit on the number of threads user to launch containers in the app
+   * master. Expert level setting. 
    */
   public static final String TEZ_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT =
-    TEZ_AM_PREFIX+"containerlauncher.thread-count-limit";
+    TEZ_AM_PREFIX + "containerlauncher.thread-count-limit";
 
   public static final int TEZ_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT_DEFAULT = 
     500;
 
-  
-  // TODO Some of the DAG properties are job specific and not AM specific. Rename accordingly.
-  // TODO Are any of these node blacklisting properties required. (other than for MR compat)
+
+  /**
+   * Int value. Specifies the number of task failures on a node before the node is considered faulty.
+   */
   public static final String TEZ_AM_MAX_TASK_FAILURES_PER_NODE = TEZ_AM_PREFIX
       + "maxtaskfailures.per.node";
   public static final int TEZ_AM_MAX_TASK_FAILURES_PER_NODE_DEFAULT = 3;
 
+  /**
+   * Int value. Specifies the number of times the app master can be launched in order to recover 
+   * from app master failure. Typically app master failures are non-recoverable. This parameter 
+   * is for cases where the app master is not at fault but is lost due to system errors.
+   * Expert level setting.
+   */
   public static final String TEZ_AM_MAX_APP_ATTEMPTS = TEZ_AM_PREFIX + 
       "max.app.attempts";
   public static int TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT = 2;
   
   /**
-   * The maximum number of attempts that can fail for a particular task. This 
-   * does not count killed attempts.
+   * Int value. The maximum number of attempts that can fail for a particular task before the task is failed. 
+   * This does not count killed attempts. Task failure results in DAG failure.
    */
   public static final String TEZ_AM_TASK_MAX_FAILED_ATTEMPTS =
       TEZ_AM_PREFIX + "task.max.failed.attempts";
   public static final int TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT = 4;
 
+  /**
+   * Boolean value. Enabled blacklisting of nodes of nodes that are considered faulty. These nodes 
+   * will not be used to execute tasks.
+   */
   public static final String TEZ_AM_NODE_BLACKLISTING_ENABLED = TEZ_AM_PREFIX
       + "node-blacklisting.enabled";
   public static final boolean TEZ_AM_NODE_BLACKLISTING_ENABLED_DEFAULT = true;
+  
+  /**
+   * Int value. Specifies the percentage of nodes in the cluster that may be considered faulty.
+   * This limits the number of nodes that are blacklisted in an effort to minimize the effects of 
+   * temporary surges in failures (e.g. due to network outages). 
+   */
   public static final String TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD = TEZ_AM_PREFIX
       + "node-blacklisting.ignore-threshold-node-percent";
   public static final int TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT = 33;
 
-  /** Number of threads to handle job client RPC requests.*/
+  /** Int value. Number of threads to handle client RPC requests. Expert level setting.*/
   public static final String TEZ_AM_CLIENT_THREAD_COUNT =
       TEZ_AM_PREFIX + "client.am.thread-count";
   public static final int TEZ_AM_CLIENT_THREAD_COUNT_DEFAULT = 1;
+  
   /**
-   * Range of ports that the AM can use when binding. Leave blank
-   * if you want all possible ports.
+   * String value. Range of ports that the AM can use when binding for client connections. Leave blank
+   * to use all possible ports. Expert level setting.
    */
   public static final String TEZ_AM_CLIENT_AM_PORT_RANGE =
       TEZ_AM_PREFIX + "client.am.port-range";
 
 
-  /** The amount of memory to be used by the AppMaster */
+  /** Int value. The amount of memory in MB to be used by the AppMaster */
   public static final String TEZ_AM_RESOURCE_MEMORY_MB = TEZ_AM_PREFIX
       + "resource.memory.mb";
   public static final int TEZ_AM_RESOURCE_MEMORY_MB_DEFAULT = 1024;
 
+  /** Int value. The number of virtual cores to be used by the app master */
   public static final String TEZ_AM_RESOURCE_CPU_VCORES = TEZ_AM_PREFIX
       + "resource.cpu.vcores";
   public static final int TEZ_AM_RESOURCE_CPU_VCORES_DEFAULT = 1;
   
-  /** The amount of memory to be used by the AppMaster */
+  /** Int value. The amount of memory in MB to be used by tasks. This applies to all tasks across
+   * all vertices. Setting it to the same value for all tasks is helpful for container reuse and 
+   * thus good for performance typically. */
   public static final String TEZ_TASK_RESOURCE_MEMORY_MB = TEZ_TASK_PREFIX
       + "resource.memory.mb";
   public static final int TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT = 1024;
 
+  /**
+   * Int value. The number of virtual cores to be used by tasks.
+   */
   public static final String TEZ_TASK_RESOURCE_CPU_VCORES = TEZ_TASK_PREFIX
       + "resource.cpu.vcores";
   public static final int TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT = 1; 
 
-  /** The maximum heartbeat interval between the AM and RM in milliseconds */
+  /**
+   * Int value. The maximum heartbeat interval between the AM and RM in milliseconds
+   * Increasing this reduces the communication between the AM and the RM and can
+   * help in scaling up. Expert level setting. Expert level setting.
+   */
   public static final String TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX = TEZ_AM_PREFIX
       + "am-rm.heartbeat.interval-ms.max";
   public static final int TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX_DEFAULT = 1000;
 
-  /** The maximum amount of time, in milliseconds, to wait before a task asks an AM for another task. */
+  /**
+   * Int value. The maximum amount of time, in milliseconds, to wait before a task asks an
+   * AM for another task. Increasing this can help improve app master scalability for a large 
+   * number of concurrent tasks. Expert level setting.
+   */
   public static final String TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX = TEZ_TASK_PREFIX
       + "get-task.sleep.interval-ms.max";
   public static final int TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT = 200;
 
+  /**
+   * Int value. The maximum heartbeat interval, in milliseconds, between the app master and tasks. 
+   * Increasing this can help improve app master scalability for a large number of concurrent tasks.
+   * Expert level setting.
+   */
   public static final String TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS = TEZ_TASK_PREFIX
       + "am.heartbeat.interval-ms.max";
   public static final int TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS_DEFAULT = 100;
 
   /**
-   * Interval after which counters are sent to AM in heartbeat  
+   * Int value. Interval, in milliseconds, after which counters are sent to AM in heartbeat from 
+   * tasks. This reduces the amount of network traffice between AM and tasks to send high-volume 
+   * counters. Improves AM scalability. Expert level setting.
    */
   public static final String TEZ_TASK_AM_HEARTBEAT_COUNTER_INTERVAL_MS = TEZ_TASK_PREFIX
       + "am.heartbeat.counter.interval-ms.max";
   public static final int TEZ_TASK_AM_HEARTBEAT_COUNTER_INTERVAL_MS_DEFAULT =
       1000;
 
+  /**
+   * Int value. Maximum number of of events to fetch from the AM by the tasks in a single heartbeat.
+   * Expert level setting. Expert level setting.
+   */
   public static final String TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT = TEZ_TASK_PREFIX
       + "max-events-per-heartbeat.max";
   public static final int TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT = 100;
 
   /**
    * Whether to generate counters per IO or not. Enabling this will rename
-   * CounterGroups / CounterNames to making thme unique per Vertex +
+   * CounterGroups / CounterNames to making them unique per Vertex +
    * Src|Destination
    */
   @Unstable
   @Private
   public static final String TEZ_TASK_GENERATE_COUNTERS_PER_IO = TEZ_TASK_PREFIX
       + "generate.counters.per.io";
+  @Private
   public static final boolean TEZ_TASK_GENERATE_COUNTERS_PER_IO_DEFAULT = false;
-  
-  public static final String TASK_TIMEOUT = TEZ_TASK_PREFIX + "timeout";
 
-  public static final String TASK_HEARTBEAT_TIMEOUT_MS = TEZ_TASK_PREFIX + "heartbeat.timeout-ms";
+  /**
+   * Int value. Time interval, in milliseconds, within which a task must heartbeat to the app master
+   * before its considered lost.
+   * Expert level setting.
+   */
+  public static final String TASK_HEARTBEAT_TIMEOUT_MS = TEZ_TASK_PREFIX + "timeout-ms";
+
+  /**
+   * Int value. Time interval, in milliseconds, between checks for lost tasks.
+   * Expert level setting.
+   */
+  public static final String TASK_HEARTBEAT_TIMEOUT_CHECK_MS = TEZ_TASK_PREFIX + "heartbeat.timeout.check-ms";
     
   /**
    * Whether to scale down memory requested by each component if the total
@@ -271,6 +385,7 @@ public class TezConfiguration extends Configuration {
   @Unstable
   public static final String TEZ_TASK_SCALE_TASK_MEMORY_ENABLED = TEZ_TASK_PREFIX
       + "scale.task.memory.enabled";
+  @Private
   public static final boolean TEZ_TASK_SCALE_TASK_MEMORY_ENABLED_DEFAULT = true;
 
   /**
@@ -280,6 +395,7 @@ public class TezConfiguration extends Configuration {
   @Unstable
   public static final String TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS = TEZ_TASK_PREFIX
       + "scale.task.memory.allocator.class";
+  @Private
   public static final String TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS_DEFAULT =
       "org.apache.tez.runtime.common.resources.ScalingAllocator";
 
@@ -291,6 +407,7 @@ public class TezConfiguration extends Configuration {
   @Unstable
   public static final String TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION = TEZ_TASK_PREFIX
       + "scale.task.memory.reserve-fraction";
+  @Private
   public static final double TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION_DEFAULT = 0.3d; 
 
   @Private
@@ -310,6 +427,8 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO =
       TEZ_TASK_PREFIX + "scale.task.memory.additional-reservation.fraction.per-io";
 
+  @Private
+  @Unstable
   /**
    * Max cumulative total reservation for additional IOs.
    */
@@ -326,14 +445,15 @@ public class TezConfiguration extends Configuration {
 
 
   /**
-   * Configuration to specify whether container should be reused.
+   * Boolean value. Configuration to specify whether container should be reused across tasks.
+   * This improves performance by not incurring recurring launch overheads.
    */
   public static final String TEZ_AM_CONTAINER_REUSE_ENABLED = TEZ_AM_PREFIX
       + "container.reuse.enabled";
   public static final boolean TEZ_AM_CONTAINER_REUSE_ENABLED_DEFAULT = true;
 
   /**
-   * Whether to reuse containers for rack local tasks. Active only if reuse is
+   * Boolean value. Whether to reuse containers for rack local tasks. Active only if reuse is
    * enabled.
    */
   public static final String TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED =
@@ -342,8 +462,9 @@ public class TezConfiguration extends Configuration {
       TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED_DEFAULT = true;
 
   /**
-   * Whether to reuse containers for non-local tasks. Active only if reuse is
-   * enabled.
+   * Boolean value. Whether to reuse containers for non-local tasks. Active only if reuse is
+   * enabled. Turning this on can severely affect locality and can be bad for jobs with high data 
+   * volume being read from the primary data sources.
    */
   public static final String TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED =
       TEZ_AM_PREFIX + "container.reuse.non-local-fallback.enabled";
@@ -351,8 +472,8 @@ public class TezConfiguration extends Configuration {
       TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED_DEFAULT = false;
 
   /**
-   * The amount of time to wait before assigning a container to the next level
-   * of locality. NODE - RACK - NON_LOCAL
+   * Int value. The amount of time to wait before assigning a container to the next level
+   * of locality. NODE -> RACK -> NON_LOCAL. Delay scheduling parameter. Expert level setting.
    */
   public static final String
       TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS =
@@ -361,9 +482,8 @@ public class TezConfiguration extends Configuration {
     TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS_DEFAULT = 250l;
 
   /**
-   * The minimum amount of time to hold on to a container if no task can be
-   * assigned to it immediately. Only active when reuse is enabled. Set to -1 to
-   * never release a container.
+   * Int value. The minimum amount of time to hold on to a container that is idle. Only active when 
+   * reuse is enabled. Set to -1 to never release idle containers (not recommended). 
    */
   public static final String TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS = 
     TEZ_AM_PREFIX + "container.idle.release-timeout-min.millis";
@@ -371,7 +491,7 @@ public class TezConfiguration extends Configuration {
     TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS_DEFAULT = 5000l;  
 
   /**
-   * The maximum amount of time to hold on to a container if no task can be
+   * Int value. The maximum amount of time to hold on to a container if no task can be
    * assigned to it immediately. Only active when reuse is enabled. The value
    * must be +ve and >=
    * TezConfiguration#TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS.
@@ -386,13 +506,16 @@ public class TezConfiguration extends Configuration {
     TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS_DEFAULT = 10000l;
   
   /**
-   * The minimum number of containers that will be held by the session
+   * Int value. The minimum number of containers that will be held in session mode. Not active in 
+   * non-session mode. Enables an idle session (not running any DAG) to hold on to a minimum number
+   * of containers to provide fast response times for the next DAG.
    */
   public static final String TEZ_AM_SESSION_MIN_HELD_CONTAINERS = 
       TEZ_AM_PREFIX + "session.min.held-containers";
   public static final int TEZ_AM_SESSION_MIN_HELD_CONTAINERS_DEFAULT = 0;
 
   /**
+   * String value to a file path.
    * The location of the Tez libraries which will be localized for DAGs.
    * This follows the following semantics
    * <ol>
@@ -413,14 +536,16 @@ public class TezConfiguration extends Configuration {
    * </ol>
    */
   public static final String TEZ_LIB_URIS = TEZ_PREFIX + "lib.uris";
+  
   /** 
-   * Allows to ignore 'tez.lib.uris'. Useful during development as well as 
+   * Boolean value. Allows to ignore 'tez.lib.uris'. Useful during development as well as 
    * raw Tez application where classpath is propagated with application
-   * via {@link LocalResource}s
+   * via {@link LocalResource}s. This is mainly useful for developer/debugger scenarios.
    */
   public static final String TEZ_IGNORE_LIB_URIS = TEZ_PREFIX + "ignore.lib.uris";
 
   /**
+   * Boolean value.
    * Specify whether hadoop libraries required to run Tez should be the ones deployed on the cluster.
    * This is disabled by default - with the expectation being that tez.lib.uris has a complete
    * tez-deployment which contains the hadoop libraries.
@@ -436,8 +561,10 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "session.";
 
   /**
-   * Time (in seconds) to wait for AM to come up when trying to submit a DAG
-   * from the client.
+   * Int value. Time (in seconds) to wait for AM to come up when trying to submit a DAG
+   * from the client. Only relevant in session mode. If the cluster is busy and cannot launch the 
+   * AM then this timeout may be hit. In those case, using non-session mode is recommended if 
+   * applicable. Otherwise increase the timeout (set to -1 for infinity. Not recommended)
    */
   public static final String TEZ_SESSION_CLIENT_TIMEOUT_SECS =
       TEZ_SESSION_PREFIX + "client.timeout.secs";
@@ -445,8 +572,8 @@ public class TezConfiguration extends Configuration {
       120;
 
   /**
-   * Time (in seconds) for which the Tez AM should wait for a DAG to be submitted before
-   * shutting down.
+   * Int value. Time (in seconds) for which the Tez AM should wait for a DAG to be submitted before
+   * shutting down. Only relevant in session mode.
    */
   public static final String TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS =
       TEZ_SESSION_PREFIX + "am.dag.submit.timeout.secs";
@@ -454,12 +581,14 @@ public class TezConfiguration extends Configuration {
       300;
 
   /**
-   * The queue name for all jobs being submitted as part of a session, or for
-   * non session jobs.
+   * String value. The queue name for all jobs being submitted from a given client.
    */
   public static final String TEZ_QUEUE_NAME = TEZ_PREFIX + "queue.name";
 
   @Unstable
+  /**
+   * Boolean value. Generate debug artifacts like DAG visualization.
+   */
   public static final String TEZ_GENERATE_DEBUG_ARTIFACTS =
       TEZ_PREFIX + "generate.debug.artifacts";
   public static final boolean TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT = true;
@@ -490,48 +619,78 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS = TEZ_PREFIX + "task-specific" +
       ".launch.cmd-opts";
 
+  /**
+   * String value that is a class name.
+   * Specify the class to use for logging history data
+   */
   public static final String TEZ_HISTORY_LOGGING_SERVICE_CLASS =
       TEZ_PREFIX + "history.logging.service.class";
 
   public static final String TEZ_HISTORY_LOGGING_SERVICE_CLASS_DEFAULT =
       "org.apache.tez.dag.history.logging.impl.SimpleHistoryLoggingService";
 
+  /**
+   * String value. The directory into which history data will be written. This defaults to the 
+   * container logging directory. This is relevant only when SimpleHistoryLoggingService is being
+   * used for {@link TezConfiguration#TEZ_HISTORY_LOGGING_SERVICE_CLASS}
+   */
   public static final String TEZ_SIMPLE_HISTORY_LOGGING_DIR =
       TEZ_PREFIX + "simple.history.logging.dir";
+  
+  /**
+   * Int value. Maximum errors allowed while logging history data. After crossing this limit history
+   * logging gets disabled. The job continues to run after this.
+   */
   public static final String TEZ_SIMPLE_HISTORY_LOGGING_MAX_ERRORS =
       TEZ_PREFIX + "simple.history.max.errors";
   public static final int TEZ_SIMPLE_HISTORY_LOGGING_MAX_ERRORS_DEFAULT = 10;
 
+  /**
+   * Int value. Time, in milliseconds, to wait while flushing YARN ATS data during shutdown.
+   * Expert level setting.
+   */
   public static final String YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS =
       TEZ_PREFIX + "yarn.ats.event.flush.timeout.millis";
   public static final long YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS_DEFAULT =
       3000l;
 
+  /**
+   * Boolean value. Enable recovery of DAGs. This allows a restarted app master to recover the 
+   * incomplete DAGs from the previous instance of the app master.
+   */
   public static final String DAG_RECOVERY_ENABLED =
       TEZ_PREFIX + "dag.recovery.enabled";
   public static final boolean DAG_RECOVERY_ENABLED_DEFAULT = true;
 
+  /**
+   * Int value. Size in bytes for the IO buffer size while processing the recovery file.
+   * Expert level setting.
+   */
   public static final String DAG_RECOVERY_FILE_IO_BUFFER_SIZE =
       TEZ_PREFIX + "dag.recovery.io.buffer.size";
   public static final int DAG_RECOVERY_FILE_IO_BUFFER_SIZE_DEFAULT = 8192;
 
+  /**
+   * Int value. Number of recovery events to buffer before flushing them to the recovery log.
+   */
   public static final String DAG_RECOVERY_MAX_UNFLUSHED_EVENTS =
       TEZ_PREFIX + "dag.recovery.max.unflushed.events";
   public static final int DAG_RECOVERY_MAX_UNFLUSHED_EVENTS_DEFAULT = 100;
 
+  /**
+   * Int value. Interval, in seconds, between flushing recovery data to the recovery log.
+   */
   public static final String DAG_RECOVERY_FLUSH_INTERVAL_SECS =
       TEZ_PREFIX + "dag.recovery.flush.interval.secs";
   public static final int DAG_RECOVERY_FLUSH_INTERVAL_SECS_DEFAULT = 30;
 
   /**
-   *  Tez Local Mode flag. Not valid till Tez-684 get checked-in
+   *  Boolean value. Enable local mode execution in Tez. Enables tasks to run in the same process as
+   *  the app master. Primarily used for debugging.
    */
   public static final String TEZ_LOCAL_MODE =
     TEZ_PREFIX + "local.mode";
 
-  /**
-   *  Tez Local Mode flag. Not valid till Tez-684 get checked-in
-   */
   public static final boolean TEZ_LOCAL_MODE_DEFAULT = false;
 
   /**
@@ -544,17 +703,16 @@ public class TezConfiguration extends Configuration {
   /**
    *  Tez AM Inline Mode flag. Not valid till Tez-684 get checked-in
    */
+  @Private
   public static final boolean TEZ_AM_INLINE_TASK_EXECUTION_ENABLED_DEFAULT = false;
 
   /**
-   * The maximium number of tasks running in parallel in inline mode. Not valid till Tez-684 get checked-in
+   * Int value.
+   * The maximium number of tasks running in parallel within the app master process.
    */
   public static final String TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS =
     TEZ_AM_PREFIX + "inline.task.execution.max-tasks";
 
-  /**
-   * The maximium number of tasks running in parallel in inline mode. Not valid till Tez-684 get checked-in
-   */
   public static final int TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT = 1;
 
 
@@ -575,19 +733,26 @@ public class TezConfiguration extends Configuration {
   // If the value specified is "*", all users are allowed to do the operation.
 
   /**
-   * Configuration to enable/disable ACL checks.
+   * Boolean value. Configuration to enable/disable ACL checks.
    */
   public static final String TEZ_AM_ACLS_ENABLED = TEZ_AM_PREFIX + "acls.enabled";
   public static final boolean TEZ_AM_ACLS_ENABLED_DEFAULT = true;
 
   /**
+   * String value. 
    * AM view ACLs. This allows the specified users/groups to view the status of the AM and all DAGs
    * that run within this AM.
+   * Comma separated list of users, followed by whitespace, followed by a comma separated list of 
+   * groups
    */
   public static final String TEZ_AM_VIEW_ACLS = TEZ_AM_PREFIX + "view-acls";
+
   /**
+   * String value.
    * AM modify ACLs. This allows the specified users/groups to run modify operations on the AM
    * such as submitting DAGs, pre-warming the session, killing DAGs or shutting down the session.
+   * Comma separated list of users, followed by whitespace, followed by a comma separated list of 
+   * groups
    */
   public static final String TEZ_AM_MODIFY_ACLS = TEZ_AM_PREFIX + "modify-acls";
 
